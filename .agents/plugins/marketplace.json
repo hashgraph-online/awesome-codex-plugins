@@ -63,6 +63,21 @@
       "description": "Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces."
     },
     {
+      "name": "archcore",
+      "displayName": "Archcore",
+      "source": {
+        "source": "local",
+        "path": "./plugins/archcore-ai/plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP — so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.",
+      "icon": "./plugins/archcore-ai/plugin/assets/icon.png"
+    },
+    {
       "name": "bringyour-migration-auditor",
       "displayName": "Bring Your AI Migration Auditor",
       "source": {

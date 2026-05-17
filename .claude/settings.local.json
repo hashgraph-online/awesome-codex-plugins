@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import sys,json; m=json.load\\(sys.stdin\\); print\\('name:', m['name']\\); print\\('version:', m['version']\\); print\\('icon:', m['interface']['composerIcon']\\); print\\('logo:', m['interface'].get\\('logo'\\)\\)\")",
+      "Bash(python3 scripts/check-alphabetical.py)",
+      "Bash(python3 scripts/validate-plugin-pr.py)"
+    ]
+  }
+}
