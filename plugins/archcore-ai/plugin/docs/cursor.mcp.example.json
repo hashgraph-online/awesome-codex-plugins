@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "archcore": {
+      "type": "stdio",
+      "command": "archcore",
+      "args": ["mcp", "--project", "${workspaceFolder}"]
+    }
+  }
+}
