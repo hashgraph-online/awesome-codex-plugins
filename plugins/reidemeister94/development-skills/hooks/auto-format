@@ -13,13 +13,22 @@
 # Read hook input JSON, extract file_path from tool_input.
 # python3 is required by the plugin elsewhere; using it here is robust to
 # pretty-printed JSON, escaped quotes, and the key appearing inside string values.
+# Codex compatibility: under `apply_patch` (Codex 0.124+), tool_input.file_path is
+# absent — the patch text lives in tool_input.command. Best-effort: derive the path
+# from the first `*** {Add,Update,Delete} File:` header in the patch.
 INPUT=$(cat)
-FILE_PATH=$(printf '%s' "$INPUT" | python3 -c 'import json,sys
+FILE_PATH=$(printf '%s' "$INPUT" | python3 -c 'import json,re,sys
 try:
     d = json.load(sys.stdin)
 except Exception:
     sys.exit(0)
-print((d.get("tool_input") or {}).get("file_path") or "")' 2>/dev/null || true)
+ti = d.get("tool_input") or {}
+fp = ti.get("file_path")
+if not fp:
+    cmd = ti.get("command") or ""
+    m = re.search(r"^\*\*\* (?:Add|Update|Delete) File:\s*(.+)$", cmd, re.MULTILINE)
+    fp = m.group(1).strip() if m else ""
+print(fp or "")' 2>/dev/null || true)
 
 [ -z "$FILE_PATH" ] && exit 0
 [ ! -f "$FILE_PATH" ] && exit 0
