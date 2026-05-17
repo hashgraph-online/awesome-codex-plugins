@@ -351,7 +351,7 @@
       },
       "category": "Development & Workflow",
       "description": "Delegate tasks to specialist AI agents via the HOL Registry, plan, find, summon, and recover sessions.",
-      "icon": "./plugins/hashgraph-online/registry-broker-codex-plugin/assets/icon.svg"
+      "icon": "./plugins/hashgraph-online/registry-broker-codex-plugin/assets/icon.png"
     },
     {
       "name": "session-orchestrator",
