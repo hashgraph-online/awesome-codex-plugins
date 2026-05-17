@@ -99,12 +99,22 @@ def _extract_command_basenames(cmd: str | None) -> set[str]:
     if not cmd:
         return set()
     interpreters = {"python", "python3", "bash", "sh", "uv", "poetry", "pipenv", "node"}
+    separators = {"&&", "||", ";", "|"}
+    # shlex.split honors quotes, so `echo "a && b"` does NOT split on the quoted &&.
+    # Fallback only on unbalanced quotes — `cmd.split()` keeps the operator coalesced
+    # with the preceding token, which the segmentation loop below treats as opaque.
+    try:
+        all_tokens = shlex.split(cmd)
+    except ValueError:
+        all_tokens = cmd.split()
+    segments: list[list[str]] = [[]]
+    for tok in all_tokens:
+        if tok in separators:
+            segments.append([])
+        else:
+            segments[-1].append(tok)
     basenames: set[str] = set()
-    for part in re.split(r"\s*(?:&&|\|\||;|\|)\s*", cmd):
-        try:
-            tokens = shlex.split(part)
-        except ValueError:
-            tokens = part.split()
+    for tokens in segments:
         primary_idx = None
         for i, token in enumerate(tokens):
             if token.startswith("-"):
@@ -638,8 +648,13 @@ def _codex_trajectory(tool_calls: list[dict]) -> dict:
         name = tc.get("name")
         cmd = tc.get("command") or ""
         if name == "Read":
-            # Crude path extraction from `cat X`, `sed -n ... X`.
-            for t in reversed(cmd.split()):
+            # Crude path extraction from `cat X`, `sed -n ... X`. shlex.split handles
+            # quoted paths with spaces; falls back on unbalanced quotes.
+            try:
+                tokens = shlex.split(cmd)
+            except ValueError:
+                tokens = cmd.split()
+            for t in reversed(tokens):
                 if "/" in t or t.endswith(
                     (".py", ".md", ".sh", ".yaml", ".json", ".toml", ".js", ".ts", ".go")
                 ):
@@ -660,7 +675,12 @@ def _codex_trajectory(tool_calls: list[dict]) -> dict:
         seen: set[str] = set()
         for tc in tool_calls[:first_edit_idx]:
             if tc.get("name") == "Read":
-                for t in reversed((tc.get("command") or "").split()):
+                cmd_str = tc.get("command") or ""
+                try:
+                    tokens = shlex.split(cmd_str)
+                except ValueError:
+                    tokens = cmd_str.split()
+                for t in reversed(tokens):
                     if "/" in t or t.endswith(
                         (".py", ".md", ".sh", ".yaml", ".json", ".toml", ".js", ".ts", ".go")
                     ):

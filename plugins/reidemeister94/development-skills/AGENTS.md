@@ -3,7 +3,7 @@
 This repo IS the source of the `development-skills` plugin: a 3-tier workflow (PASS_THROUGH · LIGHT · FULL 4-phase) plus skills, hooks, and a single `staff-reviewer` subagent, distributed to Claude Code and Codex CLI.
 
 0. **Don't pander to the user, always be critical when necessary**
-1. **Maximize simplicity, minimize complexity.** use critical thinking to always maximize semplicity while keeping all the features, abstracting the complexity
+1. **Maximize simplicity, minimize complexity.** use critical thinking to always maximize simplicity while keeping all the features, abstracting the complexity
 2. **All signal, zero noise.** Everything must earn its place. If it doesn't add value, remove it.
 3. **Zero regression policy in refactoring tasks** Verify with all appropriate test suites after every change.
 4. **Document every discovery.** Write insights, useful and non-trivial information (chronicles, plans, rules).

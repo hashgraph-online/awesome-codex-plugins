@@ -10,9 +10,16 @@
 #   Swift:      swift-format — official Apple toolchain (Xcode 16+)
 #   Web files:  biome       — same binary handles JSON, CSS, GraphQL
 
-# Read hook input JSON, extract file_path from tool_input
+# Read hook input JSON, extract file_path from tool_input.
+# python3 is required by the plugin elsewhere; using it here is robust to
+# pretty-printed JSON, escaped quotes, and the key appearing inside string values.
 INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
+FILE_PATH=$(printf '%s' "$INPUT" | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+print((d.get("tool_input") or {}).get("file_path") or "")' 2>/dev/null || true)
 
 [ -z "$FILE_PATH" ] && exit 0
 [ ! -f "$FILE_PATH" ] && exit 0
