@@ -1,5 +1,10 @@
 # Frappe Agent for Codex
 
+[![HOL Trust Score](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Ddhairya-marwaha%252Ffrappe-agent%26metric%3Dtrust%26style%3Dflat)](https://hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent)
+[![HOL Security](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Ddhairya-marwaha%252Ffrappe-agent%26metric%3Dsecurity%26style%3Dflat)](https://hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent)
+[![Release](https://img.shields.io/github/v/release/Dkm0315/frappe-agent)](https://github.com/Dkm0315/frappe-agent/releases)
+[![License](https://img.shields.io/github/license/Dkm0315/frappe-agent)](./LICENSE)
+
 `frappe-agent` is a Codex plugin for Frappe Framework and ERPNext development. It makes Codex more aware of Frappe-specific patterns so it can inspect benches more safely, choose the right customization layer, and avoid generic framework mistakes.
 
 ## What It Covers
