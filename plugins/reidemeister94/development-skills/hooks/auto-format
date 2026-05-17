@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# PostToolUse hook: auto-format the edited file using the best formatter per language.
+# Exits 0 silently if no formatter is found — never blocks the workflow.
+#
+# Formatters (chosen for speed + community adoption, 2026):
+#   Python:     ruff        — 30x faster than Black, used by Django/FastAPI/pandas/pydantic
+#   JS/TS:      biome       — 7-100x faster than Prettier, Rust-based, linter+formatter
+#   Java:       google-java-format — standard standalone CLI formatter
+#   Kotlin:     ktfmt       — 40% faster than ktlint, adopted by Square/Block
+#   Swift:      swift-format — official Apple toolchain (Xcode 16+)
+#   Web files:  biome       — same binary handles JSON, CSS, GraphQL
+
+# Read hook input JSON, extract file_path from tool_input
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
+
+[ -z "$FILE_PATH" ] && exit 0
+[ ! -f "$FILE_PATH" ] && exit 0
+
+EXT="${FILE_PATH##*.}"
+
+# Find a command in PATH or node_modules/.bin/
+find_cmd() {
+  command -v "$1" 2>/dev/null && return
+  [ -x "node_modules/.bin/$1" ] && echo "node_modules/.bin/$1" && return
+  return 1
+}
+
+# Ruff has many possible install locations
+find_ruff() {
+  command -v ruff 2>/dev/null && return
+  for c in "${VIRTUAL_ENV:-_}/bin/ruff" "${CONDA_PREFIX:-_}/bin/ruff" \
+           ".venv/bin/ruff" "venv/bin/ruff" "${HOME}/.local/bin/ruff" \
+           "${HOME}/.cargo/bin/ruff" "${PYENV_ROOT:-${HOME}/.pyenv}/shims/ruff"; do
+    [ -x "$c" ] 2>/dev/null && echo "$c" && return
+  done
+  return 1
+}
+
+case "$EXT" in
+  py)
+    # Python: ruff (best-in-class, 30x faster than Black)
+    RUFF=$(find_ruff) && "$RUFF" format --quiet "$FILE_PATH" 2>/dev/null || true
+    ;;
+  ts|tsx|js|jsx|mjs|cjs)
+    # JS/TS: biome (best), then prettier (fallback)
+    FMT=$(find_cmd biome) && "$FMT" format --write "$FILE_PATH" 2>/dev/null ||
+    FMT=$(find_cmd prettier) && "$FMT" --write --log-level error "$FILE_PATH" 2>/dev/null || true
+    ;;
+  java)
+    # Java: google-java-format (standard standalone CLI)
+    command -v google-java-format &>/dev/null && google-java-format --replace "$FILE_PATH" 2>/dev/null || true
+    ;;
+  kt|kts)
+    # Kotlin: ktfmt (best, 40% faster than ktlint), then ktlint (fallback)
+    command -v ktfmt &>/dev/null && ktfmt "$FILE_PATH" 2>/dev/null ||
+    command -v ktlint &>/dev/null && ktlint --format "$FILE_PATH" 2>/dev/null || true
+    ;;
+  swift)
+    # Swift: swift-format (official Apple toolchain), then swiftformat (community)
+    command -v swift-format &>/dev/null && swift-format format --in-place "$FILE_PATH" 2>/dev/null ||
+    command -v swiftformat &>/dev/null && swiftformat "$FILE_PATH" 2>/dev/null || true
+    ;;
+  css|scss|less|graphql|json|jsonc)
+    # Web assets: biome (best for CSS/JSON/GraphQL), then prettier (fallback)
+    FMT=$(find_cmd biome) && "$FMT" format --write "$FILE_PATH" 2>/dev/null ||
+    FMT=$(find_cmd prettier) && "$FMT" --write --log-level error "$FILE_PATH" 2>/dev/null || true
+    ;;
+  html|vue|svelte|yaml|yml)
+    # HTML/YAML/templates: prettier (biome YAML/HTML support still maturing)
+    FMT=$(find_cmd prettier) && "$FMT" --write --log-level error "$FILE_PATH" 2>/dev/null || true
+    ;;
+esac
+
+exit 0

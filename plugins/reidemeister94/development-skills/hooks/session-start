@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# SessionStart hook for development-skills plugin.
+# inject the full using-development-skills SKILL content as additionalContext so the model
+# has skill-routing rules + anti-rationalization
+# devices (Iron Rule, Red Flags, "1% chance" rule) loaded from token 0.
+#
+# Why: textual rules in SKILL.md are not self-enforcing — they require auto-discovery
+# match. When the match fails (rationalized away), the skill never loads. By injecting
+# the meta-skill body into session context unconditionally, we eliminate the loophole.
+
+set -euo pipefail
+
+PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+USING_SKILL="${PLUGIN_ROOT}/skills/using-development-skills/SKILL.md"
+
+if [ -f "$USING_SKILL" ]; then
+  using_content=$(cat "$USING_SKILL")
+else
+  using_content="Error: using-development-skills/SKILL.md not found at ${USING_SKILL}"
+fi
+
+# Single-pass parameter substitution — orders of magnitude faster than character-by-
+# character loops. Order matters: backslash first (otherwise added backslashes get
+# re-escaped by subsequent passes).
+escape_for_json() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
+
+using_escaped=$(escape_for_json "$using_content")
+
+session_context="<EXTREMELY-IMPORTANT>\nThe development-skills plugin is active.\n\n**Below is the full content of your 'development-skills:using-development-skills' skill — your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_escaped}\n</EXTREMELY-IMPORTANT>"
+
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
+
+exit 0

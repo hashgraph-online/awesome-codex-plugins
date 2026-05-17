@@ -1,0 +1,28 @@
+# Local caches and editor state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python and test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Build and package output
+dist/
+build/
+*.egg-info/
+
+# Local plugin scanner output
+codex-plugin-scanner.sarif
+plugin-quality.json
+
+# Local secrets and environment files
+.env
+.env.local
+.env.production

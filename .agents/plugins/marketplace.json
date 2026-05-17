@@ -221,6 +221,21 @@
       "description": "Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context."
     },
     {
+      "name": "development-skills",
+      "displayName": "Development Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/reidemeister94/development-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.",
+      "icon": "./plugins/reidemeister94/development-skills/assets/icon.svg"
+    },
+    {
       "name": "ejentum",
       "displayName": "ejentum-mcp",
       "source": {

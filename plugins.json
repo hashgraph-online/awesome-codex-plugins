@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-16",
-  "total": 77,
+  "last_updated": "2026-05-17",
+  "total": 78,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -158,6 +158,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Rycen7822/codex-rg-guard/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Development Skills",
+      "url": "https://github.com/reidemeister94/development-skills",
+      "owner": "reidemeister94",
+      "repo": "development-skills",
+      "description": "Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/reidemeister94/development-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "ejentum-mcp",
