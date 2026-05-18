@@ -60,7 +60,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces."
+      "description": "Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces.",
+      "icon": "./plugins/study8677/antigravity-workspace-template/assets/icon.png"
     },
     {
       "name": "archcore",
