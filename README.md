@@ -132,7 +132,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Claude Octopus](https://github.com/nyldn/claude-octopus) - Multi-LLM orchestration dispatching to 8 providers (Codex, Gemini, Copilot, Qwen, Perplexity, OpenRouter, Ollama, OpenCode) with Double Diamond workflows, adversarial review, and safety gates.
 - [Codebase Recon](https://github.com/yujiachen-y/codebase-recon-skill) - Analyze git history to understand a codebase before reading any code — auto-scales by repo size and cross-references hotspots with bug magnets to surface high-risk files, bus factor, and team momentum.
 - [Codex Agenteam](https://github.com/yimwoo/codex-agenteam) - Specialist AI agents (researcher, PM, architect, developer, QA, reviewer) orchestrated as a configurable team pipeline.
-- [ecc (Everything Codex)](https://github.com/mturac/everything-openai-codex) - Cross-harness workflow system with 230+ skills, 60 agents, quality gates, and session memory — works across Codex, Cursor, Gemini CLI, Copilot, and more.
+- [eoc (Everything OpenAI Codex)](https://github.com/mturac/everything-openai-codex) - Cross-harness workflow system with 230+ skills, 60 agents, quality gates, and session memory — works across Codex, Cursor, Gemini CLI, Copilot, and more.
 - [Codex Multi Auth](https://github.com/ndycode/codex-multi-auth) - Multi-account OAuth manager for the official Codex CLI with switching, health checks, and recovery tools.
 - [Codex Reviewer](https://github.com/schuettc/codex-reviewer) - Second-pass review of Claude-driven plans and implementations.
 - [Codex rg Guard](https://github.com/Rycen7822/codex-rg-guard) - Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context.
