@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.next/
+coverage/
+tmp/
+logs/
+.opencode/dist/
+*.log
+*.pyc
+__pycache__/

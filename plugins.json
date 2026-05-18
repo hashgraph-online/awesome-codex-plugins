@@ -190,6 +190,16 @@
       "install_url": "https://raw.githubusercontent.com/ejentum/ejentum-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Everything OpenAI Codex",
+      "url": "https://github.com/mturac/everything-openai-codex",
+      "owner": "mturac",
+      "repo": "everything-openai-codex",
+      "description": "EOC is an open-source operating system for Codex workflows with 230 skills, agents, hooks, rules, memory, safety gates, install profiles, and cross-harness adapters.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mturac/everything-openai-codex/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Frappe Agent",
       "url": "https://github.com/Dkm0315/frappe-agent",
       "owner": "Dkm0315",
