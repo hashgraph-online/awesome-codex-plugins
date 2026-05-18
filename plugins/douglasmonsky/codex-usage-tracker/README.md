@@ -271,12 +271,6 @@ If you previously installed the older source-checkout symlink, replace it once:
 codex-usage-tracker install-plugin --python .venv/bin/python --force
 ```
 
-The compatibility script remains available for local development:
-
-```bash
-python scripts/install_local_plugin.py --python .venv/bin/python
-```
-
 Restart Codex after registration so it can discover the plugin.
 
 Marketplace installs use the bundled MCP launcher at
