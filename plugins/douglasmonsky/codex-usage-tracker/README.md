@@ -279,6 +279,12 @@ python scripts/install_local_plugin.py --python .venv/bin/python
 
 Restart Codex after registration so it can discover the plugin.
 
+Marketplace installs use the bundled MCP launcher at
+`skills/codex-usage-tracker/scripts/run_mcp.py`. On first MCP startup it creates
+a cached runtime under `~/.cache/codex-usage-tracker/mcp-runtime/` and installs
+the Python package from GitHub, so it does not require a `.venv` inside the
+plugin directory.
+
 ## MCP Tools
 
 - `refresh_usage_index`

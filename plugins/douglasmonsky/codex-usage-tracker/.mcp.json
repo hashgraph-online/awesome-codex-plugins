@@ -1,9 +1,10 @@
 {
   "mcpServers": {
     "codex-usage-tracker": {
-      "command": "./.venv/bin/python",
-      "args": ["-m", "codex_usage_tracker.mcp_server"],
-      "cwd": "."
+      "command": "python3",
+      "args": ["./skills/codex-usage-tracker/scripts/run_mcp.py"],
+      "cwd": ".",
+      "startup_timeout_sec": 120
     }
   }
 }
