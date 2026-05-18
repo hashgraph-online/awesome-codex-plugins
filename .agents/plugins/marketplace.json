@@ -638,7 +638,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Plan, run, and inspect Call-E phone call workflows from Codex through the calle CLI."
+      "description": "Plan, run, and inspect Call-E phone call workflows from Codex through the calle CLI.",
+      "icon": "./plugins/CALLE-AI/call-e-integrations/assets/CALL-E-Icon-Black.svg"
     },
     {
       "name": "canvas-apps-plugin-codex",
