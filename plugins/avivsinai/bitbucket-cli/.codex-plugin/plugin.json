@@ -23,6 +23,7 @@
   ],
   "interface": {
     "displayName": "Bitbucket CLI",
+    "composerIcon": "./assets/bkt-icon.svg",
     "shortDescription": "Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines",
     "category": "Developer Tools"
   }

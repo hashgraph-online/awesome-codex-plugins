@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Bitbucket CLI icon</title>
+  <desc id="desc">A terminal prompt with a separate git branch symbol.</desc>
+  <defs>
+    <linearGradient id="background" x1="78" y1="62" x2="438" y2="452" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#11344A"/>
+      <stop offset="0.54" stop-color="#0D2534"/>
+      <stop offset="1" stop-color="#091820"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="120" y1="122" x2="392" y2="398" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#173F55"/>
+      <stop offset="1" stop-color="#102836"/>
+    </linearGradient>
+    <linearGradient id="branch" x1="300" y1="156" x2="397" y2="362" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7DE0D3"/>
+      <stop offset="1" stop-color="#C2E66E"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#02070A" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="104" fill="url(#background)"/>
+  <path d="M108 114h296c22 0 40 18 40 40v204c0 22-18 40-40 40H108c-22 0-40-18-40-40V154c0-22 18-40 40-40Z" fill="#07131A" opacity="0.42"/>
+  <rect x="84" y="96" width="344" height="296" rx="46" fill="url(#panel)" filter="url(#softShadow)"/>
+  <rect x="110" y="122" width="292" height="244" rx="28" fill="#0B1D27"/>
+
+  <path d="M137 205l45 42-45 42" fill="none" stroke="#F7FAFC" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="208" y="274" width="72" height="28" rx="14" fill="#F7FAFC"/>
+
+  <path d="M324 159v73c0 28 23 51 51 51h18" fill="none" stroke="#7DE0D3" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M324 238v98" fill="none" stroke="url(#branch)" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="324" cy="159" r="24" fill="#7DE0D3"/>
+  <circle cx="324" cy="336" r="24" fill="#C2E66E"/>
+  <circle cx="393" cy="283" r="24" fill="#9CE9A5"/>
+
+  <circle cx="324" cy="159" r="10" fill="#0B1D27"/>
+  <circle cx="324" cy="336" r="10" fill="#0B1D27"/>
+  <circle cx="393" cy="283" r="10" fill="#0B1D27"/>
+</svg>

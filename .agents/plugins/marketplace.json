@@ -625,7 +625,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines for Data Center and Cloud."
+      "description": "Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines for Data Center and Cloud.",
+      "icon": "./plugins/avivsinai/bitbucket-cli/assets/bkt-icon.svg"
     },
     {
       "name": "calle",
