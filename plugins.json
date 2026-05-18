@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-05-18",
-  "total": 79,
+  "total": 80,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -508,6 +508,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/BestLemoon/codex-seo/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Codex Usage Tracker",
+      "url": "https://github.com/douglasmonsky/codex-usage-tracker",
+      "owner": "douglasmonsky",
+      "repo": "codex-usage-tracker",
+      "description": "Track aggregate Codex token usage from local session logs with MCP tools for summaries, session detail, CSV export, and dashboard generation.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/douglasmonsky/codex-usage-tracker/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Context Pack",

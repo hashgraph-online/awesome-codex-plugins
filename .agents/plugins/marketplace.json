@@ -731,6 +731,21 @@
       "icon": "./plugins/BestLemoon/codex-seo/assets/icon.svg"
     },
     {
+      "name": "codex-usage-tracker",
+      "displayName": "Codex Usage Tracker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/douglasmonsky/codex-usage-tracker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Track aggregate Codex token usage from local session logs with MCP tools for summaries, session detail, CSV export, and dashboard generation.",
+      "icon": "./plugins/douglasmonsky/codex-usage-tracker/assets/icon.svg"
+    },
+    {
       "name": "context-pack",
       "displayName": "Context Pack",
       "source": {

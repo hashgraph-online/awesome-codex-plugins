@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "codex-usage-tracker": {
+      "command": "./.venv/bin/python",
+      "args": ["-m", "codex_usage_tracker.mcp_server"],
+      "cwd": "."
+    }
+  }
+}
