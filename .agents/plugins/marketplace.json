@@ -870,7 +870,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Query traces, debug exceptions, analyze sessions, and manage prompts via MCP tools."
+      "description": "Query traces, debug exceptions, analyze sessions, and manage prompts via MCP tools.",
+      "icon": "./plugins/avivsinai/langfuse-mcp/assets/langfuse-icon.svg"
     },
     {
       "name": "launchfast",
