@@ -11,8 +11,8 @@ Turn ad-hoc Claude Code sessions into a repeatable loop with verification gates.
 
 ## What you get
 
-- **36 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, and more
-- **16 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/autopilot`, `/test`, …)
+- **37 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, and more
+- **17 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/autopilot`, `/test`, …)
 - **11 typed sub-agents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
 - **11 hook event handlers** enforcing scope, blocking destructive commands, capturing telemetry
 - **5812 vitest tests** passing on every commit, validate-plugin 94/94, typecheck 187 files OK, lint 0
@@ -175,8 +175,8 @@ Full table and follow-ups in `CLAUDE.md` (or `AGENTS.md` on Codex CLI) and CHANG
 ```mermaid
 flowchart LR
     USER([Operator]) -->|invokes /session| COORD[Coordinator]
-    COORD -->|reads| SK[Skills<br/>36 user-facing]
-    COORD -->|invokes| CMD[Commands<br/>16 slash-cmds]
+    COORD -->|reads| SK[Skills<br/>37 user-facing]
+    COORD -->|invokes| CMD[Commands<br/>17 slash-cmds]
     COORD -->|dispatches| AG[Agents<br/>11 typed sub-agents]
     AG -.->|parallel waves| W1[code-implementer]
     AG -.-> W2[test-writer]
@@ -188,9 +188,9 @@ flowchart LR
 
 ## Components
 
-**Skills (36 user-facing).** Lifecycle: `session-start`, `session-plan`, `wave-executor`, `session-end`, `quality-gates`, `using-orchestrator`. Authoring: `skill-creator`, `mcp-builder`, `hook-development`, `frontmatter-guard`. Planning & discovery: `plan`, `discovery`, `repo-audit`, `brainstorm`, `write-executable-plan`, `debug`, `claude-md-drift-check`. Architecture: `architecture`, `domain-model`, `ubiquitous-language`. Cross-session: `evolve`, `convergence-monitoring`, `memory-cleanup`. Vault & docs: `vault-sync`, `vault-mirror`, `daily`, `docs-orchestrator`. Ecosystem: `bootstrap`, `gitlab-ops`, `gitlab-portfolio`, `ecosystem-health`, `mode-selector`, `autopilot`. Testing: `test-runner`, `playwright-driver`, `peekaboo-driver`.
+**Skills (37 user-facing).** Lifecycle: `session-start`, `session-plan`, `wave-executor`, `session-end`, `quality-gates`, `using-orchestrator`. Authoring: `skill-creator`, `mcp-builder`, `hook-development`, `frontmatter-guard`. Planning & discovery: `plan`, `discovery`, `repo-audit`, `brainstorm`, `write-executable-plan`, `debug`, `claude-md-drift-check`. Architecture: `architecture`, `domain-model`, `ubiquitous-language`. Cross-session: `evolve`, `convergence-monitoring`, `memory-cleanup`. Vault & docs: `vault-sync`, `vault-mirror`, `daily`, `docs-orchestrator`. Ecosystem: `bootstrap`, `gitlab-ops`, `gitlab-portfolio`, `ecosystem-health`, `mode-selector`, `autopilot`. Testing: `test-runner`, `playwright-driver`, `peekaboo-driver`. Content review: `persona-panel`.
 
-**Commands (16).** `/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/bootstrap`, `/harness-audit`, `/autopilot`, `/autopilot-multi`, `/repo-audit`, `/test`, `/memory-cleanup`, `/portfolio`, `/brainstorm`, `/debug`.
+**Commands (17).** `/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/bootstrap`, `/harness-audit`, `/autopilot`, `/autopilot-multi`, `/repo-audit`, `/test`, `/memory-cleanup`, `/portfolio`, `/brainstorm`, `/debug`, `/persona-panel`.
 
 **Agents (11).** `code-implementer`, `test-writer`, `ui-developer`, `db-specialist`, `security-reviewer`, `session-reviewer`, `docs-writer`, `architect-reviewer`, `qa-strategist`, `analyst`, `ux-evaluator`.
 
@@ -202,7 +202,11 @@ flowchart LR
 
 **Codex.** `.codex-plugin/plugin.json` (manifest), compatibility config, 3 agent role definitions, marketplace `composerIcon`.
 
-**Scripts.** Deterministic CLI tools (parse-config, run-quality-gate, validate-wave-scope, validate-plugin, token-audit, autopilot, autopilot-multi) plus shared lib (`scripts/lib/*.mjs`) plus a vitest suite of 5632 tests.
+**Scripts.** Deterministic CLI tools (parse-config, run-quality-gate, validate-wave-scope, validate-plugin, token-audit, autopilot, autopilot-multi) plus shared lib (`scripts/lib/*.mjs`) plus a vitest suite of 5900+ tests.
+
+### `/harness-audit` — Anthropic large-codebase rubric
+
+`scripts/harness-audit.mjs` runs **8 deterministic categories / 33 checks** (rubric `2026-06`) over a repo and emits `.orchestrator/metrics/audit.jsonl`. Category 8 ("Large-Codebase Readiness") operationalises Anthropic's [Claude Code large-codebase best-practices](https://claude.com/blog/how-claude-code-works-in-large-codebases-best-practices-and-where-to-start) checklist — layered `CLAUDE.md` (or `AGENTS.md` on Codex CLI), codebase-map presence, LSP/code-intelligence wiring, scoped test/lint commands, `permissions.deny`, and root-file structural leanness — as scored signals you can run on yourself and on consumer repos. The checks are intentionally orthogonal to repo-audit's baseline-compliance pass/fail (`skills/repo-audit/SKILL.md`); both surfaces ship.
 
 ## Comparison
 
@@ -240,7 +244,7 @@ We see the two plugins as complementary rather than competing: session-orchestra
 | Feature | Claude Code | Codex CLI | Cursor IDE |
 |---------|------------|-----------|------------|
 | OS | macOS, Linux, **Windows (native)** | macOS, Linux, **Windows (native)** | macOS, Linux, **Windows (native)** |
-| All 16 commands | Native slash commands | Native plugin commands | Rules-based (.mdc) |
+| All 17 commands | Native slash commands | Native plugin commands | Rules-based (.mdc) |
 | Parallel agents | Agent tool | Multi-agent roles | Sequential only |
 | Session persistence | `.claude/STATE.md` | `.codex/STATE.md` | `.cursor/STATE.md` |
 | Shared knowledge | `.orchestrator/metrics/` | `.orchestrator/metrics/` | `.orchestrator/metrics/` |

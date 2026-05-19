@@ -361,8 +361,13 @@ After ALL agents in the wave complete:
    - **`mode: 'validated', ok: false`** — schema violation. Annotate the agent record with `schema_violation: true` and `schema_errors: [...]`. Then:
      - Under `enforce: warn` (default): log the violation in the wave progress update and continue. The wave is NOT blocked.
      - Under `enforce: strict`: surface the violation as a wave-blocking finding. Halt further agent processing and report to the coordinator before proceeding to the conflict check.
-     - Under `enforce: off`: skip violation recording entirely (schema_status is still set when ok=true).
-   - **`mode: 'parse-error'`** — the agent's output had no fenced ```json block or malformed JSON. Log a warning (backward-compat — agents that predate the schema contract routinely omit a JSON block). Do NOT block the wave.
+     - Under `enforce: off`: record the violation in `subagents.jsonl` for diagnostics (`schema_violation: true`, `schema_errors: [...]` are set on the agent record) but do NOT emit a log line in the wave progress update and do NOT block the wave. This is identical to `warn` minus the in-wave noise — forensic data is preserved; operator output is silenced.
+   - **`mode: 'parse-error'`** — two distinct diagnostic sub-cases collapsed into one mode for backward-compat; either:
+     - **parse-error (no-block)**: agent output contains no fenced ```json block at all. Common backward-compat case for agents that predate the schema contract.
+     - **parse-error (bad-json)**: a fenced ```json block exists but the block fails `JSON.parse`. Indicates an agent-side serialisation bug — more interesting than no-block from a diagnostic standpoint, and the operator may want to follow up.
+
+     Both sub-cases share the same recovery: log a warning in the wave progress update, set `schema_status: 'parse-error'` on the agent record in `subagents.jsonl`, and do NOT block the wave (#474 LOW-8 distinguishes the two so future tooling can route diagnostics differently per sub-case).
+   - **`mode: 'schema-error'`** — the fenced ```json block parses cleanly but the parsed object fails AJV validation against the agent's declared `output-schema:`. This is a stronger signal than `parse-error`: the agent emitted JSON, but the shape diverged from its declared contract. Treat the same way as `validated, ok: false` under the configured `enforce` level (`warn` / `strict` / `off`) so the violation is recorded with `schema_violation: true` and `schema_errors: [...]`. Note: the legacy `validateAgentOutput()` returns `'validated', ok: false` for this case today — `schema-error` is the spec-level name (per #474 LOW-8) for the same condition, kept distinct from `parse-error` so the diagnostic log can route differently.
    - **`mode: 'unvalidated'`** — the agent has no declared `output-schema:` frontmatter. Silent skip (backward-compat path; as of #449 all 11 plugin agents are enrolled, but third-party agents installed via marketplace plugins may not be).
 
    Reference: agent contract at `agents/code-implementer.md`; runtime module at `scripts/lib/agent-output-schema.mjs::validateAgentOutput`.
@@ -583,6 +588,82 @@ After each wave completes and before the progress update, update `<state-dir>/ST
    ```
    - [<ISO timestamp>] Wave N: <what changed and why>
    ```
+
+### 3b. Persona-Gate Hook (#458)
+
+> Opt-in mid-wave hook that fans out a `/persona-panel`-style review after a configured wave completes. Distinct from `### 5a. Persona-reviewer dispatch` (which uses the `wave-reviewers` Session Config key and dispatches code-oriented `architect-reviewer` / `qa-strategist` / `analyst` agents). This hook uses the `persona-gate-wave` Session Config key and dispatches catalog personas (domain-experts, buyer-personas, auditors) from `.claude/personas/`. The two keys are independent and may both be configured on the same project.
+
+**Gate conditions** — ALL must be true for the hook to fire:
+
+1. `persona-gate-wave.enabled: true` in Session Config (default: `false`).
+2. The just-completed wave matches `persona-gate-wave.after` — one of `'quality'` or `'impl-polish'`. The hook runs AFTER step 3a (STATE.md updated) and BEFORE step 4 (progress update), so the dispatch context already reflects the completed wave's results.
+3. `persona-gate-wave.mode !== 'off'` (when `mode: 'off'` the hook is a silent no-op even when `enabled: true`).
+
+When any gate condition is false, skip this step entirely — proceed to `### 4. Progress Update`.
+
+**Dispatch sequence:**
+
+```js
+import { loadCatalog } from '$PLUGIN_ROOT/scripts/lib/persona-panel/catalog-loader.mjs';
+import { buildPersonaPrompt, validatePersonaOutput } from '$PLUGIN_ROOT/scripts/lib/persona-panel/persona-runner.mjs';
+import { consolidate } from '$PLUGIN_ROOT/scripts/lib/persona-panel/consolidator.mjs';
+import { parseThreshold } from '$PLUGIN_ROOT/scripts/lib/persona-panel/threshold.mjs';
+import { writeJsonAtomic } from '$PLUGIN_ROOT/scripts/lib/io.mjs';
+import { appendDeviation } from '$PLUGIN_ROOT/scripts/lib/state-md.mjs';
+
+const cfg = $CONFIG['persona-gate-wave'];                        // already normalised by parseSessionConfig
+const catalog = await loadCatalog();                              // throws if .claude/personas/ missing or invalid
+const rosterNames = cfg.personas.length > 0
+  ? cfg.personas
+  : [...catalog.keys()];                                          // empty list → all catalog personas
+const personas = rosterNames.map((n) => catalog.get(n)).filter(Boolean);
+```
+
+Dispatch each persona in parallel via the Agent tool, using `cfg['dispatch-model']` as the model and `Read, Grep, Glob` tools only (panel personas are read-only by contract). Each dispatch wraps the wave's scope summary + changed-files list in `buildPersonaPrompt(persona.persona, target, targetContent)`.
+
+After all agents return, collect their outputs and validate each via `validatePersonaOutput(persona.persona, agentText)`. Compose the panel verdict via `consolidate(outputs, 'hard-gate-threshold', { threshold: parseThreshold(cfg.threshold) })`.
+
+**Behaviour by mode:**
+
+| `mode` | Action on consolidator result |
+|--------|--------------------------------|
+| `off` | No dispatch (gate condition above). |
+| `warn` | Log findings to the wave progress update under a `Persona-gate:` bullet. Continue to step 4 regardless of `final_verdict`. |
+| `strict` | If `final_verdict === 'PROCEED'`: log to progress, continue. Otherwise pause and surface an `AskUserQuestion` with three options:<br>1. **proceed-as-is** — log Deviation, continue (Recommended only after operator inspects sidecar)<br>2. **revise-remaining-waves** — return `{ verdict: 'FIX_REQUIRED', revision_context: { dissenting_personas, recommendations } }` to the wave-executor caller<br>3. **abort-session** — return `{ verdict: 'BLOCKED' }` to the caller |
+
+**Sidecar write:** before reporting any verdict, validate the panel result against `agents/schemas/persona-panel-sidecar.schema.json` (via `validateAgentOutput` or a direct AJV compile) and then write atomically via `writeJsonAtomic(path, value, { schemaPath })`:
+
+```
+.orchestrator/persona-panel/<iso-timestamp>-<runId>.json
+```
+
+The sidecar carries `personas_invoked`, per-persona `outputs`, and the full `consolidation` block — operators consult it from the AskUserQuestion prompt before deciding `strict`-mode follow-up.
+
+**STATE.md deviation contract:** on `warn` (with at least one dissenting persona) or any `strict`-mode non-PROCEED verdict, append one timestamped entry to `## Deviations` via `appendDeviation(stateContents, iso, message)`:
+
+```
+- [<ISO 8601 UTC>] Wave N persona-gate <warn|strict-proceed|strict-revise|strict-abort>: dissenting=[<persona-1>, <persona-2>], threshold=<cfg.threshold>, mode=<cfg.mode>. Sidecar: <relative-path>.
+```
+
+On a clean `PROCEED` no deviation is written — the sidecar alone is sufficient evidence.
+
+**Wave metrics extension:** when persistence is enabled, extend the wave metrics record (step 7 of `### 2. Review Agent Outputs`) with a `persona_gate` block:
+
+```json
+"persona_gate": {
+  "triggered": true,
+  "threshold": "<cfg.threshold>",
+  "personas_pass": <N>,
+  "personas_fail": <M>,
+  "mode_used": "<cfg.mode>",
+  "final_verdict": "<PROCEED|PROCEED_WITH_FOLLOWUPS|BLOCKED|REQUIRES_COORDINATOR>",
+  "sidecar_path": ".orchestrator/persona-panel/<...>.json"
+}
+```
+
+When the hook is skipped (gate condition false), omit the `persona_gate` field entirely — never write `triggered: false` for skipped runs, so a downstream consumer can distinguish "hook did not fire" from "hook fired but found no dissent".
+
+**Motivating example:** the `gotzendorfer-v2` W5 Buyer-Panel pattern (six buyer personas at `hard-gate-threshold` `6-of-6`, `mode: 'strict'`, `after: 'quality'`) — UI work is gate-checked against every persona before commit, abort on any dissent. See `docs/session-config-reference.md § Persona-Gate Wave (#458)` and `commands/persona-panel.md` for the standalone CLI equivalent.
 
 ### 4. Progress Update
 

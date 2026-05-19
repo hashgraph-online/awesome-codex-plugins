@@ -14,6 +14,13 @@ Validation delegates to `$vibe`, `$post-mortem`, `$retro`, and `$forge` (plus li
 
 See [`docs/learnings/orchestrator-compression-anti-pattern.md`](../../docs/learnings/orchestrator-compression-anti-pattern.md) for the live compression signature.
 
+Validation owns the `validate_acceptance` port in the
+[Intent-to-Loop Hexagon](../../docs/architecture/intent-to-loop-hexagon.md).
+The roll-up must preserve bounded context, context packet, guard adapters, done
+state, and fresh proof for each accepted scenario. Apply the
+[Completion-Claim Kernel](../shared/validation-contract.md#completion-claim-kernel)
+before accepting DONE/closed/green claims.
+
 ## DAG — Execute This Sequentially
 
 ### Step 0: Load Prior Validation Context

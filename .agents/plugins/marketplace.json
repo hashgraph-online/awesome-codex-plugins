@@ -149,7 +149,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "223 production-ready skills, 23 agents, and 298 Python tools across 9 domains — engineering, marketing, product, compliance, and more."
+      "description": "223 production-ready skills, 23 agents, and 298 Python tools across 9 domains — engineering, marketing, product, compliance, and more.",
+      "icon": "./plugins/alirezarezvani/claude-skills/assets/icon.png"
     },
     {
       "name": "claude-octopus",
@@ -412,7 +413,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing."
+      "description": "Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.",
+      "icon": "./plugins/Habib0x0/spec-driven-plugin/assets/spec-driven-icon.svg"
     },
     {
       "name": "stark",

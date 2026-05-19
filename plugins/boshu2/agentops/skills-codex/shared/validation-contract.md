@@ -18,6 +18,31 @@ CORRECT (new):
 
 ---
 
+## Completion-Claim Kernel
+
+Apply this kernel whenever an artifact says a bead, task, epic, gate, or phase is
+`DONE`, `closed`, `complete`, `green`, or ready to ship:
+
+1. Treat status fields and agent summaries as claims until fresh evidence proves
+   the contract is satisfied.
+2. Rerun the narrowest checks that prove the acceptance criteria now, and keep
+   command, exit code, and relevant output in the verdict or linked evidence.
+3. Separate test existence, command success, and non-trivial assertions against
+   production paths. Flag skipped tests, `assert true`, hardcoded success paths,
+   disabled code, and mocks where the spec required real integration.
+4. Map each claimed acceptance criterion to file:line evidence, named tests, raw
+   logs, or explicit no-file evidence.
+5. Check parent/child reconciliation, dependency graph health, orphaned
+   acceptance criteria, and cross-bead contract drift.
+6. Label deterministic suspicion as `flagged-for-review` until rerun evidence
+   proves a true failure.
+
+The evidence minimum for a completion claim is: claimed scope, acceptance
+criterion, proof artifact, rerun command when applicable, and parent/dependency
+reconciliation outcome.
+
+---
+
 ## Specifying Validation Requirements
 
 

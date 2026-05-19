@@ -80,7 +80,11 @@ Feature: Plan converts dense intent into executable slices
 8. **Decompose into issues.** Each issue needs title, file ownership,
    dependencies, acceptance criteria, test levels, and at least one mechanical
    conformance check (`files_exist`, `content_check`, `command`, `tests`, or
-   `lint`).
+   `lint`). Feature, bug, and product-facing behavior issues also need a
+   fenced `gherkin` block or a link to the upstream intent issue scenario.
+   Non-trivial plans and bead bodies should include the `hexagon:` boundary
+   block: inbound port, bounded context, adapters, context packet, and done
+   state.
 9. **Compute waves.** Group independent issues by dependency. Serialize or
    merge same-file writes. Include generated artifacts, docs, schemas, fixtures,
    Codex companions, manifests, and hash markers in ownership.

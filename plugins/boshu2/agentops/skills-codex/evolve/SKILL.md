@@ -268,8 +268,29 @@ Run at the TOP of every cycle:
 
 ```bash
 CYCLE_START_SHA=$(git rev-parse HEAD)
-[ -f ~/.config/evolve/KILL ] && echo "KILL: $(cat ~/.config/evolve/KILL)" && exit 0
-[ -f .agents/evolve/STOP ] && echo "STOP: $(cat .agents/evolve/STOP 2>/dev/null)" && exit 0
+# Stale-kill auto-expire (closes F5 from 2026-05-18 post-mortem).
+# A KILL/STOP file older than EVOLVE_KILL_TTL_DAYS (default 7) is treated as
+# stale and surfaced loudly; the loop proceeds. Re-touch to keep blocking.
+EVOLVE_KILL_TTL_DAYS="${EVOLVE_KILL_TTL_DAYS:-7}"
+check_stale_kill() {
+    local path="$1" ttl_days="$2"
+    [ -f "$path" ] || return 1
+    local mtime_epoch now_epoch age_days
+    mtime_epoch=$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null)
+    now_epoch=$(date +%s)
+    age_days=$(( (now_epoch - mtime_epoch) / 86400 ))
+    if [ "$age_days" -gt "$ttl_days" ]; then
+        echo "WARN: ${path} is ${age_days} days old (> ${ttl_days}); STALE, proceeding." >&2
+        return 1
+    fi
+    return 0
+}
+if check_stale_kill ~/.config/evolve/KILL "$EVOLVE_KILL_TTL_DAYS"; then
+    echo "KILL: $(cat ~/.config/evolve/KILL)"; exit 0
+fi
+if check_stale_kill .agents/evolve/STOP "$EVOLVE_KILL_TTL_DAYS"; then
+    echo "STOP: $(cat .agents/evolve/STOP 2>/dev/null)"; exit 0
+fi
 ```
 
 ### Step 2: Measure Fitness

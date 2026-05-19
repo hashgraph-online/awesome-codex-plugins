@@ -45,12 +45,12 @@ Keep those paths exactly as shown so the marketplace entry can resolve
 ## Authentication
 
 The plugin uses the repository-local CLI when available, then a global `calle`
-command when available, then falls back to `npx -y @call-e/cli@0.3.2`.
+command when available, then falls back to `npx -y @call-e/cli@0.3.3`.
 
 To authenticate before using the plugin:
 
 ```bash
-npx -y @call-e/cli@0.3.2 auth login
+npx -y @call-e/cli@0.3.3 auth login
 ```
 
 When `$calle` is invoked, the skill checks authorization first. If login is

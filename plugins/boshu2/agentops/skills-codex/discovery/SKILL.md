@@ -37,7 +37,9 @@ Leave `ao codex ensure-stop` to closeout skills; discovery owns startup only.
 ## Narrow Waist
 
 Discovery does not carry raw child-skill output forward. It records artifact
-paths, verdicts, and the six Context Density Rule fields:
+paths, verdicts, the `hexagon:` boundary block from
+[`docs/architecture/intent-to-loop-hexagon.md`](../../docs/architecture/intent-to-loop-hexagon.md),
+and the six Context Density Rule fields:
 
 | Field | Meaning |
 |-------|---------|
@@ -53,7 +55,8 @@ Everything else stays in child artifacts and is linked by path.
 ## Discovery To Plan Port
 
 Use the [Skill Ports and Adapters](../../docs/contracts/skill-ports-and-adapters.md)
-vocabulary for the boundary between Discovery and Plan:
+vocabulary and the [Intent-to-Loop Hexagon](../../docs/architecture/intent-to-loop-hexagon.md)
+for the boundary between Discovery and Plan:
 
 | Boundary piece | Discovery contract |
 |---|---|

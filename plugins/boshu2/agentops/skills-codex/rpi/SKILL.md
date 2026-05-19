@@ -56,6 +56,10 @@ packet objective. A child bead or one ready slice is context, not a replacement
 objective. `<promise>PARTIAL</promise>` from `$crank` means retry Phase 2 on the
 same objective.
 
+Preserve the [Intent-to-Loop Hexagon](../../docs/architecture/intent-to-loop-hexagon.md)
+boundary as the objective crosses `shape_intent`, `persist_intent`,
+`plan_slices`, `execute_wave`, `validate_acceptance`, and `record_evidence`.
+
 ## Route And Classify
 
 1. Create `.agents/rpi/`.

@@ -9,6 +9,14 @@ description: 'Produce PASS/WARN/FAIL verdicts.'
 
 > **Status (2026-05-08):** introduced ADDITIVE in Phase 1 (m6v5.D.1 / soc-78s2v). Existing validators (council, vibe, pre-mortem, red-team, pr-validate, validation, review, scenario) stay until Phase 2 shim conversion (m6v5.D.2). Fix-C smoke (`soc-wb2aa`) gates Phase 2.
 
+`$validate` is a driving adapter for the `validate_acceptance` port in the
+[Intent-to-Loop Hexagon](../../docs/architecture/intent-to-loop-hexagon.md).
+When the artifact contains a `hexagon:` block, preserve the bounded context,
+context packet, guard adapters, and done state in the verdict.
+When the artifact claims DONE/closed/green, apply the
+[Completion-Claim Kernel](../shared/validation-contract.md#completion-claim-kernel)
+before returning PASS.
+
 ## Modes (≤8 per Fix-F mode-flag budget)
 
 | Mode | Purpose | Replaces (post-Phase 2) |

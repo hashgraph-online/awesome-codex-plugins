@@ -145,6 +145,7 @@ These are the skills every user needs first. Everything else is available when y
 | `$pr-validate` | PR-specific validation and isolation checks |
 | `$pr-prep` | PR preparation and structured body generation |
 | `$pr-retro` | Learn from PR outcomes |
+| `$ship-loop` | Bot-paired internal-PR fast-lane cycle |
 | `$complexity` | Code complexity analysis |
 | `$product` | Interactive PRODUCT.md generation |
 | `$handoff` | Session handoff for continuation |
