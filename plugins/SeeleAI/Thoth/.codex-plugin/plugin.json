@@ -1,0 +1,41 @@
+{
+  "name": "thoth",
+  "version": "0.2.0",
+  "description": "Official Codex-native public surface for the Thoth authority runtime.",
+  "author": {
+    "name": "SeeleAI",
+    "url": "https://github.com/SeeleAI"
+  },
+  "homepage": "https://github.com/SeeleAI/Thoth#readme",
+  "repository": "https://github.com/SeeleAI/Thoth",
+  "license": "MIT",
+  "keywords": [
+    "thoth",
+    "codex",
+    "claude-code",
+    "agent",
+    "runtime",
+    "dashboard"
+  ],
+  "skills": "./plugins/thoth/skills",
+  "interface": {
+    "displayName": "Thoth",
+    "shortDescription": "Single Codex entrypoint for the shared Thoth runtime.",
+    "longDescription": "Operate Thoth through one $thoth command surface backed by the shared .thoth authority, durable run ledger, and dashboard-visible project state.",
+    "developerName": "SeeleAI",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Execute"
+    ],
+    "websiteURL": "https://github.com/SeeleAI/Thoth",
+    "defaultPrompt": [
+      "Show the current Thoth project status and active runs.",
+      "Initialize Thoth in this repository and render project layers.",
+      "Start a durable Thoth run for the current task."
+    ],
+    "composerIcon": "./assets/thoth-icon.svg",
+    "brandColor": "#3B82F6"
+  }
+}

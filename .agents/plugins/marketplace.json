@@ -486,6 +486,21 @@
       "description": "Role-based team delivery framework — Tech Lead-orchestrated 8-role system with 195+ skills, 27 specialist agents, 80+ commands, hooks, and ECC harness for Claude Code, Codex, and OpenCode."
     },
     {
+      "name": "thoth",
+      "displayName": "Thoth",
+      "source": {
+        "source": "local",
+        "path": "./plugins/SeeleAI/Thoth"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Dashboard-first Claude Code and Codex runtime for autoresearch, turning drifting agent work into durable runs, locked work items, visible ledgers, and reviewable verdicts.",
+      "icon": "./plugins/SeeleAI/Thoth/assets/thoth-icon.svg"
+    },
+    {
       "name": "tool-advisor",
       "displayName": "Tool Advisor",
       "source": {

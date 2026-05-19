@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-18",
-  "total": 80,
+  "last_updated": "2026-05-19",
+  "total": 81,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -338,6 +338,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Colin4k1024/tsp/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Thoth",
+      "url": "https://github.com/SeeleAI/Thoth",
+      "owner": "SeeleAI",
+      "repo": "Thoth",
+      "description": "Dashboard-first Claude Code and Codex runtime for autoresearch, turning drifting agent work into durable runs, locked work items, visible ledgers, and reviewable verdicts.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/SeeleAI/Thoth/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Tool Advisor",
