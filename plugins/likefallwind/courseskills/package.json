@@ -1,0 +1,11 @@
+{
+  "name": "courseskills",
+  "version": "1.0.0",
+  "description": "Codex plugin, Claude Code plugin, and standalone skills for course creation: ai-tutorials, codex2course, api2course, pdf2video, movecourse",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/likefallwind/courseskills.git"
+  },
+  "keywords": ["codex", "claude-code", "plugin", "claude-code-plugin", "skill", "course", "slides", "openai", "tts", "video"],
+  "license": "MIT"
+}

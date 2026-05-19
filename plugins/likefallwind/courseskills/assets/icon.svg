@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Courseskills icon</title>
+  <desc id="desc">A blue course book with a play button and sparkle.</desc>
+  <rect width="512" height="512" rx="112" fill="#2563EB"/>
+  <path d="M152 132h190c29.8 0 54 24.2 54 54v190c0 8.8-7.2 16-16 16H162c-29.8 0-54-24.2-54-54V176c0-24.3 19.7-44 44-44Z" fill="#FFFFFF" opacity="0.96"/>
+  <path d="M156 132h186c29.8 0 54 24.2 54 54v18H174c-21 0-38 17-38 38v102c0 20.4 16.1 37 36.3 38H162c-29.8 0-54-24.2-54-54V180c0-26.5 21.5-48 48-48Z" fill="#DBEAFE"/>
+  <path d="M188 204h142M188 252h96M188 300h70" stroke="#1D4ED8" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="352" cy="332" r="74" fill="#0F172A"/>
+  <path d="M334 292v80l62-40-62-40Z" fill="#FFFFFF"/>
+  <path d="M385 108l10 28 28 10-28 10-10 28-10-28-28-10 28-10 10-28Z" fill="#FACC15"/>
+</svg>

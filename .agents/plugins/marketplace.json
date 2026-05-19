@@ -237,6 +237,21 @@
       "description": "Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context."
     },
     {
+      "name": "courseskills",
+      "displayName": "Courseskills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/likefallwind/courseskills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Course creation skills for designing AI courses, generating slide PDFs, narrating videos, and publishing course assets.",
+      "icon": "./plugins/likefallwind/courseskills/assets/icon.svg"
+    },
+    {
       "name": "development-skills",
       "displayName": "Development Skills",
       "source": {

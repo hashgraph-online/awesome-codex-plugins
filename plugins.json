@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-18",
-  "total": 80,
+  "last_updated": "2026-05-19",
+  "total": 81,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -168,6 +168,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Rycen7822/codex-rg-guard/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Courseskills",
+      "url": "https://github.com/likefallwind/courseskills",
+      "owner": "likefallwind",
+      "repo": "courseskills",
+      "description": "Course creation skills for designing AI courses, generating slide PDFs, narrating videos, and publishing course assets.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/likefallwind/courseskills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Development Skills",

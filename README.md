@@ -138,6 +138,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Codex Reviewer](https://github.com/schuettc/codex-reviewer) - Second-pass review of Claude-driven plans and implementations.
 - [Codex rg Guard](https://github.com/Rycen7822/codex-rg-guard) - Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context.
 - [Commit Narrator](./plugins/mturac/commit-narrator) - Generate semantic commit message from staged diff, including the *why*.
+- [Courseskills](https://github.com/likefallwind/courseskills) - Course creation skills for designing AI courses, generating slide PDFs, narrating videos, and publishing course assets.
 - [Deps Doctor](./plugins/mturac/deps-doctor) - Multi-ecosystem dependency audit (npm, pip, cargo, go) in one report.
 - [Development Skills](https://github.com/reidemeister94/development-skills) - Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.
 - [ejentum-mcp](https://github.com/ejentum/ejentum-mcp) - MCP server exposing reasoning, code, anti-deception, and memory harness tools for Codex.

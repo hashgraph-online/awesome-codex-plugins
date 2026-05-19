@@ -1,0 +1,46 @@
+{
+  "name": "courseskills",
+  "version": "1.0.0",
+  "description": "AI course design and production skills for Codex and Claude Code.",
+  "author": {
+    "name": "likefallwind",
+    "url": "https://github.com/likefallwind"
+  },
+  "homepage": "https://github.com/likefallwind/courseskills",
+  "repository": "https://github.com/likefallwind/courseskills",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "claude-code",
+    "skills",
+    "course",
+    "education",
+    "slides",
+    "openai",
+    "tts",
+    "video"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Courseskills",
+    "shortDescription": "Design courses, generate slide PDFs, narrate videos, and publish course assets.",
+    "longDescription": "Courseskills packages AI-course creation workflows as shared skills for Codex and Claude Code: course design, image-page slide decks, OpenAI API slide generation, narration-to-video assembly, and course video publishing helpers.",
+    "developerName": "likefallwind",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "websiteURL": "https://github.com/likefallwind/courseskills",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "defaultPrompt": [
+      "Design an AI course syllabus with lessons and projects.",
+      "Create a course handout, slide images, and PDF deck.",
+      "Turn this generated slide deck into a narrated video."
+    ],
+    "brandColor": "#2563EB"
+  }
+}
