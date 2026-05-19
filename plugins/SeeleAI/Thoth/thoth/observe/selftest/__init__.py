@@ -1,0 +1,2 @@
+"""Selftest suites for Thoth."""
+

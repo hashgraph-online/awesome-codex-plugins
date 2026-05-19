@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Thoth icon</title>
+  <desc id="desc">A square icon with a layered ledger mark and central run indicator.</desc>
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <path d="M128 144h256c26.5 0 48 21.5 48 48v128c0 26.5-21.5 48-48 48H128c-26.5 0-48-21.5-48-48V192c0-26.5 21.5-48 48-48Z" fill="#1d4ed8"/>
+  <path d="M128 112h256c26.5 0 48 21.5 48 48v128c0 26.5-21.5 48-48 48H128c-26.5 0-48-21.5-48-48V160c0-26.5 21.5-48 48-48Z" fill="#3b82f6"/>
+  <path d="M152 184h208" stroke="#dbeafe" stroke-width="28" stroke-linecap="round"/>
+  <path d="M152 256h144" stroke="#bfdbfe" stroke-width="28" stroke-linecap="round"/>
+  <path d="M152 328h208" stroke="#93c5fd" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="376" cy="256" r="48" fill="#f8fafc"/>
+  <circle cx="376" cy="256" r="22" fill="#0f172a"/>
+  <path d="M104 416h304" stroke="#60a5fa" stroke-width="32" stroke-linecap="round" opacity=".75"/>
+</svg>

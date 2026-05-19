@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [[ -n "${PYTHONPATH:-}" ]]; then
+  export PYTHONPATH="${PLUGIN_ROOT}:${PYTHONPATH}"
+else
+  export PYTHONPATH="${PLUGIN_ROOT}"
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+else
+  PYTHON_BIN="python"
+fi
+
+required_modules_available() {
+  "${PYTHON_BIN}" -c 'import importlib.util, sys; missing = [name for name in ("yaml", "jsonschema", "fastapi", "uvicorn") if importlib.util.find_spec(name) is None]; sys.exit(1 if missing else 0)' >/dev/null 2>&1
+}
+
+install_runtime_dependencies() {
+  local target_python="$1"
+  if "${target_python}" -m pip install "pyyaml>=6.0" "jsonschema>=4.0" "fastapi>=0.100.0" "uvicorn>=0.23.0"; then
+    return 0
+  fi
+  "${target_python}" -m pip install -i https://pypi.org/simple "pyyaml>=6.0" "jsonschema>=4.0" "fastapi>=0.100.0" "uvicorn>=0.23.0"
+}
+
+bootstrap_runtime_venv() {
+  local cache_parent cache_base root_hash py_tag venv_dir
+  cache_parent="${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}"
+  cache_base="${cache_parent}/thoth/plugin-venvs"
+  root_hash="$("${PYTHON_BIN}" -c 'import hashlib, os, sys; print(hashlib.sha256(os.fsencode(sys.argv[1])).hexdigest()[:12])' "${PLUGIN_ROOT}")"
+  py_tag="$("${PYTHON_BIN}" -c 'import sys; print(f"py{sys.version_info[0]}{sys.version_info[1]}")')"
+  venv_dir="${THOTH_RUNTIME_VENV:-${cache_base}/${root_hash}-${py_tag}}"
+
+  if [[ ! -x "${venv_dir}/bin/python" ]]; then
+    mkdir -p "${cache_base}"
+    if ! "${PYTHON_BIN}" -m venv "${venv_dir}"; then
+      echo "Thoth runtime dependencies are missing and automatic venv creation failed." >&2
+      echo "Install this plugin runtime with: ${PYTHON_BIN} -m pip install ${PLUGIN_ROOT}" >&2
+      exit 1
+    fi
+  fi
+
+  if ! "${venv_dir}/bin/python" -c 'import importlib.util, sys; missing = [name for name in ("yaml", "jsonschema", "fastapi", "uvicorn") if importlib.util.find_spec(name) is None]; sys.exit(1 if missing else 0)' >/dev/null 2>&1; then
+    if ! install_runtime_dependencies "${venv_dir}/bin/python"; then
+      echo "Thoth runtime dependency bootstrap failed." >&2
+      echo "Install this plugin runtime with: ${venv_dir}/bin/python -m pip install 'pyyaml>=6.0' 'jsonschema>=4.0' 'fastapi>=0.100.0' 'uvicorn>=0.23.0'" >&2
+      exit 1
+    fi
+  fi
+
+  PYTHON_BIN="${venv_dir}/bin/python"
+}
+
+if ! required_modules_available; then
+  bootstrap_runtime_venv
+fi
+
+exec "${PYTHON_BIN}" "${PLUGIN_ROOT}/scripts/thoth-cli-entry.py" "$@"
