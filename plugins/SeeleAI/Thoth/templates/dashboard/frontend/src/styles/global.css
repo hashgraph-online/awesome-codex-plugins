@@ -1,0 +1,118 @@
+@import './variables.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top left, rgba(218, 157, 79, 0.18), transparent 28%),
+    linear-gradient(180deg, #fcf7ef 0%, #f7efe4 100%);
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  line-height: 1.2;
+}
+
+button {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  transition: var(--transition);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(191, 124, 43, 0.12);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 999px;
+}
+
+::selection {
+  background: rgba(191, 124, 43, 0.2);
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-pending { background: var(--status-pending); color: #5f4b3d; }
+.badge-in_progress { background: var(--status-progress); color: #5a4622; }
+.badge-completed { background: var(--status-completed); color: #ffffff; }
+.badge-blocked { background: var(--status-blocked); color: #fff7f1; }
+.badge-ready { background: var(--status-ready); color: #f7fbff; }
+.badge-invalid { background: var(--status-invalid); color: #fff7fb; }
+.badge-failed { background: var(--status-failed); color: #fff6ee; }
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

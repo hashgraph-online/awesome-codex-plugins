@@ -1,0 +1,40 @@
+:root {
+  --bg-primary: #fbf7f1;
+  --bg-card: #fffdf8;
+  --bg-sidebar: #f3ecdf;
+  --bg-hover: #ebe0cf;
+  --bg-input: #f7efe3;
+  --bg-header: linear-gradient(135deg, #f8f0df 0%, #fffaf3 52%, #efe5d1 100%);
+
+  --text-primary: #2f2118;
+  --text-secondary: #624b3b;
+  --text-muted: #917563;
+
+  --accent-primary: #bf7c2b;
+  --accent-secondary: #da9d4f;
+  --accent-light: rgba(191, 124, 43, 0.12);
+
+  --status-pending: #ddd4c5;
+  --status-progress: #d7c085;
+  --status-completed: #7f9a5b;
+  --status-blocked: #c97761;
+  --status-ready: #7e9ec7;
+  --status-invalid: #d28a93;
+  --status-failed: #9c6b38;
+
+  --border-light: #e8dbca;
+  --border-medium: #d7c4af;
+  --shadow-soft: 0 1px 2px rgba(47, 33, 24, 0.06), 0 4px 12px rgba(47, 33, 24, 0.04);
+  --shadow-card: 0 8px 24px rgba(47, 33, 24, 0.07);
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
+
+  --transition: all 0.18s ease;
+  --transition-slow: all 0.3s ease;
+
+  --font-serif: 'IBM Plex Serif', 'Source Serif 4', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', 'PingFang SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+}

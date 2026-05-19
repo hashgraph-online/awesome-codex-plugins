@@ -1,0 +1,35 @@
+[project]
+name = "thoth"
+version = "0.2.0"
+description = "Dashboard-centered research & engineering project management plugin for Claude Code"
+requires-python = ">=3.9"
+dependencies = [
+    "pyyaml>=6.0",
+    "jsonschema>=4.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+]
+
+[project.scripts]
+thoth = "thoth.surface.cli:main"
+thoth-selftest = "thoth.observe.selftest.runner:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "httpx>=0.24",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "templates/dashboard/backend"]
+markers = [
+    "integration: process-real integration coverage",
+    "light: fast in-process developer smoke tier",
+    "medium: repo-real but bounded developer tier",
+    "heavy: full suite including the slowest process-real coverage",
+]
+
+[tool.setuptools.packages.find]
+include = ["thoth*"]

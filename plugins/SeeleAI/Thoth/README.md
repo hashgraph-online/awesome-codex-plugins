@@ -249,7 +249,7 @@ python scripts/recommend_tests.py thoth/observe/selftest/runner.py tests/conftes
 | Signal | What you can inspect |
 | --- | --- |
 | Durable runtime truth | `.thoth/runs/*` keeps run, state, events, artifacts, and result payloads. |
-| Locked planning authority | ``.thoth/objects/discussion/`, `.thoth/objects/decision/`, and `.thoth/objects/work_item/` define what execution is allowed to do. |
+| Locked planning authority | `.thoth/objects/discussion/`, `.thoth/objects/decision/`, and `.thoth/objects/work_item/` define what execution is allowed to do. |
 | Script-backed verification | Validators, doctor checks, and selftests decide pass or fail mechanically. |
 | Shared read model | `status`, `report`, and `dashboard` all read from the same authority instead of chat memory. |
 
