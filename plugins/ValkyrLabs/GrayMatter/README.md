@@ -16,6 +16,8 @@ GrayMatter ships as three related but independently usable surfaces:
 - **Codex plugin**: `.codex-plugin/plugin.json` exposes this repo as the `graymatter` plugin with the standalone skill plus `.mcp.json`, so Codex can discover both the instructions and the MCP server.
 - **Standalone OpenClaw skill**: `graymatter.skill` packages `SKILL.md` and the required scripts for OpenClaw install, activation, hosted api-0 use, and GrayMatter Light local mode.
 
+If a GitHub sparse/root install only brings down root files, run `./graymatter-bootstrap` from the installed GrayMatter directory. It restores `scripts/` and `mcp-server/` from the bundled `graymatter.skill` archive so end-user installs do not depend on a full repo clone.
+
 ## What GrayMatter is for
 
 GrayMatter is the memory and context layer for business-native agent systems.

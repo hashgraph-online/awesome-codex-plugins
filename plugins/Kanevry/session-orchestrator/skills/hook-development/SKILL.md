@@ -1,6 +1,7 @@
 ---
 name: hook-development
 description: Use when creating, modifying, or debugging Claude Code hooks — PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification. Covers the plugin `hooks/hooks.json` wrapper format vs. the user `settings.json` direct format, matchers, security patterns, `$CLAUDE_PLUGIN_ROOT` portability, lifecycle limitations, and debugging. Trigger on "add a hook", "validate tool use", "block dangerous commands", "enforce completion", "hook-based automation".
+model: sonnet
 ---
 
 # Hook Development for Claude Code Plugins
@@ -162,8 +163,8 @@ Access in prompt hooks via `$TOOL_INPUT`, `$TOOL_RESULT`, `$USER_PROMPT`.
 // ✅ Portable — works everywhere the plugin installs
 { "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs" }
 
-// ❌ Broken — only works on Daisy's machine
-{ "command": "/Users/bernhardgoetzendorfer/Projects/.../guard.mjs" }
+// ❌ Broken — only works on the operator's machine
+{ "command": "~/Projects/.../guard.mjs" }
 ```
 
 ## Matchers

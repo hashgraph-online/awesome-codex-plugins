@@ -2,11 +2,12 @@
 name: wave-executor
 user-invocable: false
 tags: [orchestration, execution, agents, waves]
+model: sonnet
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Executes the agreed session plan in waves with role-based execution and parallel subagents. Handles inter-wave
+  Use this skill when executing the agreed session plan in waves with role-based execution and parallel subagents. Handles inter-wave
   quality checks, plan adaptation, and progress tracking. Core orchestration engine for
   feature and deep sessions. Triggered by /go command.
 ---
@@ -226,12 +227,13 @@ Applies to every interaction point in `wave-loop.md` that currently says "inform
 Each agent prompt MUST include:
 
 1. **Clear scope boundary**: "You are working on [X]. Do NOT modify files outside [paths]."
-2. **Full context**: file paths, current code structure, issue description
+2. **Full context**: file paths, current code structure, issue description. If a bite-sized executable plan exists at `docs/plans/<feature>.md` for the wave's tasks (see `skills/write-executable-plan/SKILL.md`), include the path in each agent's prompt and instruct the agent to follow the plan's 5-step structure verbatim.
 3. **Acceptance criteria**: measurable definition of done
 4. **Rule references**: "Follow patterns in <state-dir>/rules/[relevant].md"
 5. **Testing expectation**: "Write tests for your changes" or "Run existing tests"
 6. **Commit instruction**: "Do NOT commit. The coordinator handles commits."
 7. **Turn limit**: Include the maxTurns instruction from `circuit-breaker.md`
+8. **Verification before completion**: Before claiming any task done, run the verification command and quote the evidence inline. See `.claude/rules/verification-before-completion.md`.
 
 Each agent prompt MUST NOT include:
 - References to other agents' tasks (isolation)
@@ -277,6 +279,7 @@ End with a single commit summarizing all housekeeping work.
 | TypeScript errors introduced | Track count, run Full Gate per quality-gates by Quality wave |
 | New critical issue discovered | Inform user, add to Impl-Polish+ roles if fits scope |
 | Agent edits wrong files | Revert via git, re-dispatch with stricter scope |
+| New critical issue discovered with broken behavior | Apply `skills/debug/SKILL.md` Iron Law 4-phase investigation before proposing a fix |
 
 ## Return Shape Contract (Autopilot Integration, #300)
 
@@ -343,6 +346,20 @@ When an agent's task scope includes vault paths (`~/Projects/vault/` or vault su
 
 See `wave-loop.md` § Pre-Dispatch: Frontmatter-Guard Injection for the exact contract. The snippet generator is `scripts/lib/frontmatter-guard.mjs` (skill: `skills/frontmatter-guard/`).
 
+## Worker-Pool Dispatch (#415)
+
+An opt-in bounded-concurrency cursor-based pull loop that replaces the default Promise.all() fan-out for agent dispatch. Controlled by three Session Config fields under the `worker-pool` object:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `worker-pool.enabled` | boolean | `false` | When `false` (default), the existing single-message parallel Agent() dispatch is used (backward-compatible). When `true`, `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` is used instead. |
+| `worker-pool.max-parallel` | integer | value of `agents-per-wave` | Maximum concurrent workers in the pool. Falls back to `agents-per-wave` when unset. Useful for capping concurrency below `agents-per-wave` on memory-constrained hosts. |
+| `worker-pool.drain-timeout-ms` | integer | `10000` (10 s) | When an abort signal fires mid-run (e.g., a MAX_HOURS kill-switch), workers are sent SIGTERM via their per-worker AbortController and the pool waits at most this many milliseconds before returning partial results. |
+
+**Backward compatibility:** `worker-pool.enabled` defaults to `false`. All existing sessions that omit the `worker-pool` block behave identically to before — full Promise.all() fan-out, all agents start simultaneously. No migration required.
+
+**When to enable:** use `worker-pool.enabled: true` when `agents-per-wave` is high (≥ 8) and the host is memory-constrained, or when you want to observe incremental agent completion rather than waiting for all agents to finish before inter-wave checks begin.
+
 ## Anti-Patterns
 
 - **NEVER** run `run_in_background: true` during waves — you lose coordination ability
@@ -352,3 +369,10 @@ See `wave-loop.md` § Pre-Dispatch: Frontmatter-Guard Injection for the exact co
 - **NEVER** dispatch more agents than configured in `agents-per-wave`
 - **NEVER** let wave execution run without reporting progress to the user
 - **NEVER** ask the user a decision as inline prose or a numbered markdown list — always use `AskUserQuestion` (see `.claude/rules/ask-via-tool.md`)
+- **NEVER** perform auto-commits from inside a dispatched subagent — the Auto-Commit Checkpoint (see `wave-loop.md § Auto-Commit Checkpoint`) is coordinator-only and fires only after Quality-Lite PASS. Agents report STATUS lines; the coordinator decides whether and when to commit. Subagent commits bypass the quality gate, skip the STATE.md deviation log, and violate parallel-session isolation (PSA-004 in `.claude/rules/parallel-sessions.md`).
+
+**Auto-commit vs. coordinator-snapshot:** these two features are complementary, not competing.
+- `coordinator-snapshot.mjs` (`wave-loop.md § Pre-Dispatch Coordinator Snapshot`) fires **before** agent dispatch as a stash-based working-tree backup — it protects uncommitted coordinator state from worktree merge-back collisions.
+- Auto-Commit Checkpoint fires **after** Quality-Lite PASS as a durable git commit — it provides a permanent recovery point for session crashes or `git stash` incidents (V3.3 RESCUE incident, GitLab #214).
+
+Both are gated on `persistence: true`. Neither replaces the other. The snapshot is pre-dispatch insurance; the auto-commit is post-gate durability.

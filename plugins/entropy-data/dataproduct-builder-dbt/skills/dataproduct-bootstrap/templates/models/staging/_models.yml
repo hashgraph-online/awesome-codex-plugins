@@ -1,0 +1,9 @@
+version: 2
+
+# 1:1 cleaned views over input ports. One stg_<source>.sql per source table.
+# models:
+#   - name: stg_organizations
+#     description: Cleaned organizations.
+#     columns:
+#       - name: organization_id
+#         data_tests: [unique, not_null]

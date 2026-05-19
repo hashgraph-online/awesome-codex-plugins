@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "Session-level orchestration for structured planning, wave execution, quality gates, and clean session close-out",
   "author": {
     "name": "Bernhard Goetzendorfer",
@@ -32,6 +32,7 @@
       "Interactive",
       "Write"
     ],
+    "composerIcon": "./assets/icon.svg",
     "websiteURL": "https://gotzendorfer.at/en/session-orchestrator",
     "privacyPolicyURL": "https://gotzendorfer.at/en/session-orchestrator/privacy",
     "termsOfServiceURL": "https://gotzendorfer.at/en/session-orchestrator/terms",

@@ -1,0 +1,66 @@
+{
+  "name": "unity-agent-workflows",
+  "version": "0.4.2",
+  "description": "Codex skill and npx installer for safer Unity AI agent workflows, runtime owner proof, and Unity game development automation.",
+  "bin": {
+    "unity-agent-workflows": "bin/unity-agent-workflows.js"
+  },
+  "files": [
+    ".agents",
+    ".codex-plugin",
+    "assets",
+    "plugins",
+    "SKILL.md",
+    "skills",
+    "README.md",
+    "README.th.md",
+    "agents",
+    "evals",
+    "references",
+    "scripts",
+    "bin"
+  ],
+  "scripts": {
+    "sync:mcpmarket": "bash scripts/sync_mcpmarket_skill.sh",
+    "check:semantics": "node scripts/check_skill_semantics.js",
+    "validate": "bash scripts/validate_skill.sh",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "keywords": [
+    "codex-skill",
+    "unity",
+    "unity2d",
+    "unity-ai",
+    "unity-mcp",
+    "unity-editor",
+    "game-development",
+    "ai-agent",
+    "llm-agent",
+    "agentic-coding",
+    "workflow-automation",
+    "runtime-owner-proof",
+    "runtime-numeric-proof",
+    "unity-refactoring",
+    "unity-validation",
+    "unity-ui",
+    "multi-agent",
+    "ai-workflows",
+    "codex-cli",
+    "claude-code",
+    "npx",
+    "npm-package",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AUN-PN/unity-agent-workflows.git"
+  },
+  "homepage": "https://github.com/AUN-PN/unity-agent-workflows#readme",
+  "bugs": {
+    "url": "https://github.com/AUN-PN/unity-agent-workflows/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

@@ -354,3 +354,14 @@ Reusable collector обязан:
 - `()` и `|`: группировка и ИЛИ.
 
 Операторы использовать осознанно для исследований точной частотности и проверки рисков по минус-словам, а не хаотично во время основного wave-collection.
+
+## Build-Prep Classification Gate
+
+Before a Wordstat wave becomes build-prep, every product or offer in the product map must have one of these statuses:
+
+- `core`: direct commercial route, eligible for build-prep by default.
+- `support`: adjacent/support route, eligible only when landing and copy match the intent.
+- `proof-only`: evidence/research layer; not first-wave build-prep without a separate decision.
+- `speculative`: weak signal or unsupported route; keep in backlog until proof exists.
+
+Completeness checks must confirm that broad category roots, support roots, and adjacency roots are either covered by masks or explicitly discarded with a reason. Do not let proof-only or speculative offers leak into standalone commercial masks by default.

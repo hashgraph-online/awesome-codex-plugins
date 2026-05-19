@@ -1,0 +1,30 @@
+{
+  "name": "praxis",
+  "version": "1.2.2",
+  "description": "Token-lean discipline skills for coding agents.",
+  "author": { "name": "ouonet" },
+  "homepage": "https://github.com/ouonet/praxis",
+  "repository": "https://github.com/ouonet/praxis",
+  "license": "MIT",
+  "skills": "./skills/",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "Praxis",
+    "shortDescription": "Token-lean discipline skills for coding agents",
+    "longDescription": "Triage-driven workflow skills: design, planning, TDD, debugging, and delivery. Significantly cheaper than alternatives while keeping core capabilities.",
+    "developerName": "ouonet",
+    "category": "Coding",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Let's build something.",
+      "Help me debug this."
+    ],
+    "websiteURL": "https://github.com/ouonet/praxis",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "brandColor": "#7C3AED",
+    "composerIcon": "./assets/logo-mark.svg",
+    "iconURL": "https://raw.githubusercontent.com/ouonet/praxis/main/assets/logo-mark.svg",
+    "logoURL": "https://raw.githubusercontent.com/ouonet/praxis/main/assets/logo.svg"
+  }
+}

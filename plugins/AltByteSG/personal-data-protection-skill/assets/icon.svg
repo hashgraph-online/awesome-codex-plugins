@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Personal Data Protection</title>
+  <desc id="desc">A shield enclosing a stylized lock — engineering reference for personal-data-protection compliance across Southeast Asia.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3730A3"/>
+      <stop offset="100%" stop-color="#1E1B4B"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="40" fill="url(#bg)"/>
+  <path d="M128 36 L196 60 L196 132 C196 174 168 204 128 220 C88 204 60 174 60 132 L60 60 Z" fill="#F4F4F5"/>
+  <rect x="96" y="120" width="64" height="56" rx="8" fill="#1E1B4B"/>
+  <path d="M108 120 L108 96 C108 84 117 74 128 74 C139 74 148 84 148 96 L148 120" stroke="#1E1B4B" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <circle cx="128" cy="144" r="5" fill="#F4F4F5"/>
+  <rect x="125" y="147" width="6" height="16" rx="1.5" fill="#F4F4F5"/>
+</svg>

@@ -1,0 +1,57 @@
+{
+  "name": "ejentum-mcp",
+  "version": "0.1.11",
+  "mcpName": "io.github.ejentum/ejentum-mcp",
+  "description": "MCP server with four cognitive harness tools (harness_reasoning, harness_code, harness_anti_deception, harness_memory) that AI agents call before generating. Two install paths: stdio via `npx -y ejentum-mcp` (Claude Desktop, Cursor, Windsurf, Codex CLI, Claude Code), or hosted HTTPS at https://api.ejentum.com/mcp (n8n MCP Client and any HTTP-MCP client; Bearer auth via EJENTUM_API_KEY). Each tool returns a structured prompt: a named failure pattern, an executable procedure, suppression vectors, and a falsification test for self-verification.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ejentum-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test:smoke": "node tests/smoke.mjs",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ejentum",
+    "reasoning-harness",
+    "agentic-ai",
+    "cognitive-scaffold",
+    "anti-deception",
+    "code-review",
+    "anthropic",
+    "claude"
+  ],
+  "license": "MIT",
+  "author": "Ejentum <info@ejentum.com>",
+  "homepage": "https://ejentum.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ejentum/ejentum-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ejentum/ejentum-mcp/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}

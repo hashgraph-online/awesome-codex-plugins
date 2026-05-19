@@ -16,10 +16,11 @@ eval surface," the meaning is fixed here, not improvised.
 
 ## Status
 
-**Tracer bullet shape, not yet canonical.** This skill currently holds:
+**Tracer bullet shape with one canonical operating concept.** This skill currently holds:
 
 - 6 structural primitives (Entry, Index, Citation, Primitive, Slice, Anti-Pattern)
 - 1 test entry (Tracer Bullet) written using only citations to the 6 primitives
+- 1 canonical operating concept (Context Density Rule)
 
 If the test entry can describe its own concept using only the primitives, the
 shape works and we grow the corpus by adding more entries — never new
@@ -54,6 +55,10 @@ Vocabulary nouns (the working units):
 Test entry:
 
 - [`references/tracer-bullet.md`](references/tracer-bullet.md) — Tracer Bullet: described using only citations to the six primitives above
+
+Operating discipline:
+
+- [`references/context-density-rule.md`](references/context-density-rule.md) — Context Density Rule: every context token carries intent, boundary, evidence, decision, constraint, or next action
 
 Catalog:
 

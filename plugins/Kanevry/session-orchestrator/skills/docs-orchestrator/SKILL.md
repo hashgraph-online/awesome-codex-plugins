@@ -2,9 +2,10 @@
 name: docs-orchestrator
 user-invocable: false
 tags: [docs, orchestration, audiences]
+model: sonnet
 model-preference: sonnet
 description: >
-  Opt-in orchestration for documentation generation and updates within a
+  Use this skill when orchestrating documentation generation and updates within a
   session. Maps session scope to audience-specific docs tasks (User / Dev /
   Vault), dispatches the docs-writer agent with source-grounded prompts, and
   reports coverage gaps to session-end. Gated on

@@ -2,13 +2,11 @@
 name: gitlab-ops
 user-invocable: false
 tags: [reference, vcs, gitlab, github, issues]
+model: haiku
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
-description: >
-  VCS operations reference for GitLab and GitHub: CLI commands (glab/gh),
-  label taxonomy, issue templates, dynamic project resolution.
-  Used as a reference by other skills and during issue management.
+description: Use this skill when performing VCS operations on GitLab or GitHub repositories — creating, updating, or closing issues and MRs, applying label taxonomy, running `glab`/`gh` CLI commands, or resolving project IDs dynamically. Acts as the single source of truth for CLI command syntax and label conventions; consuming skills reference this rather than duplicating logic. Triggers: "create a GitLab issue", "list open MRs", "apply priority label", "how do I resolve the project ID", "what's the carryover issue template". <example>Context: session-end needs to file a carryover issue for an incomplete task. user: "/close" assistant: "Creating carryover issue via glab with the Carryover Template from gitlab-ops — labels: carryover, priority:high."</example>
 ---
 
 # VCS Operations Reference

@@ -37,7 +37,7 @@ jk auth login <url> [flags]
 | `--proxy` |  | Proxy URL for this context |
 | `--set-active` |  | Set the context as active after login |
 | `--token` |  | Jenkins API token |
-| `--username` |  | Jenkins username |
+| `--username` |  | Jenkins user ID (Google/SSO users: usually your email) |
 
 ### Inherited Flags
 

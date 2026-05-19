@@ -2,6 +2,7 @@
 name: convergence-monitoring
 user-invocable: true
 tags: [autoresearch, convergence, loop-control, wave-executor]
+model: haiku
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
@@ -22,6 +23,12 @@ attribution: >
 > `.orchestrator/metrics/`. See `skills/_shared/platform-tools.md`.
 
 # Convergence-Monitoring Skill
+
+## Platform-native (CC 2.1.105+)
+
+This skill's watcher is registered as a plugin monitor via `.claude-plugin/plugin.json`'s `experimental.monitors` reference to `monitors/monitors.json`. Each session that loads this plugin auto-starts the watcher in the background (see `scripts/lib/convergence-monitor.mjs`). Each NDJSON stdout line from the watcher becomes a `<task_notification>` event Claude sees mid-session.
+
+For harness < 2.1.105 (no monitor support), the skill's manual probes documented below serve as the fallback path.
 
 ## When to Invoke
 

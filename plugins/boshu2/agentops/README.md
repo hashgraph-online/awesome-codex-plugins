@@ -4,12 +4,14 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/boshu2/agentops?style=social)](https://github.com/boshu2/agentops/stargazers)
 
-### The engineering operating system for agent teams.
+### The SDLC control plane for agentic software development.
 
 From agent opinions to engineering verdicts.
 
 <!-- agentops:claim:AOP-CLAIM-README-FACTORY-CONTEXT -->
-**AgentOps is a disciplined engineering layer for agentic software development.** It keeps the books for coding agents, then compiles that record into context for your software factory. It captures what agents tried, what worked, what failed, what was validated, and what should constrain the next run.
+**AgentOps is the SDLC control plane for coding agents.** It takes the software-engineering practices teams already understand - Agile/XP, BDD/Gherkin, DDD, hexagonal architecture, TDD, CI/CD, SRE, ADRs, provenance, and durable knowledge - and compiles them into dense, verifiable context for LLM agents under token scarcity.
+
+It is not a packet generator; packets are one artifact. AgentOps keeps the books for coding agents, then compiles that record into context for your software factory. It captures what agents tried, what worked, what failed, what was validated, and what should constrain the next run.
 
 *AgentOps is the shovel. Start digging.*
 
@@ -36,6 +38,12 @@ claude plugin install agentops@agentops-marketplace
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash
+```
+
+Codex installs hookless by default. To opt into native Codex hooks, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash -s -- --with-hooks
 ```
 
 **Codex CLI on Windows PowerShell**
@@ -81,7 +89,11 @@ You can also install from [release binaries](https://github.com/boshu2/agentops/
 
 ## See It Work
 
-**One command: per-phase model routing across Claude and Codex**
+**The problem:** Coding agents are useful, but most teams still run them like isolated chat sessions. Every session starts cold. Prior attempts, warnings, decisions, and fixes scatter across chats, commits, and memory — so agents repeat mistakes, miss edge cases, and leave no reviewable proof trail.
+
+**What AgentOps does:** It compiles the engineering practices teams already trust — XP, BDD/Gherkin, DDD, TDD — into the workflow your agents actually run. Intent is broken into bounded slices, each slice gets a first failing test and a write scope, and every phase boundary is a gate that records evidence.
+
+**One loop: intent in, verified change out — across Claude and Codex**
 
 ```text
 $ ao rpi "add rate limiting to /login"
@@ -93,7 +105,7 @@ $ ao rpi "add rate limiting to /login"
 [recorded]           .agents/runs/2026-05-07-rate-limit/
 ```
 
-Claude does discovery, Codex implements, a fresh Claude validates, all in one loop with state preserved across boundaries. Nobody else does this.
+Research, plan, pre-mortem, implement, validate — each boundary is a gate, not a suggestion, and each leaves a file-backed trace. Mix models per phase: Claude discovers, Codex implements, a fresh Claude validates, all in one loop with state preserved across boundaries.
 
 And when you want a second opinion before shipping: `/council --mixed`
 
@@ -113,6 +125,31 @@ The point is not a bigger prompt. The point is a repo that remembers what was tr
 
 ---
 
+## SDLC Control Plane, CDLC Mechanism
+
+People know the SDLC. They do not need a new acronym before they understand the problem. Publicly, AgentOps is an **SDLC control plane for agentic software development**.
+
+Inside that control plane is the **Context Development Life Cycle (CDLC)**: the lifecycle for the context agents consume. DevOps made delivery operational for human teams. AgentOps makes context operational for agent teams.
+
+Every token should carry one of six payloads: **intent, boundary, evidence, decision, constraint, or next action**. If it carries none of those, it probably does not belong in the prompt.
+
+The narrow waist is deliberately small:
+
+| Practice | What AgentOps uses it for |
+|---|---|
+| **BDD / Gherkin** | Dense intent in observable behavior terms |
+| **DDD** | Shared names, bounded contexts, and a vocabulary humans and agents can both use |
+| **Hexagonal architecture** | Ports and adapters that keep runtime, tool, and vendor details outside the core loop |
+| **TDD** | A local executable done condition for each slice |
+
+Everything else plugs into that waist: CI/CD repeats the proof, SRE/DORA measures fitness, ADRs and provenance preserve why-memory, wikis and ratchets preserve durable learning, and Agile/XP keeps work in small vertical slices instead of speculative waterfall plans.
+
+Atomic process is the rule: one behavior, one bounded context, one first failing test, one write scope, one acceptance proof, and one learning only when it changes future behavior.
+
+That waist is executable, not advisory. `GOALS.md` declares intent as directives; `/scenario` and `ao goals render` turn each directive into behavioral acceptance examples — exportable as Gherkin `.feature` files; `ao rpi phased --domain <name>` builds inside one bounded context with a declared read scope; and `ao goals measure` scores whether the result actually satisfies the spec. Intent, behavior, build, and validation stay linked end to end — the executable-spec chain.
+
+---
+
 <!-- agentops:claim:AOP-CLAIM-README-FACTORY-CONTEXT -->
 
 ## What AgentOps Gives You
@@ -122,7 +159,7 @@ Four layers. Each solves a different problem. All four compound.
 | Layer | Problem | What changes |
 |-------|---------|--------------|
 | **Bookkeeping** | Agents forget what they tried, why they changed course, and what evidence mattered | `.agents/` captures run packets, handoffs, findings, citations, decisions, verdicts, retros, and post-mortems. *The work leaves a trace.* |
-| **Context Compiler** | Every session starts from zero | `ao inject` delivers decay-ranked knowledge. `ao context assemble` builds phase-scoped packets. 75 skills load automatically via hooks. *Your agent starts loaded, not cold.* |
+| **Context Compiler** | Every session starts from zero | `ao context assemble` builds phase-scoped packets. `ao lookup` retrieves decay-ranked knowledge on demand. Skills and execution packets make context explicit; hooks are optional adapters. *Your agent starts loaded, not cold.* |
 | **Validation Gates** | Agents ship confident garbage | `/pre-mortem`, `/vibe`, `/council` — multi-model consensus validates plans before build and code before commit. Gates block, not advise. *Three fresh judges catch what one agent can't.* |
 | **Knowledge Flywheel** | Lessons disappear between sessions | `/forge` extracts learnings from the bookkeeping trail. `ao flywheel close-loop` scores and promotes. `/evolve` fixes the worst gap autonomously. `/dream` compounds overnight. *Session 15 starts with everything session 1 learned.* |
 
@@ -137,16 +174,18 @@ All state lives in local `.agents/` — plain text you can grep, diff, and revie
 | Written for humans; agents can't traverse it efficiently | LLM Wiki of Markdown — agents read it natively |
 | Lives in SaaS, not your repo | Lives in `.agents/` next to the code |
 | Not version-controlled with your code | Diffable, branchable, mergeable |
-| No decay ranking, no retrieval scoring | `ao inject` returns decay-ranked, token-budgeted packets |
+| No decay ranking, no retrieval scoring | `ao lookup` and `ao context assemble` return bounded, cited context |
 | No validation gates, no automated capture | Sessions write to it automatically; councils validate it |
 | Doesn't compound; you maintain it manually | Daemon defrags, evolves, and compounds it overnight |
 | Read-only artifact | Writes itself: agents that use it also produce it |
+
+`.agents/` is a wiki both humans and agents read: agents traverse the markdown natively, and you can open the same directory as an Obsidian vault — `[[wikilinks]]` resolve and every entry diffs in git. Maintenance is mechanical, not voluntary: the agents that consume the wiki also produce it.
 
 More: [docs/wiki-for-agents.md](docs/wiki-for-agents.md) · [docs/trust-factory.md](docs/trust-factory.md).
 
 ---
 
-## Why DevOps?
+## Why Context Needs a Lifecycle
 
 DevOps proved that disciplined systems around indeterministic workers produce reliable output. SRE proved it again with SLOs and error budgets. Kubernetes proved it for infrastructure with control loops. Coding agents are the next indeterministic worker class. Same playbook. New substrate.
 
@@ -155,7 +194,7 @@ Every primitive software engineering already gave us has a counterpart in the ag
 | Software Engineering | Coding-Agent World |
 |---|---|
 | Source code | Context (corpus, planning rules, learnings) |
-| SDLC | CDLC (Context Development Lifecycle) |
+| SDLC | CDLC (Context Development Life Cycle) |
 | Libraries (Maven, npm, crates.io) | Context libraries (the `.agents/` corpus) |
 | Compilers | Context compilers (`ao compile` → wiki) |
 | Code review | Multi-model councils |
@@ -166,9 +205,9 @@ Every primitive software engineering already gave us has a counterpart in the ag
 | Markdown / Git / Linux (open primitives) | LLM Wiki of Markdown |
 | Open-source corpus | Your private corpus (`.agents/` in your repo) |
 
-Major engineering organizations are reorganizing around feeding their agents the right context — restructuring teams, building internal context platforms, hiring "context engineering" leads. AgentOps is that pattern for solo developers and small teams. Same playbook. Same asset class. Different scale.
+Major engineering organizations are reorganizing around feeding their agents the right context — restructuring teams, building internal context platforms, hiring "context engineering" leads. AgentOps is that pattern for solo developers and small teams: an SDLC control plane whose core job is context compilation. Same playbook. Same asset class. Different scale.
 
-LLMs are engines. Context is fuel. You can't tune the engine — that's the model vendor's job. But you can engineer the fuel. Full CDLC treatment: [docs/cdlc.md](docs/cdlc.md).
+LLMs are engines. Context is fuel. You can't tune the engine — that's the model vendor's job. But you can engineer the fuel. The CDLC is how the SDLC control plane does that work. Full treatment: [docs/cdlc.md](docs/cdlc.md).
 
 ---
 

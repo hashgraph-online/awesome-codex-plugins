@@ -89,7 +89,7 @@ The output is stable across calls for the same schema version. Regenerate only w
 The canonical schema source is:
 
 ```
-/Users/bernhardgoetzendorfer/Projects/projects-baseline/packages/zod-schemas/src/vault-frontmatter.ts
+~/Projects/projects-baseline/packages/zod-schemas/src/vault-frontmatter.ts
 ```
 
 `readVaultSchema()` reads this file on every call unless the in-memory mtime cache is current. The function returns `null` (no throw) when the file is absent or unreadable.

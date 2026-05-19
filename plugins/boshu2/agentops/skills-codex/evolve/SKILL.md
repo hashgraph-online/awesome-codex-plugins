@@ -72,6 +72,12 @@ Dream owns the knowledge compounding layer; `$evolve` owns the code compounding 
 
 **Each cycle is a COMPLETE $rpi run** — all 3 phases (discovery → implementation → validation). Never invoke a partial RPI. If a task is too large for one cycle, break it into smaller sub-tasks during discovery and let `$crank` handle the waves. Evolve's job is to keep the loop turning, not to micro-manage individual tasks.
 
+For broad AgentOps 3.0 domain evolution across skills, CLI, hooks, docs, tests,
+beads, and knowledge, first read
+[references/domain-evolution-bootstrap.md](references/domain-evolution-bootstrap.md).
+It supplies the BDD/DDD/Hexagonal/TDD/XP control surface and the clean-room
+skill-factory guardrails.
+
 **Break large work into sub-RPI cycles.** When work selection identifies a massive task (7+ issues, multi-subsystem scope), decompose it during `$rpi`'s discovery phase into an epic with waves. One evolve cycle = one `$rpi` run = one complete lifecycle. If the epic is too large for a single session, `$rpi`'s built-in retry and `--from=` resume handle continuation.
 
 ### Anti-Patterns (DO NOT)
@@ -89,8 +95,15 @@ Dream owns the knowledge compounding layer; `$evolve` owns the code compounding 
 
 ```bash
 mkdir -p .agents/evolve
-ao lookup --query "autonomous improvement cycle" --limit 5 2>/dev/null || true
+ao corpus inject --query "autonomous improvement cycle" --limit 5 2>/dev/null || true
 ```
+
+`ao corpus inject` routes through the typed BC1 `CorpusReaderPort`
+(`cli/cmd/ao/corpus_reader_adapter.go`, cycle 112 productionCorpusReader),
+emitting one ranked `ports.CorpusItem` JSON record per line from
+`.agents/learnings/` by default. Closes soc-y5vh.1 — Step 0 prior-knowledge
+retrieval is load-bearing on the typed port, not an untyped `ao lookup`
+shell-out.
 
 **Apply retrieved knowledge:** If learnings are returned, check each for applicability to the current improvement cycle. For applicable learnings, cite by filename and record: `ao metrics cite "<path>" --type applied 2>/dev/null || true`
 
@@ -564,6 +577,16 @@ bash scripts/evolve-log-cycle.sh \
 # No git add, no git commit, no fitness snapshot write
 ```
 
+**Record the XP/BDD/TDD trace.** When a cycle worked a product or goal-backed
+gap, pass `--trace-json <path|inline|->` to `evolve-log-cycle.sh` (or
+`ao loop append --trace-json`) so the cycle records the continuous-evolution
+kernel — goal hypothesis → selected gap → Gherkin scenario → first failing
+proof → red/green evidence → refactor note → validation evidence → ratchet
+action → goal reshape — and a reviewer can reconstruct the cycle without the
+transcript. A trivial one-shot cycle records a `trace.exemption_reason`
+instead of carrying false BDD/TDD ceremony. Trace completeness is advisory,
+never a gate. See `references/cycle-history.md` ("XP/BDD/TDD Evidence Trace").
+
 ### Step 7: Loop or Stop
 
 ```bash
@@ -574,6 +597,21 @@ while true; do
   CYCLE=$((CYCLE + 1))
 done
 ```
+
+**Convergence STOP.** Before re-entering the loop, evaluate the terminal
+predicate through the typed BC3 `ConvergenceCheckPort` (soc-y5vh.8):
+
+```bash
+ao loop converged --green-streak "$STREAK" --unconsumed-high-medium "$HM" --fitness-baseline
+# emits {converged, ci_green_streak, unconsumed_high_medium, fitness_baseline_captured, reasons}
+```
+
+Branch on `.converged` instead of hand-parsing `.agents/evolve/session-convergence.json`.
+When `converged` is true (default criteria: CI green streak ≥ 3, unconsumed
+HIGH+MEDIUM ≤ 1, fitness baseline captured), break the loop and run Teardown.
+When a cycle edits an evolve `SKILL.md`, record the falsifiable claim through
+`ao loop hypothesis append` (read it back with `ao loop hypothesis list`).
+See `references/convergence-mechanics.md` for all four compounding mechanisms.
 
 Push only when productive work has accumulated:
 ```bash
@@ -596,7 +634,35 @@ fi
 UNPUSHED=$(git log origin/main..HEAD --oneline 2>/dev/null | wc -l)
 [ "$UNPUSHED" -gt 0 ] && git push
 ```
-4. Report summary:
+4. **Release-context teardown (MANDATORY when branch is release-shaped):**
+
+   When the current branch matches `release/*`, `v*-prep`, `v*-evolve-run`, or `v\d+\.\d+*`, the teardown report MUST NOT recommend `$release` as the next step. Instead, emit the explicit pre-release checklist below — the operator must run these AND confirm green before tagging:
+
+   ```
+   ## Pre-release checklist — REQUIRED before $release
+
+   Per-cycle --fast pre-push and ao goals measure ≠ release readiness.
+   Operator MUST run and confirm green:
+
+     [ ] 1. Regenerate CLI reference if any cobra command/flag changed:
+            bash scripts/generate-cli-reference.sh
+            git diff cli/docs/COMMANDS.md   # commit if non-empty
+
+     [ ] 2. Full pre-push gate (NOT --fast):
+            bash scripts/pre-push-gate.sh
+
+     [ ] 3. Release-readiness gate:
+            bash scripts/ci-local-release.sh
+
+     [ ] 4. (Recommended) Smoke $evolve --quick --max-cycles=1 --dry-run if
+            BC port wire-ups changed.
+
+   Only after [1]–[3] pass: $release <version>
+   ```
+
+   The handoff artifact (e.g., `.agents/runs/<release>/READY-TO-TAG.md`) MUST contain this checklist verbatim, unchecked. "Ready to tag" means the boxes are checked, not that the loop ran cleanly.
+
+5. Report summary:
 
 ```
 ## $evolve Complete
@@ -670,6 +736,8 @@ See `references/cycle-history.md` for advanced troubleshooting.
 
 - [references/artifacts.md](references/artifacts.md)
 - [references/compounding.md](references/compounding.md)
+- [references/convergence-mechanics.md](references/convergence-mechanics.md)
+- [references/domain-evolution-bootstrap.md](references/domain-evolution-bootstrap.md)
 - [references/cycle-history.md](references/cycle-history.md)
 - [references/examples.md](references/examples.md)
 - [references/goals-schema.md](references/goals-schema.md)
@@ -684,6 +752,7 @@ See `references/cycle-history.md` for advanced troubleshooting.
 
 - [references/artifacts.md](references/artifacts.md)
 - [references/compounding.md](references/compounding.md)
+- [references/convergence-mechanics.md](references/convergence-mechanics.md)
 - [references/cycle-history.md](references/cycle-history.md)
 - [references/examples.md](references/examples.md)
 - [references/goals-schema.md](references/goals-schema.md)

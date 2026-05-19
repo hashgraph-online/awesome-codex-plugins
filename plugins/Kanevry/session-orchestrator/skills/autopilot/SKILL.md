@@ -1,7 +1,7 @@
 ---
 name: autopilot
 description: >
-  Autonomous session-orchestration loop. Chains session-start → session-plan →
+  Use this skill when running an autonomous session-orchestration loop. Chains session-start → session-plan →
   wave-executor → session-end for N iterations with kill-switches (SPIRAL, FAILED
   wave, carryover > 50%, max-hours, sub-threshold confidence). Reads Mode-Selector
   output (Phase B) to decide auto-execute vs. fallback. Writes one autopilot.jsonl
@@ -9,6 +9,7 @@ description: >
   scripts/lib/autopilot.mjs (Phase C-1 follow-up).
 user-invocable: true
 tags: [phase-c, autopilot, autonomous, loop]
+model: sonnet
 ---
 
 # Autopilot Skill
@@ -291,6 +292,27 @@ identically by readers per the v1 schema additive convention).
 - Do not implement kill-switch logic in this skill. Kill-switch enforcement is in
   `scripts/lib/autopilot.mjs`. The skill documents the contract; the runtime enforces it.
 
+## Configuration
+
+The `autopilot` block in Session Config (`CLAUDE.md` / `AGENTS.md`) accepts the following fields. All fields are optional; omitting a field applies the documented default.
+
+```yaml
+autopilot:
+  bg-isolation: worktree   # worktree | none (default: worktree) — see #431
+```
+
+### bg-isolation
+
+**Type:** `worktree` | `none` — **Default:** `worktree`
+
+Controls whether `autopilot --multi-story` creates a per-story git worktree before spawning sub-sessions.
+
+`worktree` (default): Each story pipeline receives its own isolated git worktree via `EnterWorktree`. Parallel writes are safe because every agent edits a private working copy. Cost: disk space proportional to the number of concurrent stories plus the latency of worktree creation at story-start.
+
+`none` (opt-in): No worktrees are created. Sub-sessions spawn directly in the main working tree. Useful for monorepos where worktree creation is impractical due to large `node_modules`, sparse-checkout setups, or build caches that must be shared. **Requires file-scope discipline:** when `max-stories > 1`, every story must edit a disjoint set of files. If two stories touch the same file simultaneously, edits will collide silently. To enforce acknowledgement of this discipline, `autopilot-multi` requires `--deconflict-paths=<glob>` whenever `bg-isolation: none` AND `max-stories > 1`; omitting the flag is a hard error (exit 1). See `.claude/rules/parallel-sessions.md` PSA-001/002/003.
+
+**Operator-awareness note:** CC 2.1.133 silently flipped `worktree.baseRef` default from `head` to `origin/<default>`, breaking users who relied on unpushed commits being included in their worktree base. The same class of upstream change can affect `bg-isolation` semantics in a future CC release. Treat CC changelog entries related to worktree or `--bg` session behaviour as requiring a re-read of this section before upgrading.
+
 ## References
 
 - PRD: `docs/prd/2026-04-25-autopilot-loop.md`
@@ -302,8 +324,8 @@ identically by readers per the v1 schema additive convention).
 - Session registry: `scripts/lib/session-registry.mjs`
 - Wave-executor return shape: `skills/wave-executor/SKILL.md § Return Shape Contract`
 - Sessions.jsonl writer: `skills/session-end/session-metrics-write.md`
-- Epic: [#271 v3.2 Autopilot — Autonomous Session Orchestration](https://gitlab.gotzendorfer.at/infrastructure/session-orchestrator/-/issues/271)
-- Issues: [#277 Phase C scaffold](https://gitlab.gotzendorfer.at/infrastructure/session-orchestrator/-/issues/277), [#295 Phase C-1 runtime](https://gitlab.gotzendorfer.at/infrastructure/session-orchestrator/-/issues/295), [#300 Phase C-1.b follow-up](https://gitlab.gotzendorfer.at/infrastructure/session-orchestrator/-/issues/300)
+- Epic: [#271 v3.2 Autopilot — Autonomous Session Orchestration](https://github.com/Kanevry/session-orchestrator/issues/271)
+- Issues: [#277 Phase C scaffold](https://github.com/Kanevry/session-orchestrator/issues/277), [#295 Phase C-1 runtime](https://github.com/Kanevry/session-orchestrator/issues/295), [#300 Phase C-1.b follow-up](https://github.com/Kanevry/session-orchestrator/issues/300)
 - Phase A PRD: `docs/prd/2026-04-24-state-md-recommendations-contract.md`
 - Phase B PRD: `docs/prd/2026-04-25-mode-selector.md`
 

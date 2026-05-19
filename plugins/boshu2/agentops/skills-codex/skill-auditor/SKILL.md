@@ -4,7 +4,11 @@ description: 'Audit a SKILL.md (15 checks).'
 ---
 # $skill-auditor — Two-pass skill quality audit
 
-Validates a skill's SKILL.md against the unified AgentOps template. Pass 1 wraps `heal-skill` for structural hygiene; Pass 2 adds 8 NEW content-discipline checks not covered by heal.
+Validates a skill's SKILL.md against the unified AgentOps template. Pass 1
+wraps `heal-skill` for structural hygiene; Pass 2 adds 8 content-discipline
+checks not covered by heal. The report also includes an advisory Context
+Density Rule block for intent, boundary, evidence, decision, constraint, and
+next action coverage.
 
 ## ⚠️ Critical Constraints
 
@@ -12,6 +16,10 @@ Validates a skill's SKILL.md against the unified AgentOps template. Pass 1 wraps
 - **Pass 1 delegates, never reimplements.** The auditor calls `$heal-skill --check <target>` and parses its output. **Why:** PR-006 (cross-layer consistency) — heal-skill's checks are the source of truth for structural hygiene; reimplementation creates drift.
 - **Pass 2 must accept AgentOps' existing conventions.** Specifically `description-has-triggers` accepts THREE valid forms (YAML `|` block scalar OR `Triggers:`/`Use when:` markers OR `metadata.triggers` array with 3+ items). **Why:** finding `f-2026-05-06-auditor-checks-must-fit-host-conventions` — auditor checks must validate against the host substrate's existing valid artifacts before promotion to required gate.
 - **Verdict aggregation rule:** any check returns `fail` → FAIL; otherwise any returns `warn` → WARN; otherwise PASS. **Why:** prevents silent severity downgrade.
+- **Density coverage is advisory-only.** Missing density fields never changes
+  the PASS/WARN/FAIL verdict and does not satisfy packet-boundary enforcement
+  in `soc-2c1p.1`. **Why:** the hard Context Density Rule belongs at execution
+  packet boundaries; this skill only helps reviewers find low-signal prose.
 
 ## What It Detects
 
@@ -42,6 +50,25 @@ Validates a skill's SKILL.md against the unified AgentOps template. Pass 1 wraps
 
 Full check definitions and accepted forms in [references/audit-checks.md](references/audit-checks.md).
 
+### Advisory density report
+
+The JSON report includes a separate `density` block with six report-only fields:
+`intent`, `boundary`, `evidence`, `decision`, `constraint`, and `next_action`.
+Read [references/context-density-checks.md](references/context-density-checks.md)
+for detection rules, limits, and false-positive handling.
+
+### Productization score overlay
+
+For AgentOps skill-factory work, run the clean-room score overlay after the
+two-pass audit:
+
+```bash
+python3 skills-codex/skill-auditor/scripts/score_agentops_skill.py skills/<name> --markdown
+```
+
+The score is advisory. Use it to pick the smallest productization patch, then
+re-run this auditor and `$heal-skill`.
+
 ## Execution Steps
 
 ### Step 1: Pass 1 (heal-skill delegation)
@@ -66,6 +93,8 @@ warns > 0  → WARN
 otherwise  → PASS
 ```
 
+Density coverage is computed before emission but is not counted in the verdict.
+
 ### Step 4: Emit report
 
 JSON conforming to `schemas/audit-report.json` to stdout (or to file with `--json <path>`); markdown summary to stderr.
@@ -76,6 +105,9 @@ JSON conforming to `schemas/audit-report.json` to stdout (or to file with `--jso
 **Filename:** typically `.agents/audits/<skill-name>-audit.json` when `--json <path>` is supplied; otherwise stdout.
 **Exit code:** 0 for PASS or WARN; 1 for FAIL; 2 for usage error or missing target.
 
+**Density advisory:** JSON includes `density.status`, `density.fields[]`, and
+`density.summary`. Treat missing fields as review prompts, not gates.
+
 ## Quality Rubric
 
 - [ ] Auditor never modifies target SKILL.md or any other file
@@ -83,6 +115,7 @@ JSON conforming to `schemas/audit-report.json` to stdout (or to file with `--jso
 - [ ] All 8 Pass-2 checks emit one of: `pass`, `warn`, `fail`, `n/a`
 - [ ] `description-has-triggers` accepts all three valid forms (verified by running auditor against AgentOps' existing single-line-description skills like `forge`, `heal-skill`, `council`)
 - [ ] Aggregate verdict applies max-severity rule (no silent downgrade)
+- [ ] Density advisory reports all six fields without changing the aggregate verdict
 - [ ] Report JSON validates against `schemas/audit-report.json`
 
 ## Examples
@@ -129,8 +162,10 @@ bash skills/skill-auditor/scripts/audit.sh --strict skills/my-skill
 
 - [references/skill-template.md](references/skill-template.md) — canonical SKILL.md template (copy of skill-builder's; per CLAUDE.md no-symlinks rule)
 - [references/audit-checks.md](references/audit-checks.md) — per-check detection logic + accepted forms + PRODUCT.md mapping
+- [references/context-density-checks.md](references/context-density-checks.md) — advisory density coverage logic and false-positive handling
 
 ### scripts/
 
 - `scripts/audit.sh`
+- `scripts/score_agentops_skill.py`
 - `scripts/validate.sh`

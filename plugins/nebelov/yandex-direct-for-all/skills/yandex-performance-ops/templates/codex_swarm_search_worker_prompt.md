@@ -93,7 +93,17 @@ Preferred shell pattern:
 
 - Return one object in `decisions` for every row in the chunk.
 - `assistant_status` must be `approve`.
-- `assistant_action` must be explicit Russian text suitable for direct merge into `manual_decisions.tsv`.
+- `assistant_action` must start with one strict action prefix and then a parseable payload:
+  - `KEEP_TARGET: no_apply`
+  - `PHRASE_MINUS: phrase=<exact query>; scope=adgroup`
+  - `ADD_GROUP_NEGATIVE: words=<word1|word2|word3>; scope=adgroup`
+  - `ROUTE_REVIEW: route=<short Russian target or review lane>; no_apply`
+  - `GROWTH_HOLD: cluster=<short Russian growth lane>; no_apply`
+  - `BLOCKED: reason=<short Russian blocker>`
+- Do not invent extra free-form prefixes.
+- If you choose `PHRASE_MINUS`, `phrase=` must repeat the exact query text from the row.
+- If you choose `ADD_GROUP_NEGATIVE`, put only the safe negative words after `words=` and separate them with `|`.
+- The human explanation belongs in `assistant_reason`, not in `assistant_action`.
 - `assistant_reason` must be concise and evidence-based in Russian.
 - Match the style of the existing manual decisions.
 - Prefer nearby prior decisions from `__CHUNK_PRIOR_CONTEXT__` over inventing a new wording style.

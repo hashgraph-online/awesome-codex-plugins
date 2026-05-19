@@ -62,9 +62,9 @@ runtime-native-only council.
 
 ```bash
 mkdir -p .agents/council
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-1.json "$PACKET"
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-2.json "$PACKET"
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-3.json "$PACKET"
+codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-1.json "$PACKET"
+codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-2.json "$PACKET"
+codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-3.json "$PACKET"
 ```
 
 Only add `-m "$COUNCIL_CODEX_MODEL"` when the override is explicitly set. If

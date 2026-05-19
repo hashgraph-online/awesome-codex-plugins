@@ -249,3 +249,12 @@
   - RSYA placement rotation;
   - ad outsider rotation;
   - bids/structure/assets.
+
+## 2026-05 Safety Lessons For Public Bundle
+
+- Skill preflight is mandatory: reread the relevant skill/reference before any Direct, Wordstat, Metrika, Roistat, or YouGile action.
+- Live traffic is not self-stoppable: campaign, ad group, ad, keyword, strategy, and placement stop/pause/suspend actions require explicit owner approval.
+- Owner-facing reports should use human campaign/ad names by default; raw internal IDs belong in artifacts unless explicitly requested.
+- Search-negative marker engines and prefilters are diagnostic only; final packs need fresh SQR, manual verdicts, word/safe-mask reduction, product conflict checks, preflight, approval, and readback.
+- Search cleanup should start with high-impression rows, then low-CTR/high-impression tails, then cost/click/conversion layers.
+- Product-family and adjacent-route terms must pass assortment checks before becoming stop words or negatives.

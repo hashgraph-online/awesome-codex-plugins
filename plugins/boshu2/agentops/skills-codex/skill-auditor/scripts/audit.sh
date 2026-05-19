@@ -216,6 +216,44 @@ run_check quality-rubric             warn check_quality_rubric
 run_check references-modularization  warn check_references_modularization
 run_check trigger-clarity            warn check_trigger_clarity
 
+# --- Advisory density report ---------------------------------------------
+# This is deliberately not part of the PASS/WARN/FAIL verdict. Packet-boundary
+# enforcement belongs to the execution-packet schema; this block helps reviewers
+# find low-signal skill prose before fresh-context dispatch.
+declare -A DENSITY_PRESENT=()
+declare -A DENSITY_EVIDENCE=()
+
+check_density_field() {
+  local id="$1"
+  local pattern="$2"
+  if grep -Eiq -- "$pattern" "$SKILL_MD"; then
+    DENSITY_PRESENT[$id]="true"
+    DENSITY_EVIDENCE[$id]="matched advisory pattern"
+  else
+    DENSITY_PRESENT[$id]="false"
+    DENSITY_EVIDENCE[$id]="missing advisory pattern"
+  fi
+}
+
+check_density_field intent 'intent|goal|behavior|capability'
+check_density_field boundary 'boundary|bounded context|write scope|non-goal|non-goals'
+check_density_field evidence 'evidence|test|tests|verdict|validation|acceptance'
+check_density_field decision 'decision|rationale|why|because|chosen'
+check_density_field constraint 'constraint|constraints|guardrail|guardrails|limit|limits|scope'
+check_density_field next_action 'next_action|next action|next steps|completion marker|report completion'
+
+density_present_count=0
+for id in intent boundary evidence decision constraint next_action; do
+  if [[ "${DENSITY_PRESENT[$id]}" == "true" ]]; then
+    density_present_count=$((density_present_count + 1))
+  fi
+done
+if (( density_present_count == 6 )); then
+  DENSITY_STATUS="pass"
+else
+  DENSITY_STATUS="warn"
+fi
+
 # --- Aggregate verdict ---------------------------------------------------
 fails=0
 warns=0
@@ -249,9 +287,22 @@ emit_json() {
   for id in description-has-triggers constraints-frontloaded rationale-present verification-checkpoints output-spec-explicit quality-rubric references-modularization trigger-clarity; do
     if (( ! first )); then printf ',\n'; fi
     first=0
-    printf '      {"id":"%s","status":"%s","evidence":"%s"}' "$id" "${CHECK_STATUS[$id]}" "${CHECK_EVIDENCE[$id]}"
+  printf '      {"id":"%s","status":"%s","evidence":"%s"}' "$id" "${CHECK_STATUS[$id]}" "${CHECK_EVIDENCE[$id]}"
   done
   printf '\n    ]\n'
+  printf '  },\n'
+  printf '  "density": {\n'
+  printf '    "status": "%s",\n' "$DENSITY_STATUS"
+  printf '    "advisory": true,\n'
+  printf '    "fields": [\n'
+  first=1
+  for id in intent boundary evidence decision constraint next_action; do
+    if (( ! first )); then printf ',\n'; fi
+    first=0
+    printf '      {"id":"%s","present":%s,"evidence":"%s"}' "$id" "${DENSITY_PRESENT[$id]}" "${DENSITY_EVIDENCE[$id]}"
+  done
+  printf '\n    ],\n'
+  printf '    "summary": "%d/6 density signals present; advisory-only and not execution-packet enforcement."\n' "$density_present_count"
   printf '  },\n'
   printf '  "summary": "Pass1: %d findings (%d autofixable). Pass2: %d fails, %d warns. Verdict: %s."\n' \
     "$(echo "$PASS1_FINDINGS_JSON" | grep -c '"code":' | head -1)" "$PASS1_AUTOFIXABLE" "$fails" "$warns" "$VERDICT"
@@ -270,6 +321,7 @@ fi
   for id in description-has-triggers constraints-frontloaded rationale-present verification-checkpoints output-spec-explicit quality-rubric references-modularization trigger-clarity; do
     printf "  [%-4s] %s\n" "${CHECK_STATUS[$id]}" "$id"
   done
+  echo "Density advisory: $density_present_count/6 fields present ($DENSITY_STATUS)"
   echo "VERDICT: $VERDICT"
 } >&2
 

@@ -38,3 +38,4 @@ Preferred decision ladder:
 
 Explicitly call out when a request should use `Custom Field` rather than editing a DocType JSON file directly.
 
+When creating or redesigning a DocType, also apply `frappe-doctype-design` so fields, tabs, sections, columns, and required flags are chosen for a clean human workflow instead of a flat field dump.

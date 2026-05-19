@@ -5,9 +5,30 @@
 [![Python 3.10–3.14](https://img.shields.io/badge/python-3.10–3.14-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Model Context Protocol](https://modelcontextprotocol.io) server for [Langfuse](https://langfuse.com) observability. Query traces, debug errors, analyze sessions, manage prompts.
+Agent-facing [Model Context Protocol](https://modelcontextprotocol.io) server and skill for [Langfuse](https://langfuse.com) observability.
+
+Use `langfuse-mcp` from Claude Code, Codex, Cursor, or any MCP client to query traces, inspect generations, debug exceptions, analyze sessions, manage prompts, browse datasets, and understand what your AI agents did in production.
+
+## What You Can Do
+
+- Debug failing agent runs from Langfuse traces and observations.
+- Find exceptions, slow generations, high-latency spans, and affected users.
+- Inspect sessions and user journeys without leaving your agent workflow.
+- Manage prompt versions, labels, datasets, annotation queues, and scores.
+- Install the included [`langfuse` agent skill](skills/langfuse/SKILL.md) for ready-made debugging playbooks.
+
+## Project Links
+
+- [Quick Start](#quick-start)
+- [Agent Skill](#agent-skill)
+- [Tools](#tools-37-total)
+- [Selective Tool Loading](#selective-tool-loading)
+- [Read-Only Mode](#read-only-mode)
+- [Other Clients](#other-clients)
 
 ## Why langfuse-mcp?
+
+Langfuse is where your traces live. `langfuse-mcp` makes that telemetry directly usable by agents that need to answer questions like "what failed?", "why was this slow?", "which prompt version ran?", or "what happened in this user's session?"
 
 Comparison with [official Langfuse MCP](https://github.com/langfuse/mcp-server-langfuse) (as of Jan 2026):
 
@@ -51,6 +72,38 @@ To pin a CI-verified interpreter explicitly, add `--python 3.14` before `langfus
 
 Restart your CLI, then verify with `/mcp` (Claude Code) or `codex mcp list` (Codex).
 
+## Agent Skill
+
+This repo ships a first-party [`langfuse` skill](skills/langfuse/SKILL.md) for Claude Code and Codex. The skill gives agents concrete playbooks for trace debugging, exception triage, latency analysis, prompt management, and dataset work.
+
+Install it when you want the agent to know when to reach for Langfuse and which MCP tools to call first.
+
+**Via [skills](https://github.com/vercel-labs/add-skill)** (recommended):
+```bash
+npx skills add avivsinai/langfuse-mcp -g -y
+```
+
+**Via [skild](https://skild.sh)**:
+```bash
+npx skild install @avivsinai/langfuse -t claude -y
+```
+
+**Manual install:**
+```bash
+cp -r skills/langfuse ~/.claude/skills/   # Claude Code
+cp -r skills/langfuse ~/.codex/skills/    # Codex CLI
+```
+
+After installing the skill, try:
+
+```text
+help me debug langfuse traces
+find exceptions in the last day
+why was this user's session slow?
+```
+
+The MCP server provides the tools; the skill provides the agent-facing workflow. See [`skills/langfuse/SKILL.md`](skills/langfuse/SKILL.md), [`skills/langfuse/references/setup.md`](skills/langfuse/references/setup.md), and [`skills/langfuse/references/tool-reference.md`](skills/langfuse/references/tool-reference.md).
+
 ## Tools (37 total)
 
 | Category | Tools |
@@ -77,30 +130,6 @@ create_dataset_item(
   expected_output={"answer": "4"}
 )
 ```
-
-## Skill
-
-This project includes a skill with debugging playbooks.
-
-**Via [skills](https://github.com/vercel-labs/add-skill)** (recommended):
-```bash
-npx skills add avivsinai/langfuse-mcp -g -y
-```
-
-**Via [skild](https://skild.sh)**:
-```bash
-npx skild install @avivsinai/langfuse -t claude -y
-```
-
-**Manual install:**
-```bash
-cp -r skills/langfuse ~/.claude/skills/   # Claude Code
-cp -r skills/langfuse ~/.codex/skills/    # Codex CLI
-```
-
-Try asking: "help me debug langfuse traces"
-
-See [`skills/langfuse/SKILL.md`](skills/langfuse/SKILL.md) for full documentation.
 
 ## Selective Tool Loading
 

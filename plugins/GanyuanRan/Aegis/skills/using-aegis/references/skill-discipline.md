@@ -187,6 +187,18 @@ for initialization, indexing, lifecycle records, proof-bundle assembly, and
 structure checks. Helper outputs are method-pack records only, not
 authoritative gates.
 
+Aegis workspace helper belongs to the installed method-pack root, not
+necessarily the target project. Resolve the helper from `AEGIS_WORKSPACE_HELPER`,
+user-local Aegis config, or the installed method-pack root, then pass the target
+project separately:
+
+```bash
+python <aegis-workspace-helper> check --root <target-project-root>
+```
+
+If `check` reports `missing workspace directory: docs/aegis`, treat the target
+project as uninitialized rather than treating the method-pack helper as missing.
+
 Workspace Shell:
 ```
 docs/aegis/

@@ -4,6 +4,8 @@ description: Use when refactoring, cleaning up code, reducing complexity, fixing
 allowed-tools: Read Glob Grep Edit
 model: sonnet
 effort: high
+context: fork
+agent: general-purpose
 ---
 
 You are an expert code reviewer focused on refactoring.

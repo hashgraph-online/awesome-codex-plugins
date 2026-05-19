@@ -36,6 +36,25 @@ Use when you have a written implementation plan with mostly independent tasks an
 
 Before multi-task plans: load long-task-continuation, create checkpoint, include in every implementer prompt.
 
+Before dispatching an implementer, build a `SubagentContextPacket` instead of
+passing full conversation history. Include:
+
+- task
+- goal and stop condition
+- relevant baseline refs and files
+- known facts and unknowns
+- non-goals
+- expected output and verification
+- must-read excerpts
+- unsafe assumptions
+
+The packet is a compact handoff, not a substitute for evidence. Give raw
+excerpts or file refs for facts the subagent must verify.
+
+Do not paste full chat transcripts, full session history, or unbounded logs into
+`SubagentContextPacket`. Prefer must-read excerpts, file refs, line/window
+hints, and explicit unsafe assumptions.
+
 ## Model Selection
 
 Use the least powerful model per role: mechanical (1-2 files, complete spec) → fast/cheap. Integration (multi-file, pattern matching) → standard. Architecture/design/review → most capable.
@@ -45,6 +64,7 @@ Use the least powerful model per role: mechanical (1-2 files, complete spec) →
 Each implementer prompt must include:
 
 - active task text
+- `SubagentContextPacket` when goal framing, long-task, or multi-agent work is active
 - relevant baseline refs
 - latest `TodoCheckpointDraft`
 - any `ResumeStateHint`

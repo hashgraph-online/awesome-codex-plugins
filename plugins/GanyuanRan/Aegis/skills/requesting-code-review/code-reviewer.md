@@ -17,6 +17,12 @@ You are reviewing code changes for production readiness.
 
 {PLAN_OR_REQUIREMENTS}
 
+## Baseline / Current Authority
+
+Identify the baseline or current authority refs supplied by the caller. If none
+were supplied for non-trivial work, flag that as a review evidence gap instead
+of inventing an authority source.
+
 ## Existing Evidence
 
 {EVIDENCE}
@@ -55,6 +61,12 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Scalability considerations?
 - Performance implications?
 - Security concerns?
+
+**Baseline / Current Authority:**
+- Were baseline / current authority refs supplied when the work was non-trivial?
+- Does the diff align with the baseline ownership map, contract inventory, and dependency direction?
+- If not aligned, is this a baseline defect, architecture drift, or intentional architecture change?
+- If intentional, is ADR Auto Backfill or baseline sync needed?
 
 **Evidence Sufficiency:**
 - Do the provided tests / commands / logs actually prove the claimed behavior?
@@ -140,6 +152,7 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Avoid giving a clear verdict
 - Treat passing tests alone as full completion
 - Ignore old logic that should retire or converge
+- Judge architecture drift without checking baseline or current authority refs
 
 ## Example Output
 

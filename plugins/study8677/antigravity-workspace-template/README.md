@@ -2,11 +2,13 @@
 
 <img src="docs/assets/logo.png" alt="Antigravity Workspace" width="200"/>
 
-# Antigravity — Workspace Template for Claude Code, Codex CLI & Cursor
+# Antigravity
 
-### Multi-agent knowledge engine + optional MCP server that turns any repo into a queryable AI assistant. Works with Claude Code, Codex CLI, Cursor, Windsurf, and Gemini CLI.
+### Cross-IDE repository knowledge engine for grounded codebase Q&A.
 
-`ag-refresh` builds a knowledge base. `ag-ask` answers questions. Any LLM, any IDE.
+`ag-refresh` builds the repository knowledge base. `ag-ask` routes questions to
+the right module context with source evidence. Plugins, CLI commands, and MCP are
+delivery channels around that core workflow.
 
 Language: **English** | [中文](README_CN.md) | [Español](README_ES.md)
 
@@ -65,6 +67,94 @@ Architecture is **files + a live Q&A engine**, not plugins. Portable across any 
 
 ---
 
+## Slash Commands
+
+Same four slash commands ship to both **Claude Code** and **Codex CLI**. Claude namespaces them as `/antigravity:<name>`; Codex auto-discovers `commands/` and surfaces the bare `/<name>` form. No retraining — same flow on both hosts.
+
+| Claude Code | Codex CLI | Purpose |
+|---|---|---|
+| `/antigravity:ag-setup` | `/ag-setup` | First-time setup — pick LLM provider, write `.env` |
+| `/antigravity:ag-refresh [quick]` | `/ag-refresh [quick]` | Build / incrementally refresh the project knowledge base |
+| `/antigravity:ag-ask <question>` | `/ag-ask <question>` | Routed Q&A on the current codebase |
+| `/antigravity:ag-init <name>` | `/ag-init <name>` | Scaffold a new multi-agent repo from this template |
+
+A typical first session is **ag-setup → ag-refresh → ag-ask**. Details below.
+
+### `ag-setup` — first-time configuration
+
+Run this **once per project**, right after installing the plugin. Interactive picker for the LLM provider (OpenAI / DeepSeek / Groq / 阿里灵积 / NVIDIA NIM / Ollama local / any OpenAI-compatible endpoint), then writes `.env` to the project root with `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AG_ASK_TIMEOUT_SECONDS`. Also ensures `.env` is in `.gitignore`. Skip it if you already have a working `.env`.
+
+```
+# Claude Code
+/antigravity:ag-setup
+
+# Codex CLI
+/ag-setup
+```
+
+### `ag-refresh` — build / refresh the knowledge base
+
+Deploys the multi-agent cluster to read your code: each module gets its own Agent that produces a knowledge doc under `.antigravity/agents/*.md`, plus a `map.md` routing index. Run after install, after significant code changes, or when `ag-ask` returns stale answers. The first refresh auto-creates `.antigravity/` — no separate init step needed. Pass `quick` for an incremental update, `failed-only` to rerun only previously failed modules.
+
+```
+# Claude Code
+/antigravity:ag-refresh
+/antigravity:ag-refresh quick
+
+# Codex CLI
+/ag-refresh
+/ag-refresh quick
+```
+
+Time: a few minutes for small repos, longer for large ones. Requires `ag-setup` to have completed.
+
+### `ag-ask` — routed Q&A on the codebase
+
+The **main reason this plugin exists**. Routes your question to the right ModuleAgent (and GitAgent / GitNexus when applicable), then returns an answer grounded in actual source with file paths and line numbers. Use it **before** manually grepping or reading files — it's faster and more accurate. Good question shapes: "where is X defined/handled?", "why was Y done this way?", "how does the auth flow work?", "what depends on module Z?".
+
+```
+# Claude Code
+/antigravity:ag-ask "How does authentication work?"
+
+# Codex CLI
+/ag-ask "How does authentication work?"
+```
+
+Requires a knowledge base — if you see "no index" or empty answers, run `ag-refresh` first.
+
+### `ag-init` — scaffold a new multi-agent repo
+
+Creates a **new** project from the Antigravity template. Two modes: `quick` (fast scaffold, clean copy) and `full` (adds runtime profile, `.env`, mission file, sandbox config, optional `git init`). This is for **starting a new repo** — you do **not** need it before `ag-refresh` on an existing project.
+
+```
+# Claude Code
+/antigravity:ag-init my-agent
+/antigravity:ag-init my-agent full
+
+# Codex CLI
+/ag-init my-agent
+/ag-init my-agent full
+```
+
+> The plugin also bundles the `agent-repo-init` skill (the same backend that `ag-init` invokes — Codex / Claude can also match it by description) and the optional `ag-mcp` MCP server (`ask_project` + `refresh_project`) for tool-style integration.
+
+---
+
+## Support Matrix
+
+| Layer | Channels | Contract |
+|:------|:---------|:---------|
+| Native plugins | Claude Code, Codex CLI | Bundled slash commands for `ag-setup`, `ag-refresh`, `ag-ask`, and `ag-init`. |
+| Compatible IDEs | Cursor, Windsurf, Gemini CLI, VS Code + Copilot, Cline, Aider | Use shared context files, the `ag`/`ag-*` CLI entrypoints, or an MCP client. |
+| Advanced tool integration | `ag-mcp` | Exposes `ask_project` and `refresh_project` for hosts that can call MCP tools. |
+| Workspace bootstrapping | `ag-init`, `ag init` | Starts a new repo or injects portable agent context into an existing one. |
+
+The native plugins are the first-class install path today. Other environments are
+supported through the same repository knowledge artifacts rather than separate
+host-specific plugin packages.
+
+---
+
 ## Quick Start
 
 **Option A — Plugin install for Claude Code / Codex CLI**
@@ -72,22 +162,21 @@ Architecture is **files + a live Q&A engine**, not plugins. Portable across any 
 # Claude Code (auto-installs the Python engine CLI on first session via SessionStart hook)
 /plugin marketplace add study8677/antigravity-workspace-template
 /plugin install antigravity@antigravity
-/antigravity:setup            # interactive: pick LLM provider, paste API key, writes .env
-/antigravity:ag-refresh       # runs ag-refresh directly; first refresh auto-creates .antigravity/
+/antigravity:ag-setup            # interactive: pick LLM provider, paste API key, writes .env
+/antigravity:ag-refresh          # runs ag-refresh directly; first refresh auto-creates .antigravity/
 /antigravity:ag-ask "How does this project work?"  # runs ag-ask directly
 
 # Codex CLI (install the engine manually first; Codex hooks are not yet supported)
 pipx install "git+https://github.com/study8677/antigravity-workspace-template.git#subdirectory=engine"
 codex plugin marketplace add study8677/antigravity-workspace-template
-ag-refresh --workspace .
-ag-ask "How does this project work?"
+/ag-setup                        # same flow, no antigravity: prefix in Codex
+/ag-refresh
+/ag-ask "How does this project work?"
 ```
 
-Codex CLI currently registers plugin marketplaces with `codex plugin marketplace add`.
-Use the CLI commands above for refresh/ask. If your Codex build supports MCP and
-you want tool-style integration, register `ag-mcp --workspace <project>` separately.
+Codex CLI auto-discovers slash commands from the plugin's `commands/` directory, so the same four commands work without the `antigravity:` namespace prefix (`/ag-setup`, `/ag-refresh`, `/ag-ask`, `/ag-init`). The raw CLI calls (`ag-refresh --workspace .`, `ag-ask "..." --workspace .`) also still work. If your Codex build supports MCP and you want tool-style integration, register `ag-mcp --workspace <project>` separately.
 
-After install + setup you get `/antigravity:ag-ask <question>`, `/antigravity:ag-refresh`, and `/antigravity:ag-init <name>` slash commands. MCP remains optional (`ask_project` + `refresh_project`) via `ag-mcp`; see [docs/examples/antigravity.mcp.json](docs/examples/antigravity.mcp.json). See [INSTALL.md](INSTALL.md) for details and troubleshooting.
+After install + setup you get `ag-ask <question>`, `ag-refresh`, and `ag-init <name>` slash commands in both hosts. MCP remains optional (`ask_project` + `refresh_project`) via `ag-mcp`; see [docs/examples/antigravity.mcp.json](docs/examples/antigravity.mcp.json). See [INSTALL.md](INSTALL.md) for details and troubleshooting.
 
 **Option B — Manual install: engine + CLI via pip**
 ```bash
@@ -195,7 +284,7 @@ antigravity-workspace-template/
 
 **CLI** (`pip install .../cli`) — Zero LLM deps. Injects templates, logs reports & decisions offline.
 
-**Engine** (`pip install .../engine`) — Multi-agent runtime. Powers `ag-ask`, `ag-refresh`, `ag-mcp`. Supports Gemini, OpenAI, Ollama, or any OpenAI-compatible API.
+**Engine** (`pip install .../engine`) — Repository knowledge runtime. Powers `ag-ask`, `ag-refresh`, `ag-mcp`. Uses the OpenAI-compatible endpoint written by `ag-setup` (OpenAI, DeepSeek, Groq, DashScope, NVIDIA NIM, Ollama, or custom).
 
 **New skill packaging updates:**
 - `engine/antigravity_engine/skills/graph-retrieval/` — graph-oriented retrieval tools for structure and call-path reasoning.
@@ -349,7 +438,7 @@ ag report "Auth module needs refactoring"
 ag log-decision "Use PostgreSQL" "Team has deep expertise"
 ```
 
-Works with Gemini, OpenAI, Ollama, or any OpenAI-compatible endpoint. Powered by OpenAI Agent SDK + LiteLLM.
+Works with the provider selected by `ag-setup` through an OpenAI-compatible endpoint. Powered by OpenAI Agent SDK + LiteLLM.
 </details>
 
 <details>
@@ -372,7 +461,10 @@ Works with Gemini, OpenAI, Ollama, or any OpenAI-compatible endpoint. Powered by
 }
 ```
 
-Set `MCP_ENABLED=true` in `.env`.
+Set `MCP_ENABLED=true` in `.env` to make configured servers available, and set
+`AG_ALLOW_MCP=true` only when you want `ag-ask` to auto-connect those external
+servers. Stdio MCP servers inherit process environment plus configured `env`
+values, so treat enabled servers as local-permission code.
 </details>
 
 <details>
@@ -427,8 +519,12 @@ ag-ask "Who calls the send method in gateway adapters?"
 |:---------|:--------|:--------|
 | `SANDBOX_TYPE` | `local` | `local` · `microsandbox` |
 | `SANDBOX_TIMEOUT_SEC` | `30` | seconds |
+| `AG_RETRIEVAL_MODE` | `compact` | `off` · `compact` · `full` |
 
-See [Sandbox docs](docs/en/SANDBOX.md).
+The default sandbox is for trusted local workspaces, not untrusted code
+isolation. Retrieval graph files redact common secrets before writing to disk,
+but `full` mode can still preserve source snippets. See
+[Sandbox docs](docs/en/SANDBOX.md).
 </details>
 
 ---

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" role="img" aria-labelledby="title desc">
+  <title id="title">HOL Guard Plugin logo</title>
+  <desc id="desc">HOL Guard Plugin wordmark with shield icon.</desc>
+  <rect width="520" height="128" rx="30" fill="#F5F7FC"/>
+  <path d="M64 18 102 32v29c0 24-14 42-38 52-24-10-38-28-38-52V32l38-14Z" fill="#5599FE"/>
+  <path d="M64 31 90 40v21c0 17-9 30-26 38-17-8-26-21-26-38V40l26-9Z" fill="#FFFFFF" opacity=".94"/>
+  <circle cx="64" cy="48" r="6" fill="#3F4174"/>
+  <circle cx="50" cy="64" r="6" fill="#5599FE"/>
+  <circle cx="78" cy="64" r="6" fill="#5599FE"/>
+  <circle cx="64" cy="82" r="6" fill="#48DF7B"/>
+  <path d="M60 52 54 60m14-8 6 8M54 68l6 10m14-10-6 10" stroke="#3F4174" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="130" y="58" fill="#3F4174" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700">HOL Guard</text>
+  <text x="130" y="91" fill="#5599FE" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="600">Plugin</text>
+</svg>

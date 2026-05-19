@@ -32,7 +32,7 @@ It gives your coding agent four things it doesn't have by default:
 
   Bookkeeping — sessions capture learnings, findings, and reusable context in .agents/
   Validation  — $council, $pre-mortem, and $vibe challenge plans and code before shipping
-  Primitives  — skills, hooks, and the ao CLI give you building blocks for almost any interaction
+  Primitives  — skills, execution packets, and the ao CLI give you building blocks for almost any interaction
   Flows       — $research, $implement, $validation, and $rpi can run alone or compose end to end
 
 Key skills: $rpi  $research  $validation  $implement  $council  $pre-mortem  $swarm  $status
@@ -48,12 +48,12 @@ Match the first row that applies. Output that message, then append the Step 4 al
 | GIT=false + AO=true + GLOBAL_AGENTS=true | "🗂  You're outside a git repo but have a global corpus at `~/.agents`. Global knowledge workflow:\n  1. `$harvest` — scan all `.agents/` across your repos and promote artifacts into `~/.agents/learnings/`\n  2. `$compile` — mine, synthesize, and write an interlinked wiki into `.agents/compiled/` (runs from cwd; set `AGENTOPS_COMPILE_RUNTIME=ollama` or `openai` and the matching API key/host)\n  3. `$knowledge-activation` — turn the compiled corpus into playbooks, a belief book, and runtime briefings for future sessions\n  4. `$status` — flywheel health snapshot\nIf instead you want to start a fresh repo-local project here, `git init` first." |
 | GIT=false | "⚠ Not in a git repo. Run `git init` first.\n  (If you meant to work against your global `~/.agents` corpus, run `$quickstart` from a dir with `.agents/` or see `$harvest`, `$compile`, `$knowledge-activation`.)" |
 | AO=false + CODEX=true | "📦 Install ao CLI first:\n  brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops\n  brew install agentops\n  ao quick-start\nThen: `$rpi \"a small goal\"` to run your first cycle.\nUse `$bootstrap` after the core seed when you want PRODUCT.md, README.md, and PROGRAM.md." |
-| AO=false | "📦 Install ao CLI first:\n  brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops\n  brew install agentops\n  ao quick-start && ao init --hooks\nThen: `$rpi \"a small goal\"` to run your first cycle.\nUse `$bootstrap` after the core seed when you want PRODUCT.md, README.md, and PROGRAM.md." |
+| AO=false | "📦 Install ao CLI first:\n  brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops\n  brew install agentops\n  ao quick-start\nThen: `$rpi \"a small goal\"` to run your first cycle.\nUse `$bootstrap` after the core seed when you want PRODUCT.md, README.md, and PROGRAM.md." |
 | AGENTS=false + CODEX=true | "🌱 ao is installed but not initialized here.\n  Run `ao quick-start` to apply the repeatable core seed. `ao quickstart` is the stable alias.\n  Then run `$bootstrap` only if you want the product/operations layer: PRODUCT.md, README.md, PROGRAM.md/AUTODEV.md, and optional hooks.\nThen: `$rpi \"a small goal\"` to run your first cycle." |
 | AGENTS=false | "🌱 ao is installed but not initialized here.\n  Run `ao quick-start` to apply the repeatable core seed. `ao quickstart` is the stable alias.\n  Then run `$bootstrap` only if you want the product/operations layer: PRODUCT.md, README.md, PROGRAM.md/AUTODEV.md, and optional hooks.\nThen: `$rpi \"a small goal\"` to run your first cycle." |
-| BD=false + CODEX=true | "✅ Codex native-hooks path ready.\n  Start with `$rpi \"your goal\"`, `$research <topic>`, or `$status`\n  Current Codex installs with native hooks handle startup and closeout automatically after install.\n  Older hookless installs fall back to entry skills auto-running `ao codex ensure-start` once per thread and closeout skills auto-running `ao codex ensure-stop`.\n  Manual escape hatch: `ao codex status`\n  Want issue tracking? `brew install boshu2/agentops/beads && bd init --prefix <prefix>`" |
+| BD=false + CODEX=true | "✅ Codex plugin path ready.\n  Start with `$rpi \"your goal\"`, `$research <topic>`, or `$status`\n  Default installs are hookless; native hooks are optional with `install-codex.sh --with-hooks`.\n  Legacy explicit fallback commands remain `ao codex ensure-start` once per thread and `ao codex ensure-stop` during closeout when needed.\n  Manual escape hatch: `ao codex status`\n  Want issue tracking? `brew install boshu2/agentops/beads && bd init --prefix <prefix>`" |
 | BD=false | "✅ Flywheel active. Start now:\n  `$rpi \"your goal\"` — full $discovery → $crank → $validation pipeline\n  `$validation` — close out recent work and capture learnings\n  `$research <topic>` — explore the codebase\n  Want issue tracking? `brew install boshu2/agentops/beads && bd init --prefix <prefix>`" |
-| BD=true + CODEX=true | "✅ Codex full stack ready.\n  `bd ready` — see open work\n  Start with `$rpi \"your goal\"`, `$research <topic>`, or `$status`\n  Current Codex installs with native hooks handle startup and closeout automatically after install.\n  Older hookless installs fall back to entry skills auto-running `ao codex ensure-start` once per thread and closeout skills auto-running `ao codex ensure-stop`.\n  Manual escape hatch: `ao codex status`" |
+| BD=true + CODEX=true | "✅ Codex full stack ready.\n  `bd ready` — see open work\n  Start with `$rpi \"your goal\"`, `$research <topic>`, or `$status`\n  Default installs are hookless; native hooks are optional with `install-codex.sh --with-hooks`.\n  Legacy explicit fallback commands remain `ao codex ensure-start` once per thread and `ao codex ensure-stop` during closeout when needed.\n  Manual escape hatch: `ao codex status`" |
 | BD=true | "✅ Full stack ready.\n  `bd ready` — see open work\n  `$rpi \"your goal\"` — start a new goal from scratch\n  `$status` — see current session state" |
 
 ### Step 4: Schedule a nightly dream (always-on lane)
@@ -95,7 +95,7 @@ Starting a new project? Run `$scaffold <language> <name>` to generate project st
 | Problem | Solution |
 |---------|----------|
 | Skills not installed | `bash <(curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install.sh)` |
-| Codex installs without native hooks | Current Codex installs with native hooks handle lifecycle automatically. Hookless installs fall back to entry skills auto-running `ao codex ensure-start` and closeout skills auto-running `ao codex ensure-stop`; `ao codex status` is the manual escape hatch |
+| Hook activation | Default installs are hookless. Opt into native hooks with `install-codex.sh --with-hooks`; legacy explicit fallback commands are `ao codex ensure-start` and `ao codex ensure-stop`. |
 | Flywheel count is 0 | First session — run `$rpi "a small goal"` to start it |
 | Want the full skill catalog | Ask: "show me all the skills" or see `references/full-catalog.md` |
 

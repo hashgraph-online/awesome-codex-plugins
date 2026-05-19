@@ -486,7 +486,7 @@ cat > "$REPO_ROOT/.orchestrator/metrics/README.md" <<'README'
 - `sessions.jsonl` — per-session execution summaries.
   Written by `/close` via session-end.
 
-Schema: https://gitlab.gotzendorfer.at/infrastructure/session-orchestrator
+Schema: https://github.com/Kanevry/session-orchestrator
 (see skills/evolve/SKILL.md and skills/session-end/).
 
 **Do NOT gitignore** — these files are project artifacts intended to persist

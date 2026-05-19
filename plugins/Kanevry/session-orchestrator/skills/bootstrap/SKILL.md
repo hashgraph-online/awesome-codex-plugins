@@ -2,11 +2,12 @@
 name: bootstrap
 user-invocable: true
 tags: [bootstrap, setup, scaffold, init]
+model: sonnet
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Scaffolds the minimum repository structure required by session-orchestrator.
+  Use this skill when scaffolding the minimum repository structure required by session-orchestrator.
   Invoked automatically by the Bootstrap Gate when CLAUDE.md, Session Config,
   or bootstrap.lock is missing. Also available as /bootstrap for manual invocation.
   Three intensity tiers: fast (demos/spikes), standard (MVPs), deep (production/team).

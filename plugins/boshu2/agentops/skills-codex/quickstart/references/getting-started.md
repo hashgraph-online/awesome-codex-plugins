@@ -45,7 +45,7 @@ Based on what quickstart found, pick your next action:
 - **Want cross-model validation?** Run `$council validate <target>` for multi-judge review
 - **Want to cut a release?** Run `$release` for changelog, version bumps, and tagging
 - **Want a full lifecycle?** Run `$rpi` for discovery → implementation → validation in one command
-- **Want repo-native bookkeeping?** Install the `ao` CLI: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops && ao init --hooks`
+- **Want repo-native bookkeeping?** Install the `ao` CLI: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops && ao quick-start`
 
 ## The Operating Model
 

@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🎯 Session Orchestrator v3.5.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
+            "command": "echo '🎯 Session Orchestrator v3.6.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
             "async": false
           },
           {
@@ -106,6 +106,16 @@
           {
             "type": "command",
             "command": "node \"$CODEX_PLUGIN_ROOT/hooks/post-tool-batch-wave-signal.mjs\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/operator-steer.mjs\"",
             "timeout": 5
           }
         ]

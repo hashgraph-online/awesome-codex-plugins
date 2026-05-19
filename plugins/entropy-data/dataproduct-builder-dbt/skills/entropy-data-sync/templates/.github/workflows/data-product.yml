@@ -1,0 +1,75 @@
+name: "{{DATA_PRODUCT_NAME}} Data Product"
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * *"
+
+env:
+  API: {{API_HOST}}/api
+  DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
+  DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+  DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
+  DATACONTRACT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
+  DATACONTRACT_DATABRICKS_SERVER_HOSTNAME: ${{ secrets.DBT_DATABRICKS_HOST }}
+  DATACONTRACT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install dbt-databricks openlineage-dbt datacontract-cli[databricks] entropy-data
+
+      - name: Create profiles.yml
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml <<EOF
+          {{DBT_PROFILE}}:
+            target: prod
+            outputs:
+              prod:
+                type: databricks
+                catalog: {{CATALOG}}
+                schema: {{SCHEMA}}
+                host: ${DBT_DATABRICKS_HOST}
+                http_path: ${DBT_DATABRICKS_HTTP_PATH}
+                token: ${DBT_DATABRICKS_TOKEN}
+                threads: 4
+          EOF
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt run
+        run: dbt-ol run --target prod
+        env:
+          OPENLINEAGE__TRANSPORT__AUTH__APIKEY: ${{ secrets.ENTROPY_DATA_API_KEY }}
+
+      - name: dbt test
+        run: dbt test --target prod
+
+      - name: Publish data product
+        run: entropy-data dataproducts put {{DATA_PRODUCT_ID}} --file {{ODPS_FILE}}
+        env:
+          ENTROPY_DATA_API_KEY: ${{ secrets.ENTROPY_DATA_API_KEY }}
+
+      - name: Publish data contract
+        run: entropy-data datacontracts put {{CONTRACT_ID}} --file models/output_ports/v1/{{CONTRACT_FILE}}
+        env:
+          ENTROPY_DATA_API_KEY: ${{ secrets.ENTROPY_DATA_API_KEY }}
+
+      - name: Data contract test
+        run: |
+          datacontract test models/output_ports/v1/{{CONTRACT_FILE}} \
+            --server production \
+            --publish $API/test-results
+        env:
+          ENTROPY_DATA_API_KEY: ${{ secrets.ENTROPY_DATA_API_KEY }}

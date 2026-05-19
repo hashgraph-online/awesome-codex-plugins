@@ -290,7 +290,7 @@ Write `.agents/compiled/lint-report.md`:
 Run cleanup to find stale, duplicate, and oscillating artifacts.
 
 ```bash
-ao defrag --prune --dedup --oscillation-sweep
+ao defrag --prune --dedup
 ```
 
 Read `.agents/defrag/latest.json` and note: orphaned learnings (unreferenced, >30 days

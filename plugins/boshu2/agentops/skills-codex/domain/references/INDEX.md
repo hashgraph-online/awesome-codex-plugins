@@ -12,6 +12,7 @@ Load entries on demand; do not preload the whole corpus.
 5. `slice.md` — vertical work units that cut through multiple primitives
 6. `anti-pattern.md` — documented mistakes with the cost when ignored
 7. `tracer-bullet.md` — test entry; uses only citations to entries 1-6
+8. `context-density-rule.md` — CDLC compression rule for agent context
 
 ## Naming note
 
@@ -42,6 +43,12 @@ case-insensitive filesystems (macOS APFS default) do not collapse the two.
 | Slug                | Concept       | Status     | Kind     |
 |---------------------|---------------|------------|----------|
 | `tracer-bullet.md`  | Tracer Bullet | tracer     | concept  |
+
+### Operating discipline concepts
+
+| Slug                      | Concept              | Status     | Kind    |
+|---------------------------|----------------------|------------|---------|
+| `context-density-rule.md` | Context Density Rule | canonical  | concept |
 
 ## Status legend
 

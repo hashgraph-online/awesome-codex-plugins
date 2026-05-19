@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./hooks/run-hook.cmd session-start",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}

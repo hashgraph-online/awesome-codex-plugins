@@ -1,7 +1,7 @@
 ---
 name: langfuse
 version: 0.9.1
-description: Debug AI traces, find exceptions, analyze sessions, and manage prompts via Langfuse MCP. Use when debugging AI pipelines, investigating errors, analyzing latency, managing prompt versions, or setting up Langfuse. Triggers on "langfuse", "traces", "debug AI", "find exceptions", "what went wrong", "why is it slow", "datasets", "evaluation sets".
+description: Debug AI agents and LLM applications via Langfuse MCP. Use when investigating traces, exceptions, slow generations, sessions, prompt versions, datasets, or evaluation sets. Triggers on "langfuse", "traces", "debug AI", "find exceptions", "what went wrong", "why is it slow", "datasets", "evaluation sets".
 metadata:
   short-description: Langfuse observability via MCP
   compatibility: claude-code, codex-cli
@@ -9,9 +9,20 @@ metadata:
 
 # Langfuse Skill
 
-Debug your AI systems through Langfuse observability.
+Debug AI agents and LLM applications through Langfuse observability.
+
+This skill is the agent-facing companion to `langfuse-mcp`. It tells Claude Code and Codex when to use Langfuse, which MCP tool to call first, and how to move from broad trace discovery to a concrete root-cause hypothesis.
 
 **Triggers:** langfuse, traces, debug AI, find exceptions, set up langfuse, what went wrong, why is it slow, datasets, evaluation sets
+
+## What This Skill Provides
+
+- Setup steps for connecting `langfuse-mcp` to Claude Code or Codex.
+- Playbooks for exception triage, trace inspection, latency analysis, sessions, prompts, and datasets.
+- A quick reference for the highest-value MCP tools.
+- Links to full setup and tool references for deeper troubleshooting.
+
+Use the playbooks before guessing at individual tools. Start broad, identify the relevant trace/session/observation, then drill into the exact failure or slow path.
 
 ## Setup
 

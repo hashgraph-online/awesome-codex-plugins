@@ -15,13 +15,30 @@ def normalize_text(value: str) -> str:
     return " ".join(str(value).strip().split())
 
 
+def mask_from_path(path: Path) -> str:
+    name = path.stem
+    if name.startswith("top_requests_"):
+        return normalize_text(name.removeprefix("top_requests_"))
+    return normalize_text(name)
+
+
 def flatten_wave(raw_dir: Path) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for path in sorted(raw_dir.glob("top_requests_*.json")):
         payload = read_json(path)
-        source_mask = normalize_text(payload.get("requestPhrase", ""))
+        source_mask = normalize_text(
+            payload.get("requestPhrase")
+            or payload.get("request")
+            or payload.get("mask")
+            or payload.get("query")
+            or mask_from_path(path)
+        )
 
-        for rank, item in enumerate(payload.get("topRequests", []), start=1):
+        top_requests = payload.get("topRequests")
+        if top_requests is None:
+            top_requests = payload.get("results", [])
+
+        for rank, item in enumerate(top_requests, start=1):
             rows.append(
                 {
                     "source_mask": source_mask,

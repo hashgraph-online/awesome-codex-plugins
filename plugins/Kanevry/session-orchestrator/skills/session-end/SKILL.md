@@ -2,11 +2,12 @@
 name: session-end
 user-invocable: false
 tags: [orchestration, verification, commits, issues]
+model: inherit
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Full session close-out: verifies all planned work against the agreed plan, creates issues
+  Use this skill when performing a full session close-out: verifies all planned work against the agreed plan, creates issues
   for gaps, runs quality gates, commits cleanly, mirrors to GitHub, and produces a session
   summary. Triggered by /close command.
 ---
@@ -75,7 +76,7 @@ Review safety metrics from the session. This is informational — it does NOT bl
    ```
 4. If any agents were `SPIRAL` or `FAILED`, ensure carryover issues exist (cross-reference with Phase 1.2)
 
-5. **Carryover validation fallback (#261):** Walk each Wave History entry in STATE.md. For every agent whose status is `SPIRAL` or `FAILED`, check whether the line ends with a `→ issue #NNN` suffix (or `→ existing #NNN`). If the suffix is absent, the auto-create call in wave-executor did not run (e.g. the session crashed before dispatch completed, or the CLI was offline at detection time). Retroactively file the carryover via `createSpiralCarryoverIssue`:
+5. **Carryover validation fallback (#261):** Walk each Wave History entry in STATE.md. For every agent whose status is `SPIRAL` or `FAILED`, check whether the line ends with a `→ issue #NNN` suffix (or `→ existing #NNN`). If the suffix is absent, the auto-create call in wave-executor did not run (e.g. a consumer-project #251 V0.x.y-close incident where the session crashed before dispatch completed, or the CLI was offline at detection time). Retroactively file the carryover via `createSpiralCarryoverIssue`:
 
    ```js
    import { createSpiralCarryoverIssue } from '${PLUGIN_ROOT}/scripts/lib/spiral-carryover.mjs';
@@ -153,6 +154,35 @@ Rules:
 > **Verification Reference:** See `verification-checklist.md` in this skill directory for the full quality gate checklist.
 
 Run ALL checks listed in the verification checklist. If any check fails: fix if quick (<2 min), otherwise create a `priority:high` issue. Do NOT commit broken code.
+
+### Phase 2.0a: Echo-Stub Detection (GH #42)
+
+`gate-full.mjs` emits a top-level `stubbed: {}` map in its JSON result, keyed by check name (`typecheck`, `test`, `lint`); value is `{ kind: 'echo'|'noop' }`. When any check was short-circuited as a stub, `runCheck()` already returned `status: 'pass'` — so the overall gate verdict is green, but the result is meaningless.
+
+**Detection:** immediately after parsing the `gate-full` JSON result, evaluate:
+
+```js
+const stubbedEntries = Object.entries(result.stubbed ?? {});
+```
+
+**If `stubbedEntries.length > 0`**, surface a HIGH WARN block in the close summary:
+
+```
+⚠ QUALITY GATE STUBBED — <N> command(s) are echo/noop stubs, not real checks:
+  - <check-name>: <kind> stub  (configured: "<command string>")
+Re-configure with a real test command in CLAUDE.md Session Config before /close,
+OR document this exception in /close --reason.
+```
+
+**Behavior by `enforcement` mode:**
+
+- `enforcement: strict` — **block /close**. Treat as a Phase 2 failure. Present the WARN block and exit without committing.
+- `enforcement: warn` (default) — continue, but write `quality-gate-stubbed: true` to STATE.md Deviations so the metrics writer captures it.
+- `enforcement: off` — silent. Emit a single-line `stderr` log only (`echo-stub detected: <check-name>`).
+
+**Recipe:** for container-based test runners (e.g. EspoCRM PHPUnit) where an echo-stub was the historical workaround, see [`docs/recipes/quality-gate-container-pattern.md`](../../docs/recipes/quality-gate-container-pattern.md).
+
+**Source issue:** GH #42 (root cause: a consumer-project #251 V0.15.7-close incident — silent false-positive close-verdicts from echo-stub test commands).
 
 ### 2.1 Vault Validation (if configured)
 

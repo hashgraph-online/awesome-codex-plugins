@@ -9,24 +9,29 @@ Spawn parallel judges with different perspectives via `spawn_agent`, consolidate
 ## Quick Start
 
 ```bash
-$council --quick validate recent                               # fast inline check
-$council validate this plan                                    # validation (2 judges)
-$council brainstorm caching approaches                         # brainstorm
-$council --deep validate the implementation                    # 3 judges
-$council --preset=security-audit validate the auth system      # preset personas
-$council --deep --mixed --preset=leadership-quartet validate product thesis
+$council validate this plan                                    # verdict mode (the default)
+$council --mode=brainstorm caching approaches                  # brainstorm mode
+$council --mode=debate should we adopt event sourcing?         # debate mode (named personas duel)
+$council --depth=quick validate recent                         # fast inline check
+$council --roster=security-audit validate the auth system      # preset persona roster
+$council --depth=deep --runtime=mixed --roster=leadership-quartet validate product thesis
 ```
 
-## Modes
+## Modes — the deliberation taxonomy
 
-| Mode | Judges | Method | Use Case |
-|------|--------|--------|----------|
-| `--quick` | 0 (inline) | Self | Fast single-agent check, no spawning |
-| default | 2 | `spawn_agent` | Independent judges |
-| `--deep` | 3 | `spawn_agent` | Thorough review |
-| `--mixed` | 2N (default N=3) | `spawn_agent` + Codex CLI | Cross-vendor consensus — same N perspectives applied to both vendors |
+`--mode` selects one of exactly three deliberation patterns; `verdict` is the default.
 
-**Note:** `--debate` (multi-round adversarial) requires agent messaging. Use `spawn_agent` plus `send_input` for one-off follow-up only; do not rely on debate-style rounds.
+| `--mode` | Pattern | Synthesis |
+|----------|---------|-----------|
+| `brainstorm` | **diverge** — judges generate options independently before any cross-talk | ranked set of ideas, perspectives, risks (no PASS/WARN/FAIL) |
+| `debate` | **contend** — independent positions → adversarial 0–1000 cross-scoring → reveal round | ranked decision with recorded dissent |
+| `verdict` *(default)* | **converge** — judges judge the artifact against the bar independently | one PASS / WARN / FAIL with consolidated findings |
+
+`verdict` runs when `--mode` is omitted. `validate` is a verdict alias; `research` folds into `brainstorm` (`--focus=research`). `--mode` is the deliberation *pattern*; `--focus`/`--depth`/`--runtime`/`--roster` are orthogonal knobs. Every mode runs the same lifecycle — convene → brief → deliberate → synthesize → record. Full taxonomy and knob aliases: `references/modes.md`. Per-phase debate-mode templates: `references/dueling-route.md`.
+
+**Knob aliases:** `--depth=quick` (alias `--quick`) = single inline judge; `--depth=deep` (alias `--deep`) = 3 judges; `--runtime=mixed` (alias `--mixed`) = matched Claude+Codex pairs.
+
+**Note:** `--adversarial` is a **verdict-mode intensifier** (2 adversarial rounds), not the `debate` mode — it requires agent messaging. Use `spawn_agent` plus `send_input` for one-off follow-up only; do not rely on multi-round rounds without messaging support.
 
 **Note:** `--mixed` is strict. Pre-flight `codex` and `codex --version` before spawning any judges; if Codex CLI is missing or not runnable, hard-error and tell the operator to install/fix Codex CLI or drop `--mixed`. Never silently convert `--mixed` into runtime-native-only judging.
 
@@ -46,13 +51,17 @@ $council --deep --mixed --preset=leadership-quartet validate product thesis
 | `--technique=<name>` | Brainstorm technique (reverse, scamper, six-hats). See `references/brainstorm-techniques.md`. |
 | `--profile=<name>` | Model quality profile (balanced, budget, fast, inherit, quality, thorough). See `references/model-profiles.md`. |
 
-## Task Types
+## Mode inference (trigger words)
 
-| Type | Trigger Words | Focus |
-|------|---------------|-------|
-| **validate** | validate, check, review, assess, critique | Is this correct? What's wrong? |
-| **brainstorm** | brainstorm, explore, options, approaches | Alternatives? Pros/cons? |
-| **research** | research, investigate, deep dive, analyze | What can we discover? |
+When `--mode` is omitted, infer the mode from the prompt; `verdict` is the fallback.
+
+| `--mode` | Trigger Words | Focus |
+|----------|---------------|-------|
+| **verdict** *(default)* | validate, check, review, assess, critique | Is this correct? What's wrong? |
+| **brainstorm** | brainstorm, explore, options, approaches; research, investigate, deep dive, analyze | Alternatives, trade-offs, structure? |
+| **debate** | debate, duel, decide, "have <experts> decide", "council of <names>" | Which option wins when named experts cross-score? |
+
+`validate` is a verdict alias; the `research` verb folds into **brainstorm**.
 
 ## Execution Flow
 
@@ -196,7 +205,7 @@ Judges write ALL analysis to output files. Results to the lead contain ONLY mini
 
 If `$standards` is available and the target includes code files, load applicable language standards and include them in each judge prompt.
 
-## First-Pass Rigor Gate (validate mode)
+## First-Pass Rigor Gate (verdict mode)
 
 When validating plans/specs, judges must check:
 1. Mutation + ack sequence is explicit and non-contradictory
@@ -208,6 +217,8 @@ Missing gate item → minimum WARN. Critical unverifiable invariant → FAIL.
 
 ## Reference Documents
 
+- [references/modes.md](references/modes.md)
+- [references/dueling-route.md](references/dueling-route.md)
 - [references/model-routing.md](references/model-routing.md)
 - [references/agent-prompts.md](references/agent-prompts.md)
 - [references/backend-background-tasks.md](references/backend-background-tasks.md)
@@ -216,7 +227,7 @@ Missing gate item → minimum WARN. Critical unverifiable invariant → FAIL.
 - [references/brainstorm-techniques.md](references/brainstorm-techniques.md)
 - [references/caching-guidance.md](references/caching-guidance.md)
 - [references/cli-spawning.md](references/cli-spawning.md)
-- [references/debate-protocol.md](references/debate-protocol.md)
+- [references/adversarial-protocol.md](references/adversarial-protocol.md)
 - [references/explorers.md](references/explorers.md)
 - [references/finding-extraction.md](references/finding-extraction.md)
 - [references/model-profiles.md](references/model-profiles.md)

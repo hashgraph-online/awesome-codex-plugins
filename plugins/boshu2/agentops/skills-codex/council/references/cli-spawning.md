@@ -12,12 +12,12 @@ Council requires these runtime capabilities. Map them to whatever your agent har
 | Capability | Required for | What it does |
 |------------|-------------|-------------|
 | **Spawn parallel subagent** | All modes except `--quick` | Create N judges that run concurrently, each with a prompt |
-| **Agent-to-agent messaging** | `--debate` only | Send a message to a running judge (for R2 verdict exchange) |
+| **Agent-to-agent messaging** | `--adversarial` only | Send a message to a running judge (for R2 verdict exchange) |
 | **Graceful shutdown** | Cleanup | Terminate judges after consolidation |
 | **Shared filesystem** | All modes | Judges write output files to `.agents/council/` |
 
 If **spawn** is unavailable, degrade to `--quick` (inline single-agent).
-If **messaging** is unavailable, `--debate` degrades to single-round review.
+If **messaging** is unavailable, `--adversarial` degrades to single-round review.
 If **Codex CLI** is unavailable AND `--mixed` is set, emit a hard error and
 exit without spawning judges (strict — see "Strict Codex Requirement" below).
 `--mixed` never silently degrades to Claude-only.
@@ -61,7 +61,7 @@ Judges write output files, then send a MINIMAL completion signal:
 
 Wait for all judges to signal (up to `COUNCIL_TIMEOUT`, default 120s). If a judge times out, proceed with N-1 and note in report.
 
-### Phase 3: Debate R2 (if `--debate`)
+### Phase 3: Debate R2 (if `--adversarial`)
 
 After R1 completes, send each judge a message containing:
 - Verdict summaries of OTHER judges (verdict + confidence + file path only)
@@ -121,21 +121,15 @@ defeat the cross-vendor validation intent. The only acceptable degradation is
 explicit operator action (dropping `--mixed`). This rule is strict by design.
 
 Once Codex is confirmed available, spawn Codex judges alongside runtime-native
-judges. **Always set `AGENTOPS_INTENT_ECHO_DISABLED=1` in the spawn env** —
-otherwise the `intent-echo.sh` UserPromptSubmit hook (in `~/.codex/hooks.json`
-on agentops-codex installs) detects high-stakes keywords in council packets
-("every", "all", "extract", scope-limiters) and forces an Intent/Confirm
-preamble that becomes the assistant message captured by `-o`. Council judges
-then never produce real output. See
-`.agents/learnings/2026-05-02-codex-intent-echo-hook-blocks-mixed-council.md`.
+judges.
 
 ```bash
 # With structured output (preferred)
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-{N}.json "{PACKET}"
+codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-{N}.json "{PACKET}"
 
 # Fallback (if --output-schema unsupported — this is an output-format fallback,
 # NOT a vendor fallback; Codex is still required)
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec --full-auto -C "$(pwd)" -o .agents/council/codex-{N}.md "{PACKET}"
+codex exec --full-auto -C "$(pwd)" -o .agents/council/codex-{N}.md "{PACKET}"
 ```
 
 Uses the user's default Codex model. Only pass `-m` if `COUNCIL_CODEX_MODEL` is explicitly set.
@@ -173,7 +167,7 @@ mkdir -p .agents/council
 .agents/council/YYYY-MM-DD-<target>-judge-1.md
 .agents/council/YYYY-MM-DD-<target>-judge-error-paths.md
 
-# Judge output (R2, when --debate)
+# Judge output (R2, when --adversarial)
 .agents/council/YYYY-MM-DD-<target>-judge-1-r2.md
 
 # Codex CLI output (--mixed)

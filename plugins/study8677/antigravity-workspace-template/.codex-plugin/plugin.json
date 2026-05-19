@@ -1,6 +1,9 @@
 {
   "name": "antigravity",
   "version": "0.2.1",
-  "description": "Multi-agent knowledge hub plugin (Codex CLI). Provides Antigravity skills; ag-ask/ag-refresh run through the CLI, with MCP optional.",
-  "skills": "./skills/"
+  "description": "Repository knowledge engine plugin (Codex CLI). Bundles slash commands (/ag-setup, /ag-init, /ag-refresh, /ag-ask) plus the agent-repo-init skill. Backed by the ag-ask / ag-refresh CLI; MCP optional.",
+  "skills": "./skills/",
+  "interface": {
+    "composerIcon": "./assets/icon.png"
+  }
 }

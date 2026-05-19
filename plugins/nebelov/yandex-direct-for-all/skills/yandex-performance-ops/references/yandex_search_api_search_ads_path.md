@@ -54,3 +54,7 @@
 - любой browser-based обход Яндекса как рабочий production path
 
 Для `РСЯ` нужен отдельный подтвержденный официальный источник.
+
+## Public Artifact Boundary
+
+Live proof artifacts, credential files, and project-local runtime outputs should live outside this public repository. Public docs should describe the artifact contract and expected filenames generically, without embedding private hosts, local absolute paths, tokens, client IDs, or account-specific workspace paths.

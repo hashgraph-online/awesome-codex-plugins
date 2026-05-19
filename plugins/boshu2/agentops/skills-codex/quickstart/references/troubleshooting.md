@@ -1,8 +1,8 @@
 # Quickstart Troubleshooting
 
-## Hooks Aren't Running
+## Optional Hooks Aren't Running
 
-**Symptom:** AgentOps hooks don't fire on session start or tool use.
+**Symptom:** You opted into AgentOps hooks, but they do not fire on session start or tool use.
 
 **Checks:**
 ```bash
@@ -20,7 +20,7 @@ rg '^\[plugins\."agentops@agentops-marketplace"\]$|^enabled = true$' ~/.codex/co
 ```
 
 **Fixes:**
-- Reinstall the native Codex plugin and hooks: `curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash`
+- Reinstall the native Codex plugin with hooks: `curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash -s -- --with-hooks`
 - Check that `hooks/codex-hooks.json` is not malformed JSON
 - Restart Codex after hook changes
 
@@ -55,7 +55,7 @@ find ~/.codex/plugins/cache/agentops-marketplace/agentops/local/skills-codex -ma
 brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops
 brew install agentops
 ao init              # Create .agents/ dirs + .gitignore
-ao init --hooks      # Also install full 12-event hook coverage
+ao init --hooks      # Optional: install runtime hooks
 
 # bd (Beads issue tracking)
 brew install boshu2/agentops/beads
@@ -137,5 +137,5 @@ ao metrics flywheel status
 
 **Fixes:**
 - Install ao: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops && ao init`
-- Install hooks: `ao init --hooks` (full 12-event coverage by default) or `ao init --hooks --minimal-hooks` (SessionStart + SessionEnd + Stop only)
-- Verify inject runs on session start: check `hooks/session-start.sh`
+- Hookless default: run `$validation` or `ao flywheel close-loop` explicitly at closeout.
+- Optional hooks: `ao init --hooks` or `install-codex.sh --with-hooks`, then verify `hooks/session-start.sh`.

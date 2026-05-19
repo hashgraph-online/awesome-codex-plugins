@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-13",
-  "total": 68,
+  "last_updated": "2026-05-18",
+  "total": 80,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -48,6 +48,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/study8677/antigravity-workspace-template/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Archcore",
+      "url": "https://github.com/archcore-ai/plugin",
+      "owner": "archcore-ai",
+      "repo": "plugin",
+      "description": "Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP — so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/archcore-ai/plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Bring Your AI Migration Auditor",
@@ -160,6 +170,26 @@
       "install_url": "https://raw.githubusercontent.com/Rycen7822/codex-rg-guard/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Development Skills",
+      "url": "https://github.com/reidemeister94/development-skills",
+      "owner": "reidemeister94",
+      "repo": "development-skills",
+      "description": "Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/reidemeister94/development-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ejentum-mcp",
+      "url": "https://github.com/ejentum/ejentum-mcp",
+      "owner": "ejentum",
+      "repo": "ejentum-mcp",
+      "description": "MCP server exposing reasoning, code, anti-deception, and memory harness tools for Codex.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ejentum/ejentum-mcp/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Frappe Agent",
       "url": "https://github.com/Dkm0315/frappe-agent",
       "owner": "Dkm0315",
@@ -180,6 +210,16 @@
       "install_url": "https://raw.githubusercontent.com/ValkyrLabs/GrayMatter/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "HOL Guard Plugin",
+      "url": "https://github.com/hashgraph-online/hol-guard-plugin",
+      "owner": "hashgraph-online",
+      "repo": "hol-guard-plugin",
+      "description": "AI antivirus workflow for Codex, Claude Code, Cursor, Gemini, OpenCode, MCP servers, skills, and plugin release checks with local approvals and receipts.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hashgraph-online/hol-guard-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "HOTL Plugin",
       "url": "https://github.com/yimwoo/hotl-plugin",
       "owner": "yimwoo",
@@ -188,6 +228,26 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yimwoo/hotl-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Personal Data Protection",
+      "url": "https://github.com/AltByteSG/personal-data-protection-skill",
+      "owner": "AltByteSG",
+      "repo": "personal-data-protection-skill",
+      "description": "Engineer-facing personal-data-protection compliance reference — Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA (Act 709 + 2024 Amendments), Philippines DPA — organised by where in the stack each obligation lands, with checklists, breach-response runbook, and a developer-view divergence table across all five.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AltByteSG/personal-data-protection-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Praxis",
+      "url": "https://github.com/ouonet/praxis",
+      "owner": "ouonet",
+      "repo": "praxis",
+      "description": "Intent-driven workflow skills for coding agents: describe what done looks like, not the steps. Triage-first design keeps token costs low across design, TDD, debug, review, and release.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ouonet/praxis/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Project Autopilot",
@@ -230,6 +290,16 @@
       "install_url": "https://raw.githubusercontent.com/Habib0x0/spec-driven-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Stark",
+      "url": "https://github.com/f0d010c/stark",
+      "owner": "f0d010c",
+      "repo": "stark",
+      "description": "UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/f0d010c/stark/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "tailtest",
       "url": "https://github.com/avansaber/tailtest-codex",
       "owner": "avansaber",
@@ -238,6 +308,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/avansaber/tailtest-codex/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Tandem Workflow Architect",
+      "url": "https://github.com/frumu-ai/tandem-codex-plugin",
+      "owner": "frumu-ai",
+      "repo": "tandem-codex-plugin",
+      "description": "Plan Tandem workflows in Codex, then validate, preview, and run them through the governed Tandem engine.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/frumu-ai/tandem-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Tartiner Labs",
@@ -268,6 +348,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/dragon1086/claude-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Unity Agent Workflows",
+      "url": "https://github.com/AUN-PN/unity-agent-workflows",
+      "owner": "AUN-PN",
+      "repo": "unity-agent-workflows",
+      "description": "Codex plugin and skill for Unity 2D agents that enforces \"No proof, no edit\" workflows with runtime-owner proof, Teach structure maps, and validation gates.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AUN-PN/unity-agent-workflows/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Universal Design Principles",
@@ -420,6 +510,16 @@
       "install_url": "https://raw.githubusercontent.com/BestLemoon/codex-seo/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Codex Usage Tracker",
+      "url": "https://github.com/douglasmonsky/codex-usage-tracker",
+      "owner": "douglasmonsky",
+      "repo": "codex-usage-tracker",
+      "description": "Track aggregate Codex token usage from local session logs with MCP tools for summaries, session detail, CSV export, and dashboard generation.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/douglasmonsky/codex-usage-tracker/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Context Pack",
       "url": "https://github.com/Rothschildiuk/context-pack",
       "owner": "Rothschildiuk",
@@ -428,6 +528,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Rothschildiuk/context-pack/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Data Product Builder for dbt",
+      "url": "https://github.com/entropy-data/dataproduct-builder-dbt",
+      "owner": "entropy-data",
+      "repo": "dataproduct-builder-dbt",
+      "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/entropy-data/dataproduct-builder-dbt/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Dodo Payments",
@@ -458,6 +568,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ninihen1/power-automate-mcp-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "GH Project",
+      "url": "https://github.com/zfifteen/gh-project-plugin",
+      "owner": "zfifteen",
+      "repo": "gh-project-plugin",
+      "description": "Create GitHub repositories from Codex with inferred defaults, native menus, explicit confirmation, and deterministic local cloning.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/zfifteen/gh-project-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Jenkins CLI",

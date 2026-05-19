@@ -59,7 +59,11 @@ You MUST create a task for each of these items and complete them in order:
 - Ask clarifying questions one at a time, prefer multiple choice
 - Separate facts, assumptions, unknowns while exploring
 
-**Working artifacts:** Keep three drafts: `TaskIntentDraft` (outcome, scope, risks), `BaselineReadSetHint` (candidate docs, authority gaps), `ImpactStatementDraft` (affected layers, owners, invariants, compat, non-goals). Refresh when scope changes.
+**Working artifacts:** Keep three drafts: `TaskIntentDraft` (outcome, goal,
+success evidence, stop condition, non-goals, scope, risks),
+`BaselineReadSetHint` (candidate docs, authority gaps), `ImpactStatementDraft`
+(affected layers, owners, invariants, compat, non-goals). Refresh when scope
+changes.
 
 **Compact output contract:** `TaskIntentDraft`, `BaselineReadSetHint`,
 `ImpactStatementDraft`, `Options`, and `Decision Needed`. Use this compact
@@ -78,6 +82,13 @@ clean.
 
 **Presenting the design:** Scale sections to complexity. Cover only the surfaces that matter: architecture, components, data flow, error handling, testing, compatibility boundary. Get approval for the design before implementation when behavior, contract, architecture, or user-facing flow is being decided.
 
+**ADR signals:** When the design/spec touches durable architecture surfaces
+(owner, public contract, artifact shape, dependency direction,
+source-of-truth, host compatibility, runtime-ready boundary, fallback,
+adapter, or retirement schedule), mark the ADR signal, source refs, real
+alternatives, and expected baseline-sync question for later completion. Do not
+create accepted architecture memory from unexecuted ideas.
+
 **Design for isolation:** Each unit = one clear purpose, well-defined interface, testable independently. Can someone understand it without reading internals? Can you change internals without breaking consumers?
 
 **Existing codebases:** Follow existing patterns. Include targeted improvements only when they serve the current goal. If the design touches contracts, compat, fallbacks, or duplicated owners → call it out directly.
@@ -89,7 +100,7 @@ clean.
 1. **Aegis Project Workspace initialization (first creation only):**
    If `docs/aegis/` does not exist and configured Aegis workspace support is
    available, initialize the target project:
-   `python scripts/aegis-workspace.py init --root <target-project-root>`.
+   `python <aegis-workspace-helper> init --root <target-project-root>`.
    If installed Aegis workspace support is unavailable, create it manually:
    a. Create `docs/aegis/README.md` — describes workspace purpose and structure
    b. Create `docs/aegis/INDEX.md` — empty index, will be appended below
@@ -110,11 +121,11 @@ clean.
    Specs always go to `specs/` — never to `work/`.
 
 3. **Update INDEX.md:**
-   Prefer configured Aegis workspace support: `python scripts/aegis-workspace.py append-index --root
+   Prefer configured Aegis workspace support: `python <aegis-workspace-helper> append-index --root
    <target-project-root> --path docs/aegis/specs/<filename>.md --kind spec
    --title "<title>"`. If workspace support is unavailable, append the new spec entry
    to `docs/aegis/INDEX.md` manually.
-   After the append, run `python scripts/aegis-workspace.py check --root
+   After the append, run `python <aegis-workspace-helper> check --root
    <target-project-root>` when configured workspace support is available. This validates
    structure and index coverage only; it does not grant completion authority.
 
@@ -132,9 +143,10 @@ After writing the spec document, look at it with fresh eyes:
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
 5. **Boundary check:** Did you clearly mark invariants, compatibility
-   boundaries, owners, and non-goals? If the spec endorses a risky approach,
-   confirm the `first-principles-review` `Decision Hygiene Review` result is
-   reflected or explicitly marked unnecessary.
+   boundaries, owners, non-goals, and any ADR signals for later completion
+   backfill? If the spec endorses a risky approach, confirm the
+   `first-principles-review` `Decision Hygiene Review` result is reflected or
+   explicitly marked unnecessary.
 
 Fix any issues inline. No need to re-review — just fix and move on.
 

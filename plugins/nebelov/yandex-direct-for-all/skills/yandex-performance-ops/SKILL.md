@@ -150,7 +150,7 @@ Local project = клиентский overlay + client-specific rules.
 - scripts не имеют права придумывать verdict вместо worker-а.
 - каждый chunk должен запускаться в изолированном `CODEX_HOME`, чтобы parallel workers не дрались за system skills/install state.
 - prompt обязан зажимать worker в короткий command-budget: сначала head knowledge-pack, потом prior-context и chunk, потом только targeted `rg/sed` при реальном противоречии.
-- `gpt-5.1-codex-mini` можно использовать как cheap default для bulk swarm only with guardrail: на Search он не должен быть единственным verdict-слоем. Mixed benchmark `2026-03-15` показал сильный bias к `keep`, особенно на brand-stop / route-fix / growth rows. Канонический режим: `mini` для draft/triage, сильная модель или человек для спорного хвоста и финального QA.
+- `<cheap-codex-model>` можно использовать как cheap default для bulk swarm only with guardrail: на Search он не должен быть единственным verdict-слоем. Mixed benchmark `2026-03-15` показал сильный bias к `keep`, особенно на brand-stop / route-fix / growth rows. Канонический режим: `mini` для draft/triage, сильная модель или человек для спорного хвоста и финального QA.
 
 Для огромных Search SQR очередей канонический deterministic reduction-layer теперь такой:
 - reusable script: `scripts/search_negative_marker_engine.py`;
@@ -183,7 +183,7 @@ python3 <ops-skill-root>/scripts/codex_cli_swarm_manual_review.py \
   --manual-decisions <existing manual decisions tsv> \
   --workers 4 \
   --chunk-size 25 \
-  --model gpt-5.1-codex-mini \
+  --model <cheap-codex-model> \
   --reasoning-effort medium \
   --sandbox danger-full-access \
   --approval-policy never
@@ -523,8 +523,8 @@ python3 <ops-skill-root>/scripts/init_client_context.py \
   - и только потом pre-apply pack из `approved_negative`.
 - если объём manual-review слишком велик и user явно разрешил swarm:
   - резать очередь на bounded chunks;
-  - запускать несколько локальных `codex exec` воркеров на `gpt-5.1-codex-mini` с `model_reasoning_effort="medium"` по умолчанию;
-  - для escalation / conflict-validation / final QA поднимать более сильную модель (`gpt-5.4` или project-approved codex model) только на спорный хвост;
+  - запускать несколько локальных `codex exec` воркеров на `<cheap-codex-model>` с `model_reasoning_effort="medium"` по умолчанию;
+  - для escalation / conflict-validation / final QA поднимать более сильную модель (`<strong-codex-model>` или project-approved codex model) только на спорный хвост;
   - для local file-only review по умолчанию НЕ копировать пользовательский `config.toml` в worker `CODEX_HOME`, чтобы воркеры не поднимали лишние MCP-серверы и не тратили токены на startup-шум;
   - промт воркера обязан ссылаться на global skill, local skill, overlay, product catalog / local rules, existing manual decisions и chunk TSV;
   - worker не имеет права редактировать master queue / master decisions напрямую, только вернуть schema-valid JSON;
@@ -756,7 +756,7 @@ python3 <ops-skill-root>/scripts/init_client_context.py \
   - не ограничиваться локальными markdown links, если пользователю нужен handoff прямо в YouGile.
 - Новый client workspace в YouGile создавать только по API, без браузерного/ручного UI-path:
   - `python3 <ops-skill-root>/scripts/bootstrap_yougile_workspace.py --spec <json> --output <json>`
-  - после bootstrap обязательно записывать `project_id`, `boards[*].board_id` и `columns` в локальный overlay.
+  - после bootstrap обязательно записывать project identifiers and board mappings и `columns` в локальный overlay.
 - Перед созданием проверять дубли по backlog/title.
 
 13. Plan-only не считать default mode
@@ -807,7 +807,7 @@ python3 <ops-skill-root>/scripts/init_client_context.py \
 - Нельзя молча переиспользовать audience-master token для Direct/Metrika только потому, что он “тоже OAuth”.
 
 16.1. Валидный OAuth-token != доступ к нужному клиенту
-- Любой новый `oauth_token.json`, который дал пользователь, сначала проверять live-preflight по трем плоскостям:
+- Любой новый OAuth token JSON, который дал пользователь, сначала проверять live-preflight по трем плоскостям:
   - `Wordstat userInfo`;
   - `Direct campaigns.get`;
   - `Metrika management`.
@@ -843,7 +843,7 @@ python3 <ops-skill-root>/scripts/init_client_context.py \
   - default path теперь service-specific:
     - `direct` -> `local-callback`
     - `metrika/audience` -> `manual-code`
-  - bundle использует built-in public app profile + `PKCE`, без обязательного ручного `client_secret`;
+  - bundle использует built-in public app profile + `PKCE`, без обязательного ручного client secret;
   - сгенерировать auth URL;
   - дать пользователю готовую ссылку на авторизацию;
   - дождаться callback / confirmation code;
@@ -1428,3 +1428,17 @@ python3 <ops-skill-root>/scripts/oauth_get_token.py --help
 bash <ops-skill-root>/scripts/wordstat_preflight.sh
 python3 <ops-skill-root>/scripts/campaign_autotest.py --help
 ```
+
+## Safety Guardrails For Live Ops
+
+These rules are part of the portable operator contract and apply before analysis, planning, or live collection:
+
+- Always reread the relevant skill and canonical references before a Direct, Wordstat, Metrika, Roistat, or YouGile workflow.
+- Prefer reusable scripts for collection/parsing; manual work is for interpretation, QA, verdicts, and safe marketing decisions.
+- Do not stop, pause, suspend, archive, or otherwise cut live traffic without explicit owner approval for that traffic-reducing action.
+- Do not present internal IDs, board IDs, client IDs, raw tokens, private paths, or local machine paths in owner-facing summaries unless the user explicitly asks for them.
+- Search-negative workflows require fresh SQR, manual row verdicts, reduction to words/safe masks, product-scope conflict checks, preflight, approval, and Direct readback.
+- Marker or prefilter output is diagnostic only; it is never live-ready without the manual verdict and readback workflow.
+- If a task has any live mutation risk, dry-run/readback proof and explicit approval gates are mandatory.
+
+For bundled docs and commands, keep using `<plugin-root>/...` and `<ops-skill-root>/...`; do not hardcode personal home paths in public plugin files.

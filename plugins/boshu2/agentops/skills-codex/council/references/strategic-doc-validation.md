@@ -235,9 +235,9 @@ the marginal signal did not justify the cost. That was the correct call.
   outcome, not a rejection. The pattern is (WARN → fix → PASS), not
   (PASS on first try or give up).
 - **Sharing raw judge outputs between rounds.** If you want cross-judge
-  context in round 2, use the council skill's `--debate` protocol, which
+  context in round 2, use the council skill's `--adversarial` protocol, which
   is designed for it. Simply forwarding judge A's output to judge B
-  outside of `--debate` introduces anchoring bias.
+  outside of `--adversarial` introduces anchoring bias.
 - **Mixing execution contract and fitness spec in the same document.**
   If your strategic doc ends up as a section inside a measurement spec
   (e.g., a founder OS bolted into `GOALS.md`), consider whether those

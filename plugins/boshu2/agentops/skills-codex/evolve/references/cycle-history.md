@@ -94,6 +94,91 @@ Every productive cycle log entry MUST include:
 differs from `canonical_sha`. These fields enable fitness trajectory plotting
 without losing retrospective provenance.
 
+### XP/BDD/TDD Evidence Trace (optional `trace` object)
+
+A productive cycle MAY record a `trace` object capturing the
+continuous-evolution kernel — the evidence a reviewer needs to reconstruct
+the cycle **without reading the transcript**. The kernel shape is:
+
+> goal hypothesis → selected gap → Gherkin scenario → first failing proof →
+> red evidence → green evidence → refactor note → validation evidence →
+> ratchet action → goal reshape decision
+
+```json
+{
+  "cycle": 200,
+  "target": "test-pass-rate",
+  "result": "improved",
+  "sha": "abc1234",
+  "canonical_sha": "abc1234",
+  "goals_passing": 60,
+  "goals_total": 60,
+  "timestamp": "2026-05-16T12:00:00Z",
+  "trace": {
+    "goal_hypothesis": "raising test-pass-rate lifts overall fitness",
+    "selected_gap": "loop cycle ledger carries no evidence trace",
+    "gherkin": "Feature: trace\n  Scenario: reviewer reconstructs a cycle",
+    "first_failing_proof": "go test ./internal/ports -run TraceCompleteness  # FAIL",
+    "red_evidence": "TestTraceCompleteness_FullTraceIsComplete red: undefined CycleTrace",
+    "green_evidence": "TestTraceCompleteness_* pass (5/5)",
+    "refactor_note": "extracted requiredTraceFields table; no behavior change",
+    "validation_evidence": "cd cli && go test ./... green; bats evolve-log-cycle.bats 10/10",
+    "ratchet_action": "ao ratchet record implement",
+    "goal_reshape": "goal unchanged; gap closed — fold trace into next epic's audit"
+  }
+}
+```
+
+**Trace fields** (all strings, all `omitempty`):
+
+| Field | Records |
+|-------|---------|
+| `goal_hypothesis` | The goal/fitness hypothesis the cycle is testing |
+| `selected_gap` | The specific gap chosen from the queue/generator |
+| `gherkin` | The Given/When/Then scenario the slice satisfies |
+| `first_failing_proof` | The command/assertion that fails before the change |
+| `red_evidence` | Observed failing-test output (the RED state) |
+| `green_evidence` | Observed passing-test output (the GREEN state) |
+| `refactor_note` | The refactor step — record `"none"` when there is none |
+| `validation_evidence` | Independent validation commands and their results |
+| `ratchet_action` | The `ao ratchet record …` action taken |
+| `goal_reshape` | Whether the goal stayed, narrowed, or was replaced |
+
+**Trivial-cycle exemption.** A tiny one-shot bookkeeping change (a typo fix,
+a dependency bump) does NOT need full BDD/TDD ceremony. Instead of silently
+omitting the trace fields, record an explicit `exemption_reason`:
+
+```json
+{"cycle": 201, "target": "idle", "result": "unchanged", "timestamp": "...",
+ "trace": {"exemption_reason": "trivial one-shot typo fix; no Gherkin or failing proof appropriate"}}
+```
+
+A trace with a non-empty `exemption_reason` is **exempt** — no other field is
+expected. A trace with neither `exemption_reason` nor the evidence fields is
+**incomplete**: `ports.TraceCompleteness` (Go) reports which required fields
+are missing.
+
+**Completeness is advisory, never blocking.** `TraceCompleteness` is a pure
+helper for reports and audits; it is deliberately NOT wired into
+`ao loop verify` or `scripts/check-evolve-cycle-logging.sh`. The `trace`
+object is recorded as-is. This keeps the loop honest about its own evidence
+without making loop-shape a hard gate before real cycle output conforms.
+
+**Writing a trace.** Both writers accept it:
+
+```bash
+# canonical script writer — file path, inline JSON, or - for stdin
+bash scripts/evolve-log-cycle.sh --cycle "$CYCLE" --target "$TARGET" \
+  --result improved --canonical-sha "$SHA" --cycle-start-sha "$START" \
+  --goals-passing "$P" --goals-total "$T" --trace-json cycle-trace.json
+
+# typed BC3 LoopWriterPort
+ao loop append --mode evolve --result improved --trace-json cycle-trace.json
+```
+
+`ao loop history` emits the `trace` object back as part of each `CycleEntry`,
+so the report surface carries the evidence with no extra step.
+
 ### Session-State Sidecar
 
 Persist the non-ledger loop state to `.agents/evolve/session-state.json`:

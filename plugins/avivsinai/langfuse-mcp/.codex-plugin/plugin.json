@@ -22,6 +22,7 @@
   ],
   "interface": {
     "displayName": "Langfuse Observability",
+    "composerIcon": "./assets/langfuse-icon.svg",
     "shortDescription": "Query traces, debug exceptions, analyze sessions, and manage prompts via MCP",
     "longDescription": "Inspect Langfuse traces, observations, sessions, exceptions, prompts, and datasets from Codex via bundled skills and MCP workflows.",
     "developerName": "Aviv Sinai",

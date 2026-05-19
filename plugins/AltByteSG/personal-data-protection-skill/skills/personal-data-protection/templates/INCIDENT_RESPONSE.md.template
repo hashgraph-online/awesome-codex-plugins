@@ -1,0 +1,226 @@
+# Incident Response Runbook
+
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+> **This is a template.** Copy to `docs/INCIDENT_RESPONSE.md` in your project and fill in the placeholders marked `{{LIKE_THIS}}`.
+
+Solo / small-team operator runbook for responding to a personal data incident under the PDP-family framework.
+
+**DPO / responder:** {{DPO_NAME}} — {{DPO_EMAIL}}
+**Backup contact:** {{BACKUP_NAME}} — {{BACKUP_EMAIL}}
+**Active jurisdictions:** {{JURISDICTIONS — e.g. Singapore PDPA / Indonesia UU PDP / Thailand PDPA / Malaysia PDPA}}
+
+## Statutory clocks
+
+For each active jurisdiction, the deadline to notify the regulator after assessing the incident as notifiable:
+
+| Jurisdiction | Authority | Notification window | Subject notification | Portal |
+|---|---|---|---|---|
+| Singapore PDPA | PDPC | **3 calendar days** (s26D(1)) — clock starts at **assessment** | On or after authority notification, where significant harm | https://eservice.pdpc.gov.sg/case/db |
+| Indonesia UU PDP | (appointed authority) | 72 hours from awareness (Pasal 46(1)) — verify against current regs | **All breaches** notify subject; "certain circumstances" trigger public notification | (verify) |
+| Thailand PDPA | PDPC Thailand | 72 hours from awareness (s37(4)) — verify against current regs | If "high risk to rights and freedoms" | https://www.pdpc.or.th |
+| Malaysia PDPA | Commissioner / JPDP | **72 hours** from discovery (s12B(1) + JPDP Guideline 25 Feb 2025) | **Within 7 days** of Commissioner notification, where significant harm (s12B(2)) | JPDP Personal Data Protection System (https://www.pdp.gov.my) |
+
+For SG the clock starts at **assessment**; for TH / ID / MY it starts at **awareness / discovery** of the breach. If multiple jurisdictions are active, the strictest clock controls — typically MY/TH/ID's awareness-based 72h beats SG's assessment-based 3-day window.
+
+---
+
+## 1. What counts as an incident
+
+Treat ANY of the following as an incident the moment you become aware:
+
+- {{CLOUD_PROVIDER}} service-level credential leaked (committed to public repo, posted in chat, screenshotted, sent to AI)
+- A migration that disables access controls (RLS, IAM policy, etc.) deployed to production
+- An access-control rule discovered to return data the caller shouldn't see
+- Stolen / lost laptop or phone with an active admin session, production credentials, or unencrypted cache
+- Email accidentally sent to the wrong recipient containing personal data
+- An admin or developer accessing data outside their role (potential s48D / s48E offence)
+- A scraper / abnormal traffic pattern downloading large amounts of profile data
+- A user reports their account was accessed by someone else
+- A vendor notifies you of a breach on their side affecting your data
+- A user-uploaded file or content was exposed publicly (storage misconfiguration)
+
+**Doubt = treat it as an incident.** Cheap to log + assess; expensive to miss.
+
+---
+
+## 2. First hour — contain + record
+
+Time-stamp every step in `docs/incidents/INCIDENT_YYYY-MM-DD_<slug>.md`.
+
+### Containment matrix
+
+| Scenario | Action |
+|---|---|
+| {{CLOUD_PROVIDER}} service credential leaked | Rotate via {{CLOUD_PROVIDER_PORTAL_URL}} → Project Settings → API. Update {{SECRET_MANAGER_LOCATION}}. Update environment variables on every dependent service and re-deploy. |
+| {{IDENTITY_PROVIDER}} client secret leaked | Rotate at the provider. Re-deploy app with new secret. Force re-authentication for all users. |
+| Compromised admin account | Reset MFA, force password reset, sign out via auth admin API, audit recent activity. |
+| Access-control bypass / leaky endpoint | Revoke access on the endpoint immediately (e.g. revoke EXECUTE / IAM permissions / take endpoint offline). Push migration with fix. |
+| Lost device with active session | Sign-out-everywhere via auth admin API for the affected accounts. |
+| Misdirected email with PD | Recall if mail provider supports it. Email recipient asking for deletion confirmation. |
+| Vendor-reported breach | Get written confirmation from vendor: when, what data, how many records, vendor's containment status. |
+
+### Record
+
+- What happened (one sentence)
+- When detected (UTC timestamp — this is the start of the assessment window)
+- When the breach actually occurred (if known)
+- What systems / tables / buckets / accounts are involved
+- Who was notified internally
+
+---
+
+## 3. Assess: is it notifiable?
+
+Run the assessment **per active jurisdiction**. The strictest "notifiable" determines the strictest deadline.
+
+### Singapore PDPA (if active) — s26B
+
+**Notifiable if either:**
+
+**(a) Significant harm to any affected individual.** Deemed for these data categories (PDP Notification of Data Breaches Regulations 2021):
+- Authentication credentials (passwords, reset tokens, refresh tokens)
+- Health information
+- Identification numbers (NRIC / FIN / passport)
+- Financial information
+- Location data linked to identity
+- Children's data
+- Private chat / message content
+
+**(b) Significant scale.** ≥ 500 affected individuals.
+
+**Internal-only access** (curious admin without external disclosure) is **not notifiable** as a Part 6A breach but IS a s48D/E personal offence — handle as discipline + investigation.
+
+**Tech-measure exception (s26D(5)):** if encryption / hashing / fast revocation rendered significant harm unlikely, **individual** notification may not be required — but **PDPC notification still is**.
+
+### Indonesia UU PDP / Thailand PDPA / Malaysia PDPA (if active)
+
+All three operate on a **72-hour authority notification window** from awareness/discovery (faster than SG's 3-day post-assessment clock).
+
+- **Indonesia (Pasal 46):** notify **both** subject AND regulator within 72h. Subject notification is required for **all** breaches, not just high-risk ones. "Certain circumstances" (e.g. systemic risk, large scale) trigger public notification.
+- **Thailand (s37):** 72h to PDPC Thailand. Subject notification required if breach is "high risk to rights and freedoms" of the data subject.
+- **Malaysia (s12B(1) + JPDP Guideline 25 Feb 2025):** 72h to Commissioner from discovery; subject notification within **7 days** of Commissioner notification where the breach causes or is likely to cause significant harm (s12B(2)). Submit via JPDP Personal Data Protection System.
+
+Verify the current text of each statute, the subordinate regulations / guidelines for the notifiability test, and consult a qualified local lawyer.
+
+### Decision
+
+| Outcome | Notify authority? | Notify users? |
+|---|---|---|
+| Below scale threshold AND no sensitive category | No | No (but log) |
+| Above scale threshold (any data) | Yes | Yes if significant harm likely |
+| Sensitive category at any scale | Yes | Yes |
+| Sensitive category but tech-measure exception applies | Yes | No |
+| Internal-only access within your org | No (Part 6A) | No (handle as discipline + s48D/E investigation) |
+
+Document the decision and reasoning in the incident log. **The assessment-complete timestamp starts the regulatory clock for the active jurisdiction(s).**
+
+---
+
+## 4. Notify the regulator
+
+For each active jurisdiction where the breach is notifiable:
+
+### Singapore PDPA — file at https://eservice.pdpc.gov.sg/case/db
+
+Within **3 calendar days** of assessment. Include:
+
+- Nature of the breach (one paragraph)
+- When discovered, when it occurred (or "unknown — under investigation")
+- Number of affected individuals (estimate is fine if exact unknown — update later)
+- Types of personal data involved
+- Cause (root cause if known; "under investigation" otherwise)
+- Likely harm to individuals
+- Containment + remediation actions taken
+- Steps individuals can take to protect themselves
+- DPO contact
+
+Save the submission receipt in the incident log.
+
+If a SG law-enforcement agency or PDPC instructs you to delay individual notification (s26D(6)), record the instruction and pause section 5.
+
+### Indonesia / Thailand / Malaysia
+
+Use the relevant authority's portal and form. For **Malaysia**, file via the JPDP Personal Data Protection System within 72 hours of discovery (s12B(1)); the JPDP Guideline on Data Breach Notification (25 Feb 2025) sets the form/content. If the assessment is incomplete at H+72, submit a preliminary notification within the window and supplement later. For **Indonesia** and **Thailand**, verify the current portal and form at the time of incident.
+
+---
+
+## 5. Notify affected individuals
+
+Required when significant harm is likely (and no tech-measure exception applies).
+
+### Channels (in order of preference)
+
+1. Email to the address on file
+2. In-app banner on next launch
+3. Push notification (only if email + in-app aren't reaching them)
+
+### Template
+
+```
+Subject: Important: a security incident affecting your {{APP_NAME}} account
+
+Hi {{first_name}},
+
+On {{date}}, we discovered that {{one-line description of what happened}}.
+We notified {{REGULATOR}} on {{date}}.
+
+What data was involved: {{bullet list of data categories}}
+What we have done: {{containment steps}}
+What you should do: {{specific user actions, e.g. reset password, log out everywhere, monitor for unusual activity}}
+
+We're sorry this happened. If you have any questions, reply to this email
+and it will reach me directly.
+
+{{DPO_NAME}}
+Data Protection Officer, {{LEGAL_ENTITY}}
+{{DPO_EMAIL}}
+```
+
+Save the send log (recipient count, send timestamp) in the incident log.
+
+---
+
+## 6. Post-incident
+
+Within 30 days of resolution:
+
+- Write a one-page post-mortem in the incident log: timeline, root cause, fix shipped, gap that allowed it
+- Open a tracking issue for any structural fix (access-control audit, secret rotation policy, monitoring addition)
+- Update this runbook if anything was unclear during the incident
+- If the issue revealed an admin-side problem, log to the admin audit log for accountability
+
+The regulator may request follow-up information months later. Keep the incident log indefinitely or until the case is closed in writing — whichever is later.
+
+---
+
+## 7. Detection signals to add (deferred until past beta)
+
+Currently no automated signals. Detection is best-effort manual: occasional review of {{LOGS_LOCATION}}, error reporting, and source-control secret-scanning alerts.
+
+When user count grows past beta, add at minimum:
+
+- Failed-auth spike alarm
+- Mass-export detector (rate-limit + alert on data-export endpoint per hour)
+- Storage egress anomaly alarm
+- Source-control secret-scanning enabled
+- Quarterly review of admin audit log for unfamiliar actions
+
+---
+
+## Quick reference
+
+| Obligation | Singapore PDPA | Indonesia UU PDP | Thailand PDPA | Malaysia PDPA |
+|---|---|---|---|---|
+| Conduct assessment | Reasonable + expeditious (≤30d guidance) | Per current regs | Per current regs | "As soon as practicable" — 72h benchmark per JPDP Guideline |
+| Notify regulator after assessment concludes notifiable | **3 calendar days** (s26D(1)) | 72 hours from awareness | 72 hours from awareness | **72 hours** from discovery (s12B(1) + JPDP Guideline) |
+| Notify affected individuals where significant harm | On or after authority notification | All breaches notify subject (Pasal 46) | Per current regs | **Within 7 days** of Commissioner notification (s12B(2) + JPDP Guideline) |
+| Suspend user notification on law-enforcement direction | Yes (s26D(6)) | Per current regs | Per current regs | Per Commissioner direction |
+| Vendor-as-intermediary / processor notifies controller | Without undue delay (s26C(3)) | Per current regs | s40 — without delay | Vendor DPA must require ≤24h flow-down so controller hits 72h s12B clock |
+
+Penalty for breach of breach-notification obligations:
+
+- **Singapore PDPA:** up to SGD 1M for orgs ≤ SGD 10M SG turnover; **10% of SG turnover** above (s48J(3))
+- **Indonesia UU PDP:** up to 2% of annual revenue
+- **Thailand PDPA:** up to THB 5M administrative + criminal penalties for severe violations
+- **Malaysia PDPA:** failure to notify Commissioner — **RM 250,000 / 2 years** (s12B(3)). Underlying Security Principle (s9) breach attracts **RM 1M / 3 years** (s5(2) post-A1727); director-deeming liability under s133 applies

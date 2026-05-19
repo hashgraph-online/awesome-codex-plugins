@@ -60,7 +60,23 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces."
+      "description": "Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces.",
+      "icon": "./plugins/study8677/antigravity-workspace-template/assets/icon.png"
+    },
+    {
+      "name": "archcore",
+      "displayName": "Archcore",
+      "source": {
+        "source": "local",
+        "path": "./plugins/archcore-ai/plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP — so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.",
+      "icon": "./plugins/archcore-ai/plugin/assets/icon.png"
     },
     {
       "name": "bringyour-migration-auditor",
@@ -88,7 +104,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "AI code reviews grounded in six classic engineering books — decay risk diagnostics with book citations, severity labels, and four analysis modes (PR review, architecture audit, tech debt, test quality)."
+      "description": "AI code reviews grounded in six classic engineering books — decay risk diagnostics with book citations, severity labels, and four analysis modes (PR review, architecture audit, tech debt, test quality).",
+      "icon": "./plugins/hyhmrright/brooks-lint/assets/logo.svg"
     },
     {
       "name": "cc",
@@ -220,6 +237,35 @@
       "description": "Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context."
     },
     {
+      "name": "development-skills",
+      "displayName": "Development Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/reidemeister94/development-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase) development workflow for Codex and Claude Code with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent for fresh-eyes review on every change.",
+      "icon": "./plugins/reidemeister94/development-skills/assets/icon.svg"
+    },
+    {
+      "name": "ejentum",
+      "displayName": "ejentum-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ejentum/ejentum-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "MCP server exposing reasoning, code, anti-deception, and memory harness tools for Codex."
+    },
+    {
       "name": "frappe-agent",
       "displayName": "Frappe Agent",
       "source": {
@@ -231,7 +277,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Frappe and ERPNext coding, customization, bench, and review intelligence for Codex."
+      "description": "Frappe and ERPNext coding, customization, bench, and review intelligence for Codex.",
+      "icon": "./plugins/Dkm0315/frappe-agent/assets/frappe-agent-icon.svg"
     },
     {
       "name": "graymatter",
@@ -249,6 +296,21 @@
       "icon": "./plugins/ValkyrLabs/GrayMatter/assets/composer-icon.svg"
     },
     {
+      "name": "hol-guard-plugin",
+      "displayName": "HOL Guard Plugin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hashgraph-online/hol-guard-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "AI antivirus workflow for Codex, Claude Code, Cursor, Gemini, OpenCode, MCP servers, skills, and plugin release checks with local approvals and receipts.",
+      "icon": "./plugins/hashgraph-online/hol-guard-plugin/assets/icon.png"
+    },
+    {
       "name": "hotl",
       "displayName": "HOTL Plugin",
       "source": {
@@ -262,6 +324,36 @@
       "category": "Development & Workflow",
       "description": "Human-on-the-Loop AI coding workflow plugin for Codex, Claude Code, and Cline with structured planning, review, and verification guardrails.",
       "icon": "./plugins/yimwoo/hotl-plugin/docs/assets/codex/hotl-icon.png"
+    },
+    {
+      "name": "personal-data-protection",
+      "displayName": "Personal Data Protection",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AltByteSG/personal-data-protection-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Engineer-facing personal-data-protection compliance reference — Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA (Act 709 + 2024 Amendments), Philippines DPA — organised by where in the stack each obligation lands, with checklists, breach-response runbook, and a developer-view divergence table across all five.",
+      "icon": "./plugins/AltByteSG/personal-data-protection-skill/assets/icon.svg"
+    },
+    {
+      "name": "praxis",
+      "displayName": "Praxis",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ouonet/praxis"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Intent-driven workflow skills for coding agents: describe what done looks like, not the steps. Triage-first design keeps token costs low across design, TDD, debug, review, and release.",
+      "icon": "./plugins/ouonet/praxis/assets/logo-mark.svg"
     },
     {
       "name": "codex-project-autopilot",
@@ -291,7 +383,7 @@
       },
       "category": "Development & Workflow",
       "description": "Delegate tasks to specialist AI agents via the HOL Registry, plan, find, summon, and recover sessions.",
-      "icon": "./plugins/hashgraph-online/registry-broker-codex-plugin/assets/icon.svg"
+      "icon": "./plugins/hashgraph-online/registry-broker-codex-plugin/assets/icon.png"
     },
     {
       "name": "session-orchestrator",
@@ -305,7 +397,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Session orchestration for Claude Code, Codex, and Cursor IDE — structured planning, wave-based execution, VCS integration (GitLab + GitHub), quality gates, and clean session close-out with issue tracking."
+      "description": "Session orchestration for Claude Code, Codex, and Cursor IDE — structured planning, wave-based execution, VCS integration (GitLab + GitHub), quality gates, and clean session close-out with issue tracking.",
+      "icon": "./plugins/Kanevry/session-orchestrator/assets/icon.svg"
     },
     {
       "name": "spec-driven",
@@ -322,6 +415,20 @@
       "description": "Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing."
     },
     {
+      "name": "stark",
+      "displayName": "Stark",
+      "source": {
+        "source": "local",
+        "path": "./plugins/f0d010c/stark"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code."
+    },
+    {
       "name": "tailtest",
       "displayName": "tailtest",
       "source": {
@@ -334,6 +441,21 @@
       },
       "category": "Development & Workflow",
       "description": "Hook-powered test generation -- detects files changed during an agent turn and instructs Codex to write and run tests automatically. Zero config, 8 languages."
+    },
+    {
+      "name": "tandem-codex-plugin",
+      "displayName": "Tandem Workflow Architect",
+      "source": {
+        "source": "local",
+        "path": "./plugins/frumu-ai/tandem-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Plan Tandem workflows in Codex, then validate, preview, and run them through the governed Tandem engine.",
+      "icon": "./plugins/frumu-ai/tandem-codex-plugin/assets/icon.png"
     },
     {
       "name": "tartinerlabs",
@@ -376,6 +498,21 @@
       },
       "category": "Development & Workflow",
       "description": "Read-only meta-skill that scans your MCP servers, skills, plugins, and CLI tools, then suggests up to three ranked approaches (Methodical / Fast / Deep) with a copy-paste Quick Action table."
+    },
+    {
+      "name": "unity-agent-workflows",
+      "displayName": "Unity Agent Workflows",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AUN-PN/unity-agent-workflows"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Codex plugin and skill for Unity 2D agents that enforces \"No proof, no edit\" workflows with runtime-owner proof, Teach structure maps, and validation gates.",
+      "icon": "./plugins/AUN-PN/unity-agent-workflows/assets/unity-workflows.png"
     },
     {
       "name": "universal-design-principles",
@@ -488,7 +625,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines for Data Center and Cloud."
+      "description": "Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines for Data Center and Cloud.",
+      "icon": "./plugins/avivsinai/bitbucket-cli/assets/bkt-icon.svg"
     },
     {
       "name": "calle",
@@ -502,7 +640,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Plan, run, and inspect Call-E phone call workflows from Codex through the calle CLI."
+      "description": "Plan, run, and inspect Call-E phone call workflows from Codex through the calle CLI.",
+      "icon": "./plugins/CALLE-AI/call-e-integrations/assets/CALL-E-Icon-Black.svg"
     },
     {
       "name": "canvas-apps-plugin-codex",
@@ -593,6 +732,21 @@
       "icon": "./plugins/BestLemoon/codex-seo/assets/icon.svg"
     },
     {
+      "name": "codex-usage-tracker",
+      "displayName": "Codex Usage Tracker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/douglasmonsky/codex-usage-tracker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Track aggregate Codex token usage from local session logs with MCP tools for summaries, session detail, CSV export, and dashboard generation.",
+      "icon": "./plugins/douglasmonsky/codex-usage-tracker/assets/icon.svg"
+    },
+    {
       "name": "context-pack",
       "displayName": "Context Pack",
       "source": {
@@ -606,6 +760,20 @@
       "category": "Tools & Integrations",
       "description": "Generate compact first-pass repository briefings for coding agents before deeper exploration.",
       "icon": "./plugins/Rothschildiuk/context-pack/skills/context-pack/assets/context-pack-small.svg"
+    },
+    {
+      "name": "dataproduct-builder-dbt",
+      "displayName": "Data Product Builder for dbt",
+      "source": {
+        "source": "local",
+        "path": "./plugins/entropy-data/dataproduct-builder-dbt"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions."
     },
     {
       "name": "dodopayments",
@@ -633,7 +801,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "131 evidence-based education skills for curriculum design, lesson planning, and assessment, with transparent evidence ratings and MCP server."
+      "description": "131 evidence-based education skills for curriculum design, lesson planning, and assessment, with transparent evidence ratings and MCP server.",
+      "icon": "./plugins/GarethManning/education-agent-skills/assets/education-agent-skills-icon.svg"
     },
     {
       "name": "flowstudio-power-automate",
@@ -648,6 +817,20 @@
       },
       "category": "Tools & Integrations",
       "description": "Debug, build, and operate Power Automate flows via FlowStudio MCP with action-level inputs and outputs."
+    },
+    {
+      "name": "gh-project-plugin",
+      "displayName": "GH Project",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zfifteen/gh-project-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Create GitHub repositories from Codex with inferred defaults, native menus, explicit confirmation, and deterministic local cloning."
     },
     {
       "name": "jk",
@@ -703,7 +886,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Query traces, debug exceptions, analyze sessions, and manage prompts via MCP tools."
+      "description": "Query traces, debug exceptions, analyze sessions, and manage prompts via MCP tools.",
+      "icon": "./plugins/avivsinai/langfuse-mcp/assets/langfuse-icon.svg"
     },
     {
       "name": "launchfast",

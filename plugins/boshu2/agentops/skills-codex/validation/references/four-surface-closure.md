@@ -8,9 +8,33 @@
 | Surface | What to Check | Gate Command |
 |---------|---------------|--------------|
 | **Code** | Implementation matches spec, tests pass, no regressions | `make test` or project-specific test command |
-| **Documentation** | Docs reflect current behavior, no stale references | `validate-doc-release.sh`, grep for old behavior in docs |
+| **Documentation** | Docs reflect current behavior, no stale references. **CLI command/flag changes require regenerated reference docs.** | `validate-doc-release.sh`, grep for old behavior in docs, `scripts/generate-cli-reference.sh && git diff --quiet cli/docs/COMMANDS.md` |
 | **Examples** | Usage examples work, CLI help is current | Run examples, check `--help` output |
 | **Proof** | Acceptance criteria gates pass, new behavior has tests | Run acceptance criteria commands from plan |
+
+## CLI Documentation Staleness (MANDATORY when CLI surface changed)
+
+If the diff scope adds, removes, or modifies any `cobra.Command{...}` literal, any `.Flags()` call, or any file under `cli/cmd/` whose changes affect command shape, Documentation surface MUST include a CLI-reference-regen check:
+
+```bash
+CLI_CHANGED=0
+if git diff --name-only "${BASE:-HEAD~1}"...HEAD | grep -qE '^cli/cmd/.*\.go$'; then
+    if git diff "${BASE:-HEAD~1}"...HEAD -- 'cli/cmd/**.go' \
+       | grep -qE '^\+.*(cobra\.Command\{|\.Flags\(\)|Use:|Short:)'; then
+        CLI_CHANGED=1
+    fi
+fi
+
+if [ "$CLI_CHANGED" = "1" ]; then
+    bash scripts/generate-cli-reference.sh
+    if ! git diff --quiet cli/docs/COMMANDS.md; then
+        echo "FAIL: cli/docs/COMMANDS.md is stale — CLI surface changed but reference not regenerated before commit."
+        exit 1
+    fi
+fi
+```
+
+Prevents the v2.41-evolve-run failure mode: a branch removed `--oscillation-sweep` from `ao defrag`, `cli/docs/COMMANDS.md` still listed it, validation and vibe both declared PASS.
 
 ## When to Run
 

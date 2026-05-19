@@ -1,17 +1,26 @@
 # Education Agent Skills Library
 
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-1.0-blue)](https://agentskills.io)
-[![Skills](https://img.shields.io/badge/skills-131-blue)](https://github.com/GarethManning/education-agent-skills)
+[![Skills](https://img.shields.io/badge/skills-147-blue)](https://github.com/GarethManning/education-agent-skills)
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 [![Last Commit](https://img.shields.io/github/last-commit/GarethManning/education-agent-skills)](https://github.com/GarethManning/education-agent-skills/commits/main)
 
-An open-source library of 131 evidence-based pedagogical skills for curriculum design, lesson planning, and assessment — works in Claude Code, Claude.ai (via MCP), and OpenAI Codex, and engineered for AI agent orchestration.
+An open-source library of 147 evidence-based pedagogical skills for curriculum design, lesson planning, and assessment — works in Claude Code, Claude.ai (via MCP), and OpenAI Codex, and engineered for AI agent orchestration.
+
+> [!IMPORTANT]
+> **Hosted MCP access now requires an auth token.**
+>
+> The library is still free and open source, and local/plugin/manual use remains the recommended free path. The hosted MCP server is still available for people who specifically need a remote MCP endpoint, but anonymous access is now blocked so the service stays sustainable.
+>
+> **Need hosted MCP?** [Request an access token](https://docs.google.com/forms/d/e/1FAIpQLSdW1EdcmtjSPPq68Hx-bdth5hO2KNyjhAwEV9Ld0EwWL1Gr8Q/viewform) or [jump to hosted MCP setup](#mcp-server).
 
 ---
 
 ## Get Started
 
 Works with Claude, Codex, and any tool that supports the Agent Skills standard.
+
+For sustainable free use, install or copy the skills locally from GitHub where possible. The hosted MCP server is a convenience endpoint for remote clients, not a requirement for using the library.
 
 ### Claude
 
@@ -23,25 +32,44 @@ https://github.com/GarethManning/education-agent-skills
 
 **Claude Code CLI** — install from the repo URL:
 
-```
+```bash
 claude plugin install https://github.com/GarethManning/education-agent-skills
 ```
 
-**Claude.ai / Claude Desktop (MCP server)** — add under **Settings → Connectors**:
+**Claude.ai / Claude Desktop (hosted MCP)** — use only if your workflow specifically needs a remote MCP connector. Hosted access requires a token:
 
-```
+```text
 https://mcp-server-sigma-sooty.vercel.app/mcp
 ```
 
+Request a token here: [Hosted MCP access signup](https://docs.google.com/forms/d/e/1FAIpQLSdW1EdcmtjSPPq68Hx-bdth5hO2KNyjhAwEV9Ld0EwWL1Gr8Q/viewform). Free local and manual options remain available. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md).
+
 ### OpenAI Codex
 
-Clone the repo and install as a plugin, or copy individual skill folders to `~/.codex/skills/`:
+Codex does **not** need the hosted MCP server. Recommended local setup:
 
 ```bash
 git clone https://github.com/GarethManning/education-agent-skills.git
-# Global access to a single skill:
+cd education-agent-skills
+codex plugin marketplace add "$PWD"
+```
+
+The repository includes a Codex plugin manifest at `.codex-plugin/plugin.json` pointing to `./skills/`, plus a local marketplace helper at `.agents/plugins/marketplace.json`. After installing/enabling the local plugin, restart Codex.
+
+For one or two individual skills, copy them into your global Codex skills directory:
+
+```bash
+mkdir -p ~/.codex/skills
 cp -r skills/<domain>/<skill-name> ~/.codex/skills/
 ```
+
+Example:
+
+```bash
+cp -r skills/memory-learning-science/spaced-practice-scheduler ~/.codex/skills/
+```
+
+Full Codex guide: [docs/CODEX.md](docs/CODEX.md).
 
 ### Any Agent Skills-compatible tool
 
@@ -154,7 +182,7 @@ YAML schema headers, typed input and output fields, chaining metadata, and compo
 
 ---
 
-## The 17 Domains
+## The 19 Domains
 
 | # | Domain | Skills | Focus |
 |---|--------|--------|-------|
@@ -172,9 +200,11 @@ YAML schema headers, typed input and output fields, chaining metadata, and compo
 | 12 | **AI Learning Science** | 14 | Adaptive hints, erroneous examples, digital worked examples, spacing algorithms, AI feedback, tutoring dialogue, learning analytics, collaborative learning, cognitive tutoring, self-explanation, metacognitive monitoring, productive failure, worked example transitions, formative assessment loops |
 | 13 | **AI Literacy** | 7 | AI output auditing, hallucination fact-checking, prompt literacy, expertise interrogation, learning boundary mapping, AI Socratic dialogue, disciplinary AI reliability |
 | 14 | **Montessori & Alternative Evidence-Based Approaches** | 4 | Three-part lessons, prepared environment design, mixed-age learning, uninterrupted work cycles |
-| 15 | **Original Frameworks** | 5 | SEEDS regenerative inquiry, developmental band systems, learning target authoring, rubric logic, self-determined project design |
+| 15 | **Original Frameworks** | 11 | SEEDS regenerative inquiry, developmental band systems, learning target authoring, rubric logic, self-determined project design, dispositional assessment, single-point rubrics; three composite orchestrators (place-based curriculum, regenerative project design, compassionate systems awareness) |
 | 16 | **Curriculum Alignment** | 4 | Coverage audit, KUD chart authoring, developmental band translation, scope and sequence |
 | 17 | **Historical Thinking** | 10 | Sourcing, close reading, contextualisation, corroboration, document-based lesson design, document set curation, source adaptation, strategy modelling, assessment design, central question evaluation |
+| 18 | **Systems Thinking** | 5 | Systems awareness iceberg, aspirational iceberg, mental model mapper, agency circles for systems action, ladder of inference |
+| 19 | **Inclusive Design** | 3 | UDL lesson auditing, options design across engagement/representation/action, proactive barrier anticipation before delivery |
 
 ---
 
@@ -188,9 +218,13 @@ Every skill opens with a machine-readable YAML header including skill ID, domain
 
 ### MCP Server
 
-The skill library is available as a live MCP server. Any MCP-compatible client can discover, search, and invoke all 131 skills programmatically.
+The skill library is available as a live MCP server for clients that specifically need remote discovery or programmatic access.
 
 **Production URL:** `https://mcp-server-sigma-sooty.vercel.app/mcp`
+
+Important: the hosted MCP server is a convenience endpoint, not the only way to use the library. If you can install the skills locally, prefer the free local options in [Get Started](#get-started).
+
+Hosted MCP access now requires a unique auth token. Request one here: [Hosted MCP access signup](https://docs.google.com/forms/d/e/1FAIpQLSdW1EdcmtjSPPq68Hx-bdth5hO2KNyjhAwEV9Ld0EwWL1Gr8Q/viewform). Gareth's Agent normally emails the MCP URL, token, and short setup instructions within a few minutes. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md) for details.
 
 Connect from Claude.ai by adding the URL under **Integrations > MCP Servers**. Connect from Claude Desktop:
 
@@ -199,15 +233,18 @@ Connect from Claude.ai by adding the URL under **Integrations > MCP Servers**. C
   "mcpServers": {
     "education-skills": {
       "type": "streamable-http",
-      "url": "https://mcp-server-sigma-sooty.vercel.app/mcp"
+      "url": "https://mcp-server-sigma-sooty.vercel.app/mcp",
+      "headers": {
+        "Authorization": "Bearer <paste access token here>"
+      }
     }
   }
 }
 ```
 
 The server exposes:
-- **135 tools** (131 skills + 4 discovery tools: `list_skills`, `find_skills`, `suggest_skills`, `get_skill_details`)
-- **131 prompts** (for clients that surface MCP prompts)
+- **149 tools** (145 skills + 4 discovery tools: `list_skills`, `find_skills`, `suggest_skills`, `get_skill_details`)
+- **145 prompts** (for clients that surface MCP prompts)
 
 Source code, local setup, and development instructions: [`mcp-server/`](mcp-server/)
 

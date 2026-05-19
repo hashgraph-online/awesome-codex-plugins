@@ -1,0 +1,44 @@
+{
+  "name": "tandem-codex-plugin",
+  "version": "0.1.4",
+  "description": "Tandem Workflow Architect for Codex. Plan-mode design partner that helps you shape Tandem workflows (V2 automations and workflow plans) and hands them to the Tandem engine for validation, preview, and run. Plan with Codex. Govern with Tandem. Run with receipts.",
+  "keywords": [
+    "tandem",
+    "workflow",
+    "automation",
+    "mcp",
+    "architect",
+    "plan-mode"
+  ],
+  "homepage": "https://github.com/frumu-ai/tandem-codex-plugin",
+  "repository": "https://github.com/frumu-ai/tandem-codex-plugin",
+  "license": "MIT",
+  "author": {
+    "name": "frumu-ai",
+    "url": "https://github.com/frumu-ai"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "commands": "./commands/",
+  "interface": {
+    "displayName": "Tandem Workflow Architect",
+    "shortDescription": "Plan Tandem workflows in Codex; govern and run them in Tandem.",
+    "longDescription": "A Codex plugin for designing Tandem workflows with plan-mode guidance, bundled Tandem docs, validation, previews, and governed execution through the Tandem engine.",
+    "developerName": "frumu-ai",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/frumu-ai/tandem-codex-plugin",
+    "brandColor": "#2563EB",
+    "defaultPrompt": [
+      "Create a Tandem workflow from an intent",
+      "Build a complex Tandem workflow DAG",
+      "Preview or validate a Tandem workflow"
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

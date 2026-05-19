@@ -1,6 +1,6 @@
 ---
 name: bkt
-version: 0.26.5
+version: 0.26.6
 description: Bitbucket CLI for Data Center and Cloud. Use when users need to manage repositories, pull requests, branches, issues, webhooks, or pipelines in Bitbucket. Triggers include "bitbucket", "bkt", "pull request", "PR", "repo list", "branch create", "Bitbucket Data Center", "Bitbucket Cloud", "keyring timeout".
 metadata:
   short-description: Bitbucket CLI for repos, PRs, branches
@@ -115,7 +115,7 @@ bkt pr checkout 42               # Creates pr/42 branch
 All commands support `--json`, `--yaml`, `--jq`, and `--template`:
 
 ```bash
-bkt pr list --mine --json | jq '.[].title'
+bkt pr list --mine --json | jq '.pull_requests[].title'
 ```
 
 ### Raw API escape hatch

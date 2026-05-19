@@ -1,0 +1,38 @@
+{
+  "name": "gh-project-plugin",
+  "version": "1.0.0",
+  "description": "Codex plugin bundle for creating GitHub repositories with low-friction defaults and native menu prompts.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zfifteen/gh-project-plugin.git"
+  },
+  "homepage": "https://github.com/zfifteen/gh-project-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/zfifteen/gh-project-plugin/issues"
+  },
+  "keywords": [
+    "codex",
+    "codex-plugin",
+    "github",
+    "github-cli",
+    "repository",
+    "project-setup",
+    "workflow-automation"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    ".codex-plugin/",
+    "assets/",
+    "release-readiness-checklist.md",
+    "skills/",
+    "spec.html"
+  ],
+  "scripts": {
+    "pack:dry-run": "npm pack --dry-run",
+    "validate": "npm run pack:dry-run"
+  }
+}

@@ -2,11 +2,12 @@
 name: plan
 user-invocable: false
 tags: [planning, prd, requirements, research]
+model: opus
 model-preference: opus
 model-preference-codex: gpt-5.4
 model-preference-cursor: claude-opus-4-6
 description: >
-  Structured project planning and PRD generation with three modes:
+  Use this skill when performing structured project planning and PRD generation with three modes:
   new (project kickoff with repo scaffolding), feature (compact feature PRD),
   retro (data-driven retrospective). All modes share a researched Q&A engine
   that dispatches parallel Explore agents before each question wave, presents
@@ -57,6 +58,8 @@ If no `## Session Config` section exists at all, stop and report: "Error: No Ses
 > On Codex CLI, Explore agents map to the `explorer` agent role. See `skills/_shared/platform-tools.md`.
 
 ## Phase 2: Mode Router
+
+> **Ambiguous scope?** If the feature's UX/scope is still ambiguous before starting, run `/brainstorm` first (see `skills/brainstorm/SKILL.md`) to produce a design spec, then return here with the spec as input. `/brainstorm` outputs `docs/specs/YYYY-MM-DD-<slug>-design.md`.
 
 Parse `$ARGUMENTS` to determine the planning mode:
 

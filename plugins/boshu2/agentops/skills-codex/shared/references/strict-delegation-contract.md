@@ -9,9 +9,30 @@ Top-level orchestrator skills delegate to their declared sub-skills via `$<skill
 
 There is no `--full` flag because strict delegation is always on.
 
+## Phase-Isolated Transport
+
+Strict delegation names the contract. Transport isolation names where that
+contract runs.
+
+For high-cost lifecycle phases, the desired runtime shape is:
+
+1. The visible orchestrator keeps the lifecycle objective, phase order, and
+   retry policy.
+2. A phase runner receives only the phase skill name, the bounded handoff
+   artifact, and the minimum objective context.
+3. The runner executes the declared skill contract (`$discovery`, `$crank`, or
+   `$validation`) in an isolated phase context.
+4. The orchestrator receives only artifact path, verdict, and next action.
+
+This is not a compression escape. It is strict delegation over an isolated
+transport. The forbidden move is replacing the skill contract with direct
+sub-agent work.
+
 ## Anti-Pattern: Compression
 
-Do not inline phase work, compress multiple phases into one pass, substitute Codex sub-agent spawns for `$<skill>` invocations, or skip mandatory phases. Typical rationalizations to reject:
+Do not inline phase work, compress multiple phases into one pass, substitute
+direct Codex sub-agent work for `$<skill>` invocations, or skip mandatory
+phases. Typical rationalizations to reject:
 
 - *"I'll compress the three phases into one pass."*
 - *"Let me do discovery inline — I already know what to do."*
@@ -31,8 +52,14 @@ These are **not interchangeable**:
 |------|-------------|
 | `$<skill> <args>` | Invoking a declared skill with its full contract. Required for phase delegation. |
 | Codex sub-agent (e.g., `explorer` role) | Spawning a sub-agent for parallel independent work **within a skill's step** (e.g., `/research` dispatching parallel explorer sub-agents is fine). |
+| Phase runner | Runtime transport that executes one declared skill contract in an isolated context and returns only the bounded phase artifact. |
 
 If you're tempted to spawn a Codex sub-agent in place of a `$<skill>` invocation, you're compressing. Stop.
+
+If Codex lacks a native skill-fork boundary, a phase runner may use a sub-agent,
+daemon job, or process wrapper as transport. That wrapper must be thin: load
+the declared skill, execute the skill workflow, write the expected artifact,
+and return a compact result. It must not perform the phase directly.
 
 ## Supported Compression Escapes
 
@@ -77,11 +104,17 @@ $validation --complexity=<level> [--strict-surfaces]   # Phase 3
 
 Anything less is compressed.
 
+When phase-isolated transport is available, the transcript may show a phase
+runner instead of raw inline skill execution. The acceptance rule is still the
+same: the delegated phase contract must run, emit its completion marker, and
+write the expected phase summary file.
+
 ## Detection for Reviewers
 
 When auditing a session that claims to have run `/rpi`, check the transcript for:
 
-1. **Three `$<skill>` invocations** at phase boundaries (skill invocation, not sub-agent spawn).
+1. **Three delegated phase contracts** at phase boundaries (`$<skill>` directly,
+   or a phase runner whose sole job is to execute the named skill contract).
 2. **Three `<promise>DONE</promise>` markers**, each from the delegated sub-skill.
 3. **Three phase summary files** in `.agents/rpi/phase-{1,2,3}-summary-*.md`.
 

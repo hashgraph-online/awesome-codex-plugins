@@ -26,6 +26,29 @@ Given `$plan <goal> [--auto]`:
 
 If bd is unavailable, still write the markdown plan in `.agents/plans/`.
 
+## Discovery Boundary
+
+Use the [Skill Ports and Adapters](../../docs/contracts/skill-ports-and-adapters.md)
+vocabulary for the boundary from Discovery into Plan:
+
+| Boundary piece | Plan contract |
+|---|---|
+| Inbound port | `plan_slices` from BDD intent, bead, research artifact, or execution packet |
+| Outbound ports | `persist_issue`, `verify_symbols`, `retrieve_context`, `seed_execution_packet` |
+| Driving adapter | `$plan` skill invocation |
+| Driven adapters | bd, `rg`, `.agents/findings`, `.agents/plans`, execution-packet writer |
+| Context packet | slice plan, file dependency matrix, acceptance criteria, test levels |
+| Guard adapter | stale-scope verification, symbol verification, wave-validity check |
+
+```gherkin
+Feature: Plan converts dense intent into executable slices
+  Scenario: Plan consumes Discovery output
+    Given Discovery provides density fields and artifact links
+    When Plan receives the `plan_slices` port request
+    Then each slice has acceptance criteria, write scope, test levels, and ownership
+    And no slice depends on raw Discovery chat context
+```
+
 ## Workflow
 
 1. **Pre-flight stale bead scope.** If the input is a bead ID and the work is
@@ -38,20 +61,27 @@ If bd is unavailable, still write the markdown plan in `.agents/plans/`.
    to `.agents/findings/registry.jsonl`. Treat active findings as hard
    planning context. Record applied finding IDs in the plan with an
    `Applied findings:` line, even when the value is `none`.
-4. **Explore only as needed.** If prior research does not provide enough file
+4. **Recommend a strategic duel when warranted.** If the plan spans more than
+   one execution session and has at least one contested operator-default
+   decision, recommend the dueling-idea-wizards route
+   (`$council --mode=debate --focus=ideas`) before decomposition. Keep it
+   advisory, not mandatory. Skip it for single-session or non-contested plans.
+   Evidence from the 2026-05-17 Mt Olympus run: roughly 22 min wall-clock,
+   3/5 operator defaults flipped, and one already-shipped adapter bug surfaced.
+5. **Explore only as needed.** If prior research does not provide enough file
    and symbol detail, inspect the codebase or dispatch a bounded explorer.
    Demand file inventory, symbol names, reuse points with `file:line`, test
    locations, and package/import relationships.
-5. **Baseline audit.** Mechanically count the current state before making
+6. **Baseline audit.** Mechanically count the current state before making
    quantitative claims: files, sections, LOC, tests, fixtures, schemas, and
    any SKILL.md files near size limits. Record commands and results.
-6. **Choose detail level.** Minimal for 1-2 simple issues, Standard for 3-6
+7. **Choose detail level.** Minimal for 1-2 simple issues, Standard for 3-6
    issues, Deep for 7+ issues, broad refactors, or `--deep`.
-7. **Decompose into issues.** Each issue needs title, file ownership,
+8. **Decompose into issues.** Each issue needs title, file ownership,
    dependencies, acceptance criteria, test levels, and at least one mechanical
    conformance check (`files_exist`, `content_check`, `command`, `tests`, or
    `lint`).
-8. **Compute waves.** Group independent issues by dependency. Serialize or
+9. **Compute waves.** Group independent issues by dependency. Serialize or
    merge same-file writes. Include generated artifacts, docs, schemas, fixtures,
    Codex companions, manifests, and hash markers in ownership.
    Generated Artifact Companion Scope is mandatory: list every touched file,
@@ -59,12 +89,12 @@ If bd is unavailable, still write the markdown plan in `.agents/plans/`.
    and generated Codex artifacts. If skill behavior or runtime UX
    changes, include `bash scripts/refresh-codex-artifacts.sh --scope worktree`
    in verification.
-9. **Write the plan.** Use `.agents/plans/YYYY-MM-DD-<goal-slug>.md` and the
+10. **Write the plan.** Use `.agents/plans/YYYY-MM-DD-<goal-slug>.md` and the
    template in [references/plan-document-template.md](references/plan-document-template.md).
-10. **Create tracking tasks.** Prefer bd issues with validation blocks and
+11. **Create tracking tasks.** Prefer bd issues with validation blocks and
     dependency edges. If bd is missing, leave the markdown plan as the durable
     handoff.
-11. **Approval gate.** Skip only with `--auto`; otherwise ask whether to
+12. **Approval gate.** Skip only with `--auto`; otherwise ask whether to
     proceed, revise, or return to research.
 
 ## Required Plan Sections

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Codex Usage Tracker">
+  <rect width="64" height="64" rx="12" fill="#2563EB"/>
+  <path d="M14 44h36" stroke="#DBEAFE" stroke-width="4" stroke-linecap="round"/>
+  <path d="M18 38V24M30 38V16M42 38V28" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="18" cy="24" r="4" fill="#BFDBFE"/>
+  <circle cx="30" cy="16" r="4" fill="#BFDBFE"/>
+  <circle cx="42" cy="28" r="4" fill="#BFDBFE"/>
+</svg>

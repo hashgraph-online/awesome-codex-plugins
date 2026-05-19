@@ -376,6 +376,19 @@ vulture <directory>
 - Not used in build tags or conditional compilation
 - Not referenced in external packages (if this is a library)
 
+**CLI command, flag, or cross-language surface removal:** source-language
+callers are not enough. Before considering the removal complete, grep every
+tracked callsite surface that agents commonly forget:
+
+```bash
+scripts/check-removed-symbol-refs.sh -- <removed-command-or-flag>
+```
+
+The check searches tracked repo files across source, shell scripts, GitHub
+workflow YAML, docs, skills, Codex skills, and tests while excluding historical
+changelogs and release notes. Any remaining hit is a blocker unless it is
+explicitly excluded with `--exclude` and justified in the closeout.
+
 ## Guardrails
 
 ### What NOT to Refactor

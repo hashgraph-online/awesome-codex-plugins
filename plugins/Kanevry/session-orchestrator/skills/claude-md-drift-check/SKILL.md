@@ -1,6 +1,7 @@
 ---
 name: claude-md-drift-check
-description: Detects drift between CLAUDE.md (or AGENTS.md, the Codex CLI alias) / _meta narrative and live repository state. Six checks: absolute-path resolution, 01-projects/ count claims, issue-reference freshness (closed refs in forward-looking sections), session-file existence, command-count sync (claimed "N commands" vs actual commands/*.md), and session-config-parity (top-level keys diffed against docs/session-config-template.md). Invoked as an opt-in session-end phase; mirrors vault-sync's lean JSON+exit-code contract.
+description: Use when detecting drift between CLAUDE.md (or AGENTS.md, the Codex CLI alias) / _meta narrative and live repository state. Six checks: absolute-path resolution, 01-projects/ count claims, issue-reference freshness (closed refs in forward-looking sections), session-file existence, command-count sync (claimed "N commands" vs actual commands/*.md), and session-config-parity (top-level keys diffed against docs/session-config-template.md). Invoked as an opt-in session-end phase; mirrors vault-sync's lean JSON+exit-code contract.
+model: haiku
 ---
 
 # CLAUDE.md Drift-Check Skill

@@ -52,6 +52,10 @@ Skip the deviation entry on `proceed`, even when `concurrentSessions` warns — 
 
 ### 1. Dispatch Agents
 
+When `worker-pool.enabled: true` in Session Config, dispatch via `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` with `maxParallel = worker-pool.max-parallel || agents-per-wave`. Else fall back to single-message parallel Agent() dispatch.
+
+**Worker-pool timing note:** when `worker-pool.enabled: true`, per-agent start and end times are recorded individually in subagents.jsonl as workers pull from the cursor at different moments. Wave-level timings (for progress updates and metrics) are computed as first-worker-start to last-worker-finish, not as a uniform fan-out timestamp.
+
 Use the **Agent tool** to dispatch all agents for this wave IN PARALLEL in a SINGLE message.
 
 Read each wave's dispatch metadata from the session plan header (e.g., `(4 agents, parallel, isolation: worktree)`). When the plan specifies `isolation`, use it verbatim. When the plan does not specify, resolve the effective value via `resolveIsolation({ agentCount, sessionType, collisionRisk, configIsolation })` from `scripts/lib/wave-sizing.mjs` — the graduated default (#194) replaces the previous session-type-only switch. Pass the resolved value to each Agent() tool call per `circuit-breaker.md` (omit the parameter when resolved to `none`).
@@ -347,6 +351,22 @@ Run this step for every wave, regardless of isolation setting — it is a no-op 
 After ALL agents in the wave complete:
 
 1. **Read each agent's result** carefully
+1a. **Validate agent output schema** (if `output-schema-validation.enabled: true` in Session Config — default `false`):
+
+   For each completed agent record, call `validateAgentOutput({ agentName, raw })` from `scripts/lib/agent-output-schema.mjs` where `agentName` is the kebab-case agent name and `raw` is the agent's full return text.
+
+   Handle the four result modes:
+
+   - **`mode: 'validated', ok: true`** — silent. Set `schema_status: 'ok'` on the agent record in `subagents.jsonl`.
+   - **`mode: 'validated', ok: false`** — schema violation. Annotate the agent record with `schema_violation: true` and `schema_errors: [...]`. Then:
+     - Under `enforce: warn` (default): log the violation in the wave progress update and continue. The wave is NOT blocked.
+     - Under `enforce: strict`: surface the violation as a wave-blocking finding. Halt further agent processing and report to the coordinator before proceeding to the conflict check.
+     - Under `enforce: off`: skip violation recording entirely (schema_status is still set when ok=true).
+   - **`mode: 'parse-error'`** — the agent's output had no fenced ```json block or malformed JSON. Log a warning (backward-compat — agents that predate the schema contract routinely omit a JSON block). Do NOT block the wave.
+   - **`mode: 'unvalidated'`** — the agent has no declared `output-schema:` frontmatter. Silent skip (backward-compat path; as of #449 all 11 plugin agents are enrolled, but third-party agents installed via marketplace plugins may not be).
+
+   Reference: agent contract at `agents/code-implementer.md`; runtime module at `scripts/lib/agent-output-schema.mjs::validateAgentOutput`.
+
 2. **Check for conflicts**: did two agents modify the same file? → manual merge needed
 3. **Check for failures**: did any agent report errors or blockers?
 3a. **Apply stagnation patterns** (per agent): review each agent's tool-call sequence against the three patterns in `circuit-breaker.md` § Stagnation Patterns — Pagination Spiral, Turn-Key Repetition, Error Echo. Mark each agent STAGNANT/SPIRAL/FAILED accordingly; recovery feeds into step 3 (Adapt Plan). Two different agents reading the same file is coordination, not stagnation.
@@ -411,6 +431,42 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
    - After **Quality**: Full Gate quality checks per quality-gates (typecheck + test + lint, must all pass)
      (Full Gate is NEVER skipped regardless of cache state — this is the close-safety invariant.)
    - After **Finalization**: final git status check
+#### Auto-Commit Checkpoint (Optional, Opt-In)
+
+> Gate conditions — ALL of the following must be true for this step to run:
+> 1. `$CONFIG["auto-commit-per-wave"] === true`
+> 2. `$CONFIG.persistence === true`
+> 3. The Incremental quality check in step 4 returned **PASS** (skip or fail → do not commit)
+> 4. Worktree base-ref freshness check (step 3b) returned **pass** or **warn** for all agents (not **block**)
+> 5. No unresolved merge conflicts in the working tree (`git status --short` shows no `UU`/`AA`/`DD` lines)
+>
+> When any condition is false, skip this step silently. Log "auto-commit-per-wave skipped" in the wave progress update if the gate condition was `auto-commit-per-wave: true` but another condition failed — so the operator knows the flag is set but the checkpoint did not fire.
+
+**Commit message format:**
+
+```
+chore(wave-N): auto-checkpoint — <Role> wave complete
+
+Quality-Lite: PASS | Wave: N / <total-waves> | Session: <session_id>
+Agents: <done>/<total> done, <partial> partial, <failed> failed
+```
+
+**Env-var bypass:** `SO_SKIP_AUTO_COMMIT=1` disables the commit for the current shell invocation regardless of config — useful for CI environments or when a human is reviewing changes mid-session.
+
+**STATE.md deviation logging:** after a successful commit, append one entry to `## Deviations` using `appendDeviation(stateContents, isoTimestamp, message)` from `scripts/lib/state-md.mjs`:
+
+```
+- [<ISO 8601 UTC>] Wave N auto-commit: <sha> (<Role>, Quality-Lite PASS, <N> files staged)
+```
+
+If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), do NOT append the deviation. Instead, log the failure in the wave progress update as a WARN and continue to the next step without blocking.
+
+**Mission-status transition:** after a successful auto-commit, transition the mission status for all tasks in this wave from `in-dev` → `testing` using `setMissionStatus(stateContent, taskId, 'testing')` from `scripts/lib/state-md.mjs`. This matches the coordinator-level rule in `SKILL.md § Mission-Status Updates`: "in-dev → testing: Quality wave begins and this item's implementation wave completed without failure." The auto-commit checkpoint fires at the same logical moment — after implementation completes and Quality-Lite passes.
+
+**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in V3.6 as `scripts/lib/auto-commit.mjs` (see follow-up issue GitLab #214). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal").
+
+---
+
 5a. **Persona-reviewer dispatch** (opt-in, gated by `wave-reviewers` config):
    - Read `wave-reviewers` from Session Config. If the key is absent or the array is empty → skip this step entirely (no-op).
    - Applicable waves: **Impl-Core** and **Impl-Polish** only. Skip for Discovery, Quality, and Finalization waves.
@@ -433,6 +489,7 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
    - Supported reviewer names (plugin-provided): `architect-reviewer`, `qa-strategist`, `analyst`. Custom reviewer agents in `agents/` are also valid if their `name` frontmatter matches.
 
 5. **Session-reviewer dispatch** (after Impl-Core, Impl-Polish, and Quality waves only):
+   - When integrating reviewer findings, follow the receiving-review protocol — see `.claude/rules/receiving-review.md` for the 6-step pattern (READ → UNDERSTAND → VERIFY → EVALUATE → RESPOND → IMPLEMENT) and the forbidden-phrase list.
    - After **Impl-Core** and **Impl-Polish** waves, dispatch the session-reviewer agent to verify wave output:
      ```
      Agent({

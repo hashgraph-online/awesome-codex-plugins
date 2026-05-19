@@ -12,6 +12,15 @@ Task tool (general-purpose):
 
     [FULL TEXT of task from plan - paste it here, don't make subagent read file]
 
+    ## SubagentContextPacket
+
+    [Paste the compact packet here: Task, Goal, Stop condition, Relevant baseline
+    refs, Relevant files, Known facts, Unknowns, Non-goals, Expected output,
+    Verification expected, Must-read excerpts, Unsafe assumptions.]
+
+    The packet is a map, not proof. Read the smallest raw file/log/test excerpt
+    needed to verify critical facts before relying on them.
+
     ## Context
 
     [Scene-setting: where this fits, dependencies, architectural context]

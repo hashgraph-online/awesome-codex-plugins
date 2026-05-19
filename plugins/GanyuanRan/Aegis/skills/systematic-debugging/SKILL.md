@@ -207,10 +207,10 @@ Before you claim debugging is complete:
    Aegis workspace support when available:
 
    ```bash
-   python scripts/aegis-workspace.py init --root <target-project-root>
-   python scripts/aegis-workspace.py new-work --root <target-project-root> ...
-   python scripts/aegis-workspace.py add-evidence --root <target-project-root> --work <YYYY-MM-DD-slug> ...
-   python scripts/aegis-workspace.py check --root <target-project-root>
+   python <aegis-workspace-helper> init --root <target-project-root>
+   python <aegis-workspace-helper> new-work --root <target-project-root> ...
+   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work <YYYY-MM-DD-slug> ...
+   python <aegis-workspace-helper> check --root <target-project-root>
    ```
 
    Fast bug fix or quick bug fix pressure does not skip this: if Ripple Signal

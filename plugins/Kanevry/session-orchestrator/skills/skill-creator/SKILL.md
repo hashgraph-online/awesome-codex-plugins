@@ -1,6 +1,7 @@
 ---
 name: skill-creator
 description: Use when creating a new skill from scratch, modifying an existing skill, or optimizing a skill's triggering description. Guides intent capture, structure, writing patterns, and progressive-disclosure organization so skills reliably trigger and stay maintainable. Trigger on phrases like "turn this into a skill", "write a skill for X", "improve this skill", "my skill isn't triggering".
+model: sonnet
 ---
 
 # Skill Creator
@@ -143,9 +144,23 @@ When revising based on failures:
 - ❌ Test prompts that are too abstract to be realistic
 - ❌ Skills that duplicate what existing tools already do well
 
+## Model Tier Selection
+
+When adding `model:` frontmatter to a new skill, apply these criteria:
+
+| Tier | When to use | Examples |
+|---|---|---|
+| `opus` | Complex multi-step reasoning, planning, architecture, open-ended synthesis | session-plan, plan, architecture |
+| `sonnet` | Workhorse tasks: orchestration, analysis, code generation, aggregation | session-start, wave-executor, discovery, evolve, skill-creator |
+| `haiku` | Routing, lookup, triage, reference reads, driver wrappers, simple file writes | gitlab-ops, quality-gates, mode-selector, daily, peekaboo-driver |
+| `inherit` | Skill runs inside coordinator's context and should match the coordinator's tier; also for `disable-model-invocation: true` skills | session-start, session-end, domain-model, ubiquitous-language |
+
+Decision rule: if the skill reasons over many options or produces a structural plan, use `opus`. If it executes defined steps, use `sonnet`. If it reads a config and emits a fixed output, use `haiku`. If it is a pass-through that the coordinator controls, use `inherit`.
+
 ## Checklist
 
 - [ ] Frontmatter has `name` + `description` with explicit trigger phrases
+- [ ] Frontmatter has `model:` set per the Model Tier Selection table above
 - [ ] Body uses imperative voice
 - [ ] WHYs explained for any rules
 - [ ] Large sections split into `references/` if >500 lines

@@ -1,6 +1,6 @@
 {
   "name": "jk",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "description": "GitHub CLI-style interface for Jenkins controllers - create multibranch jobs, inspect config.xml, and manage runs, logs, artifacts, credentials, nodes, and queues",
   "author": {
     "name": "Aviv Sinai",

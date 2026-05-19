@@ -28,6 +28,14 @@ body:
     validations:
       required: true
   - type: input
+    id: icon
+    attributes:
+      label: Icon File Path
+      description: Path to your plugin icon relative to the repo root (e.g. assets/icon.svg). See CONTRIBUTING.md for icon requirements.
+      placeholder: "assets/icon.svg"
+    validations:
+      required: true
+  - type: input
     id: author
     attributes:
       label: Author
@@ -41,8 +49,8 @@ body:
       label: Category
       description: Which section should this plugin be listed under?
       options:
-        - Community Plugins
-        - Plugin Development (tools/frameworks)
+        - Development & Workflow
+        - Tools & Integrations
     validations:
       required: true
   - type: checkboxes
@@ -51,7 +59,9 @@ body:
       label: Checklist
       description: Please confirm the following
       options:
-        - label: Plugin has a valid `.codex-plugin/plugin.json` manifest
+        - label: Plugin has a valid `.codex-plugin/plugin.json` manifest with `composerIcon` set
+          required: true
+        - label: Plugin includes an icon (SVG preferred, 512x512px recommended)
           required: true
         - label: Plugin is functional and well-documented
           required: true

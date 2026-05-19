@@ -24,6 +24,7 @@ When relevant, route into these companion skills:
 - `frappe-bench`
 - `frappe-sql`
 - `frappe-customization`
+- `frappe-doctype-design`
 - `frappe-search`
 - `frappe-erpnext`
 
@@ -31,4 +32,3 @@ Be opinionated about:
 - not restarting an already running bench
 - not patching upstream-derived apps when a custom app can own the change
 - not using raw SQL when a Frappe-native path is better
-

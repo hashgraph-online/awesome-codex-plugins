@@ -251,7 +251,39 @@ done
 
 **Origin:** na-vs9.4 — Wave 1 added vibe checkpoint detection (15 lines), Wave 2 removed it entirely. Both waves passed tests independently. The orphaned checkpoint writer in crank was only caught by manual audit.
 
-### Check 5: Stretch Goal Audit
+### Check 5: Acceptance-Text vs Delivered Drift
+
+For each closed child, read the bead's `Acceptance:` text and check whether it has drifted from what the closure commit delivered. Catches the case where a bead's acceptance language names a specific gate as a pass requirement but the close-note doesn't confirm the gate ran green.
+
+```bash
+for child in $CLOSED_CHILDREN; do
+  ACCEPT=$(bd show "$child" 2>/dev/null \
+           | awk '/^Acceptance:/,/^[A-Z][A-Z]+:|^---/' | head -50)
+  CLOSE_NOTE=$(bd show "$child" 2>/dev/null \
+               | awk '/COMMENTS/,0' | tail -30)
+  GATE_REFS=$(printf '%s\n' "$ACCEPT" \
+              | grep -oE '(scripts/check-[a-z0-9-]+\.sh|check-[a-z0-9-]+|pre-push-gate|ci-local-release)' \
+              | sort -u)
+  if [ -n "$GATE_REFS" ]; then
+    for gate in $GATE_REFS; do
+      if ! printf '%s\n' "$CLOSE_NOTE" | grep -qiE "$gate.*pass|$gate.*green|pass.*$gate"; then
+        FAILURES="${FAILURES}\n- ACCEPTANCE DRIFT: $child — acceptance names gate '$gate', close-note does not confirm green"
+      fi
+    done
+  fi
+  if printf '%s\n' "$ACCEPT" | grep -qE '\bOR\b'; then
+    if ! printf '%s\n' "$CLOSE_NOTE" | grep -qiE 'chose|picked|path [0-9]|operator chose|alternative'; then
+      FAILURES="${FAILURES}\n- ACCEPTANCE BRANCH UNCLEAR: $child — acceptance has OR alternatives, close-note doesn't state which was satisfied"
+    fi
+  fi
+done
+```
+
+WARN-level (not FAIL): wording variance is expected. The intent is to surface drift for council review.
+
+Origin: v2.41-evolve-run cycle 182. `soc-w6vh.4` acceptance: "`check-no-tracked-agents` AND `check-worktree-disposition` pass". Close-note described the operator's chosen action (commit the worktree) but did NOT confirm the worktree-disposition gate ran green — because it still failed on broader fleet state. Correct alternatives: (a) explicitly narrow the bead's acceptance before closing, or (b) leave open with a scope-narrowing follow-up filed.
+
+### Check 6: Stretch Goal Audit
 
 For children tagged "stretch" that were closed, verify either implementation exists or deferral is documented.
 
@@ -282,6 +314,7 @@ Write results into the post-mortem report under `## Closure Integrity`:
 | Phantom Beads | PASS/WARN | N phantom beads detected |
 | Orphaned Children | PASS/WARN | N orphans found |
 | Multi-Wave Regression | PASS/FAIL | N regressions detected |
+| Acceptance Drift | PASS/WARN | N closed beads whose acceptance text names gates that the close-note does not confirm green |
 | Stretch Goals | PASS/WARN | N stretch goals closed without rationale |
 
 ### Findings

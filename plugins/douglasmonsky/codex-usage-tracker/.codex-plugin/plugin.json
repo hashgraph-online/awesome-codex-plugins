@@ -1,0 +1,51 @@
+{
+  "name": "codex-usage-tracker",
+  "version": "0.2.0",
+  "description": "Unofficial local tracker for aggregate Codex token usage from local session logs.",
+  "author": {
+    "name": "Douglas Monsky"
+  },
+  "homepage": "https://github.com/douglasmonsky/codex-usage-tracker",
+  "repository": "https://github.com/douglasmonsky/codex-usage-tracker",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "tokens",
+    "usage",
+    "mcp",
+    "dashboard"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex Usage Tracker",
+    "shortDescription": "Unofficial local aggregate token usage analytics for Codex",
+    "longDescription": "Unofficial independent project, not made by, affiliated with, endorsed by, sponsored by, or supported by OpenAI. Reads local Codex session logs, aggregates exact token usage counters, and generates summaries, CSV exports, and a hoverable dashboard with optional localhost-only raw context loading.",
+    "developerName": "Douglas Monsky",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/douglasmonsky/codex-usage-tracker",
+    "privacyPolicyURL": "https://github.com/douglasmonsky/codex-usage-tracker",
+    "termsOfServiceURL": "https://github.com/douglasmonsky/codex-usage-tracker",
+    "defaultPrompt": [
+      "Check my Codex usage tracker setup",
+      "Show my Codex token usage summary",
+      "Show my most expensive Codex calls",
+      "Show my Codex pricing coverage",
+      "Update Codex usage pricing from OpenAI docs",
+      "Generate a Codex usage dashboard",
+      "Generate a threaded Codex usage dashboard",
+      "Serve a Codex dashboard with on-demand context",
+      "Show my Codex subagent usage",
+      "Export my Codex token usage CSV"
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": []
+  }
+}

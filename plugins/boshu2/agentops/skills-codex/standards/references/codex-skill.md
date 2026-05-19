@@ -89,7 +89,7 @@ Use a two-phase approach for comprehensive coverage at minimal cost:
 **Phase 2 — Live (thorough, requires Codex API):**
 ```bash
 # Check if skill loads and is understood
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" \
+codex exec -s read-only -C "$(pwd)" \
   "Read \$skill-name. Verify it loads, check all referenced tools exist. Rate PASS/PARTIAL/FAIL."
 ```
 

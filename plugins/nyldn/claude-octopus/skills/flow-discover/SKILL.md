@@ -214,7 +214,7 @@ The output is one line per agent: `agent_type|label|perspective_prompt`
 
 **Launch each perspective as a background Agent subagent.** Each agent calls `orchestrate.sh probe-single` which handles persona application, credential isolation, and result file writing.
 
-**CRITICAL: You MUST use the host subagent tool with `background execution: true` for each perspective.** Launch external CLI agents first (higher latency — gemini, codex, copilot, qwen, opencode), then Claude Sonnet agents, then API-only agents (perplexity).
+**CRITICAL: You MUST use the host subagent tool with `background execution: true` for each perspective.** Launch only the providers returned by `build-fleet.sh`. If `OCTO_ALLOWED_PROVIDERS` is set, the fleet has already filtered out disallowed providers; do not add them back manually.
 
 For each perspective in the fleet, launch:
 
@@ -230,7 +230,7 @@ After the command completes, read the result file path that was printed and retu
 )
 ```
 
-**Launch order:** All Gemini agents first, then all Codex agents, then Claude Sonnet, then Perplexity. Within each provider group, launch simultaneously (multiple Agent calls in a single message).
+**Launch order:** Use the provider order returned by `build-fleet.sh`. Within each provider group, launch simultaneously where the host tool supports it. Do not hardcode Gemini, Codex, Claude, or Perplexity if they are absent from the fleet.
 
 **CRITICAL: You are PROHIBITED from:**
 - ❌ Researching directly without calling orchestrate.sh probe-single — single-model research misses perspectives that Codex (implementation depth) and Gemini (ecosystem breadth) bring

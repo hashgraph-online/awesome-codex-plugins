@@ -1,6 +1,7 @@
 ---
 name: domain-model
 description: Use when the user wants to stress-test a plan against the existing domain model and documented decisions. Grilling session that interviews the user one question at a time, sharpens fuzzy terminology inline, updates CONTEXT.md lazily, and offers ADRs sparingly under a 3-criteria gate. Reads docs/adr/ and CONTEXT.md if present.
+model: inherit
 disable-model-invocation: true
 derived-from: mattpocock/skills@90ea8ee
 license: MIT

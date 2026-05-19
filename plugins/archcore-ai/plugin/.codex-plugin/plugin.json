@@ -1,0 +1,58 @@
+{
+  "name": "archcore",
+  "description": "Make your AI agent code with your project's architecture, rules, and decisions.",
+  "version": "0.4.4",
+  "author": {
+    "name": "Archcore",
+    "url": "https://archcore.ai"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://archcore.ai/plugin",
+  "repository": "https://github.com/archcore-ai/plugin",
+  "keywords": [
+    "codex",
+    "codex-cli",
+    "agents-md",
+    "mcp",
+    "ai-agents",
+    "ai-coding",
+    "context",
+    "context-engineering",
+    "architecture",
+    "adr",
+    "knowledge-management",
+    "rules",
+    "decisions",
+    "conventions",
+    "git-native",
+    "skills",
+    "subagents",
+    "spec-driven",
+    "documentation",
+    "memory",
+    "specs"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/codex.hooks.json",
+  "mcpServers": "./.codex.mcp.json",
+  "interface": {
+    "displayName": "Archcore",
+    "shortDescription": "Keep Codex aligned with project decisions and architecture.",
+    "longDescription": "Archcore brings project architecture, decisions, rules, and requirements into Codex through skills, hooks, MCP tools, and documentation-focused agents.",
+    "developerName": "Archcore",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://archcore.ai",
+    "privacyPolicyURL": "https://archcore.ai/privacy",
+    "termsOfServiceURL": "https://github.com/archcore-ai/plugin/blob/main/docs/TERMS.md",
+    "defaultPrompt": [
+      "Use Archcore to review this work against project decisions",
+      "Use Archcore to plan this change",
+      "Use Archcore to check whether source edits need doc updates"
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

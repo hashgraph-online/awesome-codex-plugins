@@ -1,6 +1,6 @@
 # bootstrap
 
-One command to full AgentOps product layer. Sets up GOALS.md, PRODUCT.md, README.md, .agents/ structure, and hooks. Progressive — fills gaps only. Triggers: "bootstrap", "setup agentops", "initialize repo", "full setup".
+One command to the AgentOps product layer. Sets up GOALS.md, PRODUCT.md, README.md, PROGRAM.md/AUTODEV.md, and .agents/ structure. Hooks are optional activation profiles, not the default bootstrap path. Progressive — fills gaps only. Triggers: "bootstrap", "setup agentops", "initialize repo", "full setup".
 
 ## Instructions
 

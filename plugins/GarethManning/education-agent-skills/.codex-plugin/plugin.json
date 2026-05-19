@@ -2,5 +2,12 @@
   "name": "education-agent-skills",
   "version": "2.1.0",
   "description": "131 evidence-based education skills for curriculum design, lesson planning, assessment, and AI-assisted teaching — built on the Agent Skills open standard.",
-  "skills": "./skills/"
+  "repository": "https://github.com/GarethManning/education-agent-skills",
+  "license": "CC-BY-SA-4.0",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Education Agent Skills",
+    "shortDescription": "131 evidence-based skills for curriculum design, lesson planning, and assessment",
+    "composerIcon": "./assets/education-agent-skills-icon.svg"
+  }
 }

@@ -1,0 +1,31 @@
+{
+  "name": "dataproduct-builder-dbt",
+  "version": "0.1.0",
+  "description": "Build data products with dbt and integrate them with Entropy Data.",
+  "author": {
+    "name": "Entropy Data",
+    "url": "https://entropy-data.com"
+  },
+  "homepage": "https://github.com/entropy-data/dataproduct-builder-dbt",
+  "repository": "https://github.com/entropy-data/dataproduct-builder-dbt",
+  "license": "MIT",
+  "keywords": ["dbt", "data-product", "data-contract", "entropy-data", "odcs", "odps", "openlineage"],
+  "interface": {
+    "displayName": "Data Product Builder for dbt",
+    "shortDescription": "Build dbt data products integrated with Entropy Data.",
+    "longDescription": "Coding-agent plugin for the full data-product lifecycle on dbt: scaffold the dbt project (greenfield), audit and integrate an existing dbt project with the Entropy Data reference layout (ODPS, ODCS, OpenLineage, GitHub Actions, git connections), implement output-port models from a published data contract, edit and test contracts, upload sample data, and manage CLI authentication. Ships seven skills, the pii-scanner Claude subagent, and an ODCS-lint hook.",
+    "developerName": "Entropy Data",
+    "category": "Data",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://entropy-data.com",
+    "defaultPrompt": [
+      "Bootstrap a new dbt data product for Entropy Data.",
+      "Make sure this dbt project is integrated with Entropy Data.",
+      "Implement the data product https://app.entropy-data.com/<org>/dataproducts/<id>.",
+      "Update the data contract and run the contract tests.",
+      "Test the data contracts against the warehouse."
+    ]
+  },
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

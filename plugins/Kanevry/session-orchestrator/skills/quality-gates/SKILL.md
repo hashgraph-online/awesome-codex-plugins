@@ -2,11 +2,12 @@
 name: quality-gates
 user-invocable: false
 tags: [reference, quality, typecheck, test, lint]
+model: haiku
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Canonical quality check commands for typecheck, test, and lint.
+  Use this skill when referencing canonical quality check commands for typecheck, test, and lint.
   Defines 4 variants (Baseline, Incremental, Full Gate, Per-File) used by
   session-start, wave-executor, session-end, and session-reviewer.
   Reference skill — not invoked directly.

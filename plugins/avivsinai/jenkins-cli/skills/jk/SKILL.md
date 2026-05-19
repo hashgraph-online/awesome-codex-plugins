@@ -1,6 +1,6 @@
 ---
 name: jk
-version: 0.0.33
+version: 0.0.34
 description: Jenkins CLI for controllers. Use when users need to manage jobs, pipelines, config.xml, runs, logs, artifacts, credentials, nodes, or queues in Jenkins. Triggers include "jenkins", "jk", "pipeline", "build", "job create", "job config", "config.xml", "run logs", "jenkins credentials", "jenkins node".
 metadata:
   short-description: Jenkins CLI for jobs, config, pipelines, runs
@@ -38,6 +38,9 @@ If the command fails or `jk` is not found, install it using one of these methods
 # Login with credentials
 jk auth login https://jenkins.example.com --username alice --token <API_TOKEN>
 
+# Login to a Jenkins controller that uses Google/OIDC/SSO in the browser
+jk auth login https://jenkins.example.com --username alice@example.com --token <JENKINS_API_TOKEN>
+
 # Login with custom context name
 jk auth login https://jenkins.example.com --name prod --username alice --token <TOKEN>
 
@@ -55,13 +58,15 @@ jk auth logout prod         # Logout from specific context
 
 Options for `auth login`:
 - `--name` — Context name (defaults to hostname)
-- `--username` — Jenkins username
-- `--token` — API token
+- `--username` — Jenkins user ID (Google/SSO users: usually your email)
+- `--token` — Jenkins API token
 - `--insecure` — Skip TLS verification
 - `--proxy` — Proxy URL
 - `--ca-file` — Custom CA bundle
 - `--set-active` — Set as active context (default: true)
 - `--allow-insecure-store` — Allow encrypted file fallback
+
+For Google OAuth, OpenID Connect, Okta, Azure AD, or other browser SSO security realms, first sign in to Jenkins in the browser and create a Jenkins API token from `/me/configure`. Use that Jenkins API token with `--token`; do not use a Google/OIDC access token.
 
 ## Contexts
 

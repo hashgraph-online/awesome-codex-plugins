@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Frappe Agent icon</title>
+  <desc id="desc">A green Frappe-style mark with a form document and spark.</desc>
+  <rect width="512" height="512" rx="112" fill="#063F35"/>
+  <path d="M77 400C77 221.6 221.6 77 400 77h35v61h-35c-144.7 0-262 117.3-262 262v35H77v-35Z" fill="#15C99B"/>
+  <path d="M188 170c0-51.9 42.1-94 94-94h76v61h-76c-18.2 0-33 14.8-33 33v251h-61V170Z" fill="#31E1B0"/>
+  <path d="M116 220h198c11 0 20 9 20 20v10c0 30.9-25.1 56-56 56H116c-8.8 0-16-7.2-16-16v-54c0-8.8 7.2-16 16-16Z" fill="#31E1B0"/>
+  <path d="M226 238h121.1c8.5 0 16.6 3.4 22.6 9.4l47.9 47.9c6 6 9.4 14.1 9.4 22.6V396c0 22.1-17.9 40-40 40H226c-22.1 0-40-17.9-40-40V278c0-22.1 17.9-40 40-40Z" fill="#FFF7DF"/>
+  <path d="M347 238v48c0 8.8 7.2 16 16 16h64" fill="#063F35" fill-opacity=".14"/>
+  <path d="M347 238v48c0 8.8 7.2 16 16 16h64" stroke="#0F8F72" stroke-width="16" stroke-linejoin="round"/>
+  <rect x="224" y="282" width="54" height="54" rx="13" fill="#31E1B0"/>
+  <rect x="298" y="298" width="86" height="14" rx="7" fill="#0B6E5B"/>
+  <rect x="224" y="357" width="160" height="14" rx="7" fill="#31E1B0"/>
+  <rect x="224" y="387" width="128" height="14" rx="7" fill="#31E1B0"/>
+  <circle cx="203" cy="364" r="9" fill="#31E1B0"/>
+  <circle cx="203" cy="394" r="9" fill="#31E1B0"/>
+  <path d="M364 134l13.8 31.2L409 179l-31.2 13.8L364 224l-13.8-31.2L319 179l31.2-13.8L364 134Z" fill="#FFF7DF"/>
+  <path d="M413 127l20-20" stroke="#31E1B0" stroke-width="14" stroke-linecap="round"/>
+  <path d="M433 179h28" stroke="#31E1B0" stroke-width="14" stroke-linecap="round"/>
+  <path d="M413 231l20 20" stroke="#31E1B0" stroke-width="14" stroke-linecap="round"/>
+</svg>

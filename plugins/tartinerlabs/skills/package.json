@@ -1,6 +1,6 @@
 {
   "name": "@tartinerlabs/skills",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "description": "Agent skills for git workflows, GitHub automation, security audits, code refactoring, and project tooling",
   "author": "ruchern.chong@tartinerlabs.com",
   "license": "MIT",

@@ -1,6 +1,6 @@
 ---
 name: requesting-code-review
-description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+description: Use when explicitly requesting an independent code review, after subagent-driven implementation slices, before merging high-risk work, or when verification finds evidence, baseline, architecture, compatibility, or retirement uncertainty that needs reviewer scrutiny.
 ---
 
 # Requesting Code Review
@@ -29,11 +29,12 @@ Before you leave this workflow, you must be able to state:
 
 1. **What exact scope is being reviewed**
 2. **What plan, requirement, or contract defines success**
-3. **What fresh evidence already exists**
-4. **What compatibility boundary must still hold**
-5. **What old owner / fallback / patch stays, shrinks, or retires**
-6. **What the reviewer must specifically validate**
-7. **Whether the reviewer is providing advisory review only, or also any higher-level merge recommendation**
+3. **What baseline / current authority refs define the expected architecture state**
+4. **What fresh evidence already exists**
+5. **What compatibility boundary must still hold**
+6. **What old owner / fallback / patch stays, shrinks, or retires**
+7. **What the reviewer must specifically validate**
+8. **Whether the reviewer is providing advisory review only, or also any higher-level merge recommendation**
 
 Review in this method pack is advisory and evidence-oriented. It is not authoritative completion by itself.
 
@@ -43,9 +44,12 @@ Review in this method pack is advisory and evidence-oriented. It is not authorit
 
 - What was implemented
 - What requirement / plan / spec / ADR it should match
+- What baseline / current authority docs the diff must align with
 - What evidence already exists (tests, commands, logs, screenshots, diff summary)
 - What compatibility boundary or risk deserves reviewer attention
 - Whether there is any old path, fallback, duplicate owner, or temporary patch that should retire
+- Whether the diff contains durable architecture decisions that need ADR
+  Auto Backfill or baseline sync findings
 
 If you cannot answer these, stop and gather them before dispatching review.
 
@@ -128,8 +132,12 @@ You: [Fix progress indicators]
 The review request must prompt the reviewer to inspect at least:
 
 - evidence sufficiency
+- baseline / current authority alignment
+- baseline defect vs architecture drift distinction
 - architecture drift or owner duplication
 - compatibility boundary
+- missing ADR Auto Backfill or baseline sync findings for durable architecture
+  decisions
 - unverified claims or missing proof
 - old logic that should retire, stay temporarily, or converge
 

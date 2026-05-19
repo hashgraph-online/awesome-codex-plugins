@@ -105,6 +105,47 @@ STEP 1.7 ── Lifecycle Checks (advisory except critical dependency findings)
                    or patterns (handler, middleware, router, parser, engine,
                    worker, pool, codec).
 
+STEP 1.7.5 ── Release-Readiness Gates (MANDATORY when IS_RELEASE_CONTEXT=1)
+
+              Release-context detection: branch name matches release/*,
+              v*-prep, v*-evolve-run, or v\d+\.\d+*; OR --release-context
+              flag; OR CLI/contracts/hooks/schemas/skills changes AND the
+              caller intends to recommend `$release`.
+
+              When IS_RELEASE_CONTEXT=1, this step is MANDATORY — failure
+              to run any of the gates below MUST emit a FAIL verdict with
+              "release gates not run" reason. Validation MUST NOT recommend
+              `$release` until all three (a/b/c) pass.
+
+              a) Full pre-push gate (NOT --fast):
+                   bash scripts/pre-push-gate.sh
+                   (--fast covers ~5-10 checks; full runs ~33 including
+                   doc-release, mkdocs strict, hooks/docs parity, shellcheck,
+                   CHANGELOG sync, headless runtime smokes)
+
+              b) CI-local release gate:
+                   bash scripts/ci-local-release.sh
+                   (If script doesn't exist, log SKIP and continue;
+                   if it exists and fails, treat as FAIL)
+
+              c) CLI reference docs regen (when CLI surface changed):
+                   Detect: diff contains cli/cmd/**.go with additions of
+                   cobra.Command{ or .Flags() or Use:/Short: lines
+                   Then: bash scripts/generate-cli-reference.sh &&
+                         git diff --quiet cli/docs/COMMANDS.md
+                   If diff is non-empty after regen → FAIL
+                   ("CLI reference out of sync — commit the regen before
+                   declaring release-ready")
+
+              Phase summary records each as a checkbox row:
+                [✅] full pre-push gate
+                [✅] ci-local-release.sh
+                [✅] generate-cli-reference.sh (or [N/A] if no CLI surface change)
+
+              When IS_RELEASE_CONTEXT=0, skip silently.
+
+              Skip suppression: --skip-release-gates (operator risk-accept)
+
 STEP 1.8 ── Stage 4: Behavioral Validation (holdout scenarios + agent-built specs)
             Skip if: no .agents/holdout/ directory AND no .agents/specs/ directory
             Skip if: --no-behavioral flag set
@@ -168,7 +209,7 @@ Track state inline: `epic_id`, `complexity`, `no_retro`, `no_forge`, `strict_sur
 
 **Validation has multiple blocking conditions.** Validation cannot fix code — it can only report and fail closeout when the lifecycle contract is not met.
 
-- **Blocking FAIL conditions:** `$vibe` FAIL, code-surface failure in STEP 1.5, `--strict-surfaces` failure on any closure surface, CVSS >= 9.0 dependency findings in STEP 1.7b unless `--allow-critical-deps`, and post-mortem FAIL in STEP 2.
+- **Blocking FAIL conditions:** `$vibe` FAIL, code-surface failure in STEP 1.5, `--strict-surfaces` failure on any closure surface, CVSS >= 9.0 dependency findings in STEP 1.7b unless `--allow-critical-deps`, **STEP 1.7.5 release-readiness gate failure when IS_RELEASE_CONTEXT=1** (full pre-push-gate, ci-local-release.sh, or CLI-reference-staleness), and post-mortem FAIL in STEP 2. For release-context runs, validation MUST NOT recommend `$release` in its report unless all STEP 1.7.5 gates passed.
 - **PASS/WARN:** Log verdicts, continue through the remaining steps.
 - **FAIL:** Extract findings from the latest evaluator output, write phase summary with FAIL status, output `<promise>FAIL</promise>` with findings attached. Suggest: `"Validation FAIL. Fix findings, then re-run $validation [epic-id]"`.
 
@@ -200,6 +241,8 @@ On budget expiry: allow in-flight calls to complete, write `[TIME-BOXED]` marker
 | `--no-forge` | off | Skip forge step only |
 | `--no-budget` | off | Disable phase time budgets |
 | `--strict-surfaces` | off | Make all 4 surface failures blocking (FAIL instead of WARN). Passed automatically by `$rpi --quality`. |
+| `--release-context` | auto | Force STEP 1.7.5 release-readiness gates on. Auto-detected from branch name. |
+| `--skip-release-gates` | off | Bypass STEP 1.7.5 (operator-acknowledged risk) |
 | `--allow-critical-deps` | off | Allow shipping with CVSS >= 9.0 vulnerabilities (acknowledged risk acceptance) |
 
 ## Expensive Command Policy

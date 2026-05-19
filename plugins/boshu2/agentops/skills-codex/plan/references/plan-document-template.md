@@ -14,6 +14,7 @@ id: plan-YYYY-MM-DD-<goal-slug>
 type: plan
 date: YYYY-MM-DD
 source: "[[.agents/research/YYYY-MM-DD-<research-slug>]]"
+intent_issue: "<path to filled-in docs/templates/intent-issue.md, or bd issue id>"
 ---
 
 # Plan: <Goal>
@@ -23,6 +24,30 @@ source: "[[.agents/research/YYYY-MM-DD-<research-slug>]]"
 
 Applied findings:
 - `<finding-id>` — `<how it changed the plan>`
+
+## Intent Issue
+
+> The upstream BDD intent issue this plan decomposes. Plan is move 3 of the [operating loop](../../docs/architecture/operating-loop.md): it consumes a [BDD intent issue](../../docs/templates/intent-issue.md) and turns its acceptance examples into vertical slices. If no intent issue exists yet, write one before planning non-trivial work.
+
+- **Intent issue:** `<path to filled-in intent-issue.md, or bd issue id>`
+- **Bounded context:** `<from intent issue — the BC this work lands in>`
+- **Domain terms:** `<key ubiquitous-language terms the slices use>`
+
+Acceptance examples carried from the intent issue (one Gherkin scenario per behavior — these map 1:1 to slices below):
+
+```gherkin
+Feature: <feature name from intent issue>
+
+  Scenario: <happy path>
+    Given <...>
+    When <...>
+    Then <...>
+
+  Scenario: <edge / failure>
+    Given <...>
+    When <...>
+    Then <...>
+```
 
 ## Files to Modify
 
@@ -78,7 +103,42 @@ In `path/to/file.go`:
 - `TestNewFeature_HappyPath`: Normal flow succeeds
 - `TestNewFeature_ErrorCase`: Bad input returns error
 
+## Slice Validation Plan
+
+> Move 3 + 5 of the operating loop. One row per vertical slice — each slice covers a single Given/When/Then behavior from the Intent Issue, names a **first failing test** (TDD: write the test, watch it fail for the right reason, then implement), a disjoint write scope, the bounded context, and an owner. Full template: [`docs/templates/slice-validation.md`](../../docs/templates/slice-validation.md).
+
+| Slice ID | Behavior under test | First failing test | Write scope | Validation lane | Owner | Acceptance example covered |
+|----------|--------------------|--------------------|-------------|-----------------|-------|----------------------------|
+| S1 | <single Given/When/Then behavior> | `<file:test_name>` — must fail for missing behavior, not syntax | `<files / packages this slice modifies>` | L1 unit / L2 integration / L3 e2e / property / snapshot / council | `<agent or human>` | Scenario: <name from Intent Issue> |
+| S2 | … | … | … | … | … | … |
+
+### Wave Validity
+
+> If slices are planned to run in parallel, every row must pass. Any failed row → those slices run **sequential**. Default to sequential when in doubt.
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Distinct write scopes (modified-files sets are disjoint) | [ ] | <overlapping files if any> |
+| No shared migration / schema / generated file | [ ] | |
+| No shared CLI surface (flags / arguments) | [ ] | |
+| Integration order declared if it matters | [ ] | <named order or "n/a"> |
+| Owner per slice (one agent or one human, no joint) | [ ] | |
+| Discard path per slice (rollback or drop-and-re-plan) | [ ] | |
+
+**Wave decision:** [ ] parallel  [ ] sequential
+
+### Roll-up Acceptance
+
+> The bead closes only when every acceptance example from the Intent Issue has a passing test linked to it. Activity logs do not close beads. This is the behavior layer; the machine-checkable layer is the Conformance Checks table below — keep both.
+
+| Acceptance example from Intent Issue | Slice(s) that cover it | Passing-test evidence | Status |
+|---------------------------------------|------------------------|------------------------|--------|
+| Scenario: <happy path name> | S1 | `<file:test_name>` — green at `<git sha>` | [ ] |
+| Scenario: <edge name> | S2 | `<file:test_name>` — green at `<git sha>` | [ ] |
+
 ## Conformance Checks
+
+> Machine-checkable acceptance layer. Gherkin in the Roll-up Acceptance table is the behavior layer; this table stays the mechanically verified gate — do not replace it with Gherkin prose.
 
 | Issue | Check Type | Check |
 |-------|-----------|-------|

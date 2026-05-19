@@ -57,6 +57,10 @@ def load_tasks(path):
         return rows
 
 
+def task_scope(task):
+    return (task.get("scope") or task["params"].get("level") or "campaign").strip().lower()
+
+
 def count_negative_tokens(value):
     if not isinstance(value, str):
         return 0
@@ -67,15 +71,21 @@ def validate_negative_task_shape(task, allow_phrase_negatives=False):
     params = task["params"]
     phrase = params.get("phrase")
     word = params.get("word")
-    if phrase and not allow_phrase_negatives:
+    add_items = params.get("add_items") or []
+    if phrase:
         raise RuntimeError(
-            "negative task contains params.phrase; default reusable path forbids phrase-level SQR apply. "
-            "Reduce manual evidence to short stop-words/safe masks first or pass explicit override."
+            "negative task contains params.phrase; reusable path forbids pouring whole SQR phrases into live negatives. "
+            "Reduce manual evidence to short stop-words/safe masks first."
         )
-    if word and not allow_phrase_negatives and count_negative_tokens(word) > 2:
+    if word and count_negative_tokens(word) > 2:
         raise RuntimeError(
             f"negative task contains overlong word/mask '{word}'; reduce it to production-safe short token/mask first."
         )
+    for item in add_items:
+        if count_negative_tokens(item) > 2:
+            raise RuntimeError(
+                f"negative task contains overlong add_items mask '{item}'; reduce it to production-safe short token/mask first."
+            )
 
 
 def settings_map(settings):
@@ -181,30 +191,90 @@ def get_negative_keywords(campaign):
     return []
 
 
-def plan_negatives(token, login, tasks_by_campaign):
+def normalize_negative(value):
+    parts = []
+    for token in str(value or "").strip().lower().split():
+        parts.append(token.lstrip("!"))
+    return " ".join(parts)
+
+
+def get_adgroup(token, login, adgroup_id):
+    resp = api_call(
+        token,
+        login,
+        "adgroups",
+        "get",
+        {
+            "SelectionCriteria": {"Ids": [adgroup_id]},
+            "FieldNames": ["Id", "CampaignId", "Name", "NegativeKeywords"],
+        },
+        version="v501",
+    )
+    groups = resp.get("result", {}).get("AdGroups", [])
+    if not groups:
+        raise RuntimeError(f"adgroup {adgroup_id} not found")
+    return groups[0]
+
+
+def plan_negatives(token, login, tasks_by_scope):
     plans = []
-    for campaign_id, tasks in sorted(tasks_by_campaign.items()):
-        campaign = get_campaign(token, login, campaign_id, fields=["Id", "Name", "NegativeKeywords"])
-        live = get_negative_keywords(campaign)
-        live_set = {item.strip().lower() for item in live}
+    for (scope, target_id), tasks in sorted(tasks_by_scope.items(), key=lambda x: (x[0][0], x[0][1])):
+        if scope == "group":
+            entity = get_adgroup(token, login, target_id)
+            live = get_negative_keywords(entity)
+            campaign_id = int(entity.get("CampaignId") or 0)
+            entity_name = entity.get("Name", "")
+            entity_type = "adgroup"
+        else:
+            entity = get_campaign(token, login, target_id, fields=["Id", "Name", "NegativeKeywords"])
+            live = get_negative_keywords(entity)
+            campaign_id = target_id
+            entity_name = entity.get("Name", "")
+            entity_type = "campaign"
+        live_set = {normalize_negative(item) for item in live}
         add = []
+        remove = []
         skipped_existing = []
         for task in tasks:
+            remove_items = [item.strip() for item in (task["params"].get("remove_items") or []) if item and item.strip()]
+            for item in remove_items:
+                if normalize_negative(item) in live_set:
+                    remove.append(item)
             phrase = (task["params"].get("phrase") or task["params"].get("word") or "").strip()
             if not phrase:
+                add_items = [item.strip() for item in (task["params"].get("add_items") or []) if item and item.strip()]
+                if not add_items:
+                    continue
+                for item in add_items:
+                    if normalize_negative(item) in live_set or any(normalize_negative(item) == normalize_negative(x) for x in add):
+                        skipped_existing.append(item)
+                        continue
+                    add.append(item)
                 continue
-            if phrase.lower() in live_set:
+            if normalize_negative(phrase) in live_set:
                 skipped_existing.append(phrase)
                 continue
             add.append(phrase)
+        final = []
+        remove_set = {normalize_negative(item) for item in remove}
+        for item in live:
+            if normalize_negative(item) in remove_set:
+                continue
+            final.append(item)
+        final.extend(add)
         plans.append(
             {
                 "type": "negatives",
+                "entity_type": entity_type,
+                "target_id": target_id,
+                "target_name": entity_name,
                 "campaign_id": campaign_id,
-                "campaign_name": campaign.get("Name", ""),
+                "campaign_name": entity_name if entity_type == "campaign" else "",
                 "live_count": len(live),
                 "live_items": live,
+                "remove_items": remove,
                 "add_items": add,
+                "final_items": final,
                 "skipped_existing": skipped_existing,
             }
         )
@@ -212,34 +282,54 @@ def plan_negatives(token, login, tasks_by_campaign):
 
 
 def apply_negatives(token, login, plan, dry_run):
-    if not plan["add_items"]:
-        return {"campaign_id": plan["campaign_id"], "status": "SKIP", "reason": "no new negatives"}
-    final = plan["live_items"] + plan["add_items"]
+    if not plan["add_items"] and not plan.get("remove_items"):
+        return {"campaign_id": plan["campaign_id"], "status": "SKIP", "reason": "no new negative delta"}
+    final = plan["final_items"]
     if dry_run:
         return {
             "campaign_id": plan["campaign_id"],
+            "entity_type": plan["entity_type"],
+            "target_id": plan["target_id"],
             "status": "DRY_RUN",
+            "remove_count": len(plan.get("remove_items") or []),
             "add_count": len(plan["add_items"]),
             "final_count": len(final),
+            "remove_items": plan.get("remove_items") or [],
             "add_items": plan["add_items"],
             "skipped_existing": plan["skipped_existing"],
         }
-    api_call(
-        token,
-        login,
-        "campaigns",
-        "update",
-        {"Campaigns": [{"Id": plan["campaign_id"], "NegativeKeywords": {"Items": final}}]},
-        version="v501",
-    )
-    readback = get_campaign(token, login, plan["campaign_id"], fields=["Id", "Name", "NegativeKeywords"])
-    actual = {item.strip().lower() for item in get_negative_keywords(readback)}
-    missing = [item for item in plan["add_items"] if item.lower() not in actual]
+    if plan["entity_type"] == "adgroup":
+        api_call(
+            token,
+            login,
+            "adgroups",
+            "update",
+            {"AdGroups": [{"Id": plan["target_id"], "NegativeKeywords": {"Items": final}}]},
+            version="v501",
+        )
+        readback = get_adgroup(token, login, plan["target_id"])
+    else:
+        api_call(
+            token,
+            login,
+            "campaigns",
+            "update",
+            {"Campaigns": [{"Id": plan["campaign_id"], "NegativeKeywords": {"Items": final}}]},
+            version="v501",
+        )
+        readback = get_campaign(token, login, plan["campaign_id"], fields=["Id", "Name", "NegativeKeywords"])
+    actual = {normalize_negative(item) for item in get_negative_keywords(readback)}
+    missing = [item for item in plan["add_items"] if normalize_negative(item) not in actual]
+    remove_left = [item for item in (plan.get("remove_items") or []) if normalize_negative(item) in actual]
     return {
         "campaign_id": plan["campaign_id"],
-        "status": "OK" if not missing else "FAIL",
+        "entity_type": plan["entity_type"],
+        "target_id": plan["target_id"],
+        "status": "OK" if not missing and not remove_left else "FAIL",
+        "remove_count": len(plan.get("remove_items") or []),
         "add_count": len(plan["add_items"]),
         "missing": missing,
+        "remove_left": remove_left,
     }
 
 
@@ -373,8 +463,12 @@ def render_text(plans, results, dry_run):
                     f"SETTING\t{change['option']}\tcurrent={change['current']}\tdesired={change['desired']}\tchanged={change['changed']}"
                 )
         elif plan["type"] == "negatives":
+            lines.append(f"ENTITY\t{plan['entity_type']}\ttarget={plan['target_id']}\t{plan['target_name']}")
             lines.append(f"LIVE_COUNT\t{plan['live_count']}")
+            lines.append(f"REMOVE_COUNT\t{len(plan.get('remove_items') or [])}")
             lines.append(f"ADD_COUNT\t{len(plan['add_items'])}")
+            if plan.get("remove_items"):
+                lines.append(f"REMOVE_ITEMS\t{', '.join(plan['remove_items'])}")
             if plan["add_items"]:
                 lines.append(f"ADD_ITEMS\t{', '.join(plan['add_items'])}")
             if plan["skipped_existing"]:
@@ -389,7 +483,10 @@ def render_text(plans, results, dry_run):
                 lines.append(f"DRIFT_MISSING\t{', '.join(plan['missing_from_live'][:20])}")
             if plan["extra_in_live"]:
                 lines.append(f"DRIFT_EXTRA\t{', '.join(plan['extra_in_live'][:20])}")
-        result = results.get((plan["type"], plan["campaign_id"]))
+        if plan["type"] == "negatives":
+            result = results.get((plan["type"], plan["entity_type"], plan["target_id"]))
+        else:
+            result = results.get((plan["type"], plan["campaign_id"]))
         if result:
             lines.append(f"RESULT\t{result['status']}")
             for key in sorted(result):
@@ -409,7 +506,6 @@ def main():
     parser.add_argument("--output-json", default="")
     parser.add_argument("--output-text", default="")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--allow-phrase-negatives", action="store_true")
     args = parser.parse_args()
 
     all_plans = []
@@ -429,12 +525,12 @@ def main():
         grouped = defaultdict(list)
         for path in args.negative_tasks:
             for task in load_tasks(path):
-                validate_negative_task_shape(task, allow_phrase_negatives=args.allow_phrase_negatives)
-                grouped[task["target_id"]].append(task)
+                validate_negative_task_shape(task)
+                grouped[(task_scope(task), int(task["target_id"]))].append(task)
         plans = plan_negatives(args.token, args.login, grouped)
         all_plans.extend(plans)
         for plan in plans:
-            results[(plan["type"], plan["campaign_id"])] = apply_negatives(args.token, args.login, plan, args.dry_run)
+            results[(plan["type"], plan["entity_type"], plan["target_id"])] = apply_negatives(args.token, args.login, plan, args.dry_run)
 
     if args.excluded_pack:
         packs = [load_excluded_pack(path) for path in args.excluded_pack]

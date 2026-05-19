@@ -55,3 +55,13 @@ node <plugin-root>/skills/yandex-performance-ops/scripts/wordstat_collect_wave.j
 - не смешивать парсинг и анализ;
 - не запускать exhaustive competitor collection до валидации keyword set;
 - не использовать analysis-скрипты для автоматической классификации ключей.
+
+## Public-Safe Post-Review Gates
+
+After raw Wordstat collection and mask review:
+
+- Render exact demand, seasonality, and geography as separate script outputs.
+- Keep broad landscape roots separate from exact working masks.
+- Move only `core` and explicitly approved `support` routes into build-prep.
+- Keep `proof-only` and `speculative` routes as evidence/backlog unless a separate decision promotes them.
+- Do not hardcode personal install paths; use `<plugin-root>` and `<ops-skill-root>` in examples.
