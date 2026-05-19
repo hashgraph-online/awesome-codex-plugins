@@ -72,7 +72,7 @@ def build_cli_parser() -> argparse.ArgumentParser:
     init_parser = sub.add_parser("init")
     init_parser.add_argument("--config-json")
     init_parser.add_argument("--sync", action="store_true")
-    init_parser.add_argument("--migrate", nargs="?", const="preview", choices=("preview", "apply"))
+    init_parser.add_argument("--migrate", nargs="?", const="requested", choices=("preview", "apply", "requested"))
     init_parser.add_argument("--preview", action="store_true")
     init_parser.add_argument("--apply", action="store_true")
 

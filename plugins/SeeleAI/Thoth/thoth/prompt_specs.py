@@ -45,7 +45,7 @@ COMMAND_PROMPT_SPECS: dict[str, CommandPromptSpec] = {
         objective="Finish the current strict task through the four-phase RuntimeDriver.",
         hard_stops=(
             "Do not invent or compile a new work item when --work-id is missing.",
-            "Do not stop after starting the runtime; monitor RuntimeDriver events until terminal.",
+            "Do not exit the monitoring session before the RuntimeDriver signals a terminal state.",
             "Do not hand-edit .thoth ledgers.",
         ),
         reply_budget_utf8=36,
@@ -60,7 +60,7 @@ COMMAND_PROMPT_SPECS: dict[str, CommandPromptSpec] = {
         objective="Advance the current bounded loop through foreground or sleeping RuntimeDriver monitoring.",
         hard_stops=(
             "Do not decide extra iterations outside the recorded loop budget.",
-            "Do not skip validator output when judging success.",
+            "Do not proceed to the next loop iteration before the validator signals terminal.",
             "Do not expand into iteration diaries or runtime narration.",
         ),
         reply_budget_utf8=40,
@@ -136,7 +136,7 @@ COMMAND_PROMPT_SPECS: dict[str, CommandPromptSpec] = {
         objective="Report endpoint, failure point, and one notable runtime delta only.",
         hard_stops=(
             "Do not narrate the whole UI.",
-            "Do not restate healthy panels.",
+            "Do not omit the failure point or fabricate a runtime delta; when the result is clean, report the absence of failure as the finding.",
         ),
         reply_budget_utf8=56,
         result_style="brief operator receipt",
@@ -494,7 +494,7 @@ def codex_installed_runtime_shell_command(public_command: str) -> str:
         "if [ -f \"$THOTH_SELFTEST_RUNTIME_ROOT/scripts/thoth-cli-entry.py\" ]; then exec python3 \"$THOTH_SELFTEST_RUNTIME_ROOT/scripts/thoth-cli-entry.py\" \"$@\"; fi; "
         "fi; "
         "if command -v thoth >/dev/null 2>&1; then exec thoth \"$@\"; fi; "
-        "candidates=\"$(ls -td \"$HOME\"/.codex/plugins/cache/thoth/thoth/* 2>/dev/null || true)\"; "
+        "candidates=\"$(ls -td \"$HOME\"/.codex/plugins/cache/thoth/thoth/* \"$HOME\"/.codex/plugins/cache/thoth/* \"$HOME\"/.codex/plugins/cache/*/thoth/* \"$HOME\"/.codex/plugins/cache/*/Thoth/* 2>/dev/null || true)\"; "
         "marketplace=\"$HOME/.codex/.tmp/marketplaces/thoth\"; "
         "if [ -d \"$marketplace\" ]; then candidates=\"$candidates\n$marketplace\"; fi; "
         "for candidate in $candidates; do "

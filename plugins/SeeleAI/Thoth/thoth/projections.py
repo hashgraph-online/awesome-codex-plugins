@@ -11,7 +11,7 @@ from .prompt_specs import render_codex_command_micro_prompt, render_command_cont
 
 ROOT = Path(__file__).resolve().parent.parent
 PLUGIN_NAME = "thoth"
-PLUGIN_VERSION = "0.2.0"
+PLUGIN_VERSION = "0.2.2"
 PLUGIN_REPOSITORY = "https://github.com/SeeleAI/Thoth"
 PLUGIN_PACKAGE_DIR = "."
 PLUGIN_SKILLS_PATH = "./plugins/thoth/skills"

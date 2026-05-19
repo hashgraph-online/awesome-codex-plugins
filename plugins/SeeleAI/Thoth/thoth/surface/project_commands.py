@@ -15,6 +15,8 @@ from thoth.surface.hooks import run_host_hook
 
 def _normalize_preview_apply(args, flag_name: str, parser, command_name: str) -> None:
     action = getattr(args, flag_name, False)
+    if action == "requested" and not getattr(args, "preview", False) and not getattr(args, "apply", False):
+        setattr(args, "preview", True)
     if action in {"preview", "apply"}:
         setattr(args, action, True)
     if getattr(args, "preview", False) and getattr(args, "apply", False):
@@ -41,7 +43,7 @@ def handle_init(args, parser, *, project_root: Path) -> int:
         result = sync_project_layer(project_root)
         print_envelope(command="init", status="ok", summary="Project sync completed", body={"result": result}, refs=output_refs(project_root / ".thoth" / "docs" / "object-graph-summary.json", project_root / ".thoth" / "derived" / "codex-hooks.json"))
         return 0
-    if getattr(args, "migrate", False) and not getattr(args, "apply", False):
+    if (getattr(args, "preview", False) or getattr(args, "migrate", False)) and not getattr(args, "apply", False):
         result = preview_project_migration(config, project_root)
         print_envelope(command="init", status="ok", summary=f"Migration preview written for {project_root}", body={"result": result}, refs=output_refs(project_root / ".thoth" / "migrations" / result["migration_id"] / "preview.json"))
         return 0
