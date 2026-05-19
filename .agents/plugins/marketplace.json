@@ -277,7 +277,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "EOC is an open-source operating system for Codex workflows with 230 skills, agents, hooks, rules, memory, safety gates, install profiles, and cross-harness adapters.",
+      "description": "EOC is an open-source operating system for Codex workflows with 200+ skills, agents, hooks, rules, memory, safety gates, install profiles, and cross-harness adapters.",
       "icon": "./plugins/mturac/everything-openai-codex/assets/icon.svg"
     },
     {
