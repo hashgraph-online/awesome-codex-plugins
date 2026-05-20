@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Atelier Arith Julia Development Skills logo</title>
+  <desc id="desc">A rounded triangular A squared emblem with Julia-inspired colored dots.</desc>
+  <rect width="512" height="512" rx="56" fill="#fff"/>
+  <path
+    d="M256 58
+       C164 112 82 219 72 373
+       C126 420 187 438 256 438
+       C325 438 386 420 440 373
+       C430 219 348 112 256 58Z"
+    fill="none"
+    stroke="#111"
+    stroke-width="14"
+    stroke-linejoin="round"
+    stroke-linecap="round"/>
+  <g font-family="Georgia, 'Times New Roman', serif" font-style="italic">
+    <text x="161" y="346" font-size="206" font-weight="700" fill="#4063D8">A</text>
+    <text x="318" y="253" font-size="70" font-weight="700" fill="#111">2</text>
+  </g>
+  <g>
+    <circle cx="256" cy="62" r="24" fill="#389826"/>
+    <circle cx="76" cy="373" r="24" fill="#CB3C33"/>
+    <circle cx="436" cy="373" r="24" fill="#9558B2"/>
+  </g>
+</svg>

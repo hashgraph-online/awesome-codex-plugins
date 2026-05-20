@@ -79,6 +79,21 @@
       "icon": "./plugins/archcore-ai/plugin/assets/icon.png"
     },
     {
+      "name": "aa-jl",
+      "displayName": "Atelier Arith Julia Development Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AtelierArith/atelier-arith-julia-development-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Codex skills for Julia installation, package creation, app creation, and test workflows.",
+      "icon": "./plugins/AtelierArith/atelier-arith-julia-development-skills/assets/icon.svg"
+    },
+    {
       "name": "bringyour-migration-auditor",
       "displayName": "Bring Your AI Migration Auditor",
       "source": {

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-18",
-  "total": 80,
+  "last_updated": "2026-05-20",
+  "total": 81,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -58,6 +58,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/archcore-ai/plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Atelier Arith Julia Development Skills",
+      "url": "https://github.com/AtelierArith/atelier-arith-julia-development-skills",
+      "owner": "AtelierArith",
+      "repo": "atelier-arith-julia-development-skills",
+      "description": "Codex skills for Julia installation, package creation, app creation, and test workflows.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AtelierArith/atelier-arith-julia-development-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Bring Your AI Migration Auditor",

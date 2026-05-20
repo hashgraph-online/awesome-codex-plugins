@@ -1,0 +1,30 @@
+{
+  "name": "aa-jl",
+  "version": "0.2.0",
+  "description": "Codex skills for Julia installation, package creation, app creation, and test workflows.",
+  "author": {
+    "name": "Atelier Arith",
+    "url": "https://github.com/AtelierArith"
+  },
+  "homepage": "https://github.com/AtelierArith/atelier-arith-julia-development-skills",
+  "repository": "https://github.com/AtelierArith/atelier-arith-julia-development-skills",
+  "license": "MIT",
+  "keywords": ["julia", "codex", "skills", "testing", "package-development"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Atelier Arith Julia Development Skills",
+    "shortDescription": "Julia development workflows for Codex.",
+    "longDescription": "A collection of Codex skills for installing Julia, generating Julia packages, creating Julia apps, creating test environments, and running Julia tests.",
+    "developerName": "Atelier Arith",
+    "category": "Developer Tools",
+    "capabilities": ["Write"],
+    "websiteURL": "https://github.com/AtelierArith/atelier-arith-julia-development-skills",
+    "composerIcon": "./assets/icon.svg",
+    "defaultPrompt": [
+      "Create a Julia package in this directory.",
+      "Add a Julia test environment.",
+      "Run the Julia test workflow."
+    ],
+    "brandColor": "#9558B2"
+  }
+}
