@@ -49,6 +49,21 @@
       "description": "DevOps layer for coding agents with flow, feedback, and memory that compounds between sessions."
     },
     {
+      "name": "agenttrace",
+      "displayName": "agenttrace",
+      "source": {
+        "source": "local",
+        "path": "./plugins/luoyuctl/agenttrace"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Audit local AI coding-agent sessions for costs, token waste, failures, latency, anomalies, health, diffs, and CI gate signals.",
+      "icon": "./plugins/luoyuctl/agenttrace/assets/plugin-icon.svg"
+    },
+    {
       "name": "antigravity",
       "displayName": "Antigravity Workspace Template",
       "source": {

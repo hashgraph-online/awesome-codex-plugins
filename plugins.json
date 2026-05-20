@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-18",
-  "total": 80,
+  "last_updated": "2026-05-20",
+  "total": 81,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -38,6 +38,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/boshu2/agentops/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "agenttrace",
+      "url": "https://github.com/luoyuctl/agenttrace",
+      "owner": "luoyuctl",
+      "repo": "agenttrace",
+      "description": "Audit local AI coding-agent sessions for costs, token waste, failures, latency, anomalies, health, diffs, and CI gate signals.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/luoyuctl/agenttrace/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Antigravity Workspace Template",
