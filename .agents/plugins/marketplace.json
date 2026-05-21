@@ -207,7 +207,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Multi-account OAuth manager for the official Codex CLI with switching, health checks, and recovery tools."
+      "description": "Multi-account OAuth manager for the official Codex CLI with switching, health checks, and recovery tools.",
+      "icon": "./plugins/ndycode/codex-multi-auth/assets/codex-multi-auth-icon.svg"
     },
     {
       "name": "codex-reviewer",
