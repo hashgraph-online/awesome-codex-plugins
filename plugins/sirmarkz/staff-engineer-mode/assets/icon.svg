@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Staff Engineer Mode</title>
-  <desc id="desc">A shield and routing compass icon for engineering guidance.</desc>
-  <rect width="512" height="512" rx="112" fill="#0d1117"/>
-  <path d="M256 72 390 126v102c0 91-55 172-134 212-79-40-134-121-134-212V126l134-54Z" fill="#1f6feb"/>
-  <path d="M256 118 346 154v78c0 61-35 117-90 150-55-33-90-89-90-150v-78l90-36Z" fill="#f0f6fc"/>
-  <path d="M256 154 318 178v55c0 43-24 82-62 107-38-25-62-64-62-107v-55l62-24Z" fill="#0d1117"/>
-  <path d="M256 184 294 256l-38 72-38-72 38-72Z" fill="#58a6ff"/>
-  <path d="M256 216 274 256l-18 40-18-40 18-40Z" fill="#f0f6fc"/>
-  <path d="M154 394h204" stroke="#58a6ff" stroke-width="24" stroke-linecap="round"/>
-  <path d="M196 438h120" stroke="#f0f6fc" stroke-width="20" stroke-linecap="round"/>
+  <desc id="desc">A routing hub connects three engineering decision nodes.</desc>
+  <rect width="512" height="512" rx="104" fill="#0b1020"/>
+  <rect x="24" y="24" width="464" height="464" rx="88" fill="none" stroke="#30363d" stroke-width="16"/>
+  <path d="M166 166 236 236M346 166 276 236M256 292v72" fill="none" stroke="#7d8590" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="152" cy="152" r="54" fill="#7ee787"/>
+  <circle cx="360" cy="152" r="54" fill="#58a6ff"/>
+  <circle cx="256" cy="382" r="58" fill="#f0f6fc"/>
+  <path d="M256 198 314 256 256 314 198 256Z" fill="#1f6feb"/>
+  <path d="M256 226 286 256 256 286 226 256Z" fill="#0b1020"/>
+  <path d="M128 152h48M336 152h48M232 382h48" stroke="#0b1020" stroke-width="24" stroke-linecap="round"/>
 </svg>
