@@ -965,6 +965,21 @@
       "description": "AI news tracking skill that monitors 80+ entities across 6 sources (Reddit, HN, GitHub, Hugging Face, arXiv, X) and generates scored daily reports with infographics and message digests."
     },
     {
+      "name": "nullcost-catalog",
+      "displayName": "Nullcost",
+      "source": {
+        "source": "local",
+        "path": "./plugins/johnvouros/nullcost-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Catalog-backed free-tier, free-trial, and cheap developer-tool recommendations for Codex through bundled skills and MCP tools.",
+      "icon": "./plugins/johnvouros/nullcost-plugin/assets/nullcost-small.svg"
+    },
+    {
       "name": "oc-codex-multi-auth",
       "displayName": "OC ChatGPT Multi Auth",
       "source": {

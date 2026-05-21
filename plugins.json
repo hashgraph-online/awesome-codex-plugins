@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-20",
-  "total": 82,
+  "last_updated": "2026-05-21",
+  "total": 83,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -668,6 +668,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/octo-patch/MorningAI/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Nullcost",
+      "url": "https://github.com/johnvouros/nullcost-plugin",
+      "owner": "johnvouros",
+      "repo": "nullcost-plugin",
+      "description": "Catalog-backed free-tier, free-trial, and cheap developer-tool recommendations for Codex through bundled skills and MCP tools.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/johnvouros/nullcost-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "OC ChatGPT Multi Auth",

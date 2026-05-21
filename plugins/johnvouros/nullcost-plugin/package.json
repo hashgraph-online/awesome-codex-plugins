@@ -1,0 +1,55 @@
+{
+  "name": "nullcost-plugin",
+  "version": "0.1.3",
+  "description": "Nullcost plugin and local MCP server for DB-backed free-tier developer tool discovery.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Nullcost",
+  "homepage": "https://nullcost.xyz/install",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnvouros/nullcost-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johnvouros/nullcost-plugin/issues"
+  },
+  "keywords": [
+    "nullcost",
+    "mcp",
+    "codex-plugin",
+    "claude-plugin",
+    "free-tier",
+    "developer-tools",
+    "pricing-catalog"
+  ],
+  "bin": {
+    "nullcost-plugin": "bin/nullcost-plugin.mjs"
+  },
+  "files": [
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".mcp.json",
+    "assets/",
+    "bin/",
+    "docs/assets/",
+    "mcp/",
+    "scripts/",
+    "skills/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "VERSION"
+  ],
+  "scripts": {
+    "cli": "node ./bin/nullcost-plugin.mjs",
+    "doctor": "node ./bin/nullcost-plugin.mjs doctor --plugin-dir . --quick",
+    "doctor:catalog": "node ./bin/nullcost-plugin.mjs doctor --plugin-dir .",
+    "mcp:catalog": "node ./mcp/nullcost-provider-server.mjs",
+    "version:check": "node ./scripts/check-version.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  }
+}
