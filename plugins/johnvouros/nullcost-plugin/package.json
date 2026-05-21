@@ -28,6 +28,7 @@
   "files": [
     ".claude-plugin/",
     ".codex-plugin/",
+    ".codexignore",
     ".mcp.json",
     "assets/",
     "bin/",
