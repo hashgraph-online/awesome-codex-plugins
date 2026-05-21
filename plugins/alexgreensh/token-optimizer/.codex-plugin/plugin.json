@@ -1,0 +1,14 @@
+{
+  "name": "token-optimizer",
+  "version": "5.7.0",
+  "description": "Audit, monitor, and reduce Codex context waste with continuity helpers and explicit outline tools.",
+  "repository": "https://github.com/alexgreensh/token-optimizer",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "interface": {
+    "displayName": "Token Optimizer",
+    "shortDescription": "Find the ghost tokens in Codex sessions.",
+    "developerName": "Alex Greenshpun",
+    "category": "Developer Tools",
+    "composerIcon": "./assets/icon.png"
+  }
+}
