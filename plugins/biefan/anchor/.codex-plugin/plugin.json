@@ -1,0 +1,29 @@
+{
+  "name": "anchor",
+  "version": "1.3.1",
+  "description": "Engineering discipline pack for Claude Code & Codex CLI: a skill + 11 slash commands + 4 safety hooks that keep AI on-task on long tasks, enforce E2E verification, multi-pass vulnerability scanning, condition-based codex review, and project-CLAUDE.md pitfall writeback. Cross-CLI by design.",
+  "author": {
+    "name": "biefan",
+    "url": "https://github.com/biefan"
+  },
+  "homepage": "https://github.com/biefan/anchor",
+  "repository": "https://github.com/biefan/anchor",
+  "license": "MIT",
+  "keywords": [
+    "engineering-discipline",
+    "skill",
+    "hooks",
+    "slash-commands",
+    "claude-code",
+    "codex-cli",
+    "anti-drift",
+    "autonomous-mode",
+    "e2e-verification",
+    "pitfall-writeback"
+  ],
+  "interface": {
+    "displayName": "Anchor",
+    "shortDescription": "Engineering discipline for AI coding agents — anchor scope, run E2E, write pitfalls back.",
+    "composerIcon": "./assets/icon.svg"
+  }
+}
