@@ -51,6 +51,11 @@ METADATA_ONLY_MIRROR_REPOS = {
     # copying the full upstream repository or leaving broken local references.
     "mturac/everything-openai-codex",
 }
+EXTRA_MIRROR_PATHS = {
+    # Staff Engineer Mode exposes one router skill and loads routed specialist
+    # files from a top-level specialists/ directory at runtime.
+    "sirmarkz/staff-engineer-mode": ("specialists",),
+}
 
 
 def normalize_relative_path(value: str) -> str:
@@ -189,6 +194,7 @@ def collect_selected_paths(
     manifest: dict[str, object],
     all_names: set[str],
     plugin_root: PurePosixPath,
+    plugin: dict[str, str],
 ) -> set[str]:
     selected = {".codex-plugin/plugin.json"}
 
@@ -213,6 +219,9 @@ def collect_selected_paths(
             for screenshot in screenshots:
                 if isinstance(screenshot, str):
                     add_recursive_selection(selected, all_names, plugin_root, screenshot)
+
+    for extra_path in EXTRA_MIRROR_PATHS.get(f"{plugin['owner']}/{plugin['repo']}", ()):
+        add_recursive_selection(selected, all_names, plugin_root, extra_path)
 
     return selected
 
@@ -295,7 +304,7 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
     selected_paths = (
         collect_metadata_only_paths(manifest, names, plugin_root)
         if metadata_only
-        else collect_selected_paths(manifest, names, plugin_root)
+        else collect_selected_paths(manifest, names, plugin_root, plugin)
     )
     mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
 

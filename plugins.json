@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-20",
-  "total": 82,
+  "last_updated": "2026-05-21",
+  "total": 83,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -298,6 +298,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Habib0x0/spec-driven-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Staff Engineer Mode",
+      "url": "https://github.com/sirmarkz/staff-engineer-mode",
+      "owner": "sirmarkz",
+      "repo": "staff-engineer-mode",
+      "description": "Routes engineering design, delivery, reliability, security, operations, and maintenance prompts to focused staff-level specialist guidance for AI coding agents.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/sirmarkz/staff-engineer-mode/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Stark",

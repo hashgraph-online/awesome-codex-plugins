@@ -1,0 +1,221 @@
+cases:
+  - prompt: "Before we build asynchronous order events, design idempotency, ordering, replay, retry, and dead-letter behavior."
+    expected_primary: event-workflows
+    expected_behavior: "route pre-code event workflow design to event-workflows"
+    expected_phase: design
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "I want to add account deletion; help shape the retention, erasure, export, and audit behavior before implementation."
+    expected_primary: privacy-and-data-lifecycle
+    expected_behavior: "route ideation-stage personal-data lifecycle planning to privacy-and-data-lifecycle"
+    expected_phase: ideation
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "We are planning a new checkout API; choose request shapes, errors, idempotency, pagination, and compatibility rules before code."
+    expected_primary: api-design-and-compatibility
+    expected_behavior: "route API ideation and design to compatibility before implementation exists"
+    expected_phase: design
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before implementing tenant quotas, design the tenant context, partitioning, noisy-neighbor limits, and cross-tenant tests."
+    expected_primary: tenant-isolation
+    expected_behavior: "route pre-code tenant-boundary design to tenant-isolation"
+    expected_phase: design
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Plan the implementation of a staged rollout for this model-backed feature with canary metrics, kill switch, and rollback."
+    expected_primary: progressive-delivery
+    expected_behavior: "route release planning for staged exposure to progressive-delivery"
+    expected_phase: release
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before writing the distributed lock, help us define invariants, counterexamples, and stronger-than-example tests."
+    expected_primary: state-machine-correctness
+    expected_behavior: "route pre-development concurrency invariant design to state-machine-correctness"
+    expected_phase: testing
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Design observability for a new service so incidents show where user-visible failures start."
+    expected_primary: observability-and-alerting
+    expected_behavior: "route new-service telemetry design to observability-and-alerting"
+    expected_phase: design
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Help design the implementation plan for a production backfill with throttling, verification, abort criteria, and delayed cleanup."
+    expected_primary: database-operations
+    expected_behavior: "route development planning for backfill execution to database-operations"
+    expected_phase: development
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "We are ideating an internal platform template for new services with telemetry, secrets, deploy, runbook, and owner defaults."
+    expected_primary: platform-golden-paths
+    expected_behavior: "route platform ideation for reusable safe defaults to platform-golden-paths"
+    expected_phase: ideation
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before implementing a file-upload feature in the model-backed app, design prompt-injection, retrieval, tool, and output-sink controls."
+    expected_primary: llm-application-security
+    expected_behavior: "route pre-code LLM app security design to llm-application-security"
+    expected_phase: design
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Plan tests and merge checks for a payment workflow change before implementation starts."
+    expected_primary: testing-and-quality-gates
+    expected_behavior: "route testing check design before development starts to testing-and-quality-gates"
+    expected_phase: testing
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "During development of the checkout inventory call, decide timeout, retry, fallback, and duplicate-work safeguards before wiring callers."
+    expected_primary: dependency-resilience
+    expected_behavior: "route development guidance for downstream failure handling to dependency-resilience"
+    expected_phase: development
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Define a failure-injection test for the queue broker with blast-radius limits, stop conditions, and learning goals."
+    expected_primary: resilience-experiments
+    expected_behavior: "route testing-phase resilience probe design to resilience-experiments"
+    expected_phase: testing
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before releasing the mobile app, decide staged rollout pause metrics, crash thresholds, and forward-fix versus rollback rules."
+    expected_primary: mobile-release-engineering
+    expected_behavior: "route release decision guidance for mobile rollout to mobile-release-engineering"
+    expected_phase: release
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "After the flag ships everywhere, plan owner checks, expiry cleanup, and stale off-path removal."
+    expected_primary: feature-flag-lifecycle
+    expected_behavior: "route maintenance cleanup decisions for shipped flags to feature-flag-lifecycle"
+    expected_phase: maintenance
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Set maintenance rules for stale runbooks, source-of-truth owners, refresh triggers, and archival criteria."
+    expected_primary: documentation-lifecycle
+    expected_behavior: "route maintenance controls for docs to documentation-lifecycle"
+    expected_phase: maintenance
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "We are deciding whether to build a new service boundary for refunds; guide the tradeoffs and revisit conditions before a design doc exists."
+    expected_primary: architecture-decisions
+    expected_behavior: "route ideation-stage architecture decision shaping to architecture-decisions"
+    expected_phase: ideation
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Inspect this concrete diff before merge for intent match, behavior verification, edge cases, and deleted-but-still-used code."
+    expected_primary: agent-pr-review
+    expected_behavior: "route concrete pre-merge diff review to agent-pr-review"
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "An incident is active: checkout errors spiked after a deploy twenty minutes ago; build the timeline, owners, next update, and immediate decisions."
+    expected_primary: incident-response-and-postmortems
+    expected_behavior: "route active incident response to incident-response-and-postmortems"
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before tomorrow's tier-1 launch, run readiness across code, deploy config, dashboards, runbooks, rollback, and support details."
+    expected_primary: production-readiness-review
+    expected_behavior: "route launch go/no-go readiness to production-readiness-review"
+    expected_phase: release
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "A deployed advisory affects two customer-facing services; decide patch order, exploitability, exposure, exceptions, and remediation deadlines."
+    expected_primary: vulnerability-management
+    expected_behavior: "route deployed vulnerability remediation to vulnerability-management"
+    expected_phase: maintenance
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before any code exists, design the team review system: ownership routing, change-size limits, self-review rules, and reviewer latency targets."
+    expected_primary: none
+    expected_behavior: "withhold routing for generic review-system design with no concrete engineering surface"
+    category: out_of_scope
+    expected_checks: [scope_check]
+    forbidden_in_response: [all_specialist_names]
+  - prompt: "Review the checkout API design before code exists for error shapes, idempotency, pagination, and compatibility."
+    expected_primary: api-design-and-compatibility
+    expected_behavior: "route design-review wording by API compatibility surface, not to agent-pr-review"
+    expected_phase: design
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Run a security review of the new admin export design before implementation: authorization, trust boundaries, unsafe inputs, and abuse cases."
+    expected_primary: secure-sdlc-and-threat-modeling
+    expected_behavior: "route security-review wording by threat-modeling surface when no diff exists"
+    expected_phase: design
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Review the rollout plan for a staged release with canary metrics, abort criteria, and rollback before there is a go/no-go meeting."
+    expected_primary: progressive-delivery
+    expected_behavior: "route rollout-review wording by rollout surface until readiness is explicit"
+    expected_phase: release
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before implementing a new admin export, threat-model authorization gaps, unsafe inputs, trust boundaries, and abuse cases."
+    expected_primary: secure-sdlc-and-threat-modeling
+    expected_behavior: "route pre-code security design away from deployed vulnerability management"
+    expected_phase: design
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Design telemetry and alert signals for a new service so incident responders can tell where user-visible failures begin."
+    expected_primary: observability-and-alerting
+    expected_behavior: "route incident-prevention design away from active incident handling"
+    expected_phase: design
+    category: direct
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Plan a staged feature rollout with canary metrics and rollback criteria before there is a launch date or readiness decision."
+    expected_primary: progressive-delivery
+    expected_behavior: "route rollout design away from production-readiness-review until there is a go/no-go event"
+    expected_phase: release
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Shape a build-artifact reproducibility plan with pinned inputs, immutable artifact identity, and promote-only release flow."
+    expected_primary: release-build-reproducibility
+    expected_behavior: "route natural build-artifact wording to current release-build-reproducibility slug"
+    expected_phase: design
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Build an engineering records mapping plan that connects CI, approvals, dashboards, runbooks, exceptions, and release records."
+    expected_primary: engineering-control-evidence
+    expected_behavior: "route natural records-mapping wording to engineering-control-evidence"
+    expected_phase: design
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Plan codebase maintenance for deprecated helpers across packages with small batches, lockfile checks, and rollback checks."
+    expected_primary: dependency-and-code-hygiene
+    expected_behavior: "route natural codebase-maintenance wording to dependency-and-code-hygiene"
+    expected_phase: maintenance
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Before promoting the fraud model, design model reliability checks for skew, drift, eval slices, rollback, and serving details."
+    expected_primary: ml-reliability-and-evaluation
+    expected_behavior: "route natural model-reliability wording to ml-reliability-and-evaluation"
+    expected_phase: release
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "The checkout inventory call can duplicate work after a timeout; decide timeout budget, fallback behavior, idempotency, and verification points."
+    expected_primary: dependency-resilience
+    expected_behavior: "infer dependency-resilience from failure context without explicit phase wording"
+    expected_phase: development
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "A flag is on everywhere and old branches now confuse support; decide owner checks, expiry cleanup, and safe removal checks."
+    expected_primary: feature-flag-lifecycle
+    expected_behavior: "infer feature-flag lifecycle from old-branch context without explicit phase wording"
+    expected_phase: maintenance
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "This queue workflow can lose work when email succeeds before payment settles; define the message contract, idempotency keys, retry and DLQ handling, replay behavior, and failure probes."
+    expected_primary: event-workflows
+    expected_behavior: "infer event workflow testing/design from failure context without explicit phase wording"
+    expected_phase: testing
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "The public signup path is getting suspicious spikes; choose edge limits that protect origin without blocking real users."
+    expected_primary: edge-traffic-and-ddos-defense
+    expected_behavior: "infer edge-defense routing from traffic-risk context without explicit phase wording"
+    expected_phase: release
+    category: paraphrase
+    expected_checks: [single_primary, intent_inference]
+  - prompt: "Write warmer onboarding copy for a marketing landing page."
+    expected_primary: none
+    expected_behavior: "decline product/editorial ideation without naming specialists"
+    category: out_of_scope
+    expected_checks: [scope_check]
+    forbidden_in_response: [all_specialist_names]
