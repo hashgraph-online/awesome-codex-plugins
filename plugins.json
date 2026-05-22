@@ -187,6 +187,7 @@
       "description": "MCP server exposing reasoning, code, anti-deception, and memory harness tools for Codex.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
+      "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg",
       "install_url": "https://raw.githubusercontent.com/ejentum/ejentum-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
