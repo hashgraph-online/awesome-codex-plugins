@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.sh/sealos-deploy/schemas/analysis.schema.json",
+  "title": "Sealos Deploy Analysis Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "generated_at",
+    "project",
+    "score",
+    "language",
+    "all_languages",
+    "framework",
+    "package_manager",
+    "port",
+    "databases",
+    "runtime_version",
+    "env_vars",
+    "has_dockerfile",
+    "complexity_tier",
+    "image_ref"
+  ],
+  "properties": {
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "github_url",
+        "work_dir",
+        "repo_name",
+        "branch"
+      ],
+      "properties": {
+        "github_url": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
+        "work_dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repo_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branch": {
+          "anyOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "verdict",
+        "dimensions"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "verdict": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "statelessness",
+            "config",
+            "scalability",
+            "startup",
+            "observability",
+            "boundaries"
+          ],
+          "properties": {
+            "statelessness": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "config": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "scalability": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "startup": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "observability": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "boundaries": { "type": "integer", "minimum": 0, "maximum": 2 }
+          }
+        }
+      }
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "go",
+        "rust",
+        "java",
+        "node",
+        "python",
+        "php",
+        "ruby",
+        "dotnet"
+      ]
+    },
+    "all_languages": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "go",
+          "rust",
+          "java",
+          "node",
+          "python",
+          "php",
+          "ruby",
+          "dotnet"
+        ]
+      }
+    },
+    "framework": {
+      "type": "string",
+      "minLength": 1
+    },
+    "package_manager": {
+      "type": "string",
+      "enum": [
+        "npm",
+        "yarn",
+        "pnpm",
+        "bun",
+        "pip",
+        "pipenv",
+        "go",
+        "cargo",
+        "maven",
+        "gradle",
+        "composer",
+        "bundler"
+      ]
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "databases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "postgres",
+          "mysql",
+          "mongodb",
+          "redis",
+          "sqlite"
+        ]
+      }
+    },
+    "runtime_version": {
+      "type": "object",
+      "minProperties": 2,
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "env_vars": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Z][A-Z0-9_]*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "category"
+          ],
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "required",
+                "optional"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "default": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "has_dockerfile": {
+      "type": "boolean"
+    },
+    "complexity_tier": {
+      "type": "string",
+      "enum": [
+        "L1",
+        "L2",
+        "L3"
+      ]
+    },
+    "image_ref": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ]
+    }
+  }
+}

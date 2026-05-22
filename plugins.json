@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-20",
-  "total": 82,
+  "last_updated": "2026-05-22",
+  "total": 83,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -278,6 +278,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hashgraph-online/registry-broker-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Sealos",
+      "url": "https://github.com/labring/sealos-skills",
+      "owner": "labring",
+      "repo": "sealos-skills",
+      "description": "Deploy apps to Sealos Cloud from Codex with readiness checks, Dockerfile generation, Compose conversion, image builds, and rollout updates.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/labring/sealos-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Session Orchestrator",

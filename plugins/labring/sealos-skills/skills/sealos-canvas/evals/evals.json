@@ -1,0 +1,77 @@
+{
+  "skill_name": "sealos-canvas",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "/sealos-canvas in a repository without .sealos/state.json",
+      "expected_output": "Stops with a message telling the user to run /sealos-deploy first and does not generate HTML",
+      "files": [],
+      "assertions": [
+        {
+          "name": "detects-not-deployed",
+          "description": "Returns ok=false with reason not_deployed"
+        },
+        {
+          "name": "does-not-create-canvas",
+          "description": "Does not create .sealos/canvas/index.html"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "/sealos-canvas in a deployed repo when ~/.sealos/kubeconfig is unavailable",
+      "expected_output": "Stops with a kubeconfig unavailable message and does not attempt deploy/update behavior",
+      "files": [],
+      "assertions": [
+        {
+          "name": "requires-kubeconfig",
+          "description": "Returns ok=false with reason kubeconfig_missing"
+        },
+        {
+          "name": "view-only",
+          "description": "Does not run kubectl apply, patch, delete, rollout, restart, or set image commands"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/sealos-canvas in a deployed repo with mock Kubernetes resources",
+      "expected_output": "Starts a local canvas UI, returns local_url, and renders app, URL, resource cards, volume strip, details, and SVG edges",
+      "files": [],
+      "assertions": [
+        {
+          "name": "returns-local-url",
+          "description": "Returns ok=true with a http://127.0.0.1 local_url"
+        },
+        {
+          "name": "renders-topology",
+          "description": "Local UI contains resource nodes and connector edges"
+        },
+        {
+          "name": "includes-volume-strip",
+          "description": "PVC or volume references are rendered as attached strips"
+        },
+        {
+          "name": "includes-detail-panel",
+          "description": "Local UI includes a selected resource detail panel"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/sealos-canvas with Secret resources in the namespace",
+      "expected_output": "Shows only Secret names/types/reference relationships and never writes Secret data values to HTML",
+      "files": [],
+      "assertions": [
+        {
+          "name": "does-not-render-secret-data",
+          "description": "HTML does not contain Secret .data values"
+        },
+        {
+          "name": "renders-secret-safely",
+          "description": "Secret nodes show names and metadata only"
+        }
+      ]
+    }
+  ]
+}

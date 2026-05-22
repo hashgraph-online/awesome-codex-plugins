@@ -1,0 +1,120 @@
+version: 1
+scope:
+  include:
+    - SKILL.md
+    - references/sealos-specs.md
+    - references/conversion-mappings.md
+    - references/database-templates.md
+    - references/example-guide.md
+rules:
+  - id: R001
+    description: Disallow :latest tags in image/originImageName fields.
+    severity: error
+  - id: R016
+    description: Disallow floating image tags (for example v2, 2.1, stable) on managed app workloads.
+    severity: error
+  - id: R018
+    description: Disallow Compose-style variable expressions in managed workload image/originImageName fields.
+    severity: error
+  - id: R002
+    description: App resources must not use spec.template.
+    severity: error
+  - id: R003
+    description: App resources must define spec.data.url.
+    severity: error
+  - id: R032
+    description: App resources must define spec.displayType and it must be normal.
+    severity: error
+  - id: R033
+    description: App resources must define spec.type and it must be link.
+    severity: error
+  - id: R004
+    description: Template metadata.name must be hardcoded lowercase.
+    severity: error
+  - id: R012
+    description: Template artifacts must define all required metadata fields in spec.
+    severity: error
+  - id: R013
+    description: Template artifact folder name must match Template metadata.name.
+    severity: error
+  - id: R014
+    description: Template spec.icon must point to app-scoped raw template paths on kb-0.9 branch.
+    severity: error
+  - id: R025
+    description: Template spec.readme and spec.i18n.zh.readme must point to fixed labring-actions template raw URLs.
+    severity: error
+  - id: R021
+    description: Template spec.i18n.zh.description must be provided in Simplified Chinese.
+    severity: error
+  - id: R022
+    description: Template spec.i18n.zh.title should be omitted when it is identical to spec.title.
+    severity: error
+  - id: R023
+    description: Template spec.categories entries must use predefined allowlist values.
+    severity: error
+  - id: R024
+    description: Workloads with official health checks must define livenessProbe/readinessProbe and startupProbe using official endpoints/commands.
+    severity: error
+  - id: R036
+    description: CronJob resources must define cloud.sealos.io/cronjob, cronjob-launchpad-name, and cronjob-type labels with required values.
+    severity: error
+  - id: R015
+    description: Managed app workload originImageName must match a declared container image.
+    severity: error
+  - id: R005
+    description: emptyDir is forbidden; use persistent storage.
+    severity: error
+  - id: R006
+    description: All containers must explicitly set imagePullPolicy to IfNotPresent.
+    severity: error
+  - id: R007
+    description: Env/volume Secret usage must follow approved database/object-storage policy, including database secret naming variants and bucket-scoped object-storage secrets, and Kubeblocks reserved database secret names must not be overridden.
+    severity: error
+  - id: R017
+    description: Database connection env fields (endpoint/host/port/username/password) in business workloads must use approved Kubeblocks database secretKeyRef entries, except Redis host/port may use Sealos Redis Service FQDN and port 6379, MongoDB URLs may use Sealos MongoDB Service FQDN and port 27017, and endpoint/URL fields may compose values from approved DB secretKeyRef env vars.
+    severity: error
+  - id: R019
+    description: Database cluster component resources must use limits cpu=500m/memory=512Mi and requests cpu=50m/memory=51Mi.
+    severity: error
+  - id: R020
+    description: Service spec.ports entries must define non-empty name fields in template artifacts.
+    severity: error
+  - id: R026
+    description: HTTP Ingress resources in template artifacts must include the required nginx annotations with expected values.
+    severity: error
+  - id: R027
+    description: Template artifacts using non-default PostgreSQL database names must define a robust pg-init Job (readiness wait plus idempotent create).
+    severity: error
+  - id: R037
+    description: PostgreSQL Cluster metadata.name must align with referenced *-pg-conn-credential secret names in the same template artifact.
+    severity: error
+  - id: R008
+    description: App workload cloud.sealos.io/app-deploy-manager label must exist and match metadata.name.
+    severity: error
+  - id: R034
+    description: Managed app workloads must define metadata.labels.app and match metadata.name.
+    severity: error
+  - id: R028
+    description: Managed app workload container names must exactly match metadata.name.
+    severity: error
+  - id: R029
+    description: Application Services must use one component name across metadata.name, labels.app, cloud.sealos.io/app-deploy-manager, and spec.selector.app.
+    severity: error
+  - id: R030
+    description: Component ConfigMaps must use one component name across metadata.name, labels.app, and cloud.sealos.io/app-deploy-manager.
+    severity: error
+  - id: R031
+    description: Application Ingress resources must use one component name across metadata.name, cloud.sealos.io/app-deploy-manager, and backend service names.
+    severity: error
+  - id: R009
+    description: Managed app workloads must explicitly set revisionHistoryLimit to 1.
+    severity: error
+  - id: R010
+    description: Managed app workloads must explicitly set automountServiceAccountToken to false.
+    severity: error
+  - id: R035
+    description: Managed app workloads must reference the app-scoped image pull secret name via template.spec.imagePullSecrets.
+    severity: error
+  - id: R011
+    description: All PVC storage requests must be concrete values and less than or equal to 1Gi.
+    severity: error

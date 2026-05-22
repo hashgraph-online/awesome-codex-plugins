@@ -1,0 +1,48 @@
+{
+  "name": "sealos",
+  "version": "0.1.0",
+  "description": "Sealos deployment and app-building skills for Codex.",
+  "author": {
+    "name": "Sealos",
+    "url": "https://sealos.io/"
+  },
+  "homepage": "https://github.com/labring/sealos-skills",
+  "repository": "https://github.com/labring/sealos-skills",
+  "license": "MIT",
+  "keywords": [
+    "sealos",
+    "sealos-cloud",
+    "deployment",
+    "docker",
+    "kubernetes",
+    "codex",
+    "skills",
+    "devops",
+    "desktop-apps"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Sealos",
+    "shortDescription": "Deploy projects to Sealos Cloud from Codex",
+    "longDescription": "Use Sealos in Codex to assess cloud-native readiness, generate production Dockerfiles, build or reuse container images, convert Docker Compose services into Sealos templates, deploy and update workloads on Sealos Cloud, and build Sealos Desktop apps with SDK integration guidance. The plugin bundles Sealos Agent Skills under ./skills/ and is invoked as $sealos in Codex or /sealos in Claude Code-compatible hosts.",
+    "developerName": "Sealos",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://sealos.io/",
+    "privacyPolicyURL": "https://sealos.io/docs/msa/privacy-policy/",
+    "termsOfServiceURL": "https://sealos.io/docs/msa/terms-of-service/",
+    "defaultPrompt": [
+      "Deploy this repo to Sealos Cloud.",
+      "Containerize this app and deploy it to Sealos.",
+      "Build a Sealos Desktop app starter."
+    ],
+    "brandColor": "#15B8A6",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": []
+  }
+}

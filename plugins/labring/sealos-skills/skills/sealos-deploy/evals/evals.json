@@ -1,0 +1,126 @@
+{
+  "skill_name": "sealos-deploy",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I want to deploy uptime-kuma to Sealos, GitHub: https://github.com/louislam/uptime-kuma",
+      "expected_output": "High readiness score (7+), identifies Node.js project with external services, recommends proceeding with deployment",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-nodejs", "description": "Correctly identifies the project as Node.js"},
+        {"name": "score-above-4", "description": "Readiness score is >= 4 (deployable threshold)"},
+        {"name": "detects-external-db", "description": "Detects external database dependency (SQLite/MariaDB)"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report with dimensions and scores"},
+        {"name": "creates-log-file", "description": "Creates a deploy log file at ~/.sealos/logs/"}
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "/sealos-deploy https://github.com/sharkdp/bat",
+      "expected_output": "Low readiness score (0-3), identifies as CLI tool not suitable for cloud deployment, recommends STOP",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-cli-tool", "description": "Correctly identifies bat as a CLI tool / non-web application"},
+        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for cloud deployment)"},
+        {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/sealos-deploy",
+      "expected_output": "Low readiness score (0-3), identifies the current repository as a skills pack or tooling repo rather than a deployable web service, recommends STOP",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-skill-pack", "description": "Identifies the current repository as a skills pack or tooling repo rather than a standalone web app"},
+        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for direct cloud deployment)"},
+        {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Help me deploy alist to Sealos, project URL: https://github.com/alist-org/alist",
+      "expected_output": "High readiness score (8+), identifies Go web application with REST API and WebDAV server, recommends CONTINUE",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-go", "description": "Correctly identifies the project as Go language"},
+        {"name": "score-above-4", "description": "Readiness score is >= 4 (deployable threshold)"},
+        {"name": "identifies-http-server", "description": "Identifies this as an HTTP server / web service"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I want to deploy lobe-chat to Sealos: https://github.com/lobehub/lobe-chat",
+      "expected_output": "High readiness score (10+), identifies Next.js monorepo with pnpm workspaces, recommends CONTINUE",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-nextjs", "description": "Correctly identifies the project as Next.js"},
+        {"name": "score-above-4", "description": "Readiness score is >= 4 (deployable threshold)"},
+        {"name": "detects-monorepo-or-workspace", "description": "Detects pnpm monorepo / workspace structure"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/sealos-deploy https://github.com/jgraph/drawio-desktop",
+      "expected_output": "Very low readiness score (0-1), identifies as Electron desktop GUI app unsuitable for cloud deployment, recommends STOP",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-desktop-app", "description": "Correctly identifies drawio-desktop as an Electron / desktop GUI application"},
+        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for cloud deployment)"},
+        {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Deploy vaultwarden to Sealos: https://github.com/dani-garcia/vaultwarden",
+      "expected_output": "Maximum readiness score (12/12), identifies Rust web application with Rocket framework and existing Dockerfile, recommends CONTINUE",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-rust", "description": "Correctly identifies the project as Rust language"},
+        {"name": "score-above-4", "description": "Readiness score is >= 4 (deployable threshold)"},
+        {"name": "identifies-web-service", "description": "Identifies this as a web service / HTTP server"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "/sealos-deploy https://github.com/pallets/flask",
+      "expected_output": "Low score or STOP, correctly identifies Flask as a Python web framework library not a deployable application",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-library", "description": "Correctly identifies Flask as a framework/library, not a standalone deployable app"},
+        {"name": "score-below-7", "description": "Readiness score is < 7 (library should not be considered highly deployable)"},
+        {"name": "explains-not-standalone", "description": "Explains why this repository is not directly deployable as a service"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Help me deploy mealie (home recipe management): https://github.com/mealie-recipes/mealie",
+      "expected_output": "High readiness score (8+), identifies Python FastAPI application with PostgreSQL support, recommends CONTINUE",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-python", "description": "Correctly identifies the project as Python"},
+        {"name": "score-above-4", "description": "Readiness score is >= 4 (deployable threshold)"},
+        {"name": "detects-external-db", "description": "Detects PostgreSQL database dependency"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "/sealos-deploy https://github.com/spring-projects/spring-petclinic",
+      "expected_output": "Good readiness score (6+), identifies Java Spring Boot application with port 8080 and Actuator endpoints, recommends CONTINUE",
+      "files": [],
+      "assertions": [
+        {"name": "identifies-java", "description": "Correctly identifies the project as Java / Spring Boot"},
+        {"name": "score-above-4", "description": "Readiness score is >= 4 (deployable threshold)"},
+        {"name": "identifies-web-service", "description": "Identifies this as a web application on port 8080"},
+        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    }
+  ]
+}
