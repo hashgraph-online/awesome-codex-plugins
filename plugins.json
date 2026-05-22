@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-05-20",
-  "total": 82,
+  "total": 83,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -238,6 +238,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yimwoo/hotl-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Mpi-Kanban",
+      "url": "https://github.com/MadPonyInteractive/mpi-kanban",
+      "owner": "MadPonyInteractive",
+      "repo": "mpi-kanban",
+      "description": "Claude Code and Codex workflow plugin for per-project kanban planning, handoffs, multi-agent coordination, and session lifecycle workflows.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/MadPonyInteractive/mpi-kanban/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Personal Data Protection",
