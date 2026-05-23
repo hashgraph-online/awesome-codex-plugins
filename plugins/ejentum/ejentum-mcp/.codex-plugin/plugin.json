@@ -23,6 +23,7 @@
   "mcpServers": "../.mcp.json",
   "skills": "../skills",
   "interface": {
+    "composerIcon": "./assets/ejentum-icon.svg",
     "displayName": "Ejentum Reasoning Harness",
     "shortDescription": "Reasoning Harness MCP tools (stdio or hosted HTTPS): cognitive operations engineered as natural-language procedure plus executable reasoning topology DAG",
     "longDescription": "Library of 679 cognitive operations across four harnesses (reasoning, code, anti-deception, memory), each operation engineered in two layers: a natural-language procedure (named failure pattern, steps, suppression vectors, falsification test) plus an executable reasoning topology (graph DAG with decision gates, parallel branches, and meta-cognitive exits where the model pauses to self-observe and re-enters). Reasoning spans six domains (abstraction, time, causality, simulation, spatial, metacognition); code covers the software-engineering layer; anti-deception spans six sub-layers (sycophancy, hallucination, deception, adversarial framing, judgment, executive control); memory covers the perception layer. The agent ingests both layers and writes from them. Two install paths: stdio (this plugin) via `npx -y ejentum-mcp` for Codex CLI subprocess mode, or hosted HTTPS at https://api.ejentum.com/mcp for HTTP-MCP clients (Bearer auth via EJENTUM_API_KEY). Free tier: 100 calls, no card.",
