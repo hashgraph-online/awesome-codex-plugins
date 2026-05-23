@@ -1,0 +1,7 @@
+interface:
+  display_name: "Simple Man"
+  short_description: "High-compression professional communication without reduced work quality."
+  default_prompt: "Use Simple Man: minimum user-facing words; same work quality."
+
+policy:
+  allow_implicit_invocation: true

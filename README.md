@@ -157,6 +157,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Sealos](https://github.com/labring/sealos-skills) - Deploy apps to Sealos Cloud from Codex with readiness checks, Dockerfile generation, Compose conversion, image builds, and rollout updates.
 - [Secret Guard](./plugins/mturac/secret-guard) - Pre-commit secret scanner using pattern and entropy detection.
 - [Session Orchestrator](https://github.com/Kanevry/session-orchestrator) - Session orchestration for Claude Code, Codex, and Cursor IDE — structured planning, wave-based execution, VCS integration (GitLab + GitHub), quality gates, and clean session close-out with issue tracking.
+- [Simple Man](https://github.com/Maksim-Burtsev/simple-man) - High-compression communication mode for Codex agents that removes filler while preserving search, validation, and implementation effort.
 - [Spec-Driven Development](https://github.com/Habib0x0/spec-driven-plugin) - Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.
 - [Staff Engineer Mode](https://github.com/sirmarkz/staff-engineer-mode) - Routes engineering design, delivery, reliability, security, operations, and maintenance prompts to focused staff-level specialist guidance for AI coding agents.
 - [Standup Generator](./plugins/mturac/standup-gen) - Daily standup notes from git activity across repos.

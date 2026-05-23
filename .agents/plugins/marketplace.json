@@ -449,6 +449,21 @@
       "icon": "./plugins/Kanevry/session-orchestrator/assets/icon.svg"
     },
     {
+      "name": "simple-man",
+      "displayName": "Simple Man",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Maksim-Burtsev/simple-man"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "High-compression communication mode for Codex agents that removes filler while preserving search, validation, and implementation effort.",
+      "icon": "./plugins/Maksim-Burtsev/simple-man/assets/icon.png"
+    },
+    {
       "name": "spec-driven",
       "displayName": "Spec-Driven Development",
       "source": {
