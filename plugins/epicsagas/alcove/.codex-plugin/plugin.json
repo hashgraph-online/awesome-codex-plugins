@@ -9,6 +9,7 @@
   "homepage": "https://github.com/epicsagas/alcove",
   "repository": "https://github.com/epicsagas/alcove",
   "license": "Apache-2.0",
+  "skills": "./skills",
   "keywords": [
     "mcp",
     "memory",
