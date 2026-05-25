@@ -1,0 +1,40 @@
+{
+  "name": "vidseeds",
+  "version": "1.7.0",
+  "description": "VidSeeds.ai connector — pre-upload video SEO/metadata optimization + multi-platform publishing (149 tools). Workflow skills for efficient MCP use. Paid connector with a 14-day free trial. Requires a free Personal Access Token from https://vidseeds.ai/settings/developer-tokens.",
+  "author": {
+    "name": "VidSeeds.ai",
+    "url": "https://vidseeds.ai"
+  },
+  "homepage": "https://vidseeds.ai",
+  "repository": "https://github.com/CarrotGamesStudios/vidseeds-mcp",
+  "license": "MIT",
+  "keywords": [
+    "video-seo",
+    "metadata",
+    "youtube",
+    "tiktok",
+    "instagram",
+    "thumbnails",
+    "chapters",
+    "mcp",
+    "publishing",
+    "seo"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./codex.mcp.json",
+  "interface": {
+    "type": "cli",
+    "displayName": "VidSeeds.ai",
+    "shortDescription": "Pre-upload video SEO/metadata optimization and multi-platform publishing.",
+    "longDescription": "VidSeeds.ai analyzes your existing video and generates optimized titles, descriptions, tags, thumbnails, and chapters for YouTube, TikTok, Instagram, Facebook, LinkedIn, and X — then publishes. Hosted MCP connector (149 tools) with workflow skills and a 14-day free trial; requires a free Personal Access Token from https://vidseeds.ai/settings/developer-tokens.",
+    "developerName": "VidSeeds.ai",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://vidseeds.ai",
+    "composerIcon": "./assets/icon.png"
+  }
+}

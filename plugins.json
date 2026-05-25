@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-05-25",
-  "total": 88,
+  "total": 89,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -878,6 +878,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/klajdikkolaj/upwork-autopilot/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "VidSeeds.ai",
+      "url": "https://github.com/CarrotGamesStudios/vidseeds-mcp",
+      "owner": "CarrotGamesStudios",
+      "repo": "vidseeds-mcp",
+      "description": "Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/CarrotGamesStudios/vidseeds-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Yandex Direct",

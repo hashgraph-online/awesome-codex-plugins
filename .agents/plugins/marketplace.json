@@ -1276,6 +1276,21 @@
       "description": "Controlled Upwork job search, qualification, and proposal submission sessions through a dedicated Chrome profile."
     },
     {
+      "name": "vidseeds",
+      "displayName": "VidSeeds.ai",
+      "source": {
+        "source": "local",
+        "path": "./plugins/CarrotGamesStudios/vidseeds-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.",
+      "icon": "./plugins/CarrotGamesStudios/vidseeds-mcp/assets/icon.png"
+    },
+    {
       "name": "yandex-direct-for-all",
       "displayName": "Yandex Direct",
       "source": {
