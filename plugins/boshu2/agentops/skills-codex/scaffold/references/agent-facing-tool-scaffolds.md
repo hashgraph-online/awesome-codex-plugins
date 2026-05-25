@@ -34,4 +34,4 @@ When scaffolding a Rust CLI that stores local state:
 
 ---
 
-**Source:** Adapted from jsm / `installer-workmanship`, `mcp-server-design`, and `rust-cli-with-sqlite`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `installer-workmanship`, `mcp-server-design`, and `rust-cli-with-sqlite`. Pattern-only, no verbatim text.

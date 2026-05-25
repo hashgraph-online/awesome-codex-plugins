@@ -11,7 +11,7 @@ description: Use when encountering any bug, test failure, or unexpected behavior
      L5 cross-system contract → L6 platform constraint → L7 spec gap.
      Stop when no deeper "why" remains OR terminal unactionable (T1-T4).
   2. Identify owner: compare with working code → locate canonical owner → flag duplicate owners as a finding
-  3. Before fixing, run Patch-Shape Triage and Ripple Signal Triage if the candidate fix touches shared/core/cross-module behavior, contract, source-of-truth, fallback, adapter, duplicate owner, producer+consumer, or consumer-side patching.
+  3. Before fixing, run Patch-Shape Triage and Ripple Signal Triage if the candidate fix touches shared/core/cross-module behavior, contract, source-of-truth, fallback, adapter, duplicate owner, producer+consumer, or consumer-side patching. Also run Pre-Edit Complexity Check when the candidate fix touches an overloaded owner or may worsen source complexity.
   4. Prove: one hypothesis → minimal test → iterate. 3+ failed fixes = question architecture, do not attempt another code fix.
      After fix, if any symptom persists → differential diagnosis (Phase 4 Step 4bis).
   5. Fix: failing test → minimal code at canonical owner → verify → Reflection + architecture review → repair + retirement track
@@ -23,7 +23,9 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 Random fixes waste time and create new bugs. Symptom fixes are failure.
 
-This skill is the canonical debugging workflow. Use it to move from symptom to root cause, then to the smallest justified fix and retirement plan.
+This skill is the canonical debugging workflow. Use it to move from symptom to
+root cause, then to the smallest sufficient stable repair and retirement plan.
+Smallest repair means correct owner + bug class fixed + bounded entropy, not the smallest textual diff.
 
 ## When to Use
 
@@ -84,6 +86,25 @@ escalate to the full workflow.
    Hard signal definitions (H/T/D) are in the Quality Gate — apply them there,
    not during initial investigation.
 
+   When the stop layer is not obvious, the user asks where the diagnosis
+   stops, the issue crosses component/system boundaries, or a user-provided
+   fact falsifies the current layer, expose a compact `Layer Stop Card` before
+   fixing:
+
+   ```text
+   Layer Stop Card:
+   - Current Stop Layer: L1 Symptom | L2 Logic | L3 System | L4 Architecture | L5 Cross-system Contract | L6 Platform | L7 Spec Gap | T-class boundary
+   - Checked Path:
+   - Evidence For Stop:
+   - Excluded Layers:
+   - Falsifier:
+   - User Intervention Point:
+   - Next Action:
+   ```
+
+   The card is an advisory readback of the diagnostic stop point. It is not a
+   `GateDecision`, `PolicySnapshot`, or completion authority.
+
 7. **Patch-Shape Triage Before Editing**
 
    Treat the first obvious fix as evidence, not clearance to edit. If the
@@ -109,6 +130,40 @@ escalate to the full workflow.
    UpwardDrillSignal:
    Decision: fix owner | continue investigation | escalate
    ```
+
+   If the tempting fix is "just add a small guard/fallback", also run:
+
+   ```text
+   Minimality Check:
+   - Smallest textual diff:
+   - Correct owner:
+   - Bug class fixed:
+   - New branch/fallback added:
+   - Old path retired or scheduled:
+   - Verdict: sufficient repair | local patch | needs first-principles review
+   ```
+
+   `local patch` is a mitigation, not a sufficient repair, unless it is the
+   canonical owner and includes a retention reason plus retirement trigger.
+
+8. **Pre-Edit Complexity Check**
+
+   After root cause and canonical owner are identified, check whether the fix
+   adds complexity to the wrong or overloaded place:
+
+   ```text
+   Pre-Edit Complexity Check:
+   - Target edit file:
+   - Existing pressure signal:
+   - Owner fit:
+   - Safer edit boundary:
+   - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+   ```
+
+   Use this for 800+ line files, 80+ line blocks, generic owners,
+   fallback/adapter/guard paths, or unclear root-cause ownership. Advisory only:
+   if the safer boundary changes the implementation shape, pause and update the
+   plan/spec.
 
 ### Phase 2: Pattern Analysis
 
@@ -140,9 +195,10 @@ escalate to the full workflow.
    - Address the root cause identified. ONE change at a time.
    - No "while I'm here" improvements. No bundled refactoring.
    - Prefer changing the canonical owner instead of stacking more logic into a fallback path.
-   - If Patch-Shape Triage or Ripple Signal Triage fired, carry its owner,
-     downstream, contract, source-of-truth, fallback, retirement, and
-     verification findings into the fix boundary before editing code.
+   - If Patch-Shape Triage, Ripple Signal Triage, or Pre-Edit Complexity Check
+     fired, carry its owner, downstream, contract, source-of-truth, fallback,
+     retirement, edit-boundary, and verification findings into the fix
+     boundary before editing code.
 
 3. **Verify Fix**
    - Test passes now? No other tests broken? Issue actually resolved?
@@ -221,6 +277,10 @@ Before you claim debugging is complete:
    authoritative completion.
 
 1. **Stop-when review** — re-read the diagnostic layer where you stopped. Did you reach "no deeper why remains" or a T-class terminal boundary? If the chain ended at L1-L2 and the evidence is conclusive, that is a valid endpoint. If there are still unexplained "why" questions, continue upward drilling before claiming done.
+   - Use a `Layer Stop Card` when the stop point affects the fix boundary,
+     contract owner, spec/product decision, or user correction path. Keep
+     simple fast-path explanations cheap; do not emit the card for ordinary
+     factual Q&A about the skill itself.
 2. **Hard signal check** — apply these countable facts, not judgments:
 
    Must continue upward drilling (H-class — ANY hit = NOT done):
@@ -251,6 +311,8 @@ Before you claim debugging is complete:
    - **D2** — fix is at canonical owner
    - **D3** — original reproduction steps no longer trigger any anomaly
    - **D4** — no same-pattern occurrences remain unaddressed in repo
+   - **D5** — Minimality Check verdict is `sufficient repair`, or the local
+     patch is explicitly bounded with retention reason and retirement trigger
 
 3. **Reflection** — re-run Goal / DeeperCause / Evidence / Risk/Unknown / Decision
 4. **Confirm** the fix addressed the source, not just the sample

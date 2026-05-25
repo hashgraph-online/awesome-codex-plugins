@@ -54,7 +54,7 @@
       "url": "https://github.com/study8677/antigravity-workspace-template",
       "owner": "study8677",
       "repo": "antigravity-workspace-template",
-      "description": "Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management \u2014 turns codebases into coherent agent workspaces.",
+      "description": "Multi-agent codebase knowledge graph generator with context-aware planning and automatic scope management — turns codebases into coherent agent workspaces.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/study8677/antigravity-workspace-template/HEAD/.codex-plugin/plugin.json"
@@ -64,7 +64,7 @@
       "url": "https://github.com/archcore-ai/plugin",
       "owner": "archcore-ai",
       "repo": "plugin",
-      "description": "Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP \u2014 so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.",
+      "description": "Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP — so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/archcore-ai/plugin/HEAD/.codex-plugin/plugin.json"
@@ -84,7 +84,7 @@
       "url": "https://github.com/hyhmrright/brooks-lint",
       "owner": "hyhmrright",
       "repo": "brooks-lint",
-      "description": "AI code reviews grounded in six classic engineering books \u2014 decay risk diagnostics with book citations, severity labels, and four analysis modes (PR review, architecture audit, tech debt, test quality).",
+      "description": "AI code reviews grounded in six classic engineering books — decay risk diagnostics with book citations, severity labels, and four analysis modes (PR review, architecture audit, tech debt, test quality).",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hyhmrright/brooks-lint/HEAD/.codex-plugin/plugin.json"
@@ -114,7 +114,7 @@
       "url": "https://github.com/alirezarezvani/claude-skills",
       "owner": "alirezarezvani",
       "repo": "claude-skills",
-      "description": "223 production-ready skills, 23 agents, and 298 Python tools across 9 domains \u2014 engineering, marketing, product, compliance, and more.",
+      "description": "223 production-ready skills, 23 agents, and 298 Python tools across 9 domains — engineering, marketing, product, compliance, and more.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/alirezarezvani/claude-skills/HEAD/.codex-plugin/plugin.json"
@@ -134,7 +134,7 @@
       "url": "https://github.com/yujiachen-y/codebase-recon-skill",
       "owner": "yujiachen-y",
       "repo": "codebase-recon-skill",
-      "description": "Analyze git history to understand a codebase before reading any code \u2014 auto-scales by repo size and cross-references hotspots with bug magnets to surface high-risk files, bus factor, and team momentum.",
+      "description": "Analyze git history to understand a codebase before reading any code — auto-scales by repo size and cross-references hotspots with bug magnets to surface high-risk files, bus factor, and team momentum.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yujiachen-y/codebase-recon-skill/HEAD/.codex-plugin/plugin.json"
@@ -264,7 +264,7 @@
       "url": "https://github.com/AltByteSG/personal-data-protection-skill",
       "owner": "AltByteSG",
       "repo": "personal-data-protection-skill",
-      "description": "Engineer-facing personal-data-protection compliance reference \u2014 Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA (Act 709 + 2024 Amendments), Philippines DPA \u2014 organised by where in the stack each obligation lands, with checklists, breach-response runbook, and a developer-view divergence table across all five.",
+      "description": "Engineer-facing personal-data-protection compliance reference — Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA (Act 709 + 2024 Amendments), Philippines DPA — organised by where in the stack each obligation lands, with checklists, breach-response runbook, and a developer-view divergence table across all five.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/AltByteSG/personal-data-protection-skill/HEAD/.codex-plugin/plugin.json"
@@ -314,7 +314,7 @@
       "url": "https://github.com/Kanevry/session-orchestrator",
       "owner": "Kanevry",
       "repo": "session-orchestrator",
-      "description": "Session orchestration for Claude Code, Codex, and Cursor IDE \u2014 structured planning, wave-based execution, VCS integration (GitLab + GitHub), quality gates, and clean session close-out with issue tracking.",
+      "description": "Session orchestration for Claude Code, Codex, and Cursor IDE — structured planning, wave-based execution, VCS integration (GitLab + GitHub), quality gates, and clean session close-out with issue tracking.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Kanevry/session-orchestrator/HEAD/.codex-plugin/plugin.json"
@@ -334,7 +334,7 @@
       "url": "https://github.com/Habib0x0/spec-driven-plugin",
       "owner": "Habib0x0",
       "repo": "spec-driven-plugin",
-      "description": "Three-phase Requirements \u2192 Design \u2192 Tasks workflow for Claude Code and Codex \u2014 EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.",
+      "description": "Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Habib0x0/spec-driven-plugin/HEAD/.codex-plugin/plugin.json"
@@ -394,7 +394,7 @@
       "url": "https://github.com/Colin4k1024/tsp",
       "owner": "Colin4k1024",
       "repo": "tsp",
-      "description": "Role-based team delivery framework \u2014 Tech Lead-orchestrated 8-role system with 195+ skills, 27 specialist agents, 80+ commands, hooks, and ECC harness for Claude Code, Codex, and OpenCode.",
+      "description": "Role-based team delivery framework — Tech Lead-orchestrated 8-role system with 195+ skills, 27 specialist agents, 80+ commands, hooks, and ECC harness for Claude Code, Codex, and OpenCode.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Colin4k1024/tsp/HEAD/.codex-plugin/plugin.json"
@@ -434,7 +434,7 @@
       "url": "https://github.com/dadwadw233/VibePortrait",
       "owner": "dadwadw233",
       "repo": "VibePortrait",
-      "description": "Developer personality portrait generator \u2014 analyzes AI conversation history to produce MBTI type (16 color themes), capability radar, developer rating, 3-dimension famous match, and a persona skill that lets any AI \"think like you\".",
+      "description": "Developer personality portrait generator — analyzes AI conversation history to produce MBTI type (16 color themes), capability radar, developer rating, 3-dimension famous match, and a persona skill that lets any AI \"think like you\".",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/dadwadw233/VibePortrait/HEAD/.codex-plugin/plugin.json"
@@ -704,7 +704,7 @@
       "url": "https://github.com/mobazha/mobazha-skills",
       "owner": "mobazha",
       "repo": "mobazha-skills",
-      "description": "Decentralized e-commerce skills \u2014 deploy self-hosted stores, import products from Shopify/Amazon, configure custom domains and Telegram bots, set up Tor privacy, and manage your store via MCP.",
+      "description": "Decentralized e-commerce skills — deploy self-hosted stores, import products from Shopify/Amazon, configure custom domains and Telegram bots, set up Tor privacy, and manage your store via MCP.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/mobazha/mobazha-skills/HEAD/.codex-plugin/plugin.json"
@@ -804,7 +804,7 @@
       "url": "https://github.com/talkstream/ru-text",
       "owner": "talkstream",
       "repo": "ru-text",
-      "description": "Russian text quality \u2014 ~1,040 rules for typography, info-style, editorial, UX writing, and business correspondence.",
+      "description": "Russian text quality — ~1,040 rules for typography, info-style, editorial, UX writing, and business correspondence.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/talkstream/ru-text/HEAD/.codex-plugin/plugin.json"
@@ -824,7 +824,7 @@
       "url": "https://github.com/sitemd-cc/sitemd",
       "owner": "sitemd-cc",
       "repo": "sitemd",
-      "description": "Build websites from Markdown via MCP \u2014 22 tools for creating pages, generating content, validating, running SEO audits, configuring settings, and deploying static sites to Cloudflare Pages.",
+      "description": "Build websites from Markdown via MCP — 22 tools for creating pages, generating content, validating, running SEO audits, configuring settings, and deploying static sites to Cloudflare Pages.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/sitemd-cc/sitemd/HEAD/.codex-plugin/plugin.json"
@@ -864,7 +864,7 @@
       "url": "https://github.com/MohamedAbdallah-14/unslop",
       "owner": "MohamedAbdallah-14",
       "repo": "unslop",
-      "description": "Strip AI writing patterns from text output \u2014 removes filler phrases, hedging language, and generic constructs to produce cleaner written content. Install: `npm install -g unslop`.",
+      "description": "Strip AI writing patterns from text output — removes filler phrases, hedging language, and generic constructs to produce cleaner written content. Install: `npm install -g unslop`.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/MohamedAbdallah-14/unslop/HEAD/plugins/unslop/.codex-plugin/plugin.json"

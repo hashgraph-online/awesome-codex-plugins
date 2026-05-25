@@ -380,3 +380,11 @@ AC-N  ...
 - **不要** 把方案写成「未来五年路线图」—— spec 的范围是**这一次** delivery。
 - **不要** 在 Acceptance criteria 里写「looks good」「works correctly」之类不可验证的话。
 - **不要** 输出超过两屏的 spec —— 超出多半是把不该做的东西也写进来了,回 Step 2 删 in scope。
+
+---
+
+## Multi-Agent Note
+
+`dev-spec` is main-agent-first because it negotiates scope with the user.
+
+Explorers may gather codebase facts before or during spec work, but the main agent owns the interview, ambiguity scoring, assumptions ledger, and final scope confirmation. Apply `../../docs/multi-agent-policy.md` only for bounded read-only exploration.

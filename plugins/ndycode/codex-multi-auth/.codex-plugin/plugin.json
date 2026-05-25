@@ -1,6 +1,6 @@
 {
   "name": "codex-multi-auth",
-  "version": "2.1.11",
+  "version": "2.1.12",
   "description": "Install and operate codex-multi-auth for the official @openai/codex CLI with multi-account OAuth rotation, switching, health checks, and recovery tools.",
   "interface": {
     "composerIcon": "./assets/codex-multi-auth-icon.svg"

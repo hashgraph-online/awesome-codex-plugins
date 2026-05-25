@@ -123,3 +123,32 @@ Status: ready for dev-code-review / ready for dev-finish / blocked by <failure>
 - 不能把“看起来没问题”写成证据。
 - agent / 工具报告成功后,仍要独立检查文件或命令输出。
 - 验证失败时,如实报告失败,不要弱化措辞。
+
+---
+
+## Multi-Agent Profile
+
+Recommended agent_type: worker
+
+Use when:
+- Implementation is complete enough to check.
+- The main agent needs independent evidence before claiming done / fixed / ready.
+- Verification can run without changing project files.
+
+Do:
+- Stay read-only unless the main agent explicitly assigns a fix.
+- List claims first, then map each claim to proof.
+- Run fresh commands and report exact results.
+- Use `../../docs/multi-agent-policy.md` for verifier independence expectations.
+
+Do not:
+- Rubber-stamp another agent's claim.
+- Turn local success into a broader claim than the commands support.
+- Hide or soften failed commands.
+
+Output:
+- Claims checked
+- Commands run
+- PASS / FAIL evidence
+- Requirement checklist
+- Residual risks

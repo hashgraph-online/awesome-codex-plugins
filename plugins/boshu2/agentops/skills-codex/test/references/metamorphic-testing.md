@@ -53,5 +53,5 @@ Record the invariant and generated cases in `.agents/test/summary.md`:
 
 ---
 
-**Source:** Adapted from jsm / `testing-metamorphic`. Pattern-only, no
+**Source:** Adapted from an external skill corpus / `testing-metamorphic`. Pattern-only, no
 verbatim text.

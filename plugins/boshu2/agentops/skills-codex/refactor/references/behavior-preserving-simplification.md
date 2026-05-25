@@ -46,4 +46,4 @@ The external behavior must remain the same. If you discover a bug, file or switc
 
 ---
 
-**Source:** Adapted from jsm / `simplify-and-refactor-code-isomorphically` and `de-slopify`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `simplify-and-refactor-code-isomorphically` and `de-slopify`. Pattern-only, no verbatim text.

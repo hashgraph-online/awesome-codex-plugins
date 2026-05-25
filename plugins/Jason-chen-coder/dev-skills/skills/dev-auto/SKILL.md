@@ -401,3 +401,11 @@ $ <skill> <args>
 - **不调用**:dev-auto 推荐 `dev-spec` 时,**用户**自己执行 `dev-spec`,不是 dev-auto 调起。
 - **下游回流**:用户跑完某 skill 后,可以再来 dev-auto 问下一步,也可以自己看流程图直接进。
 - **触发竞争**:dev-auto 的 description 严格限制只在用户**显式要求 workflow / 串起来 / 完整跑**时触发,避免和 dev-spec / dev-fix 等具体 skill 抢触发。
+
+---
+
+## Multi-Agent Note
+
+`dev-auto` is main-agent-first. It remains a workflow recommender, not an orchestrator.
+
+When the host runtime supports multi-agent execution, `dev-auto` may recommend a next phase that is suitable for delegation, but it must not spawn sub-agents, invoke other skills, or perform delegated work itself. The main agent applies `../../docs/multi-agent-policy.md` when deciding whether to delegate.

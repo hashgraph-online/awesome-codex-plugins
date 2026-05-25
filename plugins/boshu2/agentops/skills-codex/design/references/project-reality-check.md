@@ -33,4 +33,4 @@ If the smallest proof is cheaper than the proposed implementation, run the proof
 
 ---
 
-**Source:** Adapted from jsm / `reality-check-for-project`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `reality-check-for-project`. Pattern-only, no verbatim text.

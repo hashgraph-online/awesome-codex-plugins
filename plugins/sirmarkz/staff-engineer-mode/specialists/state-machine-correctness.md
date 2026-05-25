@@ -42,19 +42,21 @@ Some bugs are too subtle for example-based tests and too expensive to discover i
 - Safety properties: what must never happen.
 - Liveness properties: what must eventually happen, and under which assumptions.
 - Consistency, idempotency, ordering, durability, authorization, and isolation invariants.
+- Unknown-outcome cases where a timeout or lost response means the side effect may have succeeded, failed, or not executed.
 - Existing tests, fuzzers, simulations, model specs, incident examples, and known counterexamples.
 - Mapping from model behavior to implementation code, logs, metrics, and runtime monitors.
 
 ## Workflow
 
 1. **Name the critical property.** Write invariants in plain language before choosing tools.
-2. **Bound the model.** Include only state, actors, timing, failures, and nondeterminism needed to test the property.
-3. **Choose validation strength.** Match the technique to the invariant. Use property-based testing and fuzzing when the invariant is local and the input or interleaving space exceeds what examples cover; use deterministic simulation when timing, scheduling, crash, or retry interleavings dominate; use model checking when the protocol or concurrency interleaving is the source of risk; reserve formal verification for cryptographic, consensus, or safety-critical mechanisms. Move up the validation ladder when the lower technique cannot cover the state space; do not stop at examples for high-stakes invariants. Bounded property tests on pure logic and parser-only fuzzing with no state-machine or invariant under test belong in `testing-and-quality-gates`.
-4. **Search for counterexamples.** Treat each failing trace as design feedback, not as a tool nuisance.
-5. **Connect model to code.** Record which code paths implement each transition and which tests or monitors check the mapping.
-6. **Verify recovery paths.** Include crash, retry, duplicate, reorder, timeout, partial write, and restart behavior.
-7. **Add runtime checks.** Monitor invariants that can be checked in production without leaking sensitive data or harming users.
-8. **Re-run on design changes.** Update specs, properties, and generated cases when the protocol or state machine changes.
+2. **Model unknown outcomes.** Treat timeout, lost response, and interrupted commit paths as explicit `unknown` states, not as ordinary failures. For side-effecting operations, define what a retry, reconciliation, or user response must do when success cannot be proven.
+3. **Bound the model.** Include only state, actors, timing, failures, and nondeterminism needed to test the property.
+4. **Choose validation strength.** Match the technique to the invariant. Use property-based testing and fuzzing when the invariant is local and the input or interleaving space exceeds what examples cover; use deterministic simulation when timing, scheduling, crash, or retry interleavings dominate; use model checking when the protocol or concurrency interleaving is the source of risk; reserve formal verification for cryptographic, consensus, or safety-critical mechanisms. Move up the validation ladder when the lower technique cannot cover the state space; do not stop at examples for high-stakes invariants. Example-based distributed-boundary matrices, bounded property tests on pure logic, and parser-only fuzzing with no state-machine or invariant under test belong in `testing-and-quality-gates`.
+5. **Search for counterexamples.** Treat each failing trace as design feedback, not as a tool nuisance.
+6. **Connect model to code.** Record which code paths implement each transition and which tests or monitors check the mapping.
+7. **Verify recovery paths.** Include crash, retry, duplicate, reorder, timeout, unknown outcome, partial write, and restart behavior.
+8. **Add runtime checks.** Monitor invariants that can be checked in production without leaking sensitive data or harming users.
+9. **Re-run on design changes.** Update specs, properties, and generated cases when the protocol or state machine changes.
 
 ## Synthesized Default
 
@@ -93,6 +95,7 @@ Use lightweight formal or semi-formal validation for high-stakes stateful behavi
 ## Required Outputs
 
 - Correctness property list with safety and liveness split.
+- Unknown-outcome semantics for timeout, lost response, retry, and reconciliation cases.
 - State-machine or protocol model boundary.
 - Validation method selection and rationale.
 - Counterexample log and design changes.
@@ -104,6 +107,7 @@ Use lightweight formal or semi-formal validation for high-stakes stateful behavi
 
 - `invariant_list`: critical safety and liveness properties are written in plain, testable language.
 - `model_boundary`: actors, state, messages, timing, and failure assumptions are explicit.
+- `unknown_outcome`: timeout and lost-response cases define whether the side effect may have happened and how retry or reconciliation stays safe.
 - `counterexample_search`: validation attempts to find failing traces, not just confirm expected cases.
 - `code_mapping`: each modeled transition maps to implementation code, tests, or runtime checks.
 - `recovery_cases`: duplicate, reorder, retry, crash, timeout, and partial-failure cases are covered or explicitly exempted.
@@ -111,6 +115,7 @@ Use lightweight formal or semi-formal validation for high-stakes stateful behavi
 ## Red Flags - Stop And Rework
 
 - "Exactly once", "no split brain", or "strong consistency" is asserted without invariants.
+- Timeout is treated as proof of failure for a side-effecting operation.
 - The model omits retries, duplicate messages, crash recovery, or clock assumptions that exist in production.
 - Property tests only replay hand-picked examples.
 - A counterexample is dismissed because it is unlikely rather than impossible or risk-accepted.

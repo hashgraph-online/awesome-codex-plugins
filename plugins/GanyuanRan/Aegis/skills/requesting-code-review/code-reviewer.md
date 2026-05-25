@@ -45,6 +45,13 @@ git diff --stat {BASE_SHA}..{HEAD_SHA}
 git diff {BASE_SHA}..{HEAD_SHA}
 ```
 
+## Findings First
+
+Lead with findings. Use bugs first, risk first, tests first. Do not bury
+correctness, evidence, architecture, compatibility, or retirement problems
+under a broad summary. If there are no findings, say that clearly and name the
+remaining test gaps or residual risk.
+
 ## Review Checklist
 
 **Code Quality:**
@@ -101,9 +108,6 @@ git diff {BASE_SHA}..{HEAD_SHA}
 
 ## Output Format
 
-### Strengths
-[What's well done? Be specific.]
-
 ### Issues
 
 #### Critical (Must Fix)
@@ -120,6 +124,9 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - What's wrong
 - Why it matters
 - How to fix (if not obvious)
+
+### Strengths
+[What's well done? Be specific.]
 
 ### Recommendations
 [Improvements for code quality, architecture, or process]

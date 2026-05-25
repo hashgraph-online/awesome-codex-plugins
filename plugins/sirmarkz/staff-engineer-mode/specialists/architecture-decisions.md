@@ -36,6 +36,7 @@ Architecture decision work turns "components and opinions" into explicit goals, 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Problem statement, users, goals, non-goals, constraints, success criteria.
 - Current and proposed architecture, data flows, trust boundaries, interfaces, dependencies, and runtime responsibility model.
+- Interaction style: request/response, event, batch, stream, push, or local projection, and whether high-volume clients can avoid polling or fanout.
 - Critical-path storage and runtime dependency choices, including latency, availability, failover, coupling, alternatives, and reversal or isolation plan.
 - Operability notes: how the user or agent debugs, replaces, or degrades around the design, what the fallback path is, and where that path is tested or documented.
 - Alternatives considered, including "do nothing", "keep modular", "split later".
@@ -59,14 +60,15 @@ inferred field as ASSUMED so the user can correct it.
 1. **Frame the decision.** Write the decision as one clear question and list goals, non-goals, and constraints before evaluating solutions.
 2. **Emit a compact ADR-shaped first answer.** Before asking for more artifacts, give the user a usable decision skeleton containing: decision question, context/forces with rationale, explicit decision status or decision, at least two rejected alternatives with reasons, positive and negative consequences, reversibility cost and reconsideration trigger, and responsibility owner or check path. Mark unknowns as `ASSUMED` or `NEEDS CHECK` instead of omitting the section.
 3. **Map the system.** Identify data flow, control flow, dependency direction, trust boundaries, failure domains, and operational checkpoints.
-4. **Map bounded contexts.** Produce a bounded-context map naming each context, its responsibility owner or check path, the language/model it uses, and the relationship to every adjacent context (upstream/downstream, conformist, anti-corruption layer, shared kernel, partnership, customer/supplier, separate ways). Note where a context translates a neighbor's model and where it conforms.
-5. **Prefer simpler boundaries first.** Start with modular design and explicit contracts. Add distribution only for independent scaling, release cadence, responsibility, isolation, or blast-radius needs.
-6. **Compare alternatives.** Evaluate at least two real options plus the current state. Include consequences, rejected alternatives, and what would make the decision wrong later.
-7. **Specify fitness functions.** Write the architectural invariants the system must hold as testable checks. Each fitness function names: the property under test, the metric, the threshold or rule, the measurement source, the evaluation cadence, the failure response, and the local check path. Cover at minimum the dependency-direction rules, the public-contract compatibility rules, the latency or throughput budgets the boundary depends on, and any blast-radius or isolation invariant the design relies on.
-8. **Evaluate runtime dependency responsibility.** For any critical runtime dependency or storage choice, state how the user or agent can debug it, patch or change it, work around issues, isolate or reverse the decision, and exit or degrade if it fails. Keep this at design-time adoption criteria; timeout/retry policy goes to `dependency-resilience`, and launch details go to `production-readiness-review`.
-9. **Evaluate cross-cutting risks.** Cover reliability, overload, data correctness, security, observability, deployment safety, recovery, cost, and maintainability.
-10. **Record the decision.** Create an ADR or design-decision summary with status, context (>=2 forces with rationale), decision, consequences (split positive and negative), reversibility (cost + reconsideration trigger), supporting details, fitness-function references, and follow-up checks.
-11. **Use specialist checks internally.** Apply the SLO, HA, dependency resilience, secure design, rollout, or data consistency skill when the design exposes that surface.
+4. **Choose interaction style deliberately.** Before hardening a synchronous request path, ask whether eventing, batch, push, stream, or local projection would reduce overload, quota pressure, or retry ambiguity while still satisfying user semantics.
+5. **Map bounded contexts.** Produce a bounded-context map naming each context, its responsibility owner or check path, the language/model it uses, and the relationship to every adjacent context (upstream/downstream, conformist, anti-corruption layer, shared kernel, partnership, customer/supplier, separate ways). Note where a context translates a neighbor's model and where it conforms.
+6. **Prefer simpler boundaries first.** Start with modular design and explicit contracts. Add distribution only for independent scaling, release cadence, responsibility, isolation, or blast-radius needs.
+7. **Compare alternatives.** Evaluate at least two real options plus the current state. Include consequences, rejected alternatives, and what would make the decision wrong later.
+8. **Specify fitness functions.** Write the architectural invariants the system must hold as testable checks. Each fitness function names: the property under test, the metric, the threshold or rule, the measurement source, the evaluation cadence, the failure response, and the local check path. Cover at minimum the dependency-direction rules, the public-contract compatibility rules, the latency or throughput budgets the boundary depends on, and any blast-radius or isolation invariant the design relies on.
+9. **Evaluate runtime dependency responsibility.** For any critical runtime dependency or storage choice, state how the user or agent can debug it, patch or change it, work around issues, isolate or reverse the decision, and exit or degrade if it fails. Keep this at design-time adoption criteria; timeout/retry policy goes to `dependency-resilience`, and launch details go to `production-readiness-review`.
+10. **Evaluate cross-cutting risks.** Cover reliability, overload, data correctness, security, observability, deployment safety, recovery, cost, and maintainability.
+11. **Record the decision.** Create an ADR or design-decision summary with status, context (>=2 forces with rationale), decision, consequences (split positive and negative), reversibility (cost + reconsideration trigger), supporting details, fitness-function references, and follow-up checks.
+12. **Use specialist checks internally.** Apply the SLO, HA, dependency resilience, secure design, rollout, or data consistency skill when the design exposes that surface.
 
 ## Synthesized Default
 
@@ -108,6 +110,7 @@ Use a compact design decision plus ADR. Keep the system modular and technology-a
 - Architecture decision summary with context, goals, non-goals, and constraints.
 - ADR with status, decision, alternatives, consequences, and a concrete responsibility value (user, local check path, or supplied project role; if unknown, use `ASSUMED: <component> responsibility` rather than a blank or `TBD`).
 - System map covering data flow, dependencies, trust boundaries, and responsibility.
+- Interaction-style decision covering synchronous, event, batch, stream, push, or local projection alternatives when overload or quota pressure is material.
 - Runtime dependency adoption criteria covering supportability, changeability, fallback, and exit/degradation path.
 - Critical-path storage or dependency decision entry with forces, alternatives, failure model, and reversal or isolation path.
 - Bounded-context map listing each context with fields: name, responsibility owner or check path, model/language, upstream contexts, downstream contexts, relationship to each neighbor (conformist, anti-corruption layer, shared kernel, partnership, customer/supplier, separate ways), and the translation surface where a neighbor's model is adapted.
@@ -121,6 +124,7 @@ Use a compact design decision plus ADR. Keep the system modular and technology-a
 - `decision_record`: the ADR states context, decision, status, alternatives, and consequences.
 - `goal_alignment`: every recommended architecture element maps to a goal, constraint, or risk.
 - `boundary_check`: service/module boundaries have responsibility, contracts, data responsibility, and failure behavior.
+- `interaction_style`: overload- or quota-sensitive designs compare synchronous calls with event, batch, stream, push, or projection alternatives.
 - `context_map`: every named context has a model, upstream and downstream neighbors, and the relationship pattern to each neighbor; translation surfaces are explicit where neighbors disagree on the model.
 - `fitness_functions`: every architectural invariant the design depends on has a property, metric, threshold or rule, measurement source, evaluation cadence, failure response, and local check path; vague "should be fast" or "should be loosely coupled" entries are rejected as not testable.
 - `risk_coverage`: reliability, security, data, deploy, observability, and operations risks are considered.

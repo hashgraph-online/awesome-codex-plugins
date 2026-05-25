@@ -10,14 +10,14 @@ When a trigger condition listed below fires (new transport surface, new agent-AP
 
 | Skill / source | Origin | Why relevant to scaffold | Trigger to absorb |
 |---|---|---|---|
-| `mcp-server-design` | jsm / ACFS | Agent-facing tool UX patterns: anticipating how agents misuse APIs, structured "fail helpfully" errors, "agent theory of mind" framing for tool design, and `make the wrong thing impossible` as a north star for boilerplate defaults. Useful when scaffold output is itself an agent-facing tool surface (MCP server, CLI agent, daemon). Scored 1.00 in the 2026-05-03 jsm utility map. | When agentopsd MCP transport work begins, or when a new scaffold mode targets MCP/agent-tool servers. |
+| `mcp-server-design` | ACFS | Agent-facing tool UX patterns: anticipating how agents misuse APIs, structured "fail helpfully" errors, "agent theory of mind" framing for tool design, and `make the wrong thing impossible` as a north star for boilerplate defaults. Useful when scaffold output is itself an agent-facing tool surface (MCP server, CLI agent). Scored 1.00 in the 2026-05-03 external-corpus utility map. | When MCP transport work begins, or when a new scaffold mode targets MCP/agent-tool servers. |
 
 ## Entry shape
 
 When adding a new candidate, keep the same four fields so the table stays easy to scan:
 
 - **Skill / source** — name and (if external) the upstream owner.
-- **Origin** — where the skill currently lives (jsm/ACFS, third-party repo, internal experiment).
+- **Origin** — where the skill currently lives (ACFS, third-party repo, internal experiment).
 - **Why relevant to scaffold** — one or two sentences naming the specific patterns scaffold could borrow. Phrase the takeaway in our own words; do not paste the source's description verbatim.
 - **Trigger to absorb** — the concrete condition that should re-open this absorption candidate. Avoid vague triggers ("when relevant"); name the workload, surface, or epic.
 

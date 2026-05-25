@@ -31,11 +31,3 @@ documentation, scripts, manifests, and templates.
 
 Third-party articles, papers, documentation, trademarks, logos, product names,
 and organization names remain under their owners' terms.
-
-For contributors:
-
-- Cite stable source IDs from `skills/_shared/references/source-index.md`.
-- Write original summaries and operational guidance.
-- Keep quotes short and necessary.
-- Do not copy third-party articles, diagrams, logos, or other materials into
-  this repository.

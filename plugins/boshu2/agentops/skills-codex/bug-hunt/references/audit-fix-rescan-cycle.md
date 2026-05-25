@@ -95,4 +95,4 @@ Append to the audit report each iteration:
 
 ---
 
-> Pattern adopted from `multi-pass-bug-hunting` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `multi-pass-bug-hunting` (ACFS skill corpus). Methodology only — no verbatim text.

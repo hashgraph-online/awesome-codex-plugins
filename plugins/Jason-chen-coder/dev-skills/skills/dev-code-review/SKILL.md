@@ -313,3 +313,32 @@ Cleanup
 - **不要** 一次性把整个 `references/lang-conventions.md` 读进来,只读本次 diff 涉及的语言小节。
 - 用户说"只看 staged" / "只看某路径"时严格遵守,不要扩大范围。
 - 评审与实现分开:本 skill 只评审,不写实现代码。如需修复,由用户在下一轮明确指示后进行。
+
+---
+
+## Multi-Agent Profile
+
+Recommended agent_type: worker
+
+Use when:
+- A diff is ready for independent review.
+- The reviewer did not author the implementation being reviewed.
+- The main agent needs a verdict before commit or handoff.
+
+Do:
+- Stay read-only.
+- Review only the requested scope.
+- Prioritize bugs, regressions, missing wiring, missing tests, secrets, and dead code.
+- Apply reviewer independence from `../../docs/multi-agent-policy.md`.
+
+Do not:
+- Mutate the working tree.
+- Re-review implementation choices already outside the requested scope unless they create concrete risk.
+- Emit a commit message unless the verdict is READY.
+
+Output:
+- Verdict
+- Scope
+- Findings ordered by severity
+- Test gaps
+- Commit message only when READY

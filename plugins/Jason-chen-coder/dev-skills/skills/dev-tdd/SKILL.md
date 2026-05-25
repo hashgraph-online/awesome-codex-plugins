@@ -143,3 +143,33 @@ Production target: <实现文件>
 - Green 阶段不加未测试功能。
 - 不能通过削弱测试让它变绿。
 - 完成声明必须带新鲜命令输出,否则交给 `dev-verify` 补齐。
+
+---
+
+## Multi-Agent Profile
+
+Recommended agent_type: worker
+
+Use when:
+- The behavior to implement is already scoped.
+- The assigned write scope is clear and disjoint from other agents.
+- The sub-agent can prove red -> green with a narrow command.
+
+Do:
+- Work only inside the assigned ownership.
+- Preserve unrelated edits and adapt to concurrent changes.
+- Report changed files, test commands, and red / green evidence.
+- Follow the ownership rules in `../../docs/multi-agent-policy.md`.
+
+Do not:
+- Edit files outside the assigned scope.
+- Weaken tests to make them pass.
+- Add unrequested abstractions or future-proofing.
+- Claim completion without fresh command output.
+
+Output:
+- Summary
+- Changed files
+- RED command and failure reason
+- GREEN command and result
+- Risks / follow-ups

@@ -25,7 +25,7 @@
 
 ## 这是什么
 
-dev-skills 是一套给 Claude Code / Codex 用的开发流程卡片。
+dev-skills 是一套给 Claude Code / Codex 用的开发工作流规则集。
 
 你可以把它理解成:每次让 AI 帮你写代码或做界面时,它不用从零猜流程,而是按固定步骤工作。
 
@@ -50,8 +50,6 @@ dev-skills 是一套给 Claude Code / Codex 用的开发流程卡片。
 可选 dev-design-context -> dev-spec -> 可选 dev-plan -> dev-tdd -> dev-verify -> dev-code-review -> git commit -> dev-finish
 ```
 
-白话解释:
-
 - `dev-design-context`:做 UI、landing page、产品界面前,先把项目设计方向写进 `.design-context.md`;不是设计类工作可以跳过。
 - `dev-spec`:先把需求问清楚。
 - `dev-plan`:复杂功能先出方案,简单功能可以跳过。
@@ -67,8 +65,6 @@ dev-skills 是一套给 Claude Code / Codex 用的开发流程卡片。
 dev-fix -> dev-verify -> dev-code-review -> git commit -> dev-finish
 ```
 
-白话解释:
-
 - `dev-fix`:先复现 bug,再列假设、找 root cause、写 regression test。
 - `dev-verify`:确认修复真的有效。
 - `dev-code-review`:检查有没有回归、夹带改动、临时代码。
@@ -81,17 +77,15 @@ dev-fix -> dev-verify -> dev-code-review -> git commit -> dev-finish
 dev-tdd -> dev-verify -> dev-code-review -> git commit
 ```
 
-白话解释:
-
 - 可以跳过 spec 和 plan。
 - 但只要会改行为,仍然建议先用测试锁住这次小改动。
 - commit 前还是要验证和 review。
 
 ---
 
-## 10 个 skill 怎么记
+## 按任务入口选择 skill
 
-不需要把 10 个名字都背下来。先记住用户最自然会主动说出口的入口,其他交给流程门禁。
+先看你现在要解决的问题属于哪一类:不确定下一步、需求和方案、实现和修复、完成和提交。用户会主动说出口的入口放在前面,流程门禁由 agent 在合适阶段提醒。
 
 | 类型 | Skill | 什么时候出现 | 它会做什么 |
 |---|---|---|
@@ -254,6 +248,69 @@ npx skills add Jason-chen-coder/dev-skills --global --force
 /dev-code-review
 /dev-commit-writer
 ```
+
+---
+
+## Multi-agent 怎么用
+
+如果你的 agent runtime 支持多 agent,`dev-skills` 可以作为分工协议使用:主 agent 负责用户沟通、拆分任务、最终整合和 git 操作;子 agent 只做边界清晰的探索、实现、验证或 review。
+
+### 启用前提
+
+先确认你的工具已经开启 multi-agent 能力。以 Codex 为例,可在 `~/.codex/config.toml` 中配置:
+
+```toml
+[features]
+multi_agent = true
+parallel = true
+
+[agents]
+max_threads = 12
+max_depth = 2
+```
+
+配置只代表 runtime 允许创建子 agent;是否分派、分派几个、分派给谁,仍由主 agent 根据任务边界决定。
+
+### 对话里怎么说
+
+你不需要记住内部角色名,直接说清楚目标即可:
+
+```text
+这个任务可以用多 agent 并行处理,请按 dev-skills 的 multi-agent policy 拆分。
+```
+
+或者更具体一点:
+
+```text
+派一个 explorer 查相关实现,主 agent 继续分析主路径。
+派一个 worker 只负责 tests/ 里的回归测试,不要改生产代码。
+派一个 verifier 按 dev-verify 独立检查这次完成声明。
+派一个 reviewer 按 dev-code-review 只审查当前 diff。
+```
+
+推荐用法:
+
+- `dev-plan` 可作为 planner lane,用于方案取舍或架构 critique。
+- `dev-tdd` / `dev-fix` 可作为 worker lane,但必须有明确文件 ownership。
+- `dev-verify` 可作为 verifier lane,独立检查完成声明和命令证据。
+- `dev-code-review` 可作为 reviewer lane,独立审查 diff。
+- `dev-design-context` 可作为 design explorer lane,先找出现有 UI / 设计系统约定。
+
+典型场景:
+
+- 大型排查:explorer 查调用链,主 agent 复现主路径。
+- 多模块实现:不同 worker 负责互不重叠的文件或模块。
+- 完成前验证:verifier 独立跑命令,避免作者自证。
+- commit 前 review:reviewer 不参与实现,只看 diff、风险和测试缺口。
+
+不要这么用:
+
+- 不要让多个 worker 改同一批文件。
+- 不要把需要用户拍板的产品问题丢给子 agent。
+- 不要让子 agent 做 merge、push、discard 这类高风险 git 操作。
+- 不要把 `dev-auto` 当成自动调度器。
+
+`dev-auto` 仍然只是入口推荐器,不会自动调起其他 skill 或子 agent。完整规则见 [`docs/multi-agent-policy.md`](./docs/multi-agent-policy.md)。
 
 ---
 

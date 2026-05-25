@@ -4,11 +4,23 @@
 
 **Your AI coding agent ships fast. This makes it ship with judgment.**
 
-Staff-level engineering reasoning for design, development, testing, release, and operations decisions.
+Best software engineering practices from FAANG, packaged as
+decision guidance for AI coding agents. As agents write material amounts of
+production code, the bottleneck is no longer how fast they write; it is whether
+they reason about what happens when the code runs at 3am. Staff Engineer Mode closes that
+gap before an agent ships code without the reliability, security, operability,
+compatibility, and rollout judgment production systems need.
 
-## Why Now
+## Sources
 
-AI coding agents now write material amounts of production code. The bottleneck is no longer how fast the agent writes — it is whether the agent reasoned about what happens when the code runs at 3am. Agents will happily design an endpoint without a compatibility plan, implement a migration with no rollback, add tests that miss the failure mode, or ship a config change with no canary. This pack closes that gap.
+Staff Engineer Mode distills public engineering practices from AWS Builders' Library,
+Google SRE and Software Engineering at Google, Meta Engineering, Microsoft SDL
+and DevOps guidance, Apple security and privacy docs, Netflix resilience work,
+and standards from NIST, CISA, OWASP, OpenSSF, IETF, and W3C into practical
+guidance for AI coding agents. See the
+[source index](skills/_shared/references/source-index.md) for references and
+stable source IDs. Staff Engineer Mode is independent and is not endorsed by or
+affiliated with those organizations.
 
 ## How It Works
 
@@ -19,75 +31,6 @@ Supported tools should list only the native `staff-engineer-mode` router. Specia
 The router refuses to load every plausible specialist. One primary specialist at a time, by default.
 
 See [SAMPLE-PROMPTS.md](SAMPLE-PROMPTS.md) for prompts across every specialist.
-
-## What It Looks Like
-
-These are real Claude Code captures from public codebases. The prompt is plain
-developer wording; Staff Engineer Mode routes to one specialist, loads that
-specialist file, and returns a structured engineering answer.
-
-<details>
-<summary>API compatibility review</summary>
-
-<img src="assets/staff-engineer-mode-api-design-and-compatibility.png" alt="Claude Code capture showing an API compatibility review for an account API response change" width="100%">
-
-</details>
-
-<details>
-<summary>Backup and recovery review</summary>
-
-<img src="assets/staff-engineer-mode-backup-and-recovery.png" alt="Claude Code capture showing a backup and recovery review for a database restore plan" width="100%">
-
-</details>
-
-<details>
-<summary>Code readability for agents review</summary>
-
-<img src="assets/staff-engineer-mode-code-readability-for-agents.png" alt="Claude Code capture showing a code readability for agents review for repo areas an AI coding agent may misunderstand" width="100%">
-
-</details>
-
-<details>
-<summary>Dependency and code hygiene plan</summary>
-
-<img src="assets/staff-engineer-mode-dependency-and-code-hygiene.png" alt="Claude Code capture showing a dependency and code hygiene plan for stale dependencies and dead helper code" width="100%">
-
-</details>
-
-<details>
-<summary>Dependency resilience review</summary>
-
-<img src="assets/staff-engineer-mode-dependency-resilience.png" alt="Claude Code capture showing a dependency resilience review for remote media fetch timeouts, retries, and fallback behavior" width="100%">
-
-</details>
-
-<details>
-<summary>High availability design</summary>
-
-<img src="assets/staff-engineer-mode-high-availability-design.png" alt="Claude Code capture showing a high availability design review for a multi-region control plane" width="100%">
-
-</details>
-
-<details>
-<summary>Observability and alerting review</summary>
-
-<img src="assets/staff-engineer-mode-observability-and-alerting.png" alt="Claude Code capture showing an observability and alerting review for API server request errors and latency" width="100%">
-
-</details>
-
-<details>
-<summary>Performance and capacity review</summary>
-
-<img src="assets/staff-engineer-mode-performance-and-capacity.png" alt="Claude Code capture showing a performance and capacity review for an account lookup endpoint" width="100%">
-
-</details>
-
-<details>
-<summary>Production readiness before launch</summary>
-
-<img src="assets/staff-engineer-mode-production-readiness-review.png" alt="Claude Code capture showing a production readiness review for a media processing queue split" width="100%">
-
-</details>
 
 ## Installation
 
@@ -163,7 +106,7 @@ One native router skill: `staff-engineer-mode`. It routes to 54 specialist
 files under `specialists/`; those files are not installed or listed as separate
 native skills.
 
-Examples by surface (the full catalog with prompts for every specialist file is in [SAMPLE-PROMPTS.md](SAMPLE-PROMPTS.md)):
+Examples by surface:
 
 | Surface | Example specialist files |
 | --- | --- |
@@ -177,32 +120,12 @@ Examples by surface (the full catalog with prompts for every specialist file is 
 | Client, ML/AI, and experimentation | [`web-release-gates`](specialists/web-release-gates.md), [`mobile-release-engineering`](specialists/mobile-release-engineering.md), [`accessibility-gates`](specialists/accessibility-gates.md), [`llm-application-security`](specialists/llm-application-security.md), [`llm-evaluation`](specialists/llm-evaluation.md), [`llm-serving-cost-and-latency`](specialists/llm-serving-cost-and-latency.md), [`ml-reliability-and-evaluation`](specialists/ml-reliability-and-evaluation.md), [`experimentation-and-metric-guardrails`](specialists/experimentation-and-metric-guardrails.md) |
 | Engineering workflow, readiness, and controls | [`agent-pr-review`](specialists/agent-pr-review.md), [`ai-coding-governance`](specialists/ai-coding-governance.md), [`documentation-lifecycle`](specialists/documentation-lifecycle.md), [`engineering-control-evidence`](specialists/engineering-control-evidence.md), [`production-readiness-review`](specialists/production-readiness-review.md), [`incident-response-and-postmortems`](specialists/incident-response-and-postmortems.md), [`oncall-health`](specialists/oncall-health.md), [`platform-golden-paths`](specialists/platform-golden-paths.md) |
 
-Every specialist file appears in [SAMPLE-PROMPTS.md](SAMPLE-PROMPTS.md) with four representative prompts.
-
-## Compared To Alternatives
-
-Staff Engineer Mode can be used alongside workflow skills like Superpowers.
-Workflow skills shape how the agent plans and executes; Staff Engineer Mode
-shapes the engineering checks and decisions it applies to the work.
-
 ## Contributing
 
 Patches welcome — especially additional practices from authoritative sources: first-party engineering publications, official documentation, standards bodies, peer-reviewed papers, or widely cited practitioner references.
 
-New specialist files must be technology-agnostic, cite stable source IDs, and avoid vendor endorsement. Read [STYLE.md](STYLE.md) before opening a PR. The voice is enforced.
-
-## Maintainers
-
-See [MAINTAINERS.md](MAINTAINERS.md).
-
-## Sources And Influences
-
-This pack focuses on the intersection of the strongest publicly documented engineering practices from leading software engineering organizations. It synthesizes large-operator engineering writing (Google, Amazon, Meta, Microsoft, Apple, Netflix) and standards work cited by their teams (NIST, CISA, OWASP, OpenSSF, IETF, W3C). Specific source IDs are in `skills/_shared/references/source-index.md`. This is an independent project; nothing here is endorsed by or affiliated with those organizations.
+New specialist files must be technology-agnostic, cite stable source IDs, and avoid vendor endorsement. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. The voice is enforced.
 
 ## License
 
 MIT — see [LICENSE](LICENSE). The project notice is included there.
-
----
-
-*Fewer vibes. More engineering.*

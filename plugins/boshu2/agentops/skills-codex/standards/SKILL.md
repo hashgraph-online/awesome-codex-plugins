@@ -31,7 +31,7 @@ references that other skills load based on file types being processed.
 | Behavioral Discipline | `references/behavioral-discipline.md` | implement, review, vibe, pre-mortem |
 | Test Pyramid | `references/test-pyramid.md` | plan, pre-mortem, implement, crank, validation, post-mortem |
 | SKILL.md Tier-Caps | `references/skill-tier-caps.md` | vibe (skill line-cap audits), doc, plan |
-| JSM Attribution | `references/jsm-attribution.md` | doc (when absorbing external corpora), heal-skill |
+| External-Source Attribution | `references/external-source-attribution.md` | doc (when absorbing external corpora), heal-skill |
 
 ## How It Works
 
@@ -148,7 +148,7 @@ Skills that use standards:
 - [references/test-pyramid.md](references/test-pyramid.md)
 - [references/yaml.md](references/yaml.md)
 - [references/skill-tier-caps.md](references/skill-tier-caps.md)
-- [references/jsm-attribution.md](references/jsm-attribution.md)
+- [references/external-source-attribution.md](references/external-source-attribution.md)
 
 ## Local Resources
 
@@ -173,7 +173,7 @@ Skills that use standards:
 - [references/typescript.md](references/typescript.md)
 - [references/yaml.md](references/yaml.md)
 - [references/skill-tier-caps.md](references/skill-tier-caps.md)
-- [references/jsm-attribution.md](references/jsm-attribution.md)
+- [references/external-source-attribution.md](references/external-source-attribution.md)
 
 ### scripts/
 

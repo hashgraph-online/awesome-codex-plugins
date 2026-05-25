@@ -353,3 +353,32 @@ ADR 是最终决定的**单一入口**,后续 dev-code-review 评审时如果 di
 - **上游**:`dev-spec` 的 spec(`.claude/artifacts/designs/<feature>.md`)是本 skill 的最佳输入。
 - **下游**:本 skill 的 plan(`.claude/artifacts/plans/<feature>.md`)是 `dev-code-review` 的对齐参考(若存在,审查时应检查 diff 是否落实了 plan 的 AC 与 ADR;但触发 dev-code-review 仍由用户主动)。
 - **不调用**:本 skill 不主动 invoke 其他 skill —— 跨 skill 的衔接由用户控制。
+
+---
+
+## Multi-Agent Profile
+
+Recommended agent_type: default
+
+Use when:
+- A spec or scoped requirement already exists.
+- The main agent needs an independent planner / architect / critic pass.
+- The output can be reviewed as a plan artifact before implementation starts.
+
+Do:
+- Stay read-only.
+- Produce options, tradeoffs, ADR, risks, and verification steps.
+- Flag missing requirements instead of filling them in silently.
+- Link follow-up behavior to `../../docs/multi-agent-policy.md`.
+
+Do not:
+- Write code or edit project files outside the plan artifact.
+- Decide unresolved product scope for the user.
+- Trigger downstream skills automatically.
+
+Output:
+- Recommended option and rationale
+- Implementation steps
+- Risks and mitigations
+- Verification plan
+- Open questions

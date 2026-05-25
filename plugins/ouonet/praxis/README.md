@@ -1,9 +1,13 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ouonet/praxis/main/assets/logo.svg" alt="Praxis" width="260"/>
+  <a href="https://ouonet.github.io/praxis/" target="_blank">
+    <img src="https://raw.githubusercontent.com/ouonet/praxis/main/assets/logo.svg" alt="Praxis" width="260"/>
+  </a>
 </p>
 
 <p align="center">
-  <strong>What, not how.</strong>
+  <a href="https://ouonet.github.io/praxis/" target="_blank" style="text-decoration: none;">
+    <strong>What, not how.</strong>
+  </a>
 </p>
 
 ---
@@ -11,6 +15,8 @@
 **Praxis** is a discipline framework for AI coding agents. Tell your agent *what you need* and *what done looks like*—not *how to do it*. As AI gets smarter, this gap widens: the agent can apply domain expertise, handle edge cases, and adapt faster than step-by-step instructions allow.
 
 Inspired by [Superpowers](https://github.com/obra/superpowers), rewritten to be significantly cheaper while keeping the core capabilities.
+
+**📖 [Full documentation](https://ouonet.github.io/praxis/)**
 
 ## Quick Start
 
@@ -32,6 +38,7 @@ At session start, a hook injects the `praxis:using-praxis` startup skill. It tel
 
 | Skill     | When                                        |
 | --------- | ------------------------------------------- |
+| discover  | problem space undefined — unknown what to build, for whom, or whether it's worth building |
 | onboard   | existing project with no docs/tech-spec.md  |
 | design    | scope ≥ standard, anything new             |
 | plan      | after design                                |
@@ -69,6 +76,15 @@ Your project must maintain:
 
 Technical specs are **facts only**: contracts, data shapes, invariants, failure modes. No interpretation, no plans.
 
+### Discovery Area
+
+During exploration of vague or undefined goals, Praxis uses:
+
+- **`docs/discovery/YYYY-MM-DD-<topic>.md`** — Discovery note: hypotheses, investigation plan, experiments, findings.
+- **`spikes/YYYY-MM-DD-<topic>/`** — Throwaway code validating a hypothesis. Deleted when discovery ends.
+
+Discovery notes are **never deleted** — they accumulate as a permanent record across sessions. When discovery concludes, it either hands off to `design` or produces a knowledge artifact (`docs/discovery/<topic>-spec.md`) directly.
+
 ### Staging Area
 
 During active work, Praxis uses:
@@ -91,6 +107,27 @@ Praxis enforces synchronization at multiple checkpoints:
 **The rule**: Code changes without doc updates fail review. Docs that don't match code block merge.
 
 ## Install
+
+### Install from a branch
+
+To try an unreleased branch before it merges:
+
+**Claude Code**
+```bash
+claude plugins marketplace add ouonet/praxis#<branch>
+claude plugins install praxis
+```
+
+**Codex** — set in `opencode.json`:
+```json
+{
+  "plugin": ["praxis@git+https://github.com/ouonet/praxis.git#<branch>"]
+}
+```
+
+Replace `<branch>` with the branch name, e.g. `feat/discover-skill`.
+
+---
 
 ### Claude Code
 
@@ -163,6 +200,15 @@ Expected: agent outputs `praxis: scope=trivial, loading=` and just fixes it. **N
 
 ## Scripts
 
+### Vague goal
+
+```
+You: I want to build something that helps developers manage their workflow
+Agent: triage -> vague -> discover
+```
+
+Discover asks one question per turn to surface hypotheses. Runs experiments (including spike code in `spikes/`). Ends when the direction is confirmed — either handing off to `design` or producing a knowledge artifact directly.
+
 ### Tiny fix
 
 ```
@@ -210,6 +256,7 @@ Release confirms the version, moves CHANGELOG `Unreleased`, then asks before com
 
 | You ask                | Praxis does                        |
 | ---------------------- | ---------------------------------- |
+| I want to build X (vague) | vague → discover              |
 | fix typo               | trivial                            |
 | add small field        | small -> tdd                       |
 | add feature            | standard -> design/plan/tdd/review |
@@ -236,6 +283,7 @@ Praxis is directly inspired by [Superpowers](https://github.com/obra/superpowers
 | `finishing-a-development-branch`                                | `ship`                                   |
 | `verification-before-completion`                                | gate markers in `tdd` / `ship`         |
 | `writing-skills`                                                | — (not needed; skills are plain Markdown) |
+| —                                                                | `discover` (no Superpowers equivalent)   |
 | —                                                                | `onboard` (no Superpowers equivalent)    |
 | —                                                                | `archive` (no Superpowers equivalent)    |
 | —                                                                | `release` (no Superpowers equivalent)    |

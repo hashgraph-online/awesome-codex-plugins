@@ -1,12 +1,12 @@
 ---
 type: reference
 parent_skill: standards
-title: External-source attribution patterns (jsm/ACFS/gstack/...)
+title: External-source attribution patterns (ACFS/gstack/...)
 ---
 
 # Attribution Patterns for External-Source Absorption
 
-When a skill or reference absorbs patterns from an external corpus (jsm, ACFS, gstack, or any third-party knowledge source), attribution is required even when the absorption is pattern-only and contains no verbatim text. Two attribution patterns are supported. Pick one per skill based on source-count.
+When a skill or reference absorbs patterns from an external corpus (ACFS, gstack, or any third-party knowledge source), attribution is required even when the absorption is pattern-only and contains no verbatim text. Two attribution patterns are supported. Pick one per skill based on source-count.
 
 ## Pattern A — Skill-level `LICENSE.md`
 
@@ -16,7 +16,7 @@ Use when the skill is **primarily derived from a single external source**.
 - Reference from `SKILL.md` as **plain text**, never as a relative markdown link:
   - ✅ `See \`LICENSE.md\` in this skill directory for attribution.`
   - ❌ `See [LICENSE.md](LICENSE.md) for attribution.`
-- The relative-link form breaks `mkdocs --strict` because mkdocs flattens skill directories during build (`skills/<name>/SKILL.md` → `skills/<name>.md`), so the sibling-file link `[LICENSE.md](LICENSE.md)` resolves to `skills/LICENSE.md` which does not exist (per learning L10 in `.agents/learnings/2026-05-03-jsm-tier1.5-push-journey.md`).
+- The relative-link form breaks `mkdocs --strict` because mkdocs flattens skill directories during build (`skills/<name>/SKILL.md` → `skills/<name>.md`), so the sibling-file link `[LICENSE.md](LICENSE.md)` resolves to `skills/LICENSE.md` which does not exist.
 - Example: `skills/system-tuning/LICENSE.md`.
 
 ## Pattern B — Per-reference footer
@@ -46,6 +46,4 @@ Use when the skill's `references/*.md` files draw from **two or more external so
 
 ## Cross-references
 
-- Learning L10: `.agents/learnings/2026-05-03-jsm-tier1.5-push-journey.md` — mkdocs flattens skill dirs; sibling-file links don't resolve.
-- Tier 1.5 absorption plan: `.agents/plans/2026-05-03-jsm-absorption-tier1.5.md` — pattern-only constraint.
 - Example skill using Pattern A: `skills/system-tuning/`.

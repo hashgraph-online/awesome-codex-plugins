@@ -8,14 +8,9 @@ repo workflow. Productize the behavior through the existing `skill-builder` and
 
 Use only AgentOps-owned artifacts:
 
-- `docs/reference/jsm-clean-room-extraction-policy.md`
-- `docs/reference/jsm-skill-standards.md`
 - `docs/reference/skill-quality-rubric.md`
-- `docs/reference/jsm-cli-capability-map.md`
-- `docs/reference/jsm-agentops-gap-audit.md`
-- `docs/reference/jsm-pilot-upgrade-backlog.md`
 - `skills/standards/references/skill-structure.md`
-- `skills/standards/references/jsm-attribution.md`
+- `skills/standards/references/external-source-attribution.md`
 
 Do not copy protected third-party skill prose, prompts, scripts, names, or
 examples into AgentOps skills. Extract reusable structure and quality signals

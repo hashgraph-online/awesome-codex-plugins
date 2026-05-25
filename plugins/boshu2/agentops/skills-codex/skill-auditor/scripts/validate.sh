@@ -9,7 +9,7 @@ REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"
 bash "$REPO_ROOT/skills/heal-skill/scripts/heal.sh" --check "$SKILL_DIR"
 
 # Required artifacts
-for f in SKILL.md scripts/audit.sh references/skill-template.md references/audit-checks.md references/context-density-checks.md; do
+for f in SKILL.md scripts/audit.sh references/skill-template.md references/audit-checks.md references/context-density-checks.md schemas/audit-report.json; do
   [[ -f "$SKILL_DIR/$f" ]] || { echo "validate.sh: missing $SKILL_DIR/$f" >&2; exit 1; }
 done
 
@@ -46,6 +46,21 @@ if grep -q "check_description_multiline" "$SKILL_DIR/scripts/audit.sh"; then
   echo "validate.sh: audit.sh contains stale 'check_description_multiline' (must be 'check_description_has_triggers' per pre-mortem F1)" >&2
   exit 1
 fi
+
+# Pass 3: audit.sh must fold the rubric block in, and the scorer must support
+# --audit-block. The rubric must be advisory (not in the Pass-2 verdict loop).
+grep -q 'score_agentops_skill.py' "$SKILL_DIR/scripts/audit.sh" || {
+  echo "validate.sh: scripts/audit.sh missing Pass-3 rubric invocation (score_agentops_skill.py)" >&2
+  exit 1
+}
+grep -q '"rubric": %s' "$SKILL_DIR/scripts/audit.sh" || {
+  echo "validate.sh: scripts/audit.sh does not emit a rubric block in audit-report.json" >&2
+  exit 1
+}
+grep -q -- '--audit-block' "$SKILL_DIR/scripts/score_agentops_skill.py" || {
+  echo "validate.sh: scripts/score_agentops_skill.py missing --audit-block mode for Pass 3" >&2
+  exit 1
+}
 
 # Make scripts executable
 for s in scripts/audit.sh scripts/validate.sh; do

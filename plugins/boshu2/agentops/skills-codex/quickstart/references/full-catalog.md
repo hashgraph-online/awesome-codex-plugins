@@ -49,17 +49,17 @@ $research   - deep dive          $trace       - decision provenance
 $brainstorm - explore ideas      $flywheel    - health monitoring
 $bug-hunt   - investigate
 $complexity - code metrics       SESSION
-$doc        - generate docs      $handoff     - save + resume
-                                 $recover     - restore after compaction
-PRODUCT                          $status      - dashboard
-$product    - define mission
-$goals      - fitness specs
-$evolve     - goal-driven loop   CONTRIBUTE (upstream PRs)
-$readme     - generate README    $pr-research, $pr-plan, $pr-implement
-                                 $pr-validate, $pr-prep, $pr-retro
-META                             $oss-docs
-$quickstart - onboarding
-$update     - reinstall skills   CROSS-VENDOR
+$doc        - docs, README       $handoff     - save + resume
+              (--mode=readme),    $recover     - restore after compaction
+              OSS pack            $status      - dashboard
+              (--mode=oss)
+PRODUCT
+$product    - define mission     CONTRIBUTE (upstream PRs)
+$goals      - fitness specs      $pr-research, $plan, $pr-implement
+$evolve     - goal-driven loop   $pr-validate, $pr-prep
+                                 (PR learnings: $post-mortem --scope=pr)
+META
+$quickstart - onboarding         CROSS-VENDOR
 $converter  - export to Codex,   $codex-team  - parallel Codex agents
               Cursor             $openai-docs - OpenAI docs lookup
 ```

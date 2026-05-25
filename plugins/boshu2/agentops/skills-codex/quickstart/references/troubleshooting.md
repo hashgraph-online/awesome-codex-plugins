@@ -1,18 +1,14 @@
 # Quickstart Troubleshooting
 
-## Optional Hooks Aren't Running
+## Self-Authored Hooks Aren't Running
 
-**Symptom:** You opted into AgentOps hooks, but they do not fire on session start or tool use.
+**Symptom:** You authored your own AgentOps hooks, but they do not fire on session start or tool use.
+
+> AgentOps 3.0 is hookless — the `ao hooks` command and the `ao init` hooks flag were both removed in 3.0. CI is the authoritative gate. Hooks are entirely opt-in and author-it-yourself via the `hooks-authoring` skill, which writes your hook entries into the Codex hook config.
 
 **Checks:**
 ```bash
-# Verify hooks are installed
-ao hooks test
-
-# Check repo hook source exists and is valid
-cat hooks/codex-hooks.json | jq . 2>/dev/null
-
-# Check installed native hooks
+# Check your installed native hook entries
 cat ~/.codex/hooks.json | jq '.hooks' 2>/dev/null
 
 # Verify the plugin is enabled
@@ -20,9 +16,9 @@ rg '^\[plugins\."agentops@agentops-marketplace"\]$|^enabled = true$' ~/.codex/co
 ```
 
 **Fixes:**
-- Reinstall the native Codex plugin with hooks: `curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash -s -- --with-hooks`
-- Check that `hooks/codex-hooks.json` is not malformed JSON
-- Restart Codex after hook changes
+- Re-run the `hooks-authoring` skill to (re)scaffold the hook entries.
+- Check that `~/.codex/hooks.json` is not malformed JSON.
+- Restart Codex after hook changes.
 
 ## Skills Not Showing Up
 
@@ -54,8 +50,7 @@ find ~/.codex/plugins/cache/agentops-marketplace/agentops/local/skills-codex -ma
 # ao (AgentOps CLI) — requires Homebrew tap first
 brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops
 brew install agentops
-ao init              # Create .agents/ dirs + .gitignore
-ao init --hooks      # Optional: install runtime hooks
+ao init              # Create .agents/ dirs + .gitignore (hookless)
 
 # bd (Beads issue tracking)
 brew install boshu2/agentops/beads
@@ -137,5 +132,5 @@ ao metrics flywheel status
 
 **Fixes:**
 - Install ao: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops && ao init`
-- Hookless default: run `$validation` or `ao flywheel close-loop` explicitly at closeout.
-- Optional hooks: `ao init --hooks` or `install-codex.sh --with-hooks`, then verify `hooks/session-start.sh`.
+- Hookless by default: run `$validation` or `ao flywheel close-loop` explicitly at closeout.
+- Want hooks? They are opt-in and author-it-yourself via the `hooks-authoring` skill — there is no `ao` flag that installs them.

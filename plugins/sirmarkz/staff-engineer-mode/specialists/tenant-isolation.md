@@ -43,6 +43,7 @@ Multi-tenancy fails when tenant context is optional.
 - Request, query, cache, event, batch, search, analytics, and support/admin paths that carry tenant data.
 - Access controls, tenant context propagation, activity logs, row/object boundaries, and break-glass behavior.
 - Quotas, rate limits, concurrency caps, noisy-neighbor risks, and per-tenant isolation needs.
+- Fairness model: quota key, per-workload limits, burst sharing, unplanned capacity behavior, limit visibility, and high-cardinality admission dimensions.
 - Admission point for tenant limits, dynamic limit update path, fair-share behavior, and privacy-safe impact scoping.
 - Logging, metrics, traces, crash/error reports, and support tooling that may expose sensitive data.
 
@@ -53,7 +54,7 @@ Multi-tenancy fails when tenant context is optional.
 3. **Choose isolation model.** Use silo, pool, bridge, hybrid, or isolation-group boundaries based on data sensitivity, blast radius, scale, cost, and tenant-specific residency or compliance needs. Isolation groups separate sets of tenants from each other while preserving finer isolation inside each group.
 4. **Choose data partitioning.** State whether tenants use separate stores, separate schemas/namespaces, shared schemas with enforced tenant predicates, or tenant-scoped encryption and credentials.
 5. **Enforce data boundaries.** Apply tenant filters, scoped credentials, row/object boundaries, query guards, cache-key tenant assertions, and cross-tenant tests.
-6. **Control noisy neighbors.** Add per-tenant quotas, rate limits, concurrency caps, and load-shedding rules where shared capacity exists; enforce cheap admission checks before expensive work when possible and define how limits change safely during an event.
+6. **Control noisy neighbors.** Add per-tenant or per-workload quotas, rate limits, concurrency caps, and load-shedding rules where shared capacity exists; enforce cheap admission checks before expensive work when possible. Decide whether unused shared capacity can be borrowed, when planned usage takes priority over burst usage, how limits change safely during an event, and how admission accuracy is measured. Keep cross-tenant fairness policy here; route caller-dependency overload behavior to `dependency-resilience` when the decision is not tenant-specific.
 7. **Protect privacy surfaces.** Minimize, redact, tokenize, encrypt, or segregate sensitive data in logs, telemetry, exports, and support views.
 8. **Handle tenant offboarding.** Propagate deletion and access removal through stores, caches, indexes, derived data, exports, backup expiry, and support tooling.
 9. **Audit high-risk access.** Record administrative, support, export, deletion, and cross-tenant operations in tenant-scoped activity logs; define retention long enough for investigation, compliance, and incident investigation.
@@ -90,7 +91,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 - Make recommendations actionable with enforcement layers, query/key rules, quotas, tenant-scoped activity logs with retention, test cases, and stop criteria where relevant.
 - Name the details to inspect, such as request flows, schema keys, cache keys, job payloads, event envelopes, support-tool logs, quota metrics, audit retention settings, and cross-tenant test results; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
-- Stay inside tenant isolation and data protection. Route general privacy or identity work only when it materially changes the isolation decision.
+- Stay inside tenant isolation and data protection. Route general privacy, identity, or non-tenant overload work only when it materially changes the isolation decision.
 - Be concise: avoid generic multi-tenancy background and prefer compact propagation maps and boundary-control tables.
 
 ## Required Outputs
@@ -101,7 +102,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 - Data classification and sensitive-field handling plan.
 - Access, query, cache, event, and job boundary controls.
 - Tenant offboarding and deletion propagation plan.
-- Noisy-neighbor quota and capacity policy.
+- Noisy-neighbor quota, burst-sharing, and capacity policy.
 - Dynamic tenant-limit update path and privacy-safe impact scoping signals.
 - Privacy-safe logging/telemetry/support review.
 - Tenant-scoped audit log requirements, including covered events, protected fields, retention period or retention policy, and review responsibility.
@@ -113,6 +114,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 - `data_boundary`: data access controls enforce tenant isolation where shared stores exist.
 - `privacy_check`: sensitive data handling is defined for logs, traces, metrics, errors, exports, and support tools.
 - `quota_check`: shared capacity has tenant-aware quotas or an explicit risk acceptance.
+- `fairness_model`: shared capacity defines quota keys, burst behavior, priority under contention, and admission accuracy signals such as configured limits matching enforced behavior or bounded false-allow/false-deny decisions.
 - `early_admission`: tenant or caller limits apply before expensive shared work where feasible.
 - `dynamic_limit_path`: emergency or routine limit changes have a safe update, rollback, and verification path.
 - `tenant_impact_scope`: tenant impact can be scoped with privacy-safe operational signals.
@@ -132,6 +134,6 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 | Mistake | Correction |
 | --- | --- |
 | Treating tenant isolation as only authz | Enforce tenant context through data, cache, jobs, telemetry, and audit. |
-| Ignoring noisy neighbors | Add tenant-aware quotas and saturation signals. |
+| Treating global load shedding as fairness | Add tenant-aware quotas, burst rules, and per-tenant saturation signals. |
 | Trusting manual review | Add cross-tenant tests and query guards. |
 | Logging for convenience | Redact, tokenize, or omit sensitive fields. |

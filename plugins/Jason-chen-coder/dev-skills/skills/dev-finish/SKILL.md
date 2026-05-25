@@ -165,3 +165,11 @@ Detached HEAD 输出三选一:
 - 不在 merge 成功前删除 branch 或 worktree。
 - PR 路径不清理 worktree。
 - 无法判断 base branch 或 workspace 归属时,先问。
+
+---
+
+## Multi-Agent Note
+
+`dev-finish` is main-agent-controlled because it can merge, push, create PRs, keep branches, or discard work.
+
+Sub-agents may provide verification or review evidence before this phase, but final branch decisions and destructive operations stay with the main agent and the user. Follow `../../docs/multi-agent-policy.md` before relying on any delegated verifier or reviewer output.

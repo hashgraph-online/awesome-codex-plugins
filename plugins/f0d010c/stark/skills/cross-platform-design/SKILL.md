@@ -15,10 +15,14 @@ Read:
 
 - `../../references/ui-patterns/surface-taxonomy.md`
 - `../../references/ui-patterns/ui-decision-brief.md`
+- `../../references/ui-patterns/desktop-app-archetypes.md`
+- `../../references/ui-patterns/originality-engine.md`
+- `../../references/ui-patterns/design-recipes.md`
+- `../../references/ui-patterns/anti-default-contrasts.md`
 - `../../references/ui-patterns/visual-hierarchy.md`
 - `../../references/ui-patterns/motion-budget.md`
 
-The shared product should preserve job, state coverage, action hierarchy, and visual hierarchy. Navigation, controls, typography, icons, and motion must become platform-specific.
+The shared product should preserve job, state coverage, action hierarchy, visual hierarchy, desktop archetype, originality seed, and layout sketch. Navigation, controls, typography, icons, and motion must become platform-specific, but the chosen shape should remain legible: command center stays a command center, library stays a library, workbench stays a workbench, and monitoring cockpit stays a monitoring cockpit. A product-specific metaphor can translate across platforms; exact pixels and custom controls should not.
 
 ## Step 1 — Pick the right framework for the design intent
 
@@ -88,6 +92,12 @@ When the user picks a stack, **state the fidelity tradeoff per platform** in one
 - Android → `ListDetailPaneScaffold` (adaptive)
 - Windows → Master-detail with Mica
 - Web → URL-driven two-pane with View Transitions
+
+**Desktop archetype example:**
+- Command center → Windows `NavigationView` + `CommandBar` + status rail, macOS `NavigationSplitView` + toolbar/search, Tauri/Electron command palette + inspector
+- Library / collection → Windows `GridView` + preview pane, macOS sidebar/content/inspector, web desktop shell with collection grid + detail sheet
+- Workbench → Windows command bar + canvas + inspector, macOS document window + toolbar + inspector, web desktop shell with stable toolbars and undo/redo
+- Tray/menu-bar utility → Windows tray flyout or compact window, macOS `MenuBarExtra`, web desktop shells only when background status and settings justify a full app
 
 Never copy the iOS tab bar onto Windows. Never copy the Android FAB onto iOS. Idiom > pixel.
 

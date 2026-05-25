@@ -125,4 +125,4 @@ status: COMPLETE
 
 ---
 
-> Pattern adopted from `codebase-archaeology` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `codebase-archaeology` (ACFS skill corpus). Methodology only — no verbatim text.

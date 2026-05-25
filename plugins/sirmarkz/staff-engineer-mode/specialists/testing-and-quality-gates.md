@@ -39,6 +39,7 @@ Quality checks should catch real risk early without turning delivery into ritual
 - Supported behaviors, critical journeys, system tier, risk areas, and recent defect history.
 - Existing test inventory: unit/component/contract/integration/end-to-end/performance/security/accessibility/static checks.
 - Pre-traffic health checks, critical-path sanity checks, production-like integration checks, synthetic or canary checks, and performance bottleneck tests.
+- Distributed edge cases: independent client, network, server, timeout, duplicate, and retry outcomes for request/reply or workflow boundaries.
 - CI structure, runtime, flake rate, failure responsibility, and required versus advisory checks.
 - Coverage signal, mutation or fault-injection needs, legacy findings, and known blind spots.
 - Release process and where checks can run without excessive feedback delay.
@@ -54,11 +55,12 @@ Quality checks should catch real risk early without turning delivery into ritual
 7. **Make checks actionable.** Every blocking check needs failure instructions and a path to fix or quarantine.
 8. **Handle flakes ruthlessly.** A flaky blocker teaches people to ignore checks. Fix, quarantine, or downgrade with a dated expiry.
 9. **Use ratchets for legacy.** Prevent new critical findings and gradually reduce existing debt rather than requiring impossible cleanup.
-10. **Place high-assurance tests deliberately.** Bounded property tests on pure logic and ordinary fuzzing can live in this skill; concurrency/protocol invariants, model checking, deterministic simulation, and counterexample-driven validation route to formal validation.
-11. **Choose test data safely.** Use synthetic data for pre-merge by default, anonymized or captured production-like data in controlled release stages, and explicit privacy checks for sensitive fixtures.
-12. **Use mutation testing selectively.** Apply it to safety, security, financial, or dense branch logic where coverage percentage is misleading; do not make it a universal check.
-13. **Keep style mechanical.** Formatting and simple style should be automated, not debated manually.
-14. **Verify the strategy.** Confirm each critical risk has a check, test, check artifact, or explicit exception.
+10. **Cover distributed failure permutations.** For request/reply, event, or workflow boundaries, test independent outcomes for client, network, server, timeout, duplicate, and retry behavior instead of collapsing them into one "network failed" case. Route stateful protocol invariants and counterexample search to `state-machine-correctness` when example tests cannot cover the interleavings.
+11. **Place high-assurance tests deliberately.** Bounded property tests on pure logic and ordinary fuzzing can live in this skill; concurrency/protocol invariants, model checking, deterministic simulation, and counterexample-driven validation route to `state-machine-correctness`.
+12. **Choose test data safely.** Use synthetic data for pre-merge by default, anonymized or captured production-like data in controlled release stages, and explicit privacy checks for sensitive fixtures.
+13. **Use mutation testing selectively.** Apply it to safety, security, financial, or dense branch logic where coverage percentage is misleading; do not make it a universal check.
+14. **Keep style mechanical.** Formatting and simple style should be automated, not debated manually.
+15. **Verify the strategy.** Confirm each critical risk has a check, test, check artifact, or explicit exception.
 
 ## Synthesized Default
 
@@ -102,6 +104,7 @@ Use a risk-based test strategy with fast deterministic pre-merge checks, focused
 - Critical-path sanity and pre-traffic health checks with expected behavior and stop condition.
 - Runtime budget for blocking lanes with a measurement source (p95 from CI history, not aspirational), and the action when the budget is exceeded.
 - Test composition by layer (unit/component, contract/integration, end-to-end, and specialized checks) with counts or ratios and rationale whenever cutting CI time, handling flakes, or redesigning a suite.
+- Distributed-boundary failure matrix for request/reply or workflow edges, covering timeout, unknown result, duplicate, retry, and server-side state safety where relevant.
 - Failure response for each blocking check.
 - Static analysis, security scanning, and dependency check policy.
 - Coverage or mutation policy where it adds useful signal — name the metric, the target, and the meaningful-vs-vanity caveat (changed-code coverage, critical-path coverage).
@@ -116,6 +119,7 @@ Use a risk-based test strategy with fast deterministic pre-merge checks, focused
 - `flake_policy`: flaky checks have fix, quarantine, downgrade, or expiry decision.
 - `stage_fit`: each check runs at the earliest stage where it can check the intended property.
 - `critical_path_sanity`: critical user paths have sanity checks that validate behavior, not only process health.
+- `distributed_failure_matrix`: distributed boundaries cover independent client, network, server, timeout, duplicate, and retry outcomes, or route high-stakes invariants to `state-machine-correctness`.
 - `pre_traffic_health`: new capacity passes startup/readiness checks before accepting real traffic.
 - `promotion_checks`: production-like integration, synthetic, canary, or performance checks stop promotion when critical behavior fails.
 - `suite_shape`: test-layer counts or ratios match the risk profile, with most pre-merge confidence coming from cheap deterministic checks and only bounded broad tests blocking.
@@ -128,6 +132,7 @@ Use a risk-based test strategy with fast deterministic pre-merge checks, focused
 - Flaky tests are required but failures are routinely rerun until green.
 - Static analysis results appear after merge with no local fix path or suppression rule.
 - Checks block but nobody can explain what failure means.
+- Distributed-call tests treat timeout as a simple failed request instead of checking unknown-outcome behavior.
 - High-assurance protocol or concurrency validation is treated as ordinary CI without invariants or counterexamples.
 
 ## Common Mistakes

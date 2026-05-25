@@ -2,13 +2,15 @@
 name: skill-auditor
 description: 'Audit a SKILL.md (15 checks).'
 ---
-# $skill-auditor — Two-pass skill quality audit
+# $skill-auditor — Three-pass skill quality audit
 
 Validates a skill's SKILL.md against the unified AgentOps template. Pass 1
 wraps `heal-skill` for structural hygiene; Pass 2 adds 8 content-discipline
-checks not covered by heal. The report also includes an advisory Context
-Density Rule block for intent, boundary, evidence, decision, constraint, and
-next action coverage.
+checks not covered by heal; Pass 3 folds the 10-category Skill Quality Rubric
+(`docs/reference/skill-quality-rubric.md`) into the report as a deterministic
+0-30 productization score (advisory). The report also includes an advisory
+Context Density Rule block for intent, boundary, evidence, decision,
+constraint, and next action coverage.
 
 ## ⚠️ Critical Constraints
 
@@ -57,17 +59,21 @@ The JSON report includes a separate `density` block with six report-only fields:
 Read [references/context-density-checks.md](references/context-density-checks.md)
 for detection rules, limits, and false-positive handling.
 
-### Productization score overlay
+### Pass 3 — rubric scoring (10 categories, advisory)
 
-For AgentOps skill-factory work, run the clean-room score overlay after the
-two-pass audit:
+`audit.sh` runs `scripts/score_agentops_skill.py --audit-block` and folds the
+result into `audit-report.json` under a `rubric` key. The 10 categories come
+verbatim from `docs/reference/skill-quality-rubric.md`: `trigger_quality`,
+`kernel_clarity`, `progressive_disclosure`, `helper_scripts`, `validation`,
+`self_test`, `assets_templates`, `subagents_roles`, `safety_boundaries`,
+`packaging`. Each scores 0-3 with a reason; total 0-30, rating C/B/A/S. The
+score is **advisory** — it never changes the PASS/WARN/FAIL verdict.
+
+Standalone markdown for picking the smallest productization patch:
 
 ```bash
 python3 skills-codex/skill-auditor/scripts/score_agentops_skill.py skills/<name> --markdown
 ```
-
-The score is advisory. Use it to pick the smallest productization patch, then
-re-run this auditor and `$heal-skill`.
 
 ## Execution Steps
 
@@ -85,7 +91,15 @@ For each `check_*` function in `scripts/audit.sh`, run against `<target>/SKILL.m
 
 **Checkpoint:** Pass 2 must run independently of Pass 1 (no shared state); a heal.sh failure does NOT short-circuit Pass 2.
 
-### Step 3: Aggregate verdict
+### Step 3: Pass 3 (rubric scoring)
+
+`audit.sh` runs `python3 scripts/score_agentops_skill.py <target> --audit-block`
+and embeds the result under the report's `rubric` key (10 categories, 0-3 each,
+0-30 total, C/B/A/S rating). Emitted as `null` if `python3`/scorer is missing.
+
+**Checkpoint:** Pass 3 is advisory — its score is computed but NOT counted in the verdict.
+
+### Step 4: Aggregate verdict
 
 ```
 fails > 0  → FAIL
@@ -93,9 +107,9 @@ warns > 0  → WARN
 otherwise  → PASS
 ```
 
-Density coverage is computed before emission but is not counted in the verdict.
+Density coverage and the Pass-3 rubric are computed before emission but are NOT counted in the verdict.
 
-### Step 4: Emit report
+### Step 5: Emit report
 
 JSON conforming to `schemas/audit-report.json` to stdout (or to file with `--json <path>`); markdown summary to stderr.
 

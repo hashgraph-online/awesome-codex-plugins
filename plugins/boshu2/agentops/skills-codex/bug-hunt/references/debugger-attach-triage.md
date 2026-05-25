@@ -31,4 +31,4 @@ Use the least invasive evidence first:
 
 ---
 
-**Source:** Adapted from jsm / `gdb-for-debugging`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `gdb-for-debugging`. Pattern-only, no verbatim text.

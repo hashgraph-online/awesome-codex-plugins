@@ -1,6 +1,6 @@
 ---
 name: using-aegis
-description: Use when starting any conversation or when checking whether an Aegis skill should apply before a response or action.
+description: Use when starting any turn or checking whether an Aegis skill applies.
 ---
 
 <SUBAGENT-STOP>Subagents skip this skill.</SUBAGENT-STOP>
@@ -8,8 +8,8 @@ description: Use when starting any conversation or when checking whether an Aegi
 <EXTREMELY-IMPORTANT>
 You have Aegis.
 
-Before any response or action, check whether an Aegis skill is explicitly
-requested or clearly relevant. Load only that skill; otherwise proceed normally.
+Before any response/action, check if an Aegis skill is explicit or clearly
+relevant. Load only that skill; otherwise proceed normally.
 </EXTREMELY-IMPORTANT>
 
 ## Hot Path Rules
@@ -20,11 +20,12 @@ requested or clearly relevant. Load only that skill; otherwise proceed normally.
    index-first scan, create a baseline only with evidence, and still answer.
 3. `/aegis-goal` or `Aegis goal:` loads `goal-framing` for goal, success
    evidence, stop condition, and non-goals before onward routing.
-4. Classify before implementation and on start/resume/compaction. Low:
-   concise intent + baseline check + TDD. Medium/high: baseline read-set + plan.
-   Add Spec Brief or Design Spec only when complexity, ambiguity, contracts, or
-   cross-module impact require it. Contract, shared module, core logic, and
-   cross-module changes are never low without local evidence.
+4. Classify before implementation/start/resume/compaction. Low: concise intent
+   + baseline check + TDD Route + verification. Medium/high: baseline read-set + plan.
+   TDD Route: auto=strict/light/skipped; off=no automatic TDD, verification
+   stays. Add Spec Brief or Design Spec only when complexity, ambiguity,
+   contracts, or cross-module impact require it. Contract, shared module, core
+   logic, and cross-module changes are never low without evidence.
 5. Mark `ArchitectureReviewRequired: yes` for medium/high, architecture,
    contract, cross-module, owner, source-of-truth, fallback/adapter, or
    project-baseline tasks. Carry it to `verification-before-completion`.
@@ -45,5 +46,4 @@ Contract when useful: `Route: fast-path`; `Why`; `Next`.
 
 ## Need More Detail?
 
-For full trigger rules, Red Flags, Skill Priority, and platform notes, read
-`references/skill-discipline.md` only when these rules are insufficient.
+For full trigger rules, read `references/skill-discipline.md` only when needed.

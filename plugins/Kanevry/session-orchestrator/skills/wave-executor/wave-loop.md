@@ -401,6 +401,30 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
 3c. **File-level grounding** (per wave, informational, gated by `grounding-check: true` — default): compute Planned (union of agent file scopes for this wave from the dispatch metadata) vs Actual (files actually edited by this wave's agents). Report scope creep (Actual ∖ Planned) and incomplete coverage (Planned ∖ Actual). Does NOT block the next wave. Reuses the semantics defined in `skills/session-end/plan-verification.md` § 1.1a — the session-end variant computes against `$SESSION_START_REF`, the per-wave variant computes against the wave's pre-dispatch HEAD snapshot. Not to be confused with pre-dispatch grounding injection (§ Pre-Dispatch Grounding Injection above): that feature is per-agent and runs before dispatch to prevent friction; this check is per-wave and runs after dispatch to detect scope creep. Skip the entire check when `grounding-check: false`.
 4. **Run incremental verification** (per the quality-gates skill, based on the wave's role):
 
+   **Shared-lib touch auto-promotion (#555 FL-3)** — before selecting the role-based gate variant below, check whether this wave touched files under `scripts/lib/`, `hooks/`, or `.husky/`. If so, auto-promote the inter-wave gate from Quality-Lite (Incremental) to Full Gate (typecheck + test + lint). Rationale: an Impl wave that touches shared code has a wider blast radius than the agent can predict — deep-1647 inter-wave 3→4 caught 2 such regressions only because the Lite step happened to run the full test suite. Auto-promotion makes that coverage deterministic without imposing per-session cost on waves that don't touch shared code (W1-D5 chose Option B over the always-full Option A on this exact tradeoff).
+
+   ```js
+   import { detectSharedLibTouch } from '$PLUGIN_ROOT/scripts/lib/quality-gate.mjs';
+
+   const touchResult = detectSharedLibTouch({
+     repoRoot: process.cwd(),
+     sinceRef: SESSION_START_REF,
+     promoteWhenTouched: ['scripts/lib/', 'hooks/', '.husky/'],
+   });
+
+   if (touchResult.touched && (waveRole === 'Impl-Core' || waveRole === 'Impl-Polish')) {
+     console.log(
+       `ℹ Quality-Lite auto-promoted to Full Gate — wave touched shared code: ` +
+       `${touchResult.paths.join(', ')} (#555 FL-3)`,
+     );
+     // Run Full Gate (typecheck + test + lint) instead of the role-default Incremental.
+   } else {
+     // Existing role-based selection (Discovery: none, Impl-*: Incremental, Quality: Full, Finalization: git status).
+   }
+   ```
+
+   `detectSharedLibTouch` never throws — on any git failure (invalid sinceRef, detached HEAD, missing repo) it returns `{ touched: false, paths: [] }`, so a probe failure silently falls back to the role-default Incremental rather than blocking the wave. When `waveRole === 'Quality'`, the gate is **already Full** — no further promotion possible, no double-promotion. When `waveRole === 'Discovery'` or `'Finalization'`, this check is skipped entirely (the role's verification semantics don't include a test gate to promote).
+
    **Baseline cache check (#258)** — before running Incremental quality checks for this wave, consult the session-start Baseline cache. If the cache is still valid and the diff since `$SESSION_START_REF` is narrow (<50 files), skip Incremental for this wave and note the skip in the wave progress update.
 
    ```js

@@ -38,6 +38,17 @@ Before handoff, close only decisions that affect implementation: contract, data,
 - Top: decisions, contracts, invariants (permanent).
 - `## Working notes`: scratch, open questions (stripped at `ship`).
 
+## Roadmap (scope spans ≥ 3 milestones)
+
+Add to spec when too large to plan all at once:
+```
+## Roadmap
+- [ ] M1: <one-line goal>  ← plan in detail now
+- [ ] M2: <one-line goal>  ← stub
+- [ ] M3: <one-line goal>  ← stub
+```
+Markers are required. `← plan in detail now` on the current milestone; `← stub` on all others. Stubs are intent, not commitment; update before expanding.
+
 
 ## Gates
 `<gate>`

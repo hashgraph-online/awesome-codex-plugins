@@ -11,7 +11,7 @@ description: Use when about to claim work is complete, fixed, passing, verified,
   3. Read: output, exit code, failures
   4. Verify: output confirms claim? → state claim WITH evidence. Doesn't? → state actual status.
 → Done when: exact command run, output confirms, residual risk stated, confidence graded.
-  Non-trivial code changes → also report Complexity Delta.
+  Non-trivial code changes → also report Complexity Delta and Complexity Governance Suggestion.
   Governance/retirement work → also close Repair Track + Retirement Track + Residual Risk.
 
 # Verification Before Completion
@@ -80,7 +80,23 @@ Evidence Card:
    workspace check validate method-pack structure, index coverage, and
    recognizable JSON artifact sidecars only; they do not judge evidence
    sufficiency and do not grant completion authority.
-9. **User-Language Output**: final response cards must localize user-facing
+9. **Readiness Summary**: for release, merge, handoff, or "ready?" requests,
+   organize the evidence into a compact readiness view after the Evidence Card:
+
+   ```text
+   Readiness Summary:
+   - Tests:
+   - Docs:
+   - Version:
+   - Host compatibility:
+   - Uncovered scope:
+   - Residual risk:
+   ```
+
+   A readiness summary is advisory evidence organization only. It is not
+   authorization to commit, tag, publish, merge, or release. It cannot provide
+   completion authority.
+10. **User-Language Output**: final response cards must localize user-facing
    section labels, field labels, and explanatory prose to the user's language.
    Keep commands, file paths, code identifiers, stable enum values, and product
    terms in English when that preserves precision. For important Aegis product
@@ -88,7 +104,7 @@ Evidence Card:
    `架构对齐（Architecture Alignment）`; later references may use the user's
    language alone.
 
-10. **Complexity Delta**: for non-trivial code changes, inspect the actual
+11. **Complexity Delta**: for non-trivial code changes, inspect the actual
    diff before claiming completion. This is a completion-time entropy check,
    not a universal failure gate. Skip or keep it one-line for tiny wording
    edits, tests-only additions, generated files, vendored files, fixtures,
@@ -110,6 +126,21 @@ Evidence Card:
    - Required follow-up:
    ```
 
+   When the delta finds meaningful pressure, add:
+
+   ```text
+   Complexity Governance Suggestion:
+   - Recommendation: none | monitor | schedule-refactor | extract helper | split owner | open follow-up
+   - Why:
+   - Suggested scope:
+   - Timing:
+   ```
+
+   Use `none` for small owner-correct diffs, `monitor` for acceptable visible
+   growth, and stronger recommendations for 800+ line files, 80+ line blocks,
+   branch/fallback/adapter growth without retirement, or owner mismatch. The
+   suggestion is advisory; keep residual risk visible.
+
    Rules:
    - A maintained source file over 800 lines is a review signal. If this slice
      added logic there or pushed it across 800 lines, explain why the owner
@@ -124,7 +155,7 @@ Evidence Card:
    - If entropy increased and no stronger owner/compatibility reason exists,
      downgrade the completion claim or state the residual risk.
 
-11. **Architecture Alignment Check**: before final response, if project
+12. **Architecture Alignment Check**: before final response, if project
    instructions require architecture reporting or the task touched durable
    architecture surfaces, include an explicit architecture alignment result.
    This is separate from ADR Backfill: alignment states whether the completed
@@ -149,7 +180,7 @@ Evidence Card:
    - Residual architecture risk:
    ```
 
-12. **ADR Backfill Check**: for completed medium/high work that touched durable
+13. **ADR Backfill Check**: for completed medium/high work that touched durable
    architecture surfaces, run the ADR Auto Backfill check before final
    completion claims. Use `Trigger: no` or skip the expanded block for simple
    wording edits, ordinary README cleanup, routine release-note edits, low-risk
@@ -182,7 +213,7 @@ Evidence Card:
    claim. This keeps `verification-before-completion` as the completion owner
    while delegating the ADR/baseline writeback decision to the dedicated skill.
 
-13. **Governance Closure**: for governance/cleanup/migration/compatibility/retirement work → final response must include. Do not skip this structure just because the implementation was small. Localize section labels and prose to the user's language; keep internal concepts in English only when they are product terms or file/path identifiers.
+14. **Governance Closure**: for governance/cleanup/migration/compatibility/retirement work → final response must include. Do not skip this structure just because the implementation was small. Localize section labels and prose to the user's language; keep internal concepts in English only when they are product terms or file/path identifiers.
 
    ```
    Repair Track: repaired object | action | impact | verification
@@ -213,6 +244,6 @@ Evidence Card:
 - Adding new verification branches without saying what old check or fallback now retires
 - Closing governance or retirement work without Repair Track, Retirement Track, and Residual Risk
 - Claiming completion after growing a core file or complex block without a
-  Complexity Delta or residual-risk note
+  Complexity Delta, Complexity Governance Suggestion, or residual-risk note
 - Retaining old logic without a Retention reason, Retirement trigger, and
   lingering-reference check

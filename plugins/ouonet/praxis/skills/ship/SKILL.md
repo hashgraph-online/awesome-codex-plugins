@@ -16,5 +16,6 @@ description: Use when all plan tasks are done and green to review, archive plann
 3. If user-visible, add to CHANGELOG `Unreleased`. Releases move it to a version.
 4. Ask: **merge / PR / keep / discard.**
 5. On merge or PR: clean up worktree, delete local branch.
+6. Roadmap has unchecked milestones? → `plan` next.
 
 No push or PR without explicit user approval.

@@ -15,6 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 HEAL_SH="$REPO_ROOT/skills/heal-skill/scripts/heal.sh"
+SCORE_PY="$SCRIPT_DIR/score_agentops_skill.py"
 
 STRICT=0
 JSON_OUT=""
@@ -254,6 +255,27 @@ else
   DENSITY_STATUS="warn"
 fi
 
+# --- Pass 3: rubric scoring (advisory) -----------------------------------
+# Folds the 10-category Skill Quality Rubric (docs/reference/skill-quality-rubric.md)
+# into the report via score_agentops_skill.py --audit-block. Each category gets a
+# deterministic 0-3 score plus an explainable reason; total is 0-30 with a C/B/A/S
+# rating band. Advisory-only: it never changes the PASS/WARN/FAIL verdict — the
+# rubric measures market-facing maturity, not template conformance (which Pass 1+2
+# already gate). Reason: a low rubric score on a structurally-clean skill is a
+# productization backlog signal, not a ship blocker.
+RUBRIC_JSON="null"
+RUBRIC_SUMMARY=""
+RUBRIC_SCORE="n/a"
+RUBRIC_RATING="?"
+if [[ -f "$SCORE_PY" ]] && command -v python3 >/dev/null 2>&1; then
+  if rubric_out="$(python3 "$SCORE_PY" "$TARGET" --audit-block 2>/dev/null)"; then
+    RUBRIC_JSON="$rubric_out"
+    RUBRIC_SCORE="$(printf '%s' "$rubric_out" | awk -F': ' '/"total_score"/{gsub(/[, ]/,"",$2); print $2; exit}')"
+    RUBRIC_RATING="$(printf '%s' "$rubric_out" | awk -F'"' '/"rating"/{print $4; exit}')"
+    RUBRIC_SUMMARY=" Rubric: ${RUBRIC_SCORE}/30 (${RUBRIC_RATING}) [advisory]."
+  fi
+fi
+
 # --- Aggregate verdict ---------------------------------------------------
 fails=0
 warns=0
@@ -304,8 +326,9 @@ emit_json() {
   printf '\n    ],\n'
   printf '    "summary": "%d/6 density signals present; advisory-only and not execution-packet enforcement."\n' "$density_present_count"
   printf '  },\n'
-  printf '  "summary": "Pass1: %d findings (%d autofixable). Pass2: %d fails, %d warns. Verdict: %s."\n' \
-    "$(echo "$PASS1_FINDINGS_JSON" | grep -c '"code":' | head -1)" "$PASS1_AUTOFIXABLE" "$fails" "$warns" "$VERDICT"
+  printf '  "rubric": %s,\n' "$RUBRIC_JSON"
+  printf '  "summary": "Pass1: %d findings (%d autofixable). Pass2: %d fails, %d warns.%s Verdict: %s."\n' \
+    "$(echo "$PASS1_FINDINGS_JSON" | grep -c '"code":' | head -1)" "$PASS1_AUTOFIXABLE" "$fails" "$warns" "$RUBRIC_SUMMARY" "$VERDICT"
   printf '}\n'
 }
 
@@ -322,6 +345,7 @@ fi
     printf "  [%-4s] %s\n" "${CHECK_STATUS[$id]}" "$id"
   done
   echo "Density advisory: $density_present_count/6 fields present ($DENSITY_STATUS)"
+  echo "Pass 3 rubric (advisory): ${RUBRIC_SCORE}/30 (${RUBRIC_RATING})"
   echo "VERDICT: $VERDICT"
 } >&2
 

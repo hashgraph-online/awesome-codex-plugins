@@ -30,4 +30,4 @@ For suspicious or blocking mocks, require either a real-service test, a contract
 
 ---
 
-**Source:** Adapted from jsm / `codebase-audit`, `mock-code-finder`, and `ubs`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `codebase-audit`, `mock-code-finder`, and `ubs`. Pattern-only, no verbatim text.

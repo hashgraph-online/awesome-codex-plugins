@@ -497,3 +497,33 @@ grep -rn "bug-<slug>" .             # 期望:0 条匹配
 - **「找不到 root cause」≠ 没有 root cause**(借鉴 obra/superpowers):95% 是 investigation 不完整 —— 升 `--deep` 多列假设、加 instrument、反向追溯,**比放弃更可能找到**。真正放下的标准是 Step 5 escalation 三次失败,不是「我看了一会觉得没有」。
 - **不要** 把 dev-fix artifact 写得像「日志流水账」—— 模板里每段必填,Hypothesis 表必有 verdict + evidence,Pattern analysis 段必须实际 grep 过仓库。
 - **不要** 主动调起其他 skill —— dev-skills 间松耦合,修完用户自己决定下一步(走 dev-code-review / 直接 commit / 是否需要 dev-plan)。
+
+---
+
+## Multi-Agent Profile
+
+Recommended agent_type: worker
+
+Use when:
+- The bug report or failing test is bounded.
+- The sub-agent owns a clear failure path, module, or reproduction target.
+- The main agent can integrate the resulting fix and evidence.
+
+Do:
+- Reproduce first and keep the failing test meaningful.
+- Trace backward to the confirmed root cause before changing code.
+- Keep the fix surgical and inside the assigned ownership.
+- Follow `../../docs/multi-agent-policy.md` for concurrent-work boundaries.
+
+Do not:
+- Patch symptoms without a confirmed root cause.
+- Mix broad refactors into the bug fix.
+- Edit outside the assigned failure path.
+- Skip regression-test evidence.
+
+Output:
+- Reproduction
+- Confirmed root cause
+- Changed files
+- Regression test and verification commands
+- Pattern-analysis follow-ups

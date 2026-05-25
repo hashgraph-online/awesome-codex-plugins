@@ -105,3 +105,31 @@ Write this section to `.design-context.md` in the project root. If the file alre
 Then ask the user whether they also want the same Design Context appended to `.github/copilot-instructions.md`. If yes, append or update that section there as well.
 
 Confirm completion and summarize the key design principles that will guide future UI work.
+
+---
+
+## Multi-Agent Profile
+
+Recommended agent_type: explorer
+
+Use when:
+- The main agent needs design-system or UI convention discovery before UI work.
+- The project has existing components, styles, assets, or brand cues to inspect.
+- The sub-agent can summarize findings without implementing UI changes.
+
+Do:
+- Explore README, assets, styles, components, tokens, and existing screens.
+- Separate codebase facts from assumptions.
+- Ask only UX questions that cannot be inferred.
+- Follow the explorer boundaries in `../../docs/multi-agent-policy.md`.
+
+Do not:
+- Implement UI.
+- Rewrite product copy or CSS outside `.design-context.md`.
+- Invent brand direction when the project already provides evidence.
+
+Output:
+- Codebase design facts
+- Unknowns that require user input
+- Proposed design principles
+- Files inspected

@@ -246,3 +246,11 @@ Refs: plan/<slug>
 - **不要** 在意图不明时强行输出最终 message —— 必须先要用户确认。
 - **不要** 假装识别出仓库风格 —— 若 `git log` 不足 3 条或风格混乱,显式说「采样不足,使用 conventional commits 默认」。
 - **不要** 输出超长 message —— 简单改动用单行 subject 就够,没要求别加 body。
+
+---
+
+## Multi-Agent Note
+
+`dev-commit-writer` is a single-step tool, not a delegated agent lane.
+
+Use it only when the user explicitly wants a commit message without review. In a multi-agent workflow, reviewer and verifier lanes should finish first; then the main agent may run this skill if the user still wants only message generation. See `../../docs/multi-agent-policy.md` for the ownership model.
