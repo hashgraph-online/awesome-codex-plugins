@@ -219,6 +219,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [TokRepo Search](https://github.com/henu-wang/tokrepo-codex-plugin) - Search and install AI assets from TokRepo with a bundled skill and MCP server for Codex.
 - [unslop](https://github.com/MohamedAbdallah-14/unslop) - Strip AI writing patterns from text output — removes filler phrases, hedging language, and generic constructs to produce cleaner written content. Install: `npm install -g unslop`.
 - [Upwork Autopilot](https://github.com/klajdikkolaj/upwork-autopilot) - Controlled Upwork job search, qualification, and proposal submission sessions through a dedicated Chrome profile.
+- [VidSeeds.ai](https://github.com/CarrotGamesStudios/vidseeds-mcp) - Pre-upload video SEO and metadata optimization — generates titles, descriptions, tags, thumbnails, and chapters from your existing video and publishes across YouTube, TikTok, Instagram, Facebook, LinkedIn, and X via a hosted MCP connector (148 tools, paid with a 14-day free trial).
 - [Yandex Direct](https://github.com/nebelov/yandex-direct-for-all) - GitHub-ready Codex plugin bundle for Yandex Direct, Wordstat, Metrika, and Roistat.
 
 
