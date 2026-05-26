@@ -49,6 +49,21 @@
       "description": "DevOps layer for coding agents with flow, feedback, and memory that compounds between sessions."
     },
     {
+      "name": "alcove",
+      "displayName": "Alcove",
+      "source": {
+        "source": "local",
+        "path": "./plugins/epicsagas/alcove"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Local-first MCP server for private project docs with hybrid BM25+vector search, tree-sitter code indexing, and automated linting for team-wide documentation standards.",
+      "icon": "./plugins/epicsagas/alcove/assets/icon.png"
+    },
+    {
       "name": "anchor",
       "displayName": "Anchor",
       "source": {
