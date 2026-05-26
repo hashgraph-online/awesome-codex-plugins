@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-26",
-  "total": 87,
+  "last_updated": "2026-05-25",
+  "total": 88,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -190,6 +190,16 @@
       "install_url": "https://raw.githubusercontent.com/Rycen7822/codex-rg-guard/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Dev Skills",
+      "url": "https://github.com/Jason-chen-coder/dev-skills",
+      "owner": "Jason-chen-coder",
+      "repo": "dev-skills",
+      "description": "Team workflow skills for specs, plans, TDD, debugging, verification, review, branch finishing, and design context.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Jason-chen-coder/dev-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Development Skills",
       "url": "https://github.com/reidemeister94/development-skills",
       "owner": "reidemeister94",
@@ -318,6 +328,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Kanevry/session-orchestrator/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Simple Man",
+      "url": "https://github.com/Maksim-Burtsev/simple-man",
+      "owner": "Maksim-Burtsev",
+      "repo": "simple-man",
+      "description": "High-compression communication mode for Codex agents that removes filler while preserving search, validation, and implementation effort.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Maksim-Burtsev/simple-man/HEAD/plugins/simple-man/.codex-plugin/plugin.json"
     },
     {
       "name": "Spec-Driven Development",

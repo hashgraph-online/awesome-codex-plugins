@@ -342,6 +342,7 @@ When `docs-orchestrator.enabled: true`, apply the following concrete dispatch ru
 - Output: Validated understanding, updated task scope if discoveries warrant it
 - Tools: Read, Grep, Glob, Bash (read-only commands only) — do NOT use Edit or Write
 - Scope enforcement: set `allowedPaths` to `[]` (empty) for Discovery waves. Include in agent prompts: "You are READ-ONLY. Do NOT use Edit or Write tools."
+- Distributional claims MUST follow `.claude/rules/parallel-sessions.md` § PSA-006 — quote the executed grep pattern + file scope + count. Coordinators REJECT Discovery outputs that assert "N of M" or "100% of X" without a quoted grep transcript (deep-1647 W1-D3 incident class).
 
 **Impl-Core**
 - Full implementation agents with Write/Edit/Bash access

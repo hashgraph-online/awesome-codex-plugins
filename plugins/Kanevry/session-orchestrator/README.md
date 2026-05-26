@@ -1,8 +1,8 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.6.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-6620%20passing-brightgreen.svg)](#development)
+[![Version](https://img.shields.io/badge/version-3.7.0-blue.svg)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-7360%20passing-brightgreen.svg)](#development)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
 [![Codex](https://img.shields.io/badge/Codex-Compatible-green.svg)](https://developers.openai.com/codex/)
 [![Cursor IDE](https://img.shields.io/badge/Cursor_IDE-Compatible-blue.svg)](https://cursor.com)
@@ -11,11 +11,11 @@ Turn ad-hoc Claude Code sessions into a repeatable loop with verification gates.
 
 ## What you get
 
-- **37 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, and more
-- **17 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/autopilot`, `/test`, …)
-- **11 typed sub-agents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
-- **12 hook event handlers** enforcing scope, blocking destructive commands, capturing telemetry
-- **6620 vitest tests** passing on every commit, validate-plugin 94/94, typecheck 187 files OK, lint 0
+- **38 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, persona panels, harness/repo audits, tmux visualization, and more
+- **18 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/autopilot`, `/test`, `/brainstorm`, `/debug`, `/persona-panel`, `/memory-cleanup`, …)
+- **13 typed sub-agents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, dialectic-deriver, memory-proposal-collector, …)
+- **14 hook event handlers** enforcing scope, blocking destructive commands, gating templates-first, auditing memory proposals, capturing telemetry
+- **7360 vitest tests** passing on every commit, validate-plugin 94/94, typecheck 230 files OK, lint 0
 
 ## Lifecycle at a glance
 
@@ -147,18 +147,19 @@ The system is markdown-driven config plus a thin Node runtime. Skills, commands,
 
 **VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your git remote. Full lifecycle for both: issue management, MR/PR tracking, pipeline status, label taxonomy, milestone queries.
 
-## What's new since v3.5.0
+## What's new since v3.6.0
 
-Five deep sessions plus three intermediate fix-clusters. The v3.6.0 tag (2026-05-14) covers the first three bullets; the Clawpatch cluster and 2.1.x adoption shipped to `main` afterwards and will be in the next tag. Headlines:
+Eighteen sessions across 9 days (2026-05-15 → 2026-05-23). Tests grew from **5001 → 7360** (+2359). Zero breaking changes, zero CI regressions. Headlines:
 
-- **`/test`** — agentic end-to-end test orchestrator with a 4-check UX rubric, two drivers (Playwright + Peekaboo), a `ux-evaluator` reviewer agent, and issue-tracker reconciliation. Wraps upstream tools (no forks); hard-gates Playwright MCP for browser drive (4× token cost vs CLI per Microsoft's own benchmark).
-- **Multi-Story Autopilot** — `scripts/autopilot-multi.mjs` runs N parallel issue pipelines in isolated git worktrees with per-loop kill-switches. Built on the ADR-364 substrate.
-- **Clawpatch Borrow Cluster** — six infrastructure capabilities shipped opportunistically: worker pool, language mappers (TypeScript + Markdown AST), schema-per-agent output contracts, sandbox-tier validation, discovery triage state, and `--since` flag for scoped discovery.
-- **Claude Code 2.1.x adoption** — `experimental.monitors`, `terminalSequence` (OSC 9 + OSC 777 cross-platform notifications), `disable-model-invocation` on USER-ONLY commands, `model:` frontmatter routing, `Skill(name:*)` permission wildcards.
-- **CI restoration** — fixed the 8-pipeline silent regression (lockfile conflict + `engine-strict=true` + `fetch-depth` for gitleaks).
-- **Learning & Memory System Modernization (Phase 1)** — vault consolidation, vault-mirror quality gate, cold-start abandonment fix, auto-dream dispatch ([epic #498](https://github.com/Kanevry/session-orchestrator/issues/498)).
+- **F2 Memory & Personas cluster** — Agent-writable `memory.propose` CLI with session-end AUQ collector (#501), startup memory banner showing surfaced learnings + peer-card excerpts (#505), `USER.md` + `AGENT.md` per-repo behavioural identity ([peer cards](https://github.com/Kanevry/session-orchestrator/issues/503)), and a haiku-cheap `dialectic-deriver` agent that derives card updates from session history (#506).
+- **gsd Pattern Adoption Epic #517** — four mechanical hardening patterns: STATE.md cross-process write-lock (#518), `pre-bash-templates-first` PreToolUse hook with `/templates-ack` bypass (#519), Slopcheck against LLM-hallucinated package names (#520), bounded auto-fix loop with diagnostics-bundle (#521).
+- **Persona-Panel Foundation** — parallel multi-persona review skill + `/persona-panel` command + 4 reusable persona templates (buyer / expert / compliance / custom). Three reconciliation modes: voting-quorum, hard-gate-threshold, coordinator-summary.
+- **Anthropic + Superpowers ecosystem** — `/brainstorm` (Socratic design dialogue), `/debug` (4-phase Iron-Law root-cause), `write-executable-plan` skill, two new always-on rules (`verification-before-completion`, `receiving-review`), `operator-steer` mid-wave-guidance hook, in-process MCP docs, OTel `gen_ai.*` aliases on subagents.jsonl, security-reviewer FP-reduction 35→15%.
+- **harness-audit + repo-audit + portfolio** — `/harness-audit` (Anthropic 8-category large-codebase rubric), `/repo-audit` (9-category baseline compliance), `/portfolio` (cross-repo health from vault `01-projects/`).
+- **`/memory-cleanup`** — Manual Dream-equivalent memory consolidation skill ported from personal user-config into the plugin so all users get it.
+- **Privacy-first pre-commit hook (#494)** — `.husky/pre-commit` invokes the same owner-leakage scanner CI uses, closing the `git add <leak> && git commit` gap. Regression test asserts the hook contains the scanner invocation; E2E tests plant leaks in tmp git repos and assert commits are blocked.
 
-For the full version history see [CHANGELOG.md](CHANGELOG.md). For previous releases: v3.5.0 (2026-05-09), v3.4.0 (2026-05-08), v3.3.0 (2026-04-30).
+For the full version history see [CHANGELOG.md](CHANGELOG.md). For previous releases: v3.6.0 (2026-05-14), v3.5.0 (2026-05-09), v3.4.0 (2026-05-08), v3.3.0 (2026-04-30).
 
 ### Claude Code 2.1.x adoption matrix (condensed)
 
@@ -176,9 +177,9 @@ Full table and follow-ups in `CLAUDE.md` (or `AGENTS.md` on Codex CLI) and CHANG
 ```mermaid
 flowchart LR
     USER([Operator]) -->|invokes /session| COORD[Coordinator]
-    COORD -->|reads| SK[Skills<br/>37 user-facing]
-    COORD -->|invokes| CMD[Commands<br/>17 slash-cmds]
-    COORD -->|dispatches| AG[Agents<br/>11 typed sub-agents]
+    COORD -->|reads| SK[Skills<br/>38 user-facing]
+    COORD -->|invokes| CMD[Commands<br/>18 slash-cmds]
+    COORD -->|dispatches| AG[Agents<br/>13 typed sub-agents]
     AG -.->|parallel waves| W1[code-implementer]
     AG -.-> W2[test-writer]
     AG -.-> W3[security-reviewer]
@@ -189,7 +190,7 @@ flowchart LR
 
 ## Components
 
-**Skills (37 user-facing).** Lifecycle: `session-start`, `session-plan`, `wave-executor`, `session-end`, `quality-gates`, `using-orchestrator`. Authoring: `skill-creator`, `mcp-builder`, `hook-development`, `frontmatter-guard`. Planning & discovery: `plan`, `discovery`, `repo-audit`, `brainstorm`, `write-executable-plan`, `debug`, `claude-md-drift-check`. Architecture: `architecture`, `domain-model`, `ubiquitous-language`. Cross-session: `evolve`, `convergence-monitoring`, `memory-cleanup`. Vault & docs: `vault-sync`, `vault-mirror`, `daily`, `docs-orchestrator`. Ecosystem: `bootstrap`, `gitlab-ops`, `gitlab-portfolio`, `ecosystem-health`, `mode-selector`, `autopilot`. Testing: `test-runner`, `playwright-driver`, `peekaboo-driver`. Content review: `persona-panel`.
+**Skills (38 user-facing).** Lifecycle: `session-start`, `session-plan`, `wave-executor`, `session-end`, `quality-gates`, `using-orchestrator`. Authoring: `skill-creator`, `mcp-builder`, `hook-development`, `frontmatter-guard`. Planning & discovery: `plan`, `discovery`, `repo-audit`, `brainstorm`, `write-executable-plan`, `debug`, `claude-md-drift-check`. Architecture: `architecture`, `domain-model`, `ubiquitous-language`. Cross-session: `evolve`, `convergence-monitoring`, `memory-cleanup`. Vault & docs: `vault-sync`, `vault-mirror`, `daily`, `docs-orchestrator`. Ecosystem: `bootstrap`, `gitlab-ops`, `gitlab-portfolio`, `ecosystem-health`, `mode-selector`, `autopilot`. Testing: `test-runner`, `playwright-driver`, `peekaboo-driver`. Content review: `persona-panel`. Visualization: `tmux-layout` (opt-in, operator side-channel — ADR-0007).
 
 **Commands (17).** `/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/bootstrap`, `/harness-audit`, `/autopilot`, `/autopilot-multi`, `/repo-audit`, `/test`, `/memory-cleanup`, `/portfolio`, `/brainstorm`, `/debug`, `/persona-panel`.
 
@@ -234,9 +235,9 @@ Both [`maestro-orchestrate`](https://github.com/josstei/maestro-orchestrate) and
 |---|---|---|
 | Execution model | 5 typed waves (Discovery → Impl-Core → Impl-Polish → Quality → Finalization) with inter-wave quality gates and confidence-scored session-reviewer | 4-phase sequential model with parallel subagents |
 | Runtime coverage | Claude Code + Codex CLI + Cursor IDE (3) | Gemini CLI + Claude Code + Codex + Qwen Code (4) |
-| VCS integration | GitLab-first with GitHub mirror (auto-detected); 12 hook handlers + 16 commands wire to both | Runtime-agnostic; VCS work delegated to user |
+| VCS integration | GitLab-first with GitHub mirror (auto-detected); 14 hook handlers + 18 commands wire to both | Runtime-agnostic; VCS work delegated to user |
 | Cross-session learning | Confidence-scored entries in `.orchestrator/metrics/learnings.jsonl`; surfaced at session-start; opt-in `/evolve` review | Session archival to `docs/maestro/` without explicit learning extraction |
-| Specialist agents | 11 typed agents (code-implementer, security-reviewer, test-writer, qa-strategist, etc.) | 39 specialist agents across design/impl/review/debugging/security/compliance |
+| Specialist agents | 13 typed agents (code-implementer, security-reviewer, test-writer, qa-strategist, dialectic-deriver, memory-proposal-collector, etc.) | 39 specialist agents across design/impl/review/debugging/security/compliance |
 
 We see the two plugins as complementary rather than competing: session-orchestrator focuses on a single wave-based lifecycle with VCS+learning integration, while maestro-orchestrate optimises for multi-runtime parallel specialist delivery.
 
@@ -306,7 +307,7 @@ Clone, install, verify in three commands:
 ```bash
 git clone https://github.com/Kanevry/session-orchestrator.git && cd session-orchestrator
 npm install
-npm test        # vitest, 6620 tests
+npm test        # vitest, 7360 tests
 ```
 
 Additional scripts:

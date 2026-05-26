@@ -24,6 +24,10 @@ Before aesthetic direction, classify the surface using `../../references/ui-patt
 
 Then write the `UI decision brief` from `../../references/ui-patterns/ui-decision-brief.md`. For dashboards, editors, checkouts, and agent-run UIs, preserve the UX decision brief if one exists and bias toward usable density over Awwwards spectacle.
 
+For original, distinctive, memorable, non-generic, creative, polished, high-craft, or "actually designed" web requests, read `../../references/ui-patterns/originality-engine.md` before picking the final visual system. Produce a concept seed, choose a composition archetype, name one weird move and restraints, ban the obvious skeleton for this specific brief, and generate the three-direction fork when the user has not already supplied a strong concept. The chosen concept must survive into layout and interaction; do not reduce originality to colors, gradients, or typeface choice.
+
+For higher-quality web work, read `../../references/ui-patterns/design-recipes.md` and output a compact layout sketch before code. If the layout starts to resemble centered hero + three features + CTA, static bento, or generic dashboard cards, read `../../references/ui-patterns/anti-default-contrasts.md` and replace the skeleton with product proof, timeline, trust matrix, comparison, command deck, or another product-specific structure.
+
 For polished, original, memorable, high-craft, campaign, or "best-looking" requests, read `../../references/ui-patterns/creative-direction.md` before visual styling. Define a creative direction brief with world, metaphor, material language, typography personality, layout grammar, repeated motif, forbidden defaults, one tasteful risk, and restraints.
 
 For cinematic campaign, editorial scroll story, product proof, or immersive brand pages, read `../../references/ui-patterns/cinematic-landing-system.md` before choosing motion. Define key art, art direction, typography discipline, section rhythm, and page choreography first. Motion should reveal the system, not compensate for weak composition.
@@ -149,6 +153,8 @@ Every web output, regardless of direction:
 - **Responsive containment** — nav rows, dense tables, toolbars, inspectors, and long labels must wrap, collapse, or scroll inside their own region; never leave mobile/tablet page-level horizontal overflow.
 - **Quality bar note** — for public-facing or "make it better" work, state the specific job, proof surface, required states, scan-speed decision, and memorable anchor before implementation.
 - **Creative direction** — for original/high-craft work, state the world, metaphor, material language, repeated motif, forbidden defaults, tasteful risk, and restraints.
+- **Originality seed** — for original/non-generic work, state the product world, main object, composition archetype, repeated motif, one weird move, restraints, and specific defaults banned for the brief.
+- **Layout sketch** — before code, show named regions that prove the composition is not the default skeleton.
 - **Implementation track** — choose static, Vite React, Next, Astro, or existing stack by actual interaction needs and dependency risk.
 - **Interaction decision** — when motion/scrolling is non-trivial, state budget, techniques, library choice, why it fits, reduced-motion behavior, and rejected techniques.
 - **Cinematic system** — for campaign-style pages, state the mode, key art, art direction, typography system, page rhythm, and repeated motif before implementation.
@@ -218,6 +224,7 @@ Ask before delivering output:
 15. For cinematic pages, did I define key art, section rhythm, typography discipline, and repeated motifs before motion?
 16. Did the implementation track fit the interaction model, and did I avoid adding React/dependencies when static code would be enough?
 17. Did the design include one tasteful risk plus restraints, instead of random creativity?
+18. Did the concept seed affect the actual composition and states, not just the moodboard?
 
 If any "no" — restart that choice, don't ship near-misses.
 

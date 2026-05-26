@@ -123,7 +123,7 @@ def score_helper_scripts(path: Path, metrics: dict) -> tuple[int, str]:
 
 
 def score_validation(path: Path, body: str, metrics: dict) -> tuple[int, str]:
-    validation_terms = ("validate", "test", "check", "lint", "verify", "jsm", "heal-skill")
+    validation_terms = ("validate", "test", "check", "lint", "verify", "heal-skill")
     score = int(any(term in body.lower() for term in validation_terms))
     score += int(has_named_script(path, ("validate", "check", "test", "audit")))
     score += int(metrics["self_test_exists"])
@@ -239,6 +239,10 @@ def score_skill(path: Path) -> dict:
         "rating": rating,
         "scores": scores,
         "notes": notes,
+        "categories": [
+            {"category": category, "score": scores[category], "reason": notes[category]}
+            for category in CATEGORIES
+        ],
         "gaps": gaps,
         "metrics": {
             "total_files": metrics["total_files"],
@@ -251,6 +255,22 @@ def score_skill(path: Path) -> dict:
             "symlinks": metrics["symlinks"],
             "executable_scripts": metrics["executable_scripts"],
         },
+    }
+
+
+def audit_block(report: dict) -> dict:
+    """Compact rubric object for embedding in skill-auditor's audit-report.json (Pass 3).
+
+    Mirrors the rubric schema block: per-category 0-3 score plus an explainable
+    reason, the 0-30 total, max, and the C/B/A/S rating band. Deterministic —
+    derived only from the skill directory contents.
+    """
+    return {
+        "total_score": report["total_score"],
+        "max_score": report["max_score"],
+        "rating": report["rating"],
+        "advisory": True,
+        "categories": report["categories"],
     }
 
 
@@ -282,12 +302,20 @@ def markdown_report(report: dict) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("skill_path")
-    parser.add_argument("--markdown", action="store_true")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--markdown", action="store_true", help="Emit a markdown report.")
+    group.add_argument(
+        "--audit-block",
+        action="store_true",
+        help="Emit the compact rubric block consumed by skill-auditor Pass 3.",
+    )
     args = parser.parse_args()
 
     report = score_skill(Path(args.skill_path).expanduser().resolve())
     if args.markdown:
         print(markdown_report(report))
+    elif args.audit_block:
+        print(json.dumps(audit_block(report), indent=2))
     else:
         print(json.dumps(report, indent=2))
     return 0

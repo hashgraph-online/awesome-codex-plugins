@@ -40,4 +40,4 @@ Use an inbox or coordination file only for state that outlives a single tool cal
 
 ---
 
-**Source:** Adapted from jsm / `agent-fungibility-philosophy`, `agent-mail`, `ntm`, `vibing-with-ntm`, and `repeatedly-apply-skill`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `agent-fungibility-philosophy`, `agent-mail`, `ntm`, `vibing-with-ntm`, and `repeatedly-apply-skill`. Pattern-only, no verbatim text.

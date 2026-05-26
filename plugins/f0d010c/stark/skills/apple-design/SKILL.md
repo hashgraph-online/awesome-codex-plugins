@@ -45,10 +45,14 @@ Before code, read:
 
 - `../../references/ui-patterns/surface-taxonomy.md`
 - `../../references/ui-patterns/ui-decision-brief.md`
+- `../../references/ui-patterns/desktop-app-archetypes.md`
+- `../../references/ui-patterns/originality-engine.md`
+- `../../references/ui-patterns/design-recipes.md`
+- `../../references/ui-patterns/anti-default-contrasts.md`
 - `../../references/ui-patterns/visual-hierarchy.md`
 - `../../references/ui-patterns/motion-budget.md`
 
-Write the UI decision brief and adapt it to the chosen Apple platform. iPhone task flows need thumb reach and progressive disclosure; iPad/Mac productivity surfaces need NavigationSplitView, inspector, keyboard flow, and stable density; media/consumer apps may use branded surfaces while preserving HIG controls, SF typography, SF Symbols, Dynamic Type, and safe areas.
+Write the UI decision brief and, for macOS/iPad desktop-class work, the desktop archetype brief and compact layout sketch. For original/non-generic Apple work, also write the originality brief: subject, product world, main object, composition archetype, repeated motif, one weird move, and restraints. Pick the app shape before picking controls: command center, library/collection, workbench, monitoring cockpit, menu-bar utility, media/consumer, document/knowledge, or setup/preferences. If the sketch becomes generic sidebar + detail, use anti-default contrasts and rewrite it around the main object. iPhone task flows need thumb reach and progressive disclosure; iPad/Mac productivity surfaces need NavigationSplitView, inspector, keyboard flow, command surfaces, and stable density; media/consumer apps may use branded content surfaces while preserving HIG controls, SF typography, SF Symbols, Dynamic Type, and safe areas. Do not make every Mac app a generic sidebar plus detail view unless the archetype truly calls for it.
 
 ## Step 1 — Liquid Glass first (only if track 1 or 2)
 
@@ -95,6 +99,9 @@ Read `../../references/apple-hig.md` for HIG section deep-dive.
 - Patterns:
   - `NavigationSplitView { sidebar } content: { ... } detail: { ... }`
   - `.inspector { ... }` for trailing pane (Craft, Notes pattern)
+  - `DocumentGroup` for document-based apps where files are the main object
+  - `Table` or `OutlineGroup` for dense libraries, files, logs, and knowledge trees
+  - `Window("Quick Capture", id: ...)` for focused utility windows
   - `MenuBarExtra("Name", systemImage: ...) { ... }` for menu-bar apps
   - `Settings { TabView { ... } }` scene for prefs window
 - Vibrancy materials: `.background(.regularMaterial)`, `.ultraThin/Thin/Regular/Thick/UltraThick`
@@ -129,6 +136,8 @@ If user insists on cross-platform, route to `cross-platform-design` and warn tha
 - Custom scroll indicators — use `ScrollIndicators(.hidden)` only when justified
 - Web-style dashboards squeezed into iPhone screens
 - Decorative cards where grouped Form, List, inspector, or split view is the platform idiom
+- Generic macOS sidebar plus detail view for every app, regardless of the main object
+- Custom originality that replaces native controls instead of changing composition, content, and state treatment
 
 ## Step 7 — Reference apps that nail HIG
 

@@ -70,3 +70,5 @@ The `schema-version` field enables future migration. Current version: `1`. If a 
 ## Concurrency
 
 STATE.md is NOT safe for concurrent access. Only one session should be active per branch at a time. If session-start detects `status: active`, it prompts the user to resume or start fresh (which overwrites the stale STATE.md).
+
+- **Discovery grep-verification** — distributional claims in W1 outputs (e.g., "N of M callers", "100% adopt pattern X") MUST quote the executed grep + file scope + count. See [`../../.claude/rules/parallel-sessions.md`](../../.claude/rules/parallel-sessions.md) § PSA-006.

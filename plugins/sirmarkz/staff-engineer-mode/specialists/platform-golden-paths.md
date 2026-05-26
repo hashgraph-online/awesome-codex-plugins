@@ -42,6 +42,7 @@ A good platform makes the safe path the easy path.
 - Required defaults: responsibility, SLOs, telemetry, deployment, rollback, runbooks, security, secrets, cost tags, and recovery.
 - Generated operational defaults: starter SLO, dashboard, alert/runbook, rollout, recovery, dependency inventory, and secure settings.
 - Existing templates, catalogs, scorecards, delivery workflows, infrastructure modules, and exception process.
+- Service catalog metadata source of truth, including owner, lifecycle, system relationships, API/dependency links, and operational links.
 - Migration needs for existing services and adoption blockers.
 - Platform responsibility, operating model, upgrade cadence, and feedback channels.
 
@@ -51,11 +52,12 @@ A good platform makes the safe path the easy path.
 2. **Define the golden path.** Specify the service lifecycle from create, build, test, deploy, observe, operate, secure, recover, and retire.
 3. **Bake in defaults.** Include responsibility, SLO hooks, telemetry, safe deploys, secret handling, access boundaries, runbooks, recovery, dependency inventory, and secure settings. Each generated default should be a usable artifact, not a placeholder.
 4. **Make start-right templates.** Bootstrap repositories, delivery, infrastructure, observability, security, and policy defaults together so projects do not assemble safety by hand.
-5. **Expose self-service with guardrails.** Make the path usable without bespoke platform intervention for normal cases while policy, security, cost, and operations controls stay automatic.
-6. **Design scorecards.** Measure capability maturity across investment, adoption, controls, provisioning and management, interfaces, and feedback; use source records for meaningful capabilities, not vanity checkboxes.
-7. **Handle exceptions.** Require user-confirmed reason, expiry, compensating control, and migration plan.
-8. **Plan adoption.** Prioritize new services, high-risk services, and repeated incident classes; avoid big-bang migrations.
-9. **Close feedback loops.** Use incidents, developer friction, and scorecard gaps to improve the platform.
+5. **Register ownership as code.** Keep catalog records in a versioned source of truth with owner, lifecycle, system, API/dependency relationships, documentation, runbook, dashboard, and on-call links; avoid manually curated catalogs that drift from reality.
+6. **Expose self-service with guardrails.** Make the path usable without bespoke platform intervention for normal cases while policy, security, cost, and operations controls stay automatic.
+7. **Design scorecards.** Measure capability maturity across investment, adoption, controls, provisioning and management, interfaces, and feedback; use source records for meaningful capabilities, not vanity checkboxes.
+8. **Handle exceptions.** Require user-confirmed reason, expiry, compensating control, and migration plan.
+9. **Plan adoption.** Prioritize new services, high-risk services, and repeated incident classes; avoid big-bang migrations.
+10. **Close feedback loops.** Use incidents, developer friction, and scorecard gaps to improve the platform.
 
 ## Synthesized Default
 
@@ -98,6 +100,7 @@ Build golden paths around capabilities rather than tools: service creation, buil
 - Required service defaults and records hooks.
 - Readiness-defaults matrix showing which operational defaults are created, usable, and checked by the golden path.
 - Service catalog and responsibility model.
+- Source-controlled catalog metadata standard with owner, lifecycle, system/API/dependency relationships, and operational links.
 - Capability scorecard with meaningful checks, adoption feedback, and exception workflow.
 - Migration/adoption plan.
 - Feedback and operations model.
@@ -107,6 +110,7 @@ Build golden paths around capabilities rather than tools: service creation, buil
 - `template_defaults`: golden path includes responsibility, SLO/telemetry, deploy/rollback, runbook, security, and secrets defaults.
 - `readiness_defaults`: generated defaults for SLO, dashboard, alert/runbook, rollout, recovery, dependency inventory, and secure settings are usable, not placeholders.
 - `self_service`: normal workflow can be completed without bespoke platform work.
+- `catalog_truth`: catalog ownership, lifecycle, dependency, API, and operational records come from a maintained source of truth.
 - `exception_model`: exceptions have user-confirmed reason, expiry, compensating control, and migration path.
 - `adoption_plan`: target services, migration order, and operating model are stated.
 - `feedback_loop`: incidents, friction, and scorecard gaps feed platform backlog.
@@ -116,6 +120,7 @@ Build golden paths around capabilities rather than tools: service creation, buil
 - Template creates code but no runbook, alerts, or rollout path.
 - Platform mandates standards projects cannot satisfy with available tools.
 - Scorecards reward fields existing instead of capabilities working.
+- Catalog entries are manually curated and no one can tell whether owner, lifecycle, dependency, or runbook data is current.
 - Exceptions are permanent.
 - Golden path is a vendor product wrapper rather than an engineering workflow.
 

@@ -8,6 +8,12 @@ description: Use after design approval for milestone plans with executable accep
 
 If unresolved spec notes affect implementation or task order, return to `design`.
 
+## Rolling wave
+
+Spec has `## Roadmap`? Expand only the milestone marked `← plan in detail now`. Leave the rest as stubs.
+
+After `ship`: move the `← plan in detail now` marker to the next milestone (change its `← stub` to `← plan in detail now`), update it from what you learned, then expand it. Return to `design` only if the milestone's goal materially changed.
+
 ## Milestone tasks (30-60 min each)
 
 Every task is `- [ ] T<n>: <name>` - always a checkbox, never a heading. `tdd`/`subagents` flip it to `- [x]` on completion; `ship` refuses to run while any `- [ ]` remains.

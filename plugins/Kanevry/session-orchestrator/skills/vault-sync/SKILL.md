@@ -188,6 +188,13 @@ The following fields are planned for Phase 2/3 but are not consumed by the curre
 
 ## Schema sync
 
+### Allowed `type` values
+
+The vault-frontmatter `type` enum currently allows:
+`note`, `daily`, `project`, `person`, `reference`, `idea`, `learning`, `session`, `peer-card`.
+
+The `peer-card` value supports Honcho-style USER.md / AGENT.md operator/agent identity files written under `.orchestrator/peers/` (introduced in #503). Peer cards complement the host-wide `owner.yaml` (see `.claude/rules/owner-persona.md`) with per-repo behavioural identity; the validator at `scripts/lib/peer-cards/schema.mjs` enforces the additional `target`/`source_sessions` fields, while `validator.mjs` here only checks that `type` is one of the values above.
+
 ### Source of truth
 
 The canonical schema lives in the private GitLab monorepo:

@@ -43,6 +43,7 @@ Release engineering turns source changes into trustworthy artifacts.
 - Cache strategy, cache keys, invalidation rules, remote/local differences, and flaky build examples.
 - Release checks: tests, static checks, compatibility checks, security checks, and confirmation requirements.
 - Artifact identity, metadata, storage, promotion path, deployment consumers, and rollback path.
+- Inflight release behavior: promotion ordering, supersession, stalled stage handling, and environment-specific deployment history.
 - Deploy or scale dependencies on live artifact sources, mirrored or cached artifacts, and behavior when artifact sources are unavailable.
 
 ## Workflow
@@ -52,10 +53,11 @@ Release engineering turns source changes into trustworthy artifacts.
 3. **Make builds hermetic.** Remove undeclared local files, ambient credentials, network fetches, clock-sensitive output, and machine-specific behavior.
 4. **Stabilize the graph.** Define build/test targets, cache keys, generated-output responsibility, and invalidation rules so cache hits cannot hide missing dependencies.
 5. **Build once, promote many.** Create an immutable artifact once and move the same artifact through validation, staging, and production; deploy and scale paths should use pinned, available artifacts rather than live resolution during an emergency where feasible.
-6. **Define release lines.** Choose trunk release, release branch, train, or candidate flow based on support window and rollback needs.
-7. **Keep main recoverable.** Prefer short-lived topic branches, protected main, and release branches with explicit cherry-pick/backport policy so hotfixes do not disappear from the next release.
-8. **Check releases deliberately.** Keep checks fast and signal-rich; quarantine flaky checks, but do not let flakes silently weaken the release signal.
-9. **Record traceability.** Link artifact, source, build logs, checks, release decision, deployment, and rollback target.
+6. **Coordinate inflight releases.** If more than one release can be active, define promotion order, supersession rules, stalled-stage behavior, and how each environment records exactly which artifact it accepted.
+7. **Define release lines.** Choose trunk release, release branch, train, or candidate flow based on support window and rollback needs. Emergency release branches should be short-lived, minimal, and reviewed with higher scrutiny because they bypass normal flow.
+8. **Keep main recoverable.** Prefer short-lived topic branches, protected main, and release branches with explicit cherry-pick/backport policy so hotfixes do not disappear from the next release.
+9. **Check releases deliberately.** Keep checks fast and signal-rich; quarantine flaky checks, but do not let flakes silently weaken the release signal.
+10. **Record traceability.** Link artifact, source, build logs, checks, release decision, deployment, and rollback target, including rollback to an older known-good artifact when the harmful change is latent rather than the immediately previous release.
 
 ## Synthesized Default
 
@@ -96,28 +98,33 @@ Use hermetic, reproducible, build-once promotion with pinned inputs, explicit ar
 - Build and release pipeline map.
 - Pinned-input and hermeticity checklist.
 - Artifact identity and metadata standard.
+- Inflight release ordering and supersession policy.
 - Deploy/scale artifact dependency table with source, pinning, availability, mirror/cache, and unavailable-source behavior.
 - Release branch/train/candidate policy.
 - Build cache and invalidation policy.
 - Release check list with required versus advisory checks.
-- Promotion and rollback traceability plan.
+- Promotion and rollback traceability plan, including rollback-target selection when a harmful change is latent.
+- Emergency branch policy with expiry, scope, and reviewer escalation when bypassing normal flow.
 
 ## Checks Before Moving On
 
 - `input_pinning`: source, dependencies, toolchains, generated inputs, and build environment are pinned or explicitly exempted.
 - `hermeticity_check`: build does not depend on undeclared local files, ambient network, machine state, or unscoped credentials.
 - `artifact_identity`: artifact has immutable identifier, source revision, build metadata, and storage location.
+- `inflight_order`: concurrent releases have ordering, supersession, stalled-stage, and per-environment deployment-history rules.
 - `artifact_availability`: deploy and scale paths use pinned artifacts with availability behavior defined for missing artifact sources.
 - `cache_safety`: cache keys and invalidation rules show stale output cannot satisfy changed inputs.
-- `release_record`: promotion and rollback path link artifact, checks, deployment, and verification results.
+- `release_record`: promotion and rollback path link artifact, checks, deployment, verification results, and rollback-target selection when the harmful change may be older than the previous deployment.
+- `emergency_branch_bounds`: emergency release branches have documented expiry, scope, and reviewer escalation.
 
 ## Red Flags - Stop And Rework
 
 - Release artifacts are rebuilt separately for each environment.
+- Multiple inflight releases can overtake, supersede, or stall without a recorded ordering policy.
 - A build passes only on one developer machine or one CI worker.
 - Cache misses are slow, but cache hits are not trusted.
 - Release branches exist indefinitely with no support window, or merge policy.
-- Rollback target is "whatever was previously deployed" with no artifact identity.
+- Rollback target is "whatever was previously deployed" with no artifact identity or latent-change check.
 
 ## Common Mistakes
 

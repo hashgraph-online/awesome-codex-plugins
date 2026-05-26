@@ -132,7 +132,11 @@ record as T2 (Missing Tests). A test scaffold that adds a pure-function test is
 
 ### Step 4 — brooks-debt pass (tech debt accumulation)
 
-Re-classify R-findings through a debt lens — same symptoms at accumulation scale: repeated duplication, layered workarounds, stale `TODO`/`FIXME` clusters, dead flags. See `../brooks-debt/debt-guide.md` for the rubric; otherwise apply a severity bump for pattern-level occurrences (isolated Suggestion → 4+ modules Warning).
+Re-classify R-findings through a debt lens — same symptoms at accumulation scale:
+repeated duplication, layered workarounds, stale `TODO`/`FIXME` clusters, dead
+flags. Score each with **Pain (1–3) × Spread (1–3)**; total 7–9 = Critical,
+4–6 = Warning, 1–3 = Suggestion. Apply a severity bump for pattern-level
+occurrences (isolated Suggestion → 4+ modules Warning).
 
 Follow the same sub-steps as Step 2. Debt findings often span multiple files
 and are more likely to land in Extended-Safe or Residual than Safe.

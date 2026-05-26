@@ -49,4 +49,4 @@ Stop when every must-support contract row has a mechanical test or a documented 
 
 ---
 
-**Source:** Adapted from jsm / `testing-conformance-harnesses`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `testing-conformance-harnesses`. Pattern-only, no verbatim text.

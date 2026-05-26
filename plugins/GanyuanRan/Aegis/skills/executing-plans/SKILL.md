@@ -42,9 +42,20 @@ If the plan has multiple tasks, may span sessions, or includes architecture / co
 For each task:
 1. Mark as in_progress
 2. Follow each step exactly (plan has bite-sized steps)
-3. Run verifications as specified
-4. Update `TodoCheckpointDraft` and `DriftCheckDraft` before marking the task completed
-5. Mark as completed
+3. Before any non-trivial source edit, run the plan's
+   `Pre-Edit Complexity Check` or create a compact one:
+
+   ```text
+   Pre-Edit Complexity Check:
+   - Safer edit boundary:
+   - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+   ```
+
+   If the check contradicts the plan's file boundary, pause and return to plan
+   review instead of silently stuffing logic into an overloaded owner.
+4. Run verifications as specified
+5. Update `TodoCheckpointDraft` and `DriftCheckDraft` before marking the task completed
+6. Mark as completed
 
 ### Step 3: Complete Development
 

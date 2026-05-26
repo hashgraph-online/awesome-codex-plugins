@@ -48,4 +48,4 @@ Add this to `.agents/test/summary.md` when golden files change:
 
 ---
 
-**Source:** Adapted from jsm / `testing-golden-artifacts`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `testing-golden-artifacts`. Pattern-only, no verbatim text.

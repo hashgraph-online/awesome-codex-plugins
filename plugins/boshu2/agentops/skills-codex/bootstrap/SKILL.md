@@ -90,7 +90,7 @@ If `HAS_PRODUCT` is true and `--force` is not set: skip. Report "PRODUCT.md exis
 
 If `HAS_README` is false (or `--force` is set) AND PRODUCT.md now exists:
 
-Invoke `$readme` to generate README.md from PRODUCT.md content. Include project name, description, installation, usage, and contributing sections.
+Invoke `$doc --mode=readme` to generate README.md from PRODUCT.md content. Include project name, description, installation, usage, and contributing sections.
 
 If `HAS_README` is true and `--force` is not set: skip. Report "README.md exists -- skipped."
 
@@ -157,22 +157,15 @@ If `HAS_PROGRAM` is true and `--force` is not set: skip. Report "PROGRAM.md/AUTO
 
 ### Step 6: Optional Hook Activation
 
-Do not activate hooks by default. AgentOps 3.0's first-value path is hookless:
-`ao quick-start`, execution packets, explicit validation, and knowledge
-compounding work before runtime hooks are installed.
+Do not activate hooks. AgentOps 3.0 is hookless: `ao quick-start`, execution
+packets, explicit validation, and knowledge compounding deliver first value
+with no runtime hooks, and CI is the authoritative gate. There is no `ao`
+command or flag that installs hooks — hooks were removed from the CLI.
 
-If the user explicitly requested hook activation and `HAS_AO` is true AND
-`HAS_HOOKS` is false (or `--force` is set):
+If the user explicitly requests hooks, they are opt-in and author-it-yourself:
+point them at the `hooks-authoring` skill. Bootstrap itself never installs hooks.
 
-```bash
-ao init --hooks
-```
-
-If `HAS_AO` is false: skip. Report "Optional hooks skipped -- ao CLI not installed. Run: brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops"
-
-If hook activation was not explicitly requested: skip. Report "Hooks optional -- skipped. To opt in later, run `ao init --hooks` or `install-codex.sh --with-hooks`."
-
-If `HAS_HOOKS` is true and `--force` is not set: skip. Report "Hooks already configured -- skipped."
+If hooks were not explicitly requested: skip. Report "Hooks optional -- skipped. AgentOps 3.0 is hookless; CI is the authoritative gate. To author your own, use the `hooks-authoring` skill."
 
 ### Step 7: Report
 
@@ -209,6 +202,6 @@ Repo is now AgentOps-ready. Next: $rpi "your first goal"
 
 - `../goals/SKILL.md` -- Fitness specification and directive management
 - `../product/SKILL.md` -- Product definition generation
-- `../readme/SKILL.md` -- README generation
+- `../doc/SKILL.md` -- README generation (`--mode=readme`) + repo docs
 - `../quickstart/SKILL.md` -- New user onboarding (lighter than bootstrap)
 - [references/related-runbooks.md](references/related-runbooks.md) -- host-hygiene runbooks (PATH rationalization, etc.)

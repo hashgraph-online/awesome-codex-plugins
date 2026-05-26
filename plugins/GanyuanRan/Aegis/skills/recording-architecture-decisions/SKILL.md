@@ -50,11 +50,16 @@ restore the existing baseline.
    - hard to reverse
    - surprising without context
    - real trade-off
-3. Choose exactly one ADR action: create, amend, supersede, or skip.
-4. Choose the owner surface: project `docs/adr/`, `docs/aegis/adr/`, existing
+3. Apply the Retro / Memory Filter:
+   - executed durable decisions may become ADR or baseline memory
+   - unexecuted ideas stay out of accepted architecture memory
+   - process notes may use a lighter record when they do not change current
+     architecture state
+4. Choose exactly one ADR action: create, amend, supersede, or skip.
+5. Choose the owner surface: project `docs/adr/`, `docs/aegis/adr/`, existing
    ADR, or lighter record.
-5. Run Baseline Sync Closure.
-6. If writing files, preserve local ADR conventions and verify structure.
+6. Run Baseline Sync Closure.
+7. If writing files, preserve local ADR conventions and verify structure.
 
 ## Baseline Sync Closure
 
@@ -89,6 +94,11 @@ ADR Gate:
 - Hard to reverse: yes | no | unknown
 - Surprising without context: yes | no | unknown
 - Real trade-off: yes | no | unknown
+
+Retro / Memory Filter:
+- Classification: executed durable decision | unexecuted idea | process note
+- Memory action: record | skip | lighter record
+- Reason:
 
 ADR Action:
 - create | amend | supersede | skip

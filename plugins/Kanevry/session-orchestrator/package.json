@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "description": "Session Orchestrator — Claude Code plugin for structured development sessions",
   "type": "module",
   "engines": {

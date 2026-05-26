@@ -56,4 +56,4 @@ Record fuzz coverage in `.agents/test/summary.md`:
 
 ---
 
-**Source:** Adapted from jsm / `testing-fuzzing`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `testing-fuzzing`. Pattern-only, no verbatim text.

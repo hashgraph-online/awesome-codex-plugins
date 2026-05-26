@@ -40,6 +40,7 @@ Cost is an operational signal, but reliability headroom is not waste by default.
 - Unit metrics: request, tenant, job, dataset, device, model inference, or business transaction.
 - Cost allocation: environment, tenant/customer, feature, location, and workload class.
 - Scaling policies, reserved/committed/interruptible mix, idle resources, and peak patterns.
+- Optimization opportunities with expected savings, engineering effort, reliability risk, owner, status, and actual impact after implementation.
 - Data transfer, cross-location replication, telemetry/log volume, managed service overhead, and external traffic costs.
 - Recent deploys, traffic changes, incidents, abuse signals, and cost regressions.
 - Reliability risk tolerance and confirmation path for reducing headroom.
@@ -53,8 +54,9 @@ Cost is an operational signal, but reliability headroom is not waste by default.
 5. **Choose optimizations.** Use right-sizing, scheduling, storage lifecycle, caching, batching, data-transfer reduction, telemetry sampling/retention controls, capacity mix, or code efficiency where risk is explicit.
 6. **Model commitment risk.** For committed capacity or discounts, state forecast confidence, lock-in window, unused commitment risk, exit path, and what reliability headroom is protected.
 7. **Model tradeoffs.** State expected savings, reliability impact, security/operations side effects, blast radius, rollback, and monitoring.
-8. **Add guardrails.** Alert on cost regressions, unit-cost anomalies, and reliability signals after changes.
-9. **Check continuously.** Treat cost anomalies like operational regressions with post-change verification.
+8. **Track opportunities through outcome.** Record expected value, effort, owner, risk, decision, implementation status, and actual savings or reliability impact so optimization work does not become unreviewed cost cutting.
+9. **Add guardrails.** Alert on cost regressions, unit-cost anomalies, and reliability signals after changes.
+10. **Check continuously.** Treat cost anomalies like operational regressions with post-change verification.
 
 ## Synthesized Default
 
@@ -98,6 +100,7 @@ Optimize unit cost with allocation, anomaly detection, right-sizing, and capacit
 - Data-transfer, telemetry, and cross-location cost assessment where applicable.
 - Reliability/headroom tradeoff record.
 - Optimization plan with savings estimate, risk, and rollback.
+- Optimization opportunity register with owner, expected value, effort, risk, status, and actual-versus-estimated impact.
 - Commitment-risk record for reserved, prepaid, interruptible, or long-window capacity decisions.
 - Cost anomaly and unit-regression dashboard requirements.
 - Refresh cadence for cost signals.
@@ -108,6 +111,7 @@ Optimize unit cost with allocation, anomaly detection, right-sizing, and capacit
 - `unit_check`: cost metric maps to an engineering unit and response path.
 - `slo_headroom`: SLO, peak, and failure-condition headroom are preserved or risk is accepted.
 - `driver_check`: cost drivers are separated before recommending cuts.
+- `opportunity_tracking`: optimization recommendations have owner, status, and actual-versus-estimated impact review.
 - `rollback_check`: optimization has rollback or mitigation plan.
 - `regression_check`: post-change cost and reliability signals are monitored.
 
@@ -118,6 +122,7 @@ Optimize unit cost with allocation, anomaly detection, right-sizing, and capacit
 - Idle capacity is labeled waste without peak/failure analysis.
 - Interruptible capacity is used for work that cannot safely retry.
 - Cost anomaly investigation ignores deploys, retries, abuse, and data growth.
+- Optimization recommendations are made once and never checked against actual savings, effort, or reliability impact.
 
 ## Common Mistakes
 

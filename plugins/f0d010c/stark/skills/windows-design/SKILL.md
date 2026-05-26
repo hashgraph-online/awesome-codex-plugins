@@ -42,10 +42,14 @@ Before code, read:
 
 - `../../references/ui-patterns/surface-taxonomy.md`
 - `../../references/ui-patterns/ui-decision-brief.md`
+- `../../references/ui-patterns/desktop-app-archetypes.md`
+- `../../references/ui-patterns/originality-engine.md`
+- `../../references/ui-patterns/design-recipes.md`
+- `../../references/ui-patterns/anti-default-contrasts.md`
 - `../../references/ui-patterns/visual-hierarchy.md`
 - `../../references/ui-patterns/motion-budget.md`
 
-Write the UI decision brief and adapt it to the selected Windows track. Windows utilities and admin tools should favor operational density, stable navigation, SettingsCard/NavigationView idioms, and low motion. Branded consumer apps may use richer content surfaces, but native chrome, Mica/Acrylic rules, Segoe UI Variable, and Fluent icons still apply.
+Write the UI decision brief, desktop archetype brief, originality brief when relevant, and a compact layout sketch before code. Pick the app shape before picking controls: command center, library/collection, workbench, monitoring cockpit, tray utility, media/consumer, document/knowledge, or setup/preferences. Then choose a composition archetype from the product subject: cockpit, command deck, ledger, timeline wall, studio desk, light table, archive index, inspection bay, instrument panel, or another concrete premise. If the sketch becomes sidebar + cards + table, use anti-default contrasts and rewrite it. Windows utilities and admin tools should favor operational density, stable navigation, command surfaces, inspectors, timelines, and low motion. Use SettingsCard/NavigationView strongly for preferences and system-like utilities, but do not make every Windows app a settings shell. Branded consumer apps may use richer content surfaces, but native chrome, Mica/Acrylic rules, Segoe UI Variable, and Fluent icons still apply.
 
 ## Step 2a — Branded vs system-like (only if track 1 or 2 picked)
 
@@ -78,6 +82,10 @@ Every Win11 app must:
 |---|---|
 | Top-level navigation | `NavigationView` (Left, LeftCompact, Top modes) |
 | Settings | `SettingsCard` (CommunityToolkit.WinUI.Controls.SettingsControls) |
+| Library / collection | `ListView` / `GridView` + preview pane + metadata panel |
+| Workbench / editor | `CommandBar` + canvas/document area + right-side inspector |
+| Monitoring / jobs | timeline/list + `InfoBar` states + detail pane |
+| Tray utility | compact window or tray flyout + one primary status/action |
 | Inline alert | `InfoBar` (Severity: Informational/Success/Warning/Error) |
 | Coachmark | `TeachingTip` |
 | Disclosure | `Expander` |
@@ -112,6 +120,8 @@ Reject all of these:
 - FontAwesome / Material Symbols icons (use Segoe Fluent Icons)
 - Marketing-page spacing in productivity/admin tools
 - Decorative cards replacing SettingsCard, table/list, or master-detail surfaces
+- Sidebar plus cards plus table as the default for every desktop app
+- Branded originality that only changes colors while keeping the same generic shell
 
 ## Step 7 — Reference apps to emulate
 

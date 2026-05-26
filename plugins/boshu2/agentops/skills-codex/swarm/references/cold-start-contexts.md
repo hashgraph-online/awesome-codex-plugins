@@ -90,7 +90,7 @@ If shared notes exceed budget, summarize to top 3 most relevant entries.
 ## Integration Points
 
 ### With /crank
-Crank's Step 3b.1 (Build Context Briefing) should use this format. The `ao context assemble` command produces a similar briefing — this reference standardizes the format for environments where `ao` is unavailable.
+Crank's Step 3b.1 (Build Context Briefing) should use this format. The `ao lookup` command produces a similar briefing — this reference standardizes the format for environments where `ao` is unavailable.
 
 ### With /swarm
 Swarm's worker dispatch should include the cold-start block in every worker prompt. The swarm lead reads this reference and assembles the briefing before spawning.

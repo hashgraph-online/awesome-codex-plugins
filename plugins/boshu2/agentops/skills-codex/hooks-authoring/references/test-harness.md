@@ -32,18 +32,22 @@ Assert all three outputs:
 - Stdout JSON, when structured output is expected.
 - Stderr block reason, when exit code is `2`.
 
-## Repo Gates
+## Self-Tests
 
-Run the narrowest gates that match the edit:
-
-```bash
-bash scripts/validate-hooks-doc-parity.sh
-bash scripts/test-hooks-output.sh
-find hooks -name "*.sh" -print0 | xargs -0 shellcheck --severity=error
-```
-
-When hook files or helper libraries change, also run:
+AgentOps ships no hook gates (3.0 is hookless). Validate your own hooks
+directly:
 
 ```bash
-cd cli && make sync-hooks
+# Validate the manifest shape against the schema
+jq empty your-hooks.json && \
+  ajv validate -s schemas/hooks-manifest.v1.schema.json -d your-hooks.json
+
+# Lint your hook scripts
+find . -name "*.sh" -path '*hooks*' -print0 | xargs -0 shellcheck --severity=error
+
+# Assert output shape + exit codes with representative fixtures
+printf '%s' '{"tool_input":{"command":"git push -f origin main"}}' | bash your-hook.sh; echo "exit: $?"
 ```
+
+Keep hook output to the portable subset both Claude and Codex accept (avoid
+`hookSpecificOutput.updatedInput`, which Codex silently drops).

@@ -1,6 +1,6 @@
 # Related Operator Runbooks
 
-Bootstrap touches shell rc files (when `ao init --hooks` writes activation lines), `.agents/` state, and `bd` state. These runbooks cover the operator-side hygiene that bootstrap assumes is healthy on entry. Read the relevant entry when bootstrap reports an unexpected skip, when the operator's environment looks suspicious, or when handing a fresh host to a new agent.
+Bootstrap touches `.agents/` state and `bd` state (and shell rc files only via PATH hygiene, not hook activation — AgentOps 3.0 is hookless). These runbooks cover the operator-side hygiene that bootstrap assumes is healthy on entry. Read the relevant entry when bootstrap reports an unexpected skip, when the operator's environment looks suspicious, or when handing a fresh host to a new agent.
 
 ## Index
 
@@ -16,4 +16,4 @@ When a new runbook lands under `docs/runbooks/`, add a sub-section above with a 
 
 ---
 
-> Pattern adopted from `path-rationalization` (jsm/ACFS skill corpus). Methodology only -- no verbatim text.
+> Pattern adopted from `path-rationalization` (ACFS skill corpus). Methodology only -- no verbatim text.

@@ -37,4 +37,4 @@ Before publishing docs:
 
 ---
 
-**Source:** Adapted from jsm / `de-slopify` and `codebase-report`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `de-slopify` and `codebase-report`. Pattern-only, no verbatim text.

@@ -11,6 +11,15 @@ This skill is the canonical review-request workflow for method-pack implementati
 
 **Core principle:** Review early, review often.
 
+**Findings First:** Reviews lead with concrete findings before summary. Use
+bugs first, risk first, tests first. Strengths and general assessment are still
+useful, but they must not bury correctness, evidence, architecture, or
+retirement problems.
+
+Review readiness is not merge approval. A review can reduce uncertainty and
+recommend readiness, but it does not replace `verification-before-completion`
+and does not grant completion authority.
+
 ## When to Request Review
 
 **Mandatory:**
@@ -133,6 +142,7 @@ You: [Fix progress indicators]
 
 The review request must prompt the reviewer to inspect at least:
 
+- Findings First: bugs first, risk first, tests first
 - evidence sufficiency
 - baseline / current authority alignment
 - baseline defect vs architecture drift distinction

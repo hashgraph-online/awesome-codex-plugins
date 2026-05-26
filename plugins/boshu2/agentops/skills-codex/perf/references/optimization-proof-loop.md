@@ -27,4 +27,4 @@ Keep the change when improvement exceeds measurement noise and the behavior proo
 
 ---
 
-**Source:** Adapted from jsm / `extreme-software-optimization`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `extreme-software-optimization`. Pattern-only, no verbatim text.

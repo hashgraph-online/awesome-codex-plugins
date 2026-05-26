@@ -278,7 +278,7 @@ Review `<state-dir>/rules/` files that are relevant to this session's work:
 
 > **Ownership Reference:** See `skills/_shared/state-ownership.md`. session-end is authorized to set `status: completed` plus the optional `updated` timestamp (#184), and — as of Phase A of Epic #271 — the 5 Recommendation fields written by Phase 3.7a. No other fields.
 
-> **Runtime Ordering Note (Epic #271 Phase A):** Phase 3.4's `status: completed` write executes LAST in Phase 3, AFTER Phase 3.7 (sessions.jsonl) and Phase 3.7a (Compute and Write Recommendations). The ordinal position here (3.4) is kept for historical compatibility; the canonical runtime order is `3.1 → 3.2 → 3.3 → 3.4a → 3.5 → 3.5a → 3.7 → 3.7a → 3.4`. Rationale: Phase 3.7a reads in-memory session metrics and writes the 5 Recommendation fields via `updateFrontmatterFields`; that write must complete BEFORE the STATE.md frontmatter is finalized with `status: completed` so the Recommendation fields are visible to the next session-start while STATE.md is still `status: active`. Crash-resilience: if `/close` aborts between 3.7a and 3.4, STATE.md carries `status: active` + Recommendations; session-start Phase 1.5 offers resume (and the banner renders). If the reverse ordering were used (status: completed first), a crash would leave `status: completed` without Recommendations — the Reader would silently no-op the banner, losing the handoff.
+> **Runtime Ordering Note (Epic #271 Phase A):** Phase 3.4's `status: completed` write executes LAST in Phase 3, AFTER Phase 3.7 (sessions.jsonl) and Phase 3.7a (Compute and Write Recommendations). The ordinal position here (3.4) is kept for historical compatibility; the canonical runtime order is `3.1 → 3.2 → 3.3 → 3.4a → 3.5 → 3.5a → 3.6 → 3.6.5 → 3.6.7 → 3.7 → 3.7a → 3.4`. Rationale: Phase 3.7a reads in-memory session metrics and writes the 5 Recommendation fields via `updateFrontmatterFields`; that write must complete BEFORE the STATE.md frontmatter is finalized with `status: completed` so the Recommendation fields are visible to the next session-start while STATE.md is still `status: active`. Crash-resilience: if `/close` aborts between 3.7a and 3.4, STATE.md carries `status: active` + Recommendations; session-start Phase 1.5 offers resume (and the banner renders). If the reverse ordering were used (status: completed first), a crash would leave `status: completed` without Recommendations — the Reader would silently no-op the banner, losing the handoff.
 
 > Gate: Only run if `persistence` is enabled in Session Config and `<state-dir>/STATE.md` exists.
 1. Set frontmatter `status: completed`
@@ -341,6 +341,69 @@ This cleanup is the counterpart to the session-start Phase 1.5 recovery prompt: 
 
 Read `skills/session-end/learning-patterns.md` for extraction heuristics, confidence updates, passive decay, and JSONL write procedure.
 
+### 3.6.3 Memory Proposals Collection (#501, F2.1)
+
+> Gate: Skip this phase entirely when ANY of:
+> - `persistence` is `false` in Session Config
+> - `memory.proposals.enabled` is `false` (default: `true`)
+> - `.orchestrator/metrics/proposals.jsonl` does not exist OR contains zero entries
+
+After learnings are written (Phase 3.6) and BEFORE auto-dream dispatch (Phase 3.6.5), collect agent-proposed memory entries written during this session and present them to the operator via `AskUserQuestion` multiSelect. Approved entries flow to `learnings.jsonl` with `_provenance: agent-proposed@<wave-id>`. Rejected entries are archived to `.orchestrator/proposals.rejected.log`.
+
+The proposals queue is populated mid-session by wave-executor agents calling `node scripts/memory-propose.mjs --type ... --subject ... --insight ... --evidence ... --confidence ...`. The CLI enforces:
+- Quota per wave (default 5, configurable via `memory.proposals.quota-per-wave`)
+- Confidence floor (default 0.5, configurable via `memory.proposals.confidence-floor`)
+- Wrong-context guard (CLI exits non-zero when STATE.md `status` is not `active`)
+
+#### Coordinator-direct procedure
+
+1. Read Session Config: `memory.proposals.enabled` (default `true`), `memory.proposals.quota-per-wave` (default 5), `memory.proposals.confidence-floor` (default 0.5).
+
+2. Invoke `collectProposals` from `scripts/lib/memory-proposals/collector.mjs`:
+   ```javascript
+   import { collectProposals } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/collector.mjs';
+   const { queue, stats, perWaveSummaries } = await collectProposals({ repoRoot: process.cwd() });
+   ```
+
+3. If `queue.length === 0`: log `memory-proposals: queue empty (stats: ${JSON.stringify(stats)})` and continue.
+
+4. **AUQ pagination logic**: rendered via `_partitionForAuq(queue)` from `scripts/lib/memory-proposals/auq-partition.mjs`:
+
+   - Empty queue → silent skip (no AUQ rendered).
+   - 1-4 items → single multiSelect call with all items as options.
+   - 5+ items → sequential multiSelect calls in batches of 4 (FIFO order; final batch may have < 4 items).
+
+   Import: `import { _partitionForAuq } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/auq-partition.mjs';`
+   Call: `const { batches } = _partitionForAuq(queue);` then iterate `batches` and emit one `AskUserQuestion` per batch with `header: "Memory — Confirm Proposals (Batch N of M)"`. Option label format: `[<type-12>] | <subject-40> | conf=X.XX`. Option description: `evidence: <first 60 chars of insight>`. `multiSelect: true`.
+
+5. After all batches answered, partition the queue into `approved` (any option selected across all batches) and `rejected` (all unselected).
+
+6. Invoke `writeApproved` and `archiveRejected` from `scripts/lib/memory-proposals/sink.mjs`:
+   ```javascript
+   import { writeApproved, archiveRejected, clearProposalsJsonl } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/sink.mjs';
+   const writeResult = await writeApproved({ approved, repoRoot, sessionId });
+   const archiveResult = await archiveRejected({ rejected, repoRoot, reason: 'user-declined' });
+   await clearProposalsJsonl({ repoRoot });
+   ```
+
+7. Log outcome for Phase 6 Final Report: `memory.proposals: <queued> queued → <approved> approved, <rejected> rejected (dropped: <dropped> quota, <below_floor> below-floor)`.
+
+#### Failure modes
+
+- If `collectProposals` fails (fs error): log warning `⚠ memory-proposals: collect failed (${err}) — skipping`, do not block session close.
+- If `writeApproved` reports errors per-record: log each, but continue (per-record fault isolation per sink contract).
+- If `clearProposalsJsonl` fails: log warning; do not block. The file may be re-collected at the next session-end, idempotent.
+
+#### Cross-references
+
+- PRD: `docs/prd/2026-05-21-learning-memory-modernization.md` § F2.1
+- Modules: `scripts/lib/memory-proposals/{schema,store,collector,sink}.mjs`
+- CLI: `scripts/memory-propose.mjs` (agents call this)
+- Hook: `hooks/pre-bash-memory-propose-audit.mjs` (audit trail)
+- Coordinator AUQ spec: `agents/memory-proposal-collector.md` (reference doc)
+- Sibling phases: 3.6.5 Auto-Dream (#502), 3.6.7 Auto-Dialectic (#506)
+- Issue: #501
+
 ### 3.6.5 Auto-Dream Dispatch (#502, F2.2)
 
 > Skip this phase if `memory-cleanup-threshold: 0` (kill-switch per PRD F2.2). Also skip on non-Claude-Code platforms (memory dir at `~/.claude/projects/` is Claude Code-only, mirrors Phase 3.5 gate).
@@ -384,6 +447,57 @@ After learnings are written (Phase 3.6), determine whether to dispatch a `/memor
 The pending-dream sidecar at `.orchestrator/pending-dream.md` is intentionally outside the vault tree — vault-mirror (Phase 3.7) must exclude it from its scope so the proposal survives the session close without being mirrored into 50-sessions/.
 
 Cross-reference: PRD F2.2 acceptance criteria; `scripts/lib/auto-dream.mjs` API (`shouldDispatchAutoDream`, `readDreamSignals`, `writePendingDream`, `readPendingDream`, `applyPendingDream`).
+
+### 3.6.7 Auto-Dialectic Dispatch (#506, F2.5)
+
+> Skip this phase if `dialectic.cadence: 0` (kill-switch per PRD F2.5 AC3). Also skip if `persistence` is `false` in Session Config.
+
+After learnings are written (Phase 3.6) and the auto-dream decision is made (Phase 3.6.5), determine whether to dispatch `/evolve --dialectic --dry-run`. The decision uses sessions-since-last-dialectic counted against `.orchestrator/dialectic-last-run`. On trigger, the subagent runs the full dialectic deriver and writes the proposed diff to `.orchestrator/dialectic-pending.md`; the timestamp is updated only on successful dispatch (not on skip).
+
+1. Read `dialectic.cadence` (default 5), `dialectic.model` (default haiku), `dialectic.budget-tokens` (default 8000) from `$CONFIG`.
+
+2. Invoke `shouldDispatchAutoDialectic` from `scripts/lib/auto-dialectic.mjs`:
+   ```javascript
+   import { shouldDispatchAutoDialectic } from '${PLUGIN_ROOT}/scripts/lib/auto-dialectic.mjs';
+   const decision = await shouldDispatchAutoDialectic({
+     repoRoot: process.cwd(),
+     cadence: config.dialectic?.cadence ?? 5,
+   });
+   ```
+
+3. If `decision.trigger === false`: log `auto-dialectic: not dispatched (${decision.reason})` and continue. Skip subagent. Do NOT update `.orchestrator/dialectic-last-run`.
+
+4. **AC4 precondition guard:** Even if cadence met, if `signals.sessionsSinceLast === 0 && signals.learningsSinceLast === 0`, skip with reason `no-new-input-since-last-run`. The Final Report (Phase 6) MUST include the literal string `dialectic: skipped (no new input since last run)`.
+
+5. If `decision.trigger === true`: dispatch a subagent:
+   ```javascript
+   Agent({
+     description: "Auto-dialectic dry-run (peer-card consolidation proposal)",
+     prompt: `Invoke /evolve --dialectic --dry-run.
+       Use dialectic.model=${config.dialectic?.model ?? 'haiku'} with budget ${config.dialectic?.['budget-tokens'] ?? 8000} input + 4000 output tokens.
+       Produce diff via runDialecticDeriver from scripts/dialectic-deriver.mjs;
+       writeDialecticPending writes to .orchestrator/dialectic-pending.md.
+       Do NOT modify .orchestrator/peers/USER.md or AGENT.md (dry-run only).
+       Return one-line status.`,
+     subagent_type: "session-orchestrator:evolve",
+     run_in_background: false,
+   })
+   ```
+
+6. After dispatch, confirm `.orchestrator/dialectic-pending.md` exists; if not, log `⚠ auto-dialectic: subagent returned without writing dialectic-pending sidecar — investigate next session` and do NOT update `dialectic-last-run`.
+
+7. On successful dispatch (sidecar present), update `.orchestrator/dialectic-last-run` via `writeDialecticLastRun(repoRoot, new Date().toISOString())`. Atomic; failures non-fatal.
+
+8. Record outcome (skipped/dispatched/failed) for Phase 6 Final Report: `auto-dialectic: dry-run produced — review at .orchestrator/dialectic-pending.md and apply with /evolve --dialectic --apply in the next session`.
+
+The `.orchestrator/dialectic-pending.md` sidecar is intentionally outside the vault tree — vault-mirror (Phase 3.7) MUST exclude it from its scope.
+
+Cross-reference: PRD F2.5 acceptance criteria (#506); `scripts/lib/auto-dialectic.mjs` API.
+
+> **Dispatch chain rationale (3 design choices in the chain session-end → subagent → /evolve → runDialecticDeriver → dispatchAgent → Agent):**
+> - **session-end → subagent (not direct invoke):** session-end runs in the main coordinator context; spawning a subagent isolates the dialectic pass into a fresh context window, prevents the deriver's input-heavy payload (top-50 learnings + last-10 sessions + 2 peer cards + steering) from polluting the main coordinator's context, and lets the subagent run as Haiku while the coordinator stays Opus.
+> - **/evolve → runDialecticDeriver (not direct dispatchAgent):** /evolve owns argument parsing, config resolution, dry-run/apply gating, error-handling, and sidecar writes; runDialecticDeriver owns the pure derivation pipeline (load → payload → budget-check → dispatch → parse → guard). Separating skill-level orchestration from deriver business logic lets unit tests exercise the deriver without standing up the full evolve skill.
+> - **runDialecticDeriver → dispatchAgent (DI boundary):** per `.claude/rules/prompt-caching.md:3`, session-orchestrator forbids direct `@anthropic-ai/sdk` imports in business logic (the harness manages caching at the platform layer). dispatchAgent is the injected boundary — the evolve skill wires the real `Agent({...})` harness call at runtime, tests pass a `vi.fn()` mock. Same DI shape as `scripts/lib/autopilot.mjs::runLoop({opts})` (cf. `scripts/dialectic-deriver.mjs:7-16,531`).
 
 ### 3.7 Write Session Metrics
 
@@ -555,7 +669,9 @@ Present to the user:
 | `drift-operations.md` | Phase 2.2 drift-checker bash contract and reporting matrix |
 | `phase-3-2-docs-verification.md` | Phase 3.2 full procedural body — docs-tasks load, SESSION_START_REF, per-task loop, mode-gated report, Documentation Coverage block |
 | `learning-patterns.md` | Phases 3.5a + 3.6 extraction heuristics, confidence updates, passive decay, and JSONL write procedure |
+| (inline) Phase 3.6.3 | Memory-Proposals Collection — `collectProposals` + AUQ multiSelect + `writeApproved` + `clearProposalsJsonl` |
 | (inline) Phase 3.6.5 | Auto-Dream dispatch — `shouldDispatchAutoDream` + dispatch /memory-cleanup --dry-run + writes `.orchestrator/pending-dream.md` |
+| (inline) Phase 3.6.7 | Auto-Dialectic dispatch — `shouldDispatchAutoDialectic` + dispatch /evolve --dialectic --dry-run + writes `.orchestrator/dialectic-pending.md` + updates `.orchestrator/dialectic-last-run` |
 | `session-metrics-write.md` | Phase 3.7 JSONL append, vault-mirror invocation, and behavior matrix |
 | `phase-3-7a-recommendations.md` | Phase 3.7a full procedural body — computeV0Recommendation call, STATE.md field write, data source guarantee, error mode |
 | (inline) Phase 3.8 | Session Lock Release — `release()` call, silent-OK on mismatch/absent, non-fatal on fs-error, ordering note (after STATE.md writes, before Phase 4 commit staging) |

@@ -31,4 +31,4 @@ When a change crosses repositories:
 
 ---
 
-**Source:** Adapted from jsm / `rch`, `ssh`, and `ru-multi-repo-workflow`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `rch`, `ssh`, and `ru-multi-repo-workflow`. Pattern-only, no verbatim text.

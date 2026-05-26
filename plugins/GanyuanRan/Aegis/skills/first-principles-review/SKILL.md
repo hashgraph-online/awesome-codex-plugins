@@ -47,6 +47,19 @@ Smallest Sufficient Path: What is the least complex path that satisfies the firs
 Escalation Signal: What finding would require spec/design/architecture review?
 ```
 
+For repair choices, "smallest" means smallest sufficient stable repair, not the
+smallest textual diff:
+
+```text
+Minimality Check:
+- Smallest textual diff:
+- Correct owner:
+- Bug class fixed:
+- New branch/fallback added:
+- Old path retired or scheduled:
+- Verdict: sufficient repair | local patch | needs first-principles review
+```
+
 ## Decision Hygiene Review
 
 Use this escalation only when a design, fix, or plan needs endorsement before it

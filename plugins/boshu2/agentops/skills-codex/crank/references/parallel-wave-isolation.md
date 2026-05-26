@@ -11,7 +11,7 @@ Observed 2026-04-30 (soc-lrwk crank): 2 of 3 parallel workers lost staged work a
 The user already invested in worktree-sprawl prevention:
 - Commit `83bea6bd` enforces canonical-root worktree hygiene.
 - `scripts/check-worktree-disposition.sh` flags stray worktrees in CI.
-- `ao worktree gc` cleans up stale ones.
+- `git worktree prune` cleans up stale ones.
 - AGENTS.md documents the policy.
 
 Defaulting to per-worker worktrees regresses that investment. The right answer is conditional escalation, gated on the actual signal (`scripts/preflight-swarm.sh`).
@@ -83,7 +83,7 @@ This catches stragglers — worktrees that should have been removed but weren't.
 | 2 | One worktree per worker, ephemeral | `preflight-swarm.sh` flags overlap | Same-file collisions, generated-artifact races |
 | 3 | One script call | Every wave-end | Sprawl regression — leftover worktrees |
 
-Reuses existing tooling: `scripts/preflight-swarm.sh`, `scripts/check-worktree-disposition.sh`, [worktree-per-worker.md](worktree-per-worker.md), `ao worktree gc`. No new scripts.
+Reuses existing tooling: `scripts/preflight-swarm.sh`, `scripts/check-worktree-disposition.sh`, [worktree-per-worker.md](worktree-per-worker.md), `git worktree prune`. No new scripts.
 
 ## See Also
 

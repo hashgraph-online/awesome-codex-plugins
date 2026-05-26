@@ -12,7 +12,7 @@ Materializes a new skill against the unified template at `references/skill-templ
 - **Self-audit is mandatory.** After every successful build, the build script invokes `$skill-auditor` against the new skill directory. A FAIL verdict aborts the build. **Why:** PR-002 (external validation gate) — the builder must not declare its own work complete.
 - **Codex parity is day-1, not later.** `from-scratch`, `from-template`, and `absorb-external` modes must produce both `skills/<name>/SKILL.md` AND `skills-codex/<name>/SKILL.md` + `skills-codex/<name>/prompt.md`. **Why:** finding `2026-05-03-codex-skill-shape-is-dual-file` — codex SKILL.md uses slim frontmatter (no `skill_api_version`); prompt.md is mandatory; `audit-codex-parity.sh` is a content scanner that won't catch frontmatter drift.
 - **250-line ceiling on new SKILL.md.** Use `references/` for overflow. **Why:** finding `f-2026-05-01-025` — every skill invocation reloads 5-15KB; multi-lifecycle sessions compound to 150-200KB+ pure scaffolding.
-- **Clean-room factory inputs only.** When using JSM-informed lessons, read [references/agentops-skill-factory.md](references/agentops-skill-factory.md) and use only AgentOps-owned summaries, scripts, and rubrics. **Why:** productization must improve structure without copying protected third-party skill content.
+- **Clean-room factory inputs only.** When using lessons learned from external corpora, read [references/agentops-skill-factory.md](references/agentops-skill-factory.md) and use only AgentOps-owned summaries, scripts, and rubrics. **Why:** productization must improve structure without copying protected third-party skill content.
 
 ## Modes
 

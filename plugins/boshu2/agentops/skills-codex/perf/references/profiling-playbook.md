@@ -42,4 +42,4 @@ Always report the metrics the runtime can provide:
 
 ---
 
-**Source:** Adapted from jsm / `profiling-software-performance`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `profiling-software-performance`. Pattern-only, no verbatim text.

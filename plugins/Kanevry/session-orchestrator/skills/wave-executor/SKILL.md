@@ -240,6 +240,39 @@ Each agent prompt MUST NOT include:
 - Vague instructions like "improve" or "optimize" without specifics
 - Assumptions about code state — provide the actual state
 
+## Agent Memory-Proposal Capability (#501)
+
+Wave-executor agents may propose memory entries (learnings) mid-session via the `memory.propose` CLI. The coordinator surfaces proposals at session-end Phase 3.6.3 (`skills/session-end/SKILL.md`) for AUQ-confirm before promoting them to `learnings.jsonl` with `_provenance: agent-proposed@<wave-id>`. Conservative safety model: max `memory.proposals.quota-per-wave` (default 5) per wave, `memory.proposals.confidence-floor` (default 0.5).
+
+**Agent prompt boilerplate** — when dispatching an Impl-Core / Impl-Polish / Quality agent in a session where `memory.proposals.enabled: true` (default), include this block in the agent's prompt so the capability is discoverable:
+
+```
+## Memory Proposal Capability (optional)
+
+During this wave, you may propose a learning to the session's memory via the CLI:
+
+  SO_WAVE_AGENT=1 node scripts/memory-propose.mjs \
+      --type <one of: workflow-pattern|anti-pattern|pattern|recurring-issue|fragile-file|effective-sizing|proven-pattern|mode-selector-accuracy|hardware-pattern|autopilot-effectiveness> \
+      --subject "one-line title (max 100 chars, no newlines)" \
+      --insight "your discovery paragraph (max 2000 chars)" \
+      --evidence "concrete proof: code citation / log excerpt / commit ref (max 5000 chars)" \
+      --confidence <0.5 to 1.0>
+
+MUST prefix with `SO_WAVE_AGENT=1` — without it the CLI returns exit 3 `rejected-wrong-context`. The env-var is the per-process guard that distinguishes wave-executor agents from coordinator-context invocations.
+
+Exit code 0 = queued (the coordinator will present at session-end via AskUserQuestion); 1 = quota-exceeded; 2 = rejected-low-confidence (below floor 0.5); 3 = rejected-wrong-context (STATE.md not active OR SO_WAVE_AGENT != "1"); 4 = error (arg validation or internal).
+
+Use ONLY when you find a recurring pattern, anti-pattern, or constraint worth carrying into future sessions. The coordinator confirms each proposal before it lands in learnings.jsonl. Do NOT over-propose — quota is bounded per wave.
+```
+
+**Skip injection** when:
+- `memory.proposals.enabled: false` in Session Config, OR
+- Discovery / Finalization waves (Discovery is read-only; Finalization is coordinator-direct)
+
+**Audit trail:** the `hooks/pre-bash-memory-propose-audit.mjs` hook logs every CLI invocation to `.orchestrator/metrics/events.jsonl` with the value of `--insight` / `--subject` / `--evidence` redacted (privacy-by-default).
+
+Cross-reference: PRD F2.1 / issue #501 / `agents/memory-proposal-collector.md` (coordinator-side AUQ rendering reference doc) / `scripts/lib/memory-proposals/{schema,store,collector,sink}.mjs` (the modules).
+
 ## Session Type Behavior
 
 ### Housekeeping Sessions

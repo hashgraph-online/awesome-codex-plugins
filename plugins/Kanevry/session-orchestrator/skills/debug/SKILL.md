@@ -95,6 +95,8 @@ After the Phase 1 artifact is written:
 
 Record findings in the artifact's Phase 2 section.
 
+**Optional operator-side companion:** `/tmux-layout --layout debug` renders a 4-pane layout (scratch shell + `npm test --watch` + `tail -F .orchestrator/debug/*.md` + `watch -n 2 'git diff --stat'`) so you can observe hypothesis tests, debug artifacts, and diff progression peripherally. Pure observability — the `/debug` skill works identically with or without the layout (per ADR-0007 + GitLab #562).
+
 ## Phase 3: Impact Analysis
 
 - What else does the root-caused code touch?

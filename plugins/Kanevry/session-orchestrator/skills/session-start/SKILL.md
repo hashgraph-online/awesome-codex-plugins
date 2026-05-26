@@ -488,13 +488,19 @@ Group issues by:
 
    The banner is non-blocking — display in the Session Overview, do not halt the session. If `ci-status-banner.mjs` is absent (pre-#369 plugin install), skip silently.
 
-   Additionally, invoke the QG-command-drift probe (`scripts/lib/qg-command-drift-banner.mjs`) via `await checkQgCommandDrift({ repoRoot })`. The helper returns `null` (silent no-op) when no drift or when Session Config load fails. When a non-null banner string is returned, render it alongside the bootstrap-lock-freshness, vault-staleness, and CI-status banners:
-   - **Drift detected**: `"⚠ Session Config drift (*-command keys): <details>. Verify the overrides are intentional. See .claude/rules/quality-gates-autofix.md § Session Config Command Injection for the RCE-equivalent trust-model."`
+   Additionally, invoke the QG-command-drift probe (`scripts/lib/qg-command-drift-banner.mjs`) via `await checkQgCommandDrift({ repoRoot })`. The helper returns `null` (silent no-op) when no drift or when Session Config load fails. When a non-null result is returned, render `result.message` alongside the bootstrap-lock-freshness, vault-staleness, and CI-status banners:
+   - **Drift detected** (`{ severity: 'warn', message: ... }`): render `result.message`. The message has the shape `"⚠ Session Config drift (*-command keys): <details>. Verify the overrides are intentional. See .claude/rules/quality-gates-autofix.md § Session Config Command Injection for the RCE-equivalent trust-model."`
    - **No drift**: silent (no banner).
 
    The banner is non-blocking — display in the Session Overview, do not halt the session. Cross-reference: `.claude/rules/quality-gates-autofix.md` § Session Config Command Injection — the banner exists because `*-command` keys are RCE-equivalent under the VCS trust-anchor model.
 
-   All banners are non-blocking — display in the Session Overview, do not halt the session. If `bootstrap-lock-freshness.mjs` is absent (pre-#186 plugin install), skip silently.
+   Additionally, invoke the peer-cards-staleness probe (`scripts/lib/peer-cards/staleness-banner.mjs`) via `await checkPeerCardsStaleness({ repoRoot })`. The helper returns `null` (silent no-op) when `.orchestrator/peers/` is absent, neither USER.md nor AGENT.md is present, no card is stale, or the reader fails. When a non-null result is returned (`{ severity: 'warn', message, stale }`), render `result.message` alongside the bootstrap-lock-freshness, vault-staleness, CI-status, and QG-command-drift banners:
+   - **Stale (>30d)**: `"⚠ peer-cards: USER.md (Nd), AGENT.md (Nd) stale (>30 days) — consider running /evolve --dialectic to refresh."` (one or both targets, whichever are stale).
+   - **Fresh / absent / malformed frontmatter**: silent (no banner).
+
+   Cross-reference: `.claude/rules/owner-persona.md` (host-wide `owner.yaml` operator identity) and `skills/vault-sync/SKILL.md` (`type: peer-card` value in the vault-frontmatter enum). Peer cards complement `owner.yaml` with per-repo behavioural identity for the operator (USER.md) and agent (AGENT.md).
+
+   All banners are non-blocking — display in the Session Overview, do not halt the session. If `bootstrap-lock-freshness.mjs` is absent (pre-#186 plugin install) or `peer-cards/staleness-banner.mjs` is absent (pre-#503 plugin install), skip silently.
 
 ## Phase 4.5: Resource Health (v3.1.0)
 
@@ -611,6 +617,40 @@ Present a Surface Health block immediately after the per-type grouping, before t
    - Effectiveness: [completion rate trend, probe value, carryover pattern]
    ```
 
+## Phase 6.7: Memory Banner (#505)
+
+> Skip this phase silently when `persistence: false` OR `memory.banner.enabled: false` in Session Config (default: enabled). Silent no-op pattern mirrors Phase 6.5 / Phase 7.5.
+
+Render a compact, operator-visible banner summarizing what session-start loaded from persistent memory. The banner anchors operator confidence (cf. doobidoo/mcp-memory-service v8.5.7's SessionStart Hook for the precedent UX) and signals to fresh-cohort operators that the system is learning.
+
+```javascript
+import { renderMemoryBanner } from '${PLUGIN_ROOT}/scripts/lib/memory-banner.mjs';
+
+const bannerText = await renderMemoryBanner({
+  repoRoot: process.cwd(),
+  config: $CONFIG,
+});
+if (bannerText) {
+  console.log(bannerText);   // print to user-facing stdout
+}
+```
+
+### Behaviour summary
+
+- **Persistence off** (`persistence: false`) → silent no-op.
+- **Banner disabled** (`memory.banner.enabled: false`) → silent no-op.
+- **Fresh repo** (0 learnings + 0 sessions) → single line: `📚 Memory: 0 entries yet (first session). I'll start learning from this session forward.`
+- **Populated**: header `📚 Loaded from memory` + top-5 surfaced learnings (subject + confidence + type) + memory-stats line (`N memory files · M sessions ever · last cleanup K days ago`) + (when present) one excerpt line each from `USER.md` + `AGENT.md` peer cards (first non-empty section header + first content line).
+
+### Implementation notes
+
+- All inputs are derived through `readBannerInputs()` in `scripts/lib/memory-banner.mjs`; the skill never reads JSONL directly — keeps the banner authoritative for output format.
+- Memory-file count = `*.md` files under the memory directory (resolved by `resolveMemoryDir()` from `auto-dream.mjs`). Sessions count = lines in `.orchestrator/metrics/sessions.jsonl`. `daysSinceCleanup` = floor((now - lastCleanupAt) / 86400000); `null` when never cleaned.
+- Banner truncates subject and excerpt strings at ~80 visible chars (with `…`).
+- The banner NEVER exposes raw JSON; all values are pre-cleaned scalars.
+
+Cross-reference: PRD F2.3 acceptance criteria (#505); `scripts/lib/memory-banner.mjs` API (`renderMemoryBanner`, `readBannerInputs`, `formatBanner`, `extractCardExcerpt`).
+
 ## Phase 7: Research (session type dependent)
 
 > **Note:** Implementation-specific research (library APIs, best practices for specific code changes) is deferred to session-plan, which knows the exact scope. Session-start focuses on state analysis.
@@ -691,5 +731,6 @@ After user alignment:
 | (inline) Phase 2.6 | Steering docs gate + load — reads `.orchestrator/steering/{product,tech,structure}.md`; silent no-op when directory absent |
 | (inline) Phase 2.7 | GitLab Portfolio Snapshot — dry-run aggregation banner; gated on `gitlab-portfolio.enabled: true` + `vault-integration.enabled: true`; dispatches `scripts/lib/gitlab-portfolio/cli.mjs --dry-run`; 8s timeout; never blocks session-start |
 | `phase-4-5-resource-health.md` | Phase 4.5 full procedural body — resource probe, adaptive thresholds table, AUQ presentation, session-plan cap handoff |
+| (inline) Phase 6.7 | Memory Banner — `renderMemoryBanner` from `scripts/lib/memory-banner.mjs` (#505); silent no-op when `memory.banner.enabled: false` or `persistence: false` |
 | `phase-7-5-mode-selector.md` | Phase 7.5 full procedural body — buildLiveSignals, selectMode invocation, banner rendering, AUQ ordering protocol, graceful no-op rules, accuracy learning write |
 | `phase-8-5-express-path.md` | Phase 8.5 full procedural body — activation conditions, banner, coordinator-direct execution, STATE.md logging, condition examples table |

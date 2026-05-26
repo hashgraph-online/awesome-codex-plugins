@@ -35,4 +35,4 @@ If host pressure affects the result, add this section to the perf report:
 
 ---
 
-**Source:** Adapted from jsm / `system-performance-remediation`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `system-performance-remediation`. Pattern-only, no verbatim text.

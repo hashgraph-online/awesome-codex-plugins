@@ -45,4 +45,4 @@ For external tools and libraries, write output in this order:
 
 ---
 
-**Source:** Adapted from jsm / `codebase-archaeology`, `codebase-pattern-extraction`, `codebase-report`, and `research-software`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `codebase-archaeology`, `codebase-pattern-extraction`, `codebase-report`, and `research-software`. Pattern-only, no verbatim text.

@@ -29,4 +29,4 @@ Before closing a migration or triage task, prove:
 
 ---
 
-**Source:** Adapted from jsm / `bd-to-br-migration`, `beads-br`, and `beads-bv`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `bd-to-br-migration`, `beads-br`, and `beads-bv`. Pattern-only, no verbatim text.

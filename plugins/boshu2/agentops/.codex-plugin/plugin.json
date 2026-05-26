@@ -9,8 +9,7 @@
     "developerName": "AgentOps",
     "category": "Productivity",
     "capabilities": [
-      "Skills",
-      "Hooks"
+      "Skills"
     ],
     "defaultPrompt": [
       "Use AgentOps to inspect ready work, claim a bead, and plan the change.",

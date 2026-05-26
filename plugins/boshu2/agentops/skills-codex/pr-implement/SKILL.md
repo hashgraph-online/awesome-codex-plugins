@@ -11,16 +11,16 @@ Fork-based implementation for open source contributions with mandatory isolation
 Execute a contribution plan with fork isolation. Ensures PRs are clean
 and focused by running isolation checks before and during implementation.
 
-**Input**: Plan artifact from `$pr-plan` or repo URL
+**Input**: Plan artifact from `$plan` (after `$pr-research`) or repo URL
 
 **When to Use**:
 - Implementing a planned OSS contribution
 - Need isolation enforcement for clean PRs
-- After completing `$pr-plan`
+- After completing `$pr-research` and `$plan`
 
 **When NOT to Use**:
 - Internal project work (use `$implement`)
-- Haven't planned yet (run `$pr-plan` first)
+- Haven't planned yet (run `$pr-research` then `$plan` first)
 
 ---
 
@@ -138,7 +138,7 @@ Next step: $pr-prep
 | Skip isolation pre-check | Run Phase 3 FIRST |
 | Skip isolation post-check | Run Phase 5 before push |
 | Mix concerns in commits | One type prefix per PR |
-| Implement without plan | Run $pr-plan first |
+| Implement without plan | Run $pr-research then $plan first |
 
 ## Examples
 

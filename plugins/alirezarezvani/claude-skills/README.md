@@ -4,12 +4,13 @@
 
 The most comprehensive open-source library of Claude Code skills and agent plugins — also works with OpenAI Codex, Gemini CLI, Cursor, and 7 more coding agents. Reusable expertise packages covering engineering, DevOps, marketing (incl. v2.7.3 AEO — Answer Engine Optimization for LLM citation), security (PreToolUse hooks), compliance, C-level advisory (incl. founder-mode CFO/CMO/CRO/CPO/COO/CHRO/CISO/GC/CDO/CAIO/CCO/VPE personas + 21 /cs:* slash commands), productivity (capture/email/reflect), and a complete research stack (litreview/grants/dossier/patent/syllabus/pulse/notebooklm + hybrid router).
 
-**Works with:** Claude Code · OpenAI Codex · Gemini CLI · OpenClaw · Hermes Agent[^hermes] · Cursor · Aider · Windsurf · Kilo Code · OpenCode · Augment · Antigravity
+**Works with:** Claude Code · OpenAI Codex · Gemini CLI · OpenClaw · Hermes Agent[^hermes] · Mistral Vibe[^vibe] · Cursor · Aider · Windsurf · Kilo Code · OpenCode · Augment · Antigravity
 
 [^hermes]: Hermes Agent is **BYO-sync tier**: the repo ships a pre-generated `.hermes/skills/claude-skills/` tree (305 skills across 12 domains as of v2.7.3), but you run `python scripts/sync-hermes-skills.py` once locally to install into `~/.hermes/skills/`. Uses the same agentskills.io SKILL.md standard — no format conversion.
+[^vibe]: Mistral Vibe is also **BYO-sync tier**: the repo ships a pre-generated `.vibe/skills/claude-skills/` tree (306 skills across 14 domains), run `./scripts/vibe-install.sh` once locally to install into `~/.vibe/skills/`. Same agentskills.io SKILL.md standard — no format conversion. Docs: <https://docs.mistral.ai/mistral-vibe/agents-skills>.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/Skills-329-brightgreen?style=for-the-badge)](#skills-overview)
+[![Skills](https://img.shields.io/badge/Skills-330-brightgreen?style=for-the-badge)](#skills-overview)
 [![Agents](https://img.shields.io/badge/Agents-49+-blue?style=for-the-badge)](#agents)
 [![Personas](https://img.shields.io/badge/Personas-7-purple?style=for-the-badge)](#personas)
 [![Commands](https://img.shields.io/badge/Commands-79+-orange?style=for-the-badge)](#commands)
@@ -28,7 +29,7 @@ Claude Code skills (also called agent skills or coding agent plugins) are modula
 - **Python tools** — ~402 CLI scripts (all stdlib-only, zero pip installs)
 - **Reference docs** — templates, checklists, and domain-specific knowledge
 
-**One repo, eleven platforms.** Works natively as Claude Code plugins, Codex agent skills, Gemini CLI skills, and converts to 8 more tools via `scripts/convert.sh`. All ~402 Python tools run anywhere Python runs.
+**One repo, twelve platforms.** Works natively as Claude Code plugins, Codex agent skills, Gemini CLI skills, Hermes Agent skills, Mistral Vibe skills, and converts to 7 more tools via `scripts/convert.sh`. All ~402 Python tools run anywhere Python runs.
 
 ### Skills vs Agents vs Personas
 
@@ -119,6 +120,7 @@ git clone https://github.com/alirezarezvani/claude-skills.git
 | **Augment** | `.augment/rules/` | `./scripts/install.sh --tool augment --target .` |
 | **Antigravity** | `~/.gemini/antigravity/skills/` | `./scripts/install.sh --tool antigravity` |
 | **Hermes Agent** | `~/.hermes/skills/` | `python scripts/sync-hermes-skills.py --verbose` |
+| **Mistral Vibe** | `~/.vibe/skills/` | `./scripts/vibe-install.sh` |
 
 **How it works:**
 
@@ -158,7 +160,7 @@ Run `./scripts/convert.sh --tool all` to generate tool-specific outputs locally.
 | **⚡ Engineering — POWERFUL** | 45 | Agent designer, RAG architect, database designer, CI/CD builder, security auditor, MCP builder, AgentHub, Helm charts, Terraform, self-eval, llm-wiki, tc-tracker, **reliability portfolio** (feature-flags-architect, kubernetes-operator, chaos-engineering, slo-architect), ship-gate, **security-guidance** (✨v2.7.3 — PreToolUse hook catching 12 anti-patterns), **Matt Pocock skills** (write-a-skill, caveman, grill-me, handoff, grill-with-docs) | [engineering/](engineering/) |
 | **🎯 Product** | 13 | Product manager, agile PO, strategist, UX researcher, UI design, landing pages, SaaS scaffolder, analytics, experiment designer, discovery, roadmap communicator, code-to-prd, apple-hig-expert | [product-team/](product-team/) |
 | **📣 Marketing** | 45 | 8 pods: Content (8), SEO + AEO (6 incl. ✨v2.7.3 `aeo` — E-E-A-T audit, citation tracking across 5 LLMs), CRO (6), Channels (6), Growth (4), Intelligence (4), Sales (2) + context foundation + orchestration router. 58 Python tools. | [marketing-skill/](marketing-skill/) |
-| **🚀 Productivity** ✨v2.8.2 | 5 | `capture` (brain-dump-to-action), `email` pair (inbox-setup + inbox-triage with 7-file KB contract), `reflect` (light-prompt journal), **`handoff`** (✨v2.8.2 — Matt Pocock-inspired: first-run setup, redaction linter, SessionStart + SessionEnd hooks, fidelity self-check, `--refresh`). Path-B from megaprompts 05-08 + Matt Pocock derivation. | [productivity/](productivity/) |
+| **🚀 Productivity** ✨v2.8.4 | 6 | `capture` (brain-dump-to-action), `email` pair (inbox-setup + inbox-triage with 7-file KB contract), `reflect` (light-prompt journal), **`handoff`** (Matt Pocock-inspired: first-run setup, redaction linter, SessionStart + SessionEnd hooks, fidelity self-check, `--refresh`), **`andreessen`** (✨v2.8.4 — market-first decision & productivity mode: market > team > product, PMF-first, 3x5-card + Anti-Todo, fixed anti-sycophancy operating prompt). Path-B from megaprompts 05-08 + Matt Pocock + Andreessen derivation. | [productivity/](productivity/) |
 | **🎨 Marketing (top-level)** ✨v2.7.0 | 1 | `landing` — single-file HTML landing-page generator (4 design styles, GSAP patterns, brand palette validator). Path-B from megaprompt 04. | [marketing/](marketing/) |
 | **🔬 Research** ✨v2.7.0 | 8 | `research` orchestrator (hybrid router + fallback, megaprompt 13) + 7 specialists: `pulse` (recency), `litreview` (academic), `grants` (NIH), `dossier` (entity), `patent` (prior-art), `syllabus` (course reading), `notebooklm` (browser-automation). | [research/](research/) |
 | **📋 Project Management** | 9 | Senior PM, scrum master, Jira, Confluence, Atlassian admin, templates + bundled Atlassian Remote MCP | [project-management/](project-management/) |
@@ -342,8 +344,8 @@ python3 product-team/landing-page-generator/scripts/landing_page_scaffolder.py c
 **How do I install Claude Code plugins?**
 Add the marketplace with `/plugin marketplace add alirezarezvani/claude-skills`, then install any skill bundle with `/plugin install <name>@claude-code-skills`.
 
-**Do these skills work with OpenAI Codex / Cursor / Windsurf / Aider?**
-Yes. Skills work natively with 12 tools: Claude Code, OpenAI Codex, Gemini CLI, OpenClaw, Hermes Agent, Cursor, Aider, Windsurf, Kilo Code, OpenCode, Augment, and Antigravity. Hermes Agent uses the same agentskills.io SKILL.md standard — run `python scripts/sync-hermes-skills.py` to install. For other tools run `./scripts/convert.sh --tool all` then `./scripts/install.sh --tool <name>`. See [Multi-Tool Integrations](https://alirezarezvani.github.io/claude-skills/integrations/) for details.
+**Do these skills work with OpenAI Codex / Cursor / Windsurf / Aider / Mistral Vibe?**
+Yes. Skills work natively with 13 tools: Claude Code, OpenAI Codex, Gemini CLI, OpenClaw, Hermes Agent, Mistral Vibe, Cursor, Aider, Windsurf, Kilo Code, OpenCode, Augment, and Antigravity. Hermes Agent and Mistral Vibe both use the same agentskills.io SKILL.md standard — run `python scripts/sync-hermes-skills.py` or `./scripts/vibe-install.sh` to install. For other tools run `./scripts/convert.sh --tool all` then `./scripts/install.sh --tool <name>`. See [Multi-Tool Integrations](https://alirezarezvani.github.io/claude-skills/integrations/) for details.
 
 **Will updating break my installation?**
 No. We follow semantic versioning and maintain backward compatibility within patch releases. Existing script arguments, plugin source paths, and SKILL.md structures are never changed in patch versions. See the [CHANGELOG](CHANGELOG.md) for details on each release.

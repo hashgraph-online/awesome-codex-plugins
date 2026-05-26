@@ -103,7 +103,6 @@ These are the skills every user needs first. Everything else is available when y
 | Skill | Purpose |
 |-------|---------|
 | `$compile` | Active knowledge intelligence — Mine → Grow → Defrag cycle |
-| `$expert-council` | Alias for `$council --mode=debate` (kept 1 release) — adversarial named-persona duel |
 | `$knowledge-activation` | Operationalize a mature `.agents` corpus into beliefs, playbooks, briefings, and gap surfaces |
 | `$brainstorm` | Structured idea exploration before planning |
 | `$discovery` | Full discovery phase orchestrator (brainstorm → search → research → plan → pre-mortem) |
@@ -117,12 +116,11 @@ These are the skills every user needs first. Everything else is available when y
 | `$evolve` | Goal-driven fitness-scored improvement loop |
 | `$autodev` | PROGRAM.md autonomous development contract setup and validation |
 | `$dream` | Interactive Dream operator surface for setup, bedtime runs, and morning reports |
-| `$doc` | Documentation generation |
+| `$doc` | Documentation generation — repo docs (default), gold-standard README (`--mode=readme`), OSS doc packs (`--mode=oss`) |
 | `$retro` | Quick-capture a learning (full retro → $post-mortem) |
 | `$validation` | Full validation phase orchestrator (vibe → post-mortem → retro → forge) |
 | `$ratchet` | Brownian Ratchet progress gates for RPI workflow |
 | `$forge` | Mine transcripts for knowledge — decisions, learnings, patterns |
-| `$readme` | Generate gold-standard README for any project |
 | `$security` | Continuous repository security scanning and release gating |
 | `$security-suite` | Binary and prompt-surface security suite — static analysis, dynamic tracing, offline redteam, policy gating |
 | `$hooks-authoring` | Author and validate AgentOps runtime hooks |
@@ -137,14 +135,11 @@ These are the skills every user needs first. Everything else is available when y
 | `$grafana-platform-dashboard` | Build Grafana platform dashboards from templates/contracts |
 | `$codex-team` | Parallel Codex agent execution |
 | `$openai-docs` | Official OpenAI docs lookup with citations |
-| `$oss-docs` | OSS documentation scaffold and audit |
 | `$reverse-engineer-rpi` | Reverse-engineer a product into feature catalog and specs |
 | `$pr-research` | Upstream repository research before contribution |
-| `$pr-plan` | External contribution planning |
 | `$pr-implement` | Fork-based PR implementation |
 | `$pr-validate` | PR-specific validation and isolation checks |
 | `$pr-prep` | PR preparation and structured body generation |
-| `$pr-retro` | Learn from PR outcomes |
 | `$ship-loop` | Bot-paired internal-PR fast-lane cycle |
 | `$complexity` | Code complexity analysis |
 | `$product` | Interactive PRODUCT.md generation |
@@ -156,7 +151,8 @@ These are the skills every user needs first. Everything else is available when y
 | `$beads` | Issue tracking operations |
 | `$heal-skill` | Detect and fix skill hygiene issues |
 | `$converter` | Convert skills to Codex/Cursor formats |
-| `$update` | Reinstall all AgentOps skills from latest source |
+
+**To update installed skills:** re-run the install one-liner — `bash <(curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install.sh)`. (There is no `$update` skill; skill refresh is an install-script concern.)
 
 ## Knowledge Flywheel
 

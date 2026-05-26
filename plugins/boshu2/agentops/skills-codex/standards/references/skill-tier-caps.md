@@ -36,5 +36,4 @@ The 248-line PreToolUse warning is global pre-lint awareness only — it does no
 
 - Lint enforcement: `tests/skills/lint-skills.sh:65-77`
 - Schema enum: `scripts/validate-skill-schema.sh:174-178` (the binding `metadata.tier` enum)
-- Learning that exposed this: `.agents/learnings/2026-05-03-jsm-tier1.5-push-journey.md` (L14)
 - Narrative tier categories: `skills/SKILL-TIERS.md` (note: "utility category" there is a grouping, not a binding tier value)

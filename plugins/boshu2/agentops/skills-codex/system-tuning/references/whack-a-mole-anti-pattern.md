@@ -1,6 +1,6 @@
 # The Whack-a-Mole Anti-Pattern
 
-> **Pattern (named in the jsm system-performance-remediation skill).**
+> **Pattern (named in an external system-performance-remediation skill corpus).**
 > You signal a child process. It dies. Seconds later something visually
 > identical reappears. You signal it again. Same outcome.
 >

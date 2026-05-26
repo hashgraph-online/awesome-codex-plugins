@@ -58,8 +58,42 @@ what/why/acceptance and do not expand into a formal design unless new
 architecture, contract, migration, or cross-module uncertainty appears.
 
 Compact output contract before writing the plan: `Plan Basis`, `Files`,
-`Compatibility`, `Tasks`, `Risks`, and `Retirement`. Expand only where the
-approved scope, risk, or verification surface requires it.
+`Compatibility`, `Plan Pressure Test`, `Plan-Time Complexity Check`, `Tasks`,
+`Risks`, and `Retirement`. Expand only where the approved scope, risk, or
+verification surface requires it.
+
+Use a compact `Plan Pressure Test` before task decomposition:
+
+```text
+Plan Pressure Test:
+- Owner / contract / retirement:
+- Verification scope:
+- Task executability:
+- Pressure result: proceed | revise plan | return to design
+```
+
+The pressure test is not an approval gate and should not redesign an approved
+spec without cause. It exists to catch owner / contract / retirement risk,
+missing verification, and tasks that are too vague to execute safely.
+
+Use a compact `Plan-Time Complexity Check` before writing task steps when the
+plan changes maintained source files, core owners, handlers, routers, managers,
+shared utilities, adapters, or fallback paths:
+
+```text
+Plan-Time Complexity Check:
+- Target files:
+- Existing size / shape signals:
+- Owner fit:
+- Add-in-place risk:
+- Better file boundary:
+- Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
+```
+
+Signals: 800+ line files, 80+ line blocks, deep nesting, mixed reasons to
+change, owner mismatch, or new branches/fallbacks/adapters. Advisory only. If
+the best answer is a new file, define its owner and contract; do not merely move
+complexity sideways.
 
 If the spec covers multiple independent subsystems, suggest breaking into
 separate plans. Before writing tasks, check: fact/assumption/unknown, baseline
@@ -91,11 +125,9 @@ Before you leave this workflow, the written plan must make these items answerabl
 2. **Which baseline docs, ADRs, or requirements shaped the plan**
 3. **What files own the change**
 4. **What compatibility boundary must hold**
-5. **What verification proves each major slice**
-6. **What risks, rollback surface, or unknowns remain**
-7. **What old owner / fallback / patch stays, shrinks, or retires when applicable**
-8. **Whether Ripple Signal Triage expands owner, downstream, contract, source-of-truth, or verification scope**
-9. **What ADR signals, source refs, alternatives, or baseline-sync questions must be preserved for completion when durable architecture decisions are in scope**
+5. **What plan-time complexity pressure exists and which edit boundary is safer**
+6. **What verification proves each major slice**
+7. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
 
 ## Bite-Sized Task Granularity
 
@@ -114,7 +146,12 @@ Every plan MUST start with: Goal, Architecture, Tech Stack, Baseline/Authority R
 
 Each task: Files (create/modify/test paths), Why (user/business value), Impact/Compatibility, Verification (exact commands), then 5 checkbox steps: Write test → Verify RED → Minimal code → Verify GREEN → Commit. Every step must include complete code and exact commands.
 
-For bug fixes, refactors, contract changes, or governance cleanup, add Repair Track (root cause, canonical owner, minimal change, compat boundary, verification) and Retirement Track (old owner/fallback, active status, keep reason or deletion trigger) inside the relevant task. If Ripple Signal Triage fired, include the affected downstream consumers and expanded verification path in the same task.
+For bug fixes, refactors, contract changes, or governance cleanup, add Repair
+Track (root cause, canonical owner, minimal sufficient stable repair, compat
+boundary, verification) and Retirement Track (old owner/fallback, active status,
+keep reason or deletion trigger) inside the relevant task. If Ripple Signal
+Triage fired, include the affected downstream consumers and expanded
+verification path in the same task.
 
 ## No Placeholders
 
@@ -125,13 +162,10 @@ Never write: "TBD", "TODO", "implement later", "fill in details", "Add appropria
 Check plan against spec: 1) Spec coverage — can you point to a task for each
 requirement? 2) Placeholder scan — any TBD/TODO/vague instructions? 3) Type
 consistency — do signatures match across tasks? 4) Compatibility — invariants,
-non-goals, stable interfaces marked? 5) Verification — every major task has
-exact verification steps? 6) Dual-track — old logic addressed? 7) Decision
-hygiene — if `first-principles-review` was needed, did the plan preserve its
-owner / retirement / falsification findings? 8) ADR signal preservation — if
-durable architecture decisions are in scope, did the plan preserve source refs,
-alternatives, compatibility boundary, and baseline-sync questions for
-completion?
+non-goals, stable interfaces marked? 5) Plan-time complexity and minimality —
+lowest-entropy owner/file boundary that fixes the bug class, not just the
+smallest textual diff? 6) Verification — exact commands? 7) Dual-track,
+decision hygiene, and ADR/baseline-sync signals preserved where needed?
 
 Fix issues inline. Re-review is not needed — just fix and move on.
 

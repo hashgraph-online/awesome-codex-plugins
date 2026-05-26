@@ -43,4 +43,4 @@ Classify the process before changing code:
 
 ---
 
-**Source:** Adapted from jsm / `deadlock-finder-and-fixer`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `deadlock-finder-and-fixer`. Pattern-only, no verbatim text.

@@ -47,6 +47,7 @@ LLM applications move untrusted text across tool, data, and decision boundaries.
 - Tool capabilities, scopes, rate limits, user confirmations, side effects, and activity logs.
 - Input and output validation needs: length, file type, links, hidden/control characters, rendered content, feedback forms, and downstream consumers.
 - Eval set: prompt injection, data exfiltration, unsafe actions, over-permission, output injection, and regression cases.
+- Red-team scope: attacker goals, prohibited actions, data and tool boundaries, safety constraints, success criteria, finding severity, and retest path.
 - Logging, redaction, prompt/response storage, retention, human access, and incident response expectations.
 - Model chains, nested prompts, loop limits, retrieval fanout, token/cost ceilings, and downstream systems that consume model output.
 - Model, prompt, retrieval corpus, index, dataset, and tool-policy provenance, rollback targets, and emergency disable paths.
@@ -63,7 +64,7 @@ LLM applications move untrusted text across tool, data, and decision boundaries.
 8. **Protect session isolation.** Keep user sessions, conversation state, retrieved context, and mutable objects scoped per user/request; test race conditions that could leak history across users or tenants.
 9. **Plan emergency stop and rollback.** Define independent disable or rollback paths for prompt templates, tool permissions, model/config, retrieval corpus, index, and training or fine-tuning inputs.
 10. **Scope model chains.** When one model output feeds another model or agent, give each step separate permissions, retrieval boundary, audit trail, and injection eval.
-11. **Evaluate adversarially.** Test prompt injection, tool misuse, data leakage, refusal bypass, unsafe output, dependency substitution, recursive tool loops, retrieval amplification, and regression cases with a repeatable adversarial corpus.
+11. **Evaluate adversarially.** Test prompt injection, tool misuse, data leakage, refusal bypass, unsafe output, dependency substitution, recursive tool loops, retrieval amplification, and regression cases with a repeatable adversarial corpus; for high-impact workflows, run a scoped red-team pass with severity triage and retest criteria.
 12. **Audit decisions.** Log prompts, retrieval identifiers, tool calls, user confirmations, denials, and outcomes with privacy-preserving redaction, retention, and replay-for-investigation rules.
 13. **Control supply chain.** Track prompts, tools, models, datasets, retrieval corpora, indexes, and deployment artifacts as versioned inputs with version, source, eval result, integrity checks, rollback target, and retirement date. Treat executable or code-loading model artifacts as unsafe unless isolated, allowlisted, and justified.
 
@@ -112,6 +113,7 @@ Use least-privilege tools, permission-checked retrieval, input validation, untru
 - Input, feedback, and output validation table for text, files, links, rendered content, and downstream sinks.
 - Output sink handling table for commands, queries, rendered content, structured tool inputs, documents/messages, and downstream prompts.
 - Adversarial eval and regression plan.
+- Red-team plan or explicit rationale for not running one.
 - Prompt/response storage, access, retention, logging, and privacy requirements.
 - Emergency stop and rollback plan for prompt, model/config, retrieval corpus/index, tool permissions, and training or fine-tuning inputs.
 - Session isolation and cross-user leakage test plan.
@@ -124,6 +126,7 @@ Use least-privilege tools, permission-checked retrieval, input validation, untru
 - `input_validation`: prompt, feedback, file, link, hidden/control-character, and size/token controls are defined before model use.
 - `output_handling`: model output is validated, encoded, or constrained before use in sensitive sinks.
 - `adversarial_check`: prompt injection, leakage, unsafe-action, and regression tests exist.
+- `red_team_scope`: high-impact workflows have a scoped red-team plan, finding severity, and retest path, or an explicit risk-based skip.
 - `sensitive_data_control`: prompt/response storage, redaction, retention, and human access rules are defined.
 - `rollback_control`: prompt, model/config, retrieval, tool-permission, and training/fine-tuning inputs can be disabled or rolled back independently.
 - `activity_log_check`: tool calls, user confirmations, retrieval IDs, and outcomes are linked without leaking sensitive data.

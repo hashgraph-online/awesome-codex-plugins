@@ -314,8 +314,20 @@ def main() -> int:
         )
         die(f"{args.agent} CLI not found in PATH")
 
-    # Preflight: clean repo
-    rc, stdout, _ = run_capture(["git", "status", "--porcelain"], cwd=repo)
+    # Preflight: clean repo. Exclude bench artifacts (`eval-results/` and the
+    # `.worktree-eval-*` checkouts) so sequential multi-agent runs don't abort
+    # after the first agent leaves its results behind.
+    rc, stdout, _ = run_capture(
+        [
+            "git",
+            "status",
+            "--porcelain",
+            "--",
+            ":(exclude)eval-results",
+            ":(exclude).worktree-eval-*",
+        ],
+        cwd=repo,
+    )
     if stdout.strip():
         append_anomaly(
             repo,

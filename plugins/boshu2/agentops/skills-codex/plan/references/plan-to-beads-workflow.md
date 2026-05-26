@@ -34,4 +34,4 @@ Run a final pass over the issue graph before handing to `/crank`:
 
 ---
 
-**Source:** Adapted from jsm / `beads-workflow`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `beads-workflow`. Pattern-only, no verbatim text.

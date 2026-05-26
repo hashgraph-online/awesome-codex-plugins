@@ -49,11 +49,11 @@ Privacy controls fail when personal data is collected, copied, logged, retained,
 ## Workflow
 
 1. **Inventory the flow.** Map personal data from collection through storage, processing, telemetry, derived data, export, support, backup, and deletion.
-2. **Classify fields.** Mark sensitivity, purpose, allowed uses, residency, retention, and whether the field can be tokenized, redacted, aggregated, or omitted.
+2. **Classify fields.** Mark sensitivity, purpose, allowed uses, residency, retention, protection level, and whether the field can be tokenized, redacted, aggregated, or omitted; make the classification drive access, telemetry, sharing, retention, and deletion behavior.
 3. **Minimize collection.** Remove fields that are not needed; prefer derived, aggregated, tokenized, or on-device/local processing when it satisfies the purpose.
 4. **Constrain use.** Enforce purpose, consent, and access constraints in code, data jobs, schemas, policy, or workflow checks.
 5. **Control copies.** Apply privacy rules to logs, traces, metrics labels, crash reports, caches, search indexes, analytics, ML features, support tools, and third-party processors; remove stale telemetry fields and classify sensitive ones.
-6. **Engineer deletion and retention.** Define retention classes, delete propagation, deletion markers for asynchronous cleanup, derived-copy repair, backup expiry, audit trail, holds/exclusions, and failure handling.
+6. **Engineer deletion and retention.** Define retention classes, delete propagation, deletion markers for asynchronous cleanup, derived-copy repair, backup expiry, restore-time cleanup, audit trail, holds/exclusions, and failure handling.
 7. **Define the data-subject-rights workflow.** Specify how access, export, erasure, and portability requests are received, authenticated, scoped to stores and processors, completed within an SLA, verified for completeness, and closed with an audit record.
 8. **Assess anonymization labels.** Do not call data anonymized unless reidentification risk has been assessed with an explicit method such as equivalence-class thresholds, diversity checks, noise-based aggregation, motivated-intruder assessment, or equivalent domain assessment; otherwise call it pseudonymized, aggregated, or tokenized.
 9. **Verify export and erasure.** Test that subject, tenant, or account-scoped export/deletion finds expected copies, includes required third-party paths, uses a defined output format, and reports known exclusions.

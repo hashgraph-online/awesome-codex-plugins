@@ -21,6 +21,9 @@ That is wrong for native apps, and it is boring on the web.
 - UX produces a compact decision brief that platform skills must preserve during implementation.
 - Contextual UX briefs cover agent runs, operational dashboards, activation onboarding, checkout/upgrade, and editor/canvas tools.
 - UI produces a visual decision brief for surface type, hierarchy, density, component grammar, motion budget, and state visuals.
+- Desktop UI chooses an app archetype first: command center, library, workbench, monitoring cockpit, tray/menu-bar utility, media/consumer, document/knowledge, or setup/preferences.
+- Originality guidance forces a concept seed, composition archetype, three-direction fork, one weird move, and restraints before code, so "creative" affects the layout and states instead of only the palette.
+- Design recipes and anti-default contrasts force a layout sketch before code and replace weak skeletons with product-specific structures.
 - Product quality checks force specific jobs, proof surfaces, complete states, scan speed, and one memorable anchor before code.
 - Creative direction turns "make it creative" into a concrete world, metaphor, material language, repeated motif, forbidden defaults, and one tasteful risk.
 - Interaction guidance chooses CSS, Motion, GSAP, native scroll CSS, Lenis, command palettes, split panes, timelines, or no motion by surface and product job.
@@ -93,7 +96,7 @@ stark/
   skills/
     design-router/               UX and platform dispatcher
     ux-design/                   flows, states, IA, forms, onboarding, dashboards
-  references/ui-patterns/         surface taxonomy, creative direction, implementation tracks, visual hierarchy, responsive containment, asset selection, reference analysis, motion budget, interaction techniques, cinematic landing system, UI audit rubric, product quality bar
+  references/ui-patterns/         surface taxonomy, desktop app archetypes, originality engine, design recipes, anti-default contrasts, creative direction, implementation tracks, visual hierarchy, responsive containment, asset selection, reference analysis, motion budget, interaction techniques, cinematic landing system, UI audit rubric, product quality bar
   references/ux-patterns/         contextual product-flow briefs
     web-design/                  6 web aesthetic directions
     windows-design/              WinUI / branded WinUI / Tauri / Electron
@@ -131,6 +134,43 @@ For "make this better" work, Stark now pushes agents to answer five practical qu
 - What is the one memorable visual anchor?
 
 That keeps generated output closer to a real product and farther from generic demo furniture.
+
+## Next-Level Roadmap
+
+Stark's design roadmap lives in `docs/next-level-design-roadmap.md`.
+
+It lays out the next jump: reference boards, concept options, typography systems, component anatomy, Motion/GSAP/View Transition/Three/Rive/Lottie/dataviz guidance, asset production, stack blueprints, visual QA, quality evals, and governance.
+
+The companion docs `docs/design-quality-measurement.md` and `docs/reference-governance.md` define how Stark should measure better design output without bloating the runtime bundle.
+
+## Originality Engine
+
+For "make it original", "creative", "distinctive", "non-generic", and high-craft work, Stark now asks agents to define the first idea before components:
+
+- subject-specific concept seed
+- product world and main object
+- composition archetype such as cockpit, ledger, specimen tray, command deck, timeline wall, studio desk, light table, inspection bay, archive index, or instrument panel
+- three-direction fork when useful: conservative native, product-specific, memorable risk
+- one weird move plus restraints
+- specific default skeletons banned for the brief
+
+This helps pages and apps avoid changing only colors while keeping the same generated structure.
+
+## Design Recipes
+
+Stark now includes concrete recipe prompts for product categories such as file sync utilities, desktop music players, AI coding agents, screenshot review tools, menu-bar utilities, knowledge apps, developer-tool landing pages, security products, billing apps, marketplaces, onboarding flows, editor/canvas tools, and automation run UIs.
+
+Each recipe pairs:
+
+- concept seed
+- composition archetype
+- layout sketch
+- typography personality
+- non-happy state
+- visual anchor
+- weak default to avoid
+
+The anti-default contrast guide rewrites common generated skeletons like sidebar/cards/table, chat/spinner/output, centered hero/three cards/CTA, and generic dashboards into stronger product-specific structures.
 
 ## Interaction Decisions
 

@@ -76,6 +76,19 @@ Feature: Discovery hands dense intent to planning
     And it does not inline the Plan decomposition in Discovery prose
 ```
 
+## Open-Ended Path (generate-winnow → operationalize → refine)
+
+> **Additive to the default flow — it does not replace the strict-delegation contract or the artifact-first DAG.** This path activates for open-ended "improve the project"-style goals (`"improve the project"`, `"what should we build next"`, `"make X more robust"`) OR when `--ideate` is passed. For a specific goal, the default flow (brainstorm-clarify → research → plan → pre-mortem) is unchanged.
+
+On the open-ended path, Discovery prepends the generate-winnow methodology before research/plan and adds two steps after planning:
+
+1. **Ideate (delegate to `$brainstorm --ideate`).** Invoke `$brainstorm` in **ideation mode** as a separate skill invocation — strict delegation still applies; do NOT inline the 30-idea generation. It returns a ranked portfolio of **15** ideas (top 5 + next 10) with how/perceive/implement notes, rubric scores, and red-team findings.
+2. **Research + Plan + Pre-mortem.** Run the normal artifact-first DAG over the selected portfolio, scoped to the winnowed ideas rather than a single goal.
+3. **Operationalize.** Turn the ranked portfolio into a comprehensive, granular set of **self-documenting `bd` beads** — tasks, subtasks, dependency structure (`bd dep add`), and **explicit test tasks** (unit + e2e with detailed logging). Each bead carries what/why/how/risks/success so the original plan markdown never needs to be consulted again. Overlap-check against existing beads (`bd list --json`) before creating — merge, don't duplicate.
+4. **Refine in plan space (4-5 passes).** Before handing the packet to `$crank`, run **4-5 refinement passes** over the bead set. Each pass: **re-read AGENTS.md** (especially after compaction), check every bead for sense and optimality, and **DO NOT OVERSIMPLIFY / DO NOT LOSE FEATURES OR FUNCTIONALITY**. Validate between passes (no dependency cycles; every leaf actionable via `bd ready`).
+
+> Tracking is **`bd`**, never `br`/`bv` — this is AgentOps.
+
 ## Execution
 
 Run the artifact-first DAG in [references/dag.md](references/dag.md). That
@@ -89,6 +102,7 @@ and the acceptance-criteria YAML contract.
 | `--auto` | on | Fully autonomous; inverse of `--interactive`. Passed through to `$research` and `$plan`. |
 | `--interactive` | off | Human gates in research and plan. Does not affect pre-mortem. |
 | `--skip-brainstorm` | auto | Skip brainstorm when the goal is already specific. |
+| `--ideate` | auto | Force the open-ended generate-winnow path: delegate to `$brainstorm --ideate` (30→5→15), then operationalize into self-documenting `bd` beads and refine 4-5x in plan space. Auto-on for open-ended goals. |
 | `--complexity=<level>` | auto | Force `fast`, `standard`, or `full`. |
 | `--no-budget` | off | Disable phase time budgets. |
 | `--no-scaffold` | off | Skip scaffold auto-invocation. |

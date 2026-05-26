@@ -30,4 +30,4 @@ Use this reference for dependency update sessions where multiple packages might 
 
 ---
 
-**Source:** Adapted from jsm / `library-updater`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `library-updater`. Pattern-only, no verbatim text.

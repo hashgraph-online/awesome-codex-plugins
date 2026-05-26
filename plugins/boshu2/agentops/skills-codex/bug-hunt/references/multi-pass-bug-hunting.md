@@ -41,4 +41,4 @@ Add pass accounting to the bug report:
 
 ---
 
-**Source:** Adapted from jsm / `multi-pass-bug-hunting`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `multi-pass-bug-hunting`. Pattern-only, no verbatim text.

@@ -6,7 +6,16 @@ description: 'Separate goals from implementation.'
 
 > **Purpose:** Separate WHAT from HOW. Explore the problem space before committing to a solution.
 
-Four phases:
+## Two modes
+
+`$brainstorm` runs in one of two modes (complementary, not exclusive):
+
+| Mode | Use when | Shape |
+|------|----------|-------|
+| **Goal-clarification** (default; the four phases below) | The goal names ONE specific capability (`"add JWT auth"`, `"fix the login bug"`) | Sharpen the WHAT, explore the HOW for that single goal. |
+| **Ideation** (open-ended; see below) | The goal is open-ended (`"improve the project"`, `"what should we build next"`) OR Phase 1 returns `exploring` with no single goal OR `--ideate` is passed | Generate MANY candidate improvements, winnow ruthlessly, operationalize the survivors. |
+
+Four phases (goal-clarification mode):
 1. **Assess clarity** — Is the goal specific enough?
 2. **Understand idea** — What problem, who benefits, what exists?
 3. **Explore approaches** — Generate options, compare tradeoffs
@@ -114,6 +123,43 @@ date: YYYY-MM-DD
 All five sections must be populated. The "Next Step" section should contain a concrete `$plan` invocation suggestion with the selected approach as context.
 
 Create the `.agents/brainstorm/` directory if it does not exist.
+
+---
+
+## Ideation Mode (open-ended generate-winnow)
+
+> **Additive to the four-phase flow above — it does not replace it.** Ideation mode is for "improve the project"-style goals where the WHAT is unknown and you must generate a portfolio and select, rather than clarify ONE known goal.
+
+**Trigger:** the `exploring` clarity path (Phase 1) when no single goal emerges, OR an explicit `--ideate` flag, OR an open-ended goal string.
+
+The methodology is **generate → winnow → expand → operationalize → refine**. Steps 1-3 belong to `$brainstorm`; steps 4-5 are handed to `$discovery` on its open-ended path.
+
+### Step 1 — Ground in reality
+
+```bash
+cat AGENTS.md                      # or CLAUDE.md — rules, constraints, non-goals
+bd list --json                     # open work — don't duplicate
+bd list --status closed --json     # closed work — don't re-propose cut ideas
+bd ready --json                    # what is actionable now
+```
+
+### Step 2 — Generate 30, winnow to 5 (ranked, with rationale)
+
+Generate **30** candidate improvements (criteria = the rubric dimensions: robust, reliable, performant, intuitive, user-friendly, ergonomic, useful, compelling, while staying obviously **accretive** and **pragmatic**). Think each one through: **how it works**, **how users perceive it**, **how we implement it**. Then **winnow ruthlessly to the VERY best 5**, presented **ranked best-to-worst** with full rationale and rubric scores. Stress-test survivors with the red team questions (Phase 3b). Do NOT stop at the first 5 — generate the full 30 first.
+
+### Step 3 — Expand with the next 10 (→ 15)
+
+Generate the **next best 10** (each with rationale) for a ranked portfolio of **15** — #6-15 are often complementary to the top 5.
+
+### Steps 4-5 — Operationalize + refine (handed to `$discovery`)
+
+Carry the ranked 15 (with how/perceive/implement notes + rubric scores + red-team findings) forward. `$discovery` operationalizes them into self-documenting `bd` beads (deps + explicit test tasks) and refines 4-5x in plan space.
+
+### Output
+
+Standalone (`$brainstorm --ideate`): write the ranked portfolio to `.agents/brainstorm/YYYY-MM-DD-<slug>-ideation.md`. Invoked by `$discovery`: return the ranked portfolio inline for the operationalize step.
+
+> **Tracking is `bd`, never `br`/`bv`** — this is AgentOps.
 
 ---
 

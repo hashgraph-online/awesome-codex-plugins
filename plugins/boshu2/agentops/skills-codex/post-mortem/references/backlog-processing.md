@@ -233,7 +233,7 @@ Citations are recorded by these entry points:
 |--------|---------|
 | `ao forge` | Learning forged into flywheel |
 | Session-close hooks | Learning referenced during session |
-| `ao cite <learning-path>` | Manual citation by user or agent |
+| `ao metrics cite <learning-path>` | Manual citation by user or agent |
 
 ### Example
 
