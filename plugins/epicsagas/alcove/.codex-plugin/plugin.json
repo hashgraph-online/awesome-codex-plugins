@@ -25,6 +25,6 @@
   "interface": {
     "displayName": "Alcove",
     "shortDescription": "Local-first MCP doc server — hybrid BM25+vector search, tree-sitter code indexing, policy enforcement, and lint for project knowledge.",
-    "composerIcon": "./assets/icon.png"
+    "composerIcon": "../assets/icon.png"
   }
 }
