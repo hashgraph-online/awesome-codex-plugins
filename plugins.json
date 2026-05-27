@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-25",
-  "total": 88,
+  "last_updated": "2026-05-27",
+  "total": 89,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -438,6 +438,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/dadwadw233/VibePortrait/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "VillageSQL Skills",
+      "url": "https://github.com/villagesql/villagesql-skills",
+      "owner": "villagesql",
+      "repo": "villagesql-skills",
+      "description": "Skills for VillageSQL including building extensions from scratch and porting PostgreSQL extensions to VillageSQL.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/villagesql/villagesql-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Writer's Loop",
@@ -878,6 +888,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/klajdikkolaj/upwork-autopilot/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "VidSeeds.ai",
+      "url": "https://github.com/CarrotGamesStudios/vidseeds-mcp",
+      "owner": "CarrotGamesStudios",
+      "repo": "vidseeds-mcp",
+      "description": "Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/CarrotGamesStudios/vidseeds-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Yandex Direct",
