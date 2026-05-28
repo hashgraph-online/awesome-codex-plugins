@@ -49,6 +49,20 @@
       "description": "DevOps layer for coding agents with flow, feedback, and memory that compounds between sessions."
     },
     {
+      "name": "alcove",
+      "displayName": "Alcove",
+      "source": {
+        "source": "local",
+        "path": "./plugins/epicsagas/alcove"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Local-first MCP server for private project docs with hybrid BM25+vector search, tree-sitter code indexing, and automated linting for team-wide documentation standards."
+    },
+    {
       "name": "anchor",
       "displayName": "Anchor",
       "source": {
@@ -300,6 +314,20 @@
       "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg"
     },
     {
+      "name": "epic",
+      "displayName": "Epic Harness",
+      "source": {
+        "source": "local",
+        "path": "./plugins/epicsagas/epic-harness"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Auto-trigger quality skills + self-evolving agent harness — orbit (spec-to-ship), evolve (skill mutation), team (multi-agent), TDD, check, ship, simplify, debug, perf, secure."
+    },
+    {
       "name": "espresso",
       "displayName": "Espresso",
       "source": {
@@ -434,6 +462,21 @@
       "icon": "./plugins/hashgraph-online/registry-broker-codex-plugin/assets/icon.png"
     },
     {
+      "name": "runtype-skills",
+      "displayName": "Runtype Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/runtypelabs/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Supercharge your coding agent for AI product development — build, deploy, and operate agents, flows, tools, and surfaces on Runtype's managed edge runtime.",
+      "icon": "./plugins/runtypelabs/skills/assets/icon.svg"
+    },
+    {
       "name": "sealos",
       "displayName": "Sealos",
       "source": {
@@ -506,7 +549,7 @@
       },
       "category": "Development & Workflow",
       "description": "Routes engineering design, delivery, reliability, security, operations, and maintenance prompts to focused staff-level specialist guidance for AI coding agents.",
-      "icon": "./plugins/sirmarkz/staff-engineer-mode/assets/icon.svg"
+      "icon": "./plugins/sirmarkz/staff-engineer-mode/assets/icon.png"
     },
     {
       "name": "stark",
@@ -534,7 +577,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Hook-powered test generation -- detects files changed during an agent turn and instructs Codex to write and run tests automatically. Zero config, 8 languages."
+      "description": "Hook-powered test generation -- detects files changed during an agent turn and instructs Codex to write and run tests automatically. Zero config, 8 languages.",
+      "icon": "./plugins/avansaber/tailtest-codex/assets/icon.svg"
     },
     {
       "name": "tandem-codex-plugin",
@@ -1289,6 +1333,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Controlled Upwork job search, qualification, and proposal submission sessions through a dedicated Chrome profile."
+    },
+    {
+      "name": "vidseeds",
+      "displayName": "VidSeeds.ai",
+      "source": {
+        "source": "local",
+        "path": "./plugins/CarrotGamesStudios/vidseeds-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.",
+      "icon": "./plugins/CarrotGamesStudios/vidseeds-mcp/assets/icon.png"
     },
     {
       "name": "yandex-direct-for-all",
