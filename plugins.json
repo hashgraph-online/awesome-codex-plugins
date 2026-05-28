@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-05-27",
-  "total": 89,
+  "total": 93,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -38,6 +38,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/boshu2/agentops/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Alcove",
+      "url": "https://github.com/epicsagas/alcove",
+      "owner": "epicsagas",
+      "repo": "alcove",
+      "description": "Local-first MCP server for private project docs with hybrid BM25+vector search, tree-sitter code indexing, and automated linting for team-wide documentation standards.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/epicsagas/alcove/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Anchor",
@@ -210,6 +220,16 @@
       "install_url": "https://raw.githubusercontent.com/ejentum/ejentum-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Epic Harness",
+      "url": "https://github.com/epicsagas/epic-harness",
+      "owner": "epicsagas",
+      "repo": "epic-harness",
+      "description": "Auto-trigger quality skills + self-evolving agent harness — orbit (spec-to-ship), evolve (skill mutation), team (multi-agent), TDD, check, ship, simplify, debug, perf, secure.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/epicsagas/epic-harness/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Espresso",
       "url": "https://github.com/mirkobozzetto/espresso",
       "owner": "mirkobozzetto",
@@ -298,6 +318,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hashgraph-online/registry-broker-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Runtype Skills",
+      "url": "https://github.com/runtypelabs/skills",
+      "owner": "runtypelabs",
+      "repo": "skills",
+      "description": "Supercharge your coding agent for AI product development — build, deploy, and operate agents, flows, tools, and surfaces on Runtype's managed edge runtime.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/runtypelabs/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Sealos",
