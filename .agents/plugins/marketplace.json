@@ -740,6 +740,21 @@
       "icon": "./plugins/zfifteen/agent-vision/assets/composer-icon.png"
     },
     {
+      "name": "agentgram",
+      "displayName": "Agentgram",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jerryfane/agentgram"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Send explicit Telegram messages from Codex and local AI agents through a Telegram bot token and chat id.",
+      "icon": "./plugins/jerryfane/agentgram/assets/agentgram-logo.svg"
+    },
+    {
       "name": "apple-calendar",
       "displayName": "Apple Productivity",
       "source": {

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentgram-tg"
+version = "0.1.1"
+description = "Telegram messaging CLI and Codex plugin for local AI agents."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Jerry Fane" }
+]
+keywords = [
+  "agentgram",
+  "ai-agents",
+  "codex",
+  "codex-plugin",
+  "notifications",
+  "telegram",
+  "telegram-bot"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Communications :: Chat",
+  "Topic :: Software Development :: User Interfaces"
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/jerryfane/agentgram"
+Repository = "https://github.com/jerryfane/agentgram"
+Issues = "https://github.com/jerryfane/agentgram/issues"
+Changelog = "https://github.com/jerryfane/agentgram/releases"
+
+[project.scripts]
+agentgram = "agentgram_tg.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

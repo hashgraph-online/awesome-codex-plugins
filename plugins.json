@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-27",
-  "total": 92,
+  "last_updated": "2026-05-29",
+  "total": 93,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -508,6 +508,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/zfifteen/agent-vision/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agentgram",
+      "url": "https://github.com/jerryfane/agentgram",
+      "owner": "jerryfane",
+      "repo": "agentgram",
+      "description": "Send explicit Telegram messages from Codex and local AI agents through a Telegram bot token and chat id.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jerryfane/agentgram/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Apple Productivity",
