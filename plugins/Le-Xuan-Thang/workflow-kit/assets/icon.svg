@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#6366F1"/>
+
+  <!-- Lifecycle ring (5 arcs representing define→plan→execute→synthesize→maintain) -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="white" stroke-width="28" stroke-opacity="0.25"/>
+
+  <!-- Arc 1: Define (top) -->
+  <path d="M256 96 A160 160 0 0 1 404 196" fill="none" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 2: Plan -->
+  <path d="M404 196 A160 160 0 0 1 368 388" fill="none" stroke="#A5B4FC" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 3: Execute -->
+  <path d="M368 388 A160 160 0 0 1 144 388" fill="none" stroke="#818CF8" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 4: Synthesize -->
+  <path d="M144 388 A160 160 0 0 1 108 196" fill="none" stroke="#C7D2FE" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 5: Maintain (back to top) -->
+  <path d="M108 196 A160 160 0 0 1 256 96" fill="none" stroke="#E0E7FF" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Arrow at top indicating direction -->
+  <polygon points="256,72 274,108 238,108" fill="white"/>
+
+  <!-- Center: play/execute icon -->
+  <circle cx="256" cy="256" r="52" fill="white" fill-opacity="0.15"/>
+  <polygon points="238,228 238,284 292,256" fill="white"/>
+</svg>
