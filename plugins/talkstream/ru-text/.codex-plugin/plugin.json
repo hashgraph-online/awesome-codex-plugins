@@ -1,6 +1,6 @@
 {
   "name": "ru-text",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Russian text quality plugin — typography, information style, editorial standards, UX writing, business correspondence",
   "author": {
     "name": "Arseniy Kamyshev",
@@ -22,6 +22,7 @@
   "logo": "./logo-round.png",
   "skills": "./skills/",
   "interface": {
+    "composerIcon": "./assets/icon.png",
     "displayName": "ru-text",
     "shortDescription": "Russian text quality — ~1,044 rules for typography, info-style, editorial, UX writing",
     "developerName": "Arseniy Kamyshev",

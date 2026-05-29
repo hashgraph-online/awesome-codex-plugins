@@ -1217,7 +1217,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Russian text quality — ~1,040 rules for typography, info-style, editorial, UX writing, and business correspondence."
+      "description": "Russian text quality — ~1,040 rules for typography, info-style, editorial, UX writing, and business correspondence.",
+      "icon": "./plugins/talkstream/ru-text/assets/icon.png"
     },
     {
       "name": "rust-reverse-engineering",
