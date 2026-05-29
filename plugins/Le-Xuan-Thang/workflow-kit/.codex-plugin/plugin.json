@@ -9,10 +9,11 @@
     "name": "Le Xuan Thang",
     "email": "lexuanthang.stock@gmail.com"
   },
+  "skills": "./skills/",
   "interface": {
     "displayName": "workflow-kit",
     "shortDescription": "AI product lifecycle: Vision → Plan → Execute → Synthesize → Maintain",
-    "composerIcon": "./assets/icon.svg",
+    "composerIcon": "../assets/icon.svg",
     "developerName": "Le Xuan Thang",
     "category": "Coding",
     "brandColor": "#6366F1"

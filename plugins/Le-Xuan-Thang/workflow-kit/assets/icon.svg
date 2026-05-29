@@ -2,24 +2,28 @@
   <!-- Background -->
   <rect width="512" height="512" rx="96" fill="#6366F1"/>
 
-  <!-- Lifecycle ring (5 arcs representing define→plan→execute→synthesize→maintain) -->
-  <circle cx="256" cy="256" r="160" fill="none" stroke="white" stroke-width="28" stroke-opacity="0.25"/>
+  <!-- Lifecycle ring guide (faint) -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="white" stroke-width="28" stroke-opacity="0.2"/>
 
-  <!-- Arc 1: Define (top) -->
-  <path d="M256 96 A160 160 0 0 1 404 196" fill="none" stroke="white" stroke-width="28" stroke-linecap="round"/>
-  <!-- Arc 2: Plan -->
-  <path d="M404 196 A160 160 0 0 1 368 388" fill="none" stroke="#A5B4FC" stroke-width="28" stroke-linecap="round"/>
-  <!-- Arc 3: Execute -->
-  <path d="M368 388 A160 160 0 0 1 144 388" fill="none" stroke="#818CF8" stroke-width="28" stroke-linecap="round"/>
-  <!-- Arc 4: Synthesize -->
-  <path d="M144 388 A160 160 0 0 1 108 196" fill="none" stroke="#C7D2FE" stroke-width="28" stroke-linecap="round"/>
-  <!-- Arc 5: Maintain (back to top) -->
-  <path d="M108 196 A160 160 0 0 1 256 96" fill="none" stroke="#E0E7FF" stroke-width="28" stroke-linecap="round"/>
+  <!-- 5 arcs on r=160 circle, center (256,256), mathematically correct endpoints -->
+  <!-- Point 0: (256, 96)   Point 1: (408, 207)   Point 2: (350, 385) -->
+  <!-- Point 3: (162, 385)  Point 4: (104, 207) -->
 
-  <!-- Arrow at top indicating direction -->
-  <polygon points="256,72 274,108 238,108" fill="white"/>
+  <!-- Arc 1: Define (top → pt1) -->
+  <path d="M256 96 A160 160 0 0 1 408 207" fill="none" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 2: Plan (pt1 → pt2) -->
+  <path d="M408 207 A160 160 0 0 1 350 385" fill="none" stroke="#A5B4FC" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 3: Execute (pt2 → pt3) -->
+  <path d="M350 385 A160 160 0 0 1 162 385" fill="none" stroke="#818CF8" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 4: Synthesize (pt3 → pt4) -->
+  <path d="M162 385 A160 160 0 0 1 104 207" fill="none" stroke="#C7D2FE" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc 5: Maintain (pt4 → top) -->
+  <path d="M104 207 A160 160 0 0 1 256 96" fill="none" stroke="#E0E7FF" stroke-width="28" stroke-linecap="round"/>
 
-  <!-- Center: play/execute icon -->
+  <!-- Arrow at top pointing clockwise -->
+  <polygon points="256,68 280,102 232,102" fill="white"/>
+
+  <!-- Center play icon -->
   <circle cx="256" cy="256" r="52" fill="white" fill-opacity="0.15"/>
   <polygon points="238,228 238,284 292,256" fill="white"/>
 </svg>
