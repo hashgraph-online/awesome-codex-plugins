@@ -8,7 +8,7 @@
       "name": "agentgram",
       "source": {
         "source": "local",
-        "path": "./plugins/agentgram"
+        "path": "."
       },
       "policy": {
         "installation": "AVAILABLE",
