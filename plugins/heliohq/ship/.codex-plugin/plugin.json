@@ -1,0 +1,49 @@
+{
+  "name": "ship",
+  "version": "0.2.0",
+  "description": "An agent-routed harness for end-to-end software product development.",
+  "author": {
+    "name": "Helio",
+    "url": "https://www.helio.im/"
+  },
+  "homepage": "https://www.helio.im/",
+  "repository": "https://github.com/heliohq/ship",
+  "license": "MIT",
+  "keywords": [
+    "agent",
+    "coding",
+    "planning",
+    "qa",
+    "debugging",
+    "refactoring",
+    "orchestrator",
+    "workflows",
+    "ship",
+    "software-delivery"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Ship",
+    "shortDescription": "Agent-routed software delivery workflows for coding agents",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "Use Ship to choose the right delivery route for a task: standalone skills, grouped quality/build phases, or the full raw-requirement-to-PR flow with design, implementation, E2E, review, QA, refactor, and handoff.",
+    "developerName": "Helio",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.helio.im/",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "defaultPrompt": [
+      "Choose a Ship route with /ship:use-ship",
+      "Plan this change with /ship:design",
+      "Review my current diff with /ship:review"
+    ],
+    "brandColor": "#0F766E",
+    "screenshots": []
+  }
+}

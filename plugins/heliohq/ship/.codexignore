@@ -1,0 +1,6 @@
+# Files excluded from the installable Codex plugin bundle
+.git/
+.github/
+node_modules/
+*.log
+.DS_Store

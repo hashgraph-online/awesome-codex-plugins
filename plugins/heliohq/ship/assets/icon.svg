@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ship">
+  <rect width="512" height="512" rx="114" fill="#0F766E"/>
+  <path d="M256 148 L350 262 L162 262 Z" fill="#ffffff"/>
+  <path d="M118 262 H394 L330 348 Q256 370 182 348 Z" fill="#ffffff"/>
+  <path d="M256 148 V262" stroke="#0F766E" stroke-width="12" stroke-linecap="round"/>
+</svg>
