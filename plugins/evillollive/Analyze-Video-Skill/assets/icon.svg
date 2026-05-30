@@ -35,7 +35,6 @@
   <rect x="332" y="324" width="56" height="4" rx="2" fill="#0f3460"/>
   <rect x="332" y="336" width="40" height="4" rx="2" fill="#0f3460"/>
   <!-- Magnifying glass -->
-  <circle cx="160" y="0" r="0" fill="none"/>
   <circle cx="380" cy="170" r="30" fill="none" stroke="#e94560" stroke-width="6"/>
   <line x1="402" y1="192" x2="420" y2="210" stroke="#e94560" stroke-width="6" stroke-linecap="round"/>
 </svg>

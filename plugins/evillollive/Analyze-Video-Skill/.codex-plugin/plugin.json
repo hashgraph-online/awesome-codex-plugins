@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "description": "Analyze one or more videos (URLs or local files) and produce a Word document with embedded frames, timestamped analysis, and captions.",
   "repository": "https://github.com/evillollive/Analyze-Video-Skill",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "interface": {
     "displayName": "Analyze Video",
     "shortDescription": "Turn videos into polished Word documents with frame analysis",
