@@ -1,0 +1,42 @@
+{
+  "name": "system-knowledge-plugin",
+  "version": "0.1.0",
+  "displayName": "System Knowledge Graph",
+  "description": "System knowledge graph infrastructure for agent-collaborative development: query feature dependencies, analyze change impact, and generate business-chain test paths.",
+  "shortDescription": "Query feature dependencies, analyze change impact, and generate business-chain test paths.",
+  "author": "Myzmzz",
+  "homepage": "https://github.com/Myzmzz/system-knowledge-plugin",
+  "repository": "https://github.com/Myzmzz/system-knowledge-plugin",
+  "license": "MIT",
+  "category": "Code Quality",
+  "capabilities": [
+    "dependency-analysis",
+    "impact-analysis",
+    "test-planning",
+    "knowledge-graph"
+  ],
+  "keywords": [
+    "knowledge-graph",
+    "dependency-analysis",
+    "impact-analysis",
+    "test-planning",
+    "mcp",
+    "agent-collaboration"
+  ],
+  "websiteURL": "https://github.com/Myzmzz/system-knowledge-plugin",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "System Knowledge Graph",
+    "shortDescription": "Query feature dependencies, analyze change impact, and generate business-chain test paths.",
+    "longDescription": "维护系统功能节点、依赖关系、数据实体、状态流转、业务链路和测试路径，并通过 12 个 MCP 工具与 3 个 Skill 支持开发前依赖分析、变更影响分析、业务链路测试路径生成与知识图校验。",
+    "developerName": "Myzmzz",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "brandColor": "#4F46E5"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "system-knowledge": {
+      "command": "node",
+      "args": ["mcp/index.js"]
+    }
+  }
+}

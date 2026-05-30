@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="System Knowledge Graph">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bg)"/>
+  <g stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.92">
+    <line x1="256" y1="150" x2="150" y2="288"/>
+    <line x1="256" y1="150" x2="362" y2="288"/>
+    <line x1="150" y1="288" x2="256" y2="392"/>
+    <line x1="362" y1="288" x2="256" y2="392"/>
+    <line x1="150" y1="288" x2="362" y2="288"/>
+  </g>
+  <g fill="#FFFFFF">
+    <circle cx="256" cy="150" r="44"/>
+    <circle cx="150" cy="288" r="36"/>
+    <circle cx="362" cy="288" r="36"/>
+    <circle cx="256" cy="392" r="40"/>
+  </g>
+  <circle cx="256" cy="150" r="20" fill="#4F46E5"/>
+  <circle cx="256" cy="392" r="18" fill="#0EA5E9"/>
+</svg>
