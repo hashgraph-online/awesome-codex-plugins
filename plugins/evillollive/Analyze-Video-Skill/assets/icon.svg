@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="64" fill="url(#bg)"/>
+  <!-- Film strip -->
+  <rect x="80" y="120" width="352" height="272" rx="16" fill="#0f3460" stroke="#e94560" stroke-width="4"/>
+  <!-- Sprocket holes top -->
+  <rect x="100" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="140" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="180" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="220" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="260" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="300" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="340" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="380" y="130" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <!-- Sprocket holes bottom -->
+  <rect x="100" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="140" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="180" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="220" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="260" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="300" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="340" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <rect x="380" y="366" width="24" height="16" rx="4" fill="#1a1a2e"/>
+  <!-- Play button -->
+  <polygon points="230,210 230,310 310,260" fill="#e94560"/>
+  <!-- Document icon overlay -->
+  <rect x="320" y="280" width="80" height="100" rx="6" fill="white" opacity="0.9"/>
+  <rect x="332" y="300" width="56" height="4" rx="2" fill="#0f3460"/>
+  <rect x="332" y="312" width="56" height="4" rx="2" fill="#0f3460"/>
+  <rect x="332" y="324" width="56" height="4" rx="2" fill="#0f3460"/>
+  <rect x="332" y="336" width="40" height="4" rx="2" fill="#0f3460"/>
+  <!-- Magnifying glass -->
+  <circle cx="160" y="0" r="0" fill="none"/>
+  <circle cx="380" cy="170" r="30" fill="none" stroke="#e94560" stroke-width="6"/>
+  <line x1="402" y1="192" x2="420" y2="210" stroke="#e94560" stroke-width="6" stroke-linecap="round"/>
+</svg>
