@@ -514,7 +514,7 @@
       "url": "https://github.com/jerryfane/agentgram",
       "owner": "jerryfane",
       "repo": "agentgram",
-      "description": "Send explicit Telegram messages from Codex and local AI agents through a Telegram bot token and chat id.",
+      "description": "Send explicit Telegram messages and files from Codex and local AI agents through a Telegram bot token and chat id.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jerryfane/agentgram/HEAD/.codex-plugin/plugin.json"

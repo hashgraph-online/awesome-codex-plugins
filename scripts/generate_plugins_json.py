@@ -52,9 +52,14 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Agentgram's plugin skill shells out to its bundled local CLI.
+    "jerryfane/agentgram": ("bin", "src"),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
+}
+PRESERVE_EXECUTABLE_PATHS = {
+    "jerryfane/agentgram": ("bin",),
 }
 
 
@@ -169,6 +174,31 @@ def build_raw_manifest_url(plugin: dict[str, str], plugin_root_relative: str) ->
         f"https://raw.githubusercontent.com/{plugin['owner']}/{plugin['repo']}/"
         f"{RAW_DEFAULT_BRANCH_REF}/{manifest_path}"
     )
+
+
+def existing_plugin_root_relative(plugin: dict[str, str]) -> str:
+    if not OUTPUT.exists():
+        return ""
+    try:
+        data = json.loads(OUTPUT.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ""
+
+    marker = f"/{RAW_DEFAULT_BRANCH_REF}/"
+    suffix = ".codex-plugin/plugin.json"
+    for existing in data.get("plugins", []):
+        if not isinstance(existing, dict):
+            continue
+        if existing.get("owner") != plugin["owner"] or existing.get("repo") != plugin["repo"]:
+            continue
+        install_url = str(existing.get("install_url") or "")
+        if marker not in install_url:
+            return ""
+        manifest_path = install_url.rsplit(marker, 1)[1]
+        if not manifest_path.endswith(suffix):
+            return ""
+        return manifest_path[: -len(suffix)].rstrip("/")
+    return ""
 
 
 def add_recursive_selection(
@@ -290,9 +320,19 @@ def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[st
 
 def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str, str]:
     owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+    destination_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
     try:
         archive = fetch_repo_archive(plugin["owner"], plugin["repo"])
     except Exception as e:
+        existing_manifest = destination_root / ".codex-plugin" / "plugin.json"
+        if existing_manifest.exists():
+            print(f"Warning: failed to fetch {owner_repo}; reusing existing mirror: {e}")
+            try:
+                manifest = json.loads(existing_manifest.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as fallback_error:
+                raise ValueError(f"Failed to fetch {owner_repo}: {e}") from fallback_error
+            plugin_root_relative = existing_plugin_root_relative(plugin)
+            return manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative
         raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
     names = {name for name in archive.namelist() if not name.endswith("/")}
     try:
@@ -308,7 +348,6 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
     )
     mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
 
-    destination_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
     # Clear destination to avoid stale files from previous runs (Thread 2 fix)
     if destination_root.exists():
         shutil.rmtree(destination_root)
@@ -324,7 +363,8 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
                 encoding="utf-8",
             )
         else:
-            destination_path.write_bytes(archive.read(archive_name))
+            write_archive_file(archive, archive_name, destination_path)
+            preserve_executable_mode(archive, archive_name, destination_path, owner_repo, relative_path)
 
     return mirrored_manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative_path(plugin_root)
 
@@ -366,6 +406,26 @@ def build_marketplace_entry(
 def write_json(path: Path, data: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def write_archive_file(archive: zipfile.ZipFile, archive_name: str, destination_path: Path) -> None:
+    destination_path.write_bytes(archive.read(archive_name))
+
+
+def preserve_executable_mode(
+    archive: zipfile.ZipFile,
+    archive_name: str,
+    destination_path: Path,
+    owner_repo: str,
+    relative_path: str,
+) -> None:
+    executable_roots = PRESERVE_EXECUTABLE_PATHS.get(owner_repo, ())
+    if not any(relative_path == root or relative_path.startswith(f"{root}/") for root in executable_roots):
+        return
+
+    unix_mode = (archive.getinfo(archive_name).external_attr >> 16) & 0o777
+    if unix_mode & 0o111:
+        destination_path.chmod(destination_path.stat().st_mode | 0o111)
 
 
 def main() -> None:
