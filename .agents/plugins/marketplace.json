@@ -49,6 +49,21 @@
       "description": "DevOps layer for coding agents with flow, feedback, and memory that compounds between sessions."
     },
     {
+      "name": "agiflow-ai-plugin",
+      "displayName": "AgiFlow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AgiFlow/ai-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.",
+      "icon": "./plugins/AgiFlow/ai-plugin/assets/icon.png"
+    },
+    {
       "name": "alcove",
       "displayName": "Alcove",
       "source": {

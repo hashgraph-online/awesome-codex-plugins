@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-05-31",
-  "total": 94,
+  "total": 95,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -38,6 +38,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/boshu2/agentops/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AgiFlow",
+      "url": "https://github.com/AgiFlow/ai-plugin",
+      "owner": "AgiFlow",
+      "repo": "ai-plugin",
+      "description": "Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AgiFlow/ai-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Alcove",
