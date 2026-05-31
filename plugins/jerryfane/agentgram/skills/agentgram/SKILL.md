@@ -1,13 +1,13 @@
 ---
 name: agentgram
-description: Send explicit, user-requested Telegram messages from an agent session through the local Agentgram command-line tool.
+description: Send explicit, user-requested Telegram messages and files from an agent session through the local Agentgram command-line tool.
 ---
 
 # Agentgram
 
 Agentgram is a small Telegram messaging helper for agents. Use this skill when
-the user asks to send a Telegram message, verify Telegram messaging setup, find
-a chat id, or update the local Agentgram install.
+the user asks to send a Telegram message or file, verify Telegram messaging
+setup, find a chat id, or update the local Agentgram install.
 
 Before sending messages, prefer the installed `agentgram` command. If it is not
 on `PATH` and Agentgram is installed as a Codex plugin, resolve the plugin root
@@ -23,6 +23,9 @@ making an ad hoc Telegram API call.
 
 ```sh
 agentgram send "message text"
+agentgram send --split "long message text"
+agentgram send --as-file --filename report.md "long message text"
+agentgram send-file ./report.md --caption "Report"
 agentgram chat-id
 agentgram doctor
 agentgram update
@@ -49,18 +52,41 @@ plugin packages.
    for a best-effort send without preflight.
 3. If `doctor` only fails because `TELEGRAM_CHAT_ID` is missing and the user
    provided the target chat id for this message, proceed with
-   `$AGENTGRAM_CMD send --chat-id <id>`.
+   the selected send command plus `--chat-id <id>`, such as
+   `$AGENTGRAM_CMD send --chat-id <id> "message"` or
+   `$AGENTGRAM_CMD send-file --chat-id <id> <path>`.
 4. If `doctor` reports missing `TELEGRAM_CHAT_ID` and the user did not provide
    a chat id, run `$AGENTGRAM_CMD chat-id` only after the user has messaged the
    bot or added it to the target chat.
-5. Send only the exact user-requested message with `$AGENTGRAM_CMD send`.
+5. Send only the exact user-requested Telegram content.
 6. Use `--chat-id` only when the user provided a specific override for that
    message.
 7. Use `--parse-mode HTML` or `--parse-mode MarkdownV2` only when the user asks
    for formatted Telegram output or the message clearly requires it.
 
+Use `$AGENTGRAM_CMD send "message text"` for explicit short text messages.
+Plain text messages are limited to 4096 visible characters by Telegram.
+
+Use `$AGENTGRAM_CMD send-file <path>` when the user explicitly asks to send a
+file, report, log, diff, archive, generated artifact, or named local path. Do
+not glob paths, archive directories, or infer a file to send. If the requested
+path is ambiguous, ask the user to identify the exact file before sending.
+`send-file` accepts `--caption`, `--parse-mode HTML|MarkdownV2`, `--silent`,
+and `--chat-id`.
+
+Use `$AGENTGRAM_CMD send --split "long text"` only when the user asks to send
+long text or the text exceeds Telegram's message limit and should remain in the
+chat as text. Split mode currently supports plain text only; do not combine it
+with `--parse-mode`.
+
+Use `$AGENTGRAM_CMD send --as-file --filename report.md "long text"` when the
+user asks to send long text as a document, or when a long report/log/diff is
+better delivered as a file. Omit `--filename` only when the default
+`agentgram-message.txt` is acceptable.
+
 Do not send automatic status updates merely because an agent task completed.
-Agentgram sends should be explicit and user-requested.
+Do not send files automatically just because a task generated one. Agentgram
+sends should be explicit and user-requested.
 
 ## Update Workflow
 
