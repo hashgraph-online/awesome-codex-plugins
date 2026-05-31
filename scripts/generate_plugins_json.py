@@ -58,6 +58,9 @@ EXTRA_MIRROR_PATHS = {
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
 }
+PRESERVE_EXECUTABLE_PATHS = {
+    "jerryfane/agentgram": ("bin",),
+}
 
 
 def normalize_relative_path(value: str) -> str:
@@ -324,7 +327,10 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         existing_manifest = destination_root / ".codex-plugin" / "plugin.json"
         if existing_manifest.exists():
             print(f"Warning: failed to fetch {owner_repo}; reusing existing mirror: {e}")
-            manifest = json.loads(existing_manifest.read_text(encoding="utf-8"))
+            try:
+                manifest = json.loads(existing_manifest.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as fallback_error:
+                raise ValueError(f"Failed to fetch {owner_repo}: {e}") from fallback_error
             plugin_root_relative = existing_plugin_root_relative(plugin)
             return manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative
         raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
@@ -358,8 +364,7 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
             )
         else:
             write_archive_file(archive, archive_name, destination_path)
-            if owner_repo == "jerryfane/agentgram" and relative_path.startswith("bin/"):
-                destination_path.chmod(0o755)
+            preserve_executable_mode(archive, archive_name, destination_path, owner_repo, relative_path)
 
     return mirrored_manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative_path(plugin_root)
 
@@ -405,6 +410,22 @@ def write_json(path: Path, data: dict[str, object]) -> None:
 
 def write_archive_file(archive: zipfile.ZipFile, archive_name: str, destination_path: Path) -> None:
     destination_path.write_bytes(archive.read(archive_name))
+
+
+def preserve_executable_mode(
+    archive: zipfile.ZipFile,
+    archive_name: str,
+    destination_path: Path,
+    owner_repo: str,
+    relative_path: str,
+) -> None:
+    executable_roots = PRESERVE_EXECUTABLE_PATHS.get(owner_repo, ())
+    if not any(relative_path == root or relative_path.startswith(f"{root}/") for root in executable_roots):
+        return
+
+    unix_mode = (archive.getinfo(archive_name).external_attr >> 16) & 0o777
+    if unix_mode & 0o111:
+        destination_path.chmod(destination_path.stat().st_mode | 0o111)
 
 
 def main() -> None:

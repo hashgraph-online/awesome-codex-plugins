@@ -78,18 +78,13 @@ class TelegramClient:
         except json.JSONDecodeError as exc:
             raise TelegramError("Telegram returned invalid JSON") from exc
 
-        if not isinstance(decoded, dict):
-            raise TelegramError("Telegram returned an unexpected JSON response")
         if not decoded.get("ok"):
             description = decoded.get("description") or "Telegram API request failed"
             raise TelegramError(redact_token(str(description), token))
         return decoded.get("result")
 
     def get_me(self) -> dict[str, Any]:
-        result = self.request("getMe", {})
-        if not isinstance(result, dict):
-            raise TelegramError("Telegram getMe returned an unexpected result")
-        return result
+        return self.request("getMe", {})
 
     def get_updates(self, limit: int = 20) -> list[dict[str, Any]]:
         result = self.request("getUpdates", {"limit": limit, "timeout": 0})
@@ -210,6 +205,4 @@ def _telegram_error_message(raw: str) -> str:
         decoded = json.loads(raw)
     except json.JSONDecodeError:
         return raw or "Telegram API request failed"
-    if isinstance(decoded, dict):
-        return str(decoded.get("description") or decoded.get("error_code") or "Telegram API request failed")
-    return raw or "Telegram API request failed"
+    return str(decoded.get("description") or decoded.get("error_code") or "Telegram API request failed")
