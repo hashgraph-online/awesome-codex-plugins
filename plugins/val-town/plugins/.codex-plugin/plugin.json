@@ -1,0 +1,30 @@
+{
+  "name": "vals",
+  "version": "0.1.2",
+  "description": "Build and deploy on Val Town. Bundles the Val Town MCP server and platform skills (HTTP vals, cron/intervals, SQLite, email, OAuth, React UI, third-party integrations, templates).",
+  "author": {
+    "name": "Val Town",
+    "url": "https://val.town"
+  },
+  "homepage": "https://val.town",
+  "repository": "https://github.com/val-town/plugins",
+  "license": "MIT",
+  "keywords": ["val-town", "deno", "serverless", "typescript", "codex-plugin"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Val Town",
+    "shortDescription": "Build and deploy serverless TypeScript on Val Town.",
+    "longDescription": "Bundles the hosted Val Town MCP server and platform skills (HTTP vals, cron/intervals, SQLite, email, OAuth, React UI, third-party integrations, templates) for building and deploying TypeScript on Val Town.",
+    "developerName": "Val Town",
+    "category": "Coding",
+    "capabilities": ["Read", "Write", "Interactive"],
+    "websiteURL": "https://val.town",
+    "composerIcon": "./assets/icon.svg",
+    "brandColor": "#000000",
+    "defaultPrompt": [
+      "Use Val Town to deploy an HTTP API as a val.",
+      "Use Val Town to add a scheduled cron job to my project."
+    ]
+  }
+}
