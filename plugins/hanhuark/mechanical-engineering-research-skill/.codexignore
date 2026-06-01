@@ -1,6 +1,7 @@
 .git/
 .github/
 .tmp-paper-text/
+.tmp-proposal-analysis/
 *.pdf
 *.pptx
 *.docx
