@@ -2,6 +2,7 @@
 .github/
 .tmp-paper-text/
 .tmp-proposal-analysis/
+.tmp-presentation-analysis/
 *.pdf
 *.pptx
 *.docx

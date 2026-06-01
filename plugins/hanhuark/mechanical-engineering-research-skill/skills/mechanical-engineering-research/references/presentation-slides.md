@@ -120,6 +120,87 @@ When preparing talks in the style of the provided thermal-fluid conference examp
 
 Use slide numbers unobtrusively when helpful for conference navigation and discussion.
 
+## Presentation Corpus Lessons
+
+This guidance is calibrated against the user's conference talks, seminar decks, outreach decks, and posters. Apply the patterns as reusable presentation judgment; do not copy private slides, unpublished data, or sponsor-specific material into public examples.
+
+The strongest recurring style is **visual evidence first, short text second, explanation spoken live**. Most technical talks use roughly 13-30 slides, with figures or images on most slides and only a few dense backup-style slides. The design language is restrained: clean white backgrounds, red/orange section titles or footer accents, institutional/team identity on title and acknowledgment slides, and technical figures that carry the argument.
+
+### NED3 Talk Grammar
+
+For a thermal-fluid conference or seminar talk, use this slide grammar unless the user gives a different venue constraint:
+
+1. **Title and identity:** precise technical title, speaker, collaborators, department/institution, venue, date, and sponsor/team identity when appropriate.
+2. **Motivation through recognizable systems:** show applications, hardware, energy/safety/reliability context, or mission relevance with photos, schematics, and one or two anchor numbers.
+3. **Background physics:** introduce the phenomenon, bottleneck, regime transition, metric, or measurement challenge visually.
+4. **Research question or gap:** state what the talk will answer, preferably as two or three concrete questions rather than a paragraph.
+5. **Approach overview:** show the diagnostic, model, ML workflow, facility, or experimental logic as a compact schematic.
+6. **Experimental setup or data source:** use labeled photos and diagrams so the audience can inspect sensors, sample, geometry, heating/cooling path, cameras, DAQ, or simulation domain.
+7. **Baseline/raw-data slide:** show representative raw traces, images, videos, thermographs, spectrograms, or synchronized signals before showing processed trends.
+8. **Metric extraction or analysis pipeline:** explain how the raw data becomes event labels, features, regimes, heat flux, HTC, temperature field, model input, or prediction target.
+9. **Parametric result slides:** vary one meaningful factor at a time and preserve axes, colors, marker meanings, panel layout, and annotations across related slides.
+10. **Mechanism synthesis:** turn observations into physical reasoning using schematics, highlighted regions, arrows, side-by-side comparisons, or simplified governing ideas.
+11. **Comparison and implication:** benchmark against literature, baseline cases, physical models, or design targets when generalizability matters.
+12. **Conclusion and acknowledgment:** provide concise takeaways, next steps, sponsor logos, collaborators, and a team/photo element when appropriate.
+
+For 12-15 minute conference talks, compress motivation and literature into the first 3-4 slides and prioritize setup, baseline, 2-4 result slides, mechanism, and conclusion. For seminars, expand background, literature comparison, and method details.
+
+### Visual Figure Patterns
+
+Use figures as the slide's main object. Strong recurring figure types include:
+
+- **Annotated facility photos:** test rig, sensor locations, heater, sample, optical/acoustic/IR hardware, and data path marked directly on the image.
+- **Raw-to-processed panels:** raw image/video frame, time trace, extracted metric, and final trend shown in one reading path.
+- **Synchronized multimodal data:** temperature, heat flux, pressure, acoustic energy, images, spectrograms, or ML predictions aligned by time or event.
+- **Mechanism cartoons beside data:** schematic of bubble/interface/film/surface structure next to the plot it explains.
+- **Small-multiple parameter sweeps:** repeated panels for pressure, surface structure, heat flux, mass flow, geometry, or model condition with fixed visual grammar.
+- **Workflow diagrams:** experiment, data preprocessing, model, validation, and output connected in a left-to-right or top-to-bottom process.
+- **Benchmark/literature plots:** symbols, colors, or annotations that clearly distinguish this work, baseline, and literature.
+
+Every figure slide should have a short title that states the finding or question. Avoid slides where the first visible text is only a slide number, a generic topic label, or an unexplained plot title.
+
+### Text And Annotation Style
+
+Use red/orange for titles, section emphasis, arrows, borders, or key callouts, but keep the data and images visually dominant. Prefer short phrases and labels over full sentences on the slide. When a slide contains a dense plot, reduce surrounding text and use direct annotations on the figure itself.
+
+Good slide text usually does one of three jobs:
+
+- names the mechanism or comparison;
+- tells the audience what to look at;
+- states the take-home conclusion that the presenter will explain verbally.
+
+Avoid putting the full physical explanation on the slide. Put that explanation in speaker notes or spoken narration.
+
+### Result Slide Sequencing
+
+Do not jump from setup directly to final aggregate conclusions. Use a sequence:
+
+1. Representative raw case.
+2. How the metric or label is extracted.
+3. First trend under a simple condition.
+4. Comparison across cases.
+5. Mechanism explanation.
+6. Literature/baseline comparison or design implication.
+
+This structure lets the audience trust the analysis before accepting the conclusion. It is especially important for boiling, acoustic sensing, IR thermography, computer vision, sequence regression, POD/NN, and surrogate-model workflows.
+
+### Poster Grammar
+
+Posters in this corpus are one-slide, graphics-dense artifacts. They should not be built like a single enlarged talk slide. Use a poster-specific structure:
+
+- **Top banner:** title, authors, affiliations, institutional/lab identity, and sponsor logos.
+- **Three to four vertical columns:** motivation/background, methods/setup, results/analysis, conclusions/impact.
+- **Central visual path:** large facility/photo/schematic/plot cluster that makes the project understandable from a distance.
+- **Compact text blocks:** short paragraphs or bullets that explain only what the figures cannot.
+- **Captioned figures:** each major figure needs a short local takeaway, not just a label.
+- **Bottom rail:** acknowledgments, funding, QR/code/contact, and optional references.
+
+For posters, preserve alignment and column boundaries. The same rectangle test still applies, but at poster scale: each column, figure group, title block, and acknowledgment block should occupy a clean non-overlapping region.
+
+### Outreach And General-Audience Talks
+
+For K-12, outreach, summer academy, or non-specialist audiences, simplify the physics but keep real visuals. Use photos, demonstrations, animations, and everyday objects before equations. Replace dense result plots with a visible phenomenon, a question, and a simple observation. The goal is curiosity and conceptual understanding, not exhaustive technical defense.
+
 ## Baseline And Raw-Data Slides
 
 Include at least one slide that shows representative raw data, raw images/video, or the baseline case before polished aggregate plots.
