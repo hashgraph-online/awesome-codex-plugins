@@ -10,7 +10,7 @@ Use AI only as proposal-development support. Preserve the investigators' scienti
 
 ## Proposal Corpus Lessons
 
-This guidance is calibrated against a representative corpus of the user's awarded, declined, example, and pending proposals. Apply the patterns as reusable writing judgment, not as confidential proposal-specific examples.
+This guidance is calibrated against a representative corpus of the investigator's awarded, declined, example, and pending proposals. Apply the patterns as reusable writing judgment, not as confidential proposal-specific examples.
 
 ### Winning Narrative Signature
 
