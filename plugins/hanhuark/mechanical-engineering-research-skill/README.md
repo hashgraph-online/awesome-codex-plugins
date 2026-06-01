@@ -140,6 +140,7 @@ mechanical-engineering-research-skill/
     me-code-review.md
     me-data-analysis.md
     me-lit-review.md
+    me-proposal.md
     me-write-section.md
   skills/
     mechanical-engineering-research/
@@ -168,6 +169,7 @@ The `commands/` folder contains reusable workflow prompts that can be copied int
 | Prompt | Use |
 |---|---|
 | [`me-lit-review.md`](commands/me-lit-review.md) | Critical literature review and gap synthesis; Claude command `/thermal-fluid-research-workflow:me-lit-review` |
+| [`me-proposal.md`](commands/me-proposal.md) | Solicitation-aligned proposal development, figure planning, preliminary-results integration, milestones, and risk mitigation; Claude command `/thermal-fluid-research-workflow:me-proposal` |
 | [`me-write-section.md`](commands/me-write-section.md) | Manuscript, proposal, report, or thesis-section drafting; Claude command `/thermal-fluid-research-workflow:me-write-section` |
 | [`me-data-analysis.md`](commands/me-data-analysis.md) | Baseline-first analysis and hypothesis-driven DOE; Claude command `/thermal-fluid-research-workflow:me-data-analysis` |
 | [`me-build-slides.md`](commands/me-build-slides.md) | Graphics-first research presentations; Claude command `/thermal-fluid-research-workflow:me-build-slides` |
@@ -187,6 +189,12 @@ Use the mechanical-engineering-research skill to develop a critical literature r
 
 ```text
 Use the mechanical-engineering-research skill to expand this DOE EPSCoR pre-application into a full proposal narrative. Follow the solicitation structure, map the narrative to review criteria, integrate preliminary results under each thrust, add quantifiable milestones, and cite seminal, recent, and team-relevant papers.
+```
+
+Or use the proposal workflow command:
+
+```text
+/thermal-fluid-research-workflow:me-proposal
 ```
 
 ### Data Analysis Plan

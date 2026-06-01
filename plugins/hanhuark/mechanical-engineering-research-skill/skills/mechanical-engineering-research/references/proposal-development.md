@@ -8,6 +8,105 @@ Build the proposal around the solicitation, the review criteria, and the investi
 
 Use AI only as proposal-development support. Preserve the investigators' scientific direction, original technical content, preliminary results, and final responsibility. If the solicitation requires AI disclosure, flag the requirement and suggest wording for institutional review.
 
+## Proposal Corpus Lessons
+
+This guidance is calibrated against a representative corpus of the investigator's awarded, declined, example, and pending proposals. Apply the patterns as reusable writing judgment, not as confidential proposal-specific examples.
+
+### Winning Narrative Signature
+
+Strong proposals tend to read as a sequence of reviewer answers:
+
+1. **Why this matters now:** Start from a mission, market, scientific, safety, energy, reliability, workforce, or infrastructure need that the solicitation already cares about.
+2. **What blocks progress:** Move quickly from broad importance to a specific technical barrier: missing diagnostics, inaccessible measurements, coupled multiphysics, weak transferability, limited benchmark data, scale mismatch, or lack of validated models.
+3. **What the team will uniquely do:** State the proposed instrument, model, dataset, experimental platform, AI/ML workflow, or collaboration as the means to overcome the barrier.
+4. **Why it is feasible:** Anchor the idea in preliminary data, existing facilities, prior publications, working prototypes, collaborator access, or previous grant lineage.
+5. **What success looks like:** Name the measurable output: validated mechanism, dataset, diagnostic accuracy, prediction error, design rule, prototype, demonstration, student training, publication, software release, or commercialization milestone.
+
+Do not let a proposal remain at the level of "important problem plus ambitious methods." Reviewers need to see the conversion from importance to barrier to capability to validation to impact.
+
+### Opening Paragraph Pattern
+
+Use a compact three-step opening for the first page:
+
+1. **Context sentence:** Establish the application, mission, or scientific area with a concrete consequence.
+2. **Barrier sentence:** Identify the unresolved technical challenge that prevents progress.
+3. **Proposed advance sentence:** State the project goal and the differentiating method or insight.
+
+Then, within the same first page, add a one-sentence preview of outcomes and impact. Avoid starting with a long literature review, a historical survey, or a generic claim that the topic is "important."
+
+### Objective And Thrust Architecture
+
+Award-style narratives usually make the architecture easy to recover from headings alone. Use one overall goal, then two to four objectives, aims, or thrusts. Each objective should have a different job:
+
+- **Objective/Thrust 1:** Build or characterize the experimental, observational, or computational foundation.
+- **Objective/Thrust 2:** Develop the model, mechanism, data representation, or diagnostic method.
+- **Objective/Thrust 3:** Validate, generalize, transfer, demonstrate, or translate the capability.
+- **Optional Objective/Thrust 4:** Education, workforce, commercialization, deployment, or community infrastructure when the solicitation values it.
+
+For each objective, include tasks, methods, expected outcomes, quantitative metrics, risks, and alternatives. If objectives are numerous or overlapping, merge them until each one answers a visibly different reviewer question.
+
+### Preliminary Results As Proof Of Capability
+
+Strong proposals do not merely show preliminary figures. They explain what each result proves about execution risk.
+
+Use this pattern:
+
+1. **Result:** State the measurement, simulation, prototype, dataset, or prior analysis.
+2. **Condition:** Give the key operating condition, geometry, sample, platform, or dataset.
+3. **Capability proven:** Explain what the team can now do because of this result.
+4. **Remaining gap:** State what the preliminary result cannot yet answer.
+5. **Proposed task connection:** Tie that gap directly to the next task or objective.
+
+Preliminary results are most persuasive when embedded inside the task they justify. A standalone preliminary-results section can work, but only if every figure is later used as evidence in the research plan.
+
+### Figure Grammar For Proposals
+
+Proposal figures should be designed as reviewer shortcuts. Common high-value figure types include:
+
+- **One-page project overview:** Problem, barrier, proposed innovation, work packages, and expected outcome.
+- **Mechanism schematic:** Physical process, competing mechanisms, key variables, and what will be measured.
+- **Testbed or facility figure:** Hardware, sensors, operating envelope, synchronization, calibration, and data products.
+- **Preliminary-result figure:** Real data or model output that proves feasibility.
+- **Workflow figure:** Experiment, simulation, AI/ML, validation, and uncertainty loops.
+- **Timeline/milestone table:** Year, task, deliverable, metric, and go/no-go outcome.
+- **Collaboration map:** Roles, facilities, student flow, partner feedback, and review cadence when multi-institutional work matters.
+
+Captions should be mini-arguments, not labels. A strong caption states what is shown, what is observed, why it matters, and how it supports the proposed work. If the proposal text never uses a figure as evidence, remove or redesign the figure.
+
+### Writing Style Patterns
+
+Prefer clear, direct topic sentences. Many effective paragraphs use this rhythm:
+
+1. Claim or need.
+2. Evidence or current limitation.
+3. Proposed response.
+4. Expected outcome or reviewer-relevant implication.
+
+Use strong verbs such as **quantify**, **validate**, **benchmark**, **integrate**, **resolve**, **demonstrate**, **predict**, and **translate**. Avoid stacking inflated adjectives. Words like "transformative" or "novel" should be earned by a precise statement of what capability becomes possible.
+
+Use citation density strategically. Background claims can cite grouped references by category, but method gaps and feasibility claims need targeted citations or team evidence. Do not write one sentence for every reference unless the point is a critical comparison.
+
+### Reviewer Friction Patterns To Avoid
+
+Declined or vulnerable drafts often show one or more of these risks:
+
+- The proposal has many tasks but the central hypothesis or organizing question is hard to state.
+- AI/ML, CFD, experiments, or sensing are described as parallel activities rather than an integrated validation loop.
+- Preliminary results are impressive but not explicitly tied to risk reduction.
+- The literature review is either too broad for the page limit or too narrow to show awareness of competing approaches.
+- Milestones list activities instead of measurable completion criteria.
+- The project claims broad impact but does not specify the user, mission, dataset, prototype, design rule, or adoption path.
+- Collaboration roles are named but the work transfer, meeting cadence, data sharing, and decision points are vague.
+- Figures are visually rich but captions do not explain the reviewer takeaway.
+
+When revising, first fix these reviewer-friction points before polishing sentence style.
+
+### Pending Proposal Discipline
+
+For pending proposals, preserve live strategy. Do not overfit to old awarded proposals if the solicitation, program language, or partner constraints have changed. Before drafting, ask what is still unsettled: target program, page limit, required sections, partner roles, budget model, data rights, institutional commitments, and whether the proposal is a pre-application, feasibility review, white paper, full narrative, or supplement.
+
+When reusing material from prior proposals, update the logic chain rather than pasting text. Carry forward strong figures, preliminary results, and methods only after rewriting the gap, objective, and impact for the current solicitation.
+
 ## Solicitation-First Workflow
 
 1. Read the solicitation before drafting.
