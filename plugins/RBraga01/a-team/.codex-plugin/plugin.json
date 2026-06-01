@@ -21,7 +21,7 @@
   ],
   "skills": "../skills/",
   "interface": {
-    "composerIcon": "../assets/icon.svg",
+    "composerIcon": "assets/icon.svg",
     "displayName": "A Team",
     "shortDescription": "25 specialist agents and 16 enforced workflow skills",
     "longDescription": "A Team enforces structured development workflows: design before code, TDD before implementation, code review after every change, and completion requires verified evidence.",
