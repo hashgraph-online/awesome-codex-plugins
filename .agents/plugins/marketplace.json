@@ -5,6 +5,20 @@
   },
   "plugins": [
     {
+      "name": "a-team",
+      "displayName": "A Team",
+      "source": {
+        "source": "local",
+        "path": "./plugins/RBraga01/a-team"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Universal multi-agent infrastructure with 25 specialist agents, 16 enforced workflow skills, and a lead orchestrator for Claude Code, Codex CLI, Cursor, and OpenCode."
+    },
+    {
       "name": "aegis",
       "displayName": "Aegis",
       "source": {
