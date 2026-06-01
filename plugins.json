@@ -2,13 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-31",
-  "total": 94,
+  "last_updated": "2026-06-01",
+  "total": 95,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
   ],
   "plugins": [
+    {
+      "name": "A Team",
+      "url": "https://github.com/RBraga01/a-team",
+      "owner": "RBraga01",
+      "repo": "a-team",
+      "description": "Universal multi-agent infrastructure with 25 specialist agents, 16 enforced workflow skills, and a lead orchestrator for Claude Code, Codex CLI, Cursor, and OpenCode.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/RBraga01/a-team/HEAD/.codex-plugin/plugin.json"
+    },
     {
       "name": "Aegis",
       "url": "https://github.com/GanyuanRan/Aegis",
