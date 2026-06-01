@@ -122,7 +122,7 @@ Use slide numbers unobtrusively when helpful for conference navigation and discu
 
 ## Presentation Corpus Lessons
 
-This guidance is calibrated against the user's conference talks, seminar decks, outreach decks, and posters. Apply the patterns as reusable presentation judgment; do not copy private slides, unpublished data, or sponsor-specific material into public examples.
+This guidance is calibrated against the investigator's conference talks, seminar decks, outreach decks, and posters. Apply the patterns as reusable presentation judgment; do not copy private slides, unpublished data, or sponsor-specific material into public examples.
 
 The strongest recurring style is **visual evidence first, short text second, explanation spoken live**. Most technical talks use roughly 13-30 slides, with figures or images on most slides and only a few dense backup-style slides. The design language is restrained: clean white backgrounds, red/orange section titles or footer accents, institutional/team identity on title and acknowledgment slides, and technical figures that carry the argument.
 
