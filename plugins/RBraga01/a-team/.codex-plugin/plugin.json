@@ -19,7 +19,6 @@
     "claude-code",
     "codex"
   ],
-  "skills": "../skills/",
   "interface": {
     "composerIcon": "assets/icon.svg",
     "displayName": "A Team",
