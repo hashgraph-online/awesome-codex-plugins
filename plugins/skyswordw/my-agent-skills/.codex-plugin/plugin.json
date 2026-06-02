@@ -1,0 +1,16 @@
+{
+  "name": "my-agent-skills",
+  "version": "0.1.0",
+  "description": "Multi-skill Codex pack for curated agent skills in this repository.",
+  "repository": "https://github.com/skyswordw/my-agent-skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "My Agent Skills",
+    "shortDescription": "Curated Codex multi-skill pack",
+    "longDescription": "Repository-local Codex pack that publishes and validates reusable skills from the ./skills/ directory.",
+    "composerIcon": "./assets/icon.svg",
+    "developerName": "my-agent-skills",
+    "category": "Developer Tools"
+  }
+}

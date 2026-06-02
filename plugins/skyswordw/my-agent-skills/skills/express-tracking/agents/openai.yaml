@@ -1,0 +1,5 @@
+interface:
+  display_name: "Express Tracking"
+  short_description: "Track courier shipments with Kuaidi100 and return Chinese logistics summaries"
+  default_prompt: >
+    Use $express-tracking when the user provides a shipment number and wants the latest logistics progress, or when another skill such as MSI repair status has already produced a tracking number and needs a live courier follow-up. Resolve credentials from the current shell or the current project's `.env.local`, never from the skill directory and never from command-line secret flags. Prefer `node .codex/skills/express-tracking/scripts/run.mjs --number="<tracking-number>"`. Use `--carrier="<kuaidi100-company-code>"` when the user already knows the carrier or when automatic detection is unavailable. Use `--recent-limit="<count>"` when the caller only needs the latest few events. Use `--json` when another tool or script needs a stable machine-readable object with `provider`, `number`, carrier/state/status fields, `latestEvent`, and `recentEvents`. Report the tracking number, carrier code and detection source, current logistics state, latest event, and a short recent-events list in Chinese.

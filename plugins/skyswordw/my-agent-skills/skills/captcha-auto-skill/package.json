@@ -1,0 +1,21 @@
+{
+  "name": "captcha-auto-skill",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "run": "node scripts/run.mjs",
+    "test": "vitest run --config vitest.config.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.52.0",
+    "sharp": "^0.34.2",
+    "tesseract.js": "^6.0.1"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

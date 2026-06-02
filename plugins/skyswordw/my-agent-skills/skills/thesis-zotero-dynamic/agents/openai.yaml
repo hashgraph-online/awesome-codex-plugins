@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thesis Zotero Dynamic"
+  short_description: "Migrate thesis DOCX files to Word dynamic Zotero citations."
+  default_prompt: "Use this skill for single DOCX static-to-Zotero migration with a Group Library, operator placeholders, generated candidate fields, Word Refresh validation, bibliography rebuild, and audit evidence."

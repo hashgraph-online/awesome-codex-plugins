@@ -1,0 +1,4 @@
+interface:
+  display_name: "SSH Ops"
+  short_description: "Run compact SSH commands, batches, and log summaries after access is known."
+  default_prompt: "Use the SSH Ops skill for ordinary remote execution, compact health checks, batch commands, and raw log capture under a generic remote scratch directory after the SSH path is known."

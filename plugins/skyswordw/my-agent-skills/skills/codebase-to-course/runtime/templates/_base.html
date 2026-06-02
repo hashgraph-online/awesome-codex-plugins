@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="{{PAGE_LANG}}" data-course-root data-course-theme="notebook">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{{PAGE_TITLE}}</title>
+  <meta name="description" content="{{PAGE_DESCRIPTION}}">
+  <link rel="stylesheet" href="{{RUNTIME_STYLESHEET}}">
+  {{HEAD_EXTRA}}
+</head>
+<body class="course-shell {{BODY_CLASS}}">
+  <a class="course-skip-link" href="#course-main">Skip to content</a>
+  <div class="course-page">
+    <header class="course-masthead" data-reveal>
+      <div class="course-masthead__eyebrow">{{COURSE_EYEBROW}}</div>
+      <div class="course-masthead__title-group">
+        <p class="course-kicker">{{COURSE_KICKER}}</p>
+        <h1>{{COURSE_TITLE}}</h1>
+        <p class="course-dek">{{COURSE_DEK}}</p>
+      </div>
+      <div class="course-masthead__meta">{{COURSE_META}}</div>
+    </header>
+    <main id="course-main" class="course-main" tabindex="-1">
+      {{COURSE_CONTENT}}

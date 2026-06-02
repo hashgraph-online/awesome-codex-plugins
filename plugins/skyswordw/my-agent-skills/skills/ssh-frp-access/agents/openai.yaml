@@ -1,0 +1,4 @@
+interface:
+  display_name: "SSH/FRP Access"
+  short_description: "Resolve and document machine access paths."
+  default_prompt: "Use the SSH/FRP Access skill to verify aliases, FRP/NAT reachability, login probes, and connection documentation consistency without exposing private access details."

@@ -402,6 +402,21 @@
       "icon": "./plugins/yimwoo/hotl-plugin/docs/assets/codex/hotl-icon.png"
     },
     {
+      "name": "my-agent-skills",
+      "displayName": "My Agent Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skyswordw/my-agent-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Public personal Codex skill pack with reusable workflows for development, operations, documents, tracking, and data tasks.",
+      "icon": "./plugins/skyswordw/my-agent-skills/assets/icon.svg"
+    },
+    {
       "name": "personal-data-protection",
       "displayName": "Personal Data Protection",
       "source": {

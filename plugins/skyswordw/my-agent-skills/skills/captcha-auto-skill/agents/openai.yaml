@@ -1,0 +1,4 @@
+interface:
+  display_name: "Captcha Auto Skill"
+  short_description: "Generate captcha candidate answers with local OCR first and optional browser page assist"
+  default_prompt: "Use $captcha-auto-skill to generate a captcha candidate answer with local OCR first, use DashScope as the default cloud fallback, and only use browser page actions when explicitly requested."

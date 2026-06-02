@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sub2API Ops"
+  short_description: "Operate and debug Sub2API deployments safely."
+  default_prompt: "Use the Sub2API Ops skill to check host access, Docker Compose health, account cooldown state, routing logs, and upgrade/documentation consistency without exposing secrets."

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">My Agent Skills icon</title>
+  <desc id="desc">Layered skill tiles inside a rounded square.</desc>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <path fill="#22C55E" d="M160 132h136c22 0 40 18 40 40v44H200c-22 0-40-18-40-40v-44Z"/>
+  <path fill="#38BDF8" d="M116 224h216c22 0 40 18 40 40v44H156c-22 0-40-18-40-40v-44Z"/>
+  <path fill="#F59E0B" d="M160 316h180c22 0 40 18 40 40v44H200c-22 0-40-18-40-40v-44Z"/>
+  <circle cx="356" cy="172" r="28" fill="#F9FAFB"/>
+  <circle cx="392" cy="264" r="28" fill="#F9FAFB"/>
+  <circle cx="416" cy="356" r="28" fill="#F9FAFB"/>
+</svg>

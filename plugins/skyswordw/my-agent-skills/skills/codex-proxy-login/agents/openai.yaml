@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Proxy Login"
+  short_description: "Configure Codex CLI to log in via ChatGPT while routing model traffic through an OpenAI-compatible proxy."
+  default_prompt: "Use the Codex Proxy Login skill to set up ChatGPT OAuth login plus relay routing in ~/.codex (login first, add the proxy provider with experimental_bearer_token and requires_openai_auth, enable remote_connections/remote_control), and re-verify config after Codex rewrites it. Use placeholders; never echo real tokens, keys, hosts, or local absolute paths."

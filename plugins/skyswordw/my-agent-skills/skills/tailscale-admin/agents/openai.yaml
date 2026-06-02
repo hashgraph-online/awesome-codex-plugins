@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tailscale Admin"
+  short_description: "Manage Tailscale tailnets safely through the v2 API."
+  default_prompt: "Use the Tailscale Admin skill to inspect and manage a tailnet with dry-run previews, local secret loading, and documentation updates without exposing Tailscale secrets."

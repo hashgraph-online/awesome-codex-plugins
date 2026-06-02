@@ -1,0 +1,4 @@
+interface:
+  display_name: "SubStore Ops"
+  short_description: "Operate and validate Sub-Store deployments."
+  default_prompt: "Use the SubStore Ops skill to back up remote config, make minimal Sub-Store changes, validate rendered exports, and update service documentation without leaking subscription secrets."

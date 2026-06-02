@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-31",
-  "total": 94,
+  "last_updated": "2026-06-02",
+  "total": 95,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -278,6 +278,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yimwoo/hotl-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "My Agent Skills",
+      "url": "https://github.com/skyswordw/my-agent-skills",
+      "owner": "skyswordw",
+      "repo": "my-agent-skills",
+      "description": "Public personal Codex skill pack with reusable workflows for development, operations, documents, tracking, and data tasks.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/skyswordw/my-agent-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Personal Data Protection",

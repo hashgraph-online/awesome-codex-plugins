@@ -1,0 +1,86 @@
+operationId	method	path	tags	summary
+acceptDeviceInvite	POST	/device-invites/-/accept	DeviceInvites	Accept a device invite
+approveUser	POST	/users/{userId}/approve	Users	Approve a user
+authorizeDevice	POST	/device/{deviceId}/authorized	Devices	Authorize device
+batchUpdateCustomDevicePostureAttributes	PATCH	/tailnet/{tailnet}/device-attributes	Devices	Batch update custom device posture attributes
+createDeviceInvites	POST	/device/{deviceId}/device-invites	DeviceInvites	Create device invites
+createKey	POST	/tailnet/{tailnet}/keys	Keys	Create an auth key or trust credential
+createPostureIntegration	POST	/tailnet/{tailnet}/posture/integrations	DevicePosture	Create a posture integration
+createUserInvites	POST	/tailnet/{tailnet}/user-invites	UserInvites	Create user invites
+createWebhook	POST	/tailnet/{tailnet}/webhooks	Webhooks	Create a webhook
+deleteCustomDevicePostureAttributes	DELETE	/device/{deviceId}/attributes/{attributeKey}	Devices	Delete custom device posture attributes
+deleteDevice	DELETE	/device/{deviceId}	Devices	Delete a device
+deleteDeviceInvite	DELETE	/device-invites/{deviceInviteId}	DeviceInvites	Delete a device invite
+deleteKey	DELETE	/tailnet/{tailnet}/keys/{keyId}	Keys	Delete key
+deletePostureIntegration	DELETE	/posture/integrations/{id}	DevicePosture	Delete a posture integration
+deleteService	DELETE	/tailnet/{tailnet}/services/{serviceName}	Services	Delete a Service
+deleteUser	POST	/users/{userId}/delete	Users	Delete a user
+deleteUserInvite	DELETE	/user-invites/{userInviteId}	UserInvites	Delete a user invite
+deleteWebhook	DELETE	/webhooks/{endpointId}	Webhooks	Delete webhook
+disableLogStreaming	DELETE	/tailnet/{tailnet}/logging/{logType}/stream	Logging	Disable log streaming
+expireDeviceKey	POST	/device/{deviceId}/expire	Devices	Expire a device's key
+getAwsExternalId	POST	/tailnet/{tailnet}/aws-external-id	Logging	Create or get AWS external id
+getContacts	GET	/tailnet/{tailnet}/contacts	Contacts	Get contacts
+getDevice	GET	/device/{deviceId}	Devices	Get a device
+getDeviceInvite	GET	/device-invites/{deviceInviteId}	DeviceInvites	Get a device invite
+getDevicePostureAttributes	GET	/device/{deviceId}/attributes	Devices	Get device posture attributes
+getDnsConfiguration	GET	/tailnet/{tailnet}/dns/configuration	DNS	Get DNS configuration
+getDnsPreferences	GET	/tailnet/{tailnet}/dns/preferences	DNS	Get DNS preferences
+getKey	GET	/tailnet/{tailnet}/keys/{keyId}	Keys	Get key
+getLogStreamingConfiguration	GET	/tailnet/{tailnet}/logging/{logType}/stream	Logging	Get log streaming configuration
+getLogStreamingStatus	GET	/tailnet/{tailnet}/logging/{logType}/stream/status	Logging	Get log streaming status
+getPolicyFile	GET	/tailnet/{tailnet}/acl	PolicyFile	Get policy file
+getPostureIntegration	GET	/posture/integrations/{id}	DevicePosture	Get a posture integration
+getPostureIntegrations	GET	/tailnet/{tailnet}/posture/integrations	DevicePosture	List all posture integrations
+getService	GET	/tailnet/{tailnet}/services/{serviceName}	Services	Get a Service
+getServiceDeviceApproval	GET	/tailnet/{tailnet}/services/{serviceName}/device/{deviceId}/approved	Services	Get approval status of Service on a device
+getSplitDns	GET	/tailnet/{tailnet}/dns/split-dns	DNS	Get split DNS
+getTailnetSettings	GET	/tailnet/{tailnet}/settings	TailnetSettings	Get tailnet settings
+getUser	GET	/users/{userId}	Users	Get a user
+getUserInvite	GET	/user-invites/{userInviteId}	UserInvites	Get a user invite
+getWebhook	GET	/webhooks/{endpointId}	Webhooks	Get webhook
+listConfigurationAuditLogs	GET	/tailnet/{tailnet}/logging/configuration	Logging	List configuration audit logs
+listDeviceInvites	GET	/device/{deviceId}/device-invites	DeviceInvites	List device invites
+listDeviceRoutes	GET	/device/{deviceId}/routes	Devices	List device routes
+listDnsNameservers	GET	/tailnet/{tailnet}/dns/nameservers	DNS	List DNS nameservers
+listDnsSearchPaths	GET	/tailnet/{tailnet}/dns/searchpaths	DNS	List DNS search paths
+listNetworkFlowLogs	GET	/tailnet/{tailnet}/logging/network	Logging	List network flow logs
+listServiceHosts	GET	/tailnet/{tailnet}/services/{serviceName}/devices	Services	List devices hosting a Service
+listServices	GET	/tailnet/{tailnet}/services	Services	List all Services
+listTailnetDevices	GET	/tailnet/{tailnet}/devices	Devices	List tailnet devices
+listTailnetKeys	GET	/tailnet/{tailnet}/keys	Keys	List tailnet keys
+listUserInvites	GET	/tailnet/{tailnet}/user-invites	UserInvites	List user invites
+listUsers	GET	/tailnet/{tailnet}/users	Users	List users
+listWebhooks	GET	/tailnet/{tailnet}/webhooks	Webhooks	List webhooks
+previewRuleMatches	POST	/tailnet/{tailnet}/acl/preview	PolicyFile	Preview rule matches
+resendContactVerificationEmail	POST	/tailnet/{tailnet}/contacts/{contactType}/resend-verification-email	Contacts	Resend verification email
+resendDeviceInvite	POST	/device-invites/{deviceInviteId}/resend	DeviceInvites	Resend a device invite
+resendUserInvite	POST	/user-invites/{userInviteId}/resend	UserInvites	Resend a user invite
+restoreUser	POST	/users/{userId}/restore	Users	Restore a user
+rotateWebhookSecret	POST	/webhooks/{endpointId}/rotate	Webhooks	Rotate webhook secret
+setCustomDevicePostureAttributes	POST	/device/{deviceId}/attributes/{attributeKey}	Devices	Set custom device posture attributes
+setDeviceIp	POST	/device/{deviceId}/ip	Devices	Set device IPv4 address
+setDeviceName	POST	/device/{deviceId}/name	Devices	Set device name
+setDeviceRoutes	POST	/device/{deviceId}/routes	Devices	Set device routes
+setDeviceTags	POST	/device/{deviceId}/tags	Devices	Set device tags
+setDnsConfiguration	POST	/tailnet/{tailnet}/dns/configuration	DNS	Set DNS configuration
+setDnsNameservers	POST	/tailnet/{tailnet}/dns/nameservers	DNS	Set DNS nameservers
+setDnsPreferences	POST	/tailnet/{tailnet}/dns/preferences	DNS	Set DNS preferences
+setDnsSearchPaths	POST	/tailnet/{tailnet}/dns/searchpaths	DNS	Set DNS search paths
+setKey	PUT	/tailnet/{tailnet}/keys/{keyId}	Keys	Set key
+setLogStreamingConfiguration	PUT	/tailnet/{tailnet}/logging/{logType}/stream	Logging	Set log streaming configuration
+setPolicyFile	POST	/tailnet/{tailnet}/acl	PolicyFile	Set policy file
+setSplitDns	PUT	/tailnet/{tailnet}/dns/split-dns	DNS	Set split DNS
+suspendUser	POST	/users/{userId}/suspend	Users	Suspend user
+testWebhook	POST	/webhooks/{endpointId}/test	Webhooks	Test webhook
+updateContact	PATCH	/tailnet/{tailnet}/contacts/{contactType}	Contacts	Update contact
+updateDeviceKey	POST	/device/{deviceId}/key	Devices	Update device key
+updatePostureIntegration	PATCH	/posture/integrations/{id}	DevicePosture	Update a posture integration
+updateService	PUT	/tailnet/{tailnet}/services/{serviceName}	Services	Update a Service
+updateServiceDeviceApproval	POST	/tailnet/{tailnet}/services/{serviceName}/device/{deviceId}/approved	Services	Update approval status of Service on a device
+updateSplitDns	PATCH	/tailnet/{tailnet}/dns/split-dns	DNS	Update split DNS
+updateTailnetSettings	PATCH	/tailnet/{tailnet}/settings	TailnetSettings	Update tailnet settings
+updateUserRole	POST	/users/{userId}/role	Users	Update user role
+updateWebhook	PATCH	/webhooks/{endpointId}	Webhooks	Update webhook
+validateAndTestPolicyFile	POST	/tailnet/{tailnet}/acl/validate	PolicyFile	Validate and test policy file
+validateAwsExternalId	POST	/tailnet/{tailnet}/aws-external-id/{id}/validate-aws-trust-policy	Logging	Validate external ID integration with IAM role trust policy

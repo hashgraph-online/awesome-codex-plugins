@@ -1,0 +1,12 @@
+.git/
+.env.local
+node_modules/
+**/node_modules/
+**/__pycache__/
+tests/
+catalog/
+docs/
+scripts/
+*.pyc
+.DS_Store
+skills/*/eng.traineddata

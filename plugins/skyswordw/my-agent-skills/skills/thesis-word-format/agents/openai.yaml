@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thesis Word Format"
+  short_description: "Format Chinese doctoral thesis DOCX files and citation markers."
+  default_prompt: "Use this skill for single DOCX thesis layout, GB/T 7714 reference-list presentation, citation-marker superscript cleanup, and 文献[n] narrative citation normalization."
