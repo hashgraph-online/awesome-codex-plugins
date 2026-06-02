@@ -759,7 +759,7 @@
       "displayName": "Aient",
       "source": {
         "source": "local",
-        "path": "./plugins/haf/glimt"
+        "path": "./plugins/haf/aient-codex-plugin"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -767,7 +767,7 @@
       },
       "category": "Tools & Integrations",
       "description": "AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.",
-      "icon": "./plugins/haf/glimt/assets/aient-icon-beveled-light.png"
+      "icon": "./plugins/haf/aient-codex-plugin/assets/aient-icon-beveled-light.png"
     },
     {
       "name": "apple-calendar",

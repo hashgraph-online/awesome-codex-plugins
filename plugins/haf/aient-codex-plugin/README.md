@@ -27,20 +27,18 @@ The Aient plugin is published through the repo marketplace at
 `.agents/plugins/marketplace.json`.
 
 ```bash
-codex plugin marketplace add haf/glimt --ref main --sparse .agents/plugins --sparse plugins/aient
-codex plugin add aient@personal
+codex plugin marketplace add https://github.com/hashgraph-online/awesome-codex-plugins.git --ref main --sparse .agents/plugins --sparse plugins/haf/aient-codex-plugin
+codex plugin add aient
 ```
 
 After installing or updating the plugin, start a new Codex thread so newly
 available skills and MCP tools are loaded.
 
 The production MCP server uses OAuth-protected HTTP MCP. Codex should start the
-OAuth flow when the plugin connects; see [Aient MCP](../../docs/features/aient-mcp.md)
-for scopes and client behavior.
+OAuth flow when the plugin connects and request the scopes required for Aient's
+read and write MCP tools.
 
 ## Maintenance
 
-Use the full runbook in
-[`docs/aient-agent/codex-plugin-runbook.md`](../../docs/aient-agent/codex-plugin-runbook.md)
-when changing copy, assets, MCP config, skills, marketplace metadata, or the
-published plugin version.
+Keep this public plugin bundle focused on customer-facing install metadata,
+skills, brand assets, and MCP configuration.

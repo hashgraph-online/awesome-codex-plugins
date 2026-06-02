@@ -1,13 +1,13 @@
 {
   "name": "aient",
-  "version": "0.1.0+codex.20260601164457",
+  "version": "0.1.0",
   "description": "Bring Aient's AI operations layer into Codex: inspect production telemetry, triage problems, manage remediation, and move from alerts to reviewable fixes.",
   "author": {
     "name": "Aient",
     "url": "https://aient.ai/"
   },
   "homepage": "https://aient.ai/",
-  "repository": "https://github.com/haf/glimt",
+  "repository": "https://github.com/haf/aient-codex-plugin",
   "license": "Proprietary",
   "keywords": [
     "aient",
@@ -46,7 +46,6 @@
     ],
     "brandColor": "#18190F",
     "composerIcon": "./assets/aient-icon-beveled-light.png",
-    "logo": "./assets/aient-logo-beveled-light.png",
-    "screenshots": []
+    "logo": "./assets/aient-logo-beveled-light.png"
   }
 }

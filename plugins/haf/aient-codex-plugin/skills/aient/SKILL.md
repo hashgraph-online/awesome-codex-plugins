@@ -1,6 +1,7 @@
 ---
 name: aient
 description: Use when the user asks Codex to inspect Aient telemetry, search logs, explain traces, create/list Aient API keys, or use the Aient MCP server.
+license: Proprietary
 ---
 
 # Aient
@@ -75,12 +76,3 @@ Environment and key management:
   user names an environment, and never pass the all-zero UUID placeholder.
 - Treat `401` as missing or expired OAuth, `403` as insufficient scope, and a
   missing organisation claim as an auth-context issue.
-
-## Repo References
-
-When working inside the Aient repository, use these docs for deeper context:
-
-- `docs/features/aient-mcp.md`: MCP endpoint, OAuth scopes, tools, and errors.
-- `docs/features/problem-pipeline-spec.md`: problem lifecycle target state.
-- `docs/architecture/06-problem-pipeline.md`: current Pulse implementation.
-- `docs/aient-agent/bug-remediation-workflow.md`: remediation workflow.
