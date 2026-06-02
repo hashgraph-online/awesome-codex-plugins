@@ -470,6 +470,16 @@
       "install_url": "https://raw.githubusercontent.com/dadwadw233/VibePortrait/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Workflow Kit",
+      "url": "https://github.com/Le-Xuan-Thang/workflow-kit",
+      "owner": "Le-Xuan-Thang",
+      "repo": "workflow-kit",
+      "description": "Full product lifecycle plugin for Claude Code, Codex CLI, and OpenCode: define Vision/Mission/Core → generate workplan → execute with mandatory cross-provider reviewer agents → synthesize deliverables → maintain, with parallel task execution, crash recovery, and AgentOps metrics.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Le-Xuan-Thang/workflow-kit/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Writer's Loop",
       "url": "https://github.com/xxsang/writers-loop",
       "owner": "xxsang",
