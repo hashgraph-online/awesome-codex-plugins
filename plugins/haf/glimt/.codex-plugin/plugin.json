@@ -1,0 +1,52 @@
+{
+  "name": "aient",
+  "version": "0.1.0+codex.20260601164457",
+  "description": "Bring Aient's AI operations layer into Codex: inspect production telemetry, triage problems, manage remediation, and move from alerts to reviewable fixes.",
+  "author": {
+    "name": "Aient",
+    "url": "https://aient.ai/"
+  },
+  "homepage": "https://aient.ai/",
+  "repository": "https://github.com/haf/glimt",
+  "license": "Proprietary",
+  "keywords": [
+    "aient",
+    "ai-operations",
+    "observability",
+    "opentelemetry",
+    "error-monitoring",
+    "log-search",
+    "trace-analysis",
+    "incident-response",
+    "root-cause-analysis",
+    "github-pr",
+    "sre",
+    "on-call"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Aient",
+    "shortDescription": "Turn production signals into root cause and fix context",
+    "longDescription": "Aient connects Codex to your production telemetry, problem lifecycle, and remediation workflow. Use it to inspect service health, query logs and traces, review detected problems, coordinate agent threads, request fixes, track remediation attempts, and manage scoped operational keys. It is built for teams that want fewer alert handoffs and faster movement from \"something broke\" to \"here is the fix PR to review.\" After a PR merges, Aient keeps watching production to validate that the fix actually worked.",
+    "developerName": "Aient",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://aient.ai/",
+    "privacyPolicyURL": "https://aient.ai/legal/privacy",
+    "termsOfServiceURL": "https://aient.ai/legal/terms",
+    "defaultPrompt": [
+      "Show service health and active problems from the last 30 minutes",
+      "Find the root cause for this trace",
+      "Request a fix for this production problem"
+    ],
+    "brandColor": "#18190F",
+    "composerIcon": "./assets/aient-icon-beveled-light.png",
+    "logo": "./assets/aient-logo-beveled-light.png",
+    "screenshots": []
+  }
+}

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-05-31",
-  "total": 94,
+  "last_updated": "2026-06-02",
+  "total": 95,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -518,6 +518,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jerryfane/agentgram/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Aient",
+      "url": "https://github.com/haf/glimt",
+      "owner": "haf",
+      "repo": "glimt",
+      "description": "AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/haf/glimt/HEAD/plugins/aient/.codex-plugin/plugin.json"
     },
     {
       "name": "Apple Productivity",
