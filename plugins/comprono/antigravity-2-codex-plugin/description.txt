@@ -1,0 +1,1 @@
+A community Codex plugin for connecting OpenAI Codex to Google Antigravity / Antigravity 2.0 through MCP, Chromium DevTools, and local Windows helper commands.

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google Antigravity Codex Plugin</title>
+  <meta name="description" content="A community Codex plugin for connecting OpenAI Codex to Google Antigravity / Antigravity 2.0 through MCP, Chromium DevTools, and local Windows helper commands.">
+  <meta name="keywords" content="Google Antigravity Codex Plugin, OpenAI Codex Antigravity, Antigravity 2.0 Codex bridge, Codex MCP plugin, DevTools MCP Antigravity, Codex Windows bridge">
+  <meta name="author" content="comprono">
+  <link rel="canonical" href="https://comprono.github.io/antigravity-2-codex-plugin/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Google Antigravity Codex Plugin">
+  <meta property="og:description" content="Connect OpenAI Codex to a local Antigravity 2.0 desktop app on Windows using MCP tools, Chromium DevTools, and PowerShell helper commands.">
+  <meta property="og:url" content="https://comprono.github.io/antigravity-2-codex-plugin/">
+  <meta property="og:site_name" content="Google Antigravity Codex Plugin">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Google Antigravity Codex Plugin">
+  <meta name="twitter:description" content="A community local Windows bridge for OpenAI Codex and Google Antigravity / Antigravity 2.0.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Google Antigravity Codex Plugin",
+    "alternateName": "Antigravity 2.0 Codex Plugin",
+    "description": "A community Codex plugin for connecting OpenAI Codex to Google Antigravity / Antigravity 2.0 through MCP, Chromium DevTools, and local Windows helper commands.",
+    "codeRepository": "https://github.com/comprono/antigravity-2-codex-plugin",
+    "programmingLanguage": ["PowerShell", "JavaScript"],
+    "runtimePlatform": "Windows",
+    "license": "https://github.com/comprono/antigravity-2-codex-plugin/blob/main/LICENSE",
+    "isAccessibleForFree": true,
+    "keywords": [
+      "Google Antigravity Codex Plugin",
+      "OpenAI Codex Antigravity",
+      "Antigravity 2.0 Codex bridge",
+      "Codex MCP plugin",
+      "DevTools MCP Antigravity"
+    ],
+    "author": {
+      "@type": "Person",
+      "name": "comprono",
+      "url": "https://github.com/comprono"
+    }
+  }
+  </script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --text: #111827;
+      --muted: #4b5563;
+      --panel: #ffffff;
+      --border: #d1d5db;
+      --accent: #0f766e;
+      --accent-strong: #115e59;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+        --panel: #111827;
+        --border: #334155;
+        --accent: #2dd4bf;
+        --accent-strong: #5eead4;
+      }
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+    }
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+    header {
+      padding: 32px 0 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin-top: 36px;
+      font-size: 1.45rem;
+      letter-spacing: 0;
+    }
+    p {
+      max-width: 760px;
+    }
+    .lede {
+      font-size: 1.15rem;
+      color: var(--muted);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: #ffffff;
+      background: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .button.secondary {
+      color: var(--accent-strong);
+      background: transparent;
+    }
+    section {
+      padding: 8px 0;
+    }
+    ul {
+      padding-left: 22px;
+    }
+    code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--border), transparent 60%);
+    }
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p><strong>Google Antigravity Codex Plugin</strong></p>
+      <h1>Use OpenAI Codex with Google Antigravity</h1>
+      <p class="lede">A community local Windows bridge that helps OpenAI Codex connect to a local Antigravity 2.0 desktop app through MCP tools, Chromium DevTools, and PowerShell helper commands.</p>
+      <div class="actions">
+        <a class="button" href="https://github.com/comprono/antigravity-2-codex-plugin">View on GitHub</a>
+        <a class="button secondary" href="https://github.com/comprono/antigravity-2-codex-plugin#install">Install instructions</a>
+      </div>
+    </header>
+
+    <section>
+      <h2>What the plugin does</h2>
+      <p>The Antigravity 2.0 Codex bridge gives Codex a local way to check whether Antigravity is installed and running, open the desktop app, inspect setup readiness, summarize model-limit metadata exposed by Antigravity's local language server, and use the live UI as the source of truth before handing off prompts.</p>
+    </section>
+
+    <section>
+      <h2>Who it is for</h2>
+      <p>This community plugin is for OpenAI Codex users who want a Codex MCP plugin that can work with a local Antigravity desktop session on Windows. It is also designed to support workflows where a user starts from ChatGPT or Codex on mobile, then uses Codex locally as the bridge into Antigravity.</p>
+    </section>
+
+    <section>
+      <h2>How it connects Codex to Antigravity 2.0</h2>
+      <ul>
+        <li><strong>MCP tools:</strong> expose setup, status, launch, live readiness, model-limit summary, and privacy checks to Codex.</li>
+        <li><strong>Chromium DevTools:</strong> connects to the DevTools endpoint exposed by the Antigravity desktop app for visible UI inspection and handoff.</li>
+        <li><strong>PowerShell helper commands:</strong> provide local Windows checks and commands without hardcoding another user's machine paths.</li>
+        <li><strong>Local Windows bridge:</strong> keeps the integration on the user's own computer and does not bypass Antigravity authentication, quota, billing, or safety controls.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Get started</h2>
+      <p>Clone the plugin into your Codex plugins directory, then refresh or install it from your Codex personal marketplace.</p>
+      <pre><code>git clone https://github.com/comprono/antigravity-2-codex-plugin.git "%USERPROFILE%\plugins\antigravity-2"</code></pre>
+      <p>Run a setup check from PowerShell:</p>
+      <pre><code>powershell -ExecutionPolicy Bypass -File "%USERPROFILE%\plugins\antigravity-2\scripts\antigravity.ps1" setup</code></pre>
+    </section>
+
+    <footer>
+      <p>This is a community plugin, not an official Google or Antigravity product. See the GitHub repository for full technical instructions, security guidance, and release notes.</p>
+    </footer>
+  </main>
+</body>
+</html>

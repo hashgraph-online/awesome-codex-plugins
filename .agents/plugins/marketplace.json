@@ -814,6 +814,21 @@
       "icon": "./plugins/haf/aient-codex-plugin/assets/aient-icon-beveled-light.png"
     },
     {
+      "name": "antigravity-2",
+      "displayName": "Antigravity 2.0",
+      "source": {
+        "source": "local",
+        "path": "./plugins/comprono/antigravity-2-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Local Codex bridge for Antigravity desktop with setup checks, model limit summaries, DevTools UI automation, and safe project/chat handoff.",
+      "icon": "./plugins/comprono/antigravity-2-codex-plugin/assets/icon.svg"
+    },
+    {
       "name": "apple-calendar",
       "displayName": "Apple Productivity",
       "source": {

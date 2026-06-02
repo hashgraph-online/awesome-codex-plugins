@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this plugin, please cite it as below."
+title: "Google Antigravity Codex Plugin"
+version: "0.1.0"
+date-released: "2026-06-03"
+authors:
+  - name: "comprono"
+repository-code: "https://github.com/comprono/antigravity-2-codex-plugin"
+url: "https://github.com/comprono/antigravity-2-codex-plugin"
+license: "MIT"
+keywords:
+  - "google antigravity codex plugin"
+  - "openai codex antigravity"
+  - "antigravity 2.0 codex plugin"
+  - "codex mcp plugin"
+  - "devtools mcp antigravity"
+abstract: "A community Codex plugin for connecting OpenAI Codex to Google Antigravity / Antigravity 2.0 through MCP, Chromium DevTools, and local Windows helper commands."

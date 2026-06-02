@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-04",
-  "total": 98,
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -558,6 +558,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/haf/aient-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Antigravity 2.0",
+      "url": "https://github.com/comprono/antigravity-2-codex-plugin",
+      "owner": "comprono",
+      "repo": "antigravity-2-codex-plugin",
+      "description": "Local Codex bridge for Antigravity desktop with setup checks, model limit summaries, DevTools UI automation, and safe project/chat handoff.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/comprono/antigravity-2-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Apple Productivity",

@@ -1,0 +1,15 @@
+# Local/editor noise
+.DS_Store
+Thumbs.db
+*.log
+
+# Node/Python transient files
+node_modules/
+__pycache__/
+*.pyc
+
+# Local screenshots or captures from plugin development
+*.png
+*.webp
+*.jpg
+*.jpeg
