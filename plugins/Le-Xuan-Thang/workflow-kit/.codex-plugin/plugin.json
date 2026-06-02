@@ -7,15 +7,15 @@
   "keywords": ["multi-agent", "product-lifecycle", "workflow", "reviewer", "automation"],
   "author": {
     "name": "Le Xuan Thang",
-    "email": "lexuanthang.official@gmail.com"
+    "email": "lexuanthang.official@outlook.com"
   },
   "skills": "./skills/",
   "interface": {
-    "displayName": "workflow-kit",
+    "displayName": "Workflow Kit",
     "shortDescription": "AI product lifecycle: Vision → Plan → Execute → Synthesize → Maintain",
-    "composerIcon": "../assets/icon.svg",
+    "composerIcon": "./assets/icon.svg",
     "developerName": "Le Xuan Thang",
-    "category": "Coding",
+    "category": "Development & Workflow",
     "brandColor": "#6366F1"
   }
 }
