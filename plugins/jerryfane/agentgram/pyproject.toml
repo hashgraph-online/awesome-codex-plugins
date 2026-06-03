@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentgram-tg"
-version = "0.1.1"
-description = "Telegram messaging CLI and Codex plugin for local AI agents."
+version = "0.2.1"
+description = "Telegram messaging and file-sending CLI plus Codex plugin for local AI agents."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
