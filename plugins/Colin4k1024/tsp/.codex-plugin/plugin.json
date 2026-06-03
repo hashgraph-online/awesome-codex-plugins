@@ -1,0 +1,15 @@
+{
+  "name": "team-skills-platform",
+  "version": "2.4.9",
+  "description": "Open-source role-based Team Skills Platform for AI delivery workflows. Includes Tech Lead orchestration, 27 specialist agents, 195+ shared skills, commands, rules, and hooks for Claude Code, Codex, and OpenCode.",
+  "repository": "https://github.com/Colin4k1024/tsp",
+  "license": "MIT",
+  "interface": {
+    "displayName": "Team Skills Platform",
+    "shortDescription": "Role-based AI delivery workflows with Tech Lead orchestration and 27 specialist agents.",
+    "composerIcon": "./assets/icon.svg",
+    "developerName": "Colin4k1024",
+    "category": "Engineering",
+    "brandColor": "#0F766E"
+  }
+}
