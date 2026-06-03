@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-04",
-  "total": 98,
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -338,6 +338,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hashgraph-online/registry-broker-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "RunAPI MCP Server",
+      "url": "https://github.com/runapi-ai/mcp",
+      "owner": "runapi-ai",
+      "repo": "mcp",
+      "description": "Unified API and MCP server for 130+ AI models across image, video, music, audio from 18 providers. Free catalog tools for model discovery and pricing.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/runapi-ai/mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Runtype Skills",
