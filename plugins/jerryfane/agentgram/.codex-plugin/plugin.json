@@ -1,6 +1,6 @@
 {
   "name": "agentgram",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Codex and AI-agent Telegram messaging and file-sending plugin with a local CLI.",
   "author": {
     "name": "Jerry Fane",

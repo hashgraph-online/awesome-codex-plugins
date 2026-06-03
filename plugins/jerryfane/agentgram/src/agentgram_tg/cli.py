@@ -847,7 +847,7 @@ class InboxRecordStage:
         os.fsync(self.handle.fileno())
 
     def read_records(self) -> list[dict[str, Any]]:
-        self.handle.flush()
+        self.close()
         records: list[dict[str, Any]] = []
         with self.path.open("r", encoding="utf-8") as handle:
             for line in handle:
