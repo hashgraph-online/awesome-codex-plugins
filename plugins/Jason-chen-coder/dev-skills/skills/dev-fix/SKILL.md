@@ -7,7 +7,7 @@ description: 'Use when the user reports a bug, broken behavior, regression, fail
 
 Hypothesis-driven debugging & fix workflow with **No fix without root cause**. Replaces guess-and-patch with: reproduce → hypothesize → diagnose (backward trace) → fix → defense-in-depth → verify → regress.
 
-This skill **only debugs and fixes**. It does not gather requirements (that's `dev-spec`), does not plan large refactors (that's `dev-plan`), and does not write commit messages on its own (that's `dev-code-review` / `dev-commit-writer` after the fix is in).
+This skill **only debugs and fixes**. It does not gather feature requirements (that's `dev-grill-docs`; `dev-spec` is a compatibility alias), does not plan large refactors (that's `dev-plan`), and does not write commit messages on its own (that's `dev-code-review` / `dev-commit-writer` after the fix is in).
 
 ---
 
@@ -446,7 +446,7 @@ grep -rn "bug-<slug>" .             # 期望:0 条匹配
 - 代码 diff 摘要(关键行,不要贴整个 diff)
 
 ## Verification
-> 用 V- 前缀(verification log)而非 AC-,避免与 dev-spec 的 acceptance criteria 混淆。
+> 用 V- 前缀(verification log)而非 AC-,避免与 spec acceptance criteria 混淆。
 
 - V-1: failing test → GREEN ✓
 - V-2: stash fix → test 重新 RED ✓(证明 test 真捕获 bug)

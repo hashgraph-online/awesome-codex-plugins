@@ -1,6 +1,6 @@
 ---
 name: council
-description: "Trigger: architecture, tech selection, or design decisions with significant trade-offs and no clear answer."
+description: "4-voice parallel deliberation (Architect · Skeptic · Pragmatist · Critic) for architecture, tech selection, or design decisions with no clear answer. Anti-anchoring: each voice gets independent context. Records decision in harness-mem."
 ---
 
 # Council — Structured Multi-Voice Decision Making
@@ -49,14 +49,13 @@ After all 4 voices report back:
 
 ### 4. Record Decision
 
-Save the decision to harness-mem:
-```
-mem_add(
-  title: "Decision: {question}",
-  type: "decision",
-  importance: 0.9,
-  body: "Context: ...\nOptions: ...\nChosen: ...\nRationale: ...\nTrade-off accepted: ..."
-)
+Save the decision to memory:
+```bash
+epic-harness mem add \
+  --title "Decision: {question}" \
+  --type decision \
+  --importance 0.9 \
+  --body "Context: ...\nOptions: ...\nChosen: ...\nRationale: ...\nTrade-off accepted: ..."
 ```
 
 ## Anti-Rationalization
@@ -73,7 +72,7 @@ mem_add(
 - [ ] All 4 voices were summoned and reported back
 - [ ] Areas of agreement and disagreement are listed
 - [ ] A recommended option with key trade-off is presented
-- [ ] Decision recorded in harness-mem with rationale
+- [ ] Decision recorded in memory with rationale
 - [ ] No voice received the full conversation history
 
 ## Red Flags

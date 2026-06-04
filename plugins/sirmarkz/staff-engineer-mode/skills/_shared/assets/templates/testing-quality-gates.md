@@ -15,6 +15,11 @@
 | Check | Expected Behavior | Stop Condition | Owner |
 | --- | --- | --- | --- |
 
+## Test Infrastructure Health
+
+| Environment Or Pool | Capacity Signal | Queue/Wait Signal | Cleanup Or Leak Signal | Failure Classification |
+| --- | --- | --- | --- | --- |
+
 ## Distributed-Boundary Failure Matrix
 
 | Boundary | Timeout | Unknown Result | Duplicate | Retry | Server-Side State Safety |

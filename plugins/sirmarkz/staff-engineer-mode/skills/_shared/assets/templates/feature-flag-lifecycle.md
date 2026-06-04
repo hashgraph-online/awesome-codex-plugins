@@ -2,13 +2,19 @@
 
 ## Flag Inventory
 
-| Flag | Category | Declaration Site | Expiry | Current Production Value Per Environment | Safe Fallback | Outage Behavior | Branch Count | Owner |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Flag | Category | Declaration Site | Expiry | Current Production Value Per Environment | Owner |
+| --- | --- | --- | --- | --- | --- |
+
+| Flag | Safe Fallback | Outage Behavior | Branch Count |
+| --- | --- | --- | --- |
 
 ## Orphan Report
 
-| Flag | Missing Classification? | Past Expiry? | Unsafe Fallback? | Identical Branches? | Unreachable Branch? | Stale Evaluation? | Registry/Code Mismatch? | Action |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Flag | Missing Classification? | Past Expiry? | Unsafe Fallback? | Identical Branches? |
+| --- | --- | --- | --- | --- |
+
+| Flag | Unreachable Branch? | Stale Evaluation? | Registry/Code Mismatch? | Action |
+| --- | --- | --- | --- | --- |
 
 ## Overrides
 

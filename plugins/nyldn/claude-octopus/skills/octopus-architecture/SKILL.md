@@ -18,8 +18,9 @@ This skill uses **ENFORCED execution mode**. You MUST follow this exact sequence
 **Check provider availability:**
 
 ```bash
-command -v codex &> /dev/null && codex_status="Available ✓" || codex_status="Not installed ✗"
-command -v gemini &> /dev/null && gemini_status="Available ✓" || gemini_status="Not installed ✗"
+provider_status=$(bash "${HOME}/.claude-octopus/plugin/scripts/helpers/check-providers.sh")
+codex_status=$(echo "$provider_status" | grep -q '^codex:available' && echo "Available ✓" || echo "Not installed ✗")
+gemini_status=$(echo "$provider_status" | grep -q '^gemini:available' && echo "Available ✓" || echo "Not installed ✗")
 ```
 
 **Display this banner BEFORE orchestrate.sh execution:**

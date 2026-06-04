@@ -30,10 +30,30 @@
 | Suspect | Evidence | Mitigation | Verification |
 | --- | --- | --- | --- |
 
+## Background Work Budget
+
+| Background Path | Shared Resource | Limit Or Schedule | Ramp-Up Limit | Preemption Or Shedding | Breach Signal |
+| --- | --- | --- | --- | --- | --- |
+
 ## Capacity Model
 
 | Scenario | Throughput | Latency | Failure-Domain Assumption | Headroom |
 | --- | --- | --- | --- | --- |
+
+## Capacity Change And Rebalance
+
+| Change | Batch Size | Scheduler Or Allocator Cost | Rebalance Signal | Rollback |
+| --- | --- | --- | --- | --- |
+
+## Entry-Point Limits
+
+| Entry Point | Caller Class | Steady-State Limit | Ramp-Rate Limit | Downstream Bottleneck | Evidence |
+| --- | --- | --- | --- | --- | --- |
+
+## Control Loop Behavior
+
+| Control | Input Contract | Expected Action | Capacity Impact | Amplification Guard | Safety Check |
+| --- | --- | --- | --- | --- | --- |
 
 ## Latency Budget By Hop
 

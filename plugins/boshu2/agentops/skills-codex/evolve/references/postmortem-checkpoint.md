@@ -4,7 +4,8 @@
 
 ## When this fires
 
-At Step 7 boundary, after a cycle whose result is `improved` or `regressed`:
+At Step 7 boundary, after a cycle whose result is `improved` or `regressed`
+(`$session_pr_count` is the canonical count from `scripts/session-pr-scope.sh --count`):
 
 ```bash
 if [ "$session_pr_count" -ge "${SESSION_PR_THRESHOLD:-5}" ] \
@@ -41,18 +42,16 @@ The check is **edge-triggered** (fires when the counter first crosses the thresh
 - **Never write `.agents/evolve/STOP` without a council verdict file.** STOP without a verdict is the 2026-05-20 anti-pattern — the file becomes a self-imposed pause that the same agent (or operator) clears without rigor. Every STOP written by this checkpoint must cite a verdict path that resolves to a FAIL verdict.
 - **Never run `$post-mortem` without `--deep` from this checkpoint.** A light-touch cron-fire pass that writes learnings but skips Phase 1 council does not satisfy the gate. The 2026-05-20 cron `$post-mortem` was insufficient by design.
 
-## Relationship to soc-1aou hook
+## Pre-creation signal (opt-in, not shipped)
 
-`hooks/session-pr-counter.sh` (PR #362, soc-1aou) is the *pre-creation* signal — it fires on `gh pr create` at `count >= threshold - 1` and emits post-mortem prompts via `additionalContext`. Default advisory; opt-in hard-block via `AGENTOPS_SESSION_PR_BLOCK=1`.
+The pre-creation counterpart to this post-merge checkpoint — `hooks/session-pr-counter.sh` (PR #362, soc-1aou), which fired on `gh pr create` at `count >= threshold - 1` — was **removed** in the 3.0 hookless teardown (#511). AgentOps ships no hook. The reusable session-PR count it provided now lives in `scripts/session-pr-scope.sh` (the canonical `$session_pr_count` source — `scripts/session-pr-scope.sh --count`). Re-author the always-on pre-creation signal as an **opt-in** hook via the hooks-authoring skill if you want it.
 
-This checkpoint is the *post-merge* gate — it fires after PR #N+1 has merged, before cycle N+1 enters Step 1. The two are **complementary**, not redundant:
+This checkpoint is the *post-merge* gate — it fires after PR #N+1 has merged, before cycle N+1 enters Step 1. It is **mandatory** and cannot be bypassed (the loop genuinely waits on the verdict file), unlike the advisory pre-creation signal:
 
-| Layer | Trigger | Default | Purpose |
+| Layer | Trigger | Default | Status |
 |---|---|---|---|
-| `hooks/session-pr-counter.sh` | `gh pr create` at `count >= threshold-1` | Advisory | Warn the agent before committing to the PR that tips the session over |
-| `evolve` checkpoint #6 | Cycle boundary after `count >= threshold` | Mandatory | Structural enforcement of council before the next cycle starts |
-
-The hook can be bypassed (advisory by default); the skill checkpoint cannot (the loop genuinely waits on the verdict file).
+| `scripts/session-pr-scope.sh` (wrap as an opt-in hook via hooks-authoring) | `gh pr create` at `count >= threshold-1` | Advisory | Reusable count; not shipped as a hook (removed in #511) |
+| `evolve` checkpoint #6 | Cycle boundary after `count >= threshold` | Mandatory | Structural council enforcement before the next cycle starts |
 
 ## Configuration
 
@@ -77,6 +76,6 @@ That cycle-history entry transformed an absence (no council ran) into a positive
 - `skills/post-mortem/SKILL.md` — the post-mortem skill this checkpoint invokes
 - `skills/council/SKILL.md` — the council skill `--deep` runs against
 - `skills/ship-loop/SKILL.md` — the soc-waxr session-scope doctrine source
-- `hooks/session-pr-counter.sh` — complementary pre-creation hook
+- `scripts/session-pr-scope.sh` — canonical session-PR count source (the pre-creation hook was **removed** in #511; re-author as an opt-in hook via hooks-authoring)
 - `CLAUDE.md` § "Autonomous-session scope" — top-level doctrine reference
 - `.agents/council/2026-05-20-evolve-204-208-postmortem/verdict.md` — the derivation council (local; gitignored)

@@ -107,6 +107,7 @@ Define required parity and allowed divergence per dimension. Detect drift on par
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Parity matrix across local, CI, ephemeral or preview, staging, and production for each dimension (dependencies, configuration, data shape, time and clock, network policy, secret handling) with required-parity, allowed-divergence, or unknown per entry.
 - Required-parity-versus-allowed-divergence taxonomy: which dimensions must match, which may diverge with reason, and which are forbidden in non-prod.
 - Drift budget per dimension with the size of acceptable divergence and the named action when exceeded.

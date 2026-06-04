@@ -9,8 +9,11 @@
 
 ## Critical Journeys
 
-| Journey | User Outcome | Automated Check | Manual Check | Assistive Tech Coverage | Blocking Issues | Repair Path | Retest Evidence |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Journey | User Outcome | Automated Check | Manual Check | Assistive Tech Coverage |
+| --- | --- | --- | --- | --- |
+
+| Journey | Blocking Issues | Repair Path | Retest Evidence |
+| --- | --- | --- | --- |
 
 ## Critical Journey Manual Test Script
 

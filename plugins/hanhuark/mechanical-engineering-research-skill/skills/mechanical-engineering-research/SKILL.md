@@ -61,7 +61,7 @@ For a research brief, use:
 
 For a literature review, read `references/literature-review.md`. Group sources by mechanism, method, design family, or unresolved question rather than listing papers chronologically.
 
-For federal research proposals, DOE EPSCoR/National Laboratory partnership proposals, full narrative expansions, review-criteria responses, or ready-to-submit proposal polishing, read `references/proposal-development.md`.
+For federal research proposals, DOE EPSCoR/National Laboratory partnership proposals, full narrative expansions, review-criteria responses, proposal figure planning, preliminary-results integration, or ready-to-submit proposal polishing, read `references/proposal-development.md`.
 
 For a design comparison, include a compact decision matrix and explain the dominant physics behind each score.
 
@@ -116,7 +116,7 @@ Read `references/paper-writing-style.md` when the user asks to write, revise, ou
 
 Read `references/literature-review.md` when the user asks for a literature review, related-work section, research background, citation map, state-of-the-art comparison, review figure/table, future-work analysis, or paper discovery strategy.
 
-Read `references/proposal-development.md` when the user asks for grant/proposal development, solicitation alignment, pre-application expansion, DOE EPSCoR or National Lab partnership narratives, collaborator document planning, review-criteria mapping, milestones, preliminary-results integration, proposal figures, references, or ready-to-submit polish.
+Read `references/proposal-development.md` when the user asks for grant/proposal development, solicitation alignment, pre-application expansion, DOE EPSCoR or National Lab partnership narratives, collaborator document planning, review-criteria mapping, milestones, preliminary-results integration, proposal figures, reviewer-friction diagnosis, references, or ready-to-submit polish.
 
 Read `references/presentation-slides.md` when the user asks for presentation slides, a research talk, conference talk, group-meeting slides, slide-by-slide narrative, speaker notes, animation/video suggestions, or figure-focused storytelling.
 

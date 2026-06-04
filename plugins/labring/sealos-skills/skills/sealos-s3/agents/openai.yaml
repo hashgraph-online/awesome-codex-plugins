@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: S3 Object Storage"
+  short_description: "Use Sealos S3 object storage in projects."
+  default_prompt: "Use $sealos-s3 to create or connect Sealos object storage for this project."

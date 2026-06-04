@@ -90,6 +90,7 @@ Use continuous small-batch maintenance with pinned inputs, dependency inventory,
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Dependency update rules and cadence.
 - Dependency-vulnerability scan integrated into PR/release CI, with the severity threshold that blocks merge or promotion.
 - Lockfile or pinned-input inspection rule.

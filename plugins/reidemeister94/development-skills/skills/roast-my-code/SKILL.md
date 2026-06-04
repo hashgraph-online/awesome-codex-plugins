@@ -2,7 +2,7 @@
 name: roast-my-code
 description: "Use when user wants a brutally honest code roast, quality critique, or AI-readiness audit. Use when user says roast, roast my code, critique my code, tear apart my code, review quality, or AI-readiness check. Supports --fix flag to auto-fix CRITICAL and HIGH issues via core-dev workflow."
 user-invocable: true
-allowed-tools: Glob, Grep, Read, Bash, Agent, AskUserQuestion
+allowed-tools: Glob, Grep, Read, Bash, Skill, AskUserQuestion
 effort: max
 ---
 
@@ -32,16 +32,11 @@ Before roasting, understand the terrain:
 
 ## Step 2 — Staff Review (Code Quality Roast)
 
-Dispatch the `development-skills:staff-reviewer` subagent via the `Agent` tool with `subagent_type: "development-skills:staff-reviewer"`. On Codex, follow the named-agent dispatch recipe in `../using-development-skills/references/codex-tools.md`.
+Invoke `development-skills:staff-review` via the `Skill` tool, passing the Step 1 scope as the skill's `args`: the directory/file **path** for a directory/file target, or an **empty** `args` for the entire repo. `staff-review` resolves the brief, dispatches the `staff-reviewer` subagent in STANDALONE mode, and returns the structured findings (CRITICAL / HIGH / MEDIUM / LOW tables with file:line) into the conversation.
 
-Build the target description based on scope:
-- **Entire repo:** `"Standalone review. Target: the entire repository at <cwd>. Read the project structure, then systematically review all source files."`
-- **Directory:** `"Standalone review. Target: all source files in <directory> and subdirectories. Also check interactions with the rest of the repo."`
-- **File:** `"Standalone review. Target: the file <filepath>. Also read files that import or are imported by it."`
+**Confirm the scope echo.** `staff-review` prints `Resolved: <mode> → <target>` early. Verify it matches the Step 1 scope before trusting the findings — if you passed a path but it resolved to `repo`, the `args` did not arrive; re-invoke stating the path explicitly in the invocation (e.g. `staff-review path/to/dir`).
 
-The staff-reviewer will detect standalone mode from the absence of task/plan/diff inputs and skip spec compliance (Stage 1), going straight to code quality (Stage 2) with its full checklist.
-
-Collect the staff-reviewer's output.
+Capture that output for use in Step 4 (Deliver the Roast).
 
 ## Step 3 — AI-Readiness Audit
 
@@ -133,7 +128,7 @@ If `--fix` was NOT in `$ARGUMENTS`, STOP here. The roast is delivered.
 
 If `--fix` WAS present:
 
-1. **Extract actionable issues** from the roast report. Only CRITICAL and HIGH severity issues are eligible for auto-fix. MEDIUM issues are informational only.
+1. **Extract actionable issues** from the roast report. Only CRITICAL and HIGH severity issues are eligible for auto-fix. MEDIUM and LOW issues are informational only.
 2. **Present the fix list** as numbered items:
    ```
    Fixable issues from the roast:

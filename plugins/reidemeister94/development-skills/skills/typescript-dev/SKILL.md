@@ -36,10 +36,10 @@ WORKFLOW STATE Verification line: `tsc --noEmit, <lint-commands>, vitest/jest` (
 
 ### Lint Enforcement (Phase 3)
 
-**Lint failures BLOCK Phase 3 verification** with the same severity as a failing test. Read [../../shared/lint-enforcement.md](../../shared/lint-enforcement.md) at the start of Phase 3 verification and follow it.
+**Lint failures BLOCK Phase 3 verification** with the same severity as a failing test. Read [references/lint-enforcement.md](references/lint-enforcement.md) at the start of Phase 3 verification and follow it.
 
 Detection is a union, not a priority ladder:
-1. If `package.json` defines `scripts.lint` → run `<PM> run lint` (PM detected per [../../shared/package-manager.md](../../shared/package-manager.md)). Done.
+1. If `package.json` defines `scripts.lint` → run `<PM> run lint` (PM detected per [references/package-manager.md](references/package-manager.md)). Done.
 2. Else, run **every** detected standalone linter (biome / eslint / oxlint) — all must pass.
 3. Else, record "Lint: skipped (no linter configured)" and do not block.
 
@@ -62,8 +62,8 @@ No `--fix` auto-remediation — agents fix lint errors intentionally.
 - Types are erased at runtime — external data needs Zod validation
 - Fix type errors during implementation, not after
 - No positive claim without running `tsc --noEmit`
-- Before emitting any `install` / `run <script>` / `exec <bin>` command, detect the project's package manager — read [../../shared/package-manager.md](../../shared/package-manager.md). Never default to `npm`.
-- Lint failures BLOCK Phase 3 verify — same severity as test failures. Skip is allowed only when no linter is configured (no `scripts.lint`, no biome/eslint/oxlint config). See [../../shared/lint-enforcement.md](../../shared/lint-enforcement.md).
+- Before emitting any `install` / `run <script>` / `exec <bin>` command, detect the project's package manager — read [references/package-manager.md](references/package-manager.md). Never default to `npm`.
+- Lint failures BLOCK Phase 3 verify — same severity as test failures. Skip is allowed only when no linter is configured (no `scripts.lint`, no biome/eslint/oxlint config). See [references/lint-enforcement.md](references/lint-enforcement.md).
 
 ---
 

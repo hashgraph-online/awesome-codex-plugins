@@ -35,9 +35,11 @@ Client-side quality is production reliability for the user's device and network.
 ## Info To Gather
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
-- Critical routes, screens, journeys, user segments, devices, network classes, and supported clients.
+- Critical routes, screens, journeys, user segments, devices, network classes, supported clients, and common client extensions or add-ons that can modify rendered surfaces.
 - Field metrics: user-perceived loading, interaction readiness, visual stability, runtime errors, and journey-level latency.
 - Lab metrics: payload weight, critical path work, client initialization or rendering cost, dependency weight, and synthetic checks.
+- Component-state coverage for variable content, long lists, empty/error/loading states, localization, permissions, and constrained containers.
+- Client request targets, base URLs, redirects, embedded script endpoints, and error handling for calls that must leave the customer or document origin.
 - Current budgets, deploy markers, feature flags, rollout controls, and rollback path.
 - Accessibility smoke checks that can be automated reliably.
 - Privacy constraints for real-user monitoring and error collection.
@@ -47,11 +49,13 @@ Client-side quality is production reliability for the user's device and network.
 1. **Pick user journeys and routes.** Check user journeys and the application shell.
 2. **Set budgets.** Define journey-level payload, dependency, critical path, rendering, and interaction budgets.
 3. **Use field and lab signals.** Use lab checks for fast feedback and field data for real user impact.
-4. **Segment enough to see regressions.** Track mobile/desktop, browser, device class, geography/network, and key customer segments where relevant.
-5. **Check accessibility smoke checks.** Automate high-signal checks such as missing labels, landmarks, contrast failures detectable by tooling, and keyboard traps where feasible.
-6. **Mark releases.** Attach deploy, config, and feature markers to client telemetry and error reports.
-7. **Define stop/rollback.** State thresholds for halting rollout, disabling flags, reverting bundles, or forward-fixing.
-8. **Route backend causes.** If client experience regresses due to backend saturation, follow up with capacity/performance.
+4. **Segment enough to see regressions.** Track mobile/desktop, browser, device class, common extension/add-on configurations, geography/network, and key customer segments where relevant.
+5. **Exercise component states.** Cover variable content, long lists, empty/error/loading states, localization, permissions, and constrained containers on critical journeys.
+6. **Validate request targets.** For browser code, embedded scripts, or SDKs that call service endpoints, verify the generated URL, origin, redirect behavior, and customer-error handling in real document contexts before broad exposure.
+7. **Check accessibility smoke checks.** Automate high-signal checks such as missing labels, landmarks, contrast failures detectable by tooling, and keyboard traps where feasible.
+8. **Mark releases.** Attach deploy, config, and feature markers to client telemetry and error reports.
+9. **Define stop/rollback.** State thresholds for halting rollout, disabling flags, reverting bundles, or forward-fixing.
+10. **Route backend causes.** If client experience regresses due to backend saturation, follow up with capacity/performance.
 
 ## Synthesized Default
 
@@ -90,9 +94,13 @@ Use user-centric journey-level budgets, field monitoring, lab checks, runtime-er
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Client runtime SLI/SLO table by journey, screen, or route.
 - Performance budget for payload, dependency, critical path, rendering, and interaction costs.
 - Field and lab measurement plan.
+- Component-state check matrix for critical journeys.
+- Client request-target check for service calls, embedded scripts, redirects, and error handling.
+- Client compatibility matrix for browser, device, extension/add-on, and configuration segments that can modify or block rendered surfaces.
 - Automated accessibility smoke-check list.
 - CI/release check matrix with thresholds and failure response.
 - Rollout, flag, and rollback criteria.
@@ -103,6 +111,9 @@ Use user-centric journey-level budgets, field monitoring, lab checks, runtime-er
 - `user_experience_check`: user-centric load, interaction, and visual stability metrics have journey-level targets.
 - `budget_check`: payload, dependency, critical path, rendering, and interaction budgets exist with failure response.
 - `field_lab_check`: both field and lab signals are used or a low-traffic exception is recorded.
+- `component_state_check`: critical components cover variable content, long lists, empty/error/loading states, localization, permissions, and constrained containers.
+- `request_target_check`: client-generated service calls use the intended origin, path, redirect behavior, and failure handling in real document contexts.
+- `client_compatibility_check`: browser, device, common extension/add-on, and client configuration segments that can modify rendered surfaces are covered or explicitly excluded.
 - `a11y_smoke`: automated accessibility smoke checks are defined for release regressions.
 - `rollback_check`: rollout halt, flag disable, revert, or forward-fix criteria are explicit.
 
@@ -111,6 +122,8 @@ Use user-centric journey-level budgets, field monitoring, lab checks, runtime-er
 - Build success is the only client release check.
 - Aggregate site metrics hide critical route regressions.
 - Payload budgets exist but failures have no response path.
+- Critical UI components are tested only with happy-path content.
+- A common client extension, add-on, or managed configuration can modify rendered surfaces, but the release has no smoke test, telemetry segment, or compatibility exception.
 - Field monitoring collects sensitive data unnecessarily.
 - Accessibility is treated as fully solved by one automated scan.
 
@@ -121,4 +134,5 @@ Use user-centric journey-level budgets, field monitoring, lab checks, runtime-er
 | Lab-only confidence | Combine fast lab checks with field user impact. |
 | Global budgets only | Set route and journey budgets. |
 | No deploy markers | Tag releases, config, and feature flags in telemetry. |
+| Happy-path UI checks | Exercise variable content, permissions, and constrained containers. |
 | Broad accessibility scope creep | Keep release checks to automated smoke checks and route larger work separately. |

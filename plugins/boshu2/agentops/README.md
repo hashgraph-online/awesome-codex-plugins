@@ -126,7 +126,7 @@ AgentOps degrades gracefully — skills check for a tool before using it. The on
 | `git` | Required | Version control — `.agents/` state lives next to your code | **Required** |
 | `ao` | Required (recommended) | The AgentOps CLI: bookkeeping, retrieval, health, the loops | Recommended |
 | `bd` (beads) + Dolt backend | Tracking | Git-native issue tracking (the mandatory task surface) | Optional |
-| `gc` (Gas City) | Orchestration | Out-of-session substrate that runs whole `ao rpi`/`ao evolve` loops — see [`using-gc`](skills/using-gc/SKILL.md) | Optional (out-of-session) |
+| `ntm` / `ao agent` | Orchestration | Out-of-session substrate that runs whole `ao rpi`/`ao evolve` loops (NTM tmux swarm, MCP via `ao mcp serve`, or managed-agents) | Optional (out-of-session) |
 | `gh` | PR / CI | Open PRs, query CI status | Optional |
 | `go` | Build-from-source | Build `cli/bin/ao` from source (`go 1.26`) | Optional |
 | `jq`, `rg`/ripgrep, `curl`, `openssl`, `sha256sum`, `tmux`, `cass` | Utilities | JSON parsing, search, downloads, hashing, sessions, history | Optional |
@@ -149,7 +149,7 @@ Coding agents are non-deterministic workers. Engineering already has a long hist
 | CI/CD | Validation gates (`/vibe`, `/pre-mortem`) |
 | Postmortems | Automated postmortems (`/post-mortem` → learnings) |
 | Runbooks | Skills + planning rules |
-| Software factories | The in-session loop (`/rpi`, `/evolve`); out-of-session runs on a substrate (Gas City reference City) |
+| Software factories | The in-session loop (`/rpi`, `/evolve`); out-of-session runs on a swappable substrate (NTM + MCP + managed-agents) |
 | Markdown / Git / Linux (open primitives) | LLM Wiki of Markdown |
 | Open-source corpus | Your private corpus (`.agents/` in your repo) |
 
@@ -295,15 +295,15 @@ Full reference: [CLI Commands](cli/docs/COMMANDS.md).
 | Surface | When to use it | What it looks like | Operator role |
 |---------|---------------|-------------------|---------------|
 | **In session** (the AgentOps product) | All active work — exploration, high-stakes decisions, ambiguous scope, and the full loop | `/research`, `/plan`, `/pre-mortem`, `/council`, `/rpi`, `/evolve`, `/crank` invoked from a session; zero AgentOps-managed always-on infrastructure | Driving or on the loop; you steer, agents run the loop |
-| **Out of session** (a substrate's job) | Vetted, well-defined work; always-on; queue-driven dispatch | The same loop run by an orchestration substrate. AgentOps ships a **reference Gas City City** (`city.toml` + `packs/agentops`); a mayor agent dispatches ready beads to refinery workers that run `ao rpi` | Operator: set cadence and quality bars on the substrate; it runs the loop |
+| **Out of session** (a substrate's job) | Vetted, well-defined work; always-on; queue-driven dispatch | The same loop run by a swappable orchestration substrate — an NTM tmux swarm, MCP (`ao mcp serve`), or managed-agents (`ao agent`) — each dispatching a whole `ao rpi` loop per ready bead | Operator: set cadence and quality bars on the substrate; it runs the loop |
 
 **In session** is the AgentOps product. The whole loop — `rpi` (inner), `evolve` (outer), `crank`/`swarm` (in-session agent teams), the skills runtime, and the `.agents/` corpus — runs in a plain session with no daemon, no scheduler, and no cloud. Skills run from a session with rigor levels to match the work: light skills for exploration, the full RPI loop for anything that should be tracked, council validation before you ship. This is the zero-dependency sovereignty floor.
 
 <!-- agentops:claim:AOP-CLAIM-README-AUTONOMOUS-FLYWHEEL -->
 
-**Out of session** is delegated. AgentOps deleted its standalone daemon, scheduler, and overnight runner ([ADR-0009](docs/adr/ADR-0009-daemon-deletion-in-session-only.md)) — it has no core to protect, so always-on opts into an orchestration substrate instead. AgentOps ships a **reference Gas City City** for this: Gas City drives agents that *use* AgentOps. A long-lived mayor agent runs `bd ready` then dispatches the next bead to a refinery worker that runs `ao rpi`, with cron Orders for scheduled maintenance (compile, maturity). Dispatch is mayor-driven today; order-level autonomous dispatch is a documented upstream Gas City evolution. Mount Olympus (full-custom Rust) is the other reference implementation of the same loop — it keeps its own daemon because, unlike AgentOps, it is a sovereign product.
+**Out of session** is delegated. AgentOps deleted its standalone daemon, scheduler, and overnight runner ([ADR-0009](docs/adr/ADR-0009-daemon-deletion-in-session-only.md)) — it has no core to protect, so always-on opts into a swappable orchestration substrate instead. The reference substrate is the trio AgentOps actually runs on, none of it AgentOps-owned: **NTM** (a local tmux swarm whose workers each run `ao rpi <bead>` as the operator or a lead agent slings ready beads), **MCP** via `ao mcp serve` (exposes the `ao` tool surface to any MCP-aware harness), and **managed-agents** via `ao agent` (hosted, scheduled drivers). In every case the substrate dispatches a whole loop as one unit; it never drives the loop's insides. Mount Olympus (full-custom Rust) is the other reference implementation of the same loop — it keeps its own daemon because, unlike AgentOps, it is a sovereign product.
 
-→ [What 3.0 is (north star)](docs/3.0.md) · [the canonical loop model](docs/architecture/canonical-loop-model.md) · [the reference Gas City City](packs/agentops/FINALIZE-NOTES.md).
+→ [What 3.0 is (north star)](docs/3.0.md) · [the canonical loop model](docs/architecture/canonical-loop-model.md) · [running the loop out of session](docs/3.0.md).
 
 ---
 
@@ -329,7 +329,7 @@ AgentOps is built on the 12-factor doctrine; see [12factoragentops.com](https://
 
 - **AgentOps doesn't generate code.** It sits on top of Claude Code, Codex, Cursor, or OpenCode and adds bookkeeping, gates, and a corpus; the harness still does the writing.
 - **No hosted control plane, no telemetry.** Every artifact lives in your repo. There's no shared dashboard across team members unless you commit `.agents/`; most operators do, but it's a choice.
-- **Multi-model councils and Dream compounding runs cost tokens or local compute.** Running six judges across Claude and Codex on every PR isn't free; running them on a substrate (the reference Gas City City) makes the cost predictable, not zero.
+- **Multi-model councils and Dream compounding runs cost tokens or local compute.** Running six judges across Claude and Codex on every PR isn't free; running them on a substrate (an NTM swarm or managed-agents) makes the cost predictable, not zero.
 - **The `.agents/` corpus needs hygiene.** It grows over time. `ao defrag`, `ao maturity`, and `/dream` keep it healthy, but a neglected corpus rots like any other markdown vault.
 - **There are a lot of skills.** Around eighty as of 2026-05-20. `/quickstart` and the [Skill Router](docs/SKILL-ROUTER.md) exist because nobody learns them all up front.
 

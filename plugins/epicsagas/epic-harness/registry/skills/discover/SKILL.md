@@ -23,7 +23,7 @@ NO SPEC WITHOUT A PROBLEM STATEMENT. Building the wrong thing well is worse than
 - Resolve harness directory: `HARNESS_DIR=$(epic-harness path)`
 - Read any existing context (CLAUDE.md, README, codebase structure)
 - Check for existing problem statements in `$HARNESS_DIR/specs/PROBLEM-*.md`
-- Call `mem_recall` with a hint describing the current topic area
+- Run `epic-harness mem recall "TOPIC_HINT"` with a hint describing the current topic area
 - Check for past `decision` or `pattern` nodes related to this domain
 - If prior problem exploration exists, reference it: "We discussed something similar before..."
 - If existing PROBLEM files are found, review them — the user may be continuing prior work

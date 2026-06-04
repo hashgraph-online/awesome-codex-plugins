@@ -97,6 +97,7 @@ Use hermetic, reproducible, build-once promotion with pinned inputs, explicit ar
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Build and release pipeline map.
 - Pinned-input and hermeticity checklist.
 - Artifact identity and metadata standard.

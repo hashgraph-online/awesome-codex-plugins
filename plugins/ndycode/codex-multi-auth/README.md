@@ -196,7 +196,7 @@ For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
 | Command | What it answers |
 | --- | --- |
 | `codex-multi-auth report --live --json` | How do I get the full machine-readable health report? |
-| `codex-multi-auth fix --live --model gpt-5.3-codex` | How do I run live repair probes with a chosen model? |
+| `codex-multi-auth fix --live --model gpt-5.5` | How do I run live repair probes with a chosen model? |
 | `codex-multi-auth why-selected --json` | Which account does the selector pick now, and why? |
 | `codex-multi-auth usage --since 24h --by project` | What local usage has been recorded recently? |
 | `codex-multi-auth monitor --json` | What is the combined usage, policy, quota, runtime, and project state? |
@@ -383,9 +383,11 @@ codex-multi-auth doctor --json
 
 ## Release Notes
 
-- Current prerelease: [docs/releases/v2.1.13-beta.1.md](docs/releases/v2.1.13-beta.1.md) — install via `npm i -g codex-multi-auth@beta`
-- Current stable: [docs/releases/v2.1.12.md](docs/releases/v2.1.12.md)
-- Previous stable: [docs/releases/v2.1.11.md](docs/releases/v2.1.11.md)
+- Current stable: [docs/releases/v2.2.2.md](docs/releases/v2.2.2.md) — install via `npm i -g codex-multi-auth`
+- Previous stable: [docs/releases/v2.2.1.md](docs/releases/v2.2.1.md)
+- Previous stable: [docs/releases/v2.2.0.md](docs/releases/v2.2.0.md)
+- Previous stable: [docs/releases/v2.1.12.md](docs/releases/v2.1.12.md)
+- Earlier stable: [docs/releases/v2.1.11.md](docs/releases/v2.1.11.md)
 - Earlier stable: [docs/releases/v2.1.10.md](docs/releases/v2.1.10.md)
 - Earlier stable: [docs/releases/v2.1.8.md](docs/releases/v2.1.8.md)
 - Earlier stable: [docs/releases/v2.1.7.md](docs/releases/v2.1.7.md)

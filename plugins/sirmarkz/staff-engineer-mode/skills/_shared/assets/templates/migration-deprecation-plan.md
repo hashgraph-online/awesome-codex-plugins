@@ -9,13 +9,28 @@
 
 ## Usage Inventory
 
-| Consumer | Static Signal | Runtime Signal | Migration Batch | Owner |
-| --- | --- | --- | --- | --- |
+| Consumer | Traffic Class | Static Signal | Runtime Signal | Migration Batch | Owner |
+| --- | --- | --- | --- | --- | --- |
 
 ## Migration Guide
 
-| Use Case | Current Pattern | Replacement | Validation |
-| --- | --- | --- | --- |
+| Use Case | Current Pattern | Replacement | Capacity/Backlog Validation | Validation |
+| --- | --- | --- | --- | --- |
+
+## Migration Completion Evidence
+
+| Consumer/Object Set | Expected State | Observed State | Mixed-State Risk | Evidence |
+| --- | --- | --- | --- | --- |
+
+## Dependency Optionality And Turndown
+
+| Retired Dependency | Consumers | Required Or Optional State | Deflection Or Fail-Closed Behavior | Staged Turndown Plan | Verification |
+| --- | --- | --- | --- | --- | --- |
+
+## Domain And DNS Retirement
+
+| Domain Or Zone | Ownership Evidence | Zone Presence Check | Nameserver/Registry State | Direct Resolver Check | TTL/Cache Recovery Plan | Hidden Dependent Signal |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Backsliding Prevention
 

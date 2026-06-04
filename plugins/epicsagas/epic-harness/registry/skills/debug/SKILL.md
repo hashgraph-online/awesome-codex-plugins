@@ -12,7 +12,7 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST. Symptom fixes are whack-a-mole 
 ## Process
 
 ### 0. Recall
-- Query the knowledge graph: `mem_search` for the error message or file name
+- Query the knowledge graph: `epic-harness mem search "ERROR_MESSAGE_OR_FILE"` for the error message or file name
 - Check if a `resolution` or `pattern` node exists for this error category
 - If a past resolution exists, apply it directly instead of re-debugging from scratch
 
@@ -52,7 +52,7 @@ Form 2-3 possible causes. Rank by likelihood.
 **Why**: A passing fix without verification is wishful thinking. The full suite catches side effects.
 
 ### 6. Record
-- If the fix involved 3+ debug steps, record a `resolution` node via `mem_add`
+- If the fix involved 3+ debug steps, record a `resolution` node via `epic-harness mem add --title "..." --type resolution --body "..."`
 - Include: error category, root cause, solution approach
 - This enables future sessions to skip re-debugging the same class of issues
 

@@ -2,11 +2,11 @@
 
 Reference for brainstorming Step 5. **Always performed** — intensity scales with complexity score. Never SKIP.
 
-Applies Iron Rules Pillar 0 (be critical) and Pillar 1 (maximize simplicity). Every approach gets a simplicity audit before a recommendation.
+Applies Iron Rules Principle 0 (be critical) and Principle 3 (simplicity by default). Every approach gets a simplicity audit before a recommendation.
 
 ---
 
-## Simplicity Audit (Pillar 1) — every approach
+## Simplicity Audit (Principle 3) — every approach
 
 Before scoring complexity, answer for each candidate:
 

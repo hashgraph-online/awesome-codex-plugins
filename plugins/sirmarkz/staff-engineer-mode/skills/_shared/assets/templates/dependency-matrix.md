@@ -1,12 +1,24 @@
 # Dependency Resilience Matrix
 
-| Dependency | Operation | Criticality | Timeout | Retry | Idempotency | Circuit Breaker Or Fail-Fast Policy | Fallback | Failure Behavior | Response Path |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+## Dependency Contract
+
+| Dependency | Operation | Criticality | Timeout | Retry | Idempotency |
+| --- | --- | --- | --- | --- | --- |
+
+## Failure Behavior
+
+| Dependency | Circuit Breaker Or Fail-Fast Policy | Fallback | Failure Behavior | Response Path |
+| --- | --- | --- | --- | --- |
 
 ## Timeout And Retry Budget
 
 | Caller | Dependency | Deadline Budget | Backoff/Jitter | Retryable Conditions | Overload Stop Signal |
 | --- | --- | --- | --- | --- | --- |
+
+## External Dependency Signals
+
+| Dependency | Rejection Or Blocking Signal | Provider-State Check | Escalation Path | User-Visible Symptom |
+| --- | --- | --- | --- | --- |
 
 ## Queue Backpressure And Load Shedding
 

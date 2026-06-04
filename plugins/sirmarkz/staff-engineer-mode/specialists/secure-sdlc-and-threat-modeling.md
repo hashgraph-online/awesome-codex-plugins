@@ -92,6 +92,7 @@ Use lightweight threat modeling tied to secure SDLC checks: trust-boundary map, 
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Trust-boundary and data-flow map.
 - Threat and abuse-case table.
 - Security requirements and control mapping.

@@ -90,6 +90,7 @@ Default to the simplest storage and consistency model that satisfies operation s
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Data classification table.
 - Operation-level consistency matrix.
 - Storage decision record with rejected alternatives.

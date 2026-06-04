@@ -54,13 +54,12 @@ Generate a structured report:
 - **Next step**: [what to do if this happens again]
 ```
 
-Save to harness-mem:
-```
-mem_add(
-  title: "Self-diagnosis: {error_type} in {file}",
-  type: "error",
-  body: "Pattern: ...\nRoot cause: ...\nRecovery: ...\n"
-)
+Save to memory:
+```bash
+epic-harness mem add \
+  --title "Self-diagnosis: {error_type} in {file}" \
+  --type error \
+  --body "Pattern: ...\nRoot cause: ...\nRecovery: ...\n"
 ```
 
 ## Anti-Rationalization
@@ -78,10 +77,10 @@ mem_add(
 - [ ] Root cause matched to known pattern
 - [ ] Recovery action is the smallest safe action
 - [ ] Introspection report generated
-- [ ] Failure pattern recorded in harness-mem
+- [ ] Failure pattern recorded in memory
 
 ## Red Flags
 - Trying the same command more than 3 times with minor variations
 - Claiming "fixed!" without running the actual test
-- Not recording the failure pattern in harness-mem
+- Not recording the failure pattern in memory
 - Continuing after 70% context usage without compacting

@@ -72,6 +72,11 @@ Planless Slice Lane:
   - Stop:
   ```
 
+- Slice Card `Goal` anchors slice-level completeness only.
+- It does not by itself grant whole-task completion.
+- Final completion still requires `verification-before-completion` Goal Closure
+  against the parent plan/spec and any active goal frame.
+
 - Do not create new plan/spec files for micro-slices that stay inside the
   parent plan, existing compatibility boundary, and known verification path.
 - Update the existing checkpoint, evidence, and drift records when persistent

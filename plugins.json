@@ -2,13 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-02",
-  "total": 95,
+  "last_updated": "2026-06-04",
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
   ],
   "plugins": [
+    {
+      "name": "A Team",
+      "url": "https://github.com/RBraga01/a-team",
+      "owner": "RBraga01",
+      "repo": "a-team",
+      "description": "Universal multi-agent infrastructure with 25 specialist agents, 16 enforced workflow skills, and a lead orchestrator for Claude Code, Codex CLI, Cursor, and OpenCode.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/RBraga01/a-team/HEAD/.codex-plugin/plugin.json"
+    },
     {
       "name": "Aegis",
       "url": "https://github.com/GanyuanRan/Aegis",
@@ -38,6 +48,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/boshu2/agentops/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AgiFlow",
+      "url": "https://github.com/AgiFlow/ai-plugin",
+      "owner": "AgiFlow",
+      "repo": "ai-plugin",
+      "description": "Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AgiFlow/ai-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Alcove",
@@ -470,6 +490,16 @@
       "install_url": "https://raw.githubusercontent.com/dadwadw233/VibePortrait/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "VillageSQL Skills",
+      "url": "https://github.com/villagesql/villagesql-skills",
+      "owner": "villagesql",
+      "repo": "villagesql-skills",
+      "description": "Skills for VillageSQL including building extensions from scratch and porting PostgreSQL extensions to VillageSQL.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/villagesql/villagesql-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Workflow Kit",
       "url": "https://github.com/Le-Xuan-Thang/workflow-kit",
       "owner": "Le-Xuan-Thang",
@@ -528,6 +558,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jerryfane/agentgram/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Aient",
+      "url": "https://github.com/haf/aient-codex-plugin",
+      "owner": "haf",
+      "repo": "aient-codex-plugin",
+      "description": "AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/haf/aient-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Apple Productivity",

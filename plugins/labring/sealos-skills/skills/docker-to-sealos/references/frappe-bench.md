@@ -19,7 +19,7 @@ Do not mix these models blindly. If a repo's `docker/docker-compose.yml` uses `f
 - If using a prebuilt Frappe image with mounted `sites` and `logs` PVCs, set pod `securityContext.fsGroup: 1000` so the `frappe` user can write mounted volumes.
 - Init containers that run `bench init`, `bench new-site`, `bench migrate`, or app install steps must set explicit resources from the Sealos ladder. Do not rely on namespace defaults; `64Mi` memory is too small. Use at least:
   - light config init: `limits.memory: 256Mi`, `requests.memory: 25Mi`
-  - `bench new-site` / app install / migrate: `limits.memory: 2G`, `requests.memory: 200Mi`
+  - `bench new-site` / app install / migrate: `limits.memory: 2048Mi`, `requests.memory: 204Mi`
   - choose matching ladder CPU values and derive CPU requests the same way, for example `limits.cpu: 500m` → `requests.cpu: 50m`
 - Bootstrap scripts must be idempotent and recover from partial initialization:
   - create `sites/common_site_config.json` if a fresh PVC hides the image's bundled file

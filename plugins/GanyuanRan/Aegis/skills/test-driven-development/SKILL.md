@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: Use when implementing any feature or bugfix, before writing implementation code
+description: Use when strict TDD is explicitly requested, or when an approved atomic implementation task has already chosen TDD Route strict.
 ---
 
 # Execute
@@ -11,6 +11,8 @@ description: Use when implementing any feature or bugfix, before writing impleme
   Cycle: RED (write test → watch it fail) → GREEN (minimal code → watch it pass) → REFACTOR (clean up → keep green)
   Regression: shared module → related tests. contract change → producer + consumer. core logic → old + new tests.
   Ripple signal hit → cover producer+consumer or real user path before claiming green.
+  GREEN proves the currently expressed behavior slice only.
+  GREEN does not by itself prove parent-task acceptance, business-value completion, or final completion.
 → Done when: chosen TDD Route is recorded, strict-route tests pass, TDD preflight gate passed when applicable, pre-edit complexity risk was checked for non-trivial source edits, and `verification-before-completion` has fresh evidence.
 
 # Test-Driven Development (TDD)
@@ -72,7 +74,8 @@ writing-plans if the current request has any medium- or high-complexity signal:
 For these tasks, require a baseline read-set, plan, and atomic tasks before TDD.
 High-complexity or ambiguous tasks also need a spec/design review before
 planning. Only proceed directly with TDD for low-complexity work whose intent,
-owner, compatibility boundary, and verification path are already clear.
+owner, compatibility boundary, verification path, and slice goal / success
+evidence are already clear.
 
 ## Pre-Edit Complexity Check
 
@@ -126,6 +129,8 @@ already owns them.
 ### RED - Write Failing Test
 
 State: input | output | boundary | acceptance criteria. Check existing test coverage first. Write one minimal test showing what should happen.
+A minimal test anchors the next behavior slice; it does not by itself define
+whole-task completeness unless the parent acceptance is already fully pinned.
 
 <Good>
 ```typescript
@@ -344,6 +349,8 @@ Extract validation for multiple fields if needed.
 - [ ] Regression: shared/contract/core changes ran related tests
 - [ ] Ripple signal hit: downstream or real user path covered
 - [ ] If automation blocked → blocker + manual steps documented
+- [ ] GREEN treated as local behavior proof only, not final completion
+- [ ] If `TaskIntentDraft`, parent plan/spec, or `Slice Card` exists, covered and uncovered scope are explicit before any done claim
 
 Can't check all boxes? Start over.
 

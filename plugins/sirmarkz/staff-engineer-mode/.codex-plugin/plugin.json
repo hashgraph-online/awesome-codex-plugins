@@ -1,7 +1,7 @@
 {
   "name": "staff-engineer-mode",
-  "version": "1.9.0",
-  "description": "Staff-engineering decision guidance for AI coding agents. Routes design, development, testing, release, operations, reliability, security, API, data, and platform work to specialist guidance.",
+  "version": "1.11.0",
+  "description": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
   "author": {
     "name": "sirmarkz",
     "url": "https://github.com/sirmarkz/staff-engineer-mode"
@@ -22,7 +22,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Staff Engineer Mode",
-    "shortDescription": "Staff Engineer Mode engineering lifecycle and operations guidance",
+    "shortDescription": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
     "longDescription": "Technology-agnostic guidance for applying large-scale engineering practices to architecture, reliability, resilience, delivery, operations, security, privacy, data, platform, client, and cost-aware reliability work. The router automatically selects the smallest useful routed specialist set from natural-language engineering requests.",
     "developerName": "sirmarkz",
     "category": "Coding",

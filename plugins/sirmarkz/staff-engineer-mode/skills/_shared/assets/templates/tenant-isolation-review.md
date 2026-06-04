@@ -15,6 +15,11 @@
 | Surface | Tenant Key | Cross-Tenant Failure Mode | Test |
 | --- | --- | --- | --- |
 
+## Tenant-Controlled Config
+
+| Config/Metadata | Validation Boundary | Quarantine Behavior | Independent Repair Path |
+| --- | --- | --- | --- |
+
 ## Noisy Neighbor Limits
 
 | Resource | Limit | Burst Sharing | Dynamic Update Path |

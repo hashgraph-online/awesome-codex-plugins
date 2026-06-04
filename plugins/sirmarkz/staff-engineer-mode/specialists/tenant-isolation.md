@@ -41,6 +41,7 @@ Multi-tenancy fails when tenant context is optional.
 - Tenant model: silo, pool, bridge, organization/account hierarchy, shared services, and administrative boundaries.
 - Data classification, PII/sensitive fields, retention, deletion, export, and residency constraints.
 - Request, query, cache, event, batch, search, analytics, and support/admin paths that carry tenant data.
+- Tenant-controlled configuration, metadata, limits, or scripts read by shared workers or serving paths.
 - Access controls, tenant context propagation, activity logs, row/object boundaries, and break-glass behavior.
 - Quotas, rate limits, concurrency caps, noisy-neighbor risks, and per-tenant isolation needs.
 - Fairness model: quota key, per-workload limits, burst sharing, unplanned capacity behavior, limit visibility, and high-cardinality admission dimensions.
@@ -54,11 +55,12 @@ Multi-tenancy fails when tenant context is optional.
 3. **Choose isolation model.** Use silo, pool, bridge, hybrid, or isolation-group boundaries based on data sensitivity, blast radius, scale, cost, and tenant-specific residency or compliance needs. Isolation groups separate sets of tenants from each other while preserving finer isolation inside each group.
 4. **Choose data partitioning.** State whether tenants use separate stores, separate schemas/namespaces, shared schemas with enforced tenant predicates, or tenant-scoped encryption and credentials.
 5. **Enforce data boundaries.** Apply tenant filters, scoped credentials, row/object boundaries, query guards, cache-key tenant assertions, and cross-tenant tests.
-6. **Control noisy neighbors.** Add per-tenant or per-workload quotas, rate limits, concurrency caps, and load-shedding rules where shared capacity exists; enforce cheap admission checks before expensive work when possible. Decide whether unused shared capacity can be borrowed, when planned usage takes priority over burst usage, how limits change safely during an event, and how admission accuracy is measured. Keep cross-tenant fairness policy here; route caller-dependency overload behavior to `dependency-resilience` when the decision is not tenant-specific.
-7. **Protect privacy surfaces.** Minimize, redact, tokenize, encrypt, or segregate sensitive data in logs, telemetry, exports, and support views.
-8. **Handle tenant offboarding.** Propagate deletion and access removal through stores, caches, indexes, derived data, exports, backup expiry, and support tooling.
-9. **Audit high-risk access.** Record administrative, support, export, deletion, and cross-tenant operations in tenant-scoped activity logs; define retention long enough for investigation, compliance, and incident investigation.
-10. **Verify isolation.** Use tests, probes, reviews, and monitoring for cross-tenant reads/writes and capacity abuse.
+6. **Quarantine tenant-controlled config.** Validate tenant-scoped config or metadata at write time and at every shared reader. If a value is invalid, quarantine that tenant's state, preserve other tenants, and keep a repair path that does not depend on the crashing reader.
+7. **Control noisy neighbors.** Add per-tenant or per-workload quotas, rate limits, concurrency caps, and load-shedding rules where shared capacity exists; enforce cheap admission checks before expensive work when possible. Decide whether unused shared capacity can be borrowed, when planned usage takes priority over burst usage, how limits change safely during an event, and how admission accuracy is measured. Keep cross-tenant fairness policy here; route caller-dependency overload behavior to `dependency-resilience` when the decision is not tenant-specific.
+8. **Protect privacy surfaces.** Minimize, redact, tokenize, encrypt, or segregate sensitive data in logs, telemetry, exports, and support views.
+9. **Handle tenant offboarding.** Propagate deletion and access removal through stores, caches, indexes, derived data, exports, backup expiry, and support tooling.
+10. **Audit high-risk access.** Record administrative, support, export, deletion, and cross-tenant operations in tenant-scoped activity logs; define retention long enough for investigation, compliance, and incident investigation.
+11. **Verify isolation.** Use tests, probes, reviews, and monitoring for cross-tenant reads/writes, poison tenant state, and capacity abuse.
 
 ## Synthesized Default
 
@@ -96,6 +98,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Tenant isolation model and rationale.
 - Tenant context propagation map.
 - Data partitioning and isolation-group decision when applicable.
@@ -104,6 +107,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 - Tenant offboarding and deletion propagation plan.
 - Noisy-neighbor quota, burst-sharing, and capacity policy.
 - Dynamic tenant-limit update path and privacy-safe impact scoping signals.
+- Tenant-controlled config validation, quarantine, and independent repair path.
 - Privacy-safe logging/telemetry/support review.
 - Tenant-scoped audit log requirements, including covered events, protected fields, retention period or retention policy, and review responsibility.
 - Cross-tenant test requirements, including forced-tenant mismatch, missing-tenant-filter detection, random tenant-ID probes, and cache-key assertions.
@@ -112,6 +116,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 
 - `tenant_context`: every request/query/job/event/cache path preserves tenant context or is explicitly tenant-neutral.
 - `data_boundary`: data access controls enforce tenant isolation where shared stores exist.
+- `tenant_config_quarantine`: invalid tenant-controlled config or metadata cannot crash shared readers or affect other tenants.
 - `privacy_check`: sensitive data handling is defined for logs, traces, metrics, errors, exports, and support tools.
 - `quota_check`: shared capacity has tenant-aware quotas or explicit risk acceptance using the shared risk-acceptance lifecycle.
 - `fairness_model`: shared capacity defines quota keys, burst behavior, priority under contention, and admission accuracy signals such as configured limits matching enforced behavior or bounded false-allow/false-deny decisions.
@@ -126,6 +131,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 - Tenant ID is passed as an optional parameter.
 - Logs or traces include raw PII or tenant secrets.
 - Background jobs process tenant data without tenant-scoped responsibility.
+- One tenant's malformed config or metadata can crash a shared worker or repair tool.
 - Shared caches omit tenant from keys.
 - Support tools can access tenant data without audit.
 

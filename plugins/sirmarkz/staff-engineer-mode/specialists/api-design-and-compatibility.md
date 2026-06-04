@@ -37,29 +37,32 @@ An API is a long-lived contract with current or future clients, retries, partial
 ## Info To Gather
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
-- Planned or existing consumers, client release cadence, compatibility expectations, and deprecation tolerance.
+- Planned or existing consumers, request-construction surfaces, embedded or legacy runtime constraints, low-traffic entry points, client release cadence, compatibility expectations, and deprecation tolerance.
 - For new APIs, intended consumer classes and discovery path; for existing APIs, known consumers and impact signals.
-- Operations/resources, generated-client method shape, request and response fields, event shapes, status/error semantics, defaults, and side effects.
+- Operations/resources, generated-client method shape, request builders, request and response fields, forwarded headers or metadata, transport/protocol assumptions, callback/event payloads, status/error semantics, defaults, and side effects.
 - Authentication, authorization, rate limits, quotas, tenant context, activity-log needs, and abuse cases.
 - High-volume consumer behavior: polling, fanout, bulk read/write needs, low-volume administrative API versus high-volume serving API usage, and quota pressure.
+- Aggregated or fanout operations, unavailable-scope behavior, partial-result semantics, and global impact risk from one failed dependency or location.
 - Retry behavior, idempotency needs, duplicate suppression, and replay windows.
-- Pagination, filtering, ordering, sorting, cursor stability, and consistency expectations.
+- Pagination, filtering, ordering, sorting, cursor stability, result metadata accuracy, and consistency expectations.
 - Versioning policy, launch evolution rules, migration telemetry where clients already exist, usage by client/version, and existing deprecation process.
 
 ## Workflow
 
 1. **Define the contract boundary.** State who consumes the API, whether it is public or interservice, what compatibility promise exists, and which behaviors are observable by clients.
 2. **Model operations and resources.** Use customer-domain terms, one clear action per operation, stable resource names, and request/response shapes that generate readable client methods.
-3. **Classify the contract surface.** For new APIs, mark each field, operation, error, default, enum, and semantic rule as a launch-time contract commitment. For existing APIs, mark each change as compatible, conditionally compatible, or breaking.
+3. **Classify the contract surface.** For new APIs, mark each field, operation, error, default, enum, and semantic rule as a launch-time contract commitment. For existing APIs, mark each change as compatible, conditionally compatible, or breaking. When multiple clients, request builders, upload paths, proxies, callback surfaces, embedded runtimes, or low-traffic entry points call the same operation, verify that each surface preserves required fields, forwarded headers or metadata, transport/protocol semantics, conditional fields, defaults, and exclusive option sets.
 4. **Prefer additive evolution.** Add optional fields, new operations, new enum values with tolerant readers, and new versions only when needed.
 5. **Design error semantics.** Use a small stable error surface with machine-readable categories, typed programmatic fields, human-readable detail, retryability, correlation identifiers, and safe redaction.
 6. **Make retries safe.** For mutating operations that clients may retry, require idempotency keys, operation identifiers, or dedupe semantics. Scope dedupe state to the caller and request parameters, expire it deliberately, and ensure duplicate retries create no side effects.
-7. **Handle collections deliberately.** Prefer stable cursor-style pagination for mutable collections; define ordering, filtering, empty results, cursor-token expiration, and list item summaries that avoid needless follow-up calls.
-8. **Avoid quota-forcing shapes.** When callers need high-volume discovery, audit, or bulk mutation, consider change streams, asynchronous exports, asynchronous bulk operations with per-item results, or local projections instead of forcing polling or fanout through a low-volume administrative path. Treat a consumer as high-volume when normal use would regularly exceed a documented per-caller quota or must enumerate every resource on a schedule. Use bulk for one logical operation over a large set; use batch for many independent repetitions of a singular operation.
-9. **Bound filters and payloads.** Keep filters explicit, bounded, commutative, and limited to fields the caller may see; define unknown, malformed, duplicate, and over-limit behavior. Publish maxima for variable inputs, payloads, and inner lists at launch.
-10. **Shape batch operations intentionally.** Use batch APIs only for repeated same-action work. Shape each item like the singular operation, include per-item correlation, separate successes from errors, define partial-success behavior, and reject whole invalid batches before attempting items.
-11. **Plan evolution.** For new APIs, define how the contract can add fields, operations, enum values, limits, and versions later, plus how intended consumers will discover and adopt it. For existing APIs, use telemetry to identify clients, publish deprecation windows, support overlap, and define removal checks.
-12. **Check security and abuse.** Include authorization, rate limits, tenant isolation, audit events, and input validation as part of the contract.
+7. **Handle collections deliberately.** Prefer stable cursor-style pagination for mutable collections; define ordering, filtering, empty results, cursor-token expiration, result counts and continuation metadata that match the returned payload, and list item summaries that avoid needless follow-up calls.
+8. **Design fanout failure semantics.** For aggregated operations, define whether the API returns partial results, omits unavailable scopes, marks per-scope errors, or fails closed. One unavailable location, shard, tenant, or dependency should not create global unavailability unless the contract explicitly requires all scopes.
+9. **Avoid quota-forcing shapes.** When callers need high-volume discovery, audit, or bulk mutation, consider change streams, asynchronous exports, asynchronous bulk operations with per-item results, or local projections so callers do not poll or fan out through a low-volume administrative path. Treat a consumer as high-volume when normal use would exceed a documented per-caller quota or must enumerate every resource on a schedule. Use bulk for one logical operation over a large set; use batch for many independent repetitions of a singular operation.
+10. **Bound filters and payloads.** Keep filters explicit, bounded, commutative, and limited to fields the caller may see; define unknown, malformed, duplicate, and over-limit behavior. Publish maxima for variable inputs, payloads, and inner lists at launch.
+11. **Isolate malformed requests.** Malformed or unsupported requests should fail for the caller with a stable client-action error and must not poison shared operation state, block unrelated updates, or require broad service recovery.
+12. **Shape batch operations intentionally.** Use batch APIs only for repeated same-action work. Shape each item like the singular operation, include per-item correlation, separate successes from errors, define partial-success behavior, and reject whole invalid batches before attempting items.
+13. **Plan evolution.** For new APIs, define how the contract can add fields, operations, enum values, limits, and versions later, plus how intended consumers will discover and adopt it. For existing APIs, use telemetry to identify clients, publish deprecation windows, support overlap, and define removal checks.
+14. **Check security and abuse.** Include authorization, rate limits, tenant isolation, audit events, and input validation as part of the contract.
 
 ## Synthesized Default
 
@@ -100,26 +103,31 @@ Design APIs around domain contracts and generated-client ergonomics, not interna
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - API contract decision with planned or existing consumers, compatibility class, and risks.
-- Consumer discovery or impact plan: intended consumer classes for new APIs, known-consumer signals for existing APIs.
+- Consumer discovery or impact plan: intended consumer classes for new APIs, known-consumer signals for existing APIs, request-construction surfaces that must stay in parity, low-traffic entry points, and embedded or legacy runtime constraints.
 - Operation/resource naming decision and generated-client ergonomics notes.
 - Compatibility and evolution matrix for each new or changed operation, field, default, enum, event, error, and status behavior.
+- Transport, header, metadata, and callback parity check for APIs that pass requests through intermediaries or notify customer handlers.
 - Versioning and deprecation plan with launch evolution rules, telemetry where available, and removal checks.
 - Error model with retryability, correlation, redaction, and client action.
 - Idempotency policy for retryable mutations.
-- Pagination, filtering, ordering, bounded-input, batch semantics, bulk semantics, polling-avoidance, and rate-limit policy.
+- Pagination, filtering, ordering, result-metadata invariants, bounded-input and malformed-request isolation, fanout partial-failure semantics, batch semantics, bulk semantics, polling-avoidance, and rate-limit policy.
 - Security and audit requirements for the exposed surface.
 
 ## Checks Before Moving On
 
 - `compatibility_class`: every new contract element is marked as a launch-time commitment, and every contract change is classified as additive, compatible, conditionally compatible, or breaking.
+- `metadata_parity`: required transport semantics, headers, auth context, tenant context, request metadata, and callback payload fields survive every intermediary path.
 - `operation_shape`: operations have one customer-visible action, stable resource terms, generated-client readability, and explicit side effects.
 - `idempotency_policy`: retryable mutations have an idempotency or dedupe design.
 - `error_model`: errors define machine code, human detail, retryability, correlation, and safe disclosure.
-- `collection_contract`: lists and filters define pagination, ordering, empty results, field visibility, bounds, token stability, and expiration.
+- `collection_contract`: lists and filters define pagination, ordering, empty results, result-metadata accuracy, field visibility, bounds, token stability, and expiration.
+- `malformed_request_isolation`: invalid requests fail for the caller without poisoning shared operation state or blocking unrelated work.
 - `batch_semantics`: batch APIs define item limits, item correlation, partial success, per-item errors, and whole-request rejection rules.
-- `quota_avoidance`: consumers whose normal access pattern would regularly exceed a documented per-caller quota or must enumerate every resource on a schedule have a stream, export, bulk, projection, or explicit quota plan instead of accidental polling/fanout.
-- `consumer_discovery`: new APIs define intended consumer classes and discovery path; existing APIs identify known consumers or the telemetry gap.
+- `fanout_degradation`: aggregated operations define unavailable-scope behavior and avoid global failure from one missing location, shard, tenant, or dependency unless explicitly required.
+- `quota_avoidance`: consumers whose normal access pattern would exceed a documented per-caller quota or must enumerate every resource on a schedule have a stream, export, bulk, projection, or explicit quota plan before they poll or fan out accidentally.
+- `consumer_discovery`: new APIs define intended consumer classes and discovery path; existing APIs identify known consumers, request-construction surfaces, embedded or legacy runtime constraints, low-traffic entry points, or the telemetry gap.
 - `evolution_plan`: new APIs have rules for future compatible additions, and deprecation or breaking changes have client usage telemetry and removal criteria.
 - `abuse_boundary`: authz, rate limits, tenant context, activity logging, and validation are addressed where relevant.
 
@@ -127,10 +135,14 @@ Design APIs around domain contracts and generated-client ergonomics, not interna
 
 - "Only internal clients use it" is used to skip compatibility while clients deploy independently.
 - A field is repurposed with new semantics instead of adding a new field or version.
+- An intermediary strips required headers or callback fields while the upstream mutation still succeeds.
+- A proxy, gateway, or runtime upgrade changes transport semantics while request/response schemas stay unchanged.
+- A low-traffic entry point or embedded runtime is skipped because mainline clients look healthy.
 - Operation names expose implementation steps, combine unrelated actions, or generate confusing client methods.
 - Errors are free-form strings with no retryability or client action.
 - Mutating operations are retryable but not idempotent.
-- A list, filter, or batch API ships without bounds, collection traversal semantics, or partial-failure behavior.
+- A list, filter, fanout, or batch API ships without bounds, collection traversal semantics, or partial-failure behavior.
+- Response counts, totals, or continuation metadata can contradict the returned payload without an explicit partial-result signal.
 - High-volume clients must poll or fan out through a low-volume administrative path because no stream, export, bulk, or projection option exists.
 - Filters expose fields the caller cannot otherwise inspect.
 - Deprecation depends on guessing client usage instead of telemetry.

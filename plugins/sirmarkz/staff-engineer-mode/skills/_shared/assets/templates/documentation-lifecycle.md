@@ -1,7 +1,14 @@
 # Documentation Lifecycle Inventory
 
-| Doc | Diataxis Quadrant | Runbook/Decision Record? | Audience | Job | Responsibility Path | Source Of Truth | Last Verified | Verification Cadence | Staleness Signal | Review Trigger | Archive Rule |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+## Documentation Inventory
+
+| Doc | Diataxis Quadrant | Runbook/Decision Record? | Audience | Job | Source Of Truth |
+| --- | --- | --- | --- | --- | --- |
+
+## Verification And Lifecycle
+
+| Doc | Responsibility Path | Last Verified | Verification Cadence | Staleness Signal | Review Trigger | Archive Rule |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Required Docs
 
@@ -12,6 +19,11 @@
 
 | System Or Workflow | Canonical Doc | Duplicate Handling | Responsibility Path |
 | --- | --- | --- | --- |
+
+## Current-State Verification
+
+| Doc | Claimed State | Verification Source | Current Or Future State? | Last Verified | Owner |
+| --- | --- | --- | --- | --- | --- |
 
 ## Freshness Rule
 

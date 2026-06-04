@@ -43,6 +43,7 @@ Cost is an operational signal, but reliability headroom is not waste by default.
 - Optimization opportunities with expected savings, engineering effort, reliability risk, owner, status, and actual impact after implementation.
 - Data transfer, cross-location replication, telemetry/log volume, managed service overhead, and external traffic costs.
 - Recent deploys, traffic changes, incidents, abuse signals, and cost regressions.
+- Metered usage, pricing or discount rules, eligibility boundaries, and reconciliation evidence for customer-visible charges.
 - Reliability risk tolerance and confirmation path for reducing headroom.
 
 ## Workflow
@@ -50,13 +51,14 @@ Cost is an operational signal, but reliability headroom is not waste by default.
 1. **State the reliability constraint.** Identify SLO, capacity headroom, failover target, and recovery requirement before cutting cost.
 2. **Define unit cost.** Choose a meaningful engineering unit and map cost to service, feature, tenant, or workload.
 3. **Find cost drivers.** Separate traffic growth, inefficient code, overprovisioning, idle capacity, data transfer, cross-location replication, telemetry/log volume, storage growth, retries, and abuse.
-4. **Protect headroom.** Distinguish waste from required peak, failover, and surge capacity.
-5. **Choose optimizations.** Use right-sizing, scheduling, storage lifecycle, caching, batching, data-transfer reduction, telemetry sampling/retention controls, capacity mix, or code efficiency where risk is explicit.
-6. **Model commitment risk.** For committed capacity or discounts, state forecast confidence, lock-in window, unused commitment risk, exit path, and what reliability headroom is protected.
-7. **Model tradeoffs.** State expected savings, reliability impact, security/operations side effects, blast radius, rollback, and monitoring.
-8. **Track opportunities through outcome.** Record expected value, effort, owner, risk, decision, implementation status, and actual savings or reliability impact so optimization work does not become unreviewed cost cutting.
-9. **Add guardrails.** Alert on cost regressions, unit-cost anomalies, and reliability signals after changes.
-10. **Check continuously.** Treat cost anomalies like operational regressions with post-change verification.
+4. **Reconcile charge semantics.** For customer-visible billing or allocation, compare metered units to pricing, discount, credit, and eligibility rules before and after cost-system changes.
+5. **Protect headroom.** Distinguish waste from required peak, failover, and surge capacity.
+6. **Choose optimizations.** Use right-sizing, scheduling, storage lifecycle, caching, batching, data-transfer reduction, telemetry sampling/retention controls, capacity mix, or code efficiency where risk is explicit.
+7. **Model commitment risk.** For committed capacity or discounts, state forecast confidence, lock-in window, unused commitment risk, exit path, and what reliability headroom is protected.
+8. **Model tradeoffs.** State expected savings, reliability impact, security/operations side effects, blast radius, rollback, and monitoring.
+9. **Track opportunities through outcome.** Record expected value, effort, owner, risk, decision, implementation status, and actual savings or reliability impact so optimization work does not become unreviewed cost cutting.
+10. **Add guardrails.** Alert on cost regressions, unit-cost anomalies, and reliability signals after changes.
+11. **Check continuously.** Treat cost anomalies like operational regressions with post-change verification.
 
 ## Synthesized Default
 
@@ -95,8 +97,10 @@ Optimize unit cost with allocation, anomaly detection, right-sizing, and capacit
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Unit-cost model and allocation plan.
 - Cost driver analysis.
+- Metering and pricing reconciliation plan for customer-visible charges or allocation.
 - Data-transfer, telemetry, and cross-location cost assessment where applicable.
 - Reliability/headroom tradeoff record.
 - Optimization plan with savings estimate, risk, and rollback.
@@ -111,6 +115,7 @@ Optimize unit cost with allocation, anomaly detection, right-sizing, and capacit
 - `unit_check`: cost metric maps to an engineering unit and response path.
 - `slo_headroom`: SLO, peak, and failure-condition headroom are preserved or risk is accepted.
 - `driver_check`: cost drivers are separated before recommending cuts.
+- `charge_reconciliation`: metered units, pricing rules, discounts, credits, and eligibility boundaries are reconciled for customer-visible charges or allocation.
 - `opportunity_tracking`: optimization recommendations have owner, status, and actual-versus-estimated impact review.
 - `rollback_check`: optimization has rollback or mitigation plan.
 - `regression_check`: post-change cost and reliability signals are monitored.

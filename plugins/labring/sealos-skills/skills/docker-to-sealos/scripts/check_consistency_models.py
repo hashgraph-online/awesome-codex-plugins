@@ -43,10 +43,10 @@ SEALOS_MEMORY_REQUEST_BY_LIMIT = {
     "256Mi": "25Mi",
     "512Mi": "51Mi",
     "1024Mi": "102Mi",
-    "2G": "200Mi",
-    "4G": "400Mi",
-    "8G": "800Mi",
-    "16G": "1600Mi",
+    "2048Mi": "204Mi",
+    "4096Mi": "409Mi",
+    "8192Mi": "819Mi",
+    "16384Mi": "1638Mi",
 }
 DB_COMPONENT_RESOURCE_LIMITS = {"cpu": "500m", "memory": "512Mi"}
 DB_COMPONENT_RESOURCE_REQUESTS = {"cpu": "50m", "memory": "51Mi"}

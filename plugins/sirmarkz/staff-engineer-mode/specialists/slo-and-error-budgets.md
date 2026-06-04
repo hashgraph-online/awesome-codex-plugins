@@ -94,6 +94,7 @@ Use the standard SRE sequence as the default: user journey -> health model -> SL
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Critical journey inventory with impact and response path.
 - SLI/SLO table with target, window, source metric, numerator, denominator, and exclusions.
 - Health-state definitions for healthy, degraded, unavailable, and recovering conditions where partial degradation matters.

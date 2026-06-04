@@ -30,9 +30,9 @@ shell command before the first release command; a review message alone does not
 satisfy the hook. Do not combine the receipt command with the commit, tag,
 release, push, or promotion command. The command hook checks the whole shell
 command before any subcommand runs, so a combined `ack && git commit` or
-`ack && git tag` command cannot create the receipt in time. The receipt command
-also refuses combined shell commands on hosts that do not invoke command hooks,
-so the same standalone command rule applies everywhere.
+`ack && git tag` command is denied by the host hook before the receipt can
+authorize the protected command. The receipt helper itself records receipts and
+does not enforce shell composition when a host bypasses command hooks.
 Reading only router or host bootstrap files does not satisfy a specialist
 review; the agent must read the matching specialist files. Do not add AI
 assistant co-author or attribution trailers to commit messages.

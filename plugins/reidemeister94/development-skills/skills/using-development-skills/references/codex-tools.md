@@ -94,12 +94,25 @@ End your turn after the list. Do not proceed until the user answers.
 `hooks/hooks.json` ships in `development-skills` for SessionStart context injection (the meta-skill body wrapped in `<EXTREMELY-IMPORTANT>`).
 
 - **Claude Code:** loads automatically when the plugin is enabled — no user opt-in.
-- **Codex (0.128+):** loads when `[features] plugin_hooks = true` is set in `~/.codex/config.toml`. The `codex_hooks = true` flag from earlier 0.124–0.127 builds is **deprecated** in favor of `plugin_hooks`.
+- **Codex (0.131+):** loads automatically when the plugin is enabled — no flag needed. PR #22549 enabled `plugin_hooks` by default in the 0.131 stable cut (2026-05-18).
+- **Codex (0.128–0.130, legacy):** loads only when `[features] plugin_hooks = true` is set in `~/.codex/config.toml`. The flag is a no-op on 0.131+ — keeping it there does no harm, but it carries no signal either.
+- **Codex (0.124–0.127, legacy):** used `[features] codex_hooks = true`. **Deprecated.** Upgrade to 0.131+ or set `plugin_hooks = true` if you must stay on 0.128–0.130.
 
 **Known portability gap.** The current `hooks/hooks.json` uses Claude Code's output schema (`hookSpecificOutput.additionalContext` wrapper). Codex 0.124+ reads `hooks/hooks.json` natively but expects a slightly different shape for some sinks. End-to-end hook portability is a separate design problem. On Codex the meta-skill body still auto-loads via description match — **but WITHOUT the `<EXTREMELY-IMPORTANT>` wrapper that the SessionStart hook applies on Claude Code.** The workflow-bypass attractor that hook was authored to mitigate may be stronger on Codex; if you see rationalization-driven phase skipping on Codex, that's likely why.
 
+## Marketplace files (for plugin maintainers)
+
+Two marketplace catalogs live in the repo:
+
+| File | Schema | Read by |
+|---|---|---|
+| `.claude-plugin/marketplace.json` | Claude Code (`source` is bare string, `owner.name` required) | Claude Code |
+| `.agents/plugins/marketplace.json` | Codex (`source` is object `{source: "local", path: "…"}`, `interface.displayName` required) | Codex |
+
+Both list the same plugin under the same marketplace `name` (`development-skills`). When the plugin metadata changes, update **both** files. See `.agents/rules/plugin-packaging.md`.
+
 ## What is NOT in this map
 
-- Marketplace UI metadata (`composerIcon`, `brandColor`, screenshots) lives in plugin's `.claude-plugin/plugin.json` `interface{}` block. Not duplicated here.
+- Marketplace UI metadata (`composerIcon`, `brandColor`, screenshots) lives in the plugin's `.codex-plugin/plugin.json` `interface{}` block. Not duplicated here.
 - Plugin-level details (skills, hooks, MCP server configs) are in `README.md`. This file covers CC↔Codex translation only.
 - Cursor / Copilot / Gemini support: not covered. Skill bodies remain Claude-Code-canonical.

@@ -1,7 +1,10 @@
 # SLO And Error Budget Table
 
-| Journey | User Outcome | Response Path | SLI | Numerator | Denominator | SLO | Window | Error Budget | Alert Policy | Follow-Up Policy |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Journey | User Outcome | Response Path | SLI | Numerator | Denominator |
+| --- | --- | --- | --- | --- | --- |
+
+| Journey | SLO | Window | Error Budget | Alert Policy | Follow-Up Policy |
+| --- | --- | --- | --- | --- | --- |
 
 ## Health States
 

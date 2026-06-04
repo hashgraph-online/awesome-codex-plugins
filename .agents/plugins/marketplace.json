@@ -5,6 +5,20 @@
   },
   "plugins": [
     {
+      "name": "a-team",
+      "displayName": "A Team",
+      "source": {
+        "source": "local",
+        "path": "./plugins/RBraga01/a-team"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Universal multi-agent infrastructure with 25 specialist agents, 16 enforced workflow skills, and a lead orchestrator for Claude Code, Codex CLI, Cursor, and OpenCode."
+    },
+    {
       "name": "aegis",
       "displayName": "Aegis",
       "source": {
@@ -47,6 +61,21 @@
       },
       "category": "Development & Workflow",
       "description": "DevOps layer for coding agents with flow, feedback, and memory that compounds between sessions."
+    },
+    {
+      "name": "agiflow-ai-plugin",
+      "displayName": "AgiFlow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AgiFlow/ai-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.",
+      "icon": "./plugins/AgiFlow/ai-plugin/assets/icon.png"
     },
     {
       "name": "alcove",
@@ -314,7 +343,7 @@
       "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg"
     },
     {
-      "name": "epic",
+      "name": "epic-harness",
       "displayName": "Epic Harness",
       "source": {
         "source": "local",
@@ -681,6 +710,36 @@
       "description": "Developer personality portrait generator — analyzes AI conversation history to produce MBTI type (16 color themes), capability radar, developer rating, 3-dimension famous match, and a persona skill that lets any AI \"think like you\"."
     },
     {
+      "name": "villagesql",
+      "displayName": "VillageSQL Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/villagesql/villagesql-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Skills for VillageSQL including building extensions from scratch and porting PostgreSQL extensions to VillageSQL.",
+      "icon": "./plugins/villagesql/villagesql-skills/assets/icon.svg"
+    },
+    {
+      "name": "workflow-kit",
+      "displayName": "Workflow Kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Le-Xuan-Thang/workflow-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Full product lifecycle plugin for Claude Code, Codex CLI, and OpenCode: define Vision/Mission/Core → generate workplan → execute with mandatory cross-provider reviewer agents → synthesize deliverables → maintain, with parallel task execution, crash recovery, and AgentOps metrics.",
+      "icon": "./plugins/Le-Xuan-Thang/workflow-kit/assets/icon.svg"
+    },
+    {
       "name": "writers-loop",
       "displayName": "Writer's Loop",
       "source": {
@@ -753,6 +812,21 @@
       "category": "Tools & Integrations",
       "description": "Send explicit Telegram messages from Codex and local AI agents through a Telegram bot token and chat id.",
       "icon": "./plugins/jerryfane/agentgram/assets/agentgram-logo.svg"
+    },
+    {
+      "name": "aient",
+      "displayName": "Aient",
+      "source": {
+        "source": "local",
+        "path": "./plugins/haf/aient-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.",
+      "icon": "./plugins/haf/aient-codex-plugin/assets/aient-icon-beveled-light.png"
     },
     {
       "name": "apple-calendar",

@@ -58,7 +58,17 @@ Package          Current    Latest     Status
 fastapi          0.128.*    0.130.2    UPDATE → 0.130.*
 pydantic         2.12.*     2.12.1     OK (already matches)
 uvicorn          0.40.*     0.41.0     UPDATE → 0.41.*
-pyinnovation     (git)      -          SKIP (git dependency)
+mypkg            (git)      -          SKIP (git dependency)
 
 Apply updates? [y/N]
 ```
+
+## After applying changes
+
+Recompile the lockfile with `uv`:
+
+```bash
+uv pip compile requirements.in -o requirements.txt --upgrade
+```
+
+The `.in` file is human-edited; `.txt` is the generated, fully-resolved lockfile that the runtime / Dockerfile installs from.

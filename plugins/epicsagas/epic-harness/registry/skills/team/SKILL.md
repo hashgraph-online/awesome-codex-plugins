@@ -1,6 +1,6 @@
 ---
 name: team
-description: "Design or update an org-level agent team — cross-project, append-merge"
+description: "Wrap `epic team` CLI — design or update org-level agent teams (cross-project, append-merge). Trigger: 'set up agents', 'design a team', /spec with 3+ requirements. Subcommands: list, show, sync, link, unlink, history."
 ---
 
 # /team — Agent Team Design

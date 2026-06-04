@@ -1,6 +1,6 @@
 ---
 name: orbit
-description: "Complete orbit — autonomous spec through ship. Auto-detects mode, hands-off until PR."
+description: "State-persisted autonomous pipeline: spec → go → audit → ship in one command. Auto-detects direct/council/interactive mode. Crash-recoverable via PIPELINE-*.json. Hands-off until PR."
 ---
 
 # /orbit — Complete Orbit
@@ -81,7 +81,7 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 
 1. Read the user's request + any existing docs (PRD, README, AGENTS.md)
 2. Generate spec directly at `$HARNESS_DIR/specs/SPEC-{timestamp}.md` with `status: approved`
-3. Record via `mem_add` (type=decision, importance=0.9)
+3. Record via `epic-harness mem add --title "Orbit: {mode} mode decision" --type decision --importance 0.9 --body "CONTEXT"`
 4. **Proceed immediately to Step 3** — no approval gate
 
 ## Step 2B: Council Auto-Spec (complex/vague request → council)
@@ -92,7 +92,7 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 2. Launch 4 parallel sub-agents (Architect, Skeptic, Pragmatist, Critic) — each receives ONLY the request + codebase context, NOT the full conversation (anti-anchoring)
 3. Synthesize: list agreement/disagreement, produce recommended approach
 4. Generate spec at `$HARNESS_DIR/specs/SPEC-{timestamp}.md` with `status: approved`
-5. Record via `mem_add` (type=decision, importance=0.9)
+5. Record via `epic-harness mem add --title "Orbit: council decision" --type decision --importance 0.9 --body "CONTEXT"`
 6. **Proceed immediately to Step 3** — no approval gate, no "orbit go"
 
 ## Step 2C: Interactive Mode (explicit user choice only)

@@ -20,7 +20,12 @@
 
 ## Contract
 
-| Setting | Meaning | Default | Bounds | Unsafe Combinations |
+| Setting | Meaning | Required/Non-Empty? | Default | Bounds | Priority/Scheduling Class | Unsafe Combinations |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Dormant Feature Guards
+
+| Feature Or Code Path | Disabled Behavior | Activation Guard | Test Evidence | Disable Or Rollback Action |
 | --- | --- | --- | --- | --- |
 
 ## Bulk Input Contract
@@ -30,17 +35,40 @@
 
 ## Runtime Values And Overrides
 
-| Runtime Config Value | Current Value | Unsafe Value? | Temporary Override? | Owner | Expiry | Validation Evidence | Cleanup Action | Rollback Target |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Runtime Config Value | Current Value | Unsafe Value? | Temporary Override? | Owner |
+| --- | --- | --- | --- | --- |
+
+| Runtime Config Value | Expiry | Validation Evidence | Cleanup Action | Rollback Target |
+| --- | --- | --- | --- | --- |
 
 ## Validation
 
 | Check | Scope | Expected Result | Blocks Apply? | Evidence |
 | --- | --- | --- | --- | --- |
 
+## Rejected Change Quarantine
+
+| Rejected Or Pending Change | Failed Check | Quarantine Location | Retry Or Bundling Risk | Validation Gate Health | Apply Block Evidence |
+| --- | --- | --- | --- | --- | --- |
+
+## Generated Config Boundary
+
+| Generated Config | Producer Validation | Receiver Reject Behavior | Known Corrupt Forms Covered | Last-Known-Good Restore Path |
+| --- | --- | --- | --- | --- |
+
 ## Preview
 
 | Target | Current Value | Proposed Value | Delta | Cap Result | Apply Action | Rollback Value |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Tracking Or Shadow Mode
+
+| Enforcement Change | Representative Workload | Predicted Action | False-Positive Or Over-Throttle Check | Downstream Impact Check | Enable Criteria |
+| --- | --- | --- | --- | --- | --- |
+
+## Application State And Fanout
+
+| Config Change | Accepted Signal | Persisted Signal | Propagated Signal | Serving-Applied Signal | Fanout Or Pull Control | Stop Signal |
 | --- | --- | --- | --- | --- | --- | --- |
 
 ## Cleanup Automation Gate
@@ -57,10 +85,18 @@
 | Failure Mode | Rollback Target | Recovery Action | Owner | Verification |
 | --- | --- | --- | --- | --- |
 
+## Derived-State Cleanup
+
+| State Item | Type | Can Outlive Rollback? | Cleanup Or Repair Action | Owner | Verification |
+| --- | --- | --- | --- | --- | --- |
+
 ## Operational Levers
 
-| Lever | Expected Effect | Activation Time | Prerequisites | Last Test | Disable/Revert Path |
-| --- | --- | --- | --- | --- | --- |
+| Lever | Expected Effect | Activation Time | Prerequisites | Approval Gate |
+| --- | --- | --- | --- | --- |
+
+| Lever | Safety Threshold | Last Test | Disable/Revert Path |
+| --- | --- | --- | --- |
 
 ## Drift And Exceptions
 

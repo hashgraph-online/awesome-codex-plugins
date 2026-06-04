@@ -1,0 +1,45 @@
+{
+  "name": "a-team",
+  "version": "1.0.0",
+  "description": "Universal multi-agent infrastructure. 25 specialist agents, 16 enforced workflow skills, and a lead orchestrator — for Claude Code, Codex CLI, Cursor, and OpenCode.",
+  "author": {
+    "name": "RBraga01",
+    "url": "https://github.com/RBraga01"
+  },
+  "homepage": "https://rbraga01.github.io/a-team/",
+  "repository": "https://github.com/RBraga01/a-team",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent",
+    "ai-agents",
+    "workflow",
+    "tdd",
+    "code-review",
+    "orchestration",
+    "claude-code",
+    "codex"
+  ],
+  "skills": "../skills/",
+  "interface": {
+    "composerIcon": "../assets/ATeam.png",
+    "displayName": "A Team",
+    "shortDescription": "25 specialist agents and 16 enforced workflow skills",
+    "longDescription": "A Team enforces structured development workflows: design before code, TDD before implementation, code review after every change, and hard gates that block completion without verified evidence. Drop it into any project to get an immediately operational team of specialists.",
+    "developerName": "RBraga01",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Read .agent-sync/DAILY.md and work on the tasks assigned to Codex.",
+      "Run /orchestrate morning to start the day."
+    ],
+    "websiteURL": "https://rbraga01.github.io/a-team/",
+    "privacyPolicyURL": "https://github.com/RBraga01/a-team/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/RBraga01/a-team/blob/main/LICENSE",
+    "brandColor": "#3b82f6",
+    "screenshots": []
+  }
+}

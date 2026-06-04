@@ -1,7 +1,7 @@
 {
   "name": "dev-skills",
   "version": "0.8.0",
-  "description": "A team development workflow skill suite for Codex: dev-auto, dev-spec, dev-plan, dev-tdd, dev-fix, dev-verify, dev-code-review, dev-commit-writer, dev-finish, and dev-design-context.",
+  "description": "A team development workflow skill suite for Codex: dev-auto, dev-grill-docs, dev-spec as a compatibility alias, dev-plan, dev-tdd, dev-fix, dev-verify, dev-code-review, dev-commit-writer, dev-finish, and dev-design-context.",
   "author": {
     "name": "Jason-chen-coder",
     "url": "https://github.com/Jason-chen-coder"
@@ -19,13 +19,15 @@
     "verification",
     "code-review",
     "git",
-    "design"
+    "design",
+    "context",
+    "adr"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Dev Skills",
-    "shortDescription": "Team workflow skills for specs, plans, TDD, debugging, review, branch finish, and design context.",
-    "longDescription": "Use Dev Skills to guide agent work through requirement alignment, implementation planning, test-first execution, root-cause debugging, completion verification, pre-commit review, commit messages, branch finishing, and persistent design-context setup with dev-design-context.",
+    "shortDescription": "Team workflow skills for requirement grilling, specs, plans, TDD, debugging, review, branch finish, and design context.",
+    "longDescription": "Use Dev Skills to guide agent work through requirement alignment with dev-grill-docs, spec artifact creation, optional CONTEXT / ADR updates, implementation planning, test-first execution, root-cause debugging, completion verification, pre-commit review, commit messages, branch finishing, and persistent design-context setup with dev-design-context. dev-spec remains as a spec-only compatibility alias.",
     "developerName": "Jason-chen-coder",
     "category": "Coding",
     "capabilities": [
@@ -36,7 +38,8 @@
     "defaultPrompt": [
       "Use dev-auto to guide this feature from idea to reviewed commit.",
       "Run the dev-skills path for this bug fix.",
-      "Use dev-design-context to capture this project's design context."
+      "Use dev-design-context to capture this project's design context.",
+      "Use dev-grill-docs to pressure-test this feature and produce the spec artifact."
     ],
     "websiteURL": "https://github.com/Jason-chen-coder/dev-skills",
     "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",

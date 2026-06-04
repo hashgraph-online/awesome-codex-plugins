@@ -108,6 +108,7 @@ Use least-privilege tools, permission-checked retrieval, input validation, untru
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - LLM threat model and trust-boundary map.
 - Intended-use, affected-user, misuse, unacceptable-harm, and escalation or override context.
 - Prompt, retrieval, tool, and output permission matrix.
