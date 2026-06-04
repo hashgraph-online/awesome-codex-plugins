@@ -480,6 +480,16 @@
       "install_url": "https://raw.githubusercontent.com/dadwadw233/VibePortrait/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "VillageSQL Skills",
+      "url": "https://github.com/villagesql/villagesql-skills",
+      "owner": "villagesql",
+      "repo": "villagesql-skills",
+      "description": "Skills for VillageSQL including building extensions from scratch and porting PostgreSQL extensions to VillageSQL.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/villagesql/villagesql-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Writer's Loop",
       "url": "https://github.com/xxsang/writers-loop",
       "owner": "xxsang",
