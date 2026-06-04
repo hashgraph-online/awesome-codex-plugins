@@ -921,10 +921,10 @@ Allowed `limits.memory` values:
 - `256Mi`
 - `512Mi`
 - `1024Mi`
-- `2G`
-- `4G`
-- `8G`
-- `16G`
+- `2048Mi`
+- `4096Mi`
+- `8192Mi`
+- `16384Mi`
 
 `requests` must be derived from `limits` by dropping the last numeric digit:
 
@@ -942,10 +942,10 @@ Allowed `limits.memory` values:
 | `memory: 256Mi` | `memory: 25Mi` |
 | `memory: 512Mi` | `memory: 51Mi` |
 | `memory: 1024Mi` | `memory: 102Mi` |
-| `memory: 2G` | `memory: 200Mi` |
-| `memory: 4G` | `memory: 400Mi` |
-| `memory: 8G` | `memory: 800Mi` |
-| `memory: 16G` | `memory: 1600Mi` |
+| `memory: 2048Mi` | `memory: 204Mi` |
+| `memory: 4096Mi` | `memory: 409Mi` |
+| `memory: 8192Mi` | `memory: 819Mi` |
+| `memory: 16384Mi` | `memory: 1638Mi` |
 
 **Default lightweight application quota:**
 
@@ -977,10 +977,10 @@ resources:
 resources:
   requests:
     cpu: 200m
-    memory: 200Mi
+    memory: 204Mi
   limits:
     cpu: 2
-    memory: 2G
+    memory: 2048Mi
 ```
 
 **Invalid examples:**
@@ -1004,14 +1004,14 @@ resources:
     cpu: 1
     memory: 1024Mi
 
-# Incorrect: decimal G form is not the canonical 1G-class ladder value
+# Incorrect: G/Gi forms can make Sealos Template API quota preview parse memory as 0; use Mi ladder values
 resources:
   requests:
-    cpu: 100m
-    memory: 100Mi
+    cpu: 200m
+    memory: 200Mi
   limits:
-    cpu: 1
-    memory: 1G
+    cpu: 2
+    memory: 2G
 ```
 
 **Tuning guidance:**

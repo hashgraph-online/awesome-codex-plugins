@@ -91,6 +91,7 @@ Use maintained, versioned, machine-checkable contracts for shared data boundarie
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Data contract decision with producers, planned or existing consumers, and domain meaning.
 - Compatibility matrix for fields, semantics, timing, quality, and versioning.
 - Validation and consumer-test plan.

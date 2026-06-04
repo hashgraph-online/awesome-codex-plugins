@@ -38,21 +38,23 @@ Mobile releases are hard to roll back, so stability checks must be conservative 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Platforms, release train, app versions, staged rollout percentages, and store review constraints.
 - Stability metrics: crash-free users/sessions, hang rate, startup failures, fatal/non-fatal error rate, and watchdog events.
-- Device/OS/app-version/network segmentation and known high-risk cohorts.
+- Device/OS/app-version/network/account-policy segmentation and known high-risk cohorts.
 - Critical journeys, offline behavior, sync/data-loss risk, and backend compatibility.
+- UI entry points, feature prominence, deep links, notifications, or defaults that can increase use of an existing path without changing its implementation.
+- Backend response normalization, environment target selection, remote config compatibility, local data migrations, and app-version adoption lag that can keep a bad state after a server rollback.
 - Telemetry fields, privacy controls, symbolication/deobfuscation, and alerting thresholds.
 - Rollback, halt, kill switch, remote config, and forward-fix options.
 
 ## Workflow
 
 1. **Define mobile SLIs.** Use crash-free users/sessions, hang rate, startup success, and critical journey success.
-2. **Segment the rollout.** Check by platform, app version, device class, OS version, geography/network, or cohort where risk warrants it.
-3. **Set staged thresholds.** Define metrics and sample-size requirements for each widening step.
+2. **Segment the rollout.** Check by platform, app version, device class, OS version, geography/network, account policy, entitlement, or managed cohort where risk warrants it.
+3. **Set staged thresholds.** Define metrics and sample-size requirements for each widening step, including client-exposure or UI-prominence changes that can create a backend or feature-usage surge.
 4. **Use explicit stability checks.** If local budgets are missing, propose provisional checks with windows: crash-free users at least 99.5%, crash-free sessions at least 99.9%, hang/ANR rate no worse than baseline plus 10% and below the app's severe-alert threshold, measured over each 24-hour rollout step before widening.
-5. **Check compatibility.** Verify backend, API, schema, feature flag, and config compatibility with old and new app versions.
+5. **Check compatibility.** Verify backend, API, schema, feature flag, config, and environment-target compatibility with old and new app versions. Include response normalization, stale remote config, client-held state, and local data migrations so server rollback does not hide a client crash or startup loop.
 6. **Plan offline and sync behavior.** Test intermittent network, stale config, retry, conflict, and data-loss scenarios.
 7. **Protect privacy.** Avoid sensitive data in crash reports, logs, breadcrumbs, and custom keys.
-8. **Define halt/repair.** Decide when to halt rollout, disable features, revert server flags, or submit a forward fix.
+8. **Define halt/repair.** Decide when to halt rollout, disable features, revert server flags, purge or repair client-visible state, or submit a forward fix.
 9. **Monitor long tail.** Track old versions and slow adoption after the main rollout completes.
 
 ## Synthesized Default
@@ -92,10 +94,14 @@ Use staged mobile rollout with crash-free, hang, startup, and critical-journey b
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Mobile release train and staged rollout plan.
 - Crash-free users/sessions, hang/ANR, startup, and critical-journey budgets with numeric thresholds and measurement windows.
-- Device/OS/app-version segmentation plan.
+- Device/OS/app-version/account-policy segmentation plan.
+- Client-exposure and feature-usage surge check for new entry points, defaults, notifications, or UI prominence changes.
 - Backend/API/config compatibility plan.
+- Environment target validation for production, pre-production, sandbox, and test backends or dependency tiers.
+- Server-client compatibility plan covering response normalization, stale config, client-held state, local migrations, and adoption lag.
 - Offline/sync test and telemetry plan.
 - Halt, rollback, kill-switch, and forward-fix criteria.
 - Privacy-safe mobile telemetry checklist.
@@ -103,16 +109,20 @@ Use staged mobile rollout with crash-free, hang, startup, and critical-journey b
 ## Checks Before Moving On
 
 - `stability_budget`: crash-free, hang, startup, and critical journey thresholds are defined.
-- `segment_check`: device, OS, app version, and network/cohort segmentation is considered.
+- `segment_check`: device, OS, app version, network, account policy, entitlement, and managed-cohort segmentation is considered.
 - `compatibility_check`: backend, API, config, and old-version compatibility are addressed.
+- `exposure_load_check`: client entry-point, default, notification, or UI-prominence changes have expected usage, backend capacity, and critical-journey failure signals before broad exposure.
+- `environment_target_check`: release artifacts point at the intended backend and dependency tiers before broad rollout.
+- `server_client_state`: response normalization, stale config, client-held state, local migrations, and adoption lag are covered before broad rollout.
 - `halt_fix_check`: rollout halt, kill switch, rollback, or forward-fix path is explicit.
 - `privacy_check`: crash/log telemetry avoids sensitive data and has symbolication/debuggability path.
 
 ## Red Flags - Stop And Rework
 
 - Release goes to 100 percent before stability metrics have sample size.
-- Only aggregate crash rate is watched; device/OS cohorts are ignored.
+- Only aggregate crash rate is watched; device, OS, account-policy, or managed cohorts are ignored.
 - Backend changes break older app versions.
+- Server rollback is assumed to repair client-held state, local migrations, or cached config without verification.
 - Crash reports include sensitive data.
 - Rollback is assumed even though client distribution cannot force downgrade.
 

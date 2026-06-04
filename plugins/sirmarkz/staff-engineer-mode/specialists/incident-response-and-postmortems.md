@@ -100,6 +100,7 @@ Use role-based incident command during response and blameless, contributing-fact
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Incident role assignment and severity classification.
 - Live or reconstructed timeline.
 - Impact summary with detection, mitigation, and resolution times.

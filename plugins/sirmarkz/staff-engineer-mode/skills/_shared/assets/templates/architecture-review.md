@@ -9,8 +9,11 @@
 
 ## Bounded Contexts
 
-| Context | Responsibility | Model/Language | Interfaces | Owned Data | Upstream | Downstream | Translation Surface |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Context | Responsibility | Model/Language | Interfaces | Owned Data |
+| --- | --- | --- | --- | --- |
+
+| Context | Upstream | Downstream | Translation Surface |
+| --- | --- | --- | --- |
 
 ## System Map
 

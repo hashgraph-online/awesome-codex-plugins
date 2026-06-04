@@ -1,7 +1,10 @@
 # Support Window Inventory
 
-| Component | Responsibility Path | Current Version | Target Version | Support Ends | Criticality | Exception | Migration Date | Evidence |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Component | Responsibility Path | Current Version | Target Version | Support Ends | Criticality |
+| --- | --- | --- | --- | --- | --- |
+
+| Component | Exception | Migration Date | Evidence |
+| --- | --- | --- | --- |
 
 ## Communication Plan
 

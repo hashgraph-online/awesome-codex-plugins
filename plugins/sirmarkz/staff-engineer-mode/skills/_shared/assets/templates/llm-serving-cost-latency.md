@@ -10,6 +10,11 @@
 | Route | Primary | Fallback | Cascade Condition | User Contract |
 | --- | --- | --- | --- | --- |
 
+## Serving Capacity
+
+| Route | Location Or Pool | Quota/Concurrency | Reserved Capacity Or Admission Limit | Input/Output Processing Signal | Resource-Exhaustion Signal | Owner |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Cache Strategy
 
 | Cache Layer | Scope | TTL | Invalidation | Target Hit Rate |

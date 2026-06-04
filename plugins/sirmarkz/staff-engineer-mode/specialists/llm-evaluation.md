@@ -90,6 +90,7 @@ Use a versioned eval harness with representative cases, slice coverage, determin
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Eval harness specification.
 - Intended-use, affected-user, unacceptable-failure, misuse, and escalation context.
 - Case inventory with production, synthetic, edge, regression, and slice coverage.

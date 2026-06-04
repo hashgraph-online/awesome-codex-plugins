@@ -1,19 +1,19 @@
 ---
 name: ingest-feedback
-description: Use when user wants to ingest a development-skills feedback report and apply fixes, or runs /ingest-feedback. Challenges every suggestion against Core Pillars before accepting; most friction points should SKIP. Expect a report path as argument.
+description: Use when user wants to ingest a development-skills feedback report and apply fixes, or runs /ingest-feedback. Challenges every suggestion against the Iron Rules before accepting; most friction points should SKIP. Expect a report path as argument.
 argument-hint: "<report-path>"
 disable-model-invocation: true
 ---
 
-Ingest a development-skills feedback report. Challenge every suggestion against Core Pillars before accepting. Report path: $ARGUMENTS
+Ingest a development-skills feedback report. Challenge every suggestion against the Iron Rules before accepting. Report path: $ARGUMENTS
 
 ## Ground Rule: The Report Is Input, Not Truth
 
 The report describes what happened, not what should change. Most friction is model behavior or edge cases. A change must EARN its place.
 
-Core Pillars (from CLAUDE.md):
-1. **Maximize simplicity.** Small improvement + ugly complexity = not worth it.
-2. **All signal, zero noise.** Everything earns its place.
+Iron Rules to apply here (canonical: `../../shared/iron-rules.md`):
+- **Principle 3 — Simplicity by default.** Small improvement + ugly complexity = not worth it.
+- **Principle 5 — All signal, zero noise.** Everything earns its place.
 
 **Marginal improvement + added words/rules → SKIP.**
 

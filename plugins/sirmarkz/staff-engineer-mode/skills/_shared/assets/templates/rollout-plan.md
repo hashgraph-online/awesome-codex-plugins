@@ -10,6 +10,7 @@
   - Rollout unit identifier:
   - Health gate result:
   - Abort or pause control:
+  - Automatic rollout queue pause:
   - Rollback target:
 - Metric definitions:
 - Artifact or change set:
@@ -19,6 +20,8 @@
 ## Rollout Stages
 
 - Preflight:
+  - Concurrent canary/config interaction check:
+  - Restart or recovery under representative load:
 - Small first rollout:
 - Next exposure step:
 
@@ -135,8 +138,17 @@ declaration for the next stage is recorded.
 ## Rollback
 
 - Rollback target:
+- New-traffic verification:
+- In-flight session/workflow repair:
 - Promotion pause:
+- Incident-mode automatic rollout queue pause:
+- Promotion re-enable criteria:
 - Re-enable criteria:
+
+## Abort Cleanup
+
+| State Item | Type | Cleanup Action | Promotion Blocker? | Owner | Verification |
+| --- | --- | --- | --- | --- | --- |
 
 ## Cleanup
 

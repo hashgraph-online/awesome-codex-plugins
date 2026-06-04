@@ -124,12 +124,19 @@ The plan artifact is the source of slice detail. Discovery extracts only:
 - `plan_path`
 - `epic_id` when one exists
 - issue count and wave count
+- the `## Scenarios` Gherkin block per bead
 - acceptance criteria YAML fences
 - next `$crank` target
 
-The plan output MUST include `acceptance_criteria` fenced YAML at two levels:
-the parent epic body and each child bead body. Criterion shape is canonical in
-`schemas/execution-packet.schema.json` (`#/$defs/Criterion`).
+Every bead `$plan` emits MUST carry an embedded `## Scenarios` Gherkin block
+(Given/When/Then) by default — this is the behavior layer and is non-optional.
+Free-text-only acceptance is invalid (AGENTS.md). The plan output MUST also
+include `acceptance_criteria` fenced YAML at two levels (the machine-checkable
+layer): the parent epic body and each child bead body. Criterion shape is
+canonical in `schemas/execution-packet.schema.json` (`#/$defs/Criterion`).
+Discovery does NOT relax this requirement; if a returned bead lacks a
+`## Scenarios` block, send it back to `$plan` to be promoted before compiling
+the packet.
 
 ### STEP 4.5 - Optional Scaffold
 
@@ -177,9 +184,15 @@ Emit:
 
 ## Acceptance Criteria Contract
 
-Both the epic and each child bead carry an `acceptance_criteria` fenced YAML
-block. STEP 6 lifts these into the execution packet as `epic_criteria` and
-`bead_criteria`.
+Both the epic and each child bead carry, by default:
+
+1. An embedded `## Scenarios` Gherkin block (Given/When/Then) — the behavior
+   layer, mandatory and non-optional for every bead.
+2. An `acceptance_criteria` fenced YAML block — the machine-checkable layer.
+
+STEP 6 lifts the criteria into the execution packet as `epic_criteria` and
+`bead_criteria`. The `## Scenarios` block stays in the bead body and feeds the
+`scenario-hash-stability` CI gate.
 
 ```yaml
 acceptance_criteria:

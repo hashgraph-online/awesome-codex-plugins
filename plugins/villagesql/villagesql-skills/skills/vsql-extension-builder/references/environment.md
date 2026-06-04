@@ -2,11 +2,15 @@
 
 ## Build workflow
 
+`build.sh` **must be run from the repo root** — the directory that contains
+`CMakeLists.txt`. Running it from a subdirectory will fail with "No such
+file or directory."
+
 ```bash
 export VillageSQL_BUILD_DIR=/path/to/villagesql/build
-cd extension-name/
-./build.sh                # Produces build/<extension_name>.veb
-cd build && make install  # Copies .veb to VEB directory
+cd extension-name/           # repo root — contains CMakeLists.txt
+./build.sh                   # Produces build/<extension_name>.veb
+cd build && make install     # Copies .veb to VEB directory
 mysql -u root -e "INSTALL EXTENSION <extension_name>;"
 ```
 
@@ -29,10 +33,21 @@ VillageSQL extensions. Never `test/`.
 
 ## Run MTR from `{build_dir}/mysql-test`
 
+Run MTR from `{build_dir}/mysql-test/`. For **prebuilt installs**
+(`~/.villagesql/prebuilt/`), this is required — the script uses relative
+`@INC` paths that only resolve from within that directory, and running from
+anywhere else fails with `Can't locate My/ConfigFactory.pm`. For dev builds,
+a wrapper script handles the `chdir` automatically, so working directory
+doesn't matter.
+
 ```bash
-perl mysql-test-run.pl --suite=/path/to/extension-name/mysql-test
-perl mysql-test-run.pl --suite=/path/to/extension-name/mysql-test --record
+cd {build_dir}/mysql-test
+perl mysql-test-run.pl --suite=/absolute/path/to/extension-name/mysql-test
+perl mysql-test-run.pl --suite=/absolute/path/to/extension-name/mysql-test --record
 ```
+
+The `--suite` path must be absolute. A relative path resolves against
+`{build_dir}/mysql-test/`, not the extension directory.
 
 ## MTR test file syntax
 
@@ -71,7 +86,8 @@ SELECT vsql_webhook.webhook_call('http://127.0.0.1:18888/');
 
 ## Key paths
 
-- Staged SDK: `{build_dir}/villagesql-extension-sdk-*/` (newest by mtime)
+- Staged SDK: `{build_dir}/villagesql-extension-sdk-*/` (highest semver —
+  filter to directories only, extract MAJOR.MINOR.PATCH, select the max)
 - SDK version: `{sdk_dir}/bin/villagesql_config --version`
 - SDK headers: `{sdk_dir}/include/` and `{sdk_dir}/include-dev/` (typed
   API may live in either; check both — see Phase 2 bootstrap)

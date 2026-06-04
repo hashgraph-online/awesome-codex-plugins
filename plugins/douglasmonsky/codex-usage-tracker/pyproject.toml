@@ -57,6 +57,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "codex_usage_tracker.plugin_data" = [
   "assets/*",
+  "dashboard/*",
   "docs/*",
   "docs/assets/*",
   "skills/codex-usage-tracker/*",

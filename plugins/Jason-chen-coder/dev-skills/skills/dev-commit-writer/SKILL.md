@@ -153,7 +153,7 @@ git log -5 --pretty=format:"%H%n%s%n%n%b%n---END---"   # 完整 message 采样,�
 
 ## Step 4b — Artifact references 检测(自动追溯)
 
-在 commit message footer 自动加 `Refs:` 行,关联 dev-spec / dev-plan / dev-fix 产物。
+在 commit message footer 自动加 `Refs:` 行,关联 spec / plan / fix 产物。
 
 ### 扫描流程
 

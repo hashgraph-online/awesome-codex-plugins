@@ -40,22 +40,25 @@ Asynchronous systems trade call-time coupling for delivery, ordering, replay, an
 - Producers, consumers, topics/queues/streams, and event purpose.
 - Event type: notification, state transfer, event-sourced fact, command, reply, or workflow step.
 - Schema, compatibility rules, required fields, versioning, and responsibility.
+- Trigger, subscription, or consumer-runtime compatibility across producer and consumer versions, including disabled, delayed, and replay-after-fix behavior.
 - Delivery semantics, ordering needs, partition key, idempotency key, and dedupe window.
 - Retry policy, backoff, max attempts, DLQ handling, poison message behavior, and manual repair.
 - Queue bounds, age, depth, drain rate, consumer concurrency, and batched-message per-item status.
 - Replay needs, retention, correction process, and consumer side effects.
+- Notification or external side-effect volume limits, downstream acceptance signals, and reputation or policy thresholds.
 - Backlog metrics, processing latency, freshness, consumer lag, and alert thresholds.
 
 ## Workflow
 
 1. **Classify the pattern.** Distinguish notification, event-carried state, event sourcing, command, CQRS read model, saga, and workflow orchestration.
-2. **Define the contract.** Write schema, meaning, responsibility, compatibility, and versioning rules before implementation.
+2. **Define the contract.** Write schema, meaning, responsibility, trigger/runtime compatibility, and versioning rules before implementation.
 3. **Publish atomically.** Use a durable local transaction plus outbox or equivalent when state change and message publication must agree.
 4. **Make consumers idempotent.** Design dedupe, commutative updates, durable processing markers, or safe side effects.
 5. **Control retries.** Bound attempts, add backoff/jitter, isolate poison messages, define DLQ responsibility, and retry only failed or unknown items in batched work when item status is available.
 6. **Plan ordering and partitioning.** Order only where necessary; choose partition keys that avoid hot partitions and preserve required entity order.
 7. **Design replay and correction.** Ensure reprocessing is safe, observable, and can repair bad events or bad consumers.
-8. **Instrument the flow.** Track enqueue time, age, depth, lag, drain rate, processing errors, consumer concurrency, DLQ volume, batched-item status, and replay progress.
+8. **Bound side effects.** For notifications or other external side effects, validate fanout, acceptance, suppressions, bounce/rejection signals, and user-visible misclassification before increasing volume.
+9. **Instrument the flow.** Track enqueue time, age, depth, lag, drain rate, processing errors, consumer concurrency, DLQ volume, batched-item status, downstream acceptance, and replay progress.
 
 ## Synthesized Default
 
@@ -93,11 +96,14 @@ Use at-least-once delivery with idempotent consumers as the default mental model
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Event/workflow contract and schema compatibility policy.
+- Trigger or consumer-runtime compatibility policy, including whether delayed events are replayed, dropped, or require manual repair after a rollback or fix.
 - Producer/consumer responsibility matrix.
 - Idempotency and duplicate-handling plan.
 - Retry, backoff, DLQ, and poison-message policy.
 - Queue/workflow overload table covering depth, age, drain rate, consumer concurrency, poison path, and batched-item status.
+- Notification and external side-effect acceptance checks when the workflow emits user-visible or third-party-visible effects.
 - Ordering, partitioning, and hot-key plan.
 - Replay, correction, and manual repair plan.
 - Observability requirements for age, lag, depth, errors, and replay.
@@ -105,9 +111,11 @@ Use at-least-once delivery with idempotent consumers as the default mental model
 ## Checks Before Moving On
 
 - `contract_check`: event meaning, schema, and compatibility rules are documented.
+- `trigger_compatibility`: trigger or consumer-runtime changes define delayed, dropped, replayed, and rollback behavior across versions.
 - `idempotency_check`: every consumer side effect is duplicate-safe or explicitly non-retryable.
 - `retry_dlq_check`: retry attempts, backoff, DLQ responsibility, and poison handling are defined.
 - `queue_bound`: queue depth, age, drain rate, and consumer concurrency have bounds or explicit unknowns.
+- `side_effect_bound`: notification and external side-effect volume has acceptance signals, suppression rules, and rollback or throttling criteria.
 - `poison_path`: poison item handling, DLQ responsibility, and manual repair path are defined.
 - `batch_item_status`: batched work records per-item success, failure, or unknown status before retry.
 - `ordering_check`: ordering and partition key choices match the entity semantics.
@@ -120,6 +128,7 @@ Use at-least-once delivery with idempotent consumers as the default mental model
 - Events are named after implementation steps rather than durable business facts.
 - Schema changes have no compatibility rules.
 - Replay would send emails, charge cards, or trigger irreversible actions again.
+- Notification volume is changed without downstream acceptance, rejection, suppression, or misclassification monitoring.
 
 ## Common Mistakes
 

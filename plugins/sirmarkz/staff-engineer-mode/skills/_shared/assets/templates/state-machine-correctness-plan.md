@@ -15,6 +15,11 @@
 | Case | Retry Rule | Reconciliation | User Contract |
 | --- | --- | --- | --- |
 
+## Timed Ownership
+
+| Lease/Grant/Lock | Expiry Condition | Stop Rule | Renewal Window | Reacquisition Path |
+| --- | --- | --- | --- | --- |
+
 ## Validation Method
 
 | Method | Scope | Counterexample Capture | Design Change |

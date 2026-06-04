@@ -30,6 +30,10 @@ by default: do not introduce provider, product, framework, database, protocol,
 or command names unless the user supplied them or explicitly requested
 tool-specific guidance.
 
+Every specialist's Required Outputs must include an output-shape rule: render
+the matching shared template headings or tables in the reply, or use the same
+shape. Keep templates, checklists, and reviews user-visible.
+
 Every specialist must state lifecycle behavior:
 
 - Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.

@@ -103,6 +103,7 @@ Prefer synthetic, parameterized fixtures generated at test time. Use captured pr
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Fixture inventory with name, classification, scope, generation source, refresh cadence, and restore procedure per fixture.
 - Anonymization policy for captured data covering direct identifiers, quasi-identifiers, sensitive fields, free-text, and the transform applied per field type.
 - Freshness-versus-determinism decision per fixture class with the rule that governs each.

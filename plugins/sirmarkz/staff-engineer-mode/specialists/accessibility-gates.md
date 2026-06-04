@@ -90,6 +90,7 @@ Check critical journeys with a named conformance target, automated checks, manua
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Accessibility conformance target and journey inventory.
 - Release check matrix: automated checks, manual checks, blocking status, and repair path.
 - Critical journey manual test script.

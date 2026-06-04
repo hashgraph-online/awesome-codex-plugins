@@ -19,7 +19,7 @@ praxis: scope=<x>, loading=<skills>
 
 | scope | signal | load |
 |---|---|---|
-| vague | problem space undefined — can't yet say what to build, for whom, or whether it's worth building | `discover` |
+| vague | problem space undefined — can't yet say what to build, for whom, or whether it's worth building | `design` |
 | trivial | typo, rename, docs-only, <=1-line, pure Q | none |
 | small | one function, single file, <=50 LOC, or test-only change | `tdd` (intent unclear? clarify first) |
 | standard | feature or source-code change | `design`, `plan`, `tdd`, `review` |
@@ -31,7 +31,7 @@ If multiple scopes fit, choose the smaller one. `vague` is a last resort — if 
 
 ## Rule
 
-0. **Check state first**: if `docs/discovery/` contains any file where "Confirmed direction" is empty, and the current task has no clear deliverable (no file, function, or behavior to change), treat scope as `vague`. Otherwise proceed with normal triage.
+0. Unfamiliar with this project? Read `docs/tech-spec.md` first.
 1. Classify inline using the table above — no Skill call needed for triage.
 2. Announce: `praxis: scope=<x>, loading=<skills>`
 3. Load all required skills **in parallel** (single response, multiple Skill tool calls): `praxis:<name>`, or in file-read harnesses from `skills/<name>/SKILL.md`.

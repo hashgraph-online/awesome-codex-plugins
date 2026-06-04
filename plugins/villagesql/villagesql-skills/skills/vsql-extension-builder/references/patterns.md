@@ -23,13 +23,17 @@ from Phase 2 bootstrap — anything named here is illustrative.
   integers; `memcpy` for floats/doubles (always native format).
 
 - **Exception Safety.** All SQL entry points must be wrapped in `try/catch
-  (...)`.
+  (...)`. Use function-try-block syntax.
 
-- **Memory Safety.** Bounds checking before every `memcpy` or `memset`.
+- **Null check first.** Check the null flag before any other field access
+  inside every entry point body.
 
-- **Allocation Efficiency.** Use `std::string_view` for parsing. Never
-  `push_back(c)` in a loop. Only allocate `std::string` for the final
-  in-memory representation. Use `.reserve()`.
+- **Memory Safety.** Bounds checking before every `memcpy` or `memset`
+  against the destination buffer size.
+
+- **Allocation Efficiency.** Use `std::string_view` for parsing hot paths.
+  Never `push_back(c)` in a loop. Only allocate `std::string` for the
+  final in-memory representation. Use `.reserve()`.
 
 - **Move semantics in initializer lists.** Do not move from a variable
   and also use it in the same initializer list — C++ does not guarantee
@@ -38,8 +42,11 @@ from Phase 2 bootstrap — anything named here is illustrative.
   read. Move into a local first, then construct: `auto k = std::move(key);
   return {k, {std::move(k), val}};` — or copy where the value is small.
 
-- **No file-scope `using namespace`.** Per-function `using` declarations
-  or fully-qualified names only.
+- **No file-scope `using namespace`.** Prefer per-symbol `using`
+  declarations (e.g. `using vsql::CustomArg;`) at the top of each
+  translation unit. Fall back to fully-qualified names when two namespaces
+  would collide or in template contexts where the declaration site is
+  ambiguous.
 
 ## VEF Data Patterns
 

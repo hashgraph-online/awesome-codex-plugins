@@ -162,12 +162,12 @@ Inspect, lint, and triage the `.agents/` write surface contract via `ao agents i
 
 ## Runtime Modes
 
-AgentOps has three runtime modes. Do not assume hook automation exists everywhere.
+AgentOps has several runtime modes. Do not assume hook automation exists everywhere.
 
 | Mode | When it applies | Start path | Closeout path | Guarantees |
 |------|-----------------|------------|---------------|------------|
-| `gc` | Gas City (`gc`) binary available and `city.toml` present | terminal wrapper sessions can use the gc controller | gc event bus captures phase/gate/failure/metric events | CLI/runtime substrate for terminal launches; Codex skills still chain `$skill` invocations for lead orchestration |
-| `codex-hookless-fallback` | Codex Desktop / Codex CLI without hook surfaces (no gc) | `ao codex start` or `ao codex ensure-start` | `ao codex stop` or `ao codex ensure-stop` | Explicit startup context, citation tracking, transcript fallback, and close-loop metrics without hooks |
+| `substrate` (out-of-session) | A swappable orchestration substrate available out-of-session: an NTM tmux swarm, MCP (`ao mcp serve`), or managed-agents (`ao agent`) | The operator or a lead agent runs `bd ready` and dispatches a whole loop per bead (`ao rpi <bead>`); cron / managed triggers run maintenance | The substrate owns the merge gate (CI-green is the signal) and triggers the knowledge-flywheel feedback | The substrate orchestrates *whole* `ao rpi`/`ao evolve` loops — it never sees the loop's insides; the seam is substrate → `ao` as a subprocess. There is no in-CLI `runtime=gc` executor. Codex skills still chain `$skill` invocations for lead orchestration. See [docs/3.0.md](https://github.com/boshu2/agentops/blob/main/docs/3.0.md). |
+| `codex-hookless-fallback` | Codex Desktop / Codex CLI without hook surfaces | `ao codex start` or `ao codex ensure-start` | `ao codex stop` or `ao codex ensure-stop` | Explicit startup context, citation tracking, transcript fallback, and close-loop metrics without hooks |
 | `manual` | Codex cannot resolve repo/runtime state automatically | `ao inject` / `ao lookup` | `ao forge transcript` + `ao flywheel close-loop` | Works everywhere, but lifecycle actions are operator-driven |
 
 Codex skill orchestration default is `$skill` chaining. Inside a Codex skill,

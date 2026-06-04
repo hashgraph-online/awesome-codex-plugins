@@ -80,11 +80,15 @@ Feature: Plan converts dense intent into executable slices
 8. **Decompose into issues.** Each issue needs title, file ownership,
    dependencies, acceptance criteria, test levels, and at least one mechanical
    conformance check (`files_exist`, `content_check`, `command`, `tests`, or
-   `lint`). Feature, bug, and product-facing behavior issues also need a
-   fenced `gherkin` block or a link to the upstream intent issue scenario.
-   Non-trivial plans and bead bodies should include the `hexagon:` boundary
-   block: inbound port, bounded context, adapters, context packet, and done
-   state.
+   `lint`). **Every bead MUST also carry an embedded `## Scenarios` Gherkin
+   block (Given/When/Then) — by default, without being asked.** Free-text-only
+   acceptance is invalid (AGENTS.md); promote any free text to scenarios before
+   creating the bead. The `## Scenarios` block is the behavior layer and sits
+   above the `acceptance_criteria` YAML (the machine-checkable layer); they are
+   complementary, never substitutes. One scenario per distinct Given/When/Then
+   behavior. Non-trivial plans and bead bodies should include the `hexagon:`
+   boundary block: inbound port, bounded context, adapters, context packet, and
+   done state.
 9. **Compute waves.** Group independent issues by dependency. Serialize or
    merge same-file writes. Include generated artifacts, docs, schemas, fixtures,
    Codex companions, manifests, and hash markers in ownership.

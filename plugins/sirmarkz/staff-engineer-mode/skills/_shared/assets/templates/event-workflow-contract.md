@@ -17,6 +17,11 @@
 | Field/Event | Required | Compatibility Rule | Default | Validation |
 | --- | --- | --- | --- | --- |
 
+## Trigger Compatibility
+
+| Trigger Or Consumer | Version Boundary | Delayed Event Behavior | Rollback/Fix Behavior | Verification |
+| --- | --- | --- | --- | --- |
+
 ## Delivery Semantics
 
 | Step | Ordering | Partitioning | Idempotency | Duplicate Handling |
@@ -36,6 +41,11 @@
 
 | Queue/Workflow | Depth | Age | Drain Rate | Consumer Concurrency | Poison Path | Batched-Item Status |
 | --- | --- | --- | --- | --- | --- | --- |
+
+## External Side Effects
+
+| Side Effect | Volume Bound | Acceptance Signal | Suppression/Rejection Signal | Rollback Or Throttle |
+| --- | --- | --- | --- | --- |
 
 ## Observability
 

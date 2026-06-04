@@ -38,11 +38,11 @@ echo "obs_files: $(ls "$HARNESS_DIR/obs/" | wc -l)"
 python3 -c "import json; m=json.load(open('$HARNESS_DIR/metrics.json')); print('total_sessions:', m.get('total_sessions',0))"
 ```
 
-Query harness-mem (if active):
-```
-mem_recall(hint="AI usage patterns decisions metacognition", limit=8)
-mem_list(type="decision", limit=5)
-mem_list(type="pattern", limit=5)
+Query memory (if active):
+```bash
+epic-harness mem recall "AI usage patterns decisions metacognition" --limit 8
+epic-harness mem list --type decision --limit 5
+epic-harness mem list --type pattern --limit 5
 ```
 
 ### Step 1 — 5-Dimension Reflection
@@ -56,7 +56,7 @@ Metrics:
 - Agent tool call ratio (`Agent / total_obs` — higher = delegated thinking)
 - Skill invocation frequency (meta-layer usage)
 - council/discover/spec execution history
-- harness-mem decision node count
+- Memory decision node count
 
 Scoring:
 | Score | Signal |
@@ -85,7 +85,7 @@ Scoring:
 **Question**: Are conversations with AI helping recognize and upgrade your own thinking?
 
 Metrics:
-- harness-mem concept/pattern node count and recency
+- Memory concept/pattern node count and recency
 - Decision/ADR recording frequency
 - Session snapshots mentioning "learnings"
 - `/discover` `/spec` execution history (problem-framing practice)
@@ -174,21 +174,20 @@ Format: `[Priority] Title — Concrete action — Expected impact`
 Recommended action pool (select by low-scoring dimensions):
 - Thought Amplification low → council mode weekly, /spec writing habit
 - Self-Improvement low → `/evolve history` periodic review, manual pattern notes
-- Metacognition low → mem_add(type=decision) after every important decision
+- Metacognition low → `epic-harness mem add --type decision` after every important decision
 - Prompt low → post low-quality session prompt review → seed improved evolved skill
 - Efficiency low → Agent parallel sub-agent patterns, script repetitive Bash calls
 
 ### Step 5 — Save to Memory
 
-Save reflection to harness-mem (if mem tools active):
-```
-mem_add(
-  type="session",
-  title="AI usage reflection {date}",
-  tags=["reflection", "metacognition"],
-  importance=0.8,
-  body="Overall: {score}/10. Lowest: {lowest_dim}. Top action: {top_action}"
-)
+Save reflection to memory (if mem tools active):
+```bash
+epic-harness mem add \
+  --type session \
+  --title "AI usage reflection {date}" \
+  --tags "reflection,metacognition" \
+  --importance 0.8 \
+  --body "Overall: {score}/10. Lowest: {lowest_dim}. Top action: {top_action}"
 ```
 
 ---
@@ -200,7 +199,7 @@ mem_add(
 | "Too few sessions for accurate reflection" | Even 3 sessions reveal patterns. Insufficient data is not an excuse for a high score. | Reflect on available data; add data collection improvement as an action item. |
 | "Bash-heavy because it's a Rust project" | Tool usage distribution doesn't only reflect task type. Check for Bash calls that could be delegated to Agent. | Find ≥ 3 Bash calls that could be replaced by Agent delegation. |
 | "Score 0.75 is good enough" | 0.75 is not an absolute standard. Trend vs previous period matters more. | Compare last 5-session average vs prior 5-session average in score_history. |
-| "No memory needed — context is enough" | Context dies at session end. Without cross-session learning continuity, you start from scratch every time. | Start the habit of mem_add after every important decision — now. |
+| "No memory needed — context is enough" | Context dies at session end. Without cross-session learning continuity, you start from scratch every time. | Start the habit of `epic-harness mem add` after every important decision — now. |
 | "Code output is already good, so it's fine" | Code output quality ≠ thought amplification. Good code can still mean AI is doing the thinking for you. | Count how many decisions in the last 5 sessions you actually designed yourself. |
 
 ## Evidence Required
@@ -218,4 +217,4 @@ mem_add(
 - Action items at "use more often" level → rewrite with concrete actions and metrics.
 - Summary under 200 chars → insufficient analysis. Cite more evidence.
 - Script failure stops reflection → fall back to manual collection and continue.
-- harness-mem save omitted → reflection won't carry into next session.
+- Memory save omitted → reflection won't carry into next session.

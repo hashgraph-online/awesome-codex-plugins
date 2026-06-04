@@ -108,6 +108,7 @@ Optimize the repository for one-tool-call discovery. Keep modules narrow and pre
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Module-boundary map with stated responsibility, actual exports, and any contradictions.
 - One-tool-call test results: a list of representative behaviors with the search query used, the candidate matches returned, and pass/fail.
 - Name-collision list with each colliding name, the modules it appears in, and the proposed disambiguating renames.

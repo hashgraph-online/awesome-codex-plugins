@@ -37,9 +37,8 @@
 
 ## Security
 
-## Capacity
-
-## Recovery
+| Area | Evidence | Residual Risk | Exception Or Blocker | Owner |
+| --- | --- | --- | --- | --- |
 
 ## Launch Blockers
 

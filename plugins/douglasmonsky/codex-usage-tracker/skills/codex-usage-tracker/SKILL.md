@@ -29,3 +29,5 @@ The only exception is `usage_call_context`, which intentionally reads one select
 - Use `export_usage_csv` when the user wants local spreadsheet-friendly data.
 - Use `update_usage_pricing_config` when the user wants cost estimates based on OpenAI-published text-token pricing. This refreshes the local pricing cache and does not send local usage data anywhere. Internal Codex labels may include explicitly marked best-guess estimates when no public pricing row exists.
 - Use `init_usage_pricing_config` only when the user wants a manual local pricing template or override file.
+- Codex credit estimates are aggregate-only and use bundled or locally configured Codex rate-card values. Direct model matches are exact; aliases and inferred labels are marked estimated.
+- Use `init_usage_allowance_config` only when the user wants a local allowance template for manually copied 5-hour or weekly remaining usage from Codex Usage or `/status`.

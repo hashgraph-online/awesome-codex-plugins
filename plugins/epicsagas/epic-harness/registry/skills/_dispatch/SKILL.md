@@ -25,7 +25,7 @@ You have access to the following skills. **Invoke the matching skill BEFORE resp
 | User request is vague, unfocused, or presents a solution without a clear problem | **discover** |
 | User shares code for review, mentions code smells, or asks to refactor/analyze | **episteme** → `analyze_code` + `suggest_refactorings` → feed results into **go:plan** mode |
 | User invokes `/reflect`, asks about AI usage quality, "am I using AI well", "thought amplifier", or requests AI usage self-assessment | **reflect** |
-| Session start (project has harness-mem psychographic node) | Call `mem_list` type=psychographic → apply 5-dimension profile to all subsequent skill dispatch |
+| Session start (project has psychographic node in memory) | Run `epic-harness mem list --type psychographic` → apply 5-dimension profile to all subsequent skill dispatch |
 | Orchestration run active (`$HARNESS_DIR/orchestrator/run.json` exists with status "running") | **orchestrate** |
 | Agent tool output received with inter-agent message | **orchestrate** |
 | User runs `/intervene` | **orchestrate** |
@@ -129,11 +129,11 @@ This enables Ring 3 to analyze which skills fire most often, which are effective
 
 Before invoking any skill, **proactively recall** relevant knowledge from the memory graph:
 
-1. **At task start**: Call `mem_recall` with a hint describing the current task (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
-2. **On errors**: Call `mem_recall` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
-3. **On architectural decisions**: Call `mem_recall` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
-4. **After resolution**: Record via `mem_add` with type `resolution` (auto-importance=0.8) or `decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
-5. **Fallback**: If `mem_recall` is unavailable, use `mem_search` (keyword FTS) or `mem_context` (project-scoped smart recall).
+1. **At task start**: Run `epic-harness mem recall "TASK_HINT"` with a hint describing the current task (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
+2. **On errors**: Run `epic-harness mem recall "ERROR_CATEGORY"` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
+3. **On architectural decisions**: Run `epic-harness mem recall "DOMAIN_AREA"` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
+4. **After resolution**: Record via `epic-harness mem add --title "TITLE" --type resolution --body "BODY"` (auto-importance=0.8) or `--type decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
+5. **Fallback**: If `mem recall` is unavailable, use `epic-harness mem search "KEYWORD"` (keyword FTS) or `epic-harness mem context --project PROJ` (project-scoped smart recall).
 
 Memory scoring: recency(25%) + importance(35%) + access_freq(15%) + FTS_match(25%). Frequently accessed and important memories naturally float to the top; unused noise decays over time.
 
@@ -164,7 +164,7 @@ Check `$HARNESS_DIR/evolved/` for project-specific auto-evolved skills. These ar
 
 ## Psychographic Adaptation
 
-When user preference data is available in harness-mem (psychographic nodes), adapt dispatch behavior:
+When user preference data is available via `epic-harness mem list --type psychographic`, adapt dispatch behavior:
 
 ### 5-Dimension Profile
 
@@ -178,7 +178,7 @@ When user preference data is available in harness-mem (psychographic nodes), ada
 
 ### How to use
 
-1. At session start, call `mem_list` with type=psychographic to load profile
+1. At session start, run `epic-harness mem list --type psychographic` to load profile
 2. If no profile exists, use defaults: moderate/balanced/standard/collaborative/balanced
 3. Apply profile dimensions to skill selection and execution parameters:
 
@@ -190,7 +190,7 @@ When user preference data is available in harness-mem (psychographic nodes), ada
 
 ### Profile storage
 
-Store profiles using `mem_add` with:
+Store profiles using `epic-harness mem add` with:
 - type: "psychographic"
 - title: "user-profile: {project}"
 - tags: ["psychographic", "profile", project slug]
@@ -231,4 +231,4 @@ Store profiles using `mem_add` with:
 - Not logging dispatches (breaks evolution analysis)
 - Treating evolved skills as authoritative over static skills
 - Issuing phase transition prompts during an active orbit
-- Not checking psychographic profile at session start when harness-mem is active
+- Not checking psychographic profile at session start when memory CLI is active

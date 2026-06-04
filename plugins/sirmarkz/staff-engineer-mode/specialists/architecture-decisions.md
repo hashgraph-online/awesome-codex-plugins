@@ -107,6 +107,7 @@ Use a compact design decision plus ADR. Keep the system modular and technology-a
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Architecture decision summary with context, goals, non-goals, and constraints.
 - ADR with status, decision, alternatives, consequences, and a concrete responsibility value (user, local check path, or supplied project role; if unknown, use `ASSUMED: <component> responsibility` rather than a blank or `TBD`).
 - System map covering data flow, dependencies, trust boundaries, and responsibility.

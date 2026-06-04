@@ -40,7 +40,9 @@ Production ML reliability is software reliability plus data reliability plus mod
 - Training data, feature definitions, schemas, labels, transform code, and serving data sources.
 - Offline eval metrics, acceptance thresholds, slices/cohorts, fairness/safety checks where relevant, and regression history.
 - Training-serving consistency checks, feature freshness, null/default behavior, and schema drift.
-- Model artifact version, data version, config, dependencies, and rollout unit.
+- Model artifact version, artifact size or storage needs, data version, config, dependencies, and rollout unit.
+- Model routing, routing-control-plane health and selection signals, access-control config, artifact deletion or restoration behavior, serving substrate readiness, and serving dependency compatibility.
+- Model availability semantics, false-unavailable behavior, and whether critical models roll out in later waves after low-risk exposure.
 - Serving SLOs, latency, saturation, fallback behavior, monitoring, and rollback path.
 - Drift, quality, feedback, incident, and human-review signals.
 
@@ -51,9 +53,10 @@ Production ML reliability is software reliability plus data reliability plus mod
 3. **Check training-serving skew.** Compare feature generation, preprocessing, defaults, and dependency versions across training and serving.
 4. **Define eval checks.** Use offline metrics, slice metrics, regression tests, adversarial/security checks, safety/business constraints, and minimum deltas for promotion.
 5. **Version everything.** Link model artifact, code, features, data snapshot, config, eval result, and serving environment.
-6. **Roll out progressively.** Use shadow, canary, cohort, percentage, or holdback where feasible; monitor serving and model behavior.
-7. **Monitor production with thresholds.** Track serving SLOs, prediction distribution, feature drift, data freshness, quality proxies, feedback loops, and capacity or quota saturation; name alert thresholds or rollback triggers for at least two of those signals.
-8. **Prepare rollback.** Keep prior artifact/config available and define when to rollback, disable, or route to baseline.
+6. **Validate serving control state.** Check model routing, access-control config, dependency version compatibility, artifact size, storage or provisioning prerequisites, artifact deletion or restoration behavior, serving substrate readiness, and fallback selection before promotion. Verify routing control planes use correctness health for model availability and do not prefer a faster but stale or wrong control plane.
+7. **Roll out in stages.** Use shadow, canary, cohort, percentage, or holdback when the rollout can bound risk; monitor serving and model behavior.
+8. **Monitor production with thresholds.** Track serving SLOs, prediction distribution, feature drift, data freshness, quality proxies, feedback loops, and capacity or quota saturation; name alert thresholds or rollback triggers for at least two of those signals.
+9. **Prepare rollback.** Keep prior artifact/config available and define when to rollback, disable, or route to baseline.
 
 ## Synthesized Default
 
@@ -92,12 +95,14 @@ Check ML releases on data validation, eval results, threat-informed failure-mode
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - ML production readiness checklist.
 - Data and feature validation plan.
 - Training-serving skew review.
 - Offline and production eval check plan.
 - AI/ML failure-mode and adversarial/security evaluation plan where misuse or dependency manipulation can affect users.
 - Versioning and artifact lineage record.
+- Serving control-state check for routing, routing-control-plane correctness, access controls, dependency compatibility, artifact size and provisioning prerequisites, artifact deletion or restoration, serving substrate readiness, and fallback selection.
 - Model rollout and rollback plan.
 - Drift, quality, freshness, serving latency, and capacity/quota monitoring requirements with alert thresholds and response paths.
 - Incident path and residual risk notes.
@@ -108,6 +113,8 @@ Check ML releases on data validation, eval results, threat-informed failure-mode
 - `eval_check`: promotion thresholds, regression checks, and slice criteria are stated.
 - `skew_check`: training-serving feature and transform differences are checked.
 - `version_lineage`: model, code, data, features, config, and eval result are linked.
+- `serving_control_state`: model routing, access-control config, dependency compatibility, artifact size and provisioning prerequisites, artifact deletion or restoration, serving substrate readiness, and fallback selection are verified.
+- `routing_control_plane`: model unavailable/deleted states are cross-checked, control-plane selection uses correctness health, and critical models roll out in later waves.
 - `monitoring_thresholds`: prediction drift, feature distribution drift, latency, freshness, saturation, or quota signals have alert thresholds and response paths.
 - `rollback_check`: prior model or safe fallback is available with trigger criteria.
 
@@ -116,6 +123,8 @@ Check ML releases on data validation, eval results, threat-informed failure-mode
 - Offline aggregate accuracy is the only launch check.
 - Feature generation differs between training and serving with no skew check.
 - Model artifact cannot be tied to data, code, config, and eval result.
+- Serving config can route to a model artifact with missing access, deleted state, incompatible dependencies, or unverified provisioning requirements.
+- Routing prefers a low-latency control plane that reports incorrect model availability.
 - Rollback requires retraining under incident pressure.
 - Drift is monitored without a decision rule, threshold, or response path.
 - Serving latency, capacity, or quota risk is discussed without alert thresholds.

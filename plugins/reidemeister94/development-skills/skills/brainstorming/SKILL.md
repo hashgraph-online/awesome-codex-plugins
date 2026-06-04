@@ -8,7 +8,7 @@ allowed-tools: Glob, Grep, Read, Bash, Task, AskUserQuestion, Edit, Write, Skill
 # Brainstorming — Conversational Design
 
 <HARD-GATE>
-No code, scaffold, or implementation action until design is presented AND user-approved. Every non-trivial task. A long prior artifact (audit, RFC, plan, ticket) is a *stronger* trigger, not an exemption. *"This is too simple"* / *"the audit already decided"* / *"this is just execution"* → STOP, display the design, gate. Process Rule D (`../../shared/iron-rules.md`): spirit beats letter.
+No code, scaffold, or implementation action until design is presented AND user-approved. Every non-trivial task. A long prior artifact (audit, RFC, plan, ticket) is a *stronger* trigger, not an exemption. *"This is too simple"* / *"the audit already decided"* / *"this is just execution"* → STOP, display the design, gate. Meta-rule (`../../shared/iron-rules.md`): spirit beats letter.
 </HARD-GATE>
 
 Interview the user relentlessly about every aspect of the plan until you reach shared understanding. Walk down each branch of the design tree, resolving dependencies one-by-one. For each question, attach your reasoned guess. Optionally delegate web research. Write a plan to disk, gate before handing off to `core-dev`.
@@ -89,7 +89,7 @@ After return, **Read** the research file. Pull the selected approach, anti-patte
 
 ## STEP 5 — Critical Evaluation (always performed)
 
-Read `critical-analysis.md`. Run the Simplicity Audit (Iron Rules Pillar 1) for every approach. Score complexity (0-10). Apply MINIMAL (0-5) / MID (6-7) / FULL (8-10) framework. **No SKIP** — even score-0 gets a 2-line risk-and-mitigation.
+Read `critical-analysis.md`. Run the Simplicity Audit (Iron Rules Principle 3) for every approach. Score complexity (0-10). Apply MINIMAL (0-5) / MID (6-7) / FULL (8-10) framework. **No SKIP** — even score-0 gets a 2-line risk-and-mitigation.
 
 Verdict: **PROCEED / PROCEED WITH CHANGES / RECONSIDER / STOP**. An approach that fails the Simplicity Audit is `RECONSIDER` regardless of other strengths. If `RECONSIDER` or `STOP`, surface the reason and re-enter Step 2 or end the flow.
 
@@ -219,7 +219,7 @@ Then ask via `AskUserQuestion`: *"Approve the design and proceed to implementati
 - *"Sure, let's go"* → polite exit. Ask: *"Approve, or skip this?"*
 - Silence then *"okay let's start"* → gave up, not converged. Reframe.
 
-**Spirit beats letter** (Process Rule D). A skipped gate, a hedged confirmation, an inferred "yes" — each violates it.
+**Spirit beats letter** (meta-rule). A skipped gate, a hedged confirmation, an inferred "yes" — each violates it.
 
 If user picks `"Modify"`: ask what, edit the plan file, re-restate, re-gate.
 

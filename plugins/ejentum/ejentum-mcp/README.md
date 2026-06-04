@@ -25,15 +25,15 @@ Two install paths use the same `EJENTUM_API_KEY`:
 
 You need:
 - An Ejentum API key. 30-day free trial (no card) at [ejentum.com/pricing](https://ejentum.com/pricing).
-- Node.js 18+ (only required for manual install; Smithery handles this).
+- Node.js 18+.
 
-### One-click via Smithery
+### Install from npm
 
 ```bash
-npx -y @smithery/cli install ejentum/ejentum-mcp --client claude
+npm install ejentum-mcp
 ```
 
-Replace `claude` with `cursor`, `windsurf`, `cline`, etc.
+Or skip the install and reference it with `npx -y ejentum-mcp` directly in your client config (shown below).
 
 ### Manual install
 

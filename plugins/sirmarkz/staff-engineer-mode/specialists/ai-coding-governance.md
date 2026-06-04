@@ -90,6 +90,7 @@ Use repo-local agent instructions, least-privilege tool access, protected-path r
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - AI-assisted coding rule set for the repo or change.
 - Allowed and forbidden agent actions.
 - Sensitive-data and secret-handling boundaries.

@@ -52,9 +52,18 @@ Skip silently if ao is unavailable or returns no results.
 ```
 STEP 1  ──  $vibe recent [--quick]
               Use --quick for fast/standard. Full council for full.
+              Blind-judge requirement (ag-9jle.5): vibe's verdict MUST come from a
+              context-isolated sub-agent judge (its Step 4.5 spawns one, given only the
+              diff + acceptance scenarios, recording judge_id != author_id). Even
+              same-session validation routes acceptance through that blind judge — never
+              an inline self-review by this orchestrator.
               PASS/WARN? → continue
               FAIL?      → write summary, output <promise>FAIL</promise>, stop
                            (validation cannot fix code — caller decides retry)
+              judge_id == author_id (no blind judge spawned)?
+                         → refuse to certify: write summary, output <promise>FAIL</promise>,
+                           stop. Re-run the verdict through a blind sub-agent judge
+                           (only escape: $vibe --allow-self, which marks it self-graded).
 
 STEP 1.5 ── Four-Surface Closure (mandatory)
               Read `skills/validation/references/four-surface-closure.md` for the mandatory four-surface closure check.
@@ -251,6 +260,13 @@ On budget expiry: allow in-flight calls to complete, write `[TIME-BOXED]` marker
 | `--release-context` | auto | Force STEP 1.7.5 release-readiness gates on. Auto-detected from branch name. |
 | `--skip-release-gates` | off | Bypass STEP 1.7.5 (operator-acknowledged risk) |
 | `--allow-critical-deps` | off | Allow shipping with CVSS >= 9.0 vulnerabilities (acknowledged risk acceptance) |
+
+## Blind Sub-Agent Judge (author ≠ validator, same-session OK)
+
+The acceptance verdict this phase certifies MUST be produced by a context that did not author the code (`ag-9jle.5`, the no-self-grading invariant from `ag-lmdx.4`). Validation MAY run inside the authoring session, but the judge MUST be a **blind sub-agent**: a fresh, context-isolated agent given **only** the diff/artifact + the acceptance scenarios (the bead's `## Scenarios` block or the `.feature` file) — **never** the authoring conversation, plan, or reasoning.
+
+- STEP 1 delegates to `$vibe`, whose council judges are context-isolated sub-agents and whose Step 4.5 spawns the blind judge and records `judge_id` (sub-agent context) distinct from `author_id` (authoring context). This is the acceptance judge — do NOT replace it with an inline self-review by the authoring orchestrator.
+- **Refuse** to certify acceptance (output `<promise>DONE</promise>`) when no context-isolated judge produced the verdict — i.e. when `judge_id == author_id`. Re-run the verdict through a blind sub-agent judge instead. The only escape is `$vibe --allow-self` (inline fallback when no sub-agent runtime is available), which stamps the verdict as self-graded; `ao turn verify` then reports it as waived, not independently validated.
 
 ## Expensive Command Policy
 

@@ -12,12 +12,12 @@ VidSeeds.ai is **pre-upload video SEO, metadata optimization, and multi-platform
 The hosted server at `https://vidseeds.ai/api/mcp` requires:
 
 - **Claude Code / Codex / Cursor (this package):** `Authorization: Bearer vs_pat_…` via **`VIDSEEDS_PAT`** in the environment. Cookie sessions are rejected.
-- **Claude.ai / Claude Desktop:** same endpoint supports **OAuth 2.0** (PKCE) as a custom connector — no PAT. See <https://vidseeds.ai/settings/developer-tokens>.
+- **Claude.ai / Claude Desktop:** same endpoint supports **OAuth 2.0** (PKCE) as a custom connector — no PAT. See <https://vidseeds.ai/settings/mcp-settings>.
 
 ### PAT setup
 
 1. Sign in at <https://vidseeds.ai>.
-2. **Settings → Developer Tokens:** <https://vidseeds.ai/settings/developer-tokens>.
+2. **Settings → MCP Settings:** <https://vidseeds.ai/settings/mcp-settings>.
 3. Create a token; copy `vs_pat_…` immediately (shown once, ~90-day default expiry).
 4. Export before launching the client:
 

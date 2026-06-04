@@ -146,6 +146,11 @@ escalate to the full workflow.
    `local patch` is a mitigation, not a sufficient repair, unless it is the
    canonical owner and includes a retention reason plus retirement trigger.
 
+   If the repair or retirement boundary depends on deleting old paths,
+   retaining compat for a proven external dependency, or stopping on
+   persistent-state risk, compose `anti-entropy-governance` before editing. It
+   decides the path; it does not grant destructive authority.
+
 8. **Pre-Edit Complexity Check**
 
    After root cause and canonical owner are identified, check whether the fix

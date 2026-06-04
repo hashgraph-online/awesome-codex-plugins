@@ -112,6 +112,11 @@ unverified assumption, or "long-term stable" claim. Do not make it a
 universal design ceremony; return to this workflow once the decision surface is
 clean.
 
+When the central decision is internal retirement vs compat retention vs
+persistent-state confirmation, compose `anti-entropy-governance`. It classifies
+the deletion target, chooses `delete-first | compat-exception |
+confirmation-first`, and keeps destructive authority outside the design skill.
+
 Use the narrower `Architecture Integrity Lens` when the main risk is not broad
 strategy but architecture coherence: unclear canonical owner, responsibility
 overlap, caller-side fallback, stale path carrying real logic, or a possible

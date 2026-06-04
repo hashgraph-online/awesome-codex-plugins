@@ -96,6 +96,7 @@ Use privacy-by-design as engineering controls: data inventory, classification, m
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Personal-data flow inventory.
 - Field classification and minimization plan.
 - Purpose/consent/access enforcement plan.

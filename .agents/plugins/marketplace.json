@@ -329,7 +329,7 @@
       "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg"
     },
     {
-      "name": "epic",
+      "name": "epic-harness",
       "displayName": "Epic Harness",
       "source": {
         "source": "local",
@@ -696,7 +696,7 @@
       "description": "Developer personality portrait generator — analyzes AI conversation history to produce MBTI type (16 color themes), capability radar, developer rating, 3-dimension famous match, and a persona skill that lets any AI \"think like you\"."
     },
     {
-      "name": "villagesql-skills",
+      "name": "villagesql",
       "displayName": "VillageSQL Skills",
       "source": {
         "source": "local",

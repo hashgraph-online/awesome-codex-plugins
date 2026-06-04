@@ -1,7 +1,7 @@
 {
   "name": "alcove",
-  "version": "0.11.2",
-  "description": "Local-first MCP memory server — hybrid BM25+vector search, vault management, lint, and launchd lifecycle for project knowledge.",
+  "version": "0.11.6",
+  "description": "Local-first memory server — hybrid BM25+vector search, vault management, lint, and launchd lifecycle for project knowledge.",
   "author": {
     "name": "epicsagas",
     "url": "https://github.com/epicsagas"
@@ -10,7 +10,6 @@
   "repository": "https://github.com/epicsagas/alcove",
   "license": "Apache-2.0",
   "keywords": [
-    "mcp",
     "memory",
     "knowledge",
     "search",
@@ -22,6 +21,5 @@
     "launchd"
   ],
   "skills": "./registry/skills/",
-  "hooks": "./.codex-plugin/hooks.json",
-  "mcpServers": "./registry/mcp.json"
+  "hooks": "./.codex-plugin/hooks.json"
 }

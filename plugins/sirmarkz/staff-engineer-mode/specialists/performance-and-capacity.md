@@ -40,25 +40,30 @@ Users experience tail latency, not averages.
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - User journeys, SLOs, latency percentiles, throughput targets, and acceptable degradation behavior.
-- Traffic model: current, peak, forecast, burstiness, tenant skew, payload size, and fanout.
-- Resource signals: CPU, memory, IO, network, lock contention, connection pools, thread pools, queue depth, queue age, and GC.
+- Traffic model: current, peak, forecast, burstiness, tenant skew, payload size, fanout, batch ramp-up rate, and internal or privileged entry points that can bypass public quotas.
+- Resource signals: CPU, memory, IO, network, lock contention, connection pools, thread pools, queue depth, queue age, GC, and background or maintenance work that shares serving capacity.
 - Load-balancing behavior, locality, shard keys, hot partitions, cache hit rate, and downstream quotas.
 - Existing load tests, production incidents, profiling/flame graphs, and regression data.
 - Tested breakpoint, startup-to-ready time, recovery time after stress, and profile differences between normal and heavy load.
-- Headroom rule, autoscaling behavior, static failed-domain capacity, and unit-cost constraints.
+- Headroom rule, autoscaling, load-balancing, or protection-control behavior under saturation, feedback-amplification risks, static failed-domain capacity, and unit-cost constraints.
+- Control-loop input contracts for autoscaling, load-balancing, and protection controls: metric source, unit, labels, filters, missing-data behavior, validation path, and compatibility across changes.
+- Capacity-change plan: scale-up batch size, rebalance work, scheduler or allocator processing cost, and rollback path if adding capacity slows the serving path.
 
 ## Workflow
 
 1. **Frame the answer before inspection.** Start with a compact provisional check frame: target percentile and boundary; load-test method with scenarios and pass/stop criteria; headroom plus USE signal; overload mechanism and priority; queue-depth or in-flight work metric plus backpressure; hot-path/key hypothesis plus mitigation. Mark unknowns and refine them after investigation.
 2. **Define the user-visible target.** Choose p95/p99/p99.9 and throughput targets that map to SLOs or launch requirements.
-3. **Build the demand model.** Capture request rate, burstiness, concurrency, fanout, payload, tenant skew, and seasonal peaks.
+3. **Build the demand model.** Capture request rate, burstiness, concurrency, fanout, payload, tenant skew, batch or maintenance ramp-up curve, and seasonal peaks.
 4. **Apply queueing sanity checks.** Use Little's Law to connect arrival rate, latency, and concurrency; identify queues that can hide saturation.
-5. **Find saturation points.** Track RED for services and USE for resources. Include locks, connection pools, thread pools, caches, and downstream quotas.
-6. **Test to the knee.** Run load/stress/spike/soak tests in production-like environments until latency or errors become nonlinear; record the breakpoint, startup-to-ready time, recovery behavior after stress, and the profile differences that explain bottlenecks.
+5. **Find saturation points.** Track RED for services and USE for resources. Include locks, connection pools, thread pools, caches, downstream quotas, automated scaling or protection-control actions, and every internal or external entry point's true serving capacity. Do not let privileged, batch, or maintenance paths ramp faster than the bottleneck dependency can absorb.
+6. **Test to the knee.** Run load/stress/spike/soak tests in production-like environments until latency or errors become nonlinear; include representative peak traffic, tenant skew, and background jobs that share serving resources. Record the breakpoint, startup-to-ready time, recovery behavior after stress, and the profile differences that explain bottlenecks.
 7. **Protect the system.** Define admission control, load shedding, prioritization, and graceful degradation before saturation.
-8. **Investigate regressions scientifically.** Compare before/after profiles, deploy markers, dependency metrics, cache behavior, and resource saturation.
-9. **Model failed-domain headroom.** For HA requirements, show remaining domains have enough already-available capacity at peak; do not count emergency scaling as the primary recovery mechanism.
-10. **Tie capacity to cost when relevant.** Preserve required headroom and failover capacity; optimize unit economics only after risk is explicit.
+8. **Budget background work.** Set resource ceilings, scheduling limits, and preemption behavior for maintenance, config-processing, compaction, indexing, and other background paths that can starve foreground requests.
+9. **Validate control loops.** Test autoscaling, load-balancing, and protection controls when their input signals are slow, missing, erroring, renamed, relabeled, or rejected by policy validation; confirm the action does not add work to the same saturated path or scale a failing dependency into a feedback loop.
+10. **Investigate regressions scientifically.** Compare before/after profiles, deploy markers, dependency metrics, cache behavior, and resource saturation.
+11. **Model failed-domain headroom.** For HA requirements, show remaining domains have enough already-available capacity at peak; do not count emergency scaling as the primary recovery mechanism.
+12. **Treat capacity changes as load.** When adding, moving, or reserving capacity, model rebalance work, scheduler or allocator processing, and rollout batch size so the expansion itself cannot create a latency incident.
+13. **Tie capacity to cost when relevant.** Preserve required headroom and failover capacity; optimize unit economics only after risk is explicit.
 
 ## Synthesized Default
 
@@ -96,6 +101,7 @@ Optimize around tail percentiles, saturation, queue age, and headroom rather tha
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 Every answer, including narrow regression diagnoses, must state, in this order:
 
 1. **Target at user boundary**: numeric latency/throughput target, percentile (p95/p99/p99.9), and the measurement boundary (edge, gateway, service ingress). Mark unknown explicitly.
@@ -104,16 +110,21 @@ Every answer, including narrow regression diagnoses, must state, in this order:
 4. **Overload behavior**: load-shedding or admission-control mechanism AND which traffic class is preserved by priority.
 5. **Queue/backpressure model** for any asynchronous path: queue-depth metric and the backpressure response.
 6. **Hot-path / hot-key analysis**: the suspected hot path or hot key and its mitigation.
-7. Capacity model (normal/peak/burst/failure-domain), latency budget by hop, regression analysis, tested breakpoint, recovery-after-stress result, and cost/headroom tradeoff when cost is in scope.
+7. Background-work resource budget where maintenance, config-processing, compaction, indexing, or control work shares foreground serving capacity.
+8. Capacity model (normal/peak/burst/failure-domain), capacity-change and rebalance plan, control-loop input contract and behavior under saturation with feedback-amplification guard, latency budget by hop, regression analysis, tested breakpoint, recovery-after-stress result, and cost/headroom tradeoff when cost is in scope.
 
 ## Checks Before Moving On
 
 - `tail_metric`: target percentile, window, and journey are stated.
 - `traffic_model`: peak, burst, concurrency, fanout, and tenant skew are modeled or marked unknown.
 - `saturation_signals`: resource, queue, pool, and downstream saturation metrics are identified.
+- `entry_point_limits`: internal, batch, admin, and public entry points enforce steady-state and ramp-rate limits no higher than measured downstream capacity.
 - `test_result`: load or regression test has scenario, stop criteria, result, and check path.
 - `breakpoint_known`: the nonlinear failure point, or the reason it was not tested, is recorded.
+- `background_budget`: shared-capacity background work has resource ceilings, breach actions, and representative peak-load test coverage.
 - `headroom_check`: capacity includes peak, resource or dependency limits, and expected failure-domain conditions, with static capacity separated from emergency scaling.
+- `capacity_change_load`: capacity additions, reservations, or moves account for rebalance work, scheduler or allocator cost, batch size, and rollback.
+- `control_loop_behavior`: autoscaling, load-balancing, and protection controls have input metric contracts, expected actions under saturation, compatibility checks for label/filter changes, cannot amplify the failing path, and cannot reduce serving capacity below the user contract without an explicit overload decision.
 - `recovery_after_stress`: recovery time and behavior after stress are measured or explicitly unknown.
 
 ## Red Flags - Stop And Rework
@@ -122,6 +133,8 @@ Every answer, including narrow regression diagnoses, must state, in this order:
 - The plan scales replicas but ignores database, cache, queue, or downstream limits.
 - Load tests stop at expected peak and never find the nonlinear point.
 - Queue depth is monitored without queue age or drain rate.
+- Autoscaling or protection logic uses unhealthy dependency signals in a way that adds work to the saturated path.
+- A capacity expansion assumes new headroom is free before measuring rebalance, scheduler, or allocator work.
 - Cost cutting removes failover headroom without changing the SLO or accepting risk.
 - A single fault-domain or partition recovery plan depends on scaling after the failure rather than preexisting headroom.
 
@@ -130,6 +143,8 @@ Every answer, including narrow regression diagnoses, must state, in this order:
 | Mistake | Correction |
 | --- | --- |
 | Treating CPU as capacity | Include all saturation points: queues, locks, pools, IO, network, and dependencies. |
+| Letting internal callers bypass quota | Apply capacity limits at every entry point and size them to the real bottleneck. |
 | Testing only steady load | Add bursts, soak, failover, cold cache, and dependency-slow scenarios. |
+| Letting background work share unlimited serving capacity | Give maintenance and control work explicit resource budgets and preemption behavior. |
 | Hiding overload in queues | Track age and drain rate; shed work before recovery becomes impossible. |
 | Optimizing p50 | Optimize the percentile users and SLOs experience. |

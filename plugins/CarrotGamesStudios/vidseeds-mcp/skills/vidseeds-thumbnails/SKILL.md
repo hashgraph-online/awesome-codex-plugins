@@ -8,9 +8,11 @@ description: Use for VidSeeds MCP thumbnail workflows — generate, poll jobs, e
 ## Quick generate → retrieve
 
 1. `vidseeds_get_seed_balance` (free).
-2. `vidseeds_generate_thumbnail` → `jobId`, `expectedCostSeeds`; poll `vidseeds_get_thumbnail_job` every **~3s** (~70–100s typical).
+2. `vidseeds_generate_thumbnail` → `jobId`, `expectedCostSeeds`; poll `vidseeds_get_thumbnail_job` every **~3s** (~70–100s typical). Price per image uses model-specific seeds (Gemini 7, OpenAI 11, Grok 3); see get_seed_balance.
 3. `vidseeds_get_thumbnail` or `vidseeds_list_thumbnails` for URLs/ids.
 4. Optional: `vidseeds_download_thumbnail_bundle` for a packaged download.
+
+**Edit pricing (2026-06 correct):** `vidseeds_edit_thumbnail` (and restyle) charges model-specific seeds; edits that reference an input image cost more than pure generation (input + output). Check `vidseeds_get_seed_balance` for current per-model rates before calling. Always confirm with user.
 
 ## Edit or restyle an existing thumbnail
 

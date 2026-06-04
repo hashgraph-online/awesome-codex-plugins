@@ -1,6 +1,6 @@
 ---
 name: dev-auto
-description: Use ONLY when the user explicitly wants end-to-end guided workflow through the dev-skills toolchain. Triggers on phrases like "用 dev-auto / 帮我串起来 / 从需求到 commit / 完整跑 / end to end / 走完整流程 / 下一步该做什么 / what's next". Reads `.claude/artifacts/{designs,plans,fixes}/` and `.design-context.md` existence to detect current phase (no deep parsing) and recommends next step across dev-design-context, dev-spec, dev-plan, dev-tdd, dev-fix, dev-verify, dev-code-review, dev-commit-writer, and dev-finish. Does NOT invoke other skills, write code, or produce artifacts. Optional arguments — `[slug]`; `--status [slug]`; `--next [slug]`; `--recover [slug]`.
+description: Use ONLY when the user explicitly wants end-to-end guided workflow through the dev-skills toolchain. Triggers on phrases like "用 dev-auto / 帮我串起来 / 从需求到 commit / 完整跑 / end to end / 走完整流程 / 下一步该做什么 / what's next". Reads `.claude/artifacts/{designs,plans,fixes}/` and `.design-context.md` existence to detect current phase (no deep parsing) and recommends next step across dev-design-context, dev-grill-docs, dev-plan, dev-tdd, dev-fix, dev-verify, dev-code-review, dev-commit-writer, and dev-finish. Does NOT invoke other skills, write code, or produce artifacts. Optional arguments — `[slug]`; `--status [slug]`; `--next [slug]`; `--recover [slug]`.
 ---
 
 # Dev Auto
@@ -87,7 +87,7 @@ baseline 与本 skill 的关联:
 
 ```
 你的需求路径不确定,请选一种:
-  (a) 新功能 / 增强(走 dev-spec → 可选 dev-plan → dev-tdd → dev-verify → dev-code-review)
+  (a) 新功能 / 增强(走 dev-grill-docs → 可选 dev-plan → dev-tdd → dev-verify → dev-code-review)
   (b) 修 bug(走 dev-fix → dev-verify → dev-code-review)
   (c) Hotfix 紧急(跳过 spec/plan,仍过 dev-tdd → dev-verify → dev-code-review)
   (d) 其他:你说
@@ -122,7 +122,7 @@ baseline 与本 skill 的关联:
 扫以下目录(都在用户当前 cwd 下,不在 dev-skills 仓库下):
 
 ```bash
-ls -la .claude/artifacts/designs/   # dev-spec 产物
+ls -la .claude/artifacts/designs/   # dev-grill-docs / dev-spec 产物
 ls -la .claude/artifacts/plans/     # dev-plan 产物
 ls -la .claude/artifacts/fixes/     # dev-fix 产物
 test -f .design-context.md && echo "design context: present"
@@ -175,7 +175,7 @@ test -f .design-context.md && echo "design context: present"
 | `.claude/artifacts/fixes/<slug>.md` | `BELOW_CONFIDENCE_THRESHOLD` | root cause 找不到,blocked |
 | `.claude/artifacts/fixes/<slug>.md` | `NEEDS_DESIGN_CHANGE` | 需架构改动,blocked,转 dev-plan |
 
-**dev-spec 的 `DRAFT` / `ALIGNED` / `IMPLEMENTED` lifecycle status 不影响 phase 推断** —— spec 只看「文件是否存在」,生命周期 status 留给用户手动管理。
+**spec artifact 的 `DRAFT` / `ALIGNED` / `IMPLEMENTED` lifecycle status 不影响 phase 推断** —— spec 只看「文件是否存在」,生命周期 status 留给用户手动管理。
 
 **绝不**深读其他内容(不解析 AC / 不读 hypothesis 表 / 不读 plan body)。读了就违反「最小代码」。
 
@@ -258,7 +258,7 @@ Slug   : <feature-slug>(自动推断,你可以纠正)
 
 | 路径 \ 复杂度 | simple | moderate | complex |
 |---|---|---|---|
-| **feature** | dev-spec --quick → dev-tdd → dev-verify → dev-code-review → dev-finish | dev-spec --default → dev-tdd → dev-verify → dev-code-review → dev-finish | dev-spec --default → **dev-plan --deliberate** → dev-tdd → dev-verify → dev-code-review → dev-finish |
+| **feature** | dev-grill-docs --quick → dev-tdd → dev-verify → dev-code-review → dev-finish | dev-grill-docs → dev-tdd → dev-verify → dev-code-review → dev-finish | dev-grill-docs --deep → **dev-plan --deliberate** → dev-tdd → dev-verify → dev-code-review → dev-finish |
 | **bug** | dev-fix --quick → dev-verify → dev-code-review → dev-finish | dev-fix --default → dev-verify → dev-code-review → dev-finish | **dev-fix --deep** → dev-verify → dev-code-review → dev-finish |
 | **hotfix** | 跳过 spec/plan,但仍走 dev-tdd → dev-verify → dev-code-review → dev-finish | n/a — 升 feature/bug moderate | n/a — complex 不允许 hotfix,升 feature/bug complex |
 
@@ -280,7 +280,7 @@ Slug   : <feature-slug>(自动推断,你可以纠正)
 你标了 hotfix,但 symptoms 含 [具体信号:跨服务 / 鉴权 / 数据迁移 / ...],
 实际是 [moderate/complex]。
 
-Hotfix 路径会跳过 dev-spec / dev-plan,但不能跳过 dev-tdd / dev-verify / dev-code-review。否则**很可能让 dev-code-review 抓出 P0 阻塞**
+Hotfix 路径会跳过 dev-grill-docs / dev-plan,但不能跳过 dev-tdd / dev-verify / dev-code-review。否则**很可能让 dev-code-review 抓出 P0 阻塞**
 (常见 P0:闭环失败 / 边界没考虑 / 跨模块未对齐),反而比走完整路径更慢。
 
 建议改走:
@@ -330,7 +330,7 @@ $ <skill> <args>
 
 ```
 要给你恢复建议,我需要两条信息:
-  1. 你刚跑了哪个 skill?(dev-spec / dev-plan / dev-tdd / dev-fix / dev-verify / dev-code-review / dev-commit-writer / dev-finish)
+  1. 你刚跑了哪个 skill?(dev-grill-docs / dev-spec / dev-plan / dev-tdd / dev-fix / dev-verify / dev-code-review / dev-commit-writer / dev-finish)
   2. 它的输出关键信号是什么?(贴 Verdict / Status / 错误摘要那一行就行)
 
 例如:「dev-code-review 给我 Verdict = ⚠ FIX P1,有 2 处 console.log 残留」
@@ -345,10 +345,10 @@ $ <skill> <args>
 
 | 失败 skill | 失败信号 | 推荐恢复 |
 |---|---|---|
-| dev-spec | spec status = STUCK(达 wave 上限仍 ambiguity > 阈值) | 看 spec 的 `Open questions` 段,**逐项**拿外部信息(产品 / 设计 / 数据 / stakeholder)。拿到后回来跑 `dev-spec --deep <slug>` 续 wave。**不要**跳过 STUCK 直接进 dev-plan(plan 会基于残缺 spec 出错) |
+| dev-grill-docs / dev-spec | spec status = STUCK(达 wave 上限仍 ambiguity > 阈值) | 看 spec 的 `Open questions` 段,**逐项**拿外部信息(产品 / 设计 / 数据 / stakeholder)。拿到后回来跑 `dev-grill-docs --deep <slug>` 续 wave。**不要**跳过 STUCK 直接进 dev-plan(plan 会基于残缺 spec 出错) |
 | dev-plan | Critic verdict = REVISE | 回 dev-plan,Planner v2 修复 Critic 反馈 |
-| dev-plan | Critic verdict = REJECT(深度问题) | 回 dev-plan 重起 Planner,可能要回 dev-spec 拆需求 |
-| dev-plan | BELOW_CONSENSUS_THRESHOLD(3 次迭代未达共识) | 标 plan 为 BELOW,把当前最好版本交给用户决策;考虑回 dev-spec 缩小 scope |
+| dev-plan | Critic verdict = REJECT(深度问题) | 回 dev-plan 重起 Planner,可能要回 dev-grill-docs 拆需求 |
+| dev-plan | BELOW_CONSENSUS_THRESHOLD(3 次迭代未达共识) | 标 plan 为 BELOW,把当前最好版本交给用户决策;考虑回 dev-grill-docs 缩小 scope |
 | dev-fix | 反向追溯找不到 root cause,3 假设全 fail | 升 `dev-fix --deep`(若已 deep 则进下一行) |
 | dev-fix | deep 模式 3 高置信 hypothesis 全 fail / 3 fix attempt fail | 升 `dev-plan --deliberate` 评估架构改动,plan 通过后回 dev-fix Step 6 |
 | dev-fix | NEEDS_DESIGN_CHANGE | 同上,转 `dev-plan --deliberate` |
@@ -400,9 +400,9 @@ $ <skill> <args>
 ## 与其他 skill 的关系
 
 - **入口侧**:dev-auto 是**所有路径的可选入口**。用户可以直接跑某个 skill,也可以先跑 dev-auto 拿推荐再决定。
-- **不调用**:dev-auto 推荐 `dev-spec` 时,**用户**自己执行 `dev-spec`,不是 dev-auto 调起。
+- **不调用**:dev-auto 推荐 `dev-grill-docs` 时,**用户**自己执行 `dev-grill-docs`,不是 dev-auto 调起。
 - **下游回流**:用户跑完某 skill 后,可以再来 dev-auto 问下一步,也可以自己看流程图直接进。
-- **触发竞争**:dev-auto 的 description 严格限制只在用户**显式要求 workflow / 串起来 / 完整跑**时触发,避免和 dev-spec / dev-fix 等具体 skill 抢触发。
+- **触发竞争**:dev-auto 的 description 严格限制只在用户**显式要求 workflow / 串起来 / 完整跑**时触发,避免和 dev-grill-docs / dev-fix 等具体 skill 抢触发。
 
 ---
 

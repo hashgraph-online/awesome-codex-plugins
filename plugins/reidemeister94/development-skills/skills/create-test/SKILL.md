@@ -10,7 +10,7 @@ allowed-tools: Glob, Grep, Read, Bash, Agent, Edit, Write, AskUserQuestion
 
 ultrathink
 
-Apply [Iron Rules](../../shared/iron-rules.md) — Pillar 1 (simplicity: plain pytest before any library), Pillar 3 (no claim without fresh test output), and Pillar 6 (measurably better — tests must find bugs, not just exist).
+Apply [Iron Rules](../../shared/iron-rules.md) — Principle 3 (simplicity: plain pytest before any library; refactor measurably improves a named dimension), Principle 7 (TDD Red → Green → Refactor — tests must find bugs, not just exist), and Principle 8 (no claim without fresh test output).
 
 ## Rules (apply to ALL modes)
 
@@ -79,6 +79,7 @@ Read `references/testing-strategies.md` now. Keep its principles active througho
 1. Read the target file completely
 2. If a directory, read all source files in it
 3. Read the **relevant language section** from `references/language-templates.md` (Python, Java, TypeScript, or Swift — not the entire file)
+4. For **Python** projects, also consult `../python-dev/patterns.md` (Testing section) for team-canonical patterns: the 4-tier layout (Unit / Golden / E2E Replay / Integration), `asyncio_mode="auto"`, `TestClient(raise_server_exceptions=False)`, autouse `dependency_overrides` reset, and `MagicMock(spec=Class)` + `AsyncMock` conventions.
 
 ### Step 2: Implementation Analysis
 

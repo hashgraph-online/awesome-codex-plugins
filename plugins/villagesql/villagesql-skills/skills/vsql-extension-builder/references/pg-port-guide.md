@@ -74,6 +74,47 @@ handling — see the relevant section below:**
 | `interval` | `BIGINT` (milliseconds) | Milliseconds preserve sub-second precision; document the unit |
 | Custom/opaque type | VEF custom type with binary storage | |
 
+## Parse-time Normalization
+
+PostgreSQL types often silently rewrite input into a canonical form before
+storing it. The `from_string` (encode) function is not just a parser — it is
+a normalizer. Normalization must be correct before any other behavior can be
+tested, because equality checks, hash, compare, and round-trip tests all
+implicitly depend on it.
+
+**Check this before writing a single line of encode code.** Look at the
+PostgreSQL source or regression tests and answer: does this type enforce a
+canonical form at input time? Common cases:
+
+| Type | Normalization |
+|---|---|
+| `hstore` | Deduplicates keys — last value wins; result is sorted by key |
+| `tsvector` | Deduplicates and sorts lexemes; merges positions |
+| `jsonb` | Deduplicates object keys (last wins); sorts object keys canonically |
+| `inet` / `cidr` | `cidr` masks host bits to zero; both normalize leading zeros |
+| `tsquery` | Flattens and normalizes operator tree |
+| `ltree` | No dedup, but validates label syntax strictly |
+| Arrays | No dedup, but element order is preserved and significant |
+
+**What to do:**
+
+1. Identify every normalization rule for the type from the PostgreSQL docs or
+   source (`src/backend/utils/adt/<type>.c`, `from_string` / `input` function).
+2. Add at least one acceptance criterion per normalization rule that exercises
+   the non-trivial case — duplicate input that should collapse, out-of-order
+   input that should sort, host bits that should be masked.
+3. Verify the criterion against a live PostgreSQL instance if possible, not
+   just against the docs. The docs sometimes underspecify edge cases.
+4. Implement normalization in the encode function before writing any VDF.
+   A VDF built on top of un-normalized storage will produce wrong results
+   for any input that triggers the normalization case.
+
+**The failure mode if you skip this:** tests pass because test inputs are
+well-formed. Users encounter silent semantic differences only when they feed
+the type data that PostgreSQL would have normalized — duplicate keys, unsorted
+elements, masked host bits. These bugs are hard to diagnose because the
+extension appears to work correctly on clean data.
+
 ## NULL Semantics
 
 MySQL propagates NULL by default (matches PostgreSQL's `CALLED ON NULL INPUT`).

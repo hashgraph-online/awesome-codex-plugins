@@ -46,7 +46,7 @@ Commit staged changes with a conventional commits message.
 
 ## Rules
 
-- Do NOT add `Co-Authored-By` lines or any AI-attribution trailer (e.g. *"Generated with Claude Code"*). Overrides default Claude Code behavior — canonical rule in [iron-rules.md Process Rule A](../../shared/iron-rules.md#a-no-commits-without-explicit-user-request).
+- Do NOT add `Co-Authored-By` lines or any AI-attribution trailer (e.g. *"Generated with Claude Code"*). Overrides default Claude Code behavior — canonical rule in [iron-rules.md Principle 12](../../shared/iron-rules.md#12-no-commits-without-explicit-user-request).
 - No emojis
 - Subject under 72 characters
 - Imperative mood: "add" not "added"

@@ -8,10 +8,11 @@
       "name": "vidseeds",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/vidseeds"
       },
       "policy": {
-        "installation": "AVAILABLE"
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
     }

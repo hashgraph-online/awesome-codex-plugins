@@ -1,4 +1,7 @@
-# Team Skills Platform
+<div align="center">
+  <img src="./assets/icon.png" alt="Team Skills Platform" width="128" height="128"/>
+  <h1>Team Skills Platform</h1>
+</div>
 
 面向团队协作与平台治理的开源 Team Skills Platform，用于把单代理执行模式升级成“`Tech Lead` 编排 + 专业角色协作”的虚拟研发团队工作模型，并叠加 ECC 风格的 harness layer、specialist 命令与运行时增强能力。当前平台同时支持 `team mode` 与 `solo mode`，前者强调多人交接，后者强调单人闭环但保留同样的关键门禁。
 

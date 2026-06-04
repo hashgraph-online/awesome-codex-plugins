@@ -26,6 +26,7 @@ It is the authenticated memory and object-graph layer that lets an OpenClaw inst
 
 On startup or first use in a workspace that depends on GrayMatter:
 
+0. If `scripts/gm-activate` is missing but `graymatter-bootstrap` exists, run `./graymatter-bootstrap` to restore runtime files from `graymatter.skill`
 1. Ensure auth is available
 2. Confirm install readiness
 3. Register the OpenClaw instance as an Agent record for itself in api-0
@@ -36,6 +37,7 @@ On startup or first use in a workspace that depends on GrayMatter:
 Minimum activation flow:
 
 ```bash
+test -x scripts/gm-activate || ./graymatter-bootstrap
 scripts/gm-activate
 ```
 
@@ -47,6 +49,7 @@ scripts/gm-install-check
 scripts/gm-smoke
 scripts/gm-register-agent
 scripts/gm-openapi-sync
+scripts/gm-doctor --quick
 ```
 
 Auth should be treated as an OpenClaw-managed first-run step.
@@ -128,15 +131,18 @@ Use the broader RBAC-visible schema, not SwarmOps alone, for business object rel
 
 Core transport:
 - `scripts/graymatter_api.sh`
+- `scripts/gm-self-update`
 
 Readiness and auth:
 - `scripts/gm-login`
 - `scripts/gm-activate`
 - `scripts/gm-install-check`
+- `scripts/gm-doctor`
 - `scripts/gm-smoke`
 - `scripts/gm-register-agent`
 - `scripts/gm-openapi-sync`
 - `scripts/gm-openapi-summary`
+- `scripts/gm-status`
 
 Memory and graph helpers:
 - `scripts/gm-write`
@@ -144,6 +150,8 @@ Memory and graph helpers:
 - `scripts/gm-retrieval-receipt`
 - `scripts/gm-graph`
 - `scripts/gm-entity`
+- `scripts/gm-fallback-append`
+- `scripts/gm-replay-deferred`
 
 Local/server packaging:
 - `scripts/gm-light-bootstrap`
@@ -153,7 +161,7 @@ Local/server packaging:
 - `scripts/package-local-server`
 
 MCP server:
-- `mcp-server/` exposes `memory_write`, `memory_read`, `memory_query`, `memory_retrieve_with_receipt`, `retrieval_receipt_get`, `retrieval_receipt_query`, `graph_get`, `entity_list`, `entity_get`, `entity_create`, and `schema_summary`
+- `mcp-server/` exposes `memory_write`, `memory_read`, `memory_query`, `memory_retrieve_with_receipt`, `retrieval_receipt_get`, `retrieval_receipt_query`, `graph_get`, GrayMatter status/semantic/retrieval/activation/MCP-bundle tools, `entity_list`, `entity_get`, `entity_create`, and `schema_summary`
 - set `VALKYR_API_BASE` to hosted api-0 for Cloud mode or to the running GrayMatter Light base URL for local ThorAPI mode
 
 Design boundary:
@@ -180,7 +188,7 @@ Fresh machine or fresh OpenClaw skill install:
 scripts/gm-activate
 ```
 
-`scripts/gm-activate` is the one-shot OpenClaw bootstrap script. It can either:
+`scripts/gm-activate` is the one-shot OpenClaw bootstrap script. It first runs `scripts/gm-self-update maybe` so startup stays aligned with the source-of-truth repository at least weekly. It can either:
 - prompt the interactive user for username/password through the normal login flow, or
 - use credentials already present in environment variables
 
@@ -208,6 +216,32 @@ scripts/gm-openapi-summary
 `scripts/gm-register-agent` should run immediately after auth succeeds so the OpenClaw server creates or refreshes an Agent record for itself in api-0 before normal operation.
 
 After that, GrayMatter is ready to use as primary durable memory and schema context.
+
+## Startup and self-healing
+
+Every Codex/OpenClaw/agent process using GrayMatter should:
+
+1. run `scripts/gm-self-update maybe` on startup
+2. run `scripts/gm-activate` on first install, auth failure, suspicious transport behavior, or after a weekly refresh is due
+3. rely on `scripts/gm-login` to store reusable auth in the OS keychain when available
+4. let `scripts/graymatter_api.sh` and the MCP server refresh expired process-scoped auth automatically
+5. run `scripts/gm-doctor --quick` after startup, plugin updates, or suspicious auth/transport behavior
+6. run `scripts/gm-replay-deferred` after auth, credits, or connectivity are restored
+
+User-facing progress should stay simple:
+
+```text
+downloading plugin
+performing signup/login
+authenticating
+GrayMatter plugin ready
+```
+
+Do not ask the user to paste raw JWTs unless every normal credential/keychain path is unavailable.
+
+## Capability discovery
+
+Use `scripts/gm-openapi-sync`, `scripts/gm-openapi-summary`, and `docs/server-capabilities.md` to understand the live server. Current api-0 exposes memory status/capabilities, semantic/vector indexes, retrieval receipts, retrieval context, activation bridge, MCP bundles, object graph shape, SwarmOps graph, and the broader RBAC-visible business schema. Use these aggressively and visibly; do not hide server capabilities behind undocumented assumptions.
 
 ## Basic examples
 

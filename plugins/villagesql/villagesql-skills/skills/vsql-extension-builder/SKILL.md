@@ -3,8 +3,10 @@ name: vsql-extension-builder
 description: >
   Build a VillageSQL extension end-to-end using the 7-phase persona-driven
   workflow: requirements, feasibility, scaffold, implementation, CTO review,
-  UAT, and documentation. Discovers the current VEF API from live SDK headers
-  during Phase 2 bootstrap — no hardcoded API names. Works from any directory.
+  UAT, and documentation. Supports C++ (default) and Rust implementations.
+  Discovers the current VEF API from live SDK sources during Phase 1
+  feasibility and Phase 2 bootstrap — no hardcoded API names. Works from
+  any directory.
 ---
 
 # VillageSQL Extension Builder
@@ -42,39 +44,14 @@ scope) that override anything in the workflow that contradicts them.
 
 ## Context Management
 
-This skill runs across many phases and fix cycles. Context is finite —
-treat the conversation thread as a signal channel, not a log.
-
-**Rules that apply throughout every phase:**
-- **Tracking files are the record; the conversation is the signal.**
-  Verbose state (file contents read, agent findings, build output, test
-  output, search results) goes to `.claude/tracking/`. The conversation
-  gets a summary line.
-- **Never paste source code into the conversation.** `.cc`, `.h`,
-  `.test`, and `.result` files belong on disk, not in the conversation
-  thread. When passing source files to a subagent, embed them in the
-  subagent's prompt — do not print them in the conversation first.
-  When implementing a function, state "implemented `func_name`" — do
-  not print the implementation.
-- **Do not echo any file contents into the conversation when reading.**
-  Read headers, source files, and references silently. State what you
-  found; do not paste what you read (except where a gate explicitly
-  requires a verbatim excerpt).
-- **Phase transitions are two lines maximum:** what gate evidence was
-  met, and which phase is next. Not a recap of all work done.
-- **Build failure output:** if cmake or make output exceeds 50 lines,
-  save the full output to `.claude/tracking/build_output_<n>.txt` and
-  paste only the error lines. Never paste a full cmake configuration
-  trace into the conversation.
-- **Proactive save:** if many phases have completed or many fix cycles
-  have run, save current state to tracking files before continuing. The
-  resume protocol reconstructs from tracking files — keeping them
-  current reduces the cost of any compaction.
+Read `references/context-hygiene.md` at the start of every phase and keep
+it active. Tracking files are the record; the conversation is the signal.
 
 ## Persona Overview
 
 | Persona | Phase(s) | Focus | Failure Mode |
-|---|---|---|---|
+|---|---|---|
+---|
 | Product Strategist | 0, 6 | Requirements and acceptance criteria | Writing criteria that are vague, untestable, or reference functions that don't exist yet — clarify before recording |
 | Architect | 1, 2 | Feasibility, design, scaffold | Scaffolding before API signature verification; writing plausible-sounding names without reading headers |
 | Team Lead | 3 | Incremental build-test loop | Reporting success without showing actual test output; applying simplification fixes without re-running tests |
@@ -91,21 +68,45 @@ Gather through plain-text conversational questions (no UI selectors):
 
 1. **Extension description.** If `$ARGUMENTS` was provided, skip this.
    Otherwise ask — if vague, clarify before proceeding. Before recording
-   the description, evaluate whether the request is achievable as a VEF
-   extension. If it requires a MySQL plugin or server component, halt:
-   explain the distinction to the user and ask them to reframe the
-   request as a VEF extension, or acknowledge it is out of scope. Do
-   not proceed to Phase 1 until the request is confirmed achievable.
+   the description, apply a narrow scope check: halt only if the request
+   is clearly not a SQL extension at all — a GUI application, a standalone
+   binary unrelated to MySQL, an OS driver. Explain the VEF scope and ask
+   the user to reframe.
+
+   Do not make achievability judgments beyond this. Phase 0 has no SDK
+   access and cannot evaluate preview capabilities — any "this requires a
+   server component" call made here will be wrong when a preview API
+   (background threads, SQL sessions, sys vars, etc.) would enable it.
+   Phase 1 reads the SDK, including preview headers, and is the real
+   feasibility gate. If the request seems ambitious or unusual, note the
+   question and proceed.
+
+2. **Implementation language.** Ask: "C++ (default) or Rust?" Record
+   `language: cpp` or `language: rust` in the conversation — written to
+   `.claude/tracking/architecture.md` in Phase 2. See
+   `references/rust-workflow.md` for Rust-specific steps in Phases 1–3
+   and 6; all other phases and gates apply unchanged.
+
+   **If Rust — pre-flight check:** Before proceeding, verify:
+   ```bash
+   cargo --version        # must be 1.87 or higher
+   cargo vsql --help      # confirms cargo-vsql is installed
+   ```
+   If `cargo` is missing: "Install Rust via https://rustup.rs (stable
+   toolchain, 1.87+), then re-run."
+   If `cargo vsql` is missing: "Run `cargo install cargo-vsql`, then
+   re-run."
+   Do not continue until both checks pass.
 
    **PostgreSQL port detection.** If the description references an
    existing PostgreSQL extension (e.g. "port pgcrypto", "like hstore",
    "cube extension from Postgres") — or if it isn't clear — ask: "Is
-   this a port of an existing PostgreSQL extension?" Record `pg_port:
-   true` and the source extension name in
-   `.claude/tracking/architecture.md` if yes. This flag is read in
-   Phase 1.
+   this a port of an existing PostgreSQL extension?" Note `pg_port: true`
+   and the source extension name in the conversation — the tracking
+   directory doesn't exist until Phase 2, so this is written to
+   `.claude/tracking/architecture.md` then. This flag is read in Phase 1.
 
-2. **Paths:** Before asking, check these files in order for `BUILD_HOME`
+3. **Paths:** Before asking, check these files in order for `BUILD_HOME`
    (→ `build_dir`) and `SOURCE_HOME` (→ `source_dir`):
    - `~/.villagesql/credentials.txt` — created by the installer; most
      authoritative source of paths and connection details
@@ -121,8 +122,8 @@ Gather through plain-text conversational questions (no UI selectors):
    - `source_dir` — VillageSQL source repository (only needed to read
      example extensions like `villagesql/examples/vsql-tvector/`).
 
-3. **Server connectivity:** Before asking, attempt to derive connection
-   details from the files checked in step 2, in the same order:
+4. **Server connectivity:** Before asking, attempt to derive connection
+   details from the files checked in step 3, in the same order:
    - `~/.villagesql/credentials.txt` — contains socket path, port, root
      password, and a ready-to-use connection command
    - `~/AGENTS.local.md` / `./AGENTS.local.md` — may contain socket or
@@ -142,7 +143,7 @@ Gather through plain-text conversational questions (no UI selectors):
    Record `villagesql_server_version` (the **session version**) and
    `veb_dir`.
 
-4. **Acceptance criteria** (draft in conversation; Phase 2 writes them to
+5. **Acceptance criteria** (draft in conversation; Phase 2 writes them to
    `.claude/tracking/acceptance_criteria.md` once the extension directory
    exists). Each criterion: `[N]. Given [context], [function] must
    [expected outcome].` Must include literal SQL values — untestable
@@ -163,10 +164,13 @@ and 2.
    doing anything else in Phase 1. The map must be complete before
    architecture decisions are made — functions discovered later cause
    expensive rework.
-2. **Locate and verify the SDK.** Before reading any header, locate the
-   staged SDK and verify its version. This must run before the
-   feasibility check — Phase 1 reads against this SDK only, never the
-   source tree or a stale tarball.
+2. **Locate and verify the SDK.** **If Rust:** follow
+   `references/rust-workflow.md → Phase 1: SDK Discovery & Feasibility`
+   instead of the steps below, then continue to step 3.
+
+   Before reading any header, locate the staged SDK and verify its
+   version. This must run before the feasibility check — Phase 1 reads
+   against this SDK only, never the source tree or a stale tarball.
 
    - Glob `{build_dir}/villagesql-extension-sdk-*/`. Filter to
      directories only (the build dir often also contains
@@ -184,14 +188,34 @@ and 2.
      If you find yourself reading a path containing `/abi/`, stop — you
      are in the wrong layer. Use only `vsql.h` and the `vsql/` subdir.
 
-   Record the verified `sdk_dir` in
-   `.claude/tracking/architecture.md`.
-3. **Feasibility Check.** Read `vsql.h` and the `vsql/` subdirectory
-   *from the verified SDK* and answer the header-discoverable questions
-   in `references/capabilities.md`. Two probes (aggregate-function
-   support, extension upgrade path) need a live install and run in
-   Phase 3. Write confirmed constraints to
-   `.claude/tracking/limitations.md` immediately.
+   Note the verified `sdk_dir` in the conversation — the tracking
+   directory doesn't exist until Phase 2, so this is written to
+   `.claude/tracking/architecture.md` then.
+3. **Feasibility Check.** **If Rust:** follow
+   `references/rust-workflow.md → Phase 1: Feasibility` instead of
+   the steps below.
+
+   Read `vsql.h` and the `vsql/` subdirectory *from the verified SDK*,
+   then also list and read any headers under `preview/` within those same
+   include roots. Answer the header-discoverable questions in
+   `references/capabilities.md`. Two probes (aggregate-function support,
+   extension upgrade path) need a live install and run in Phase 3.
+
+   Produce two findings:
+   - **Stable-only scope**: what the extension can do using only non-preview
+     headers
+   - **With preview APIs**: what additionally becomes possible, naming the
+     specific preview headers involved and stating that they may change
+     between VillageSQL releases
+
+   If the user's request requires preview APIs to be fully realized, present
+   this trade-off now — before Phase 2 commits any scaffold. Note the
+   user's stable-vs-preview decision in the conversation under a
+   `preview_apis:` key — the tracking directory doesn't exist until Phase 2,
+   so this is written to `.claude/tracking/architecture.md` then. Note
+   confirmed constraints (for whichever path the user chose) in the
+   conversation as well; they are written to `.claude/tracking/limitations.md`
+   at the start of Phase 2 step 3.
 4. **Function names.** Pick the SQL function names. Apply the conventions
    in `references/patterns.md` → Function Naming Conventions. Record in
    `.claude/tracking/architecture.md`.
@@ -200,15 +224,32 @@ and 2.
    (with sorted storage for key-value types). Pure-VDF extensions can
    skip the binary layout.
 
-**Gate:** State the SDK version confirmed from `villagesql_config
---version` and confirm it matches the Phase 0 session version.
-Architecture recorded in `.claude/tracking/architecture.md` with
-verified `sdk_dir`, function names, and (if applicable) binary layout.
-Proceed to Phase 2.
+**Gate:** Present the architecture summary in the conversation — SDK
+version (confirmed from `villagesql_config --version`, matching Phase 0
+session version), the stable-vs-preview decision (including trade-offs if
+preview APIs are involved), function names with rationale, and binary
+layout if applicable. This is the one phase where verbose conversation
+output is expected: the user should be able to review and push back before
+Phase 2 commits the scaffold.
+
+If feasibility findings narrowed or changed the scope from what the Phase 0
+description implied, explicitly flag which acceptance criteria from Phase 0
+are affected and ask the user to confirm or revise them before proceeding.
+Revised criteria replace the originals in the conversation draft —
+Phase 2 writes the final version to file.
+
+Proceed to Phase 2 only after the user has confirmed the approach and any
+criteria revisions are settled. Note: matching confirmed limitations to
+server-side tracking issues happens in Phase 6.
 
 ### Phase 2: Template & Scaffold *(Architect, continued)*
 
-1. **Create from Template.** Ask the user whether they want a GitHub repo
+1. **Create from Template.** **If Rust:** follow
+   `references/rust-workflow.md → Phase 2: Scaffold & API Bootstrap`
+   for steps 1 and 2 below, then continue to step 3 (Customize Scaffold)
+   with the Rust file structure in mind.
+
+   Ask the user whether they want a GitHub repo
    or a local-only scaffold. Three options:
    - **GitHub user** — create under the user's own account
    - **GitHub org** — create under an organization
@@ -256,15 +297,13 @@ Proceed to Phase 2.
       functions. Confirm by reading.
    e. Identify the file defining the input value struct and result
       struct. Confirm by reading — do not assume the filename.
-   f. Note headers under any `preview/` subdirectory. When a preview API
-      would enable a meaningfully better implementation — variable-length
-      storage, a richer type interface, etc. — present it as an option:
-      explain what it unlocks and that it is not in the stable SDK (may
-      change between VillageSQL releases). Let the user decide. If they
-      opt in, record the choice in `.claude/tracking/architecture.md`
-      under a `preview_apis:` key. Either way, note preview API use in
-      `.claude/tracking/limitations.md` and the README Known Limitations
-      section so users building against the extension know what to expect.
+   f. If `preview_apis:` is set in `.claude/tracking/architecture.md`
+      (decision made in Phase 1 step 3), read those preview headers now
+      and extract the exact names, structs, and method signatures needed
+      for implementation. The stable-vs-preview decision is already
+      settled — do not re-open it. Confirm that preview API use is
+      recorded in `.claude/tracking/limitations.md` and will appear in
+      the README Known Limitations section.
 
    **Extract and record** in `.claude/tracking/architecture.md`: result
    type constants, input/output struct names and field names, builder
@@ -277,7 +316,18 @@ Proceed to Phase 2.
    template ships `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and
    others that must also be tailored. Specifically:
 
-   - Create `.claude/tracking/` in the extension directory
+   - Create `.claude/tracking/` in the extension directory. This is the
+     first moment the tracking directory exists — immediately write all
+     data noted in conversation during Phases 0 and 1 to their files:
+     `architecture.md` (pg_port flag, sdk_dir, preview_apis decision,
+     function names, design) and `limitations.md` (confirmed constraints).
+     Each `limitations.md` entry must include the constraint, any
+     workaround used, and two search term fields captured while the
+     implementation context is fresh:
+     - `search_terms.technical:` — implementation-level terms (e.g.
+       "arena allocator destructor hook")
+     - `search_terms.user_facing:` — how a user would describe the
+       missing capability (e.g. "custom type cleanup on drop")
    - Confirm `.gitignore` already covers `.claude/` (the template's
      does); if not, add it. The session scratchpads in
      `.claude/tracking/` must never be committed.
@@ -301,6 +351,9 @@ Proceed to Phase 2.
    - Update `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` so they describe this
      extension, not the template. These onboard future agents and must
      not ship as template boilerplate.
+   - Update `.github/workflows/ci.yml`: change `extension-name: vsql_extension_template`
+     to `extension-name: <extension_name>` (underscore form). This is easy to miss and
+     causes CI to build the wrong extension silently.
    - Confirm `LICENSE` is present and unchanged (GPL-2.0 from template)
    - Clear the hello-world implementation in `src/`, keeping the entry
      point structure
@@ -322,27 +375,9 @@ Report progress function-by-function with one-line status updates (e.g.,
 "implemented `func_name`"); never paste implementations or summarize across
 functions.
 
-**Pre-implementation invariants** — apply these while writing every
-function, not after. Phase 4 reviewers will fail the run on any of them,
-and re-writing 10+ entry points to add them retroactively is the
-single biggest cause of context churn:
-
-- Every SQL entry point (type-system ops AND VDFs) is wrapped in
-  `try/catch (...)`. Use function-try-block syntax. No exceptions.
-- No file-scope `using namespace`. Prefer per-symbol `using` declarations
-  (e.g. `using vsql::CustomArg;`) at the top of each translation unit;
-  fall back to fully-qualified names only when two namespaces would
-  otherwise collide or in template contexts where the declaration site
-  is ambiguous.
-- Null check is the first thing inside the function body, before any
-  other field access.
-- Bounds check before every `memcpy`/`memset` against the destination
-  buffer size.
-- No `std::string` allocation in parse hot paths — use `std::string_view`
-  and `.reserve()` when a `std::string` is genuinely needed.
-
-These rules are stable C++ idiom — they don't depend on VEF API names
-and won't drift. `references/patterns.md` has the longer explanations.
+Before writing any entry point, re-read **Technical Standards & Safety
+Patterns** in `references/patterns.md` — those invariants apply to every
+function; Phase 4 will fail the run on any violation.
 
 1. Implement using only names extracted during Phase 2 bootstrap — never
    names from `references/patterns.md`.
@@ -350,25 +385,31 @@ and won't drift. `references/patterns.md` has the longer explanations.
    conventions). **Test files are user-facing documentation**, not a log
    of how the skill thinks about the work. Write `.test` comments that
    describe the behavior being asserted to a future maintainer who has
-   never read this skill. Forbidden vocabulary in any committed `.test`
-   or `.result` file: `Criterion N`, `Phase N`, `Behavior probe`, `UAT`,
-   `acceptance_criteria`, `Persona`. If a comment is a paraphrase of an
-   acceptance criterion, rewrite it as a behavior description
-   ("Validation rejects uppercase prefix" — not "Criterion 5: uppercase
-   prefix").
-3. Build, package, and install. When reinstalling via shell, run
-   `UNINSTALL` and `INSTALL` as **separate** `mysql -e` invocations.
+   never read this skill. Do not use any vocabulary from the forbidden
+   terms list in `references/cto-checklist.md` → Testing Integrity. If a
+   comment is a paraphrase of an acceptance criterion, rewrite it as a
+   behavior description ("Validation rejects uppercase prefix" — not
+   "Criterion 5: uppercase prefix").
+3. Build, package, and install. **If Rust:** use `cargo vsql install`
+   (see `references/rust-workflow.md → Phase 3: Build & Test Commands`).
+   When reinstalling via shell, run `UNINSTALL` and `INSTALL` as
+   **separate** `mysql -e` invocations.
    **After first install,** run the behavioral probes deferred from
    Phase 1 (aggregates, upgrade path — see `references/capabilities.md`)
-   and record results in `.claude/tracking/limitations.md`. **Reconcile
+   and record results in `.claude/tracking/limitations.md`. Use the same
+   entry format established in Phase 2 step 3: constraint, workaround,
+   `search_terms.technical`, and `search_terms.user_facing`. **Reconcile
    speculative limitations:** any entry written in Phase 1 as "deferred
    to Phase 3" must now be confirmed (kept), downgraded (kept with
    weaker phrasing), or deleted. Only confirmed limitations may remain
    in the file at the end of Phase 3.
-4. Generate result files from actual output — never write by hand:
+4. Generate result files from actual output — never write by hand.
+   **If Rust:** `cargo vsql test --record` / `cargo vsql test`.
+   **If C++** (must run from `{build_dir}/mysql-test/` — any other directory
+   fails with a Perl module path error):
    ```bash
-   # Record:  perl mysql-test-run.pl --suite=/path/to/extension/mysql-test --record
-   # Run:     perl mysql-test-run.pl --suite=/path/to/extension/mysql-test
+   # Record:  perl mysql-test-run.pl --suite=/absolute/path/to/extension/mysql-test --record
+   # Run:     perl mysql-test-run.pl --suite=/absolute/path/to/extension/mysql-test
    ```
 5. **CRITICAL:** Show test runner output after every run. NEVER claim
    a test passes without evidence. Output rules:
@@ -399,7 +440,10 @@ and won't drift. `references/patterns.md` has the longer explanations.
    slop patterns — unnecessary defensiveness for conditions the VEF
    contract makes impossible, over-abstraction for a single caller,
    redundant comments that restate the code, empty catch blocks,
-   indirection layers that serve no purpose.
+   indirection layers that serve no purpose; (4) unnecessary C++ casts —
+   `static_cast` on a value already of the correct type, casting to the
+   same type twice, or `reinterpret_cast` where the typed API already
+   returns the right type.
 
    **Agent 2 — Quality:** Flag redundant state, parameter sprawl, copy-
    paste variation across functions, leaky abstractions, stringly-typed
@@ -491,7 +535,11 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
 
 ### Phase 6: Documentation & Cleanup *(Product Strategist)*
 
-1. **Generate `README.md` and `TESTING.md`.** Use the
+1. **Generate `README.md` and `TESTING.md`.** **If Rust:** use the
+   build and testing sections from `references/rust-workflow.md → Phase 6`
+   instead of the C++ cmake/make instructions below.
+
+   Use the
    [vsql-extension-template README](https://github.com/villagesql/vsql-extension-template/blob/main/README.md)
    as the structural reference for section order, OS-specific build
    instructions, and testing options — do not re-derive from scratch.
@@ -511,7 +559,11 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
      before/after SQL for common use cases, behavioral differences, and
      every Blocked function with its workaround)
    - Known Limitations (assembled in step 2 below)
+   - Security Considerations (if the extension handles credentials, secrets,
+     network access, or user-supplied data — cover threat model and mitigations;
+     omit for pure computational extensions like math or string manipulation)
    - Testing (point to `TESTING.md`)
+   - Contributing (one-line link: `See the [VillageSQL Contributing Guide](https://github.com/villagesql/villagesql-server/blob/main/CONTRIBUTING.md).`)
    - Reporting Bugs and Requesting Features (GitHub Issues link)
    - Contact (Discord `https://discord.gg/KSr6whd3Fr` + GitHub Issues)
    - License
@@ -530,24 +582,41 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    workarounds. If `limitations.md` is missing but workarounds were
    used, reconstruct from `architecture.md` before proceeding.
 
-3. **Call to Action.** For each limitation, run a targeted search
-   against villagesql-server issues using `mcp__github__search_issues`.
-   Log the search query string used. If a matching issue exists, verify
-   relevance by checking the issue title — log the issue number and
-   title, link it in the README, and ask the user to 👍 it. A generic
-   hit (e.g. issue #1 "repo setup") is not a match; keep searching or
-   treat as no match. If no relevant issue exists, write a complete,
-   copy-paste-ready draft inline — title, description, and relevant
-   context — then ask the user: "Want me to file this, or will you copy
-   it?" If the agent files the issue, the title must include
-   `[extension-builder]` and the body must open with:
-   > *Surfaced by the VillageSQL Extension Builder skill while building
-   > `<extension-name>`.*
+3. **Call to Action.** For each limitation in `limitations.md`:
 
-   **Gate:** For every entry in `limitations.md`, record here: the
-   search query used, the matching issue number + title (or "no match"),
-   and the outcome (linked / drafted / user prompted). Phase 6 is not
-   complete until all entries are accounted for.
+   a. **Keyword search.** Run two queries against villagesql-server using
+      `mcp__github__search_issues` — one using `search_terms.technical`,
+      one using `search_terms.user_facing`. Log both query strings.
+
+   b. **Inspect every hit.** For each result returned, call
+      `mcp__github__issue_read` to read the full issue body. A match
+      requires the issue to describe the same underlying gap — not just
+      share keywords. Log the issue number, title, and one sentence
+      explaining why it matches or doesn't. Title-only matching is not
+      acceptable.
+
+   c. **Fallback — reason over the full issue list.** If both queries
+      return no hits, or all hits fail inspection, fetch the full list
+      of open villagesql-server issues using `mcp__github__list_issues`
+      (paginate as needed) and reason over them semantically. Fetch this
+      list once and reuse it for all remaining limitations in the same
+      pass — do not re-fetch per limitation.
+
+   d. **Outcome.** For each limitation, record one of:
+      - **Match found:** link the issue in the README and ask the user
+        to 👍 it.
+      - **No match:** write a complete, copy-paste-ready draft inline —
+        title, description, relevant context — then ask: "Want me to
+        file this, or will you copy it?" If filing, use the repo's
+        existing issue templates and open the body with:
+        > *Surfaced by the VillageSQL Extension Builder skill while
+        > building `<extension-name>`.*
+
+   **Gate:** For every entry in `limitations.md`, record: both search
+   queries used, all hits inspected with pass/fail reasoning, whether
+   fallback reasoning was invoked, and the outcome (linked / drafted /
+   user prompted). Phase 6 is not complete until all entries are
+   accounted for.
 
 4. **Announce the extension.** Write a complete, copy-paste-ready
    **Feature** issue draft for
@@ -621,9 +690,9 @@ Finale:**
   and cross-checked against actual files in `mysql-test/t/`
 - [ ] Step 2: "Known Limitations" section in `README.md` assembled from
   `limitations.md`; if `limitations.md` was missing, reconstructed first
-- [ ] Step 3: Every `limitations.md` entry has a search query logged, a
-  match outcome (issue # + title or "no match"), and a result (linked /
-  drafted / user prompted)
+- [ ] Step 3: Every `limitations.md` entry has both search queries logged,
+  all hits inspected (not just title-checked), fallback reasoning invoked
+  if needed, and outcome recorded (linked / drafted / user prompted)
 - [ ] Step 4: Extension announcement Feature issue drafted and user prompted
 - [ ] Step 5: Vocabulary grep clean — zero hits for forbidden terms across
   all committed files
@@ -634,6 +703,63 @@ Finale:**
 Do not present the Summary until every box above is checked. If any
 step was skipped, complete it now — do not ask the user whether to skip.
 
+### Post-gate: Skill Retrospective *(after Summary is presented)*
+
+After the gate passes and the summary is presented, do a single
+retrospective pass over the session's tracking files. This is
+machine-generated self-observation — not user feedback. The goal is
+to surface friction that points to specific skill instructions that
+could be clearer, tighter, or better specified.
+
+**What to look for** (read the tracking files; infer from evidence):
+
+- `cto_review.md` — how many fix cycles before PASS? Each cycle beyond
+  the first is friction. Note which checklist items failed and what
+  the deficiency was.
+- `simplification.md` — what was the ratio of findings to applied fixes
+  per agent? A high Agent 1 count suggests the skill's code generation
+  guidance is underspecified.
+- `limitations.md` — were any entries marked "deferred to Phase 3" and
+  then deleted (i.e., the concern was speculative)? Speculative
+  limitations indicate the Phase 1 feasibility probe is overcautious.
+  Conversely, were limitations discovered in Phase 3 that weren't
+  anticipated in Phase 1? That's a gap in `references/capabilities.md`.
+- `architecture.md` — did the preview_apis decision shift between Phase 1
+  and Phase 3? A shift means the Phase 1 trade-off framing was unclear.
+- Were any acceptance criteria amended in Phase 5 because they conflicted
+  with limitations? If the conflict was predictable from Phase 1 data,
+  the Phase 0 criteria drafting guidance needs tightening.
+- Did any phase re-enter more than once (gate fired, fix applied,
+  re-submitted)? Note which phase and the specific deficiency.
+
+**Format** — if friction was found, produce a structured note:
+
+```
+## Skill Retrospective — <extension-name>
+
+### Friction points
+
+- **<Phase N / Reference file>**: <what happened> → <specific instruction
+  or section that could be tightened>
+  Evidence: <tracking file + field>
+
+[repeat for each friction point]
+
+### Clean passes
+[any phase that ran without rework — one line each]
+```
+
+**If no friction points**: skip silently. Do not present the note or
+offer to file anything.
+
+**If friction points exist**: present the note inline (do not print
+tracking file contents — synthesize from them), then ask: "Want me to
+file this as an issue on villagesql-skills so it can improve future
+runs?" If yes, file to `villagesql/villagesql-skills` with title
+`[skill-feedback] <extension-name>: <one-line summary>` and the
+structured note as the body. If the MCP call fails (permissions),
+offer the note as copy-paste text instead.
+
 ---
 
 ## Reference Index
@@ -642,12 +768,14 @@ Detailed material lives in `references/`. Load on demand:
 
 | When you need... | Read |
 |---|---|
+| Context hygiene rules (per-phase) | `references/context-hygiene.md` |
 | Core principles, scope, gate rules | `references/philosophy.md` |
 | VEF capability probes (headers + behavior) | `references/capabilities.md` |
 | Phase 4 critic agent checklist | `references/cto-checklist.md` |
 | Implementation standards, data patterns, naming | `references/patterns.md` |
 | Build, test, paths, DDL syntax | `references/environment.md` |
 | Porting a PostgreSQL extension (type mapping, NULL semantics, operators, SRFs, charset) | `references/pg-port-guide.md` — load at Phase 1 step 1 when `pg_port: true` |
+| Rust SDK workflow (scaffold, API types, build/test commands, CTO adaptations) | `references/rust-workflow.md` — load at Phase 0 step 2 when `language: rust` |
 
 ---
 
@@ -659,8 +787,13 @@ on fresh invocations. Always resume from the last completed gate — do
 not restart from Phase 0.
 
 1. Re-read this skill file in full and `references/philosophy.md`.
-2. List `.claude/tracking/` and read every file present.
-3. Determine the last completed phase using the file inventory:
+2. Check whether an extension directory exists in the current working
+   directory. If no extension directory and no `.claude/tracking/` files
+   can be found, there is nothing to resume — fall back to the Fresh
+   Start Rule and begin at Phase 0. Do not attempt to reconstruct state
+   from conversation alone.
+3. List `.claude/tracking/` and read every file present.
+4. Determine the last completed phase using the file inventory:
    - `acceptance_criteria.md` → Phase 0 drafted; written by Phase 2
    - `architecture.md` (with feasibility + binary layout if applicable)
      → Phases 1–2 complete
@@ -668,7 +801,7 @@ not restart from Phase 0.
      complete
    - `simplification.md` → Phase 3 step 6 complete
    - `cto_review.md` → Phase 4 complete
-4. **Validate state against artifacts.** Run `mysql-test-run.pl`
+5. **Validate state against artifacts.** Run `mysql-test-run.pl`
    against the suite and check whether the extension is installed.
    Cross-check results against the artifact-determined phase:
    - If artifacts say Phase 3+ complete but tests fail: assume
@@ -681,6 +814,6 @@ not restart from Phase 0.
      `limitations.md`, and scaffold exists but tests have never run):
      treat as start of Phase 3 and confirm with the user.
    - If artifacts and working tree agree, proceed.
-5. Announce the determined phase and working tree state to the user.
+6. Announce the determined phase and working tree state to the user.
    If there is any ambiguity or mismatch, ask for explicit confirmation
    before proceeding — do not assume.

@@ -94,6 +94,7 @@ Use declarative desired state, traceable changes, automated policy checks, clear
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Infrastructure change workflow.
 - Desired-state scope and responsibility.
 - Fault-domain infrastructure boundary map, including shared state or control-plane dependencies that can defeat intended independence.

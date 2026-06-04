@@ -1,6 +1,6 @@
 ---
 name: evolve
-description: "Trigger skill evolution manually — analyze observations, evolve skills, show status, or rollback"
+description: "Ring 3 evolution engine: analyze session observations, generate/improve evolved skills, show metrics dashboard. Subcommands: status, history, rollback, reset. Trigger: /evolve, post-session review, skill improvement."
 ---
 
 # /evolve — Manual Evolution Trigger

@@ -1,0 +1,73 @@
+{
+  "skill_name": "sealos-s3",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "/sealos-s3 create private object storage for this repo and wire S3 env vars",
+      "expected_output": "Analyzes the project, checks sealos-cli auth/workspace, lists existing buckets, creates or reuses a private bucket, fetches S3 credentials without printing secrets, writes only the local S3 env keys the app reads, and verifies the storage path.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "uses-analyzer",
+          "description": "Runs scripts/analyze-project-s3.mjs or performs equivalent file-backed detection before choosing env keys"
+        },
+        {
+          "name": "uses-sealos-cli-s3",
+          "description": "Uses sealos-cli s3 commands from PR #28 instead of raw kubectl objectstorage CRDs"
+        },
+        {
+          "name": "protects-secrets",
+          "description": "Does not print access keys, secret keys, or full credential blocks in the final answer"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "/sealos-s3 replace my local MinIO bucket with Sealos object storage for development",
+      "expected_output": "Detects MinIO/S3 env usage, keeps Docker Compose rollback intact unless asked otherwise, creates or reuses a private Sealos bucket, maps Sealos credentials into the existing MinIO/S3-compatible env keys, and verifies upload/download behavior.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "preserves-rollback",
+          "description": "Does not remove or rewrite the local MinIO service unless the user explicitly asks"
+        },
+        {
+          "name": "maps-existing-keys",
+          "description": "Uses existing MINIO_* or S3_* keys read by the app rather than inventing unused aliases"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/sealos-s3 make uploaded images publicly readable",
+      "expected_output": "Explains bucket policy choices, asks before changing a bucket to publicRead or publicReadwrite, and suggests presigned URLs when temporary sharing is enough.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "asks-before-public",
+          "description": "Does not run update-bucket --policy publicRead/publicReadwrite without user confirmation"
+        },
+        {
+          "name": "mentions-presign",
+          "description": "Recommends sealos-cli s3 presign for temporary sharing when appropriate"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/sealos-s3 rotate credentials for this app",
+      "expected_output": "Warns that rotation affects active clients, asks for confirmation, runs rotate-secret only after confirmation, polls secret until the new version is ready, updates dependent local env values without exposing them, and verifies the app can still access storage.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "rotation-is-confirmed",
+          "description": "Treats rotate-secret as sensitive and asks before rotating credentials for an active app"
+        },
+        {
+          "name": "handles-async-status",
+          "description": "Recognizes rotate-secret returns status updating and polls s3 secret before updating apps"
+        }
+      ]
+    }
+  ]
+}

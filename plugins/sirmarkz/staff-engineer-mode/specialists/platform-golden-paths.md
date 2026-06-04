@@ -95,6 +95,7 @@ Build golden paths around capabilities rather than tools: service creation, buil
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Platform capability map.
 - Golden-path lifecycle and template requirements.
 - Required service defaults and records hooks.

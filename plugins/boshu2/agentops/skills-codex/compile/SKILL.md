@@ -310,9 +310,9 @@ AgentOps exposes this flow through `ao compile`. If you want unattended
 compilation, use your host scheduler (`launchd`, `cron`, `systemd`, CI, etc.)
 to invoke `ao compile --force --runtime ollama` or call the lower-level
 `bash skills-codex/compile/scripts/compile.sh` directly.
-If you want the broader out-of-session compounding loop, run it on Gas City (the
-reference out-of-session substrate) instead of inventing a parallel Dream
-wrapper inside `$compile`.
+If you want the broader out-of-session compounding loop, run it on the
+out-of-session substrate (NTM + MCP + managed-agents) instead of inventing a
+parallel Dream wrapper inside `$compile`.
 
 ## Interactive Modes
 

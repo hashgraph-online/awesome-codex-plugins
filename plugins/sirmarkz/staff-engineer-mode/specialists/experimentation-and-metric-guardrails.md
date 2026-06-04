@@ -88,6 +88,7 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Experiment design with hypothesis, population, assignment unit, treatment, control, and exposure rule.
 - Metric map: primary, guardrail, diagnostic, and segment metrics.
 - Validity checks for assignment, sample ratio, telemetry, eligibility, contamination, and missingness.

@@ -94,6 +94,7 @@ Pages should be urgent, actionable, user-visible, and novel. Everything else sho
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Paging-alert inventory and classification.
 - Top toil sources with frequency, effort, and removal path.
 - Alert changes: page/follow-up/remove/group/dedupe/suppress decisions.

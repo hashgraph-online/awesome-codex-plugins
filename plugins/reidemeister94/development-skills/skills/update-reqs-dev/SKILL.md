@@ -55,9 +55,19 @@ For each package in `requirements-dev.in`:
 Checking requirements-dev.in for updates...
 
 Package          Current    Latest     Status
-pytest           8.*        8.4.0      OK (already matches)
-ruff             0.*        0.9.2      OK (already matches)
-commitizen       4.*        4.5.0      OK (already matches)
+pytest           8.*        9.0.0      UPDATE → 9.*
+ruff             0.*        0.14.3     OK (already matches)
+commitizen       4.*        4.9.1      OK (already matches)
 
 Apply updates? [y/N]
 ```
+
+## After applying changes
+
+Recompile the dev lockfile with `uv`:
+
+```bash
+uv pip compile requirements-dev.in -o requirements-dev.txt --upgrade
+```
+
+The `.in` file is human-edited; `.txt` is the generated, fully-resolved lockfile that local dev and the CI test image install from.

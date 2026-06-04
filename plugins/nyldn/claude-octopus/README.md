@@ -12,7 +12,7 @@ Every AI model has blind spots. Claude Octopus puts up to eight of them on every
   <a href="https://claude.ai"><img src="https://img.shields.io/badge/Claude-Built_with_AI-c96442?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJhMTAgMTAgMCAxIDAgMCAyMCAxMCAxMCAwIDAgMCAwLTIwbTAgMS44YTEuMiAxLjIgMCAwIDEgLjg1LjM1bDEuNSA0LjVhLjYuNiAwIDAgMCAuMzUuMzVsNC41IDEuNWExLjIgMS4yIDAgMCAxIDAgMi4yN2wtNC41IDEuNWEuNi42IDAgMCAwLS4zNS4zNWwtMS41IDQuNWExLjIgMS4yIDAgMCAxLTIuMjcgMGwtMS41LTQuNWEuNi42IDAgMCAwLS4zNS0uMzVsLTQuNS0xLjVhMS4yIDEuMiAwIDAgMSAwLTIuMjdsNC41LTEuNWEuNi42IDAgMCAwIC4zNS0uMzVsMS41LTQuNUExLjIgMS4yIDAgMCAxIDEyIDMuOCIvPjwvc3ZnPg==&labelColor=333" alt="Built with Claude"></a>
   <a href="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml"><img src="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <img src="https://img.shields.io/badge/Tests-117_suites_passing-brightgreen" alt="117 suites passing">
-  <img src="https://img.shields.io/badge/Version-9.41.2-blue" alt="Version 9.41.2">
+  <img src="https://img.shields.io/badge/Version-9.42.3-blue" alt="Version 9.42.3">
   <img src="https://img.shields.io/badge/Claude_Code-v2.1.14+_required-blueviolet" alt="Requires Claude Code v2.1.14+">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
 </p>
@@ -25,7 +25,7 @@ Every AI model has blind spots. Claude Octopus puts up to eight of them on every
 
 🔄 **Four-phase methodology, not just tools.** Every task moves through Discover → Define → Develop → Deliver, with quality gates between phases. Other orchestrators give you infrastructure. Octopus gives you the workflows.
 
-🐙 **32 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **48 commands** (slash commands you type), **54 skills** (reusable workflow modules). Say "audit my API" and the right expert activates. Don't know the command? The smart router figures it out.
+🐙 **32 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **50 commands** (slash commands you type), **54 skills** (reusable workflow modules). Say "audit my API" and the right expert activates. Don't know the command? The smart router figures it out.
 
 🐙 **Works with just Claude. Scales to eight.** Zero providers needed to start. Add them one at a time — each activates automatically when detected.
 
@@ -252,6 +252,8 @@ Nine high-traffic commands cover the common Octopus workflows: lifecycle executi
 /octo:security                              # OWASP vulnerability scan + remediation
 /octo:prd mobile checkout redesign          # AI-optimized PRD with 100-point scoring
 ```
+
+`/octo:council` uses the real runner by default. Single-model simulation is only used when explicitly requested with `--simulate` or `--single-model`; `--research-first` writes a research artifact before fanout, and `--corpus-mode append|require` preserves synthesis and plans in project corpus workflows.
 
 Plus 40+ more: review, debug, extract, deck, docs, schedule, parallel, sentinel, optimize, brainstorm, claw, doctor, and [the full set](docs/COMMAND-REFERENCE.md).
 
