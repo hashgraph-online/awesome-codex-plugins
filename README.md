@@ -127,6 +127,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Aegis](https://github.com/GanyuanRan/Aegis) - An agentic skills framework & software development methodology that works: planning, TDD, debugging, and collaboration workflows.
 - [Agentizer](https://github.com/Humiris/wwa-transform) - Turn any website into an AI-powered agentfront with split-pane
 - [AgentOps](https://github.com/boshu2/agentops) - DevOps layer for coding agents with flow, feedback, and memory that compounds between sessions.
+- [Agent Workflow](https://github.com/1139030773-cmd/agent-workflow-system) - 中文 AI 工作流系统。6 个 Agent 角色自动引导、规划、执行、审计、收尾。严格职能隔离+五级纠错+Artifact 交接层。新手友好，Codex & Claude Code 双平台可用。
 - [AgiFlow](https://github.com/AgiFlow/ai-plugin) - Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.
 - [Alcove](https://github.com/epicsagas/alcove) - Local-first MCP server for private project docs with hybrid BM25+vector search, tree-sitter code indexing, and automated linting for team-wide documentation standards.
 - [Anchor](https://github.com/biefan/anchor) - Engineering discipline pack for Claude Code & Codex CLI with task-scope locking, anti-drift braking, condition-based codex review, project-CLAUDE.md pitfall writeback, and PreToolUse hooks that block irreversible bash patterns.
