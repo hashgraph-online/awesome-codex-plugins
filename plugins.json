@@ -551,13 +551,13 @@
     },
     {
       "name": "Aient",
-      "url": "https://github.com/haf/aient-codex-plugin",
-      "owner": "haf",
+      "url": "https://github.com/aient-ai/aient-codex-plugin",
+      "owner": "aient-ai",
       "repo": "aient-codex-plugin",
       "description": "AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/haf/aient-codex-plugin/HEAD/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/aient-ai/aient-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Apple Productivity",

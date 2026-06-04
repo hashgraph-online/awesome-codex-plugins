@@ -27,7 +27,7 @@ The Aient plugin is published through the repo marketplace at
 `.agents/plugins/marketplace.json`.
 
 ```bash
-codex plugin marketplace add https://github.com/hashgraph-online/awesome-codex-plugins.git --ref main --sparse .agents/plugins --sparse plugins/haf/aient-codex-plugin
+codex plugin marketplace add https://github.com/hashgraph-online/awesome-codex-plugins.git --ref main --sparse .agents/plugins --sparse plugins/aient-ai/aient-codex-plugin
 codex plugin add aient
 ```
 
