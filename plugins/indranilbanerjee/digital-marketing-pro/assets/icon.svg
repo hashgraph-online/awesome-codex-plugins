@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Digital Marketing Pro">
+  <title>Digital Marketing Pro</title>
+  <rect width="512" height="512" rx="96" ry="96" fill="#4F46E5"/>
+  <rect x="120" y="330" width="48" height="82" rx="8" fill="#FFFFFF" opacity="0.35"/>
+  <rect x="192" y="270" width="48" height="142" rx="8" fill="#FFFFFF" opacity="0.55"/>
+  <rect x="264" y="210" width="48" height="202" rx="8" fill="#FFFFFF" opacity="0.75"/>
+  <rect x="336" y="140" width="48" height="272" rx="8" fill="#FFFFFF"/>
+  <path d="M 140 232 L 220 178 L 300 202 L 380 124" stroke="#FACC15" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="140" cy="232" r="14" fill="#FACC15"/>
+  <circle cx="220" cy="178" r="14" fill="#FACC15"/>
+  <circle cx="300" cy="202" r="14" fill="#FACC15"/>
+  <circle cx="380" cy="124" r="22" fill="#FACC15"/>
+</svg>
