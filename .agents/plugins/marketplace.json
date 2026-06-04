@@ -343,7 +343,7 @@
       "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg"
     },
     {
-      "name": "epic-harness",
+      "name": "epic",
       "displayName": "Epic Harness",
       "source": {
         "source": "local",
@@ -549,6 +549,21 @@
       "category": "Development & Workflow",
       "description": "High-compression communication mode for Codex agents that removes filler while preserving search, validation, and implementation effort.",
       "icon": "./plugins/Maksim-Burtsev/simple-man/assets/icon.png"
+    },
+    {
+      "name": "skill-routing-kit",
+      "displayName": "Skill Routing Kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/juew/Skill-Routing-Kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Local-first Codex routing guard that improves skill and plugin selection with a capability registry, negative examples, and explainable diagnostics.",
+      "icon": "./plugins/juew/Skill-Routing-Kit/assets/composer-icon.png"
     },
     {
       "name": "spec-driven",

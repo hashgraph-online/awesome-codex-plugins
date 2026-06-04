@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-04",
-  "total": 98,
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -378,6 +378,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Maksim-Burtsev/simple-man/HEAD/plugins/simple-man/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Skill Routing Kit",
+      "url": "https://github.com/juew/Skill-Routing-Kit",
+      "owner": "juew",
+      "repo": "Skill-Routing-Kit",
+      "description": "Local-first Codex routing guard that improves skill and plugin selection with a capability registry, negative examples, and explainable diagnostics.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/juew/Skill-Routing-Kit/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Spec-Driven Development",

@@ -1,0 +1,66 @@
+#!/bin/sh
+set -eu
+
+script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+case "$script_dir" in
+  */.git/hooks)
+    repo_root=$(CDPATH= cd "$script_dir/../.." && pwd)
+    ;;
+  */scripts/hooks)
+    repo_root=$(CDPATH= cd "$script_dir/../.." && pwd)
+    ;;
+  *)
+    repo_root=$(git rev-parse --show-toplevel)
+    ;;
+esac
+cd "$repo_root"
+
+blocked_paths='(^|/)(docs/launch|launch|launch-pack|promotion-drafts)(/|$)|(^|/)(posts\.csv|interactions\.md)$|\.draft\.md$'
+blocked_terms='V2EX|Reddit|Product Hunt|Hacker News|outreach|launch pack|promotion draft'
+
+staged_files=$(git diff --cached --name-only)
+uncommitted_files=$(git diff --name-only)
+committed_range_files=''
+committed_range_text=''
+
+while read -r local_ref local_sha remote_ref remote_sha
+do
+  case "$local_sha" in
+    0000000000000000000000000000000000000000)
+      continue
+      ;;
+  esac
+
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  committed_range_files="$committed_range_files
+$(git diff --name-only "$range")"
+  committed_range_text="$committed_range_text
+$(git diff --cached --name-only)
+$(git log --format=%B "$range")"
+done
+
+files_to_check="$staged_files
+$uncommitted_files
+$committed_range_files"
+
+if printf '%s\n' "$files_to_check" | grep -Eiq "$blocked_paths"; then
+  echo "pre-push blocked: launch/promotion artifacts appear in files being pushed." >&2
+  printf '%s\n' "$files_to_check" | grep -Ei "$blocked_paths" >&2 || true
+  echo "Move private launch materials outside this repository before pushing." >&2
+  exit 1
+fi
+
+if printf '%s\n' "$committed_range_text" | grep -Eiq "$blocked_terms"; then
+  echo "pre-push warning: promotion-related terms appear in commit messages for this push." >&2
+  echo "If this is intentional product documentation, set ALLOW_PROMOTION_PUSH=1 and push again." >&2
+  if [ "${ALLOW_PROMOTION_PUSH:-}" != "1" ]; then
+    exit 1
+  fi
+fi
+
+exit 0
