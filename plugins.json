@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-04",
-  "total": 98,
+  "last_updated": "2026-06-05",
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -858,6 +858,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/papersflow-ai/papersflow-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "PDF Monster",
+      "url": "https://github.com/jbaehova/pdf-monster",
+      "owner": "jbaehova",
+      "repo": "pdf-monster",
+      "description": "Analyzes PDFs as extracted text, OCR text, rendered page images, and embedded figures for coding agents.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jbaehova/pdf-monster/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "prompt-to-asset",
