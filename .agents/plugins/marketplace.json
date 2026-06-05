@@ -343,7 +343,7 @@
       "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg"
     },
     {
-      "name": "epic-harness",
+      "name": "epic",
       "displayName": "Epic Harness",
       "source": {
         "source": "local",
@@ -429,6 +429,20 @@
       "category": "Development & Workflow",
       "description": "Human-on-the-Loop AI coding workflow plugin for Codex, Claude Code, and Cline with structured planning, review, and verification guardrails.",
       "icon": "./plugins/yimwoo/hotl-plugin/docs/assets/codex/hotl-icon.png"
+    },
+    {
+      "name": "llm-transpile",
+      "displayName": "LLM Transpile",
+      "source": {
+        "source": "local",
+        "path": "./plugins/epicsagas/llm-transpile"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Auto-compress .md, .html, and .txt files via PostToolUse hook, cutting context usage by up to 40% with zero workflow change."
     },
     {
       "name": "personal-data-protection",

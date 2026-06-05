@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-04",
-  "total": 98,
+  "last_updated": "2026-06-05",
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -298,6 +298,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yimwoo/hotl-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "LLM Transpile",
+      "url": "https://github.com/epicsagas/llm-transpile",
+      "owner": "epicsagas",
+      "repo": "llm-transpile",
+      "description": "Auto-compress .md, .html, and .txt files via PostToolUse hook, cutting context usage by up to 40% with zero workflow change.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/epicsagas/llm-transpile/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Personal Data Protection",

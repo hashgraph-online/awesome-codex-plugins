@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/install.js"
+          }
+        ],
+        "description": "Install transpile binary if missing (cross-platform)"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TP=$(command -v transpile 2>/dev/null); test -n \"$TP\" && \"$TP\" --input \"$TP_INPUT\" --fidelity semantic --quiet || echo '[transpile] binary not found, skipping'"
+          }
+        ],
+        "description": "Auto-compress .md, .html, .txt files after Read"
+      }
+    ]
+  }
+}
