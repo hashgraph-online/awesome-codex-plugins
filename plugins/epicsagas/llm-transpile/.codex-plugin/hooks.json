@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TP=$(command -v transpile 2>/dev/null); test -n \"$TP\" && \"$TP\" --input \"$TP_INPUT\" --fidelity semantic --quiet || echo '[transpile] binary not found, skipping'"
+            "command": "TP=$(command -v transpile 2>/dev/null); if [ -n \"$TP\" ]; then \"$TP\" --input \"$TP_INPUT\" --fidelity semantic --quiet; else echo '[transpile] binary not found, skipping'; fi"
           }
         ],
         "description": "Auto-compress .md, .html, .txt files after Read"

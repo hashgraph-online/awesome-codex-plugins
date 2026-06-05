@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "transpile",
+      "name": "llm-transpile",
       "source": {
         "source": "local",
         "path": "./"
@@ -15,7 +15,7 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Productivity"
+      "category": "Development & Workflow"
     }
   ]
 }

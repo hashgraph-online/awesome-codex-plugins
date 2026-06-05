@@ -17,6 +17,7 @@
     "token"
   ],
   "hooks": "./.codex-plugin/hooks.json",
+  "scripts": "./registry/scripts",
   "interface": {
     "displayName": "LLM Transpile",
     "shortDescription": "Token-optimized document reader — cuts context usage by up to 40%.",
