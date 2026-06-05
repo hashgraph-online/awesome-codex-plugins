@@ -26,6 +26,7 @@
     "capabilities": [
       "Read"
     ],
-    "websiteURL": "https://github.com/epicsagas/llm-transpile"
+    "websiteURL": "https://github.com/epicsagas/llm-transpile",
+    "composerIcon": "./assets/icon.png"
   }
 }

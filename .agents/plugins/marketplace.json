@@ -442,7 +442,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Auto-compress .md, .html, and .txt files via PostToolUse hook, cutting context usage by up to 40% with zero workflow change."
+      "description": "Auto-compress .md, .html, and .txt files via PostToolUse hook, cutting context usage by up to 40% with zero workflow change.",
+      "icon": "./plugins/epicsagas/llm-transpile/assets/icon.png"
     },
     {
       "name": "personal-data-protection",
