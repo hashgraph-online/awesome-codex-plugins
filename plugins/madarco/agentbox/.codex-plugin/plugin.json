@@ -1,0 +1,27 @@
+{
+  "name": "agentbox",
+  "version": "0.1.0",
+  "description": "Drive AgentBox from Codex on the host: create isolated sandboxes for coding agents, run them in parallel, queue background jobs, and push commits safely through the host relay.",
+  "author": {
+    "name": "Marco D'Alia"
+  },
+  "homepage": "https://github.com/madarco/agentbox",
+  "repository": "https://github.com/madarco/agentbox",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agentbox",
+    "sandbox",
+    "docker",
+    "hetzner",
+    "daytona"
+  ],
+  "interface": {
+    "displayName": "AgentBox",
+    "shortDescription": "Run coding agents in parallel, each in its own sandboxed box.",
+    "composerIcon": "./assets/icon.svg"
+  },
+  "skills": [
+    "./skills/"
+  ]
+}
