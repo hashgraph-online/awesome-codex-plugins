@@ -4,7 +4,7 @@
   "description": "Burp Suite MCP bridge for target-centric traffic triage, replay, rewrite automation, UI selection handoff, BCheck/Bambda import, and evidence export across WSL/Windows/macOS clients.",
   "author": {
     "name": "BurpSuite MCP Bridge",
-    "email": "support@example.invalid",
+    "email": "6jeffr3y@users.noreply.github.com",
     "url": "https://github.com/6jeffr3y/burpsuite-mcp-bridge"
   },
   "homepage": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",

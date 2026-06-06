@@ -315,13 +315,15 @@ def burp_live_poll(
 
 @mcp.tool()
 def burp_flow_get(flow_id: int, source: str = "live", include_bodies: bool = True) -> dict[str, Any]:
-    """读取单条流量的完整细节。source=live/history/selection。"""
-    if source not in {"live", "history", "selection"}:
-        raise ValueError("source 必须是 live、history 或 selection")
+    """读取单条流量的完整细节。source=live/history/logger/selection。"""
+    if source not in {"live", "history", "logger", "selection"}:
+        raise ValueError("source 必须是 live、history、logger 或 selection")
     if source == "live":
         path = f"/api/flows/{flow_id}"
     elif source == "history":
         path = f"/api/history/{flow_id}"
+    elif source == "logger":
+        path = f"/api/logger/flows/{flow_id}"
     else:
         path = f"/api/selection/flows/{flow_id}"
     return _request_json(path, query={"includeBodies": include_bodies})
