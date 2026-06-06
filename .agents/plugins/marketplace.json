@@ -431,6 +431,20 @@
       "icon": "./plugins/yimwoo/hotl-plugin/docs/assets/codex/hotl-icon.png"
     },
     {
+      "name": "mailagent",
+      "displayName": "MailAgent",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Alex0nder/mailagent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Temporary inboxes for Codex — OTP, magic links, signup QA, simulate-first autotests (23 MCP tools)."
+    },
+    {
       "name": "personal-data-protection",
       "displayName": "Personal Data Protection",
       "source": {
