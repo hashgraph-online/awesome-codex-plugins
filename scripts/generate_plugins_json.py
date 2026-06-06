@@ -52,6 +52,9 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # BurpSuite MCP Bridge needs its Python MCP runtime and Burp extension JARs
+    # mirrored with the plugin manifest so marketplace installs are usable.
+    "6jeffr3y/burpsuite-mcp-bridge": ("wsl-mcp", "burp-plugin"),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),

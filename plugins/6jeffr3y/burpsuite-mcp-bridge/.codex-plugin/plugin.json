@@ -1,0 +1,45 @@
+{
+  "name": "burpsuite-mcp-bridge",
+  "version": "1.1.0",
+  "description": "Burp Suite MCP bridge for target-centric traffic triage, replay, rewrite automation, UI selection handoff, BCheck/Bambda import, and evidence export across WSL/Windows/macOS clients.",
+  "author": {
+    "name": "BurpSuite MCP Bridge",
+    "email": "support@example.invalid",
+    "url": "https://github.com/6jeffr3y/burpsuite-mcp-bridge"
+  },
+  "homepage": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",
+  "repository": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",
+  "license": "Proprietary Runtime Distribution",
+  "keywords": [
+    "burp",
+    "mcp",
+    "codex",
+    "wsl",
+    "windows",
+    "montoya",
+    "proxy",
+    "agent-ai"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BurpSuite MCP Bridge",
+    "shortDescription": "Bridge Burp Suite traffic, replay, and rewrite workflows into MCP clients and IDEs",
+    "longDescription": "Expose Burp Suite proxy, history, logger-like internal tool traffic, and UI-selected messages to MCP clients. Supports target-centric overview, low-noise polling, replay with mutation, request/response rewrite rules with modify/drop/spoof actions, Repeater handoff, BCheck/Bambda import, and exportable raw evidence.",
+    "developerName": "BurpSuite MCP Bridge",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/6jeffr3y/burpsuite-mcp-bridge",
+    "brandColor": "#f97316",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Use BurpSuite MCP Bridge to build a target overview for the current host and pick high-value candidate flows.",
+      "Use BurpSuite MCP Bridge to inspect a selected Burp message, replay one controlled mutation, and export the raw evidence bundle.",
+      "Use BurpSuite MCP Bridge to create a temporary scoped rewrite rule, verify its effect, then delete or disable it."
+    ]
+  }
+}
