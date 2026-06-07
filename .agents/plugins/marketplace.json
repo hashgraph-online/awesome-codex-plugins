@@ -343,7 +343,7 @@
       "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg"
     },
     {
-      "name": "epic",
+      "name": "epic-harness",
       "displayName": "Epic Harness",
       "source": {
         "source": "local",
