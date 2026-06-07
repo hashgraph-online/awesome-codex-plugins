@@ -1,6 +1,6 @@
 {
   "name": "llm-transpile",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Auto-compress .md, .html, .txt files read by coding agents via PostToolUse hook.",
   "author": {
     "name": "epicsagas",

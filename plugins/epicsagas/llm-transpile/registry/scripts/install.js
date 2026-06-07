@@ -6,7 +6,8 @@
 "use strict";
 
 const { spawnSync } = require("child_process");
-const { createWriteStream, chmodSync, readFileSync } = require("fs");
+const { createWriteStream, chmodSync, readFileSync, createReadStream } = require("fs");
+const { createHash } = require("crypto");
 const { join } = require("path");
 const https = require("https");
 const os = require("os");
@@ -16,6 +17,8 @@ const BINARY = "transpile";
 const CARGO_PKG = "llm-transpile";
 const INSTALLER_SH = `https://github.com/${REPO}/releases/latest/download/install.sh`;
 const INSTALLER_PS1 = `https://github.com/${REPO}/releases/latest/download/install.ps1`;
+const INSTALLER_SH_SHA256_URL = `https://github.com/${REPO}/releases/latest/download/install.sh.sha256`;
+const INSTALLER_PS1_SHA256_URL = `https://github.com/${REPO}/releases/latest/download/install.ps1.sha256`;
 
 function log(msg) {
   process.stderr.write(`[transpile plugin] ${msg}\n`);
@@ -85,6 +88,52 @@ function downloadFile(url, dest) {
   });
 }
 
+function sha256File(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+    createReadStream(filePath).on("data", (d) => hash.update(d)).on("end", () => resolve(hash.digest("hex"))).on("error", reject);
+  });
+}
+
+function fetchText(url) {
+  return new Promise((resolve, reject) => {
+    const follow = (u) => {
+      https.get(u, (res) => {
+        if (res.statusCode === 301 || res.statusCode === 302) {
+          follow(res.headers.location);
+          res.resume();
+          return;
+        }
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode} for ${u}`));
+          return;
+        }
+        let body = "";
+        res.on("data", (c) => (body += c));
+        res.on("end", () => resolve(body.trim()));
+      }).on("error", reject);
+    };
+    follow(url);
+  });
+}
+
+async function verifyIntegrity(filePath, sha256Url) {
+  try {
+    const [expectedHash] = (await fetchText(sha256Url)).split(/\s+/);
+    const actualHash = await sha256File(filePath);
+    if (expectedHash !== actualHash) {
+      throw new Error(
+        `SHA-256 mismatch:\n  expected: ${expectedHash}\n  actual:   ${actualHash}\n` +
+        "The installer may have been tampered with. Aborting."
+      );
+    }
+    log("Integrity check passed.");
+  } catch (e) {
+    if (e.message.includes("mismatch")) throw e;
+    log(`Could not fetch checksum (${e.message}) — skipping integrity check.`);
+  }
+}
+
 async function install() {
   const platform = os.platform();
 
@@ -119,6 +168,7 @@ async function install() {
     const tmp = join(os.tmpdir(), "transpile-installer.ps1");
     log("Downloading Windows installer...");
     await downloadFile(INSTALLER_PS1, tmp);
+    await verifyIntegrity(tmp, INSTALLER_PS1_SHA256_URL);
     const r = spawnSync(
       "powershell",
       ["-ExecutionPolicy", "Bypass", "-File", tmp],
@@ -129,6 +179,7 @@ async function install() {
     const tmp = join(os.tmpdir(), "transpile-installer.sh");
     log("Downloading installer...");
     await downloadFile(INSTALLER_SH, tmp);
+    await verifyIntegrity(tmp, INSTALLER_SH_SHA256_URL);
     chmodSync(tmp, 0o755);
     const r = spawnSync("sh", [tmp], { stdio: "inherit" });
     if (r.status !== 0) throw new Error("Shell installer failed");
@@ -137,7 +188,6 @@ async function install() {
 
 async function main() {
   const pluginVersion = getPluginVersion();
-  const isPlugin = !!(process.env.CLAUDE_PLUGIN_ROOT || process.env.PLUGIN_ROOT);
 
   // 1. Binary not found — fresh install
   if (!hasCommand(BINARY)) {
