@@ -442,7 +442,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Temporary inboxes for Codex — OTP, magic links, signup QA, simulate-first autotests (23 MCP tools)."
+      "description": "Temporary inboxes for Codex — OTP, magic links, signup QA, simulate-first autotests (23 MCP tools).",
+      "icon": "./plugins/Alex0nder/mailagent/assets/icon.svg"
     },
     {
       "name": "personal-data-protection",

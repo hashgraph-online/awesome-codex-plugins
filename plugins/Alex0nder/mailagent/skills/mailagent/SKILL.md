@@ -59,6 +59,8 @@ npx -y -p @mailagent/mcp@0.2.5 mailagent-mcp
 
 Remote (no subprocess): `POST https://api.webmailagent.com/mcp` + Bearer token.
 
+**Browser login (no API key in client):** Auth0 OIDC on prod — `auth.oidc: enabled` on `GET /v1/agent`. Operator setup: `npm run wizard:auth0`. Docs: https://webmailagent.com/docs/oauth-idp.html
+
 ## Prerequisites
 
 - `MAILAGENT_API_KEY` — team key from console or `npm run issue:key:db`

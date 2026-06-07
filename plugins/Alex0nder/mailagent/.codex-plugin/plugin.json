@@ -26,6 +26,7 @@
       "Extract a magic link from a signup email.",
       "Simulate a test OTP email when staging mail is unavailable."
     ],
-    "brandColor": "#2563EB"
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg"
   }
 }

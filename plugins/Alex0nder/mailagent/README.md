@@ -2,80 +2,54 @@
 
 MailAgent gives Codex temporary inboxes for signup QA, OTP emails, and magic links.
 
-## Install
-
-Use this directory as a local Codex plugin during development:
+## Setup
 
 ```bash
-cd examples/codex/plugin
 cp .env.example .env
 chmod +x scripts/run-mailagent-mcp.sh
 ```
 
-Open `examples/codex/plugin` as a trusted Codex project, or install the plugin through your local
-Codex plugin workflow when publishing it to a marketplace.
-
-## Environment
-
-Put secrets in `examples/codex/plugin/.env`. The file is ignored by git.
+Put secrets in `.env` (gitignored). `MAILAGENT_API_URL` defaults to `https://api.webmailagent.com`.
+`MAILAGENT_API_KEY` may also come from the parent process environment. Do not log or paste the key.
 
 ```dotenv
 MAILAGENT_API_URL=https://api.webmailagent.com
 MAILAGENT_API_KEY=ma_or_mak_replace_me
 ```
 
-`MAILAGENT_API_URL` defaults to `https://api.webmailagent.com` when omitted. `MAILAGENT_API_KEY`
-may also come from the parent process environment. Do not log or paste the key.
-
 ## Check MCP
 
-The plugin has one MCP server entry, `mailagent`, which launches the published npm stdio package:
+The plugin launches the published npm stdio package via `scripts/run-mailagent-mcp.sh`:
 
 ```bash
 codex mcp list
 ```
 
-Expected result: the `mailagent` server is listed and tools include
-`mailagent_verify_signup` and `mailagent_create_inbox`.
+Expected: `mailagent` server with `mailagent_verify_signup` and `mailagent_create_inbox`.
 
-## Verify Signup Flow
+## Verify signup flow
 
-For a full Codex-controlled signup flow:
+1. `mailagent_create_inbox` with `label` and `service`.
+2. Submit returned `address` in the signup form.
+3. `mailagent_wait_and_extract` with `inboxId` and `subjectContains`.
+4. Use `otp` or `primaryLink` to finish signup.
+5. `mailagent_delete_inbox` for cleanup.
 
-1. Call `mailagent_create_inbox` with a useful `label` and `service`.
-2. Submit the returned `address` in the signup form.
-3. Call `mailagent_wait_and_extract` with `inboxId` and a `subjectContains` hint.
-4. Use the returned `otp` or `primaryLink` to finish signup.
-5. Call `mailagent_delete_inbox` for cleanup.
+If the form is already submitted, use `mailagent_verify_signup` to wait and extract in one call.
 
-When the form was already submitted and you have `inboxId`, use `mailagent_verify_signup` to wait
-and extract in one call.
+## Remote MCP (OAuth)
 
-## Remote MCP OAuth Preset
+For Streamable HTTP without a local subprocess, see
+[OAuth IdP docs](https://webmailagent.com/docs/oauth-idp.html) and use `https://api.webmailagent.com/mcp`
+with a short-lived `mat_` bearer token.
 
-For remote Streamable HTTP MCP without a local subprocess, exchange a team API key for a short-lived
-`mat_` token and use the preset in `../config.remote-oauth.toml.example`.
+This bundle keeps stdio MCP via `npx -y -p @mailagent/mcp@0.2.5 mailagent-mcp`.
 
-```toml
-[mcp_servers.mailagent-remote]
-url = "https://api.webmailagent.com/mcp"
-
-[mcp_servers.mailagent-remote.http_headers]
-Authorization = "Bearer mat_REPLACE_AFTER_OAUTH"
-Accept = "application/json, text/event-stream"
-```
-
-Keep the plugin `.mcp.json` on the local stdio preset so it has a single entry through
-`npx -y -p @mailagent/mcp@0.2.5 mailagent-mcp`.
-
-Pack for marketplace: `npm run package:codex` from repo root → `dist/mailagent-codex-plugin-0.2.5.tar.gz`.
-
-Install from GitHub marketplace (Codex CLI):
+## Install from GitHub marketplace
 
 ```bash
 codex plugin marketplace add Alex0nder/MailAgent
 codex plugin install mailagent --source mailagent
-# set MAILAGENT_API_KEY when prompted (or in plugin .env after install)
 ```
 
 Docs: https://webmailagent.com/docs/codex.html
