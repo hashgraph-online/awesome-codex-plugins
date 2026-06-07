@@ -3,3 +3,4 @@ node_modules/
 web/
 dist/
 .DS_Store
+__pycache__/
