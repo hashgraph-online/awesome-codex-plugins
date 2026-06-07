@@ -13,16 +13,16 @@
         "description": "Install transpile binary if missing (cross-platform)"
       }
     ],
-    "PostToolUse": [
+    "PreToolUse": [
       {
         "matcher": "Read",
         "hooks": [
           {
             "type": "command",
-            "command": "TP=$(command -v transpile 2>/dev/null); if [ -n \"$TP\" ]; then \"$TP\" --input \"$TP_INPUT\" --fidelity semantic --quiet; else echo '[transpile] binary not found, skipping'; fi"
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/pre-read.js"
           }
         ],
-        "description": "Auto-compress .md, .html, .txt files after Read"
+        "description": "Auto-compress .md, .html, .txt files before Read"
       }
     ]
   }
