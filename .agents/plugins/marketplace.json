@@ -1309,6 +1309,21 @@
       "description": "Reverse engineer Rust binaries and libraries: triage targets, demangle symbols, recover crate namespaces, and map panic, unwind, async, and FFI paths."
     },
     {
+      "name": "just-scrape",
+      "displayName": "ScrapeGraph AI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ScrapeGraphAI/just-scrape"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
+      "icon": "./plugins/ScrapeGraphAI/just-scrape/assets/icon.svg"
+    },
+    {
       "name": "sitemd",
       "displayName": "sitemd",
       "source": {

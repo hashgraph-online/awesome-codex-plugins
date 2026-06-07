@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-04",
-  "total": 98,
+  "last_updated": "2026-06-07",
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -898,6 +898,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jingjing2222/rust-reverse-engineering-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ScrapeGraph AI",
+      "url": "https://github.com/ScrapeGraphAI/just-scrape",
+      "owner": "ScrapeGraphAI",
+      "repo": "just-scrape",
+      "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ScrapeGraphAI/just-scrape/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "sitemd",
