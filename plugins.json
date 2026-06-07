@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-07",
-  "total": 102,
+  "total": 103,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1018,6 +1018,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/CarrotGamesStudios/vidseeds-mcp/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "X Twitter Scraper",
+      "url": "https://github.com/Xquik-dev/x-twitter-scraper",
+      "owner": "Xquik-dev",
+      "repo": "x-twitter-scraper",
+      "description": "X/Twitter data, monitored workflows, HMAC webhooks, and MCP access through the Xquik REST API with confirmation-gated write guidance.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Xquik-dev/x-twitter-scraper/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Yandex Direct",

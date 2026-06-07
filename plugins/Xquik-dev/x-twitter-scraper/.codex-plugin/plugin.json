@@ -1,0 +1,49 @@
+{
+  "name": "x-twitter-scraper",
+  "version": "2.4.16",
+  "description": "X (Twitter) data and automation skill for agents using Xquik REST API, MCP, webhooks, SDKs, and confirmation-gated actions.",
+  "author": {
+    "name": "Xquik",
+    "url": "https://github.com/Xquik-dev"
+  },
+  "homepage": "https://docs.xquik.com",
+  "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
+  "license": "MIT",
+  "keywords": [
+    "twitter",
+    "x-api",
+    "mcp-server",
+    "data-extraction",
+    "monitoring",
+    "webhooks",
+    "scraper",
+    "twitter-api",
+    "social-media",
+    "ai-agent"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "X Twitter Scraper",
+    "shortDescription": "Use Xquik for X data, MCP, and gated actions",
+    "longDescription": "Use the X Twitter Scraper skill to guide agents through Xquik REST API, MCP, webhook, SDK, extraction, monitoring, and confirmation-gated action workflows for X data and automation.",
+    "developerName": "Xquik",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.svg",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://docs.xquik.com",
+    "privacyPolicyURL": "https://xquik.com/privacy",
+    "termsOfServiceURL": "https://xquik.com/terms",
+    "defaultPrompt": [
+      "Search recent X posts with Xquik",
+      "Set up the Xquik MCP server",
+      "Create a gated X monitoring workflow"
+    ],
+    "brandColor": "#0F172A",
+    "screenshots": []
+  }
+}

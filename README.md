@@ -238,6 +238,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [unslop](https://github.com/MohamedAbdallah-14/unslop) - Strip AI writing patterns from text output — removes filler phrases, hedging language, and generic constructs to produce cleaner written content. Install: `npm install -g unslop`.
 - [Upwork Autopilot](https://github.com/klajdikkolaj/upwork-autopilot) - Controlled Upwork job search, qualification, and proposal submission sessions through a dedicated Chrome profile.
 - [VidSeeds.ai](https://github.com/CarrotGamesStudios/vidseeds-mcp) - Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.
+- [X Twitter Scraper](https://github.com/Xquik-dev/x-twitter-scraper) - X/Twitter data, monitored workflows, HMAC webhooks, and MCP access through the Xquik REST API with confirmation-gated write guidance.
 - [Yandex Direct](https://github.com/nebelov/yandex-direct-for-all) - GitHub-ready Codex plugin bundle for Yandex Direct, Wordstat, Metrika, and Roistat.
 
 ## Plugin Development
