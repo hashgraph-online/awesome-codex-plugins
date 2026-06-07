@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-07",
-  "total": 102,
+  "total": 103,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -208,6 +208,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Rycen7822/codex-rg-guard/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "debt-ops",
+      "url": "https://github.com/bcanfield/agentic-tech-debt",
+      "owner": "bcanfield",
+      "repo": "agentic-tech-debt",
+      "description": "Catches AI-introduced tech debt at write-time: hooks log every deferral to a registry in your repo and a review skill ranks paydown by file churn.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/bcanfield/agentic-tech-debt/HEAD/codex/.codex-plugin/plugin.json"
     },
     {
       "name": "Dev Skills",

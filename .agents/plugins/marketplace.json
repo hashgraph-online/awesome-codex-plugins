@@ -298,6 +298,21 @@
       "description": "Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context."
     },
     {
+      "name": "debt-ops",
+      "displayName": "debt-ops",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bcanfield/agentic-tech-debt"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Catches AI-introduced tech debt at write-time: hooks log every deferral to a registry in your repo and a review skill ranks paydown by file churn.",
+      "icon": "./plugins/bcanfield/agentic-tech-debt/assets/icon.svg"
+    },
+    {
       "name": "dev-skills",
       "displayName": "Dev Skills",
       "source": {
