@@ -29,7 +29,7 @@ If the task is to integrate ScrapeGraph AI into application code, add `SGAI_API_
 Must be installed and authenticated. Check with `just-scrape validate` and `just-scrape credits`.
 
 ```bash
-which just-scrape || npm install -g just-scrape@latest
+command -v just-scrape >/dev/null 2>&1 || npm install -g just-scrape@latest
 just-scrape validate
 just-scrape credits
 ```
@@ -218,7 +218,7 @@ Naming conventions:
 Never read entire output files at once. Use `rg`, `head`, `jq`, or incremental reads:
 
 ```bash
-wc -l .just-scrape/file.json && head -50 .just-scrape/file.json
+wc -c .just-scrape/file.json && head -c 5000 .just-scrape/file.json
 rg -n "keyword" .just-scrape/file.json
 jq '.request_id // .id // .status' .just-scrape/file.json
 ```
