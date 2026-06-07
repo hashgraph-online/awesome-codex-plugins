@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-04",
-  "total": 98,
+  "last_updated": "2026-06-07",
+  "total": 99,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -28,6 +28,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/GanyuanRan/Aegis/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AgentBox",
+      "url": "https://github.com/madarco/agentbox",
+      "owner": "madarco",
+      "repo": "agentbox",
+      "description": "Run coding agents in parallel, each in its own sandboxed box (local Docker or cloud VMs via Hetzner/Daytona/Vercel/E2B), with sub-1s checkpoint starts, a per-box browser + VS Code, and host-held git credentials.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/madarco/agentbox/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Agentizer",

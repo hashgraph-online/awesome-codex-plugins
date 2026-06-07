@@ -34,6 +34,21 @@
       "icon": "./plugins/GanyuanRan/Aegis/assets/aegis-small.svg"
     },
     {
+      "name": "agentbox",
+      "displayName": "AgentBox",
+      "source": {
+        "source": "local",
+        "path": "./plugins/madarco/agentbox"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Run coding agents in parallel, each in its own sandboxed box (local Docker or cloud VMs via Hetzner/Daytona/Vercel/E2B), with sub-1s checkpoint starts, a per-box browser + VS Code, and host-held git credentials.",
+      "icon": "./plugins/madarco/agentbox/assets/icon.svg"
+    },
+    {
       "name": "codiris-agentizer",
       "displayName": "Agentizer",
       "source": {
