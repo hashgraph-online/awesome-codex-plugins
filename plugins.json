@@ -37,7 +37,7 @@
       "description": "Run coding agents in parallel, each in its own sandboxed box (local Docker or cloud VMs via Hetzner/Daytona/Vercel/E2B), with sub-1s checkpoint starts, a per-box browser + VS Code, and host-held git credentials.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/madarco/agentbox/HEAD/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/madarco/agentbox/HEAD/plugins/agentbox/.codex-plugin/plugin.json"
     },
     {
       "name": "Agentizer",

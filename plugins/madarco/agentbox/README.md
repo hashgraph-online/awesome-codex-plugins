@@ -1,27 +1,30 @@
-# AgentBox (Codex plugin)
+# AgentBox — Codex plugin
 
-Drive [AgentBox](https://github.com/madarco/agentbox) from Codex on the host: create
-isolated sandboxes ("boxes") for coding agents, run them in parallel, queue background
-runs, and push commits safely through the host relay.
-
-Each box is a local Docker container (default) or a cloud VM (Hetzner / Daytona / Vercel /
-E2B). The box shares the host's `.git/` but has **no host credentials** — `git push`, host
-URLs, and checkpoints flow through a small host relay. Boxes start in under a second from
-checkpoints, ship a per-box browser and VS Code, and work with Codex, Claude Code, and OpenCode.
+Drive AgentBox from [Codex](https://openai.com/index/introducing-codex/) on the host:
+create isolated sandboxes for coding agents, run them in parallel, queue background jobs,
+and push commits safely through the host relay.
 
 ## Install
 
-```sh
-npm -g install @madarco/agentbox
-agentbox install
-agentbox codex      # launch Codex inside a fresh sandboxed box
+```bash
+codex plugin marketplace add madarco/agentbox
+codex plugin add agentbox@agentbox
 ```
 
-## What this plugin adds
+This repo doubles as a single-plugin Codex marketplace: `.agents/plugins/marketplace.json`
+points at this bundle (`./plugins/agentbox`).
 
-A host-side skill (`skills/agentbox`) that teaches Codex how to operate the `agentbox` CLI —
-provisioning boxes, running agents in parallel, attaching, accessing boxes, and lifecycle.
+## Layout
 
-Source / docs: https://github.com/madarco/agentbox · https://agent-box.sh/docs
+```
+plugins/agentbox/
+  .codex-plugin/plugin.json   # manifest (skills + composerIcon resolve from this dir's parent)
+  assets/icon.svg
+  skills/agentbox-info/SKILL.md
+```
 
-License: MIT
+`skills/agentbox-info/SKILL.md` is a **real copy** of the canonical skill at
+`apps/cli/share/host-skills/agentbox-info/SKILL.md` — Codex copies the bundle on install and
+does not follow a symlink that points outside it, so the content must live here directly.
+A CI guard (`pnpm check:plugin-skill`) fails if the copy drifts; run
+`node scripts/check-plugin-skill-sync.mjs --fix` to resync after editing the canonical skill.
