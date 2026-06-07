@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-07",
-  "total": 102,
+  "last_updated": "2026-06-08",
+  "total": 103,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -488,6 +488,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/HDeibler/universal-design-principles/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Velith",
+      "url": "https://github.com/epicsagas/Velith",
+      "owner": "epicsagas",
+      "repo": "Velith",
+      "description": "AI-native publishing system with a 6-phase pipeline from ideation to EPUB/PDF across 8 genres.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/epicsagas/Velith/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "VibePortrait",
