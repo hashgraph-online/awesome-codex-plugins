@@ -34,6 +34,21 @@
       "icon": "./plugins/GanyuanRan/Aegis/assets/aegis-small.svg"
     },
     {
+      "name": "agent-harness-skills",
+      "displayName": "Agent Harness Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yfge/agent-harness-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Designs agent-ready repository harnesses with entrypoints, validation surfaces, runtime evidence, delivery records, and atomic commit guidance.",
+      "icon": "./plugins/yfge/agent-harness-skills/assets/icon.svg"
+    },
+    {
       "name": "codiris-agentizer",
       "displayName": "Agentizer",
       "source": {
@@ -343,7 +358,7 @@
       "icon": "./plugins/ejentum/ejentum-mcp/assets/ejentum-icon.svg"
     },
     {
-      "name": "epic-harness",
+      "name": "epic",
       "displayName": "Epic Harness",
       "source": {
         "source": "local",
@@ -429,6 +444,21 @@
       "category": "Development & Workflow",
       "description": "Human-on-the-Loop AI coding workflow plugin for Codex, Claude Code, and Cline with structured planning, review, and verification guardrails.",
       "icon": "./plugins/yimwoo/hotl-plugin/docs/assets/codex/hotl-icon.png"
+    },
+    {
+      "name": "llm-transpile",
+      "displayName": "LLM Transpile",
+      "source": {
+        "source": "local",
+        "path": "./plugins/epicsagas/llm-transpile"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Auto-compress .md, .html, and .txt files via PostToolUse hook, cutting context usage by up to 40% with zero workflow change.",
+      "icon": "./plugins/epicsagas/llm-transpile/assets/icon.png"
     },
     {
       "name": "personal-data-protection",
@@ -696,6 +726,21 @@
       "description": "Cross-agent UX and product-design marketplace with a root Codex collection plugin, five focused plugin bundles, and 137 Agent Skills for design review, accessibility, layout, interaction, cognition, and product polish."
     },
     {
+      "name": "velith",
+      "displayName": "Velith",
+      "source": {
+        "source": "local",
+        "path": "./plugins/epicsagas/Velith"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "AI-native publishing system with a 6-phase pipeline from ideation to EPUB/PDF across 8 genres.",
+      "icon": "./plugins/epicsagas/Velith/assets/icon.svg"
+    },
+    {
       "name": "vibe-portrait",
       "displayName": "VibePortrait",
       "source": {
@@ -723,6 +768,20 @@
       "category": "Development & Workflow",
       "description": "Skills for VillageSQL including building extensions from scratch and porting PostgreSQL extensions to VillageSQL.",
       "icon": "./plugins/villagesql/villagesql-skills/assets/icon.svg"
+    },
+    {
+      "name": "workflow-kit",
+      "displayName": "Workflow Kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Le-Xuan-Thang/workflow-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Full product lifecycle plugin for Claude Code, Codex CLI, and OpenCode: define Vision/Mission/Core → generate workplan → execute with mandatory cross-provider reviewer agents → synthesize deliverables → maintain, with parallel task execution, crash recovery, and AgentOps metrics."
     },
     {
       "name": "writers-loop",
@@ -803,7 +862,7 @@
       "displayName": "Aient",
       "source": {
         "source": "local",
-        "path": "./plugins/haf/aient-codex-plugin"
+        "path": "./plugins/aient-ai/aient-codex-plugin"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -811,7 +870,22 @@
       },
       "category": "Tools & Integrations",
       "description": "AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.",
-      "icon": "./plugins/haf/aient-codex-plugin/assets/aient-icon-beveled-light.png"
+      "icon": "./plugins/aient-ai/aient-codex-plugin/assets/aient-icon-beveled-light.png"
+    },
+    {
+      "name": "antigravity-2",
+      "displayName": "Antigravity 2.0",
+      "source": {
+        "source": "local",
+        "path": "./plugins/comprono/antigravity-2-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Local Codex bridge for Antigravity desktop with setup checks, model limit summaries, DevTools UI automation, and safe project/chat handoff.",
+      "icon": "./plugins/comprono/antigravity-2-codex-plugin/assets/icon.svg"
     },
     {
       "name": "apple-calendar",
@@ -1251,6 +1325,21 @@
       "icon": "./plugins/papersflow-ai/papersflow-codex-plugin/assets/plugin-icon.png"
     },
     {
+      "name": "pdf-monster",
+      "displayName": "PDF Monster",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jbaehova/pdf-monster"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Analyzes PDFs as extracted text, OCR text, rendered page images, and embedded figures for coding agents.",
+      "icon": "./plugins/jbaehova/pdf-monster/assets/pdf-monster.svg"
+    },
+    {
       "name": "prompt-to-asset",
       "displayName": "prompt-to-asset",
       "source": {
@@ -1438,6 +1527,21 @@
       "category": "Tools & Integrations",
       "description": "Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.",
       "icon": "./plugins/CarrotGamesStudios/vidseeds-mcp/assets/icon.png"
+    },
+    {
+      "name": "x-twitter-scraper",
+      "displayName": "X Twitter Scraper",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Xquik-dev/x-twitter-scraper"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "X/Twitter data, monitored workflows, HMAC webhooks, and MCP access through the Xquik REST API with confirmation-gated write guidance.",
+      "icon": "./plugins/Xquik-dev/x-twitter-scraper/assets/icon.svg"
     },
     {
       "name": "yandex-direct-for-all",

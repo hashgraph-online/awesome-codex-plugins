@@ -34,6 +34,7 @@ Multi-tenancy fails when tenant context is optional.
 - The request is broad privacy lifecycle, minimization, retention, deletion, or privacy-safe telemetry without tenant-boundary concerns; use `privacy-and-data-lifecycle` instead.
 - The main issue is public abuse or DDoS at the edge; use `edge-traffic-and-ddos-defense` instead.
 - The work is only supply-chain or artifact integrity; use `software-supply-chain-security` instead.
+- For shuffle-sharding / cell partitioning as a blast-radius pattern, use `high-availability-design`; for per-tenant key lifecycle and rotation, use `cryptography-and-key-lifecycle`.
 
 ## Info To Gather
 

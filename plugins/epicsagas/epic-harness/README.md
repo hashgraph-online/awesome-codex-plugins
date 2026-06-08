@@ -86,7 +86,7 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 
 ## Installation
 
-> **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md).
+> **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md). For data storage details, see the [Data Map](docs/data-map.md).
 
 ### Claude Code
 

@@ -53,7 +53,7 @@ Beads with scoped files OUTSIDE the discovery-phase prefixes that lack evidence 
 
 - **Step 2.3** of post-mortem (Reconcile Plan vs Delivered Scope)
 - After `/crank` completes (before closing epic)
-- During `/retro` when reviewing multi-wave epics
+- During `$post-mortem` when reviewing multi-wave epics
 
 ## Audit Procedure
 

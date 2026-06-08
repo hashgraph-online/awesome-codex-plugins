@@ -301,13 +301,70 @@ After each non-trivial change:
 
 When creating the first `docs/aegis/baseline/YYYY-MM-DD-initial-baseline.md`:
 
-1. **Project structure** — top-level directory map, key entry points
-2. **Tech stack** — language, framework, database, key dependencies
-3. **Ownership mapping** — component → canonical owner file/module
-4. **Contract inventory** — public APIs, published interfaces, data contracts
-5. **Dependency direction convention** — which layers depend on which
-6. **Test system** — framework, coverage baseline, test categories
-7. **Build & deploy** — build system, CI pipeline, deploy targets
-8. **Known anti-patterns** — patterns to avoid, previously identified issues
-9. **Last review findings** — date, reviewer, key findings, open items
-10. **Compatibility boundaries** — what must NOT break
+Bootstrap the project's dual baselines instead of writing a flat repo inventory.
+The first baseline should make later `Baseline Role Alignment` checks possible
+even when the repo is still early or partially defined.
+
+Minimum shape:
+
+```markdown
+# <Project> Initial Baseline
+
+Date: `YYYY-MM-DD`
+Status: `initial dual-baseline snapshot`
+
+## 1. Purpose
+- why this baseline exists
+- what later alignment checks should use it for
+
+## 2. Workspace Structure
+- top-level directories, entry points, substrate roots, or seams worth tracking
+
+## 3. Current Authority Surfaces
+- README / AGENTS / ADR / spec / baseline / external reference roots
+- current authority gaps or missing documents
+
+## 4. Product / Requirement Baseline
+### 4.1 Current Truth
+- accepted problem
+- target user or workflow
+- success evidence, value claim, or phase focus already fixed
+
+### 4.2 Non-negotiables
+1. ...
+
+### 4.3 Product Non-goals
+- ...
+
+## 5. Architecture / Runtime Boundary Baseline
+### 5.1 Current Truth
+- canonical owner or substrate split
+- contract / source-of-truth boundary
+- dependency direction or owner layering already fixed
+
+### 5.2 Architecture Non-negotiables
+1. ...
+
+### 5.3 Architecture Non-goals
+- ...
+
+## 6. Ownership / Contract Snapshot
+- important surface -> current owner
+- contract seams, missing seam inventory, or boundary gaps
+
+## 7. Current State and Risks
+- current stage
+- known risks, unknowns, or missing evidence
+
+## 8. Alignment Use
+- when to read the Product / Requirement Baseline
+- when to read the Architecture / Runtime Boundary Baseline
+- when to report `scope: both`
+
+## 9. Compatibility Boundary
+- what must NOT break during early work
+```
+
+Do not collapse the first bootstrap baseline into a generic 10-field checklist.
+If the project is sparse, keep sections short and mark authority gaps explicitly
+instead of guessing.

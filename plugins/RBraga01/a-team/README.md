@@ -2,13 +2,19 @@
   <img src="assets/ATeam_full.png" alt="A Team logo" width="200">
 </p>
 
- # A Team — Universal Multi-Agent Baseline v1.0.0
+ # A Team — A Complete Engineering Team in One Folder v1.1.0
 
-A portable, model-agnostic multi-agent infrastructure for AI coding assistants. Drop it into any project to get an immediately operational team of specialists, a lead orchestrator, universal coding standards, and a full workflow skill library — enforced from the first keystroke.
+Not a marketplace of agents you configure. A pre-configured, pre-enforced engineering team of 25 specialists — with a lead orchestrator, hard quality gates, and a Pipeline Auditor that verifies work was actually done, not just reported. Drop one folder into any project and it's operational from the first keystroke. Works on Claude Code, Codex CLI, Cursor, and OpenCode.
 
 > **Born from the community.** A Team was built by studying, using, and needing to personalise several excellent open-source agent projects. The architecture combines the best patterns from each into a single, portable baseline. See [Acknowledgments](#acknowledgments) for the projects that made this possible.
 
 **[→ Visual overview & live demo](https://rbraga01.github.io/a-team/)**
+
+**Domain packs** — install any alongside A Team:
+- **[builder-ai](https://github.com/RBraga01/builder-ai)** — LLM engineering quality (evals, RAG, prompt versioning, safety)
+- **[builder-design](https://github.com/RBraga01/builder-design)** — AI UI design (states, streaming, accessibility, tokens)
+- **[builder-product](https://github.com/RBraga01/builder-product)** — Product quality gates (PRD, metrics, research synthesis, AI validation)
+- **[builder-growth](https://github.com/RBraga01/builder-growth)** — Growth & messaging (positioning, copy, experiments, retention)
 
 ---
 
@@ -17,7 +23,7 @@ A portable, model-agnostic multi-agent infrastructure for AI coding assistants. 
 A Team turns any AI coding assistant into a structured, self-enforcing engineering team. Instead of one general-purpose model trying to do everything, you get:
 
 - **25 specialist agents**, each with a defined scope, model tier, and tool set
-- **16 workflow skills** that gate what can happen and when
+- **18 workflow skills** that gate what can happen and when
 - **A lead orchestrator** that manages daily task flow, dispatch, and state
 - **Hard enforcement hooks** that inject mandatory checks at session start and after every file edit
 - **A pipeline auditor** that verifies agents actually ran required checks — not just claimed they did
@@ -177,7 +183,7 @@ A Team/
 │   ├── commands/              ← Slash commands (/orchestrate, /plan, /quality-gate, …)
 │   └── rules/                 ← Coding and workflow standards loaded by all agents
 │
-├── skills/                    ← 16 workflow skill modules
+├── skills/                    ← 18 workflow skill modules
 │   ├── using-a-team/          ← Meta-skill: mandatory trigger map
 │   ├── verification-before-completion/
 │   ├── test-driven-development/
@@ -293,7 +299,7 @@ All language specialists run at **T2 · sonnet-4-6** (or platform equivalent).
 
 ---
 
-## Skill Library (16)
+## Skill Library (18)
 
 Skills are instruction modules that agents must consult before acting. Hard-gate skills cannot be skipped. Workflow skills define process.
 

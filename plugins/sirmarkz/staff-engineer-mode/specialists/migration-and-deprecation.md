@@ -53,7 +53,7 @@ Removing or replacing a widely used system is a production change spread across 
 2. **Discover usage.** Combine code search, dependency graph, runtime telemetry, logs, responsibility metadata, and consumer outreach.
 3. **Classify dependents.** Separate easy mechanical users, risky dynamic users, abandoned critical paths, and external clients.
 4. **Choose migration mode.** Use advisory deprecation for low-risk nudges; use compulsory deadlines when responsibility and enforcement exist.
-5. **Provide paved migration.** Supply examples, compatibility shims, codemods, validation commands, and rollback/escape hatches.
+5. **Provide paved migration.** Supply examples, compatibility shims, codemods, validation commands, and rollback/escape hatches. Default to expand/contract (parallel-change): add the new path, dual-run and shadow-diff old versus new outputs to prove equivalence, migrate callers, then contract the old path.
 6. **Prevent backsliding.** Block or warn on new usage through change-time checks, build visibility, templates, docs, and policy checks.
 7. **Migrate in batches.** Move dependents in batches small enough to understand, test, and roll back; include capacity warmup, retry/caching behavior, and backlog-drain checks for each traffic class before moving the next batch. Track progress with objective metrics and verify completion at the same granularity the new code will assume.
 8. **Prove mixed-state closure.** Before code, config, or data readers assume the old format/path is gone, show per-consumer or per-object evidence that no mixed old/new state remains; treat failed migration records and "test-only" failures as unknown customer risk until classified.
@@ -116,6 +116,7 @@ Treat deprecation as an engineered migration, not an announcement. Use centraliz
 - `usage_inventory`: static and runtime usage are measured, or blind spots are named.
 - `replacement_ready`: replacement path is documented, supported, and validated for representative dependents, traffic classes, capacity warmup, and backlog drain.
 - `migration_batches`: dependents are grouped into maintained, linked, reversible batches.
+- `parallel_change`: migration uses expand/contract with dual-run/shadow-diff equivalence evidence before contracting the old path.
 - `completion_evidence`: old/new mixed state is measured at the granularity required before readers, writers, or configs assume migration completion.
 - `backsliding_control`: new usage is blocked, warned, or explicitly exception-checked.
 - `dependency_optionality`: retired dependencies are marked optional or removed from fail-closed checks, and turndown is staged with deflection behavior verified.

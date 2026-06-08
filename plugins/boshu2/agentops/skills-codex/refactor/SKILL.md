@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: 'Execute safe refactors.'
+description: "Run refactor."
 ---
 # Refactor Skill
 

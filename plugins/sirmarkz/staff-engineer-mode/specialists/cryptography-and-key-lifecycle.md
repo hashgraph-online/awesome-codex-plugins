@@ -54,7 +54,7 @@ Cryptography fails operationally when keys, certificates, algorithms, and trust 
 5. **Automate renewal with active-use checks.** Use monitored renewal paths with alerting, audit, and failed-renewal response. Trigger renewal well before expiry, such as two-thirds of the credential's lifetime, so a single failed renewal cycle still has time for detection and retry before expiry. Before enabling automated key regeneration, distinguish automated material from keys that still need manual coordination; automation must have reliable active-use signals and block regeneration when a key is in use or usage cannot be proven.
 6. **Protect issuance pipelines.** For certificate or signing-material registration authorities, model renewal bursts, upstream retry storms, queue depth and age, drain rate, request throttling, and capacity isolation so renewal backlog cannot block unrelated provisioning or recovery.
 7. **Rotate without coordinated downtime.** Default to a dual-credential overlap sequence: issue the new credential, configure verifiers to accept both old and new, migrate producers and clients to the new credential, verify zero traffic uses the old, then revoke. The verify-zero-old-traffic check is what makes the rotation zero-downtime; rotations that skip it convert routine rotation into an outage.
-8. **Plan transitions.** Define overlap, dual support, rollout order, client migration, and retirement checks for deprecated algorithms or trust roots.
+8. **Plan transitions, including post-quantum.** Define overlap, dual support, rollout order, client migration, and retirement checks for deprecated algorithms or trust roots. Maintain a quantum-readiness inventory: flag long-lived confidentiality and signature material exposed to harvest-now-decrypt-later risk, prefer crypto-agile interfaces that can adopt standardized post-quantum or hybrid algorithms without a full redeploy, and sequence migration to quantum-resistant key-establishment and signatures for that material first.
 9. **Prepare emergency response.** Document revocation, compromise response, rollback or roll-forward, and communication path.
 10. **Close exceptions.** Track unsupported material with expiry, risk, and compensating controls using the shared risk-acceptance lifecycle plus the shared compensating-control format.
 
@@ -100,7 +100,7 @@ Use a cryptographic inventory, expiry monitoring, tested rotation, dual-support 
 - Issuance and renewal pipeline capacity plan with queue, retry, throttle, drain-rate, and isolation behavior.
 - Compatibility and dual-support test plan.
 - Persisted or queued encrypted-state transition plan with rollback or roll-forward behavior.
-- Algorithm or trust-root transition plan.
+- Algorithm, trust-root, and post-quantum transition plan for harvest-now-decrypt-later-exposed material.
 - Monitoring and alert policy for expiry and failed renewal.
 - Emergency revocation and compromise response.
 - Exception register with expiry and compensating control using the shared risk-acceptance lifecycle plus the shared compensating-control format.
@@ -114,6 +114,7 @@ Use a cryptographic inventory, expiry monitoring, tested rotation, dual-support 
 - `encrypted_state_transition`: persisted, queued, or in-flight encrypted state can be read, rewritten, recovered, or safely rolled forward during rotation.
 - `expiry_monitoring`: expiry and failed-renewal alerts have a response path.
 - `transition_check`: deprecated algorithms or trust roots have migration and retirement criteria.
+- `pqc_readiness`: long-lived confidentiality and signing material has a post-quantum or hybrid migration position, or a recorded exception with expiry.
 
 ## Red Flags - Stop And Rework
 
@@ -122,6 +123,7 @@ Use a cryptographic inventory, expiry monitoring, tested rotation, dual-support 
 - Old and new trust paths are never tested together.
 - Manual renewal depends on one person remembering a calendar date.
 - Deprecated algorithms remain because clients are unknown.
+- Long-lived secrets or signatures depend on a single classical algorithm with no agility or post-quantum migration path.
 
 ## Common Mistakes
 
@@ -133,3 +135,4 @@ Use a cryptographic inventory, expiry monitoring, tested rotation, dual-support 
 | Rotating keys around queued state only on the happy path | Test queued and in-flight encrypted work through rewrite, retry, rollback, and recovery. |
 | Renewal without alerting | Monitor expiry and failed automation. |
 | Permanent exceptions | Require risk, and retirement check. |
+| Treating quantum migration as future-only | Inventory harvest-now-decrypt-later material now and adopt crypto-agile interfaces. |

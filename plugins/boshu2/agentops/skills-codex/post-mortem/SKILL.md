@@ -1,6 +1,6 @@
 ---
 name: post-mortem
-description: 'Review completed work and learn.'
+description: "Run post mortem."
 ---
 # Post-Mortem Skill
 

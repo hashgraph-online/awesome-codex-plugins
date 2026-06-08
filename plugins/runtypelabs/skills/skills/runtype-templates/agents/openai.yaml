@@ -1,14 +1,14 @@
 interface:
-  display_name: "Runtype Templates"
-  short_description: "Package distributable Runtype products"
-  brand_color: "#6D5EF7"
-  default_prompt: "Use $runtype-templates to package this Runtype product as an importable FPO template."
+  display_name: 'Runtype Templates'
+  short_description: 'Package distributable Runtype products'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $runtype-templates to package this Runtype product as an importable FPO template.'
 dependencies:
   tools:
-    - type: "mcp"
-      value: "runtype"
-      description: "Hosted Runtype MCP server for FPO schemas, validation, and product import readiness"
-      transport: "streamable_http"
-      url: "https://api.runtype.com/v1/mcp/protocol"
+    - type: 'mcp'
+      value: 'runtype'
+      description: 'Hosted Runtype MCP server for FPO schemas, validation, and product import readiness'
+      transport: 'streamable_http'
+      url: 'https://api.runtype.com/v1/mcp/protocol'
 policy:
   allow_implicit_invocation: true

@@ -51,7 +51,7 @@ After all 4 voices report back:
 
 Save the decision to memory:
 ```bash
-epic-harness mem add \
+epic mem add \
   --title "Decision: {question}" \
   --type decision \
   --importance 0.9 \

@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${PLUGIN_ROOT}/registry/scripts/install.js; epic-harness resume"
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/install.js; epic resume"
           }
         ],
         "description": "Restore previous session context + load project memory and evolved skills"
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "EH=$(command -v epic-harness 2>/dev/null); test -n \"$EH\" && \"$EH\" guard || echo '[harness] epic-harness not found'"
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" guard || echo '[harness] epic not found'"
           }
         ],
         "description": "Block dangerous commands (force push, prod DB drop, rm -rf /)"
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "EH=$(command -v epic-harness 2>/dev/null); test -n \"$EH\" && \"$EH\" observe || echo '[harness] epic-harness not found'"
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" observe || echo '[harness] epic not found'"
           }
         ],
         "description": "Record Bash tool result for evolution loop (Codex PostToolUse only intercepts Bash)"
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "EH=$(command -v epic-harness 2>/dev/null); test -n \"$EH\" && \"$EH\" polish || echo '[harness] epic-harness not found'"
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" polish || echo '[harness] epic not found'"
           }
         ],
         "description": "Auto-format + typecheck after edits"
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "EH=$(command -v epic-harness 2>/dev/null); test -n \"$EH\" && \"$EH\" polish || echo '[harness] epic-harness not found'"
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" polish || echo '[harness] epic not found'"
           }
         ],
         "description": "Auto-format + typecheck after file writes"
@@ -63,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "EH=$(command -v epic-harness 2>/dev/null); test -n \"$EH\" && \"$EH\" reflect || echo '[harness] epic-harness not found'"
+            "command": "EH=$(command -v epic 2>/dev/null); test -n \"$EH\" && \"$EH\" reflect || echo '[harness] epic not found'"
           }
         ],
         "description": "Analyze session observations -> evolve skills -> gate mutations"

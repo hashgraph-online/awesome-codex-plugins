@@ -24,6 +24,11 @@
 | Fault Domain | Blast Radius | Partition/Shard/Tenant Isolation | Hidden Dependency | Exception |
 | --- | --- | --- | --- | --- |
 
+## DNS And Name Resolution
+
+| Name | Authoritative Source | Resolver Path | TTL/Negative Cache | Failover Behavior | Single-Provider Exception |
+| --- | --- | --- | --- | --- | --- |
+
 ## Failover Decision Record
 
 | Trigger | Authority | Data Behavior | Rollback | Evidence |

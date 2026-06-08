@@ -1,6 +1,6 @@
 ---
 name: pre-mortem
-description: 'Stress-test plans before work.'
+description: "Run pre mortem."
 ---
 # Pre-Mortem Skill
 

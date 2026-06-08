@@ -112,6 +112,30 @@ Review safety metrics from the session. This is informational — it does NOT bl
 
    The module is idempotent via its task-hash dedup marker, so re-running the fallback across sessions will not create duplicates.
 
+#### 1.6.6 Record "What Not To Retry" entries (#623)
+
+> Skip if `persistence` is `false` (STATE.md won't exist).
+
+For every `SPIRAL` or `FAILED` agent surfaced in the walk above, ALSO append a cross-session "What Not To Retry" entry to STATE.md. This is the durable, human-readable continuity slot that the NEXT session-start surfaces as a forced-read block (session-start Phase 6.5.1) so a future session does not re-attempt the same failed approach. Unlike a carryover issue (which captures unfinished work), this captures the *approach that should not be repeated*.
+
+```js
+import { appendWhatNotToRetryOnDisk } from '${PLUGIN_ROOT}/scripts/lib/state-md.mjs';
+
+// `parsed` = parseStateMd(STATE.md); session id from the `session:` frontmatter field.
+const sessionId = parsed.frontmatter.session ?? 'unknown-session';
+const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+// For each SPIRAL/FAILED agent from the Wave History walk:
+await appendWhatNotToRetryOnDisk(repoRoot, {
+  approach: '<agent task description from Wave History>',
+  why_failed: '<SPIRAL|FAILED> — <one-line context from Deviations / error>',
+  session_id: sessionId,
+  date: today,
+});
+```
+
+The helper is lock-guarded (PSA-005) and prunes the section FIFO to the 10 most-recent entries on each append. **Optional coordinator entry:** if the session abandoned an approach for reasons NOT captured by a SPIRAL/FAILED agent (e.g. a design that proved unworkable mid-session), the coordinator MAY add a free-text entry through the SAME `appendWhatNotToRetryOnDisk` helper with a descriptive `approach` + `why_failed`. Recording is informational and does NOT block the close.
+
 ### 1.7 Metrics Collection
 
 Read `skills/session-end/metrics-collection.md` for JSONL schema and conditional field rules.

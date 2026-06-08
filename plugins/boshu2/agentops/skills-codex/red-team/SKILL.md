@@ -1,6 +1,6 @@
 ---
 name: red-team
-description: 'Probe docs and skills.'
+description: "Run red team."
 ---
 # $red-team — Persona-Based Adversarial Validation
 
@@ -218,9 +218,9 @@ See [references/report-format.md](references/report-format.md) for the full temp
 **Do NOT emit raw findings directly to `.agents/findings/registry.jsonl`.** The registry is for reusable normalized patterns, not one-off target defects.
 
 Instead:
-- If verdict is WARN or FAIL, suggest running `$retro` to capture reusable lessons
+- If verdict is WARN or FAIL, suggest running `$post-mortem --quick` to capture reusable lessons
 - If called from `$post-mortem`, findings flow through the standard normalization pipeline
-- Log: `"Red-team complete. Run '$retro' to capture reusable findings."`
+- Log: `"Red-team complete. Run '$post-mortem --quick' to capture reusable findings."`
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: trace
-description: 'Trace decisions through artifacts.'
+description: "Run trace."
 ---
 # Trace Skill
 

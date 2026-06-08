@@ -1,6 +1,6 @@
 ---
 name: implement
-description: 'Implement one tracked issue.'
+description: "Run implement."
 ---
 # Implement Skill
 
@@ -22,7 +22,7 @@ ao codex ensure-start 2>/dev/null || true
 
 `ao codex ensure-start` is the single startup guard for Codex skills. It records
 startup once per thread and skips duplicate startup automatically. Leave
-`ao codex ensure-stop` to dedicated closeout skills such as `$validation`,
+`ao codex ensure-stop` to dedicated closeout skills such as `$validate`,
 `$post-mortem`, or `$handoff`.
 
 ## Execution Steps
@@ -431,7 +431,7 @@ If no modified files or sweep finds zero issues on first pass, proceed directly 
 **Skip if:** `--no-spec` flag, or issue type is `docs`/`chore`/`ci`.
 
 After verification passes, produce a behavioral spec documenting what the implementation
-does. This feeds Stage 4 behavioral validation (STEP 1.8 in `$validation`).
+does. This feeds Stage 4 behavioral validation (STEP 1.8 in `$validate`).
 
 ```bash
 mkdir -p .agents/specs
@@ -549,7 +549,7 @@ if command -v ao &>/dev/null; then
 fi
 ```
 
-Tell user: "Implementation complete. Run $validation for closeout before pushing."
+Tell user: "Implementation complete. Run $validate for closeout before pushing."
 
 ### Step 8: Report to User
 

@@ -1,6 +1,6 @@
 ---
 name: scope
-description: 'Hard-block edits outside declared frozen directories via PreToolUse hook.'
+description: "Run scope."
 ---
 # $scope — Edit Scope Guard
 

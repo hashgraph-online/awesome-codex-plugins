@@ -1,6 +1,6 @@
 ---
 name: beads
-description: 'Track issues with bd/br, triage with bv, and convert plans to beads.'
+description: "Run beads."
 ---
 
 # Beads - Persistent Task Memory for AI Agents

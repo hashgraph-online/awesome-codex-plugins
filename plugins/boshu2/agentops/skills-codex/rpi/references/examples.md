@@ -6,7 +6,7 @@
 
 1. `$discovery "add user authentication"` — brainstorm, research, plan, pre-mortem -> epic `ag-5k2`
 2. `$crank ag-5k2` — implement all issues
-3. `$validation ag-5k2` — vibe, post-mortem, retro, forge
+3. `$validate ag-5k2` — vibe, post-mortem, forge
 
 ## Resume from Implementation
 
@@ -14,7 +14,7 @@
 
 1. Skips discovery
 2. `$crank ag-5k2`
-3. `$validation ag-5k2`
+3. `$validate ag-5k2`
 
 ## Interactive Discovery
 
@@ -22,4 +22,4 @@
 
 1. `$discovery "refactor payment module" --interactive --complexity=full` — human gates in research + plan
 2. `$crank <epic-id>` — autonomous
-3. `$validation <epic-id>` — autonomous
+3. `$validate <epic-id>` — autonomous

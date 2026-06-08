@@ -1,6 +1,6 @@
 ---
 name: curate
-description: 'Mine agent work into durable knowledge.'
+description: "Run curate."
 ---
 
 # $curate — Canonical Miner Skill
@@ -80,8 +80,8 @@ Each mode delegates to a body section in this skill (see § per-mode bodies belo
 Output is one of (priority order, per architecture knowledge-flywheel rule):
 
 1. **Skill diffs** — proposed changes to existing skill bodies, written to `.agents/skill-diffs/<date>-<skill>.diff`. Operator approves before applying. NEVER writes to `skills/` directly.
-2. **bd updates** — `bd note`, `bd remember`, or new `bd create` for surfaced issues. Direct, no approval queue.
-3. **Wiki entries** — `.agents/research/`, `.agents/learnings/`, `~/.agents/learnings/` (rare; only when knowledge is generally reusable).
+2. **bd updates** — `bd note` or new `bd create` for surfaced issues. Direct, no approval queue.
+3. **Knowledge entries** — `.agents/research/`, `.agents/learnings/`, `~/.agents/learnings/` (rare; only when knowledge is generally reusable).
 
 ### Step 5: Append to LOG.md
 

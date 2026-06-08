@@ -1,0 +1,31 @@
+{
+  "name": "workflow-kit",
+  "description": "Full product lifecycle plugin: define Vision/Mission/Core → generate workplan → execute with reviewer agents → synthesize deliverables → maintain.",
+  "version": "0.2.0",
+  "author": {
+    "name": "Le Xuan Thang",
+    "email": "lexuanthang.stock@gmail.com"
+  },
+  "homepage": "https://github.com/Le-Xuan-Thang/workflow-kit",
+  "repository": "https://github.com/Le-Xuan-Thang/workflow-kit",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent",
+    "product-lifecycle",
+    "automation",
+    "workflow"
+  ],
+  "composerIcon": "./assets/icon.svg",
+  "interface": {
+    "displayName": "Workflow Kit",
+    "shortDescription": "Full product lifecycle: Vision → Plan → Build → Ship → Maintain",
+    "developerName": "Le Xuan Thang",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "brandColor": "#6366F1"
+  }
+}

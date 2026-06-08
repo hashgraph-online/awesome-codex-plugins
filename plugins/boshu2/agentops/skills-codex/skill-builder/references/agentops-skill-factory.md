@@ -29,9 +29,22 @@ only.
 
 3. Pick the smallest score-improving patch: `SELF-TEST.md`, linked references,
    focused scripts, output contracts, quality rubric, or clearer triggers.
-4. Re-run `skill-auditor`, `heal-skill`, and target validation.
+4. Re-run `skill-auditor`, `heal-skill --check --strict`, and target validation
+   by exit code, not by grepping output text.
 5. Mirror runtime-specific behavior into `skills-codex/` or
    `skills-codex-overrides/`.
+
+## Scale Run Discipline
+
+- One skill equals one worker equals one source directory plus its Codex mirror.
+- Run create-only work first; mutate existing skills only after the source corpus
+  is settled.
+- Use deterministic scripts or NTM/Agent Mail lanes for batch work. Do not use
+  the Workflow tool as the skill factory.
+- Trust `git status`, generated hashes, final file contents, and gate exit codes
+  over worker self-reports.
+- Clean-room review includes exact names. Rename third-party-derived labels into
+  AgentOps-owned names before source skills, Codex mirrors, or wrappers are keyed.
 
 ## Productization Rule
 

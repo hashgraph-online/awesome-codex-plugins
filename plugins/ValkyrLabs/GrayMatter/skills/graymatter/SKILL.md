@@ -1,6 +1,6 @@
 ---
 name: graymatter
-description: Install and use GrayMatter as an OpenClaw skill that provides primary durable memory, shared object-graph state, and authenticated access to the live ValkyrAI schema via api-0. Use when the agent should persist durable memory, inspect organizational data models, and operate inside the business domain through RBAC-scoped API access.
+description: Install and use GrayMatter as an OpenClaw skill that provides primary durable memory, shared object-graph state, and authenticated access to the live api-docs schema via api-0. Use when the agent should persist durable memory, inspect organizational data models, and operate inside the business domain through RBAC-scoped API access.
 ---
 
 # GrayMatter
@@ -31,7 +31,7 @@ On startup or first use in a workspace that depends on GrayMatter:
 2. Confirm install readiness
 3. Register the OpenClaw instance as an Agent record for itself in api-0
 4. Load the live OpenAPI from `https://api-0.valkyrlabs.com/v1/api-docs`
-5. Treat that spec as the source of truth for the environment's available business objects and actions
+5. Treat `/v1/api-docs` as the source of truth for the environment's available business objects and actions
 6. Use GrayMatter and the broader schema as the primary operational context
 
 Minimum activation flow:
@@ -86,37 +86,40 @@ When GrayMatter returns a Retrieval Receipt:
 
 ### 2) Entire-schema awareness
 
-Load the live OpenAPI spec and use it to understand the organization's environment.
-This skill assumes the agent should understand and work across the available schema, not just memory endpoints.
-The entire RBAC-visible schema is available to GrayMatter as the operational object graph for the current account.
+Load the live OpenAPI spec from `/v1/api-docs` and use it to understand the organization's environment.
+This skill assumes the agent should understand and work across the RBAC-visible schema that exists for the current account, not just memory endpoints.
 
-Observed live schema domains from `api-0` include, among many others:
-- `Organization`
-- `Customer`
-- `Opportunity`
-- `Invoice`
-- `Product`
-- `Application`
-- `Workbook`
-- `Workflow`
-- `Task`
-- `Note`
-- `MediaObject`
-- `FileRecord`
-- `SalesActivity`
-- `SalesPipeline`
-- `Goal`
-- `StrategicPriority`
-- `KeyMetric`
-- `Agent`
-- `Space`
-- `SwarmOps`
-- `GrayMatter`
-- `MemoryEntry`
+Only GrayMatter product surfaces such as memory, retrieval, receipts, status, and schema introspection should be treated as expected once the plugin is installed and authenticated. Business objects such as `Organization`, `Customer`, `Invoice`, `UserPreference`, `StrategicPriority`, `KeyMetric`, `Workflow`, or `Application` are conditional: use them only after the current `/v1/api-docs` exposes the relevant paths, components, fields, and relationships.
 
-This means a properly authenticated OpenClaw instance can understand the business as a live object graph, not as disconnected chat logs.
+This means a properly authenticated OpenClaw instance can understand the business as a live object graph when the schema exposes those objects, not as disconnected chat logs.
 
-### 3) Shared graph coordination
+### 3) Normalized object writes
+
+GrayMatter depends on relational, graph-friendly records for retrieval quality. Do not collapse schema fields into blob text.
+
+Hard rules for all agents and clients:
+- Load `/v1/api-docs` before writing an unfamiliar object type.
+- Use the most specific live object type for the durable fact or artifact.
+- Use first-class fields, relationships, `category`, `tags`, `metadata`, and IDs exposed by the schema.
+- Use `ContentData` only for content artifacts or related/overflow detail that cannot live on the primary object.
+- Never use `ContentData.contentData` as a metadata junk drawer.
+- Never inline `conversation_summary`, `sourceSurface`, `memoryScope`, `llmDetailsId`, `preferenceType`, category, tags, status, or content type into `contentData` or `MemoryEntry.text`.
+- Never send `ownerId`, `ownerID`, `createdDate`, `lastModifiedDate`, `lastAccessedDate`, or other audit/ownership fields in write payloads. The API owns those fields.
+- If a value is useful for filtering, traversal, retrieval, or provenance, it belongs in a structured field, tag, metadata JSON, or explicit relationship.
+
+For `MemoryEntry`:
+- keep `text` to the durable human fact, decision, todo, preference, handoff, or artifact summary
+- put scope/provenance in `sourceChannel`, `metadata`, tags, and relationships
+- use retrieval receipts or semantic search before answering from memory
+
+For `ContentData`:
+- always set or preserve `contentType`, `category`, and `status`
+- put detailed provenance in `metadata` JSON
+- put searchable facets in normalized tags
+- keep `contentData` as the actual body only
+- if the content is associated with memory, task, workflow, file, customer, opportunity, or agent state, create or preserve the explicit relationship instead of making a shadow copy
+
+### 4) Shared graph coordination
 
 Use SwarmOps and related graph endpoints for the agentic coordination portion of the object graph:
 - registering Codex/OpenClaw or other agents
@@ -239,6 +242,24 @@ GrayMatter plugin ready
 
 Do not ask the user to paste raw JWTs unless every normal credential/keychain path is unavailable.
 
+## ValkyrAI production service invariant
+
+For ValkyrAI production operations, `api-0.valkyrlabs.com` is backed by the systemd unit `valkyrai.service`.
+`api-0` definitely has a service: `valkyrai.service`.
+No Codex/OpenClaw/agent may claim that api-0 has no service, look for or invent `api-0.service`, guess at an unnamed process, or invent a deployment/restart path.
+
+Before making any statement or operational decision about api-0 service state, restarts, deploys, logs, or availability, verify with the canonical service commands:
+
+```bash
+systemctl status valkyrai.service
+systemctl cat valkyrai.service
+journalctl -u valkyrai.service
+```
+
+If access to the host or systemd is unavailable, state that the service state is unverified and ask for the service output or host access.
+Do not substitute assumptions, Apache proxy status, open ports, or generic Java process checks for the `valkyrai.service` invariant.
+If a user provides systemd output for `valkyrai.service`, treat that as canonical service evidence for api-0 unless a later verified host check contradicts it.
+
 ## Capability discovery
 
 Use `scripts/gm-openapi-sync`, `scripts/gm-openapi-summary`, and `docs/server-capabilities.md` to understand the live server. Current api-0 exposes memory status/capabilities, semantic/vector indexes, retrieval receipts, retrieval context, activation bridge, MCP bundles, object graph shape, SwarmOps graph, and the broader RBAC-visible business schema. Use these aggressively and visibly; do not hide server capabilities behind undocumented assumptions.
@@ -335,7 +356,7 @@ When helping in a GrayMatter-native environment:
 4. Keep durable memory concise and reusable
 5. Prefer authenticated API state over stale local assumptions
 
-Examples:
+Conditional examples, only when `/v1/api-docs` exposes the relevant object families:
 - for sales work, inspect `Customer`, `Opportunity`, `SalesActivity`, `SalesPipeline`
 - for operations, inspect `Task`, `Workflow`, `WorkflowExecution`, `Application`
 - for content or CMS-like work, inspect `Note`, `MediaObject`, `FileRecord`, `Space`
@@ -349,7 +370,8 @@ Examples:
 3. Do not dump giant blobs into `MemoryEntry.text`
 4. Use the right object for the job, not only `MemoryEntry`
 5. Respect permission failures and surface them clearly
-6. If a known backend bug blocks a write path, fall back cleanly
+6. Store retrievable metadata in schema fields, `metadata`, tags, and relationships, never in body text
+7. If a known backend bug blocks a write path, fall back cleanly
 
 ## Tag guidance
 
@@ -375,7 +397,7 @@ Recommended scope keys:
 - `codex:chat:<chat-id>`
 - `codex:session:<session-id>`
 
-When memory is backed by a file path, preserve the folder hierarchy as structured metadata in the `MemoryEntry.text` header and mirror the strongest scope into `sourceChannel`. For example, `$HOME/.codex/automations/mcp-and-skill-hunter/memory.md` should become `sourceChannel=codex:automation:mcp-and-skill-hunter` with an audit header containing `scope`, `runtime`, `automationId`, `artifactPath`, and `sourceChannel`.
+When memory is backed by a file path, preserve the folder hierarchy as structured JSON metadata and mirror the strongest scope into `sourceChannel`. For example, `$HOME/.codex/automations/mcp-and-skill-hunter/memory.md` should become `sourceChannel=codex:automation:mcp-and-skill-hunter` with `metadata` containing `scope`, `runtime`, `automationId`, `artifactPath`, and `sourceChannel`.
 
 The helpers support this convention directly:
 

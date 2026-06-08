@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # audit.sh — two-pass skill audit
-# Pass 1 wraps heal-skill (structural hygiene); Pass 2 adds 8 NEW content-discipline checks.
+# Pass 1 gates through heal-skill --strict; Pass 2 adds 8 NEW content-discipline checks.
 #
 # Usage:
 #   audit.sh [--strict] [--json <path>] <skills/path>
@@ -46,26 +46,53 @@ SKILL_MD="$TARGET/SKILL.md"
 PASS1_OUT=""
 PASS1_FINDINGS_JSON="[]"
 PASS1_AUTOFIXABLE=0
+PASS1_STATUS="pass"
+PASS1_EXIT_CODE=0
+PASS1_FINDING_COUNT=0
 
 if [[ -x "$HEAL_SH" ]]; then
-  PASS1_OUT="$(bash "$HEAL_SH" --check "$TARGET" 2>&1 || true)"
-  # Parse [CODE] path: msg lines into JSON
-  PASS1_FINDINGS_JSON=$(echo "$PASS1_OUT" | awk '
-    BEGIN{print "["; first=1}
-    /^\[[A-Z_]+\]/ {
-      gsub(/"/, "\\\"")
-      match($0, /^\[([A-Z_]+)\] ([^:]+): (.*)$/, m)
-      if (m[1]) {
-        if (!first) print ","
-        first=0
-        printf "{\"code\":\"%s\",\"path\":\"%s\",\"msg\":\"%s\"}", m[1], m[2], m[3]
-      }
-    }
-    END{print "]"}
-  ')
+  if PASS1_OUT="$(bash "$HEAL_SH" --check --strict "$TARGET" 2>&1)"; then
+    PASS1_STATUS="pass"
+    PASS1_EXIT_CODE=0
+  else
+    PASS1_EXIT_CODE=$?
+    PASS1_STATUS="fail"
+  fi
+  # Parse [CODE] path: msg lines into JSON. Use Python here because BSD awk
+  # lacks gawk's match(..., array) extension.
+  PASS1_FINDINGS_JSON=$(PASS1_OUT="$PASS1_OUT" python3 - <<'PY'
+import json
+import os
+import re
+
+findings = []
+pattern = re.compile(r"^\[([A-Z_]+)\] ([^:]+): (.*)$")
+for line in os.environ.get("PASS1_OUT", "").splitlines():
+    match = pattern.match(line)
+    if match:
+        code, path, msg = match.groups()
+        findings.append({"code": code, "path": path, "msg": msg})
+print(json.dumps(findings))
+PY
+)
   # Count autofixable codes (per heal.sh: MISSING_NAME, MISSING_DESC, NAME_MISMATCH, UNLINKED_REF, EMPTY_DIR)
   PASS1_AUTOFIXABLE=$(echo "$PASS1_OUT" | grep -cE '^\[(MISSING_NAME|MISSING_DESC|NAME_MISMATCH|UNLINKED_REF|EMPTY_DIR)\]' || true)
+else
+  PASS1_STATUS="fail"
+  PASS1_EXIT_CODE=2
+  PASS1_OUT="heal-skill delegate missing or not executable: $HEAL_SH"
+  PASS1_FINDINGS_JSON='[{"code":"HEAL_SKILL_MISSING","path":"skills/heal-skill/scripts/heal.sh","msg":"heal-skill delegate missing or not executable"}]'
 fi
+PASS1_FINDING_COUNT=$(PASS1_FINDINGS_JSON="$PASS1_FINDINGS_JSON" python3 - <<'PY'
+import json
+import os
+
+try:
+    print(len(json.loads(os.environ.get("PASS1_FINDINGS_JSON", "[]"))))
+except Exception:
+    print(0)
+PY
+)
 
 # --- Pass 2: 8 NEW checks ------------------------------------------------
 
@@ -286,7 +313,9 @@ for id in description-has-triggers constraints-frontloaded rationale-present ver
   esac
 done
 
-if (( fails > 0 )); then
+if [[ "$PASS1_STATUS" == "fail" ]]; then
+  VERDICT="FAIL"
+elif (( fails > 0 )); then
   VERDICT="FAIL"
 elif (( warns > 0 )); then
   VERDICT="WARN"
@@ -300,6 +329,9 @@ emit_json() {
   printf '  "target": "%s",\n' "$TARGET"
   printf '  "verdict": "%s",\n' "$VERDICT"
   printf '  "pass1": {\n'
+  printf '    "status": "%s",\n' "$PASS1_STATUS"
+  printf '    "exit_code": %s,\n' "$PASS1_EXIT_CODE"
+  printf '    "strict": true,\n'
   printf '    "findings": %s,\n' "$PASS1_FINDINGS_JSON"
   printf '    "autofixable": %s\n' "$PASS1_AUTOFIXABLE"
   printf '  },\n'
@@ -327,8 +359,8 @@ emit_json() {
   printf '    "summary": "%d/6 density signals present; advisory-only and not execution-packet enforcement."\n' "$density_present_count"
   printf '  },\n'
   printf '  "rubric": %s,\n' "$RUBRIC_JSON"
-  printf '  "summary": "Pass1: %d findings (%d autofixable). Pass2: %d fails, %d warns.%s Verdict: %s."\n' \
-    "$(echo "$PASS1_FINDINGS_JSON" | grep -c '"code":' | head -1)" "$PASS1_AUTOFIXABLE" "$fails" "$warns" "$RUBRIC_SUMMARY" "$VERDICT"
+  printf '  "summary": "Pass1: %s via heal --strict (exit %d, %d findings, %d autofixable). Pass2: %d fails, %d warns.%s Verdict: %s."\n' \
+    "$PASS1_STATUS" "$PASS1_EXIT_CODE" "$PASS1_FINDING_COUNT" "$PASS1_AUTOFIXABLE" "$fails" "$warns" "$RUBRIC_SUMMARY" "$VERDICT"
   printf '}\n'
 }
 
@@ -339,7 +371,7 @@ fi
 # Always print human-readable summary to stderr
 {
   echo "=== Skill Audit: $TARGET ==="
-  echo "Pass 1 (heal-skill): $(echo "$PASS1_FINDINGS_JSON" | grep -c '"code":' || echo 0) findings ($PASS1_AUTOFIXABLE autofixable)"
+  echo "Pass 1 (heal-skill --strict): $PASS1_STATUS (exit $PASS1_EXIT_CODE), $PASS1_FINDING_COUNT findings ($PASS1_AUTOFIXABLE autofixable)"
   echo "Pass 2 (8 NEW checks):"
   for id in description-has-triggers constraints-frontloaded rationale-present verification-checkpoints output-spec-explicit quality-rubric references-modularization trigger-clarity; do
     printf "  [%-4s] %s\n" "${CHECK_STATUS[$id]}" "$id"

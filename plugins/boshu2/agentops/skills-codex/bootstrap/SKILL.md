@@ -1,6 +1,6 @@
 ---
 name: bootstrap
-description: 'Initialize AgentOps project files.'
+description: "Run bootstrap."
 ---
 # $bootstrap (Codex Native)
 

@@ -1,6 +1,6 @@
 ---
 name: ship-loop
-description: 'Internal-PR fast-lane cycle.'
+description: "Run ship loop."
 ---
 
 # $ship-loop — Bot-paired fast lane PR cycle
@@ -28,7 +28,7 @@ Capture of the discipline that lands single-scenario internal PRs at ~15-30 min 
 6. **Commit with conventional-commit scope.** `feat(<scope>):`, `fix(<scope>):`. Body reproduces the failure mode the test catches.
 7. **Push + `gh pr create`.** Body cites the bead, validation, and a learning-anchor reference in the script body (not a `.agents/learnings/` file — that breaks CI).
 8. **`gh pr merge <num> --squash --auto`.** Immediately. The bot fires the review check automatically on PR open.
-9. **Close the bead.** `bd close <id> --reason "Merged via PR #<num>"`. For multi-PR chains: `scripts/gh-merge-chain.sh <pr1> <pr2> <pr3>`.
+9. **Close the bead.** `bd close <id> --reason "Merged via PR #<num>"`. For multi-PR chains: wait for each predecessor to merge, then run `gh api repos/<owner>/<repo>/pulls/<num>/update-branch -X PUT` on BEHIND successors.
 
 ## Gate sequence
 
@@ -38,7 +38,7 @@ Capture of the discipline that lands single-scenario internal PRs at ~15-30 min 
 | Review-bot workflow (auto on PR open) | Bot half of the pair — no mention required |
 | `.github/workflows/validate.yml` | **Sole authoritative push gate** (soc-g2r9, PR #357). Full 60+ job suite incl. `validate-pr-evidence-claims` (AP#7). |
 | `gh pr merge --squash --auto` | Auto-merge when all required checks pass |
-| `scripts/gh-merge-chain.sh` (optional) | Chain N PRs through auto-merge with `update-branch` on each successor |
+| Manual update-branch fallback | Chain N PRs through auto-merge with `gh api repos/<owner>/<repo>/pulls/<num>/update-branch -X PUT` on BEHIND successors |
 
 ## Failure-mode mapping (F1-F5 + meta)
 
@@ -46,7 +46,7 @@ Capture of the discipline that lands single-scenario internal PRs at ~15-30 min 
 |---|---|---|
 | F1 | Script rewrite leaves dead variables | Unconditional shellcheck on staged `.sh` |
 | F2 | Pre-existing blocker compounds across branches | **Open.** Rule: fix as atomic side-quest PR first |
-| F3 | `--auto` doesn't auto-rebase BEHIND branches | `scripts/gh-merge-chain.sh` |
+| F3 | `--auto` doesn't auto-rebase BEHIND branches | Manual `update-branch` API call on BEHIND successors |
 | F4 | Bot trigger doc claimed mention-only | Doc corrected; observed auto-fire on PR open |
 | F5 | Stale `~/.config/evolve/KILL` silently blocks `$evolve` | `EVOLVE_KILL_TTL_DAYS=7` auto-expire |
 | meta | Tests asserting local-only file existence | `grep -q '<slug>' "$SCRIPT"` instead of `[ -f .agents/learnings/<x>.md ]` |
@@ -97,7 +97,7 @@ Run the 9-step cycle: branch, first failing test, minimal impl, pre-push --fast,
 Read the harvested item from `.agents/rpi/next-work.jsonl`, run the 9-step cycle.
 
 **User says:** "land the 4 PRs we have open"
-After all 4 PRs are open with auto-merge enabled: `scripts/gh-merge-chain.sh <pr1> <pr2> <pr3> <pr4>`.
+After all 4 PRs are open with auto-merge enabled, wait for each predecessor to merge; if a successor becomes BEHIND, run `gh api repos/<owner>/<repo>/pulls/<num>/update-branch -X PUT`.
 
 ## See Also
 

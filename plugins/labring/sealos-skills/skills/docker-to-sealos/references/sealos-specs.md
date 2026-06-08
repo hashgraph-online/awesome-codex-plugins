@@ -548,14 +548,24 @@ metadata:
 
 ### Special Case: Database Resources
 
-Database resources (Clusters created via kubeblocks) use the special label `sealos-db-provider-cr` instead of `cloud.sealos.io/app-deploy-manager`:
+Database resources (Clusters created via kubeblocks) use dbprovider labels instead of `cloud.sealos.io/app-deploy-manager`.
+
+Required labels:
+
+1. `kb.io/database` must identify the KubeBlocks database/version.
+2. `sealos-db-provider-cr` must equal `metadata.name`.
+3. `clusterdefinition.kubeblocks.io/name` must identify the database engine, such as `postgresql`, `apecloud-mysql`, `mongodb`, `redis`, or `kafka`.
+4. Related Pods, Services, and OpsRequests should carry `app.kubernetes.io/instance=<database name>` for dbprovider detail views. Generated templates may also place this label on the Cluster for consistency, but dbprovider's Cluster list path primarily keys on `clusterdefinition.kubeblocks.io/name`.
 
 ```yaml
 # Correct labels for database resources
 metadata:
   name: ${{ defaults.app_name }}-redis
   labels:
+    kb.io/database: redis-7.2.7
     sealos-db-provider-cr: ${{ defaults.app_name }}-redis
+    app.kubernetes.io/instance: ${{ defaults.app_name }}-redis
+    clusterdefinition.kubeblocks.io/name: redis
 ```
 
 ## Object Storage Configuration

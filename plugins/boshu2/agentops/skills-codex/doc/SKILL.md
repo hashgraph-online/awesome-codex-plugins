@@ -1,6 +1,6 @@
 ---
 name: doc
-description: 'Generate and validate repo docs.'
+description: "Run doc."
 ---
 
 # Doc Skill

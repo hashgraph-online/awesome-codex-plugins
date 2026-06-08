@@ -98,7 +98,7 @@ output_contract: <path-to-schema-or-description>
 
 ## 2. Auditor 15-check checklist
 
-Audits run in **two passes**. Pass 1 wraps `bash skills/heal-skill/scripts/heal.sh` for structural hygiene. Pass 2 adds 8 NEW checks not covered by heal.
+Audits run in **two passes**. Pass 1 runs `bash skills/heal-skill/scripts/heal.sh --check --strict` for structural hygiene and gates on the exit code. Pass 2 adds 8 NEW checks not covered by heal.
 
 ### Pass 1 — delegated to heal-skill (7 checks)
 

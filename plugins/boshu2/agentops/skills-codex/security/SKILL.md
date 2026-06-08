@@ -1,6 +1,6 @@
 ---
 name: security
-description: 'Run repository security scans.'
+description: "Run security."
 ---
 # Security Skill
 
@@ -84,7 +84,7 @@ Actions:
   - `.github/workflows/nightly.yml`
   - `.github/workflows/release.yml`
 - For binary/internal black-box assurance plus offline repo-surface redteam, use:
-  - `skills/security-suite/SKILL.md` (includes `security_suite.py` and `prompt_redteam.py`)
+  - `skills/security/scripts/security_suite.py` and `skills/security/scripts/prompt_redteam.py` (folded in from the retired `security-suite`)
 
 ## Examples
 

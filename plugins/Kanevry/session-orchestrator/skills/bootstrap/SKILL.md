@@ -361,13 +361,14 @@ After the tier template completes scaffolding (Phase 3), the Standard and Deep t
 
 - `baseline-ref` is present in Session Config
 - `GITLAB_TOKEN` env var is set
-- `scripts/lib/fetch-baseline.sh` is present in the plugin
+- `scripts/lib/fetch-baseline.mjs` is present in the plugin
+- A GitLab host is resolvable from the `gitlab-host` Session Config key (or the `GITLAB_HOST` env var) — never a hardcoded default
 
 When triggered, the step:
 
-1. Sources `scripts/lib/fetch-baseline.sh` (defines `fetch_baseline_file`, `fetch_baseline_files_batch`, `write_baseline_fetch_lock`)
-2. Fetches each rule listed in a default manifest from the configured `baseline-project-id` (default `52`) at the configured `baseline-ref`
-3. Writes `.claude/.baseline-fetch.lock` recording what was fetched
+1. Loops over a default rule manifest, invoking `node scripts/lib/fetch-baseline.mjs <project_id> <file_path> <baseline-ref>` once per rule. The CLI prints one file body to stdout (exit 0 success; 1 auth, 2 not-found, 3 network) — bootstrap redirects stdout to the target path and skips failures so a single 404 cannot abort the batch.
+2. Fetches each rule listed in the default manifest from the configured `baseline-project-id` (default `52`) at the configured `baseline-ref`
+3. Writes `.claude/.baseline-fetch.lock` (via an inline `node --input-type=module -e`) recording what was fetched
 4. Populates `.claude/.baseline-cache/` for offline fallback on subsequent invocations
 
 When the fetch fails (network error, auth, missing file), bootstrap **does not abort**. Rules will arrive in the repo via Clank's weekly baseline sync MRs (the legacy path). A warning is printed.

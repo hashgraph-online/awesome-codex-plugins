@@ -1,6 +1,6 @@
 ---
 name: research
-description: 'Explore and write findings.'
+description: "Run research."
 ---
 
 # Research Skill
@@ -61,7 +61,7 @@ Also look for:
 
 **Search ALL local knowledge locations by content (not just filename):**
 
-Use Grep to search every knowledge directory for the topic. This catches learnings from `$retro`, brainstorms, and plans — not just research artifacts.
+Use Grep to search every knowledge directory for the topic. This catches learnings from `$post-mortem`, brainstorms, and plans — not just research artifacts.
 
 ```bash
 # Search all knowledge locations by content

@@ -36,8 +36,27 @@ The `session-type: none` + `status: idle` combination is used only for bootstrap
 | `## Current Wave` | Next wave to execute | wave-executor (post-wave) |
 | `## Wave History` | Completed wave records | wave-executor (post-wave) |
 | `## Deviations` | Plan adaptation log | wave-executor (step 3) |
+| `## What Not To Retry` | Failed/abandoned approaches not to repeat (#623) | session-end (Phase 1.6) |
 
 Wave History lines MAY include a `→ issue #NNN` suffix (or `→ existing #NNN` when a duplicate was detected) for SPIRAL/FAILED agents, linking to the auto-created carryover issue (#261). This is optional and backward-compatible; readers that do not recognize the notation can skip it. Session-end Phase 1.6 uses the presence of this suffix to decide whether to retro-file a carryover as a fallback safety net.
+
+### `## What Not To Retry` (cross-session continuity slot, #623)
+
+A log of failed or abandoned approaches that future sessions should NOT re-attempt. Each entry has the shape `{approach, why_failed, session_id, date}` and renders as:
+
+```markdown
+## What Not To Retry
+
+- **<approach>** (<session_id>, <date>)
+  - why: <why_failed>
+```
+
+- **Writer:** session-end Phase 1.6 — for every SPIRAL/FAILED agent it appends one entry via `appendWhatNotToRetryOnDisk(repoRoot, entry)`; the coordinator MAY also add a free-text entry through the same helper.
+- **Reader:** session-start Phase 6.5.1 — surfaces the section as a forced-read block wrapped in the HISTORICAL guard banner (`scripts/lib/historical-guard.mjs`). It is a READER only and never mutates the slot.
+- **Cap:** at most `MAX_WHAT_NOT_TO_RETRY` (10) entries, pruned FIFO (oldest dropped) on each append — a simple last-N trim, NOT a per-entry success-clear.
+- **Idle-Reset preservation (load-bearing):** **`## What Not To Retry` SURVIVES the completed-branch Idle Reset** — unlike per-session `## Deviations` (which is emptied) and `## Wave History` (which is demoted into `## Previous Session`). It is a cross-session continuity record, so session-start's Idle Reset MUST NOT clear, demote, or drop it.
+
+Helpers: `appendWhatNotToRetry` (pure), `readWhatNotToRetry` (pure), `appendWhatNotToRetryOnDisk` (lock-guarded write) — all exported from `scripts/lib/state-md.mjs`.
 
 ## Ownership Model
 
@@ -45,7 +64,7 @@ Wave History lines MAY include a `→ issue #NNN` suffix (or `→ existing #NNN`
 |-------|--------|------------|
 | **wave-executor** | Read + Write (owner) | Creates STATE.md (Pre-Wave 1b), updates after each wave (current-wave, Wave History, Deviations) |
 | **session-end** | Read + Status-only write | Reads for metrics extraction (Phase 1.7), sets `status: completed` (Phase 3.4). Exception: only field modified is `status` in frontmatter. |
-| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations`. Never resets on `active` or `paused` (those paths are user-interactive). |
+| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. Surfaces `## What Not To Retry` as a forced-read HISTORICAL block (Phase 6.5.1). May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations` — but PRESERVES `## What Not To Retry` (cross-session continuity, #623). Never resets on `active` or `paused` (those paths are user-interactive). |
 | **evolve** | Read-only | Reads `## Deviations` section for deviation pattern extraction (Step 2.2, pattern 5) |
 
 ## Guards

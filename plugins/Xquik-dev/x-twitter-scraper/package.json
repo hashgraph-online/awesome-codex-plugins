@@ -1,0 +1,57 @@
+{
+  "name": "x-developer",
+  "version": "2.4.16",
+  "description": "X (Twitter) data platform skill for AI coding agents. 100+ REST API endpoints, 2 MCP tools, 23 extraction types, HMAC webhooks.",
+  "author": {
+    "name": "Xquik",
+    "url": "https://docs.xquik.com"
+  },
+  "license": "MIT",
+  "homepage": "https://docs.xquik.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xquik-dev/x-twitter-scraper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Xquik-dev/x-twitter-scraper/issues"
+  },
+  "keywords": [
+    "twitter",
+    "x-api",
+    "twitter-api",
+    "mcp",
+    "mcp-server",
+    "agent-skill",
+    "skills",
+    "ai-agent",
+    "claude-code",
+    "codex",
+    "cursor",
+    "copilot",
+    "gemini-cli",
+    "windsurf",
+    "data-extraction",
+    "twitter-scraper",
+    "social-media",
+    "webhooks",
+    "monitoring",
+    "giveaway",
+    "usage-estimates",
+    "rest-api",
+    "scraper"
+  ],
+  "files": [
+    ".codex-plugin",
+    "assets",
+    "skills",
+    "!skills/_artifacts",
+    "openclaw.plugin.json"
+  ],
+  "scripts": {
+    "check-versions": "node scripts/check-versions.mjs",
+    "prepublishOnly": "node scripts/check-versions.mjs"
+  },
+  "devDependencies": {
+    "@tanstack/intent": "0.0.40"
+  }
+}

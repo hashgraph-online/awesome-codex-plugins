@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: 'Create project, component, or boilerplate scaffolds.'
+description: "Run scaffold."
 ---
 # Scaffold Skill
 

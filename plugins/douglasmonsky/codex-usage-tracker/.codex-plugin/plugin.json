@@ -32,16 +32,9 @@
     "privacyPolicyURL": "https://github.com/douglasmonsky/codex-usage-tracker",
     "termsOfServiceURL": "https://github.com/douglasmonsky/codex-usage-tracker",
     "defaultPrompt": [
-      "Check my Codex usage tracker setup",
-      "Show my Codex token usage summary",
-      "Show my most expensive Codex calls",
-      "Show my Codex pricing coverage",
-      "Update Codex usage pricing from OpenAI docs",
-      "Generate a Codex usage dashboard",
-      "Generate a threaded Codex usage dashboard",
-      "Serve a Codex dashboard with on-demand context",
-      "Show my Codex subagent usage",
-      "Export my Codex token usage CSV"
+      "Open dashboard",
+      "Heaviest thread?",
+      "Thread leaderboard"
     ],
     "brandColor": "#2563EB",
     "composerIcon": "./assets/icon.svg",

@@ -1,26 +1,23 @@
 {
   "name": "team-skills-platform",
-  "version": "2.5.0",
-  "description": "Open-source role-based Team Skills Platform for AI delivery workflows. Includes Tech Lead orchestration, 27 specialist agents, ECC harness skeleton, 195+ skills, commands, rules, and hooks for Claude Code, Codex, and OpenCode.",
-  "repository": "https://github.com/Colin4k1024/tsp",
-  "license": "MIT",
+  "version": "2.3.0",
+  "description": "开源角色化 Team Skills 平台，含 ECC harness skeleton、前端工程与 UI/UX 治理能力",
   "skills": "./skills/",
   "interface": {
     "displayName": "Team Skills Platform",
-    "shortDescription": "Role-based AI delivery workflows with Tech Lead orchestration and 27 specialist agents.",
+    "shortDescription": "角色化团队平台 + ECC harness 增强层",
     "longDescription": "通过 Tech Lead 编排与专业角色分工统一需求、方案、研发、测试和发布协作，并提供 ECC 风格的 specialist agents、commands、rules、hooks skeleton 与前端治理能力。",
-    "developerName": "Colin4k1024",
+    "developerName": "Engineering Team",
     "category": "Engineering",
-    "composerIcon": "../assets/icon.svg",
     "capabilities": [
       "Read",
       "Write",
       "Interactive"
     ],
     "defaultPrompt": [
-      "Let Tech Lead help me break down a new requirement.",
-      "Use Planner and Frontend Engineer to plan a UI redesign.",
-      "Use Code Reviewer and Security Reviewer to audit the current implementation."
+      "让 Tech Lead 帮我拆解一个新需求。",
+      "调用 Planner 和 Frontend Engineer 规划一次 UI 改版。",
+      "用 Code Reviewer 和 Security Reviewer 检查当前方案。"
     ],
     "brandColor": "#0F766E"
   }

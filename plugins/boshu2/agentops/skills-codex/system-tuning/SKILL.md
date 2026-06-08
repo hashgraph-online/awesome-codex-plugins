@@ -1,6 +1,6 @@
 ---
 name: system-tuning
-description: 'Process cleanup + swarm hygiene'
+description: "Run system tuning."
 ---
 # System Tuning Skill
 

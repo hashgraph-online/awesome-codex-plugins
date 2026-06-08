@@ -5,7 +5,7 @@ description: "Ship phase. Isolated integration test in fresh worktree, PR creati
 
 # Ship — Ship It
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
 
 ## Process
 

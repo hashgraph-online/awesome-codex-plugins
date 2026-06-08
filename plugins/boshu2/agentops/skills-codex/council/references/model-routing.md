@@ -83,7 +83,7 @@ cost_summary:
   quality_score: "PASS"  # from vibe
 ```
 
-Include in `/retro` output when available.
+Include in `$post-mortem` output when available.
 
 ## Prompt Caching
 

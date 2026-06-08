@@ -1,6 +1,6 @@
 ---
 name: operating-loop-workflow
-description: 'Install and run the operating-loop multi-agent Workflow.'
+description: "Run operating loop workflow."
 ---
 # $operating-loop-workflow
 
@@ -15,10 +15,10 @@ separate engine to install. `$rpi` composes the loop end to end.
 
 1. Run `$rpi --auto "<the capability/intent to drive through the loop>"`.
    - `$rpi` chains `$discovery` (shape → plan → pre-mortem) → `$crank` (TDD per slice across
-     conflict-free waves) → `$validation` (acceptance roll-up + capture).
+     conflict-free waves) → `$validate` (acceptance roll-up + capture).
    - For the plan-only half (shape → plan → pre-flight, no implementation), run
      `$discovery "<intent>"` and stop after `$pre-mortem`.
-2. Report the resulting plan, the `$pre-mortem` verdict, and the `$validation` outcome.
+2. Report the resulting plan, the `$pre-mortem` verdict, and the `$validate` outcome.
 
 ## Guardrails
 

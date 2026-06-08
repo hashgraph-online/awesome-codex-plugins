@@ -17,7 +17,7 @@ If a template creates a service but not an operable service, it is not a golden 
 
 ## Overview
 
-A good platform makes the safe path the easy path. Exception register fields follow the shared risk-register and compensating-control formats.
+A good platform makes the safe path the easy path. Exception register fields follow the shared risk-register and compensating-control formats. Treat the platform as a product with users, a value proposition, and an owner, and optimize the paved road for reduced cognitive load.
 
 **Core principle:** encode standards as reusable workflows, templates, scorecards, and self-service capabilities that projects use in routine work.
 
@@ -50,7 +50,7 @@ A good platform makes the safe path the easy path. Exception register fields fol
 
 1. **Start from repeated pain.** Choose platform capabilities that remove recurring setup, safety, security, or operations work.
 2. **Define the golden path.** Specify the service lifecycle from create, build, test, deploy, observe, operate, secure, recover, and retire.
-3. **Bake in defaults.** Include responsibility, SLO hooks, telemetry, safe deploys, secret handling, access boundaries, runbooks, recovery, dependency inventory, and secure settings. Each generated default should be a usable artifact, not a placeholder.
+3. **Bake in defaults.** Include responsibility, SLO hooks, telemetry, safe deploys, secret handling, access boundaries, runbooks, recovery, dependency inventory, and secure settings. Each generated default should be a usable artifact, not a placeholder. Instantiate secure baselines via `infrastructure-and-policy-as-code` (landing-zone-style pre-provisioned guardrails) so the paved path ships hardened account, network, and identity defaults.
 4. **Make start-right templates.** Bootstrap repositories, delivery, infrastructure, observability, security, and policy defaults together so projects do not assemble safety by hand.
 5. **Register ownership as code.** Keep catalog records in a versioned source of truth with owner, lifecycle, system, API/dependency relationships, documentation, runbook, dashboard, and on-call links; avoid manually curated catalogs that drift from reality.
 6. **Expose self-service with guardrails.** Make the path usable without bespoke platform intervention for normal cases while policy, security, cost, and operations controls stay automatic.
@@ -130,6 +130,7 @@ Build golden paths around capabilities rather than tools: service creation, buil
 | Mistake | Correction |
 | --- | --- |
 | Building a portal first | Start with repeatable workflows and defaults. |
+| Platform as a pile of tools | Run it as a product: users, value proposition, owner, and a cognitive-load measure. |
 | No escape hatch | Allow exceptions with user-confirmed reason, expiry, and equivalent controls. |
 | Platform as ticket queue | Prefer self-service for normal paths. |
 | Measuring adoption only | Measure operational and security outcomes too. |

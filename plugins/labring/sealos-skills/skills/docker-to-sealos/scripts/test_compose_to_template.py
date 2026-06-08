@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 from subprocess import CompletedProcess
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -32,6 +32,14 @@ def write_file(path: Path, content: str) -> None:
 
 def parse_yaml_documents(path: Path):
     return list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+
+
+def assert_db_visibility_labels(test_case: unittest.TestCase, cluster: Dict[str, Any], engine: str) -> None:
+    name = cluster["metadata"]["name"]
+    labels = cluster["metadata"]["labels"]
+    test_case.assertEqual(name, labels.get("sealos-db-provider-cr"))
+    test_case.assertEqual(name, labels.get("app.kubernetes.io/instance"))
+    test_case.assertEqual(engine, labels.get("clusterdefinition.kubeblocks.io/name"))
 
 
 def render_registry(include_paths: Optional[List[str]] = None) -> str:
@@ -831,6 +839,7 @@ class ComposeToTemplateTests(unittest.TestCase):
             cluster = next(doc for doc in docs if doc.get("kind") == "Cluster")
             self.assertEqual("${{ defaults.app_name }}-pg", cluster["metadata"]["name"])
             self.assertIn("kb.io/database", cluster["metadata"]["labels"])
+            assert_db_visibility_labels(self, cluster, "postgresql")
             self.assertNotIn("finalizers", cluster["metadata"])
             self.assertNotIn("annotations", cluster["metadata"])
             affinity = cluster["spec"]["affinity"]
@@ -936,6 +945,7 @@ class ComposeToTemplateTests(unittest.TestCase):
             self.assertIn("Cluster", kinds)
 
             cluster = next(doc for doc in docs if doc.get("kind") == "Cluster")
+            assert_db_visibility_labels(self, cluster, "redis")
             redis_comp = next(item for item in cluster["spec"]["componentSpecs"] if item["name"] == "redis")
             redis_data = redis_comp["volumeClaimTemplates"][0]["spec"]["resources"]["requests"]["storage"]
             self.assertEqual("1Gi", redis_data)
@@ -982,6 +992,7 @@ class ComposeToTemplateTests(unittest.TestCase):
             docs = parse_yaml_documents(index_path)
             cluster = next(doc for doc in docs if doc.get("kind") == "Cluster")
             self.assertEqual("${{ defaults.app_name }}-mysql", cluster["metadata"]["name"])
+            assert_db_visibility_labels(self, cluster, "apecloud-mysql")
             self.assertNotIn("finalizers", cluster["metadata"])
             self.assertNotIn("annotations", cluster["metadata"])
             self.assertEqual(["kubernetes.io/hostname"], cluster["spec"]["affinity"]["topologyKeys"])
@@ -1027,6 +1038,7 @@ class ComposeToTemplateTests(unittest.TestCase):
             docs = parse_yaml_documents(index_path)
             cluster = next(doc for doc in docs if doc.get("kind") == "Cluster")
             self.assertEqual("${{ defaults.app_name }}-mongo", cluster["metadata"]["name"])
+            assert_db_visibility_labels(self, cluster, "mongodb")
             self.assertNotIn("finalizers", cluster["metadata"])
             self.assertNotIn("annotations", cluster["metadata"])
             mongo_comp = cluster["spec"]["componentSpecs"][0]
@@ -1110,6 +1122,7 @@ class ComposeToTemplateTests(unittest.TestCase):
             docs = parse_yaml_documents(index_path)
             cluster = next(doc for doc in docs if doc.get("kind") == "Cluster")
             self.assertEqual("${{ defaults.app_name }}-broker", cluster["metadata"]["name"])
+            assert_db_visibility_labels(self, cluster, "kafka")
             broker_comp = next(item for item in cluster["spec"]["componentSpecs"] if item["name"] == "broker")
             controller_comp = next(item for item in cluster["spec"]["componentSpecs"] if item["name"] == "controller")
             metrics_comp = next(item for item in cluster["spec"]["componentSpecs"] if item["name"] == "metrics-exp")

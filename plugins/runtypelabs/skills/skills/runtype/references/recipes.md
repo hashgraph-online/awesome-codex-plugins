@@ -4,7 +4,21 @@ End-to-end examples for common product shapes. Each one shows the MCP tool calls
 
 These are sketches, not copy-paste configs — the exact JSON shapes are best discovered via `get_build_instructions` and `get_platform_documentation` once you're connected to the MCP server. Use the recipe as a roadmap.
 
----
+## Contents
+
+- [Recipe 1: Slack support agent](#recipe-1-slack-support-agent)
+- [Recipe 2: Webhook-triggered email processor](#recipe-2-webhook-triggered-email-processor)
+- [Recipe 3: Scheduled news digest](#recipe-3-scheduled-news-digest)
+- [Recipe 4: Custom MCP server with tools for Cursor](#recipe-4-custom-mcp-server-with-tools-for-cursor)
+- [Recipe 5: Embeddable chat widget for a website](#recipe-5-embeddable-chat-widget-for-a-website)
+- [Recipe 6: Eval harness for an agent change](#recipe-6-eval-harness-for-an-agent-change)
+- [Recipe 7: Multi-agent system](#recipe-7-multi-agent-system)
+- [When to package as an FPO Template](#when-to-package-as-an-fpo-template)
+- [Recipe 8: Multi-capability product with auto-orchestrator](#recipe-8-multi-capability-product-with-auto-orchestrator)
+- [Recipe 9: Federate an external CrewAI agent into a Runtype product](#recipe-9-federate-an-external-crewai-agent-into-a-runtype-product)
+- [Recipe 10: SDK-defined product with local tools (browser DOM access)](#recipe-10-sdk-defined-product-with-local-tools-browser-dom-access)
+- [Recipe 11: Privacy-sensitive product with hidden parameters + server-side local tools](#recipe-11-privacy-sensitive-product-with-hidden-parameters--server-side-local-tools)
+- [When to use which deployment mode](#when-to-use-which-deployment-mode)
 
 ## Recipe 1: Slack support agent
 
@@ -34,6 +48,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
    - Then send a test message in Slack and check `trace_conversation` for the resulting conversation.
 
 **Gotchas:**
+
 - The Slack surface's `executionHint` may already be applied by the platform; don't double up the formatting instructions in the system prompt.
 - Bot token rotation: when the Slack admin rotates the bot token, re-run `install_slack_integration`.
 - `update_agent` is wholesale replacement — when iterating on the system prompt, pass the full agent config every time.
@@ -62,6 +77,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 5. **Test**: `dispatch` with a sample Twilio payload; verify trace.
 
 **Gotchas:**
+
 - The webhook surface spreads top-level payload fields into flow inputs — so `{{From}}`, `{{To}}`, `{{Body}}` work directly in templates without reaching into `payload.*`.
 - Use `behavior.inputMapping` if Twilio's field names don't match what your steps expect (e.g. rename `Body` → `message`).
 
@@ -90,6 +106,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 4. **Test**: `run_schedule_now` for an immediate manual run. Check `list_schedule_runs` for status, `trace_execution` for any failures.
 
 **Gotchas:**
+
 - The fetch step can take a while. The execution engine handles long-running tasks but watch `get_log_stats` for time-outs.
 - Email rendering — prefer `template` (Liquid) over generating HTML in a `prompt`. Determinism, cost, predictability.
 
@@ -113,6 +130,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 7. **Distribute**: Tell the user to add the MCP server to Cursor with the URL and key.
 
 **Gotchas:**
+
 - Tool descriptions are the LLM's interface — write them like docstrings, not like commit messages. The LLM will choose based on the description.
 - For each tool, define `inputSchema` strictly. Loose schemas yield bad LLM tool calls.
 
@@ -126,14 +144,17 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 
 1. **Agent**: `create_agent` with the support persona and any tools it needs (FAQ search, ticket creation, etc.).
 2. **Product** + capability binding.
-3. **Surface**: `create_surface` of type `chat`. Configure the launcher, theme, and visible features (`showToolCalls`, `showReasoning`).
+3. **Surface**: `create_surface` of type `chat`. Configure the launcher, theme, and visible features (`showToolCalls`, `showReasoning`). If the widget must call browser-side page tools, configure `behavior.webmcp` with an origin-scoped allowlist.
 4. **Client token**: `create_client_token` — public, scoped, revocable, and usable by the browser-side widget.
 5. **Embed code**: `generate_persona_embed_code` — returns a ready-to-paste HTML snippet. **Prefer this over hand-writing the embed.**
-6. **Theming**: Before generating a custom theme, call `get_persona_theme_reference` to load the design-token docs and example themes. See `persona-widget.md` for the contrast rules and theming gotchas — header tokens are easy to get wrong.
+6. **Page tools (optional)**: If using WebMCP, the host page must register tools on `document.modelContext` before Persona initializes. Keep the client token's `allowedOrigins` aligned with the `behavior.webmcp` origins.
+7. **Theming**: Before generating a custom theme, call `get_persona_theme_reference` to load the design-token docs and example themes. See `persona-widget.md` for the contrast rules and theming gotchas — header tokens are easy to get wrong.
 
 **Gotchas:**
+
 - Wrong package name (`@runtype/persona` vs `@runtypelabs/persona` — the latter is correct), wrong API (`Persona.mount()` doesn't exist — use `initAgentWidget()`), wrong CSS path are common errors. The MCP-generated embed code avoids all of these.
 - For consumer-facing widgets, set `features.showToolCalls: false` and `features.showReasoning: false`. For internal debug surfaces, leave them on.
+- Do not model browser-side page actions as an `mcp` surface. Use WebMCP on the `chat` surface when the capability must run inside the user's page.
 
 ---
 
@@ -153,6 +174,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 4. **Iterate** or `publish_agent_version` if results are better.
 
 **Gotchas:**
+
 - Don't ship a non-trivial prompt change without an eval. It's faster than rollback.
 - Cost: evals across many records can run up cost; check `get_batch_cost` mid-run.
 
@@ -189,6 +211,7 @@ This is the default choice for multi-agent products. The platform handles the ro
 Choose A if multiple capabilities should be exposed to users via the same surface. Choose B if one agent is dominant. Choose C if the next step is always the same.
 
 **Gotchas:**
+
 - Pattern A: routing should be fast. If the orchestrator is slow, override to a smaller model or tune the system prompt.
 - Pattern B risks unbounded loops. Cap with `maxToolCalls`. Sub-agents should not call back into the orchestrator (no recursion).
 - Pattern C: less flexible but most predictable. Cost-effective for known workflows.
@@ -242,6 +265,7 @@ The result is a single distributable JSON document someone else can import in on
 6. The Runtype execution engine routes traffic to the external agent when its capability is selected.
 
 **Notes**:
+
 - Streaming may be reduced compared to native Runtype agents — A2A standard supports basic streaming but loses some Runtype-specific features (artifact generation, certain UI tools).
 - Same product can mix native Runtype agents, Runtype flows, A2A agents, and cloud-managed agents.
 - Pattern of choice for: incremental migration into Runtype, using specialized frameworks for sub-tasks, or treating Runtype as a "surface delivery layer" for agents built elsewhere.
@@ -258,26 +282,26 @@ The result is a single distributable JSON document someone else can import in on
 2. Define the agent in SDK code:
    ```ts
    const agent = defineAgent({
-     name: "page_assistant",
-     systemPrompt: "...",
+     name: 'page_assistant',
+     systemPrompt: '...',
      tools: [
        defineLocalTool({
-         name: "read_page_html",
-         description: "Read the HTML of the current page",
+         name: 'read_page_html',
+         description: 'Read the HTML of the current page',
          async execute() {
-           return document.documentElement.outerHTML;
-         }
+           return document.documentElement.outerHTML
+         },
        }),
        defineLocalTool({
-         name: "navigate_to_record",
-         description: "Open the record detail view for a given record id",
-         parameters: { recordId: { type: "string", description: "..." } },
+         name: 'navigate_to_record',
+         description: 'Open the record detail view for a given record id',
+         parameters: { recordId: { type: 'string', description: '...' } },
          async execute({ recordId }) {
-           router.push(`/records/${recordId}`);
-         }
+           router.push(`/records/${recordId}`)
+         },
        }),
      ],
-   });
+   })
    ```
 3. Pick a mode: stored, upsert-on-execute, or virtual.
 4. Wire the SDK to a Persona widget on the page — when the LLM calls these tools, the SDK on the page executes them in the browser; the result goes back through Runtype to the LLM.
@@ -308,14 +332,14 @@ The result is a single distributable JSON document someone else can import in on
 
 A quick cross-reference:
 
-| Need | Mode |
-|---|---|
-| Ship fast, no team requirements | Hosted on a surface |
-| Source of truth in Git | SDK upsert mode |
-| Per-tenant agent customization | SDK virtual flows |
-| Browser-side tool access | SDK + local tools |
-| LLM-orchestrates-but-doesn't-see-data | Hidden parameters + local tools |
-| Customer requires data residency | On-prem (enterprise) |
-| Mix Runtype + external agent framework | A2A federation |
+| Need                                   | Mode                            |
+| -------------------------------------- | ------------------------------- |
+| Ship fast, no team requirements        | Hosted on a surface             |
+| Source of truth in Git                 | SDK upsert mode                 |
+| Per-tenant agent customization         | SDK virtual flows               |
+| Browser-side tool access               | SDK + local tools               |
+| LLM-orchestrates-but-doesn't-see-data  | Hidden parameters + local tools |
+| Customer requires data residency       | On-prem (enterprise)            |
+| Mix Runtype + external agent framework | A2A federation                  |
 
 See `working-modes.md` for the full discussion.

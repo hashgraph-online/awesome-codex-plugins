@@ -15,6 +15,7 @@
 node scripts/build-platform-artifacts.js
 node scripts/install-apply.js --profile team --target claude
 node scripts/install-apply.js --profile full --target codex
+node scripts/install-apply.js --profile full --target opencode
 ```
 
 ## Who It's For / 适合谁
@@ -57,6 +58,72 @@ TSP 采用 **角色 + 技能 + Agent + 规则 + Hooks + Workflow 引擎** 六层
 | Workflow 引擎 | `workflows/` + `scripts/workflow-*.js` | YAML DAG 工作流，支持依赖解析、状态持久化、失败恢复 |
 
 安装工具链公开主线支持 **3 个 code agent**：Claude Code、Codex、OpenCode。其他历史 target 保留为隐藏兼容路径，不再作为公开 onboarding 主线。
+
+### OpenCode 集成
+
+TSP 为 OpenCode 提供了完整的适配支持，包括：
+
+- **AGENTS.md 自动生成**：包含完整的规则索引、角色索引、命令索引和技能索引
+- **Agent 系统适配**：所有角色和 specialist agents 都添加了 YAML front matter 配置
+- **Hooks 系统适配**：将 TSP hooks 转换为 OpenCode 插件格式
+- **配置文件生成**：自动生成 `opencode.json` 配置文件
+- **Skills 系统兼容**：所有 SKILL.md 文件都兼容 OpenCode 的 skill 工具
+
+#### OpenCode 安装
+
+```bash
+# 安装完整 OpenCode 配置
+node scripts/install-apply.js --profile full --target opencode
+
+# 或使用 npm 脚本
+npm run install:opencode
+```
+
+#### OpenCode 配置
+
+安装完成后，OpenCode 配置文件位于 `~/.config/opencode/opencode.json`，包含：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["./AGENTS.md"],
+  "plugin": ["team-skills-platform"],
+  "permission": {
+    "edit": "allow",
+    "bash": "allow"
+  }
+}
+```
+
+#### OpenCode 使用
+
+1. **启动 OpenCode**：在项目目录运行 `opencode`
+2. **查看可用角色**：AGENTS.md 中包含所有角色的索引
+3. **切换角色**：使用 `@tech-lead`、`@frontend-engineer` 等方式切换角色
+4. **执行命令**：使用 `/team-intake`、`/team-plan` 等团队命令
+5. **加载技能**：使用 `skill` 工具加载 SKILL.md 文件
+
+#### OpenCode 目录结构
+
+```
+~/.config/opencode/
+├── AGENTS.md                    # 主配置文件（自动生成）
+├── opencode.json                # OpenCode 配置文件
+├── agents/                      # Agent 定义文件
+│   ├── tech-lead.md
+│   ├── product-manager.md
+│   └── ...
+├── command/                     # 命令文件
+│   ├── team-intake.md
+│   ├── team-plan.md
+│   └── ...
+└── plugins/                     # 插件目录
+    ├── team-skills-platform/    # TSP 插件
+    │   ├── skills/              # 技能文件
+    │   ├── rules/               # 规则文件
+    │   └── ...
+    └── tsp-hooks.js             # Hooks 插件
+```
 
 发布为 npm 包 `@colin4k1024/tsp`，内置 Rust bridge 预构建二进制，安装零依赖。
 

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Agent Harness Skills">
+  <rect width="512" height="512" rx="96" fill="#2F6FED"/>
+  <path d="M144 150c0-18 14-32 32-32h160c18 0 32 14 32 32v212c0 18-14 32-32 32H176c-18 0-32-14-32-32z" fill="#F8FAFC"/>
+  <path d="M186 180h140M186 230h82M186 280h140" stroke="#1E293B" stroke-width="24" stroke-linecap="round"/>
+  <path d="M198 342l38 38 86-98" fill="none" stroke="#2F6FED" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="364" cy="150" r="38" fill="#12B981"/>
+  <path d="M348 150l11 11 21-26" fill="none" stroke="#F8FAFC" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

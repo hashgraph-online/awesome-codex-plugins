@@ -1,14 +1,13 @@
 # GrayMatter
 
-GrayMatter is an installable and immediately usable OpenClaw skill for:
+GrayMatter is an installable OpenClaw skill and MCP service for:
 - **primary durable memory**
 - **shared object-graph state**
 - **live organizational schema awareness** through the ValkyrAI `api-0` OpenAPI
 
-GrayMatter lets an OpenClaw instance move beyond file memory and isolated chat context.
-When properly authenticated, the agent can persist durable memory, inspect the live business schema, and operate inside the organization's RBAC-scoped data environment.
+It lets an agent move beyond local files and isolated chat context. Once authenticated, the agent can persist durable memory, inspect the live business schema, and operate inside the organization's RBAC-scoped data environment.
 
-## Ready-to-rock release surfaces
+## Release surfaces
 
 GrayMatter ships as three related but independently usable surfaces:
 
@@ -17,6 +16,17 @@ GrayMatter ships as three related but independently usable surfaces:
 - **Standalone OpenClaw skill**: `graymatter.skill` packages `SKILL.md` and the required scripts for OpenClaw install, activation, hosted api-0 use, and GrayMatter Light local mode.
 
 If a GitHub sparse/root install only brings down root files, run `./graymatter-bootstrap` from the installed GrayMatter directory. It restores `scripts/` and `mcp-server/` from the bundled `graymatter.skill` archive so end-user installs do not depend on a full repo clone.
+
+## Quick start
+
+```bash
+git clone https://github.com/ValkyrLabs/GrayMatter.git
+cd GrayMatter
+brew install jq
+scripts/gm-activate
+```
+
+`scripts/gm-activate` is the preferred first-run path. It checks for updates, signs in, stores the session in Keychain when available, validates the install, registers the agent, syncs the OpenAPI schema, and runs the readiness checks needed for normal use.
 
 ## What GrayMatter is for
 
@@ -182,7 +192,7 @@ Rule:
 - `references/mcp/memory-tool-contract.v1.json` — stable v1 portable tool contract for memory and graph operations
 - `clawhub.json` — publishing metadata
 
-## Install and use immediately
+## Install details
 
 ## Account signup and credits
 
@@ -286,13 +296,13 @@ If those do not work, the skill is not truly ready.
 
 ## Bootstrap integration for OpenClaw
 
-The workspace `BOOTSTRAP.md` should be rewritten so OpenClaw:
+OpenClaw workspace bootstrap guidance should treat GrayMatter as the default durable context layer:
 - uses GrayMatter as its **primary durable memory**
 - loads the live OpenAPI at startup
 - understands the organization schema as the operating environment
 - uses local file memory only as backup
 
-That startup model is now part of the GrayMatter launch plan.
+That startup model keeps local files useful for recovery while making GrayMatter the normal source of reusable memory and live schema context.
 
 ## Typical usage
 

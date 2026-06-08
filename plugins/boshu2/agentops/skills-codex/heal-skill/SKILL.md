@@ -1,6 +1,6 @@
 ---
 name: heal-skill
-description: 'Repair skill hygiene.'
+description: "Run heal skill."
 ---
 # $heal-skill — Automated Skill Maintenance
 

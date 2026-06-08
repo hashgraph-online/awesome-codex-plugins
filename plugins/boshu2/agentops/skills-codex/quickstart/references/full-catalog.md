@@ -43,7 +43,7 @@ $implement  - single task        $release     - tag + changelog
 $crank      - multi-issue epic
 $plan       - decompose work     KNOWLEDGE
 $rpi        - full lifecycle     $knowledge   - query learnings
-                                 $retro       - quick-capture
+                                 $post-mortem --quick - quick-capture
 EXPLORE                          $post-mortem - full retro + knowledge
 $research   - deep dive          $trace       - decision provenance
 $brainstorm - explore ideas      $flywheel    - health monitoring
@@ -56,10 +56,10 @@ $doc        - docs, README       $handoff     - save + resume
 PRODUCT
 $product    - define mission     CONTRIBUTE (upstream PRs)
 $goals      - fitness specs      $pr-research, $plan, $pr-implement
-$evolve     - goal-driven loop   $pr-validate, $pr-prep
+$evolve     - goal-driven loop   $validate --mode=pr, $pr-prep
                                  (PR learnings: $post-mortem --scope=pr)
 META
 $quickstart - onboarding         CROSS-VENDOR
-$converter  - export to Codex,   $codex-team  - parallel Codex agents
+$converter  - export to Codex,   $swarm       - parallel Codex agents
               Cursor             $openai-docs - OpenAI docs lookup
 ```

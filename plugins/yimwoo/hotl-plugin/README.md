@@ -17,6 +17,7 @@ Adapter templates are also available for Cursor and GitHub Copilot.
 - [Skills Overview](#skills-overview)
 - [Updating](#updating)
 - [Supported Tools](#supported-tools)
+- [Automation Templates](#automation-templates)
 - [Repository Structure](#repository-structure)
 - [Contributing](#contributing)
 
@@ -195,6 +196,13 @@ Covers Claude Code, Codex (both native-skills and plugin source checkout), and C
 | Cline | Global rules plus local HOTL skill files |
 | Cursor | Adapter templates via `/hotl:setup` |
 | GitHub Copilot | Adapter templates via `/hotl:setup` |
+
+## Automation Templates
+
+HOTL includes optional Codex automation and GitHub Actions review templates in
+[`docs/codex-automations-and-ci.md`](docs/codex-automations-and-ci.md). They are
+not active by default; copy them into a target project only after testing the
+prompt manually.
 
 ## Repository Structure
 

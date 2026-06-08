@@ -216,6 +216,10 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires label presence checks scoped to PostgreSQL RBAC resources."
+  - must: "Every KubeBlocks database `Cluster` must include `kb.io/database`, `sealos-db-provider-cr`, and `clusterdefinition.kubeblocks.io/name` labels; `sealos-db-provider-cr` must equal `metadata.name`."
+    enforcement:
+      type: rule
+      target: R040
   - must: "PostgreSQL role wildcard permission requirement remains as defined in current spec."
     enforcement:
       type: manual

@@ -1,12 +1,13 @@
 {
   "name": "@useorgx/codex-plugin",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "OrgX Codex plugin with MCP access, initiative-aware skills, and a Sovereign Execution peer sidecar.",
   "type": "module",
   "private": true,
   "bin": {
     "orgx-codex-peer": "lib/peer/cli.mjs",
-    "orgx-codex-reconcile-hooks": "hooks/scripts/orgx-work-graph-reconcile.mjs"
+    "orgx-codex-reconcile-hooks": "hooks/scripts/orgx-work-graph-reconcile.mjs",
+    "orgx-codex-diagnose-reporting": "scripts/diagnose-reporting-gates.mjs"
   },
   "exports": {
     ".": "./lib/peer/peer.mjs",
@@ -18,13 +19,17 @@
     ".mcp.json",
     "assets/",
     "hooks/codex/",
+    "hooks/scripts/orgx-reconcile-hook.mjs",
     "hooks/scripts/orgx-session-hook.mjs",
     "hooks/scripts/orgx-work-graph-reconcile.mjs",
+    "docs/client-hook-coverage.md",
+    "docs/operator-reporting-gates.json",
     "lib/peer/cli.mjs",
     "lib/peer/CodexDriver.mjs",
     "lib/peer/peer.mjs",
     "lib/peer/README.md",
     "plugin.manifest.json",
+    "scripts/diagnose-reporting-gates.mjs",
     "scripts/verify-plugin.mjs",
     "skills/",
     "README.md",
@@ -32,7 +37,7 @@
   ],
   "scripts": {
     "check": "node scripts/verify-plugin.mjs",
-    "test": "node --test lib/peer/peer.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs",
+    "test": "node --test lib/peer/peer.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs",
     "peer:start": "node lib/peer/cli.mjs"
   },
   "dependencies": {

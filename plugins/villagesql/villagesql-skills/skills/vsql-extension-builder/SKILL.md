@@ -178,6 +178,12 @@ and 2.
      from each directory name and select the one with the highest semver
      (MAJOR.MINOR.PATCH). Do not use mtime or alphabetic order — both
      can pick the wrong directory when multiple SDK versions are present.
+   - If the glob returns nothing, ask the user for the SDK path directly:
+     "I couldn't find the Extension SDK in your build directory. Download
+     `villagesql-extension-sdk-*.tar.gz` from the releases page
+     (https://github.com/villagesql/villagesql-server/releases), extract
+     it anywhere, and paste the path here." Do not proceed until a valid
+     path is provided.
    - Run `{sdk_dir}/bin/villagesql_config --version` and compare to the
      Phase 0 session version. If they differ, pause and ask the user to
      fix `build_dir` or rebuild the server.

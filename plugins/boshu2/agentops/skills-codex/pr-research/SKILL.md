@@ -1,6 +1,6 @@
 ---
 name: pr-research
-description: 'Research an upstream repo.'
+description: "Run pr research."
 ---
 # PR Research Skill
 

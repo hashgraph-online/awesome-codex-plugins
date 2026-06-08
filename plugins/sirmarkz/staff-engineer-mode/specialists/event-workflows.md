@@ -51,7 +51,7 @@ Asynchronous systems trade call-time coupling for delivery, ordering, replay, an
 ## Workflow
 
 1. **Classify the pattern.** Distinguish notification, event-carried state, event sourcing, command, CQRS read model, saga, and workflow orchestration.
-2. **Define the contract.** Write schema, meaning, responsibility, trigger/runtime compatibility, and versioning rules before implementation.
+2. **Define the contract.** Write schema, meaning, responsibility, trigger/runtime compatibility, and versioning rules before implementation. Add a consumer-driven contract test for event schemas so a lagging consumer cannot be broken by a producer change, and frame the choreography-versus-orchestration choice explicitly (choreography is looser-coupled with no central view; orchestration adds central visibility and a coordinator).
 3. **Publish atomically.** Use a durable local transaction plus outbox or equivalent when state change and message publication must agree.
 4. **Make consumers idempotent.** Design dedupe, commutative updates, durable processing markers, or safe side effects.
 5. **Control retries.** Bound attempts, add backoff/jitter, isolate poison messages, define DLQ responsibility, and retry only failed or unknown items in batched work when item status is available.
@@ -62,7 +62,7 @@ Asynchronous systems trade call-time coupling for delivery, ordering, replay, an
 
 ## Synthesized Default
 
-Use at-least-once delivery with idempotent consumers as the default mental model. Use outbox or equivalent for atomic publish, sagas or workflow state for multi-step processes, schema compatibility for evolution, durable queueing for rate mismatch, and explicit replay/correction for recovery. Treat event sourcing as a high-complexity pattern, not a default persistence style.
+Use at-least-once delivery with idempotent consumers as the default mental model. Use outbox or equivalent for atomic publish, sagas or workflow state for multi-step processes, schema compatibility for evolution, durable queueing for rate mismatch, and explicit replay/correction for recovery. Treat event sourcing as a high-complexity pattern, not a default persistence style. State plainly that exactly-once delivery is an illusion: design for at-least-once delivery plus idempotent consumers.
 
 
 
@@ -111,6 +111,7 @@ Use at-least-once delivery with idempotent consumers as the default mental model
 ## Checks Before Moving On
 
 - `contract_check`: event meaning, schema, and compatibility rules are documented.
+- `consumer_contract`: event schema changes have a consumer-driven contract test; consumers are idempotent under at-least-once delivery.
 - `trigger_compatibility`: trigger or consumer-runtime changes define delayed, dropped, replayed, and rollback behavior across versions.
 - `idempotency_check`: every consumer side effect is duplicate-safe or explicitly non-retryable.
 - `retry_dlq_check`: retry attempts, backoff, DLQ responsibility, and poison handling are defined.

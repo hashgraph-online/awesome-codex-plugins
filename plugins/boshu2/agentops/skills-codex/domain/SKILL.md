@@ -1,6 +1,6 @@
 ---
 name: domain
-description: 'Shared agent-work vocabulary.'
+description: "Run domain."
 ---
 # Domain Skill — Ubiquitous Language for Human-AI Software Building
 

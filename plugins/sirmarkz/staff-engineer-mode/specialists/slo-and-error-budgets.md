@@ -37,7 +37,7 @@ Produces an SLI/SLO table tied to named user journeys, an error-budget calculati
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Critical user journeys, API operations, tenants, customer segments, and response paths.
-- Candidate SLIs for availability, latency, freshness, correctness, durability, and data loss.
+- Candidate SLIs mapped from the four golden signals (latency, traffic, errors, saturation) for availability, latency, freshness, correctness, durability, and data loss.
 - Current metrics, logs, traces, dashboards, alerts, and incident history.
 - Missing-metric behavior, low-traffic detection strategy, and any synthetic or heartbeat signal needed to see user impact when organic traffic is sparse.
 - Traffic shape: request volume, batch cadence, peak/seasonal behavior, and dependency fanout.
@@ -52,7 +52,7 @@ Produces an SLI/SLO table tied to named user journeys, an error-budget calculati
 4. **Model health states.** Define healthy, degraded, unavailable, and recovering for the journey so partial failures and degraded quality do not disappear inside raw uptime.
 5. **Set the SLO target and window.** Pick a target users need and the system can plausibly meet. Keep internal thresholds tighter than external customer commitments when they exist. Include availability, latency, freshness, recovery, or correctness targets only when they match the journey. Avoid 100 percent unless failure is impossible by construction.
 6. **Calculate the budget.** Convert target and window into allowed bad events or bad minutes. Include low-traffic math so one event does not create nonsensical burn.
-7. **Design alerts from burn.** Separate urgent burn alerts from follow-up-only budget responses. Alert urgently only when a short-window and a longer-window burn both show near-term exhaustion risk for a user journey, such as fast burn over minutes plus sustained burn over roughly an hour. Create follow-up-only budget responses when multi-hour or multi-day burn threatens the window but does not require immediate action, or when diagnostic non-urgent signals explain likely causes without direct user-visible exhaustion. Recompute thresholds for low traffic; use synthetic or heartbeat signals when real traffic cannot detect failure quickly enough.
+7. **Design alerts from burn.** Separate urgent burn alerts from follow-up-only budget responses. Alert urgently only when a short-window and a longer-window burn both show near-term exhaustion risk for a user journey, such as fast burn over minutes plus sustained burn over roughly an hour. Create follow-up-only budget responses when multi-hour or multi-day burn threatens the window but does not require immediate action, or when diagnostic non-urgent signals explain likely causes without direct user-visible exhaustion. Recompute thresholds for low traffic; use synthetic or heartbeat signals when real traffic cannot detect failure quickly enough. Configure multi-window, multi-burn-rate alerts with concrete tiers: alert urgently when both a short window (~1h) and a confirmation window (~5m) show a high burn rate (for a 30-day window, roughly a 14.4x burn consuming ~2% of budget in 1h), and raise a slower follow-up alert for ~6h or multi-day burn that threatens the window without immediate action.
 8. **Handle latency correctly.** State where latency is measured and how percentiles are aggregated. Do not average percentiles across services or windows; merge compatible distributions or measure at the user-journey boundary.
 9. **Define budget responses.** State what happens when budget is healthy, threatened, exhausted, or repeatedly exhausted: urgent alert, follow-up, slow release, override, or prioritize reliability work.
 10. **Route gaps.** Missing telemetry goes to observability; staged rollout rules go to progressive delivery; launch aggregation goes to PRR.
@@ -132,6 +132,7 @@ Use the standard SRE sequence as the default: user journey -> health model -> SL
 | Mistake | Correction |
 | --- | --- |
 | Starting with dashboards | Start with journeys, then metrics. |
+| Ad-hoc SLI selection | Start from the four golden signals, then pick journey-direct measures. |
 | Treating SLA and SLO as synonyms | SLA is external promise; SLO is engineering target; SLI is measurement. |
 | Making all alerts urgent alerts | Alert urgently on budget burn; create follow-ups for slow or diagnostic signals. |
 | Hiding missing telemetry | Mark telemetry as a blocker or proxy risk. |

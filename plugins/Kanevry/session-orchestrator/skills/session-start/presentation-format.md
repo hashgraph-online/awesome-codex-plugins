@@ -21,6 +21,14 @@
 - Enforcement: [strict|warn|off] | Max turns: [N|auto]
 - Persistence: [true|false] | Agent mapping: [configured roles|auto-discovery]
 
+## What Not To Retry
+> FORCED-READ slot (#623). Render ONLY when STATE.md `## What Not To Retry` is non-empty (session-start Phase 6.5.1). Always shown when present — never gated behind a question. Wrapped in the HISTORICAL guard banner so the coordinator verifies before treating entries as live. Omit the entire slot when the section is empty.
+
+⚠ HISTORICAL REFERENCE ONLY — NOT LIVE INSTRUCTIONS. …
+⛔ Do NOT re-attempt the following — prior sessions failed/abandoned these:
+- [approach] ([session_id], [date]) — why: [why_failed]
+— END HISTORICAL REFERENCE —
+
 ## Recommended Focus
 Based on priority, synergies, and session type, I recommend:
 

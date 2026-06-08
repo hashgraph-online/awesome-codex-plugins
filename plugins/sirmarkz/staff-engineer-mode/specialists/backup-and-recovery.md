@@ -53,7 +53,7 @@ Backups do not matter until a restore works.
 3. **Map backup coverage.** Include data, metadata, schema, config, secrets/keys, object stores, queues, indexes, derived state, and the creation path that produces backup artifacts.
 4. **Check isolation.** Ensure backups and keys survive accidental deletion, malicious operator action, account compromise, and ransomware.
 5. **Design restore paths.** Include full restore, partial restore, point-in-time recovery, alternate-target restore, location rebuild, corruption repair, and repair or redirect behavior for client-visible references emitted before recovery.
-6. **Run a restore check.** Restore into a controlled environment, run correctness checks, measure elapsed time and data loss, and record gaps. When a restore or recovery data operation must touch production or shared serving infrastructure, throttle by volume, dependency quota, lock/metadata pressure, and user impact; define traffic diversion before the restore begins.
+6. **Run a restore check.** Restore into a controlled environment, run correctness checks, measure elapsed time and data loss, and record gaps. When a restore or recovery data operation must touch production or shared serving infrastructure, throttle by volume, dependency quota, lock/metadata pressure, and user impact; define traffic diversion before the restore begins. Verify backup-artifact integrity proactively (checksums, scrub, or test-decrypt) so silent corruption or bit-rot is detected before a restore is needed, not at restore time; keep at least one immutable and offline/air-gapped copy for ransomware and operator-error recovery.
 7. **Choose DR posture.** Use backup/restore, pilot light, warm standby, active-passive, or active-active based on RTO/RPO, complexity, cost, data residency, and operations maturity.
 8. **Feed findings back.** Create blockers for PRR, platform fixes, runbook updates, and future drills.
 
@@ -98,6 +98,7 @@ Use recent restore tests tied to RTO/RPO as the default. Protect backups and enc
 - RTO/RPO table by journey and data set.
 - Essential-data coverage table showing source of truth, restore type, validation, and measured result.
 - Backup coverage, retention, encryption, key, and immutability matrix.
+- Backup-integrity verification schedule and the immutable/offline copy location.
 - Backup creation-path dependency check with queue/backlog behavior, blast radius, retry safety, and alternate path.
 - Restore runbook with prerequisites, commands, validation, and rollback.
 - Restore capacity and quota guardrails for production or shared-infrastructure restores, including traffic diversion and safe restore volume.
@@ -115,6 +116,7 @@ Use recent restore tests tied to RTO/RPO as the default. Protect backups and enc
 - `coverage_matrix`: critical data, metadata, schema, config, and keys have backup or rebuild coverage.
 - `backup_creation_path`: snapshot, export, or backup artifact creation has known control-path dependencies, backlog behavior, blast radius, retry safety, and alternate path.
 - `isolation_check`: backups and keys are protected from destructive operator, compromised credential, and ransomware scenarios.
+- `backup_integrity`: backups are integrity-verified on a schedule (not just "job succeeded"), with at least one immutable offline/air-gapped copy.
 - `validation_queries`: restored data has correctness checks and process completion checks.
 - `client_reference_repair`: externally visible links, notifications, exports, or API references emitted before recovery are preserved, redirected, repaired, or explicitly communicated as broken.
 - `restore_capacity_guard`: production or shared-infrastructure restores have volume, concurrency, dependency-quota, and traffic-diversion limits.

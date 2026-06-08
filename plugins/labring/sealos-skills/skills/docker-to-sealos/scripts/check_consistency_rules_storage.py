@@ -330,10 +330,84 @@ def check_database_cluster_component_resources(context: ScanContext) -> List[Vio
     return violations
 
 
+def check_database_cluster_visibility_labels(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    required_label_keys = (
+        "kb.io/database",
+        "sealos-db-provider-cr",
+        "clusterdefinition.kubeblocks.io/name",
+    )
+
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if doc.path.name != "index.yaml":
+            continue
+        if doc.data.get("kind") != "Cluster":
+            continue
+        api_version = doc.data.get("apiVersion")
+        if not isinstance(api_version, str) or not api_version.startswith("apps.kubeblocks.io/"):
+            continue
+
+        metadata = doc.data.get("metadata")
+        if not isinstance(metadata, dict):
+            continue
+        labels = metadata.get("labels")
+        if not isinstance(labels, dict):
+            add_doc_violation(
+                violations,
+                rule_id="R040",
+                doc=doc,
+                pattern=r"^\s*labels\s*:",
+                default_pattern=r"^\s*metadata\s*:",
+                message=(
+                    "database Cluster metadata.labels must include "
+                    "kb.io/database, sealos-db-provider-cr, and "
+                    "clusterdefinition.kubeblocks.io/name for dbprovider visibility"
+                ),
+            )
+            continue
+
+        name = metadata.get("name")
+        if not isinstance(name, str) or not name.strip():
+            continue
+
+        for label_key in required_label_keys:
+            label_value = labels.get(label_key)
+            if isinstance(label_value, str) and label_value.strip():
+                continue
+            add_doc_violation(
+                violations,
+                rule_id="R040",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(label_key)}\s*:",
+                default_pattern=r"^\s*labels\s*:",
+                message=(
+                    "database Cluster metadata.labels must include "
+                    "kb.io/database, sealos-db-provider-cr, and "
+                    "clusterdefinition.kubeblocks.io/name for dbprovider visibility"
+                ),
+            )
+
+        label_value = labels.get("sealos-db-provider-cr")
+        if label_value is not None and label_value != name:
+            add_doc_violation(
+                violations,
+                rule_id="R040",
+                doc=doc,
+                pattern=r"^\s*sealos-db-provider-cr\s*:",
+                default_pattern=r"^\s*labels\s*:",
+                message="database Cluster metadata.labels.sealos-db-provider-cr must exactly match metadata.name",
+            )
+
+    return violations
+
+
 STORAGE_RULES: Dict[str, Rule] = {
     "R005": Rule("R005", check_no_emptydir),
     "R006": Rule("R006", check_image_pull_policy),
     "R011": Rule("R011", check_pvc_storage_limit),
     "R019": Rule("R019", check_database_cluster_component_resources),
+    "R040": Rule("R040", check_database_cluster_visibility_labels),
     "R038": Rule("R038", check_managed_workload_resource_ladder),
 }

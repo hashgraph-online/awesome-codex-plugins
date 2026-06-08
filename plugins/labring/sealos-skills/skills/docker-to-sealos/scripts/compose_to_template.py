@@ -1330,6 +1330,8 @@ def build_postgres_resources() -> List[Dict[str, Any]]:
             "metadata": {
                 "name": name,
                 "labels": {
+                    "sealos-db-provider-cr": name,
+                    "app.kubernetes.io/instance": name,
                     "kb.io/database": "postgresql-16.4.0",
                     "clusterdefinition.kubeblocks.io/name": "postgresql",
                     "clusterversion.kubeblocks.io/name": "postgresql-16.4.0",
@@ -1426,6 +1428,8 @@ def build_mysql_resources() -> List[Dict[str, Any]]:
             "metadata": {
                 "name": name,
                 "labels": {
+                    "sealos-db-provider-cr": name,
+                    "app.kubernetes.io/instance": name,
                     "kb.io/database": "ac-mysql-8.0.30-1",
                     "clusterdefinition.kubeblocks.io/name": "apecloud-mysql",
                     "clusterversion.kubeblocks.io/name": "ac-mysql-8.0.30-1",
@@ -1525,7 +1529,9 @@ def build_mongodb_resources() -> List[Dict[str, Any]]:
             "metadata": {
                 "name": name,
                 "labels": {
+                    "sealos-db-provider-cr": name,
                     "kb.io/database": "mongodb-8.0.4",
+                    "clusterdefinition.kubeblocks.io/name": "mongodb",
                     "app.kubernetes.io/instance": name,
                 },
             },
@@ -1617,6 +1623,7 @@ def build_redis_resources() -> List[Dict[str, Any]]:
             "metadata": {
                 "name": name,
                 "labels": {
+                    "sealos-db-provider-cr": name,
                     "kb.io/database": "redis-7.2.7",
                     "app.kubernetes.io/instance": name,
                     "app.kubernetes.io/version": "7.2.7",
@@ -1735,6 +1742,8 @@ def build_kafka_resources() -> List[Dict[str, Any]]:
                 "name": name,
                 "finalizers": ["cluster.kubeblocks.io/finalizer"],
                 "labels": {
+                    "sealos-db-provider-cr": name,
+                    "app.kubernetes.io/instance": name,
                     "kb.io/database": "kafka-3.3.2",
                     "clusterdefinition.kubeblocks.io/name": "kafka",
                     "clusterversion.kubeblocks.io/name": "kafka-3.3.2",
