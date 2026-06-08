@@ -2,9 +2,26 @@
 
 MailAgent gives Codex temporary inboxes for signup QA, OTP emails, and magic links.
 
+Bundled in [awesome-codex-plugins](https://github.com/hashgraph-online/awesome-codex-plugins) at `plugins/Alex0nder/mailagent`.
+
+## Install
+
+```bash
+codex plugin marketplace add hashgraph-online/awesome-codex-plugins
+codex plugin install mailagent --source mailagent
+```
+
+Or from the MailAgent repo marketplace:
+
+```bash
+codex plugin marketplace add Alex0nder/MailAgent
+codex plugin install mailagent --source mailagent
+```
+
 ## Setup
 
 ```bash
+cd plugins/Alex0nder/mailagent
 cp .env.example .env
 chmod +x scripts/run-mailagent-mcp.sh
 ```
@@ -12,14 +29,9 @@ chmod +x scripts/run-mailagent-mcp.sh
 Put secrets in `.env` (gitignored). `MAILAGENT_API_URL` defaults to `https://api.webmailagent.com`.
 `MAILAGENT_API_KEY` may also come from the parent process environment. Do not log or paste the key.
 
-```dotenv
-MAILAGENT_API_URL=https://api.webmailagent.com
-MAILAGENT_API_KEY=ma_or_mak_replace_me
-```
+Get a key: https://webmailagent.com/dashboard.html (Team keys).
 
 ## Check MCP
-
-The plugin launches the published npm stdio package via `scripts/run-mailagent-mcp.sh`:
 
 ```bash
 codex mcp list
@@ -45,11 +57,4 @@ with a short-lived `mat_` bearer token.
 
 This bundle keeps stdio MCP via `npx -y -p @mailagent/mcp@0.2.5 mailagent-mcp`.
 
-## Install from GitHub marketplace
-
-```bash
-codex plugin marketplace add Alex0nder/MailAgent
-codex plugin install mailagent --source mailagent
-```
-
-Docs: https://webmailagent.com/docs/codex.html
+Docs: https://webmailagent.com/docs/codex.html · Upstream: https://github.com/Alex0nder/MailAgent

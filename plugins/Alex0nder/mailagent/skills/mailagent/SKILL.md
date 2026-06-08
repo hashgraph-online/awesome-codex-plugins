@@ -63,7 +63,7 @@ Remote (no subprocess): `POST https://api.webmailagent.com/mcp` + Bearer token.
 
 ## Prerequisites
 
-- `MAILAGENT_API_KEY` — team key from console or `npm run issue:key:db`
+- `MAILAGENT_API_KEY` — [console dashboard](https://webmailagent.com/dashboard.html) team keys, or MailAgent repo `npm run issue:key:db` when self-hosting
 - MCP server `mailagent` connected (`codex mcp list` / Cursor MCP refresh)
 - Always set **`service`** preset or **`expectFrom`** (sender allowlist)
 
@@ -125,10 +125,12 @@ Do not use Gmail skills as a substitute for MailAgent — Gmail is the user's re
 
 ## Verify prod (after API/MCP changes)
 
+From a clone of [MailAgent](https://github.com/Alex0nder/MailAgent):
+
 ```bash
 MAILAGENT_API_URL=https://api.webmailagent.com \
 MAILAGENT_API_KEY=ma_… \
   npm run test:prod
 ```
 
-See `docs/AUTOTESTS.md` · `AGENTS.md`
+Guide: https://webmailagent.com/docs/autotests.html
