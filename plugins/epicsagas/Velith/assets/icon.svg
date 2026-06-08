@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="gear" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bg)"/>
+  <!-- Book body -->
+  <rect x="120" y="140" width="200" height="260" rx="8" fill="white" opacity="0.95"/>
+  <!-- Book spine -->
+  <rect x="120" y="140" width="24" height="260" rx="4" fill="white" opacity="0.7"/>
+  <!-- Book lines (text) -->
+  <rect x="164" y="180" width="120" height="8" rx="4" fill="#6366f1" opacity="0.5"/>
+  <rect x="164" y="204" width="100" height="8" rx="4" fill="#6366f1" opacity="0.4"/>
+  <rect x="164" y="228" width="130" height="8" rx="4" fill="#6366f1" opacity="0.5"/>
+  <rect x="164" y="252" width="90" height="8" rx="4" fill="#6366f1" opacity="0.35"/>
+  <rect x="164" y="276" width="120" height="8" rx="4" fill="#6366f1" opacity="0.45"/>
+  <rect x="164" y="300" width="110" height="8" rx="4" fill="#6366f1" opacity="0.4"/>
+  <rect x="164" y="324" width="80" height="8" rx="4" fill="#6366f1" opacity="0.3"/>
+  <!-- Gear (automation) -->
+  <g transform="translate(340, 310) scale(0.9)">
+    <circle cx="0" cy="0" r="40" fill="url(#gear)"/>
+    <circle cx="0" cy="0" r="22" fill="url(#bg)"/>
+    <!-- Gear teeth -->
+    <rect x="-8" y="-58" width="16" height="24" rx="4" fill="url(#gear)"/>
+    <rect x="-8" y="34" width="16" height="24" rx="4" fill="url(#gear)"/>
+    <rect x="-58" y="-8" width="24" height="16" rx="4" fill="url(#gear)"/>
+    <rect x="34" y="-8" width="24" height="16" rx="4" fill="url(#gear)"/>
+    <rect x="28" y="-44" width="16" height="24" rx="4" fill="url(#gear)" transform="rotate(45, 36, -32)"/>
+    <rect x="-44" y="20" width="16" height="24" rx="4" fill="url(#gear)" transform="rotate(45, -36, 32)"/>
+    <rect x="-44" y="-44" width="16" height="24" rx="4" fill="url(#gear)" transform="rotate(-45, -36, -32)"/>
+    <rect x="28" y="20" width="16" height="24" rx="4" fill="url(#gear)" transform="rotate(-45, 36, 32)"/>
+  </g>
+  <!-- Sparkle dots (AI) -->
+  <circle cx="370" cy="190" r="6" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="395" cy="210" r="4" fill="#fbbf24" opacity="0.6"/>
+  <circle cx="355" cy="220" r="5" fill="#fbbf24" opacity="0.7"/>
+</svg>

@@ -34,6 +34,21 @@
       "icon": "./plugins/GanyuanRan/Aegis/assets/aegis-small.svg"
     },
     {
+      "name": "agent-harness-skills",
+      "displayName": "Agent Harness Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yfge/agent-harness-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Designs agent-ready repository harnesses with entrypoints, validation surfaces, runtime evidence, delivery records, and atomic commit guidance.",
+      "icon": "./plugins/yfge/agent-harness-skills/assets/icon.svg"
+    },
+    {
       "name": "codiris-agentizer",
       "displayName": "Agentizer",
       "source": {
@@ -724,6 +739,21 @@
       },
       "category": "Development & Workflow",
       "description": "Cross-agent UX and product-design marketplace with a root Codex collection plugin, five focused plugin bundles, and 137 Agent Skills for design review, accessibility, layout, interaction, cognition, and product polish."
+    },
+    {
+      "name": "velith",
+      "displayName": "Velith",
+      "source": {
+        "source": "local",
+        "path": "./plugins/epicsagas/Velith"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "AI-native publishing system with a 6-phase pipeline from ideation to EPUB/PDF across 8 genres.",
+      "icon": "./plugins/epicsagas/Velith/assets/icon.svg"
     },
     {
       "name": "vibe-portrait",
@@ -1497,6 +1527,21 @@
       "category": "Tools & Integrations",
       "description": "Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.",
       "icon": "./plugins/CarrotGamesStudios/vidseeds-mcp/assets/icon.png"
+    },
+    {
+      "name": "x-twitter-scraper",
+      "displayName": "X Twitter Scraper",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Xquik-dev/x-twitter-scraper"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "X/Twitter data, monitored workflows, HMAC webhooks, and MCP access through the Xquik REST API with confirmation-gated write guidance.",
+      "icon": "./plugins/Xquik-dev/x-twitter-scraper/assets/icon.svg"
     },
     {
       "name": "yandex-direct-for-all",

@@ -89,7 +89,7 @@ Output a summary:
 - NEVER stage files matching: `.env*`, `*credentials*`, `*secret*`, `*.key`, `*.pem`
 - If tests were not run (no test suite found), WARN the user before committing
 - If `git pull --rebase` fails, do NOT force push — ask the user
-- Do NOT run `ao codex stop` after the remote push. If session closeout is needed, finish it through `$validation`, `$post-mortem`, or `$handoff` before entering `$push`
+- Do NOT run `ao codex stop` after the remote push. If session closeout is needed, finish it through `$validate`, `$post-mortem`, or `$handoff` before entering `$push`
 
 ## Local Resources
 

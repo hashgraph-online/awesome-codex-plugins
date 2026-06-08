@@ -11,7 +11,7 @@ Run the full RPI lifecycle in a Codex-native way: direct in-session orchestratio
 1. In Codex hookless mode, run `ao codex ensure-start` before phase orchestration; the CLI records startup once per thread and skips duplicates automatically.
 2. When beads are present, resolve bead IDs before routing; when beads are absent, preserve the current goal or execution-packet objective across phases.
 3. Keep a single lifecycle objective spine across discovery, crank, and validation. Never replace it with a child issue ID or one ready slice from `bd ready`, `bd show`, or `.agents/rpi/next-work.jsonl`.
-4. If discovery does not yield an epic id, invoke `$crank .agents/rpi/execution-packet.json` and standalone `$validation` instead of inventing one.
+4. If discovery does not yield an epic id, invoke `$crank .agents/rpi/execution-packet.json` and standalone `$validate` instead of inventing one.
 5. If `$crank` returns `<promise>PARTIAL</promise>`, rerun `$crank` on the same lifecycle objective until the work is done, blocked, or the retry budget is exhausted.
 6. Orchestrate phases directly in the current session; do not hand RPI orchestration to wrapper commands.
 7. For Nightly, evolve, or auto-prompt goals, inspect the last 14 days of Nightly PRs and scheduled Nightly runs before choosing the implementation slice.

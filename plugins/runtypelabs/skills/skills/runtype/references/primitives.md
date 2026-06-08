@@ -1,6 +1,23 @@
 # Primitives
 
 This file goes deeper on each Runtype primitive: its shape, its lifecycle, and which MCP tools touch it.
+Prefer live `platform-catalog`, `product-schema`, and type resources when available.
+
+## Contents
+
+- [Product](#product)
+- [Agent](#agent)
+- [Flow](#flow)
+- [Tool](#tool)
+- [Capability](#capability)
+- [Surface](#surface)
+- [Record](#record)
+- [Schedule](#schedule)
+- [Eval](#eval)
+- [Secrets](#secrets)
+- [Conversation](#conversation)
+- [External and federated agents (A2A, cloud-managed)](#external-and-federated-agents-a2a-cloud-managed)
+- [Persona client tokens](#persona-client-tokens)
 
 ## Product
 
@@ -9,6 +26,7 @@ The container. A Product groups everything: agents, flows, tools, surfaces, capa
 A product expresses **what your AI does, who it's for, and where users reach it**. The same agent in two different products with different system prompts and different surfaces is two different products.
 
 Shape (`FullProductObject`):
+
 - Metadata (name, description, version)
 - Agents, flows, tools, schedules
 - Surfaces, with capabilities mapped to each
@@ -24,6 +42,7 @@ Secret intake: `get_secret_intake_manifest` returns what's missing; `submit_secr
 An LLM with a system prompt and a tool set. Reaches for tools to accomplish a goal.
 
 Shape:
+
 - `model` — model config reference (use `list_model_configs`)
 - `systemPrompt` — the main thing that defines the agent's behavior
 - `tools` — array of tool ids
@@ -36,6 +55,7 @@ Lifecycle: `create_agent`, `get_agent`, `update_agent` (wholesale replacement), 
 ### Most important thing: the system prompt
 
 The system prompt is where you spend your time on agent design. Analogy: writing the employee handbook for a new hire. Be explicit about:
+
 - What this agent does
 - Who the users are
 - The tone and style expected
@@ -49,7 +69,7 @@ When an agent isn't doing what you want, the first reach is to improve the syste
 Two different knobs that get confused.
 
 - **`maxToolCalls`**: how many tool calls the agent can make in one execution. Default is 10. Raise it deliberately when the task requires several lookups, writes, or sub-agent calls in one turn.
-- **`agentLoop`**: how many *full reflection turns* the agent gets — re-running with the previous results as context, getting another shot. Advanced. Risks: looping with the same goal does the same task each iteration unless you explicitly tell it to reflect or vary approach. The most expensive, easiest-to-mess-up architecture.
+- **`agentLoop`**: how many _full reflection turns_ the agent gets — re-running with the previous results as context, getting another shot. Advanced. Risks: looping with the same goal does the same task each iteration unless you explicitly tell it to reflect or vary approach. The most expensive, easiest-to-mess-up architecture.
 
 Tune `maxToolCalls` before reaching for `agentLoop`. Use `agentLoop` only when you've verified the agent needs reflection and a clearer prompt or a different approach won't do it.
 
@@ -58,21 +78,27 @@ Often, **sub-agents** (agents that the orchestrator calls as tools) are better t
 ### Picking a model
 
 Axes to consider:
+
 - **Intelligence** — generally correlates with size and recency.
 - **Latency** — bigger = slower.
 - **Cost** — bigger = more expensive.
 - **Compliance/governance** — data residency, region. Drives provider choice (Vertex/Gemini for GCP shops, etc.).
-- **Family-specific tools** — Twitter search via Grok, certain Google search tools via Gemini, image generation via Gemini's nano-banana, OpenAI / Anthropic family-specific research tools.
+- **Family-specific tools** — provider-native search, fetch, image, or research tools available only on certain model families.
 
-Default: try a model released in the last six months. Pick one with the right vibes, intelligent enough for the task, optimized for speed/cost. Avoid starting on the largest available model — usually overkill.
+Default: use the current model catalog and routed model IDs. Pick one intelligent
+enough for the task and optimized for speed/cost. Avoid starting on the largest
+available model unless the task genuinely needs it.
 
-Runtype has a curated catalog of a couple hundred models (`list_available_models`). You don't need provider accounts to get started; bring your own keys on Team+ plans.
+Use `list_available_models`, `list_model_configs`, and
+`get_platform_documentation(topic="models")` for current availability and key
+requirements.
 
 ## Flow
 
 A deterministic, multi-step pipeline. Use when the steps are known and you want speed/cost optimization over flexibility.
 
 Shape:
+
 - `inputSchema` / `outputSchema`
 - `steps` — array of step objects with type and config (see `flow-steps.md`)
 - Each step has optional `when` (skip condition), retry/fallback config, and streaming-visibility config
@@ -88,23 +114,26 @@ Flows are versioned. Updates create new versions; only the published one is invo
 Flows can be much faster and cheaper than the equivalent agent when the steps are deterministic. The win comes from skipping LLM tool-selection round trips.
 
 Good candidates to be a flow (not an agent):
+
 - Sending an email: format → render → send
 - Indexing data: crawl → chunk → embed → store
 - API-to-API pipelines: fetch → transform → upsert
 - Anything you know happens every time, in this order
 
-Often a flow is part of an agent's tool set — the agent decides *when* to invoke the deterministic pipeline.
+Often a flow is part of an agent's tool set — the agent decides _when_ to invoke the deterministic pipeline.
 
 ## Tool
 
 A typed callable. The agent's interface to the outside world.
 
 Three categories:
+
 1. **First-party integrations** — Firecrawl, Exa, Weaviate, Cloudflare Vectorize, Orthogonal, web search, asset generation. Preferred when they fit.
 2. **External MCP server tools** — register an external MCP server, its tools become available.
 3. **Custom tools** — HTTP/REST tool, custom JS code, or a flow exposed as a tool.
 
 Shape for custom:
+
 - `name`, `description` — what the LLM sees when deciding to call
 - `inputSchema` (or `parameters`) — typed args with descriptions
 - `code` (JS) or `config` (HTTP)
@@ -115,6 +144,7 @@ Lifecycle: `validate_code` → `create_tool` → `update_tool` / `delete_tool` /
 ### Tool descriptions and parameters are the LLM's interface
 
 If an agent isn't calling a tool you expected it to, the first thing to fix is the **tool description and parameter docs**. Treat them like docstrings. Describe:
+
 - What the tool does
 - When to use it
 - What each parameter means
@@ -127,6 +157,7 @@ For flow-as-tool, the platform has a "generate parameters from a description" ca
 When an agent connects to a surface, **surface-specific tools auto-register**. The agent definition stays the same; its tool surface adapts.
 
 Examples:
+
 - **Persona (web chat)**: markdown artifact generation, document toolbar, etc.
 - **Slack**: thread-context lookup, rich-mrkdwn formatting.
 - **Telegram, Discord, etc.**: channel-specific helpers.
@@ -144,6 +175,7 @@ The right order: scoped API tool > MCP server > custom HTTP tool > sandbox/brows
 Tools that run **client-side**, invoked through the SDK rather than in Runtype. The LLM issues a tool call; the SDK on your client picks it up; the tool runs locally; the result goes back through Runtype.
 
 Two flavors:
+
 - **Browser-side** (Persona context): tools call browser APIs — read HTML, navigate, access front-end state.
 - **Server-side** (Python/TS SDK on your server): tools run on your infrastructure, can call local AI models, can access data you don't want passing through Runtype.
 
@@ -166,6 +198,7 @@ Tools: `add_product_capability`, `remove_product_capability`. Surfaces reference
 ### The many-to-many shape
 
 Capabilities and surfaces are **many-to-many**. Concrete examples:
+
 - One agent exposed across three surfaces (Slack, email, web chat) — same agent, three surfaces.
 - Three agents exposed on one MCP surface — three MCP tools auto-generated.
 - Three agents exposed on one web chat surface — Runtype provisions an orchestrator (see below).
@@ -182,6 +215,7 @@ You're not coding API endpoints; you're declaring which capabilities go on which
 When **more than one capability** is connected to a conversational surface (`chat`, `slack`, `telegram`, `discord`, `email`, etc.), Runtype **automatically provisions an orchestrator agent**. It decides which capability handles each incoming message.
 
 Defaults:
+
 - Inexpensive fast model (because routing at 10-20s defeats the purpose).
 - Minimum data over the wire — usually just a short label per capability.
 - Alphabetical labels (A, B, C…) for the route options.
@@ -195,11 +229,14 @@ Practical implication: you don't need to write your own "router agent." Add the 
 How clients (humans or machines) reach into a product. ~15 types — see `surfaces.md` for the full trait matrix.
 
 Each surface has:
+
 - A **type** (`chat`, `slack`, `webhook`, `api`, `mcp`, `schedule`, etc.)
 - **Traits** the platform enforces: streaming behavior, markdown dialect, max response length, reasoning visibility, etc.
 - A **behavior config** specific to the type
 - Optional **surface keys** for authentication (clients use these)
 - For Persona: **client tokens** issued via `create_client_token`
+- For hosted pages: product-level `HostedPageBehavior` and per-capability
+  `HostedPagePresentation` in `runtype://types/surface-configs`
 
 Lifecycle: `create_surface` → `add_surface_item` (wire a capability in) → `update_surface` / `delete_surface`. Slack-specific: `install_slack_integration` for OAuth.
 
@@ -208,6 +245,7 @@ Lifecycle: `create_surface` → `add_surface_item` (wire a capability in) → `u
 Runtype's built-in record store. Free-form data with vector-search.
 
 Shape:
+
 - `id` (auto), `type` (table-like), `name` (unique within type), `metadata` (JSON), `createdAt`, `updatedAt`
 - Optional embedding for vector search
 
@@ -236,6 +274,7 @@ Multi-variate testing for AI products.
 Eval at the **surface level (product eval)** when you can — it measures what users actually experience, including orchestration and surface-specific formatting. Per-agent evals are useful for tuning a single agent in isolation but miss the integration.
 
 Variables to test:
+
 - Model choice
 - System prompt variants
 - Tool set differences
@@ -255,6 +294,7 @@ Multi-tenant secret store with envelope encryption (workspace KEK in Cloudflare 
 Reference syntax — same everywhere (tool configs, FPO templates, runtime): `{{secret:KEY}}` — **singular `secret`, colon separator, UPPER_CASE key**. Example: `"Authorization": "Bearer {{secret:STRIPE_API_KEY}}"`.
 
 Two adjacent syntaxes that look similar but are different:
+
 - `{{secrets:KEY}}` — **plural with colon is invalid**. The resolver rejects it.
 - `{{secrets.key}}` — plural with **dot** is a different system entirely: per-request dispatch-scoped values (passed in at dispatch time), not managed secrets.
 
@@ -265,6 +305,7 @@ Lifecycle: `create_secret`, `list_secrets`, `get_secret` (metadata only), `updat
 ### Pending-secret pattern (for product setup and distribution)
 
 Best practice for setting up a product:
+
 1. Declare the tool's secret needs in `auth.secrets`.
 2. Reference them in tool config as `{{secret:KEY}}` — same syntax in stored tool configs and in FPO templates.
 3. Don't fill in the secret values yet — leave them pending.
@@ -288,6 +329,7 @@ Runtype can federate **external agents** into a product as capabilities:
 - **Cloud-managed agents** — externally hosted agents registered as capabilities. The agent lives outside Runtype; Runtype routes traffic to it.
 
 Why this matters:
+
 - **Incremental migration**: if you have an existing agent in another framework (CrewAI, custom), expose it as A2A and federate it into Runtype to get the surface delivery layer (Slack/email/SMS/etc.) without rewriting.
 - **Best tool for the job**: use specialized frameworks (CrewAI is mentioned as goal-oriented and great for that) for sub-tasks, while Runtype owns the product personality and the surface delivery.
 

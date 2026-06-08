@@ -12,7 +12,7 @@ Defines the maturity pipeline for knowledge artifacts.
 
 ## Tier 1: Learnings (`.agents/learnings/`)
 
-- **Source:** `$retro`, `$post-mortem`, `$extract`, promoted from forge
+- **Source:** `$post-mortem`, `$post-mortem --quick`, `$extract`, promoted from forge
 - **Confidence:** 0.3-1.0
 - **Citations:** 1+
 - **Promotion criteria:** Promote to Tier 2 when confidence >= 0.8 AND cited >= 3 times AND age > 30 days
@@ -28,7 +28,7 @@ Defines the maturity pipeline for knowledge artifacts.
 
 ## Cross-Repo Promotion
 
-- Any tier can be promoted to `~/.codex/patterns/` via `$retro --global`
+- Any tier can be promoted to `~/.codex/patterns/` via `$post-mortem --global`
 - Global patterns are user-level, shared across all repositories
 - Promotion is a manual decision (human judgment on cross-repo applicability)
 - Global patterns are found by `$research`, `$knowledge`, and `$inject` via grep

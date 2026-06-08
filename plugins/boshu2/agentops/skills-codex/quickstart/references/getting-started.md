@@ -18,9 +18,9 @@ Quickstart does three things fast:
 
 Discovery primitive. Reads code, understands patterns, maps architecture, and surfaces prior bookkeeping before you change anything.
 
-### Validation (`$validation`, `$council`, `$vibe`)
+### Validation (`$validate`, `$council`, `$vibe`)
 
-Validation is not one command. `$council` pressure-tests plans and diffs, `$vibe` reviews code quality, and `$validation` closes out finished work and extracts learnings.
+Validation is not one command. `$council` pressure-tests plans and diffs, `$vibe` reviews code quality, and `$validate` closes out finished work and extracts learnings.
 
 ### RPI (`$rpi`)
 

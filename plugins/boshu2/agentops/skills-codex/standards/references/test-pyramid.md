@@ -1,6 +1,6 @@
 # Test Pyramid — L0 through L7
 
-> Shared reference for RPI lifecycle skills. Loaded by `$plan`, `$pre-mortem`, `$implement`, `$crank`, `$validation`, and `$post-mortem`.
+> Shared reference for RPI lifecycle skills. Loaded by `$plan`, `$pre-mortem`, `$implement`, `$crank`, `$validate`, and `$post-mortem`.
 
 ## The Full Testing Lifecycle
 

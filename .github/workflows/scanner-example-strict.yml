@@ -1,0 +1,29 @@
+name: HOL Plugin Scanner — Strict
+on:
+  workflow_dispatch:  # Example template — run manually to test strict scanning
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: HOL Plugin Scanner
+        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        with:
+          plugin_dir: "."
+          mode: scan
+          min_score: 90
+          fail_on_severity: medium
+          format: sarif
+          upload_sarif: true
+      - name: Submit to Registry if Eligible
+        if: github.ref == 'refs/heads/main'
+        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        with:
+          plugin_dir: "."
+          mode: submit
+          min_score: 90
+          submission_enabled: true
+          submission_score_threshold: 90

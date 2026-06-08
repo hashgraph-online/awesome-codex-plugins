@@ -7,7 +7,7 @@ description: "Run scenario."
 Author and manage holdout scenarios for Stage 4 behavioral validation.
 
 Scenarios are **holdout** — implementing agents cannot see them (enforced by hook).
-Evaluator agents validate code against scenarios during STEP 1.8 in `$validation`.
+Evaluator agents validate code against scenarios during STEP 1.8 in `$validate`.
 
 ## Execution Steps
 
@@ -66,6 +66,6 @@ ao scenario list --status active  # Active only
 
 ## See Also
 
-- `$validation` — STEP 1.8 consumes scenarios
+- `$validate` — STEP 1.8 consumes scenarios
 - `$vibe` — Exposes satisfaction_score
 - `$implement` — Step 5c generates agent-built specs

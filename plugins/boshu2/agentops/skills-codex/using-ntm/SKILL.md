@@ -40,7 +40,7 @@ tend AgentOps loops on an NTM swarm.
    invariants, and AgentOps owns the loop. Dispatch the skill; don't reimplement it.
 2. **Agents inherit the skills via overlay.** Each pane is a Claude or Codex
    agent with the AgentOps Codex skills installed, so `$rpi`, `$evolve`,
-   `$validation` resolve in-pane.
+   `$validate` resolve in-pane.
 3. **The bead queue is the work source.** A lead runs `bd ready`, picks the next
    bead, and dispatches it to a free worker pane.
 4. **Green CI is the merge gate.** Each worker drives its bead to a green PR from

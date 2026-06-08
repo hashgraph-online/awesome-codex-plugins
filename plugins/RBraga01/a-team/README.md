@@ -9,7 +9,12 @@ Not a marketplace of agents you configure. A pre-configured, pre-enforced engine
 > **Born from the community.** A Team was built by studying, using, and needing to personalise several excellent open-source agent projects. The architecture combines the best patterns from each into a single, portable baseline. See [Acknowledgments](#acknowledgments) for the projects that made this possible.
 
 **[→ Visual overview & live demo](https://rbraga01.github.io/a-team/)**
-**[→ builder-ai](https://github.com/RBraga01/builder-ai)** — companion pack for LLM product builders (evals, RAG, prompt versioning, safety)
+
+**Domain packs** — install any alongside A Team:
+- **[builder-ai](https://github.com/RBraga01/builder-ai)** — LLM engineering quality (evals, RAG, prompt versioning, safety)
+- **[builder-design](https://github.com/RBraga01/builder-design)** — AI UI design (states, streaming, accessibility, tokens)
+- **[builder-product](https://github.com/RBraga01/builder-product)** — Product quality gates (PRD, metrics, research synthesis, AI validation)
+- **[builder-growth](https://github.com/RBraga01/builder-growth)** — Growth & messaging (positioning, copy, experiments, retention)
 
 ---
 

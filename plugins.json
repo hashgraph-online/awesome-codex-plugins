@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-07",
-  "total": 103,
+  "last_updated": "2026-06-08",
+  "total": 107,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -30,6 +30,16 @@
       "install_url": "https://raw.githubusercontent.com/GanyuanRan/Aegis/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Agent Harness Skills",
+      "url": "https://github.com/yfge/agent-harness-skills",
+      "owner": "yfge",
+      "repo": "agent-harness-skills",
+      "description": "Designs agent-ready repository harnesses with entrypoints, validation surfaces, runtime evidence, delivery records, and atomic commit guidance.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/yfge/agent-harness-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Agentizer",
       "url": "https://github.com/Humiris/wwa-transform",
       "owner": "Humiris",
@@ -38,6 +48,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Humiris/wwa-transform/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agent Workflow System",
+      "url": "https://github.com/1139030773-cmd/agent-workflow-system",
+      "owner": "1139030773-cmd",
+      "repo": "agent-workflow-system",
+      "description": "一套中文AI工作流系统：7个协作技能 + 行为规范宪法 + 会话恢复机制。模糊目标→可执行任务，全生命周期引导。Codex & Claude Code 双平台，新手友好。",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/1139030773-cmd/agent-workflow-system/HEAD/plugins/agent-workflow-system/.codex-plugin/plugin.json"
     },
     {
       "name": "AgentOps",
@@ -498,6 +518,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/HDeibler/universal-design-principles/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Velith",
+      "url": "https://github.com/epicsagas/Velith",
+      "owner": "epicsagas",
+      "repo": "Velith",
+      "description": "AI-native publishing system with a 6-phase pipeline from ideation to EPUB/PDF across 8 genres.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/epicsagas/Velith/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "VibePortrait",
@@ -1028,6 +1058,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/CarrotGamesStudios/vidseeds-mcp/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "X Twitter Scraper",
+      "url": "https://github.com/Xquik-dev/x-twitter-scraper",
+      "owner": "Xquik-dev",
+      "repo": "x-twitter-scraper",
+      "description": "X/Twitter data, monitored workflows, HMAC webhooks, and MCP access through the Xquik REST API with confirmation-gated write guidance.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Xquik-dev/x-twitter-scraper/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Yandex Direct",

@@ -233,7 +233,7 @@ Phase 4 (soc-ytpq) governance for `~/.agents/learnings/` — all advisory, none 
 ## Key Rules
 - **Monitor regularly** - flywheel needs attention
 - **Address friction** - bottlenecks slow compounding
-- **Feed the flywheel** - run $retro and $post-mortem
+- **Feed the flywheel** - run $post-mortem (or $post-mortem --quick)
 - **Prune stale knowledge** - archive old artifacts
 
 ## Examples
@@ -246,8 +246,8 @@ Phase 4 (soc-ytpq) governance for `~/.agents/learnings/` — all advisory, none 
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| All pool counts zero | `.agents/` directory missing or empty | Run `$post-mortem` or `$retro` to seed knowledge pools |
-| Velocity always zero | No recent extractions (last 7 days) | Run `$retro` or `$post-mortem` to extract and index learnings |
+| All pool counts zero | `.agents/` directory missing or empty | Run `$post-mortem` (or `$post-mortem --quick`) to seed knowledge pools |
+| Velocity always zero | No recent extractions (last 7 days) | Run `$post-mortem` (or `$post-mortem --quick`) to extract and index learnings |
 | "ao CLI not available" | ao command not installed or not in PATH | Install ao CLI or use manual pool counting fallback |
 | Stale artifacts >50% | Long time since last session or inactive repo | Run `$provenance --stale` to audit and archive old artifacts |
 

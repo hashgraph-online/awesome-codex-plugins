@@ -5,7 +5,7 @@ description: "Run RPI."
 
 # $rpi - Full Lifecycle Orchestrator
 
-> Quick ref: `$discovery` -> `$crank` -> `$validation`, then report.
+> Quick ref: `$discovery` -> `$crank` -> `$validate`, then report.
 
 **Execute this workflow. Do not only describe it.** RPI is autonomous unless
 `--interactive` is set. The user touchpoint is after validation, or after a
@@ -26,14 +26,14 @@ When this skill runs in Codex hookless mode (`CODEX_THREAD_ID` is set or
 ao codex ensure-start 2>/dev/null || true
 ```
 
-Let `$validation`, `$post-mortem`, or `$handoff` own hookless closeout through
+Let `$validate`, `$post-mortem`, or `$handoff` own hookless closeout through
 `ao codex ensure-stop`.
 
 ## Core Contract
 
-RPI delegates via `$discovery`, `$crank`, `$validation` as **separate skill invocations**.
+RPI delegates via `$discovery`, `$crank`, `$validate` as **separate skill invocations**.
 Keep strict delegation on by default; do not compress phases, replace phase
-skills with direct agent spawns, or skip `$validation`. Read
+skills with direct agent spawns, or skip `$validate`. Read
 [../shared/references/strict-delegation-contract.md](../shared/references/strict-delegation-contract.md)
 for the full anti-compression contract.
 
@@ -104,11 +104,11 @@ Enter at the routed phase and run every phase after it.
    `--no-test-first` through. On DONE, record `ao ratchet record implement
    2>/dev/null || true` and continue. On PARTIAL or BLOCKED, retry the same
    objective up to 3 total attempts.
-3. **Validation:** invoke `$validation <epic-id> --complexity=<level>` when an
-   epic exists; otherwise invoke `$validation --complexity=<level>`, directly
+3. **Validation:** invoke `$validate <epic-id> --complexity=<level>` when an
+   epic exists; otherwise invoke `$validate --complexity=<level>`, directly
    or through phase-isolated skill transport. Add `--strict-surfaces` when
    `--quality` is set. On FAIL, extract findings, re-run `$crank` on the same
-   objective, then re-run `$validation`, up to 3 total validation attempts. On
+   objective, then re-run `$validate`, up to 3 total validation attempts. On
    DONE, record `ao ratchet record vibe 2>/dev/null || true`.
 4. **Report:** summarize phase verdicts and epic status using
    [references/report-template.md](references/report-template.md). With
