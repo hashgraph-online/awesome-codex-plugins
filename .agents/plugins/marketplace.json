@@ -34,6 +34,21 @@
       "icon": "./plugins/GanyuanRan/Aegis/assets/aegis-small.svg"
     },
     {
+      "name": "agent-harness-skills",
+      "displayName": "Agent Harness Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yfge/agent-harness-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Designs agent-ready repository harnesses with entrypoints, validation surfaces, runtime evidence, delivery records, and atomic commit guidance.",
+      "icon": "./plugins/yfge/agent-harness-skills/assets/icon.svg"
+    },
+    {
       "name": "codiris-agentizer",
       "displayName": "Agentizer",
       "source": {

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-07",
-  "total": 104,
+  "last_updated": "2026-06-08",
+  "total": 105,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -28,6 +28,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/GanyuanRan/Aegis/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agent Harness Skills",
+      "url": "https://github.com/yfge/agent-harness-skills",
+      "owner": "yfge",
+      "repo": "agent-harness-skills",
+      "description": "Designs agent-ready repository harnesses with entrypoints, validation surfaces, runtime evidence, delivery records, and atomic commit guidance.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/yfge/agent-harness-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Agentizer",
