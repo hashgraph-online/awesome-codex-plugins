@@ -27,20 +27,17 @@
     "longDescription": "ArmorIQ intent-based security enforcement for OpenAI Codex. Treat as a strong Bash guardrail and audit layer, not a complete boundary for every Codex capability. Codex hooks currently emit Bash, apply_patch, and MCP tool calls. ArmorCodex provides plan registration through MCP, intent-plan matching, permission gating, and post-run audit on those tools. Non-Bash activity (file edits, web search, app connectors) is gated where Codex emits hook events.",
     "developerName": "ArmorIQ",
     "category": "Security",
-    "capabilities": [
-      "MCP",
-      "Hooks"
-    ],
+    "capabilities": ["MCP", "Hooks"],
     "websiteURL": "https://armoriq.ai",
-    "privacyPolicyURL": "https://armoriq.ai/privacy",
-    "termsOfServiceURL": "https://armoriq.ai/terms",
+    "privacyPolicyURL": "https://armoriq.ai/privacy-policy",
+    "termsOfServiceURL": "https://armoriq.ai/terms-of-service",
     "brandColor": "#00E5CC",
     "composerIcon": "./assets/armoriq-logo.png",
     "logo": "./assets/armoriq-logo.png",
     "defaultPrompt": [
-      "Register an intent plan, then run my Bash commands.",
-      "Show the current ArmorCodex security policies.",
-      "Block Bash commands that contain curl or wget."
+      "Show me what security rules are protecting this project.",
+      "Block any commands that fetch URLs or exfiltrate data.",
+      "Walk me through your plan before running anything."
     ]
   },
   "userConfig": {

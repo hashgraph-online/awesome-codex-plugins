@@ -1,0 +1,73 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/bootstrap.mjs router",
+            "statusMessage": "Starting ArmorCodex"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/bootstrap.mjs router",
+            "statusMessage": "Loading ArmorCodex intent policy"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/bootstrap.mjs router",
+            "statusMessage": "Checking ArmorCodex policy"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/bootstrap.mjs router",
+            "statusMessage": "Checking ArmorCodex approval policy"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/bootstrap.mjs router",
+            "statusMessage": "Auditing ArmorCodex command"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/bootstrap.mjs router",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
