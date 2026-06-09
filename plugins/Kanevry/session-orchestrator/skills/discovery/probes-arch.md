@@ -8,6 +8,24 @@
 
 **Detection Method:**
 
+**Preferred (language-mapper-supported projects):**
+
+Call `extractSemanticSlices(filePath, { type: 'imports' })` from `scripts/lib/language-mappers/index.mjs` for each source file to obtain a typed list of import edges. The mapper handles TypeScript, JavaScript, and Markdown files natively; unsupported file types return an empty array (graceful degradation). Feed the resulting `{source_file -> [imported_file]}` adjacency map directly into the cycle-detection loop below.
+
+```js
+// Pseudocode — wire once per probe run
+import { extractSemanticSlices } from '$PLUGIN_ROOT/scripts/lib/language-mappers/index.mjs';
+
+for (const filePath of sourceFiles) {
+  const imports = await extractSemanticSlices(filePath, { type: 'imports' });
+  for (const { resolved } of imports) {
+    adjacency.get(filePath).push(resolved);
+  }
+}
+```
+
+**Fallback (when language-mapper returns empty or for unsupported file types):**
+
 ```bash
 # Build import graph from source files
 # Step 1: Extract all import relationships
@@ -16,14 +34,13 @@ Grep pattern: (import\s+.*from\s+["']([^"']+)["']|require\s*\(\s*["']([^"']+)["'
 
 # Step 2: Resolve relative paths to absolute
 # Step 3: Build adjacency list
-# Step 4: Detect cycles using depth-limited BFS (max depth: 10)
 
 # Alternative for Node.js projects with madge installed:
 npx madge --circular --extensions ts,tsx,js,jsx src/ 2>/dev/null
 ```
 
-Algorithm (when madge unavailable):
-1. Parse all import statements into `{source_file -> [imported_file]}` map
+Algorithm (cycle detection — same for both paths above):
+1. Build `{source_file -> [imported_file]}` adjacency map
 2. Resolve relative imports to absolute paths
 3. For each file, BFS through imports with depth limit of 10
 4. If BFS revisits the starting file, record the cycle path

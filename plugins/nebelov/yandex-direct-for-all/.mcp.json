@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "yandexDirect": {
+      "command": "python3",
+      "args": [
+        "./mcp/yandex-direct/server.py",
+        "stdio"
+      ],
+      "env": {
+        "YD_TOKEN": "${YD_TOKEN}",
+        "YD_CLIENT_LOGIN": "${YD_CLIENT_LOGIN}",
+        "YD_SANDBOX": "${YD_SANDBOX}",
+        "YD_OUTPUT_DIR": "${YD_OUTPUT_DIR}"
+      }
+    },
+    "yandexSearch": {
+      "command": "python3",
+      "args": [
+        "./mcp/yandex-search/server.py"
+      ],
+      "env": {
+        "SEARCH_API_KEY": "${SEARCH_API_KEY}",
+        "FOLDER_ID": "${FOLDER_ID}"
+      }
+    },
+    "yandexWordstat": {
+      "command": "node",
+      "args": [
+        "./mcp/yandex-wordstat/dist/index.js"
+      ],
+      "env": {
+        "YANDEX_WORDSTAT_TOKEN": "${YANDEX_WORDSTAT_TOKEN}"
+      }
+    }
+  }
+}

@@ -21,7 +21,7 @@ bd dep add <wave-1-id> <wave-2-id>
 ```
 
 If bd is unavailable or degraded, keep the plan file and execution packet
-accurate. File-backed mode is acceptable as long as `$crank` and `$validation`
+accurate. File-backed mode is acceptable as long as `$crank` and `$validate`
 can read the handoff artifacts.
 
 ## Include Conformance Checks

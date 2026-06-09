@@ -22,6 +22,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Frappe Agent",
+    "composerIcon": "./assets/frappe-agent-icon.svg",
     "shortDescription": "Frappe-aware coding, bench, SQL, and customization help.",
     "longDescription": "Adds Frappe and ERPNext-specific skills for full-stack work, bench operations, SQL and ORM decisions, admin customizations, and workflow-aware code review.",
     "developerName": "Dhairya Marwaha",

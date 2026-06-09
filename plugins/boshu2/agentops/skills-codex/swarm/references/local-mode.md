@@ -214,6 +214,19 @@ CONDITIONAL PREFLIGHT CHECKS (keyed on task + manifest):
    staged in the worktree and list the touched paths in result.artifacts.
    Source: .agents/learnings/2026-04-15-post-wave-sync-scripts-are-in-scope.md
 
+4) CI-policy parity preflight — Manifest includes any `.github/workflows/*.yml` file:
+   The lead's wave-acceptance step runs `bash scripts/validate-ci-policy-parity.sh`
+   when workflow YAML changes are detected. Before signaling done:
+   - If you added/renamed a job in validate.yml, also update `summary.needs:` AND
+     the `### CI Jobs and What They Check` table in `AGENTS.md` (mark `(non-blocking)`
+     if the job has `continue-on-error: true`).
+   - Sanity-run locally: `bash scripts/validate-ci-policy-parity.sh` should exit 0.
+   - If you cannot align all three surfaces (e.g., AGENTS.md is outside your manifest),
+     write a blocked result with `SCOPE-ESCAPE: AGENTS.md needed for CI parity`.
+   Motivation: commit c587b361 was a manual fix after soc-lmww1 drifted the three
+   surfaces. This preflight prevents recurrence at worker time, not just wave time.
+   See skills/crank/references/wave-patterns.md "CI-Policy Parity Gate".
+
 Rules:
 - Work only on YOUR pre-assigned task
 - Do NOT claim other tasks

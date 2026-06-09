@@ -1,0 +1,44 @@
+{
+  "name": "thermal-fluid-research-workflow",
+  "version": "0.1.0",
+  "description": "Thermal-fluid mechanical engineering research workflow plugin for Codex.",
+  "author": {
+    "name": "Han Hu",
+    "email": "72934230+hanhuark@users.noreply.github.com",
+    "url": "https://github.com/hanhuark"
+  },
+  "homepage": "https://github.com/hanhuark/mechanical-engineering-research-skill",
+  "repository": "https://github.com/hanhuark/mechanical-engineering-research-skill",
+  "license": "MIT",
+  "keywords": [
+    "thermal-fluids",
+    "mechanical-engineering",
+    "research",
+    "technical-writing",
+    "proposal-development",
+    "data-analysis",
+    "codex-skill"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Thermal-Fluid Research Workflow",
+    "shortDescription": "Research, write, code, analyze, and present thermal-fluid work.",
+    "longDescription": "A workflow plugin for thermal-fluid mechanical engineering research. It combines domain-specific judgment for literature review, technical writing, data analysis, research coding, presentations, AI/ML tools, proposals, patents, and commercialization with reusable workflow prompts.",
+    "developerName": "Han Hu",
+    "category": "Productivity",
+    "capabilities": [
+      "Research",
+      "Write",
+      "Code"
+    ],
+    "websiteURL": "https://github.com/hanhuark/mechanical-engineering-research-skill",
+    "defaultPrompt": [
+      "Plan a thermal-fluid research workflow.",
+      "Develop a proposal narrative with reviewer-focused logic.",
+      "Write a technical section with domain rigor.",
+      "Review this figure and explain the physics."
+    ],
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

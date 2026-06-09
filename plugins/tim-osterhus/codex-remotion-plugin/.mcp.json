@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "remotion-documentation": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@remotion/mcp@latest"],
+      "note": "Official Remotion documentation MCP server. Searches the Remotion docs via Remotion's hosted MCP index."
+    }
+  }
+}

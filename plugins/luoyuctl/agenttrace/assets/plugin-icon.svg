@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="agenttrace icon">
+  <rect width="512" height="512" rx="96" fill="#101417"/>
+  <path d="M112 318c36 54 84 80 144 80s108-26 144-80" fill="none" stroke="#54ff00" stroke-width="34" stroke-linecap="round"/>
+  <path d="M128 256c35-45 78-67 128-67s93 22 128 67" fill="none" stroke="#e9f5ec" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="47" fill="#54ff00"/>
+  <circle cx="256" cy="256" r="18" fill="#101417"/>
+  <path d="M256 114v45m0 194v45M114 256h45m194 0h45" stroke="#54ff00" stroke-width="24" stroke-linecap="round"/>
+</svg>

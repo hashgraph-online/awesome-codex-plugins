@@ -1,6 +1,6 @@
 ---
 name: pr-prep
-description: 'Prepare PR commits and body.'
+description: "Run pr prep."
 ---
 # PR Preparation Skill
 

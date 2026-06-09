@@ -2,11 +2,12 @@
 name: quality-gates
 user-invocable: false
 tags: [reference, quality, typecheck, test, lint]
+model: haiku
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Canonical quality check commands for typecheck, test, and lint.
+  Use this skill when referencing canonical quality check commands for typecheck, test, and lint.
   Defines 4 variants (Baseline, Incremental, Full Gate, Per-File) used by
   session-start, wave-executor, session-end, and session-reviewer.
   Reference skill — not invoked directly.
@@ -29,6 +30,22 @@ Quality-gate commands are resolved in this priority order:
 Loader: `scripts/lib/quality-gates-policy.mjs` exports `loadQualityGatesPolicy(repoRoot)` and `resolveCommand(policy, key, fallback)`. The Node runner `scripts/run-quality-gate.mjs` performs the same resolution inline.
 
 If any resolved command is set to the literal string `skip`, skip that check entirely.
+
+## Scope Policy (#320)
+
+**Lint, typecheck, and test commands MUST run with the project's canonical, unscoped invocation** as resolved above (e.g., `pnpm lint`, `pnpm test --run`, `tsgo --noEmit`). The resolved command's own configuration (`eslint.config.*`, `tsconfig.json`, `vitest.config.*`, `package.json` scripts) is the single source of truth for which files are checked.
+
+**Domain-split scoping is FORBIDDEN.** Do NOT replace the canonical command with narrower variants such as:
+
+- `pnpm lint src/` or `pnpm lint src/ scripts/` — silently hides errors in `tests/`, `tests/e2e/`, `tests/integration/`, root-level config files (`vitest.config.mjs`, `eslint.config.js`, etc.), and any directory outside the chosen split.
+- `pnpm exec eslint src/**/*.ts` — same blind-spot; bypasses the project's lint script.
+- `pnpm test src/foo/` instead of `pnpm test --run` — masks regressions in untouched modules.
+
+This rule applies to **every consumer** of this skill: session-start Baseline, wave-executor Incremental, session-end Full Gate, session-reviewer Per-File, discovery probes, and repo-audit. It applies whether the command is invoked by an agent, by `scripts/run-quality-gate.mjs`, or by a human running it inline during triage.
+
+**Exception — Incremental Per-File (Variant 4) test runs:** `{test-command}` MAY be invoked with explicit changed-file arguments (e.g., `pnpm test -- auth.test.ts`) per the per-file contract. Lint and typecheck have NO per-file exception — they always run the canonical command.
+
+**Why:** Domain-split scoping was empirically shown (consumer-repo Deep-10 retro, 2026-05-20) to hide 2 errors and 17 warnings in `tests/integration/` and `tests/e2e/` that the canonical `pnpm lint` (841-file glob) catches. Narrowing scope to `src/+scripts/` for "lint-triage" produced a green W1, but the W4 Full Gate then surfaced the hidden errors, forcing a W5 sweep. The narrow-scope variant is a foot-gun: it looks faster but leaks debt across waves.
 
 ## Session Config Fields (legacy fallback)
 

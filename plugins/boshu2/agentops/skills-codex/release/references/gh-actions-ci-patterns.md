@@ -173,4 +173,4 @@ Run `actionlint` from the pre-push gate before you push a workflow change. Most 
 
 ---
 
-> Pattern adopted from `gh-actions` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `gh-actions` (ACFS skill corpus). Methodology only — no verbatim text.

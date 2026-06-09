@@ -1,0 +1,52 @@
+{
+    "name": "@dodopayments/opencode-plugin",
+    "version": "0.3.3",
+    "description": "Dodo Payments skills and MCP server hints for OpenCode.",
+    "type": "module",
+    "main": "opencode-plugin/index.js",
+    "exports": {
+        ".": "./opencode-plugin/index.js"
+    },
+    "files": [
+        "opencode-plugin/",
+        "skills/",
+        ".mcp.json",
+        "LICENSE"
+    ],
+    "scripts": {
+        "sync": "node scripts/sync-manifests.mjs",
+        "sync:check": "node scripts/sync-manifests.mjs --check",
+        "prepack": "node scripts/build-skills-for-npm.mjs materialize",
+        "postpack": "node scripts/build-skills-for-npm.mjs restore && git checkout skills/"
+    },
+    "keywords": [
+        "opencode",
+        "opencode-plugin",
+        "dodopayments",
+        "payments",
+        "billing",
+        "subscriptions",
+        "mcp",
+        "skills"
+    ],
+    "author": "Dodo Payments <support@dodopayments.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dodopayments/dodo-agent-plugin.git"
+    },
+    "homepage": "https://docs.dodopayments.com",
+    "bugs": "https://github.com/dodopayments/dodo-agent-plugin/issues",
+    "peerDependencies": {
+        "@opencode-ai/plugin": ">=1.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@opencode-ai/plugin": {
+            "optional": true
+        }
+    },
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    }
+}

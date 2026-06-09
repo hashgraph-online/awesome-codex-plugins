@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Engineer（前端开发）"
+  short_description: "负责前端页面、交互、状态流与前端接口接入的实现和自测。"
+  default_prompt: "Use $frontend-engineer to take the lead on the Frontend Engineer（前端开发） responsibilities for this task. Start with $frontend-engineering, $frontend-ui-ux-system, $doc-architecture when those shared capabilities apply. Pull in $karpathy-guidelines, $browser-smoke-testing, $systematic-debugging, $browser-smoke-testing when deeper engineering execution or verification guidance is needed."

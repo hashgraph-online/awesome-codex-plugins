@@ -60,6 +60,35 @@
 | {{metric-2}} | {{specific target}} | {{how to measure}} | {{date}} |
 | {{metric-3}} | {{specific target}} | {{how to measure}} | {{date}} |
 
+## 5.A Acceptance Criteria (EARS)
+
+> Optional companion to Section 5 — translates each Feature Area's acceptance criteria into EARS-shaped statements for deterministic vitest stub generation by `/write-executable-plan`. Leave blank if Section 5's success metrics suffice.
+
+### Feature Area 1 — {{name}}
+
+**Ubiquitous** (always-true invariants — no trigger, no state):
+- The {{system}} shall {{response}}.
+
+**State-driven** (`While …`):
+- While {{precondition}}, the {{system}} shall {{response}}.
+
+**Event-driven** (`When …`):
+- When {{trigger}}, the {{system}} shall {{response}}.
+
+**Optional feature** (`Where …`):
+- Where {{feature enabled}}, the {{system}} shall {{response}}.
+
+**Unwanted behaviour** (`If … then …`):
+- If {{unwanted condition}}, then the {{system}} shall {{response}}.
+
+### Feature Area 2 — {{name}}
+
+[repeat pattern]
+
+### Edge Case / Error Handling
+
+[repeat pattern, typically focused on Unwanted + Optional]
+
 ## 6. Technical Architecture
 
 ### Archetype

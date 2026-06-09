@@ -1,6 +1,7 @@
 ---
 name: claude-md-drift-check
-description: Detects drift between CLAUDE.md (or AGENTS.md, the Codex CLI alias) / _meta narrative and live repository state. Six checks: absolute-path resolution, 01-projects/ count claims, issue-reference freshness (closed refs in forward-looking sections), session-file existence, command-count sync (claimed "N commands" vs actual commands/*.md), and session-config-parity (top-level keys diffed against docs/session-config-template.md). Invoked as an opt-in session-end phase; mirrors vault-sync's lean JSON+exit-code contract.
+description: Use when detecting drift between CLAUDE.md (or AGENTS.md, the Codex CLI alias) / _meta narrative and live repository state. Seven checks: absolute-path resolution, 01-projects/ count claims, issue-reference freshness (closed refs in forward-looking sections), session-file existence, command-count sync (claimed "N commands" vs actual commands/*.md), session-config-parity (top-level keys diffed against docs/session-config-template.md), and vault-dir-parity (CLAUDE.md vs AGENTS.md agreement on vault-integration.vault-dir). Invoked as an opt-in session-end phase; mirrors vault-sync's lean JSON+exit-code contract.
+model: haiku
 ---
 
 # CLAUDE.md Drift-Check Skill
@@ -30,12 +31,24 @@ PHASE 1 IMPLEMENTED (2026-04-19). Session-end opt-in quality gate. Upstream of `
 | 4 | `session-file-existence` | `50-sessions/YYYY-MM-DD-*.md` references anywhere in scope | `existsSync(vault/50-sessions/<file>)` |
 | 5 | `command-count` | "N commands" / "N /commands" claims in prose | compare to `ls commands/*.md \| wc -l`; skipped if no `commands/` dir |
 | 6 | `session-config-parity` | Top-level keys under `## Session Config` in `CLAUDE.md` / `AGENTS.md` | diff against `docs/session-config-template.md`; missing keys flagged as errors |
+| 7 | `vault-dir-parity` | `vault-integration.vault-dir` in BOTH `CLAUDE.md` AND `AGENTS.md` | reuse `_parseVaultIntegration`; flag when the two files disagree |
 
 Check 3 deliberately scopes to forward-looking sections. Mentions inside "Recently Closed", "Decisions", "Archive", etc. describe history and must not be flagged.
 
 Check 5 counts `*.md` files directly inside `commands/` (non-recursive, non-hidden). The `commands/` directory is resolved relative to `VAULT_DIR` by default; use `--commands-dir <path>` to override.
 
 Check 6 (issue #30) extracts the YAML block under `## Session Config` from both the canonical template (`docs/session-config-template.md` by default, override with `--config-template`) and the resolved local instruction file. Top-level keys present in the template but missing locally surface as `session-config-parity` errors. Both fenced YAML (```` ```yaml ... ``` ````) and raw YAML body (up to next `## ` heading) are accepted. The check skips gracefully when the template file is absent, when no instruction file is detected, or when explicitly disabled via `--skip-session-config-parity`.
+
+The parity set is **template-driven**: every column-0 YAML key under `## Session Config` in the template is checked. As of the gsd Pattern Adoption Quick-Wins bundle (PRD 2026-05-22, issues #517–#521), the template-side keys include the four new top-level blocks:
+
+- `state-md-lock` (Pattern 1 / #518) — mechanical STATE.md write lock
+- `slopcheck` (Pattern 2 / #520) — opt-in package legitimacy gate
+- `templates-first` (Pattern 3 / #519) — gh/glab template-read enforcement hook
+- `verification-auto-fix` (Pattern 4 / #521) — opt-in auto-fix retry loop after Quality-Gate fail
+
+A local CLAUDE.md / AGENTS.md that omits any of these now fails `session-config-parity` in `mode: hard`. The bundle ships all four keys in CLAUDE.md and `docs/session-config-template.md` together (Wave 1 of the adoption plan) so the check stays green at adoption time.
+
+Check 7 (issue #600) is the **only** check that intentionally reads BOTH instruction files rather than the single alias-resolved one. The alias rule (CLAUDE.md wins ties, AGENTS.md is the Codex alias) means `resolveInstructionFile()` picks exactly one — so a repo carrying both files can silently let `AGENTS.md` drift out of sync with `CLAUDE.md`. A sibling project ran for weeks with a correct `vault-integration.vault-dir` in `CLAUDE.md` and a dead path in `AGENTS.md`. Check 7 reads `vault-integration.vault-dir` from each file (reusing the `_parseVaultIntegration` parser from `scripts/lib/config/vault-integration.mjs` — no hand-rolled YAML) and flags a `vault-dir-parity` error when the two values diverge (the error is attributed to `AGENTS.md`, the secondary alias, and names both values). The check skips gracefully when only one instruction file is present (nothing to compare), when neither file declares a `vault-integration:` block, or when explicitly disabled via `--skip-vault-dir-parity`. Two files that both omit `vault-dir` (both unset) agree and pass.
 
 ## Files
 
@@ -63,6 +76,7 @@ CLI flags (all optional):
 | `--skip-session-files` | off | Disable Check 4 |
 | `--skip-command-count` | off | Disable Check 5 |
 | `--skip-session-config-parity` | off | Disable Check 6 |
+| `--skip-vault-dir-parity` | off | Disable Check 7 |
 | `--commands-dir <path>` | `<VAULT_DIR>/commands` | Override path to `commands/` directory for Check 5 |
 | `--config-template <path>` | `<VAULT_DIR>/docs/session-config-template.md` | Override path to the canonical Session Config template for Check 6 |
 
@@ -80,7 +94,7 @@ Environment:
   "resolved_path": "<absolute path to CLAUDE.md or AGENTS.md, or null>",
   "resolved_kind": "claude|agents|null",
   "files_scanned": N,
-  "checks_run": ["path-resolver", "project-count-sync", "issue-reference-freshness", "session-file-existence", "command-count", "session-config-parity"],
+  "checks_run": ["path-resolver", "project-count-sync", "issue-reference-freshness", "session-file-existence", "command-count", "session-config-parity", "vault-dir-parity"],
   "checks_skipped": ["<name>: <reason>"],
   "errors": [
     { "check": "<name>", "file": "<relative path>", "line": N, "message": "<human>", "extracted": "<raw text>" }
@@ -118,6 +132,8 @@ drift-check:
   check-issue-reference-freshness: true
   check-session-file-existence: true
   check-command-count: true
+  check-session-config-parity: true
+  check-vault-dir-parity: true
 ```
 
 When `drift-check.enabled` is `false` or the block is absent, the session-end phase is a no-op.

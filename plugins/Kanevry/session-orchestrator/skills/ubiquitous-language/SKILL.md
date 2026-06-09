@@ -1,6 +1,7 @@
 ---
 name: ubiquitous-language
 description: Use when the user wants to define domain terms, build a glossary, harden terminology, create a ubiquitous language, or mentions "domain model" or "DDD". Extracts a DDD-style glossary from the current conversation into UBIQUITOUS_LANGUAGE.md, flags ambiguities and synonyms, and proposes opinionated canonical terms.
+model: inherit
 disable-model-invocation: true
 derived-from: mattpocock/skills@90ea8ee
 license: MIT

@@ -78,4 +78,4 @@ Default to `block` on high-blast-radius families; `warn` for variants with a rec
 The two guards keep independent state but share the same fail-open posture, so a hook outage never silently disables both lanes at once.
 
 ---
-> Pattern adopted from `dcg` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `dcg` (ACFS skill corpus). Methodology only — no verbatim text.

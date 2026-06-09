@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD Workflow"
+  short_description: "以红绿重构节奏驱动实现与验证"
+  default_prompt: "Use $tdd-workflow to add a failing test first, implement the minimal fix, and verify the behavior stays green after refactoring."

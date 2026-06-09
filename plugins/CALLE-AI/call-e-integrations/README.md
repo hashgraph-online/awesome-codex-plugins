@@ -45,18 +45,40 @@ Keep those paths exactly as shown so the marketplace entry can resolve
 ## Authentication
 
 The plugin uses the repository-local CLI when available, then a global `calle`
-command when available, then falls back to `npx -y @call-e/cli@0.3.2`.
+command when available, then falls back to `npx -y @call-e/cli`.
 
 To authenticate before using the plugin:
 
 ```bash
-npx -y @call-e/cli@0.3.2 auth login
+npx -y @call-e/cli auth login
 ```
 
 When `$calle` is invoked, the skill checks authorization first. If login is
 missing or expired, it runs blocking `calle auth login`, shows the brokered
 authorization link, and continues automatically after browser authorization
 completes.
+
+## ChatGPT App Boundary
+
+This Codex plugin is intentionally CLI-based. If you also publish or install a
+same-name CALL-E ChatGPT App, keep it disabled in Codex when you want `$calle`
+to use the plugin path:
+
+```toml
+[apps.<app-id>]
+enabled = false
+```
+
+You can also disable all ChatGPT Apps/connectors for a Codex profile:
+
+```toml
+[features]
+apps = false
+```
+
+The bundled `$calle` skill tells Codex not to call ChatGPT App/connector tool
+namespaces while the plugin skill is active, but disabling the App in Codex
+configuration is the hard isolation boundary.
 
 ## Safety
 

@@ -1,6 +1,6 @@
 ---
 name: product
-description: 'Create or refine PRODUCT.md.'
+description: "Run product."
 ---
 # $product — Interactive PRODUCT.md Generation
 
@@ -42,6 +42,7 @@ Read available project files to pre-populate suggestions:
 1. **README.md** — extract project description, purpose, target audience
 2. **package.json / pyproject.toml / go.mod / Cargo.toml** — extract project name
 3. **Directory listing** — `ls` the project root for structural hints
+4. **Existing product/release docs** — if present, read `PRODUCT.md`, `GOALS.md`, release notes, comparison docs, and recent `.agents/research/` or `.agents/plans/` artifacts for PMF, positioning, and evidence context
 
 Use what you find to draft initial suggestions for each section. If no files exist, proceed with blank suggestions.
 
@@ -123,7 +124,35 @@ This section is the most valuable one for internal product docs. It prevents the
 
 If the user says "nothing", gently challenge: "Every product has gaps. What would a frustrated user complain about?" Push for at least 2 honest gaps.
 
-#### 3g: Validated Principles (Auto-discovered)
+#### 3g: Product Sense Pass
+
+Ask: "What would give your target audience a 10-star experience?"
+
+Use this as a mandatory product judgment pass. Do not name-drop frameworks in the final document unless useful; translate them into concrete product decisions.
+
+For each lens, gather or infer the answer:
+
+| Lens | Question to answer | Output it should shape |
+|------|--------------------|------------------------|
+| **Chesky 10/11-star experience** | What would make the first meaningful use feel unexpectedly great, not merely functional? | `10-Star Experience` section and first-value path. |
+| **Rahul Vohra / Superhuman PMF** | Which narrow segment would be very disappointed if this disappeared? Who should we ignore for now? | `PMF Wedge`, target personas, and anti-personas. |
+| **April Dunford positioning** | What is the real alternative, where does it win, and what context makes this product obviously better? | Competitive positioning and strategic bet. |
+| **Teresa Torres discovery** | What recurring customer touchpoints or experiments will keep this honest? | Evidence and discovery metrics. |
+| **Marty Cagan outcomes** | What user/business outcome matters beyond shipped features? | Core value propositions and known gaps. |
+| **Gibson Biddle DHM** | How does the product delight users in ways that are hard to copy and sustainable to keep improving? | Product strategy and moat. |
+| **Elena Verna PLG** | Can the user reach value without human glue or heavy setup? Where is friction too high? | 10-star experience and onboarding gaps. |
+| **Melissa Perri build-trap guardrail** | Are we listing features or making strategic choices tied to target conditions? | Product strategy and prioritization. |
+| **Shreyas Doshi product sense** | What motivation, friction, satisfaction, and nudges decide whether usage repeats? | Value props, activation, and retention loop. |
+
+Capture:
+- **PMF wedge:** the narrow segment to optimize for now
+- **Anti-personas:** who the product should not optimize for yet
+- **10-star first experience:** the user's first 30-60 minutes, step by step
+- **Retention loop:** what makes the next session or next use better
+- **Moat:** what becomes harder to copy over time
+- **Friction:** the setup or comprehension costs that would kill adoption
+
+#### 3h: Validated Principles (Auto-discovered)
 
 **Do not ask the user.** Scan the project for extracted principles:
 
@@ -163,6 +192,14 @@ last_reviewed: YYYY-MM-DD
 
 {repeat for each persona}
 
+## PMF Wedge
+
+{The narrow segment to optimize for now, who would be very disappointed without the product, and who is intentionally out of scope.}
+
+## 10-Star Experience
+
+{A concrete first-use or core-use journey that would feel unexpectedly great. Describe the first 30-60 minutes, the evidence of value, and what makes the next use better.}
+
 ## What the Product Actually Is
 
 {Describe the product's concrete layers/components. Not marketing copy — what it literally does.
@@ -171,6 +208,15 @@ last_reviewed: YYYY-MM-DD
 ## Core Value Propositions
 
 {bullet list from 3c — each value prop should map to a specific gap or outcome it closes}
+
+## Product Strategy
+
+{Summarize the product choices through these lenses:
+- Delight: what creates user love
+- Hard to copy: what compounds or differentiates
+- Sustainable: what can keep improving without unsustainable service/manual work
+- Outcome: what target condition matters more than feature count
+- Retention loop: why the product gets more valuable on repeat use}
 
 ## Design Principles
 
@@ -191,6 +237,18 @@ last_reviewed: YYYY-MM-DD
 | Alternative | Where They Win | Where We Win |
 |-------------|---------------|--------------|
 {rows from 3d — honest about both sides}
+
+## Product Sense Review
+
+| Lens | Decision |
+|------|----------|
+| 10-star experience | {first-use delight decision} |
+| PMF wedge | {narrow segment decision} |
+| Positioning | {alternative/category/context decision} |
+| Continuous discovery | {how evidence will stay fresh} |
+| Outcome over output | {target condition} |
+| PLG friction | {self-serve/onboarding decision} |
+| Build-trap guardrail | {what not to build or claim yet} |
 
 ## Strategic Bet
 
@@ -257,8 +315,9 @@ Tell the user:
 7. Agent asks for strategic bet: "We bet that dependency security will become a compliance requirement, not a best practice"
 8. Agent auto-pulls GitHub stats (142 stars, 2.3K clones/14d) and asks about measured impact
 9. Agent pushes for known gaps: user admits "onboarding is confusing" and "no Windows support"
-10. Agent scans .agents/ — finds 12 planning rules and 45 learnings, includes as validated principles
-11. Agent writes PRODUCT.md with Evidence, Competitive Positioning, Known Gaps, and Strategic Bet sections
+10. Agent runs the product-sense pass: defines the 10-star first experience, PMF wedge, anti-personas, retention loop, moat, and adoption friction
+11. Agent scans .agents/ — finds 12 planning rules and 45 learnings, includes as validated principles
+12. Agent writes PRODUCT.md with PMF Wedge, 10-Star Experience, Product Strategy, Evidence, Competitive Positioning, Known Gaps, and Strategic Bet sections
 
 **Result:** PRODUCT.md created with evidence-backed content, unlocking product-aware council perspectives in future validations.
 
@@ -285,6 +344,8 @@ Tell the user:
 | User unclear on personas vs users | Confusion about persona definition | Explain: "Personas are specific user archetypes with goals and pain points. Think of one real person who would use this." Provide example. |
 | Competitive landscape feels forced | Genuinely novel product or niche tool | Accept "No direct competitors" as valid. Focus on alternative approaches (manual processes, scripts) rather than products. Still ask for strategic bet. |
 | PRODUCT.md feels generic | Insufficient user input or rushed interview | Ask follow-up questions. Request specific examples. Challenge vague statements like "makes things easier" — easier how? Measured how? |
+| 10-star experience is vague | User describes features instead of an experience | Walk through the first 30-60 minutes minute-by-minute. Ask what the user sees, trusts, shares, repeats, or would miss tomorrow. |
+| PMF wedge is too broad | User lists every possible customer | Ask who would be very disappointed if the product disappeared and who should be ignored until that segment loves it. |
 | User resists Known Gaps section | Discomfort admitting weaknesses | Explain: "This is an internal doc, not marketing. Honest gaps prevent the team from building on false assumptions. Every product has them." Push for at least 2. |
 | No usage data available | Pre-launch or private project | Write "Pre-traction" with a list of metrics to track once launched. The section's presence reminds future updates to fill it in. |
 | `gh api` fails or no GitHub remote | Private repo, no auth, or non-GitHub host | Skip auto-gather gracefully. Ask user to provide metrics manually. |

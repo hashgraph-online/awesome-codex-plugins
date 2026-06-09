@@ -1,0 +1,27 @@
+{
+  "name": "staff-engineer-mode",
+  "version": "2.1.0",
+  "type": "module",
+  "main": ".opencode/plugins/staff-engineer-mode.js",
+  "description": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
+  "license": "MIT",
+  "repository": "https://github.com/sirmarkz/staff-engineer-mode",
+  "homepage": "https://github.com/sirmarkz/staff-engineer-mode",
+  "author": "sirmarkz",
+  "keywords": [
+    "skills",
+    "staff-engineer",
+    "engineering-lifecycle",
+    "devops",
+    "sre",
+    "reliability",
+    "security",
+    "architecture",
+    "claude-code",
+    "codex",
+    "cursor",
+    "copilot-cli",
+    "gemini-cli",
+    "opencode"
+  ]
+}

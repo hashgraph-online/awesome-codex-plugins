@@ -7,8 +7,8 @@ description: 'Show active or recent Claude Code jobs in this repository, or deta
 
 Use this skill when the user wants the current state of Claude Code jobs in this repository.
 
-Do not derive the companion path from this skill file or any cache directory. Always run the installed copy:
-`node "<installed-plugin-root>/scripts/claude-companion.mjs" status $ARGUMENTS`
+Resolve `<plugin-root>` as two directories above this `SKILL.md` file. Always run the companion from that active plugin root:
+`node "<plugin-root>/scripts/claude-companion.mjs" status $ARGUMENTS`
 
 Supported arguments: `[job-id]`, `--wait`, `--timeout-ms <ms>`, `--poll-interval-ms <ms>`, `--all`
 

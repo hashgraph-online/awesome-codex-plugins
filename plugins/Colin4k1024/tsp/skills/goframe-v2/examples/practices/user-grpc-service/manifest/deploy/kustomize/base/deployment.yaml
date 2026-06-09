@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-grpc-service
+  labels:
+    app: user-grpc-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-grpc-service
+  template:
+    metadata:
+      labels:
+        app: user-grpc-service
+    spec:
+      containers:
+        - name: main
+          image: user-grpc-service
+          imagePullPolicy: Always
+

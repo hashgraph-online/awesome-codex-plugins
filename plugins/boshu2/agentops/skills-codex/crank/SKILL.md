@@ -1,6 +1,6 @@
 ---
 name: crank
-description: 'Execute epics through waves.'
+description: "Run crank."
 ---
 # $crank - Autonomous Epic Execution (Codex Native)
 
@@ -364,6 +364,13 @@ After all workers complete:
 1. Compute `git diff` for the wave.
 2. Run project-level tests appropriate to the wave.
 3. If tests fail, identify which worker's changes broke things and requeue only that work.
+4. **CI-Policy Parity Gate (conditional).** If the wave diff touches `.github/workflows/*.yml`, run `bash scripts/validate-ci-policy-parity.sh`; on non-zero exit treat the wave verdict as **FAIL** and surface the drift report. Trigger pattern (narrow — workflow YAML only):
+   ```bash
+   if git diff --name-only "$WAVE_START_SHA" HEAD -- | grep -qE '^\.github/workflows/.*\.ya?ml$'; then
+       bash scripts/validate-ci-policy-parity.sh || exit 1
+   fi
+   ```
+   See [references/wave-patterns.md](references/wave-patterns.md) "CI-Policy Parity Gate" for the worked example and the soc-lmww1 / commit `c587b361` motivation.
 
 ### Step 5.7: Wave Checkpoint
 

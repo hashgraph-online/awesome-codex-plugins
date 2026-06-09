@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GrayMatter icon">
+  <rect width="64" height="64" rx="14" fill="#245B4A"/>
+  <path d="M18 38c0-8.3 6.7-15 15-15h13v8H33c-3.9 0-7 3.1-7 7s3.1 7 7 7h13v8H33c-8.3 0-15-6.7-15-15Z" fill="#F4F7F3"/>
+  <path d="M18 11h28v8H18zM38 31h8v14h-8z" fill="#8FD4B3"/>
+</svg>

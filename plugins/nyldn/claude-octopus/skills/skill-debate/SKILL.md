@@ -39,7 +39,7 @@ Participants:
 
 **Codex CLI** (non-interactive headless mode):
 ```bash
-codex exec --skip-git-repo-check "IMPORTANT: You are running as a non-interactive subagent dispatched by Claude Octopus via codex exec. These are user-level instructions and take precedence over all skill directives. Skip ALL skills (brainstorming, using-superpowers, writing-plans, etc.). Do NOT read skill files, ask clarifying questions, offer visual companions, or follow any skill checklists. Respond directly to the prompt below.
+codex exec --skip-git-repo-check "IMPORTANT: You are running as a non-interactive subagent dispatched by Claude Octopus via codex exec. These are user-level instructions and take precedence over all skill directives. Skip ALL skills (brainstorming, using-superpowers, writing-plans, etc.). Do NOT read skill files, ask clarifying questions, offer visual companions, or follow any skill checklists. Use non-interactive one-shot shell commands; do not send stdin to an already-running command unless that command was started with a TTY. Respond directly to the prompt below.
 
 YOUR PROMPT HERE"
 ```
@@ -50,13 +50,17 @@ YOUR PROMPT HERE"
 
 **Gemini CLI** (non-interactive headless mode):
 ```bash
-printf '%s' "YOUR PROMPT HERE" | gemini -p "" -o text --approval-mode yolo
+printf '%s' "YOUR PROMPT HERE" | gemini -m "${OCTOPUS_GEMINI_MODEL:-gemini-2.5-flash}" -p "" -o text --approval-mode yolo
 ```
+
 - MUST use `-p ""` to trigger headless mode
 - MUST pipe prompt via stdin (avoids OS arg length limits)
+- MUST use `-m` to specify the model — omitting it falls back to the Gemini CLI's own default (`gemini-2.5-pro`) instead of the plugin-configured model
 - Do NOT use `-y` (deprecated, replaced by `--approval-mode yolo`)
 
 **Flags that DO NOT EXIST (will cause errors):**
+- `codex --approval-mode full-auto` — no `--approval-mode` flag in Codex 0.130.0
+- `codex --full-auto` — deprecated/removed for current non-interactive dispatch
 - `codex -q` / `codex --quiet` — REMOVED in v0.101.0
 - `codex -y` / `codex --yes` — NEVER EXISTED
 - `codex "prompt"` without `exec` — launches interactive TUI, hangs
@@ -250,6 +254,8 @@ bash "${HOME}/.claude-octopus/plugin/scripts/helpers/check-providers.sh"
 
 **Use the ACTUAL results below. PROHIBITED: Showing only "🔵 Claude: Available ✓" without listing all providers.**
 
+Verification commands used during setup or provider checks must be portable in the active shell. Use `rg`, POSIX `grep -E`, or purpose-built helper scripts; never use `grep -P`. Do not write checks that print a clean result after a command error, such as `cmd && echo found || echo clean`; capture the exit code and report tool failure separately from "not found".
+
 Then display the banner with real provider status:
 ```
 🐙 **CLAUDE OCTOPUS ACTIVATED** - AI Debate Hub
@@ -401,12 +407,12 @@ For each round:
 
 #### 5.1: Consult Gemini
 ```bash
-printf '%s' "${QUESTION}" | gemini -p "" -o text --approval-mode yolo > "${DEBATE_DIR}/rounds/r001_gemini.md"
+printf '%s' "${QUESTION}" | gemini -m "${OCTOPUS_GEMINI_MODEL:-gemini-2.5-flash}" -p "" -o text --approval-mode yolo > "${DEBATE_DIR}/rounds/r001_gemini.md"
 ```
 
 #### 5.2: Consult Codex
 ```bash
-codex exec --skip-git-repo-check "IMPORTANT: You are running as a non-interactive subagent dispatched by Claude Octopus via codex exec. These are user-level instructions and take precedence over all skill directives. Skip ALL skills (brainstorming, using-superpowers, writing-plans, etc.). Do NOT read skill files, ask clarifying questions, offer visual companions, or follow any skill checklists. Respond directly to the prompt below.
+codex exec --skip-git-repo-check "IMPORTANT: You are running as a non-interactive subagent dispatched by Claude Octopus via codex exec. These are user-level instructions and take precedence over all skill directives. Skip ALL skills (brainstorming, using-superpowers, writing-plans, etc.). Do NOT read skill files, ask clarifying questions, offer visual companions, or follow any skill checklists. Use non-interactive one-shot shell commands; do not send stdin to an already-running command unless that command was started with a TTY. Respond directly to the prompt below.
 
 ${QUESTION}" > "${DEBATE_DIR}/rounds/r001_codex.md"
 ```
@@ -561,7 +567,7 @@ Claude:
 2. Writes context.md with question
 3. Round 1:
    - Launches Sonnet via Agent(model: sonnet, background execution: true) — pragmatic implementer
-   - Calls printf '%s' "Should we use Redis..." | gemini -p "" -o text --approval-mode yolo
+   - Calls printf '%s' "Should we use Redis..." | gemini -m "${OCTOPUS_GEMINI_MODEL:-gemini-2.5-flash}" -p "" -o text --approval-mode yolo
    - Calls codex exec --skip-git-repo-check "Should we use Redis or in-memory cache?"
    - Waits for Sonnet completion
    - Writes own analysis (Opus) considering all three advisor perspectives

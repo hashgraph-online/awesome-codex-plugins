@@ -1,6 +1,6 @@
 ---
 name: review
-description: 'Run a standard Claude Code review of local git changes in this repository. Args: --wait, --background, --base <ref>, --scope <auto|working-tree|branch>, --model <model>. Use as the default path for ordinary code-review requests when the user did not explicitly ask for stronger adversarial scrutiny or for Claude to own the implementation work.'
+description: 'Run a standard Claude Code review of local git changes in this repository. Args: --wait, --background, --base <ref>, --scope <auto|working-tree|branch>, --model <model>, --effort <low|medium|high|xhigh|max>. Defaults to opus + xhigh effort. Use as the default path for ordinary code-review requests when the user did not explicitly ask for stronger adversarial scrutiny or for Claude to own the implementation work.'
 ---
 
 # Claude Code Review
@@ -13,10 +13,10 @@ If the user wants Claude Code to investigate, validate by changing code, or actu
 If the overall request is "you review it too, also ask Claude to review in the background, then you aggregate and fix it", keep the delegated Claude part on `$cc:review` unless the user explicitly asks for a harsher or more adversarial review.
 `$cc:review` does not accept custom focus text. If the user wants to steer Claude toward a particular angle, question, subsystem, or risk area, that is a signal to use `$cc:adversarial-review` instead.
 
-Do not derive the companion path from this skill file or any cache directory. Always run the installed copy:
-`node "<installed-plugin-root>/scripts/claude-companion.mjs" review ...`
+Resolve `<plugin-root>` as two directories above this `SKILL.md` file. Always run the companion from that active plugin root:
+`node "<plugin-root>/scripts/claude-companion.mjs" review ...`
 
-Supported arguments: `--wait`, `--background`, `--base <ref>`, `--scope auto|working-tree|branch`, `--model <model>`
+Supported arguments: `--wait`, `--background`, `--base <ref>`, `--scope auto|working-tree|branch`, `--model <model>`, `--effort <low|medium|high|xhigh|max>` (defaults: model=opus, effort=xhigh; sonnet defaults to high; haiku has no effort)
 
 Raw slash-command arguments:
 `$ARGUMENTS`
@@ -54,20 +54,20 @@ Argument handling:
 
 Foreground flow:
 - Run:
-  `node "<installed-plugin-root>/scripts/claude-companion.mjs" review --view-state on-success <arguments with --wait/--background removed>`
+  `node "<plugin-root>/scripts/claude-companion.mjs" review --view-state on-success <arguments with --wait/--background removed>`
 - Foreground review belongs to the main Codex thread. Do not spawn a review subagent, do not invoke a generic review-runner role, and do not proxy this foreground path through any background worker abstraction.
-- Do not fall back to raw `claude`, `claude-code`, `claude review`, `bash -lc ...claude...`, or any other direct Claude CLI syntax when the companion path is available. The foreground syntax contract here is the installed companion command above, not a hand-rolled Claude invocation.
-- If the installed companion command fails, surface that failure. Do not silently retry foreground review through a different CLI shape, a generic review runner, or a custom shell wrapper.
+- Do not fall back to raw `claude`, `claude-code`, `claude review`, `bash -lc ...claude...`, or any other direct Claude CLI syntax when the companion path is available. The foreground syntax contract here is the resolved companion command above, not a hand-rolled Claude invocation.
+- If the resolved companion command fails, surface that failure. Do not silently retry foreground review through a different CLI shape, a generic review runner, or a custom shell wrapper.
 - Present the companion stdout faithfully.
 - Do not fix anything mentioned in the review output.
 
 Background flow:
 - For background review, use Codex's built-in `default` subagent instead of a detached background shell command.
-- Do not satisfy background review by using a generic `claude_review_runner`-style helper role, raw Claude CLI, or any other review executor that bypasses the installed companion command.
+- Do not satisfy background review by using a generic `claude_review_runner`-style helper role, raw Claude CLI, or any other review executor that bypasses the resolved companion command.
 - Never satisfy background review by running the companion command itself with shell backgrounding such as `&`, `nohup`, detached `spawn`, or any equivalent direct background process launch.
 - Background here means "spawn the forwarding child via `spawn_agent` and do not wait in the parent turn." The companion review command inside that child still runs once, in the foreground, inside the child thread.
 - Before spawning the built-in child, capture the review job id plus routing context in one call:
-  `node "<installed-plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind review --json`
+  `node "<plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind review --json`
 - If that helper returns a non-empty `jobId`, pass it into the companion command as an internal `--job-id <reserved-job-id>` routing flag.
 - If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command.
 - If it returns an empty `ownerSessionId`, omit `--owner-session-id` entirely. Never leave an empty placeholder such as `--owner-session-id  --job-id`.
@@ -87,7 +87,7 @@ Background flow:
 - The built-in child must be a pure forwarder. It should:
   - run exactly one shell command
   - execute:
-    `node "<installed-plugin-root>/scripts/claude-companion.mjs" review --view-state defer <arguments with --wait/--background removed>`
+    `node "<plugin-root>/scripts/claude-companion.mjs" review --view-state defer <arguments with --wait/--background removed>`
   - run that command as one blocking foreground shell-tool call, not as a background terminal/session
   - do not request a shell session id, poll a shell session later, or return before the companion command exits
   - if the available shell tool is `exec_command`, call it once in non-interactive mode and wait for command exit in that same call

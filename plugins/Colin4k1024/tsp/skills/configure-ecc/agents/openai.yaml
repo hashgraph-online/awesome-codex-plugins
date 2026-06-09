@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure ECC"
+  short_description: "交互式安装与修复 Everything Claude Code 配置"
+  default_prompt: "Use $configure-ecc to guide a selective ECC installation, verify target paths, and repair or optimize an existing setup."

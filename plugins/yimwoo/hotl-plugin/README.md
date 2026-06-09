@@ -1,21 +1,23 @@
 # HOTL Plugin for Codex, Claude Code, and Cline
 
-**HOTL (Human-on-the-Loop)** is an AI coding workflow plugin and skill pack for **Codex**, **Claude Code**, and **Cline**. It adds design, workflow planning, review, and verification guardrails so AI-generated changes do not land without evidence.
+**HOTL (Human-on-the-Loop)** is an AI coding workflow plugin and skill pack for **Codex**, **Claude Code**, and **Cline**. It keeps implementation work grounded in a design, an executable workflow, review checkpoints, and verification evidence.
 
-Use HOTL when you want a structured AI development workflow: brainstorm into a design doc before coding, turn that design into an executable workflow before implementation, review risky changes, and verify results before claiming success.
+Use HOTL for feature work, refactors, and risky changes where "just start coding" is too loose. It stays out of the way for code questions, debugging, and obvious one-line fixes.
 
-Works with **Claude Code**, **Codex**, and **Cline**. Adapter templates are also available for Cursor and GitHub Copilot.
+Adapter templates are also available for Cursor and GitHub Copilot.
 
 ## Table of Contents
 
 - [Why HOTL](#why-hotl)
 - [Quick Start](#quick-start)
-- [How It Works](#how-it-works)
+- [First HOTL Run](#first-hotl-run)
+- [The HOTL Workflow](#the-hotl-workflow)
 - [When To Use It](#smart-task-routing)
 - [Commands & Usage](#commands--usage)
 - [Skills Overview](#skills-overview)
 - [Updating](#updating)
 - [Supported Tools](#supported-tools)
+- [Automation Templates](#automation-templates)
 - [Repository Structure](#repository-structure)
 - [Contributing](#contributing)
 
@@ -29,6 +31,8 @@ If someone searches for a "HOTL plugin" or a "Human-on-the-Loop AI coding workfl
 
 ## Quick Start
 
+Pick the install path for the tool you use. Codex users should prefer plugin install; native skills are only for older Codex builds or local HOTL development.
+
 ### Claude Code
 
 ```text
@@ -38,18 +42,30 @@ If someone searches for a "HOTL plugin" or a "Human-on-the-Loop AI coding workfl
 
 ### Codex
 
+Recommended plugin install for both Codex CLI and Codex app users:
+
 ```bash
 git clone https://github.com/yimwoo/hotl-plugin /tmp/hotl-plugin
 bash /tmp/hotl-plugin/install.sh --codex-plugin
 ```
 
-After install, restart Codex, switch the plugin directory to **Local Plugins**, and click **Add to Codex** for HOTL.
+Restart Codex, then install or enable HOTL from the plugin directory.
 
-For native skills install (local dev, older Codex): clone to `~/.codex/hotl` + symlink to `~/.agents/skills/hotl`.
+Codex CLI:
+
+```text
+codex
+/plugins
+```
+
+In the plugin browser, switch to **Local Plugins**, open **HOTL**, and select
+`Install plugin`. If HOTL is installed but disabled, press `Space` to enable it.
+
+Codex app: open **Plugins**, switch to **Local Plugins**, and install HOTL. The CLI and app share the same Codex plugin configuration when they use the same Codex profile.
 
 Plugin install does not automatically remove an older native-skills install. If both are present, Codex may discover duplicate HOTL sources. See [`docs/README.codex.md`](docs/README.codex.md) for the recommended migration path.
 
-For native skills installs, `~/.codex/hotl` is the stable channel and should track `origin/main`. Restart Codex after install. Full guide: [`docs/README.codex.md`](docs/README.codex.md)
+Native skills fallback for older Codex builds or local HOTL development: clone to `~/.codex/hotl` and symlink `~/.agents/skills/hotl` to its `skills/` directory. In that mode, `~/.codex/hotl` is the stable channel and should track `origin/main`. Full guide: [`docs/README.codex.md`](docs/README.codex.md).
 
 ### Cline
 
@@ -59,7 +75,23 @@ curl -fsSL https://raw.githubusercontent.com/yimwoo/hotl-plugin/main/install-cli
 
 Full guide: [`docs/README.cline.md`](docs/README.cline.md)
 
-## How It Works
+## First HOTL Run
+
+After install, start with a design request. HOTL will choose the right workflow stage and save durable artifacts in the project.
+
+| Tool | Try this |
+| --- | --- |
+| Codex | `@hotl brainstorm this feature before coding: <your feature>` |
+| Claude Code | `/hotl:brainstorm <your feature>` |
+| Cline | `brainstorm this feature before coding: <your feature>` |
+
+Typical outputs:
+
+- Design doc: `docs/designs/YYYY-MM-DD-<slug>-design.md`
+- Executable workflow: `docs/plans/YYYY-MM-DD-<slug>-workflow.md`
+- Execution state and reports: `.hotl/state/` and `.hotl/reports/`
+
+## The HOTL Workflow
 
 Implementation tasks follow eight phases:
 
@@ -68,7 +100,7 @@ Implementation tasks follow eight phases:
 | **Brainstorm** | Clarify requirements. Compare approaches. Define intent, verification, and governance contracts. Save a design doc in `docs/designs/`. |
 | **Write Workflow** | Use `writing-plans` to generate `docs/plans/YYYY-MM-DD-<slug>-workflow.md` with steps, verification, loop conditions, and gates. |
 | **Lint** | Self-check built into planning. Structural lint runs automatically in execution preflight. |
-| **Branch** | Resolve an execution root. Default is a git worktree on `hotl/<slug>`; `worktree: false` stays in the current checkout and may switch/create the target branch; `worktree: host` keeps the current feature branch exactly as provided by Codex or another host tool. Dirty repos and protected-branch host mode hard-fail. |
+| **Branch** | Resolve an execution root. Default is a git worktree on `hotl/<slug>`; `worktree: false` stays in the current checkout and may switch/create the target branch; `worktree: host` keeps the current feature branch exactly as provided by Codex or another host tool. Non-HOTL dirty files and protected-branch host mode hard-fail unless explicitly allowed. |
 | **Execute** | Run the plan in loop, manual, or subagent mode. |
 | **Review** | Review findings are checked against the codebase and HOTL contracts before acting. |
 | **Verify** | Run tests, lint, and verify commands. No green light without proof. |
@@ -140,12 +172,12 @@ There is no `/hotl:*` command syntax in Codex. Instead, describe the task in nat
 | Execution | `loop-execution`, `executing-plans`, `subagent-execution`, `resuming`, `dispatch-agents` | Run workflows with verification, retries, persistence, and delegation |
 | Finish | `finishing-a-development-branch` | Close the execution lifecycle intentionally: merge back, publish for review, keep, or discard the execution checkout |
 | Quality & Review | `pr-reviewing`, `code-review`, `requesting-code-review`, `receiving-code-review`, `verification-before-completion` | Review changes and require evidence before completion. Both `code-review` and `pr-reviewing` reference shared [review checklists](docs/checklists/) for SOLID/architecture, security, performance/boundary conditions, and removal/simplification heuristics. |
-| Dev Practices | `tdd`, `systematic-debugging` | Apply test-first development and structured debugging workflows |
+| Dev Practices | `tdd`, `systematic-debugging`, `skill-authoring` | Apply test-first development, structured debugging, and disciplined skill/prompt authoring workflows |
 | Setup | `setup-project`, `using-hotl` | Generate adapter files and establish HOTL operating context |
 
 For detailed descriptions and phase mappings, see the [full skills reference](docs/skills.md).
 
-Want to create or modify HOTL skills? See [Authoring Skills vs Agents](docs/authoring-skills-vs-agents.md).
+Want to create or modify HOTL skills? Use `skill-authoring` first, then see [Authoring Skills vs Agents](docs/authoring-skills-vs-agents.md).
 
 ## Updating
 
@@ -164,6 +196,13 @@ Covers Claude Code, Codex (both native-skills and plugin source checkout), and C
 | Cline | Global rules plus local HOTL skill files |
 | Cursor | Adapter templates via `/hotl:setup` |
 | GitHub Copilot | Adapter templates via `/hotl:setup` |
+
+## Automation Templates
+
+HOTL includes optional Codex automation and GitHub Actions review templates in
+[`docs/codex-automations-and-ci.md`](docs/codex-automations-and-ci.md). They are
+not active by default; copy them into a target project only after testing the
+prompt manually.
 
 ## Repository Structure
 

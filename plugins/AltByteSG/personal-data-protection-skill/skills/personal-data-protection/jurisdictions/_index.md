@@ -1,0 +1,46 @@
+# Jurisdictions Index
+
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+This skill covers Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA, and Philippines DPA today, with Vietnam PDPD planned for v0.5 (deferred while the full Vietnam PDP Law is in draft).
+
+| Jurisdiction | Code | Status |
+|---|---|---|
+| Singapore PDPA 2012 (post-2020 Amendments) | [`sg-pdpa`](sg-pdpa/) | ✅ Populated |
+| Thailand PDPA B.E. 2562 (2019) | [`th-pdpa`](th-pdpa/) | ✅ Populated |
+| Indonesia UU PDP No. 27/2022 | [`id-pdp`](id-pdp/) | ✅ Populated |
+| Malaysia PDPA 2010 (with 2024 Amendments — Act A1727) | [`my-pdpa`](my-pdpa/) | ✅ Populated |
+| Philippines Data Privacy Act 2012 (RA 10173) | [`ph-dpa`](ph-dpa/) | ✅ Populated |
+| Vietnam PDP Decree 13/2023/ND-CP | `vn-pdpd` | 🚧 Planned for v0.5 |
+
+## Cross-jurisdiction comparison
+
+| | Singapore PDPA | Thailand PDPA | Indonesia UU PDP | Malaysia PDPA | Philippines DPA |
+|---|---|---|---|---|---|
+| **In force since** | 2014 (orig); 2020 Amendments commenced 2021 / 2022 | 1 Jun 2022 (delayed twice from 2019 enactment) | 17 Oct 2024 (2-year transition from 17 Oct 2022 enactment) | 15 Nov 2013 (orig); 2024 Amendments (Act A1727) staged 1 Jan / 1 Apr / **1 Jun 2025** | 8 Sep 2012 (orig); IRR effective 9 Sep 2016 |
+| **Lawful bases** | Consent + 1st/2nd Sch enumerated cases | 6 GDPR-style bases (s24) | 6 GDPR-style bases (Pasal 20(2)) | Consent default + s6(2) carve-outs (contract, legal obligation, vital interests, justice administration, statutory functions) | **6 GDPR-style bases for PI (§ 12)** including legitimate-interests with balancing test; narrower bases for SPI (§ 13) — explicit consent default |
+| **Breach notification window** | **3 calendar days** to PDPC after assessment (s26D(1)) | **72 hours** to PDPC from awareness (s37(4)) | **72 hours** from awareness — to **both** subject AND regulator (Pasal 46(1)) | **72 hours** to Commissioner from discovery (s12B(1) + JPDP Guideline 25 Feb 2025); **7 days** to subject post-Commissioner | **72 hours** from knowledge / reasonable belief — to **both** NPC AND affected subject (§ 38 IRR + NPC Circular 16-03); **annual** Security Incident Report by 31 March |
+| **Sensitive data** | Deemed-significant-harm categories per PDP NDB Regulations 2021 | Broad list (s26): racial, ethnic, political, religious, sexual behavior, criminal, health, disability, trade union, genetic, biometric | "Specific" Personal Data category (Pasal 4) — scope refined by implementing PP; typically health, biometric, genetic, criminal records, children's data, financial | s4: health, political opinion, religious beliefs, alleged offences, **biometric data (added 2024)**; explicit consent under s40 | § 3(l) "Sensitive Personal Information" — race, ethnic origin, marital status, age, colour, religious / philosophical / political affiliations, health, education, genetic, sexual life, criminal proceedings, **government-issued identifiers (SSS / GSIS / TIN / PhilHealth / PhilSys)**; explicit consent under § 13 |
+| **Penalty cap (org)** | SGD 1M / 10% SG turnover (s48J(3)) | THB 1M / 3M / 5M tiered (s82–84); plus criminal up to THB 1M / 1 year (s79) | **2% of annual revenue per violation** (Pasal 57(3)); plus corporate criminal — fines up to 10× of natural-person max + suspension / **dissolution** (Pasal 70) | **RM 1M / 3 years per principle breach** (s5(2), raised 2024 from RM 300k / 2y); per-offence not annual-turnover-based; multiple offences stack | Per-offence criminal fines: **₱5M / 6 years** for combination (§ 33); **₱4M / 6 years** for SPI offences (§§ 25(b), 26(b)); **§ 35** imposes max-period when ≥ 100 persons affected |
+| **DPO requirement** | Always (s11) | For (1) public authorities, (2) large-scale regular monitoring, (3) core sensitive-data activity (s41) | For (1) public-interest processing, (2) large-scale regular monitoring, (3) core sensitive-data or criminal-records processing (Pasal 53) — same shape as TH | Always for controller and processor (s12A, in force 1 Jun 2025); JPDP Guideline threshold: >20k individuals / >10k sensitive subjects | Always for every PIC and PIP (§ 14 IRR + NPC Advisory 17-01) — paperwork; engineering surface only |
+| **Individual criminal liability** | Yes — s48D/E/F (knowing/reckless disclosure, misuse, re-identification) — SGD 5,000 / 2 years | Yes — s79 (sensitive-data misuse), s80 (duty-holder disclosure), **s81 (director / manager omission)** broader than SG | Yes — Pasal 67 (4–5 years + IDR 4–5B), Pasal 68 (6 years + IDR 6B); corporate criminal liability (Pasal 70) extends to dissolution | Yes — s130 unlawful collecting (RM 500k / 3y); **s133 deeming liability** for directors / officers / managers unless they prove no-knowledge + due diligence | **Yes — § 34 personal liability for responsible officers** for prison terms of corporate offences; **§ 30 concealment of breach is its own offence** (1.5–5y + ₱500k–₱1M); **§ 37 court-ordered restitution to victims** |
+| **Right to restrict processing** | Not in PDPA | Yes (s34) | Yes (Pasal 11) — 72-hour SLA | Yes (s42) — prevent processing causing damage / distress | Yes — § 16(e) right to **erasure or blocking** (suspend further processing) |
+| **Right to object to automated decision-making** | Not explicit | Implicit via consent withdrawal | Yes — explicit standalone right (Pasal 10) | Not explicit; partially via s38 consent withdrawal | Yes — § 16(b) right to object includes *"automated processing or profiling"* |
+| **Right to data portability** | Not in PDPA | Not in PDPA | Pasal 13 — explicit | **Yes — s43A (new 2024)**, transmit to another controller subject to technical feasibility / format compatibility | Yes — NPC Circular 18-01; user receives the export (no controller-to-controller default) |
+| **Within-affiliate transfer mechanism** | Sub-processor DPA / contractual binding clauses | s29 PDPC-certified Personal Data Protection Policy (BCR-equivalent) | Pasal 56 3-tier hierarchy: adequacy → adequate-and-binding safeguards → consent | s129(3)(f) due-diligence basis (post-A1727; whitelist deleted 1 Apr 2025) — controller takes the burden of proof | § 21 PIC-accountability — no whitelist, no SCCs; "contractual or other reasonable means"; NPC Circular 2020-03 for private-sector data sharing |
+| **Operational SLAs (correction / access / withdrawal / restrict)** | "As soon as reasonably possible" (PDPC guidance: 30 days for access) | Generally per request | **3 × 24 hours (72h)** for correction (Pasal 30), access (Pasal 32), stop on consent withdrawal (Pasal 40), suspend / restrict (Pasal 41) — most aggressive of the three | **21 days** for access (s31) and correction (s35) — extendable once by 14 days; data portability (s43A) period to be prescribed | **15 calendar days** default (NPC Circular 2022-04 § 11), extendable once by 15 days for complex requests |
+| **Children's data threshold** | 13 (under-13 cannot give valid consent); applications often gate at 16 | s20 — under 10 requires parental consent; 10+ minors handled per Civil and Commercial Code | Pasal 25 — children's processing requires parental / guardian consent (age threshold per other Indonesian law) | Not statutorily fixed; common practice ≥ 18 (age of majority) or per applicable code of practice | Minors (< 18 per Family Code) require parental / guardian consent (§ 12(g) IRR by reference to general civil law) |
+| **Mandatory DPIA** | Not statutory; PDPC guidance recommends | Not statutory | Yes — Pasal 34 with 7 enumerated triggers (similar to GDPR Art. 35) | Not statutory; JPDP guidance encourages | Not statutory; NPC Advisory 2017-03 strongly encourages PIA for high-risk processing |
+
+When operating in multiple jurisdictions, **the strictest rule applies in each dimension**. Singapore's 3 calendar days for breach notification beats the others' 72 hours; Indonesia requires notifying the Data Subject in **all** breaches (vs SG / MY / PH significant-harm and TH high-risk thresholds); Indonesia's 72-hour SLAs for routine subject-rights requests is the most aggressive operational pressure; Malaysia's bilingual-notice obligation under s7(3) is unique-to-MY; **Philippines is the highest-stakes criminal regime** — § 34 makes responsible officers personally liable for prison terms of corporate offences, § 30 makes concealment of breaches its own offence, and § 35 aggravates penalties to the maximum period when at least 100 persons are affected.
+
+## Choosing your active jurisdiction(s)
+
+Active jurisdiction is determined by **where the application's users are located**, not where the company is registered. Many applications need to comply with multiple regimes simultaneously:
+
+- App operated by a Singapore company, used by users in Singapore only → SG PDPA
+- App operated by a Singapore company, used by users in SG + ID + TH + MY + PH → all five
+- App operated by an Indonesian company, used only by Indonesian users → ID PDP
+- App operated by a foreign company **using equipment in Malaysia** to process personal data → MY PDPA applies (s3(1)(b))
+
+When in doubt, treat all jurisdictions where you actively market or accept users as in-scope.

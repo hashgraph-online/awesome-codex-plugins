@@ -1,0 +1,4 @@
+interface:
+  display_name: "Continuous Learning"
+  short_description: "把会话中的可复用模式沉淀成长期能力"
+  default_prompt: "Use $continuous-learning to extract stable lessons from this session and turn them into reusable guidance or capability artifacts."

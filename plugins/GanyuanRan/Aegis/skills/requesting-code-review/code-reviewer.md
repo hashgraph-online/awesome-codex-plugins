@@ -17,6 +17,12 @@ You are reviewing code changes for production readiness.
 
 {PLAN_OR_REQUIREMENTS}
 
+## Baseline / Current Authority
+
+Identify the baseline or current authority refs supplied by the caller. If none
+were supplied for non-trivial work, flag that as a review evidence gap instead
+of inventing an authority source.
+
 ## Existing Evidence
 
 {EVIDENCE}
@@ -39,6 +45,13 @@ git diff --stat {BASE_SHA}..{HEAD_SHA}
 git diff {BASE_SHA}..{HEAD_SHA}
 ```
 
+## Findings First
+
+Lead with findings. Use bugs first, risk first, tests first. Do not bury
+correctness, evidence, architecture, compatibility, or retirement problems
+under a broad summary. If there are no findings, say that clearly and name the
+remaining test gaps or residual risk.
+
 ## Review Checklist
 
 **Code Quality:**
@@ -52,9 +65,27 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Sound design decisions?
 - Canonical owner clear?
 - Any duplicated owner, stale fallback, or compatibility layer still carrying real logic?
+- Does the change solve the problem at the highest appropriate owner/contract layer?
+- Is any caller-side fallback masking a missing source-of-truth or contract fix?
 - Scalability considerations?
 - Performance implications?
 - Security concerns?
+
+**Baseline / Current Authority:**
+- Were baseline / current authority refs supplied when the work was non-trivial?
+- Is requirements/product alignment clear against the accepted problem,
+  acceptance evidence, and non-goals?
+- Does the diff align with the baseline ownership map, contract inventory, and dependency direction?
+- Does architecture/current-authority alignment hold for canonical owner,
+  contract, source-of-truth, compatibility, and retirement boundaries?
+- If not aligned, classify as Design Defect / Implementation Drift and state
+  `scope: requirements | architecture | both`.
+- If legacy phrasing appears, map baseline defect, architecture defect, and
+  architecture drift back to Design Defect / Implementation Drift.
+- If not aligned, is this intentional architecture change?
+- If intentional, is ADR Auto Backfill or baseline sync needed?
+- If an ADR action or baseline sync closure is in scope, did the caller use or
+  plan to use `recording-architecture-decisions` before claiming completion?
 
 **Evidence Sufficiency:**
 - Do the provided tests / commands / logs actually prove the claimed behavior?
@@ -83,12 +114,10 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Backward compatibility considered?
 - Documentation complete?
 - No obvious bugs?
-- Any architecture drift still unresolved?
+- Any Design Defect / Implementation Drift still unresolved, including findings
+  described with legacy aliases?
 
 ## Output Format
-
-### Strengths
-[What's well done? Be specific.]
 
 ### Issues
 
@@ -106,6 +135,9 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - What's wrong
 - Why it matters
 - How to fix (if not obvious)
+
+### Strengths
+[What's well done? Be specific.]
 
 ### Recommendations
 [Improvements for code quality, architecture, or process]
@@ -130,7 +162,8 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Acknowledge strengths
 - Give clear verdict
 - Distinguish missing evidence from missing code
-- Call out architecture drift and retirement debt explicitly
+- Call out Design Defect / Implementation Drift, compatibility alias mapping,
+  and retirement debt explicitly
 
 **DON'T:**
 - Say "looks good" without checking
@@ -140,6 +173,8 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Avoid giving a clear verdict
 - Treat passing tests alone as full completion
 - Ignore old logic that should retire or converge
+- Judge Design Defect / Implementation Drift or compatibility aliases without
+  checking baseline or current authority refs
 
 ## Example Output
 

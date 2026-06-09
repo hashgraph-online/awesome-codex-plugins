@@ -1,0 +1,330 @@
+version: 1
+must_rules:
+  - must: "Template `metadata.name` must be hardcoded lowercase; do not use `${{ defaults.app_name }}`."
+    enforcement:
+      type: rule
+      target: R004
+  - must: "Template CR folder name must match `metadata.name`."
+    enforcement:
+      type: rule
+      target: R013
+  - must: "Template CR must include required metadata fields (`title`, `url`, `gitRepo`, `author`, `description`, `icon`, `templateType`, `locale`, `i18n`, `categories`)."
+    enforcement:
+      type: rule
+      target: R012
+  - must: "Template `spec.readme` must point to `https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/<app-name>/README.md`."
+    enforcement:
+      type: rule
+      target: R025
+  - must: "Template `spec.i18n.zh.readme` must point to `https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/<app-name>/README_zh.md`."
+    enforcement:
+      type: rule
+      target: R025
+  - must: "These README fields are URL references in `index.yaml` only; this skill must not create or update the referenced README files."
+    enforcement:
+      type: manual
+      note: "Review file changes to ensure README files were not created or updated by this skill."
+  - must: "`icon` URL must point to template repo raw path for this app on `kb-0.9` branch."
+    enforcement:
+      type: rule
+      target: R014
+  - must: "`template/<app-name>/logo.<ext>` must use square/circular icon-first artwork (for example app icon/favicon/avatar), and must not use rectangular wordmark/text logos."
+    enforcement:
+      type: manual
+      note: "Review selected logo asset shape/content and reject rectangular wordmark/text logos."
+  - must: "`i18n.zh.description` must be written in Simplified Chinese."
+    enforcement:
+      type: rule
+      target: R021
+  - must: "Omit `i18n.zh.title` when it is identical to `title`."
+    enforcement:
+      type: rule
+      target: R022
+  - must: "`categories` must only use predefined values (`tool`, `ai`, `game`, `database`, `low-code`, `monitor`, `dev-ops`, `blog`, `storage`, `frontend`, `backend`)."
+    enforcement:
+      type: rule
+      target: R023
+  - must: "App resource must use `spec.data.url`."
+    enforcement:
+      type: rule
+      target: R003
+  - must: "App resource `spec.displayType` must be `normal`."
+    enforcement:
+      type: rule
+      target: R032
+  - must: "App resource `spec.type` must be `link`."
+    enforcement:
+      type: rule
+      target: R033
+  - must: "Never use `spec.template` in App resource."
+    enforcement:
+      type: rule
+      target: R002
+  - must: "`cloud.sealos.io/app-deploy-manager` label value must equal resource `metadata.name`."
+    enforcement:
+      type: rule
+      target: R008
+  - must: "`metadata.labels.app` label value must equal resource `metadata.name` for managed app workloads."
+    enforcement:
+      type: rule
+      target: R034
+  - must: "The primary business container name must equal workload `metadata.name` for managed app workloads; sidecar/helper containers may use distinct descriptive names."
+    enforcement:
+      type: rule
+      target: R028
+  - must: "Application `Service` resources must define `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and both labels must match `spec.selector.app`."
+    enforcement:
+      type: rule
+      target: R029
+  - must: "Runtime component-scoped `ConfigMap` resources must define `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and both labels must match `metadata.name`; bootstrap-only ConfigMaps used only by init containers to copy initial config into persistent storage must not define either label."
+    enforcement:
+      type: rule
+      target: R030
+  - must: "Application `Service` resources must use the same component name across `metadata.name`, `metadata.labels.app`, `metadata.labels.cloud.sealos.io/app-deploy-manager`, and `spec.selector.app`."
+    enforcement:
+      type: rule
+      target: R029
+  - must: "Root-path `Ingress` resources (`pathType: Prefix`, `path: /`) must use the same component name across `metadata.name`, `metadata.labels.cloud.sealos.io/app-deploy-manager`, and backend `service.name`; non-root or non-Prefix Ingress rules may route to a different backend service."
+    enforcement:
+      type: rule
+      target: R031
+  - must: "Service `spec.ports[*].name` must be explicitly set (required for multi-port services)."
+    enforcement:
+      type: rule
+      target: R020
+  - must: "HTTP Ingress must include required nginx annotations (`kubernetes.io/ingress.class`, `nginx.ingress.kubernetes.io/proxy-body-size`, `nginx.ingress.kubernetes.io/server-snippet`, `nginx.ingress.kubernetes.io/ssl-redirect`, `nginx.ingress.kubernetes.io/backend-protocol`, `nginx.ingress.kubernetes.io/client-body-buffer-size`, `nginx.ingress.kubernetes.io/proxy-buffer-size`, `nginx.ingress.kubernetes.io/proxy-send-timeout`, `nginx.ingress.kubernetes.io/proxy-read-timeout`, `nginx.ingress.kubernetes.io/configuration-snippet`) with expected defaults."
+    enforcement:
+      type: rule
+      target: R026
+  - must: "CronJob resources must define labels `cloud.sealos.io/cronjob`, `cronjob-launchpad-name`, and `cronjob-type`; `cloud.sealos.io/cronjob` must equal `metadata.name`, `cronjob-launchpad-name` must be `\"\"`, and `cronjob-type` must be `image`."
+    enforcement:
+      type: rule
+      target: R036
+  - must: "When official application health checks are available, managed workloads must define `livenessProbe`, `readinessProbe`, and (for slow bootstrap apps) `startupProbe`, aligned with official endpoints/commands."
+    enforcement:
+      type: rule
+      target: R024
+  - must: "If official Kubernetes installation docs/manifests are available, conversion must reference them and align critical runtime settings before emitting template artifacts."
+    enforcement:
+      type: manual
+      note: "Requires cross-source analysis between official Kubernetes docs/manifests and Compose inputs."
+  - must: "When official Kubernetes docs/manifests and Compose differ, prefer official Kubernetes runtime semantics for app behavior (bootstrap admin fields, external endpoint/env/protocol, health probes), unless doing so violates higher-priority Sealos MUST/security constraints."
+    enforcement:
+      type: manual
+      note: "Conflict resolution depends on semantic comparison plus platform/security guardrails."
+  - must: "Do not use `:latest`."
+    enforcement:
+      type: rule
+      target: R001
+  - must: "Resolve versions with `crane`: prefer an explicit version tag (for example `v2.2.0`), and fallback to digest pin only when a deterministic version tag is unavailable."
+    enforcement:
+      type: manual
+      note: "Requires live image resolution behavior, not derivable from static snippets alone."
+  - must: "Avoid floating tags (for example `:v2`, `:2.1`, `:stable`); use an explicit version tag or digest."
+    enforcement:
+      type: rule
+      target: R016
+  - must: "Managed workload image references must be concrete and must not contain Compose-style variable expressions (for example `${VAR}`, `${VAR:-default}`); resolve to explicit tag or digest before emitting template artifacts."
+    enforcement:
+      type: rule
+      target: R018
+  - must: "Application `originImageName` must match container image."
+    enforcement:
+      type: rule
+      target: R015
+  - must: "Public-image managed app workloads must omit `template.spec.imagePullSecrets`; private-registry workloads may reference only the app-scoped pull Secret `${{ defaults.app_name }}`."
+    enforcement:
+      type: rule
+      target: R035
+  - must: "The registry pull Secret is runtime-managed by `sealos-deploy` using local `gh` CLI credentials for private GHCR images; do not expose raw registry credential inputs in generated templates."
+    enforcement:
+      type: manual
+      note: "Requires deploy-path behavior that cannot be validated from static template snippets alone."
+  - must: "All containers must explicitly set `imagePullPolicy: IfNotPresent`."
+    enforcement:
+      type: rule
+      target: R006
+  - must: "Do not use `emptyDir`."
+    enforcement:
+      type: rule
+      target: R005
+  - must: "Use persistent storage patterns (`volumeClaimTemplates`) where storage is needed."
+    enforcement:
+      type: manual
+      note: "Requires intent-level storage-need inference for each service."
+  - must: "PVC request must be `<= 1Gi` unless source spec explicitly requires less."
+    enforcement:
+      type: rule
+      target: R011
+  - must: "ConfigMap keys and volume names must follow vn naming (`scripts/path_converter.py`)."
+    enforcement:
+      type: manual
+      note: "Needs deterministic vn-name mapping checks against path semantics."
+  - must: "Non-database sensitive values/inputs use direct `env[].value`."
+    enforcement:
+      type: manual
+      note: "Sensitive-value classification requires semantic analysis of env names and source intent."
+  - must: "Business containers must source database connection fields (`endpoint`, `host`, `port`, `username`, `password`) from approved Kubeblocks database secrets via `env[].valueFrom.secretKeyRef`; exception: Redis `host`/`port` may use Sealos Redis Service FQDN and `6379` when the Redis secret only exposes credentials, and MongoDB connection URLs may use the Sealos MongoDB Service FQDN plus `27017` when the MongoDB secret exposes credentials only."
+    enforcement:
+      type: rule
+      target: R017
+  - must: "Business containers must not use custom env/volume `Secret` references except approved Kubeblocks database secrets and object storage secrets."
+    enforcement:
+      type: rule
+      target: R007
+  - must: "A dedicated app-scoped registry pull Secret is allowed only for private-registry images and must be referenced only through `template.spec.imagePullSecrets`; public images must not add pull secrets."
+    enforcement:
+      type: rule
+      target: R035
+  - must: "Database connection/bootstrap may use Kubeblocks-provided secrets, and reserved Kubeblocks database secret names must not be redefined by custom `Secret` resources."
+    enforcement:
+      type: rule
+      target: R007
+  - must: "Env vars must be declared before referenced (for example password before URL composition)."
+    enforcement:
+      type: manual
+      note: "Requires expression dependency graph over env variable interpolation order."
+  - must: "Follow official app env var naming; do not invent prefixes."
+    enforcement:
+      type: manual
+      note: "Requires per-application canonical env dictionary from upstream docs."
+  - must: "When the application requires its public URL configured via a file-based config system (e.g., node-config `config/default.json`, PHP config files), create a ConfigMap containing the config file with the public URL set to `https://${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}`, and mount it to the application's config directory. The ConfigMap must follow standard naming and label conventions."
+    enforcement:
+      type: manual
+      note: "Requires runtime-config detection plus path-aware ConfigMap mount validation."
+  - must: "For PostgreSQL custom databases (non-`postgres`), include `${{ defaults.app_name }}-pg-init` Job and implement startup-safe/idempotent creation logic (readiness wait + existence check before create)."
+    enforcement:
+      type: rule
+      target: R027
+  - must: "Database services must use KubeBlocks `Cluster` resources, not application `Deployment` or `StatefulSet` workloads. `StatefulSet` is allowed for stateful application components only, never for PostgreSQL/MySQL/MongoDB/Redis/Kafka database services."
+    enforcement:
+      type: rule
+      target: R039
+  - must: "PostgreSQL version: `postgresql-16.4.0`."
+    enforcement:
+      type: manual
+      note: "Needs database-template semantic checks across generated resources."
+  - must: "PostgreSQL API: `apps.kubeblocks.io/v1alpha1`."
+    enforcement:
+      type: manual
+      note: "Needs Cluster-kind/apiVersion validation in generated manifests."
+  - must: "PostgreSQL RBAC unified naming: `${{ defaults.app_name }}-pg`."
+    enforcement:
+      type: manual
+      note: "Requires coordinated naming validation across SA/Role/RoleBinding/Cluster."
+  - must: "PostgreSQL RBAC requires `app.kubernetes.io/instance` and `app.kubernetes.io/managed-by` labels."
+    enforcement:
+      type: manual
+      note: "Requires label presence checks scoped to PostgreSQL RBAC resources."
+  - must: "Every KubeBlocks database `Cluster` must include `kb.io/database`, `sealos-db-provider-cr`, and `clusterdefinition.kubeblocks.io/name` labels; `sealos-db-provider-cr` must equal `metadata.name`."
+    enforcement:
+      type: rule
+      target: R040
+  - must: "PostgreSQL role wildcard permission requirement remains as defined in current spec."
+    enforcement:
+      type: manual
+      note: "Requires policy-level RBAC rule validation tied to current platform spec."
+  - must: "PostgreSQL cluster must include required labels/fields (`kb.io/database: postgresql-16.4.0`, `clusterdefinition.kubeblocks.io/name: postgresql`, `clusterversion.kubeblocks.io/name: postgresql-16.4.0`, `clusterVersionRef: postgresql-16.4.0`, `disableExporter: true`, `enabledLogs: [running]`, `switchPolicy.type: Noop`, `serviceAccountName`)."
+    enforcement:
+      type: manual
+      note: "Requires deep PostgreSQL Cluster schema validation."
+  - must: "MongoDB cluster must follow upgraded structure (`componentDef: mongodb`, `serviceVersion: 8.0.4`, labels `kb.io/database` and `app.kubernetes.io/instance`)."
+    enforcement:
+      type: manual
+      note: "Requires schema-level validation for MongoDB cluster fields."
+  - must: "MySQL cluster must follow upgraded structure (`kb.io/database: ac-mysql-8.0.30-1`, `clusterDefinitionRef: apecloud-mysql`, `clusterVersionRef: ac-mysql-8.0.30-1`, `tolerations: []`)."
+    enforcement:
+      type: manual
+      note: "Requires schema-level validation for MySQL cluster fields."
+  - must: "Redis cluster must follow upgraded structure (`componentDef: redis-7`, `componentDef: redis-sentinel-7`, `serviceVersion: 7.2.7`, main data PVC `1Gi`, topology `replication`)."
+    enforcement:
+      type: manual
+      note: "Requires schema-level validation for Redis cluster fields."
+  - must: "Database cluster component resources must use `limits(cpu=500m,memory=512Mi)` and `requests(cpu=50m,memory=51Mi)` unless source docs explicitly require otherwise."
+    enforcement:
+      type: rule
+      target: R019
+  - must: "All managed workload container resources must use the Sealos resource ladder: `limits.cpu` only `100m/200m/500m/1/2/3/4/8`, `limits.memory` only `128Mi/256Mi/512Mi/1024Mi/2048Mi/4096Mi/8192Mi/16384Mi`, and `requests` must be derived from `limits` by dropping the last numeric digit (`500m→50m`, `512Mi→51Mi`, `1→100m`, `1024Mi→102Mi`, `4096Mi→409Mi`). Do not invent non-ladder values, and never use `2G/4G/8G/16G` because Sealos Template API quota preview can parse bare `G` memory as 0."
+    enforcement:
+      type: rule
+      target: R038
+  - must: "Do not treat a short smoke test as proof of a stable minimum memory value."
+    enforcement:
+      type: manual
+      note: "Review browser/remote desktop templates and smoke evidence before lowering memory."
+  - must: "Validate memory with a fresh deployment, not only a patched warm pod."
+    enforcement:
+      type: manual
+      note: "Requires deployment evidence outside static YAML validation."
+  - must: "Exercise cold start until readiness, a lightweight page, a real/medium page, an interactive/search page, and a 60s post-smoke stability check."
+    enforcement:
+      type: manual
+      note: "Requires runtime smoke coverage evidence."
+  - must: "If observed cgroup memory reaches more than 80% of the limit during smoke, move to the next allowed Sealos memory ladder value."
+    enforcement:
+      type: manual
+      note: "Requires runtime memory observation."
+  - must: "Keep requests derived from limits according to the Sealos resource ladder."
+    enforcement:
+      type: rule
+      target: R038
+  - must: "Bad: Chrome passes a short smoke at `512Mi` but reaches `503Mi`; shipping `512Mi` as the stable minimum is unsafe."
+    enforcement:
+      type: manual
+      note: "Negative example for reviewer guidance."
+  - must: "Good: raise to `1024Mi`, set request to `102Mi`, rerun smoke and stability checks."
+    enforcement:
+      type: manual
+      note: "Positive example for reviewer guidance."
+  - must: "limits: `cpu=200m`, `memory=1024Mi`"
+    enforcement:
+      type: manual
+      note: "Browser/remote desktop minimum; applied when source workload matches that class."
+  - must: "requests: `cpu=20m`, `memory=102Mi`"
+    enforcement:
+      type: manual
+      note: "Browser/remote desktop minimum request; applied when source workload matches that class."
+  - must: "MongoDB: `${{ defaults.app_name }}-mongo-mongodb-account-root` (or `${{ defaults.app_name }}-mongodb-mongodb-account-root` when the MongoDB cluster name uses `-mongodb`)"
+    enforcement:
+      type: rule
+      target: R007
+  - must: "Redis: `${{ defaults.app_name }}-redis-redis-account-default` (legacy `${{ defaults.app_name }}-redis-account-default` may be accepted for backward compatibility)"
+    enforcement:
+      type: rule
+      target: R007
+  - must: "Kafka: `${{ defaults.app_name }}-broker-account-admin`"
+    enforcement:
+      type: rule
+      target: R007
+  - must: "Do not use legacy naming outside supported exceptions."
+    enforcement:
+      type: rule
+      target: R007
+  - must: "container limits: `cpu=200m`, `memory=256Mi`"
+    enforcement:
+      type: rule
+      target: R038
+  - must: "container requests: `cpu=20m`, `memory=25Mi`"
+    enforcement:
+      type: rule
+      target: R038
+  - must: "`revisionHistoryLimit: 1`"
+    enforcement:
+      type: rule
+      target: R009
+  - must: "`automountServiceAccountToken: false` by default; set it to `true` only when the application has explicit Kubernetes API/service account token requirements, evidenced by Kubernetes integration settings, `serviceAccountName`, or a `sealos.io/service-account-token-reason` workload annotation."
+    enforcement:
+      type: rule
+      target: R010
+  - must: "`defaults` for generated values (`app_name`, `app_host`, random passwords/keys)."
+    enforcement:
+      type: manual
+      note: "Needs cross-section analysis of defaults/inputs usage semantics."
+  - must: "`inputs` only for truly user-provided operational values (email/SMTP/external API keys, etc.)."
+    enforcement:
+      type: manual
+      note: "Requires semantic classification of user-supplied versus generated values."
+  - must: "`inputs.description` must be in English."
+    enforcement:
+      type: manual
+      note: "Requires language detection over input description fields in generated templates."

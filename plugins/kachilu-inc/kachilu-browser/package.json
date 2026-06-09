@@ -1,6 +1,6 @@
 {
   "name": "kachilu-browser",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Browser automation CLI for AI agents",
   "type": "module",
   "files": [

@@ -1,27 +1,12 @@
 ---
 name: power-automate-monitoring
 description: >-
-  **Pro+ subscription required.** Tenant-wide Power Automate flow health
-  monitoring, failure rate analytics, and asset inventory using the FlowStudio
-  MCP cached store. Load this skill ONLY for tenant-wide aggregated views — not
-  for listing flows in a single environment or debugging a specific run (use
-  power-automate-mcp or power-automate-debug for those). Not the same as the
-  server's `monitor-flow` tool bundle (`tool_search query: "skill:monitor-flow"`)
-  — that bundle is for runtime control of a single flow (start/stop/trigger/
-  cancel/resubmit); this skill is for tenant-wide health analytics over the
-  cached store.
-  Load when asked to: monitor tenant health, get aggregated failure rates over
-  a time window, review tenant-wide error trends, find inactive makers across
-  the tenant, inventory all Power Apps in the tenant, compute governance scores,
-  generate a compliance report, or run a tenant-wide health overview. Requires
-  a FlowStudio for Teams or MCP Pro+ subscription — see https://mcp.flowstudio.app
-metadata:
-  openclaw:
-    requires:
-      env:
-        - FLOWSTUDIO_MCP_TOKEN
-    primaryEnv: FLOWSTUDIO_MCP_TOKEN
-    homepage: https://mcp.flowstudio.app
+  Pro+ subscription required. Tenant-wide Power Automate monitoring using the
+  FlowStudio MCP cached store: failure rates, run-health trends, maker/app
+  inventory, inactive owners, and compliance/health reports. Use only for
+  aggregated tenant views. For one environment, one flow, run control, or
+  root-cause debugging, use power-automate-mcp, power-automate-debug, or the
+  server monitor-flow bundle. Requires FlowStudio for Teams or MCP Pro+.
 ---
 
 # Power Automate Monitoring with FlowStudio MCP

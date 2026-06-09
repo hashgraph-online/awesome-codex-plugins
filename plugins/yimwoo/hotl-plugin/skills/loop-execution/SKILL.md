@@ -26,11 +26,18 @@ Resolve which workflow file to execute:
 
 ### Interrupted Run Detection
 
-After resolving the workflow file, check `.hotl/state/*.json` for interrupted runs matching that workflow:
+After resolving the workflow file, locate interrupted runs **before** Branch/Worktree Preflight. Use `scripts/hotl-locate-run.sh --workflow <workflow-file>` when available. This helper scans the current checkout, linked git worktrees, and HOTL's default `.hotl-worktrees/<repo>/` directory, so it can find state created inside an isolated execution worktree even when the new session starts from the authoring checkout.
+
+If the helper is unavailable, manually scan these locations for `.hotl/state/*.json` and match `workflow_path` or `source_workflow_path` against the resolved workflow:
+1. Current checkout
+2. `git worktree list --porcelain` roots for the repo
+3. `$(dirname <repo-root>)/.hotl-worktrees/$(basename <repo-root>)/*`
 
 - **One interrupted run found** → ask: "Found an interrupted run (step N/M). Resume from step N, or start fresh?"
 - **Multiple interrupted runs found** → list all with run_id, step progress, branch, age. Ask which to resume or start fresh. **Never silently choose.**
 - **No interrupted runs** → proceed normally (new run)
+
+If the user chooses resume, do not run Branch/Worktree Preflight again. Load the matched sidecar, change into its recorded `execution_root`, and follow `skills/resuming/SKILL.md` with the original `run_id`.
 
 ## Branch/Worktree Preflight
 
@@ -121,7 +128,7 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
 6. For each step in order:
 
    a. Start step via runtime:
-      - Run: `hotl-rt step N start`
+      - Run: `hotl-rt step N start --run-id <run-id>`
       - This persists step start (status, timestamp, attempts) to state and report
       - Only after the runtime call succeeds should chat show "→ Step N"
 
@@ -130,10 +137,10 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
    c. Execute the action (agent implements the work)
 
    d. Verify via runtime:
-      - Run: `hotl-rt step N verify`
+      - Run: `hotl-rt step N verify --run-id <run-id>`
       - The runtime runs the verify command, captures stdout/stderr, and atomically transitions the step to done or failed
       - If the verify type is unsupported, the runtime blocks the step with a clear reason
-      - For type: browser — if browser tooling unavailable, downgrade to type: human-review
+      - For type: browser — `hotl-rt` downgrades to a paused human-review request when browser tooling is unavailable inside the runtime. If the controller has platform browser tooling, perform the browser check before approving or rejecting that pause.
       - For type: human-review — the runtime returns a `human review required: ...` block reason and sets the run status to `paused`; ALWAYS pause for human (never auto-approve)
       - For type: artifact — runtime checks path exists and evaluates assert; for `matches-glob`, `path` must be the directory and `value` must be a filename glob only, so `src/*` is invalid and should be authored as `path: src`
 
@@ -143,10 +150,10 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
          → PAUSE immediately. Do not start later steps or finalize the run.
          → Show the review prompt to the human and ask: "Continue? (yes/no/show-details)"
          → If the human says yes/approve/continue:
-             Run: `hotl-rt gate N approved --mode human`
+             Run: `hotl-rt gate N approved --mode human --run-id <run-id>`
              Then continue to the next step
          → If the human says no/reject:
-             Run: `hotl-rt gate N rejected --mode human`
+             Run: `hotl-rt gate N rejected --mode human --run-id <run-id>`
              STOP and surface the report path
          → If the human asks for details:
              Show the relevant test/report context, then wait again
@@ -154,12 +161,12 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
 
       f. If loop: false
          → STOP, report to human
-         → Run: `hotl-rt step N block --reason "verify failed"` if not already marked failed by verify
+         → Run: `hotl-rt step N block --reason "verify failed" --run-id <run-id>` if not already marked failed by verify
          → Show last verify output. Wait for human guidance.
 
       g. If loop: until [condition]
          → if iterations < max_iterations:
-             Run: `hotl-rt step N retry` then `hotl-rt step N start`
+             Run: `hotl-rt step N retry --run-id <run-id>` then `hotl-rt step N start --run-id <run-id>`
              log "↻ Retrying ([n]/[max])...", retry the action
          → if iterations = max_iterations: STOP
              Report: "Step N reached max iterations ([max]). [condition] not met."
@@ -172,17 +179,17 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
 
    i. If gate: human
       → if auto_approve: true AND risk_level != high:
-          Run: `hotl-rt gate N approved --mode auto`
+          Run: `hotl-rt gate N approved --mode auto --run-id <run-id>`
           log "⚡ Auto-approved: Step N gate (risk: [risk_level])"
           continue
       → else:
           PAUSE. Show summary of what was done in this step.
           Ask: "Gate reached at Step N. Continue? (yes/no/show-details)"
           Wait for human response.
-          Run: `hotl-rt gate N approved --mode human` or `hotl-rt gate N rejected --mode human`
+          Run: `hotl-rt gate N approved --mode human --run-id <run-id>` or `hotl-rt gate N rejected --mode human --run-id <run-id>`
 
    j. If gate: auto
-      → Run: `hotl-rt gate N approved --mode auto`
+      → Run: `hotl-rt gate N approved --mode auto --run-id <run-id>`
       → always continue, log "⚡ Auto-approved: Step N gate"
 
 6. All steps complete:
@@ -218,7 +225,7 @@ See `skills/resuming/SKILL.md` for the full sidecar schema, stale run detection,
 
 ### Path Resolution
 
-To find `hotl-rt` and HOTL scripts (`document-lint.sh`, `render-execution-summary.sh`, etc.), resolve in this order:
+To find `hotl-rt` and HOTL scripts (`document-lint.sh`, `hotl-locate-run.sh`, `render-execution-summary.sh`, etc.), resolve in this order:
 
 1. **Session context (Claude Code):** the session-start hook injects the plugin base path — use it to construct full paths like `bash <plugin-path>/runtime/hotl-rt init <workflow-file>`
 2. **Codex native-skills install:** resolve from `~/.codex/hotl/runtime/hotl-rt` and `~/.codex/hotl/scripts/`

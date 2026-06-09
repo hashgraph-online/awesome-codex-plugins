@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA Mama"
+  short_description: "中文妈妈唠叨风格的高标准执行模式"
+  default_prompt: "Use $pua-mama for the same PUA behavior contract with Chinese mom-style nagging narration."

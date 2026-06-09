@@ -1,0 +1,20 @@
+{
+  "name": "kicad-happy",
+  "interface": {
+    "displayName": "kicad-happy"
+  },
+  "plugins": [
+    {
+      "name": "kicad-happy",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Code Tools"
+    }
+  ]
+}

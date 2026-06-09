@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@opencode-ai/plugin':
+        specifier: 1.14.24
+        version: 1.14.24
     devDependencies:
       '@biomejs/biome':
         specifier: 2.4.13
@@ -17,9 +21,6 @@ importers:
       '@commitlint/config-conventional':
         specifier: 20.4.1
         version: 20.4.1
-      '@opencode-ai/plugin':
-        specifier: 1.14.24
-        version: 1.14.24
       '@semantic-release/changelog':
         specifier: 6.0.3
         version: 6.0.3(semantic-release@25.0.3(typescript@6.0.3))

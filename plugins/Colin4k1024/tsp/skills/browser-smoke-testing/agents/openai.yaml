@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browser Smoke Testing"
+  short_description: "用真实浏览器快速验证关键页面与核心路径"
+  default_prompt: "Use $browser-smoke-testing to define a lightweight real-browser smoke plan, evidence checklist, and go/no-go validation scope for this frontend change."

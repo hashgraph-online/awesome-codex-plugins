@@ -160,7 +160,7 @@ Rules:
 
 ## Debate Round 2 Message (via agent messaging)
 
-When `--debate` is active, the team lead sends this message to each judge after R1 completes. The judge already has its own R1 analysis in context (no truncation needed).
+When `--adversarial` is active, the team lead sends this message to each judge after R1 completes. The judge already has its own R1 analysis in context (no truncation needed).
 
 ```
 ## Debate Round 2
@@ -277,7 +277,7 @@ Template:
 In addition to the technique framework above, also provide your independent creative analysis.
 ```
 
-If `--technique` is used with a non-brainstorm task type (validate, research), exit with error: "Error: --technique is only applicable to brainstorm mode." This matches the --quick/--debate incompatibility pattern.
+If `--technique` is used with a non-brainstorm task type (validate, research), exit with error: "Error: --technique is only applicable to brainstorm mode." This matches the --quick/--adversarial incompatibility pattern.
 
 ## Consolidation Prompt
 
@@ -324,7 +324,7 @@ Output format: Markdown report for human consumption.
 
 ## Consolidation Prompt -- Debate Additions
 
-When `--debate` is used, append this to the consolidation prompt:
+When `--adversarial` is used, append this to the consolidation prompt:
 
 ```
 ## Additional Instructions (Debate Mode)

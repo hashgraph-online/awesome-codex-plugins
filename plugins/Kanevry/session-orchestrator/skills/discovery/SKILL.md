@@ -2,11 +2,12 @@
 name: discovery
 user-invocable: false
 tags: [quality, discovery, probes, issues]
+model: sonnet
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Systematic quality discovery and issue detection. Runs modular probes
+  Use this skill when running systematic quality discovery and issue detection. Runs modular probes
   adapted to the project's tech stack, presents findings interactively
   for user triage, and creates VCS issues for confirmed problems.
   Invoked standalone via /discovery or embedded in session-end.
@@ -59,6 +60,7 @@ Detect the project's tech stack via marker file checks. Use Glob and run checks 
 | Pencil in Session Config              | design-drift probe      |
 | `.orchestrator/bootstrap.lock`        | harness-audit probe     |
 | `.vault.yaml` OR Session Config `vault-integration.enabled: true` | vault probes      |
+| `package.json` / `requirements.txt` / `Cargo.toml` **AND** Session Config `slopcheck.enabled: true` AND `slopcheck.sources` includes `"discovery"` | supply-chain probe (`skills/discovery/probes-supply-chain.md`) |
 
 ### Build Activation Set
 
@@ -88,6 +90,21 @@ Report: "Discovery: [N] probes active across [categories]. Stack: [detected]. Th
 
 ## Phase 3: Probe Execution
 
+### --since Filtering (when `since_ref` is provided)
+
+When `since_ref` is set (passed from the `/discovery --since <git-ref>` invocation):
+
+1. Call `changedFilesSince(since_ref)` from `scripts/lib/discovery/helpers.mjs`.
+2. If the helper throws (ref unresolvable), surface the error to the user and halt.
+3. If the result is `[]` (no files changed since the ref), emit:
+   ```
+   No files changed since <since_ref>. Skipping discovery.
+   ```
+   and exit with status 0. Do NOT fall back to a full-repo scan.
+4. If the result is a non-empty array, pass it as `changedFiles` context to each probe agent below.
+
+**Probe exemptions:** The vault-staleness probe and the harness-audit probe are EXEMPT from `--since` filtering — they always scan the full repository because their analysis targets metadata (vault narrative staleness, bootstrap lock state) that is not file-diff-gated. This exemption is advisory: no code enforcement is applied in this wave. The probe agents will naturally read whole-repo state; the `changedFiles` context they receive from `--since` is informational and does not restrict their glob/grep scope.
+
 Dispatch probe agents IN PARALLEL using the Agent tool. Group by category (max `$CONFIG['discovery-parallelism']` agents, default 5):
 
 > **Cursor IDE:** No Agent() tool available. Run probes sequentially within the current session — one category at a time. Complete each category's analysis before moving to the next.
@@ -99,11 +116,13 @@ Dispatch probe agents IN PARALLEL using the Agent tool. Group by category (max `
 - **Session probes agent**: Runs all activated session probes
 - **Audit probes agent**: Runs harness-audit probe
 - **Vault probes** (`skills/discovery/probes-vault.md`): invokes `skills/discovery/probes/vault-staleness.mjs` and `skills/discovery/probes/vault-narrative-staleness.mjs` directly via `node`. Each probe returns `{findings, metrics, duration_ms}`. The runner reports `FINDING:` blocks per finding and appends summary records to `.orchestrator/metrics/vault-staleness.jsonl` and `vault-narrative-staleness.jsonl`.
+- **Supply-chain probe** (`skills/discovery/probes-supply-chain.md`): invokes `skills/discovery/probes/supply-chain-slopcheck.mjs` directly via `node`. **Gated:** only activates when `slopcheck.enabled: true` AND `"discovery"` is in `slopcheck.sources` (Session Config). The probe returns `{findings, summary}`. SLOP findings surface as `critical`, ASSUMED as `medium`, LEGITIMATE packages generate no finding. See `probes-supply-chain.md` for invocation details and classification reference.
 
 Each agent receives:
 - The probe definitions from `probes-intro.md` (confidence scoring reference) AND the category-specific `probes-<category>.md` file for this agent's category (include the actual grep commands/patterns in the prompt)
 - The exclude paths list
 - The project root path
+- When `since_ref` was provided and `changedFiles` is non-empty: the `changedFiles` array (informational context for per-probe filtering — per-probe filtering enforcement is deferred to W3)
 - Tools: Read, Grep, Glob, Bash (read-only -- no Edit/Write)
 - Instruction: "Run each probe. For each finding, output EXACTLY this format:"
 
@@ -208,7 +227,35 @@ Present both as structured data in your final output. Do not proceed to Phase 5.
 
 ## Phase 5: Interactive Triage (Standalone Mode Only)
 
-### 5.0 Auto-Defer Low-Confidence Findings
+### 5.0 Load Triage State & Partition Findings
+
+Before auto-defer and before presenting any findings for triage, load the persistent discovery triage state and filter findings through it:
+
+1. Call `loadTriageState()` from `scripts/lib/discovery/triage-state.mjs` (uses default path `.orchestrator/metrics/discovery-triage.jsonl`). Returns an empty Map if the file does not exist — no error.
+2. Call `filterFindings({ findings: verifiedFindings, stateMap })` to partition findings into three buckets:
+   - `toShow` — state is `open`, `reopened`, or **no prior state entry** (new findings — present for user triage)
+   - `suppressed` — state is `dismissed` or `accepted-as-known` (skip silently)
+   - `tracked` — state is `promoted-to-#NNN` (issue already filed; show as informational)
+
+3. Emit a one-line state banner before the summary table:
+   ```
+   Triage state: [N suppressed] suppressed (dismissed/accepted-as-known), [N tracked] tracked in existing issues. Presenting [N toShow] findings.
+   ```
+   Omit the banner entirely if all three counts are zero (first run).
+
+4. Render `tracked` findings as informational lines in the summary — NOT as interactive triage items:
+   ```
+   [INFO] Finding "<title>" (<file_path>) is tracked in #<issue_id> — not re-triaged.
+   ```
+
+5. Continue Phase 5 triage using only `toShow` findings. The `suppressed` bucket requires no user interaction.
+
+6. After the user completes triage (Steps 1-4 below), append state changes to `.orchestrator/metrics/discovery-triage.jsonl` via `appendTriageEntry()` from `triage-state.mjs`:
+   - User selects "Create issue" → append `{ fingerprint, state: 'promoted-to-#<issue_id>', issue_id: <N>, timestamp, session_id }`
+   - User selects "Dismiss -- intentional" or "Dismiss -- false positive" → append `{ fingerprint, state: 'dismissed', user_decision: '<reason>', timestamp, session_id }`
+   - User selects "Accept all" for batch → append one `{ fingerprint, state: 'open', ... }` entry per finding (so they re-appear next run if not yet promoted)
+
+### 5.1 Auto-Defer Low-Confidence Findings
 
 Before presenting findings for triage, separate by confidence threshold:
 
@@ -379,6 +426,55 @@ After Phase 6 (Issue Creation) completes, prepare discovery statistics for sessi
    ```
 
 3. These stats are available for session-end to include in `sessions.jsonl` under the `discovery_stats` field. The discovery skill does NOT write to `sessions.jsonl` directly — session-end handles that.
+
+## Discovery Triage State (#419)
+
+Persistent triage state prevents re-presenting the same finding on every `/discovery` run. State is stored in an append-only JSONL file and keyed by a stable fingerprint.
+
+### State File
+
+**Location:** `.orchestrator/metrics/discovery-triage.jsonl` (gitignored via `.orchestrator/metrics/*.jsonl` pattern — machine-local, never committed)
+
+**Format:** One JSON object per line:
+```json
+{"fingerprint":"aabb1122ccdd3344","state":"dismissed","user_decision":"intentional — debug log","timestamp":"2026-05-17T10:00:00.000Z","session_id":"deep-2"}
+{"fingerprint":"eeff5566aabb7788","state":"promoted-to-#119","issue_id":119,"timestamp":"2026-05-17T10:01:00.000Z","session_id":"deep-2"}
+```
+
+### Fingerprint
+
+`computeFingerprint({probe, file, severity, ruleId})` → 16-char hex (sha256 prefix).
+
+`line_number` is **intentionally excluded** — it drifts on refactoring without the underlying issue changing. A finding is considered "the same" as long as the probe, file path, severity, and ruleId match.
+
+### State Enum
+
+| State | Meaning |
+|---|---|
+| `open` | Actively needs triage or was explicitly marked for re-review |
+| `dismissed` | User dismissed as intentional or false positive — suppressed on future runs |
+| `accepted-as-known` | Known issue, accepted without creating a VCS issue — suppressed on future runs |
+| `reopened` | Previously suppressed but re-surfaced by user decision — shown again |
+| `promoted-to-#NNN` | VCS issue created; shown informational ("tracked in #NNN") on future runs |
+
+### Re-run Semantics
+
+On each `/discovery` run, Phase 5 loads the state file and partitions findings before presenting them:
+
+- **New findings** (no fingerprint entry) → always shown
+- **`open` or `reopened`** → shown for triage
+- **`dismissed` or `accepted-as-known`** → suppressed (silent — no user interaction needed)
+- **`promoted-to-#NNN`** → informational line only ("tracked in #NNN")
+
+A suppressed finding re-appears only if its fingerprint changes — i.e., the probe, file path, severity, or ruleId changes. No TTL on dismissed state.
+
+### Module
+
+`scripts/lib/discovery/triage-state.mjs` — pure ESM, Node stdlib only. Exports:
+- `computeFingerprint({probe, file, severity, ruleId}): string`
+- `loadTriageState(stateFilePath?): Promise<Map<fingerprint, entry>>`
+- `appendTriageEntry(stateFilePath, entry): Promise<void>`
+- `filterFindings({findings, stateMap}): {toShow, suppressed, tracked}`
 
 ## Anti-Patterns
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeGraph Code Intelligence"
+  short_description: "用 CodeGraph 补齐 MCP-backed 符号、调用链与影响面证据"
+  default_prompt: "Use $codegraph when brownfield work needs local MCP-backed symbol search, callers/callees, impact, or focused context. Keep CodeGraph findings tied to /team-plan, /team-execute, or /team-review, and do not treat .codegraph databases as TSP artifacts."

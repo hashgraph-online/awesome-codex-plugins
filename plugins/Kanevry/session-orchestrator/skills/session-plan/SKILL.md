@@ -2,6 +2,7 @@
 name: session-plan
 user-invocable: false
 tags: [orchestration, planning, waves, agents]
+model: opus
 model-preference: opus
 model-preference-codex: gpt-5.4
 model-preference-cursor: claude-opus-4-6
@@ -16,6 +17,21 @@ description: >
 # Session Plan Skill
 
 > Project-instruction file resolution: `CLAUDE.md` and `AGENTS.md` (Codex CLI) are transparent aliases — see [skills/_shared/instruction-file-resolution.md](../_shared/instruction-file-resolution.md). Wherever this skill mentions `CLAUDE.md`, the alias rule applies.
+
+## Phase 0.5: Parallel-Aware Preamble
+
+> Skip silently when `persistence: false` in Session Config.
+
+Before any Phase 1 work, run the parallel-aware preamble per `skills/_shared/parallel-aware-preamble.md`. The preamble detects other active sessions in the worktree-family via `findPeers(repoRoot, { mySessionId })`, classifies the caller's mode via `classifyMode(callerMode)` against the exclusivity-matrix, and either:
+
+- Returns `PASS_THROUGH` (no other session / `always-ok` mode) → continue to Phase 1
+- Returns `EXCLUSIVE_BLOCKED` → fires Exclusive-Conflict AUQ from `skills/_shared/parallel-aware-auq.md`
+- Returns `PROMOTION_OFFER` → fires Worktree-Promotion AUQ (via `enterWorktree()` from `scripts/lib/autopilot/worktree-pipeline.mjs` — see `parallel-aware-auq.md` outcome-handling)
+
+On any non-PASS_THROUGH outcome that does not result in immediate exit, append a Deviation to STATE.md via `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` from `scripts/lib/state-md.mjs`.
+
+**Implementation reference:** `skills/_shared/parallel-aware-preamble.md § Implementation`.
+**AUQ reference:** `skills/_shared/parallel-aware-auq.md`.
 
 ## Purpose
 
@@ -132,7 +148,15 @@ Before assigning tasks to waves, discover available agents for this session:
 4. **Match tasks to agents**: For each task from Step 1:
    - If `agent-mapping` config specifies a mapping for the task's domain → use that agent. For Docs-role tasks specifically, check `agent-mapping.docs` first; if set, use that agent name instead of the default below.
    - **Docs-role fast path (high-priority — runs before keyword matching):** If the task's role is classified as `Docs` (per Step 1.8) AND `docs-orchestrator.enabled: true` in Session Config → resolve `subagent_type: "docs-writer"`. The `docs-writer` project agent is discovered at `<state-dir>/agents/docs-writer.md` during the Priority 1 scan above. No colon prefix — it is a project agent, not a plugin agent. If `agent-mapping.docs` is set, use that name instead of `"docs-writer"`.
-   - Else, match task description against agent descriptions (keyword overlap: database/schema/migration → db agent, test/coverage/spec → test agent, UI/component/style/page → ui agent, security/auth/OWASP → security agent)
+   - Else, match task description against agent descriptions using the content-based routing table below. Match any keyword from the pattern column (case-insensitive) against the task title and description. Use the first matching row; rows are checked top to bottom.
+
+     | Keyword pattern | Resolved agent |
+     |---|---|
+     | `migration`, `schema`, `RLS`, `index`, `query`, `ORM`, `supabase`, `postgres`, `database`, `db` | `session-orchestrator:db-specialist` |
+     | `component`, `tsx`, `css`, `tailwind`, `page`, `layout`, `a11y`, `wcag`, `responsive`, `UI`, `frontend`, `style` | `session-orchestrator:ui-developer` |
+     | `security`, `auth`, `csrf`, `csp`, `injection`, `XSS`, `sanitize`, `OWASP`, `vulnerability`, `pen test` | `session-orchestrator:security-reviewer` |
+     | `test`, `coverage`, `vitest`, `jest`, `playwright`, `spec`, `fixture`, `assertion` | `session-orchestrator:test-writer` |
+     | (none of the above match) | `session-orchestrator:code-implementer` |
    - Else, use role-based default: Impl-Core/Impl-Polish → `code-implementer`, Quality → `test-writer`
    - Record the resolved `subagent_type` for each task
 
@@ -289,7 +313,7 @@ Distribute tasks across waves using 5 named roles. Read `waves` from Session Con
 | **Discovery** | Understand the current state before changing anything | No (read-only) |
 | **Impl-Core** | Primary implementation — core feature code, APIs, DB changes | Yes |
 | **Impl-Polish** | Fix issues from Impl-Core, secondary tasks, integration, edge cases | Yes |
-| **Quality** | Tests, typecheck, lint, security review | Yes (tests only) |
+| **Quality** | Tests, typecheck, lint, security review | Yes (tests only). Lint MUST use the canonical `{lint-command}` unscoped — never domain-split (e.g., `pnpm lint src/` hides errors in `tests/`). See quality-gates § Scope Policy. |
 | **Finalization** | Documentation, issue cleanup, commit preparation | Minimal |
 
 ### Role-to-Wave Mapping
@@ -333,6 +357,7 @@ When `docs-orchestrator.enabled: true`, apply the following concrete dispatch ru
 - Output: Validated understanding, updated task scope if discoveries warrant it
 - Tools: Read, Grep, Glob, Bash (read-only commands only) — do NOT use Edit or Write
 - Scope enforcement: set `allowedPaths` to `[]` (empty) for Discovery waves. Include in agent prompts: "You are READ-ONLY. Do NOT use Edit or Write tools."
+- Distributional claims MUST follow `.claude/rules/parallel-sessions.md` § PSA-006 — quote the executed grep pattern + file scope + count. Coordinators REJECT Discovery outputs that assert "N of M" or "100% of X" without a quoted grep transcript (deep-1647 W1-D3 incident class).
 
 **Impl-Core**
 - Full implementation agents with Write/Edit/Bash access
@@ -432,6 +457,8 @@ Before presenting the plan:
 
 ## Step 6: Present Plan for Approval
 
+If a `/write-executable-plan` artifact exists at `docs/plans/<feature>.md` for any task in this session (see `skills/write-executable-plan/SKILL.md`), include its path in the agent prompts for those tasks and set the "Bite-sized plan" field in the Execution Config accordingly.
+
 Present the plan in this format:
 
 ```
@@ -479,6 +506,7 @@ Present the plan in this format:
 - Waves: [N] | Agents-per-wave cap: [M] | Isolation: [worktree|none|auto]
 - Enforcement: [strict|warn|off] | Max turns: [N per session type]
 - Persistence: [true|false] | Pencil: [path|none]
+- Bite-sized plan: [path if exists, e.g. `docs/plans/2026-05-16-superpowers-cluster.md` | none]
 - Parallel dispatch: All agents within each wave execute simultaneously via Agent() tool
 - Total agents planned: [sum across all waves]
 

@@ -6,7 +6,7 @@ Research upstream contribution targets in Codex with maintainer-pattern extracti
 
 1. Treat `skills/pr-research/SKILL.md` as the canonical PR research contract and `skills-codex/pr-research/SKILL.md` as the Codex-facing artifact.
 2. Prefer contribution rules, existing PR patterns, and maintainer expectations that directly shape the implementation plan.
-3. Keep output structured so `$pr-plan` can consume it without re-research.
+3. Keep output structured so `$plan` can consume it without re-research.
 
 ## Guardrails
 

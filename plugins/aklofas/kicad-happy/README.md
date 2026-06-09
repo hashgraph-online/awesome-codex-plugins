@@ -452,6 +452,15 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 | KiCad 6  | Full                          | Full | Full   |
 | KiCad 5  | Full (legacy `.sch` + `.lib`) | Full | Full   |
 
+## v1.3.1 — Bug fixes + Connectivity
+
+- Fix `format-report.py` crash on dict-shaped `power_rails` (issues #16, #20).
+- Add `.kicad_pro` `top_level_sheets` support for Altium flat multi-page imports (#19).
+- PCB connectivity rewrite: track-as-node model, compound pads, `*.Cu` wildcards.
+- Fix pad rotation sign; unify analysis-dir resolution.
+- KH-147: suppress LED-driver false positives when the current resistor's value field has a suffix the parser can't read (e.g. `215k_0402_…`).
+- Bump minimum Python to 3.10; add cross-agent install guidance (Claude Code, Codex, Gemini).
+
 ## 🎯 v1.3 — Harmonized Analysis
 
 v1.2 made findings trustworthy. v1.3 makes them uniform and traceable. **Every analyzer** — schematic, PCB, Gerber, thermal, EMC, cross-analysis, SPICE, lifecycle — now produces the same flat `findings[]` format with rich envelopes (`detector`, `rule_id`, `severity`, `confidence`, `evidence_source`, `recommendation`, `report_context`). Every finding carries its own provenance. One schema to query, filter, export, and audit.

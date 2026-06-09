@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "1.0.17",
+  "version": "2.0.7",
   "description": "An agentic skills framework & software development methodology that works: planning, TDD, debugging, and collaboration workflows.",
   "author": {
     "name": "Aegis Maintainers",
@@ -11,6 +11,7 @@
   "license": "MIT",
   "keywords": [
     "brainstorming",
+    "first-principles",
     "subagent-driven-development",
     "skills",
     "planning",
@@ -23,7 +24,7 @@
   "interface": {
     "displayName": "Aegis",
     "shortDescription": "Planning, TDD, debugging, and delivery workflows for coding agents",
-    "longDescription": "Use Aegis to guide agent work through brainstorming, implementation planning, test-driven development, systematic debugging, parallel execution, code review, and finish-the-branch workflows.",
+    "longDescription": "Use Aegis to guide agent work through first-principles review, brainstorming, implementation planning, test-driven development, systematic debugging, parallel execution, code review, and finish-the-branch workflows.",
     "developerName": "Aegis Maintainers",
     "category": "Coding",
     "capabilities": [

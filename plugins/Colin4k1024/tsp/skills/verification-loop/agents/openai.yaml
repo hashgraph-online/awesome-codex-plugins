@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verification Loop"
+  short_description: "把构建、测试、lint 与安全校验串成闭环"
+  default_prompt: "Use $verification-loop to run the right verification sequence, capture evidence, and prevent unverified completion claims."

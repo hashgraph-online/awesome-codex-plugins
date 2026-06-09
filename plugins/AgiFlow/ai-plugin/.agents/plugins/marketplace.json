@@ -1,0 +1,20 @@
+{
+  "name": "agiflow",
+  "interface": {
+    "displayName": "AgiFlow"
+  },
+  "plugins": [
+    {
+      "name": "agiflow-ai-plugin",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/AgiFlow/ai-plugin.git"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow"
+    }
+  ]
+}

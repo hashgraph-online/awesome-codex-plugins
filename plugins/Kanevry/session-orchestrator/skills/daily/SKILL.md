@@ -2,11 +2,12 @@
 name: daily
 user-invocable: true
 tags: [vault, daily, obsidian, pkm]
+model: haiku
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Creates today's daily note in the Meta-Vault (03-daily/YYYY-MM-DD.md) with valid
+  Use this skill when creating today's daily note in the Meta-Vault (03-daily/YYYY-MM-DD.md) with valid
   vaultFrontmatterSchema-compliant YAML frontmatter. Idempotent: re-running on the
   same day opens the existing note instead of overwriting. Use when starting a work
   day, capturing scratch notes, or bootstrapping the inbox flow.

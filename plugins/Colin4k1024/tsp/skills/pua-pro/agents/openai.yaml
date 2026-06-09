@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA Pro"
+  short_description: "KPI、校准与 builder journal 模式"
+  default_prompt: "Use $pua-pro for longitudinal execution quality tracking, calibration, and builder journal review."

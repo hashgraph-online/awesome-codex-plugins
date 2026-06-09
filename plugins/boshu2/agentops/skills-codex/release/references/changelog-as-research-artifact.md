@@ -123,4 +123,4 @@ The `$release` skill's Step 8 (user review) is the place to apply this checklist
 
 ---
 
-> Pattern adopted from `changelog-md-workmanship` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `changelog-md-workmanship` (ACFS skill corpus). Methodology only — no verbatim text.

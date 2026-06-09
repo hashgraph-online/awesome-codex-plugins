@@ -1,6 +1,6 @@
 ---
 name: establishing-project-context
-description: Use when entering a project for the first time, or when the user asks to establish shared language, define domain terms, or create a project glossary - maintains CONTEXT.md as the project's ubiquitous language baseline
+description: Use when entering a project for the first time, or when the user asks to establish shared language, define domain terms, or create a project glossary.
 ---
 
 # Establishing Project Context

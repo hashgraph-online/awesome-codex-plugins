@@ -1,6 +1,6 @@
 {
   "name": "bkt",
-  "version": "0.26.4",
+  "version": "0.28.2",
   "description": "Bitbucket CLI - manage repos, PRs, branches, issues, webhooks, and pipelines for both Data Center and Cloud",
   "author": {
     "name": "Aviv Sinai",
@@ -23,6 +23,7 @@
   ],
   "interface": {
     "displayName": "Bitbucket CLI",
+    "composerIcon": "./assets/bkt-icon.svg",
     "shortDescription": "Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines",
     "category": "Developer Tools"
   }

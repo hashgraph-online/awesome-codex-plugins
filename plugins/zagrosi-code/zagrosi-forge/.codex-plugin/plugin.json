@@ -1,0 +1,47 @@
+{
+  "name": "zagrosi-forge",
+  "version": "0.2.0",
+  "description": "Zagrosi Forge Codex-native project decomposition, planning, quality gates, traceability, and TDD implementation skills.",
+  "author": {
+    "name": "Zagrosi",
+    "url": "https://github.com/zagrosi-code"
+  },
+  "homepage": "https://github.com/zagrosi-code/zagrosi-forge",
+  "repository": "https://github.com/zagrosi-code/zagrosi-forge",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "planning",
+    "tdd",
+    "implementation",
+    "code-review",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "scripts": "./scripts/",
+  "interface": {
+    "displayName": "Zagrosi Forge",
+    "shortDescription": "Plan and implement complex work with TDD",
+    "longDescription": "Zagrosi Forge provides three Codex-native workflows: decompose broad chat ideas or project briefs into focused specs, create reviewed TDD implementation plans, and implement generated sections with tests, review, documentation, git hygiene, quality gates, traceability, risk registers, decision logs, and Forge helper checks.",
+    "developerName": "Zagrosi",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "websiteURL": "https://github.com/zagrosi-code/zagrosi-forge",
+    "privacyPolicyURL": "https://github.com/zagrosi-code/zagrosi-forge",
+    "termsOfServiceURL": "https://github.com/zagrosi-code/zagrosi-forge",
+    "defaultPrompt": [
+      "Use $zagrosi-forge:zagrosi-project to split this project idea into planning specs",
+      "Use $zagrosi-forge:zagrosi-plan to create a reviewed TDD implementation plan",
+      "Use $zagrosi-forge:zagrosi-implement to build these sections with TDD"
+    ],
+    "brandColor": "#0F766E",
+    "screenshots": [
+      "./assets/readme-hero.svg",
+      "./assets/readme-workflow.svg"
+    ]
+  }
+}

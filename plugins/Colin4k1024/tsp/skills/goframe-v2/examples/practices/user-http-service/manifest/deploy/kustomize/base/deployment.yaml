@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-http-service
+  labels:
+    app: user-http-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-http-service
+  template:
+    metadata:
+      labels:
+        app: user-http-service
+    spec:
+      containers:
+        - name: main
+          image: user-http-service
+          imagePullPolicy: Always
+

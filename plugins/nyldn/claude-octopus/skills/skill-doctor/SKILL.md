@@ -35,10 +35,38 @@ Run environment diagnostics across 11 check categories. Identifies misconfigured
 
 ## The Process
 
-### Step 1: Run Full Diagnostics
+### Step 1: Resolve Plugin Root and Run Full Diagnostics
+
+Use this resolver before running Octopus scripts. Do not assume
+`~/.claude-octopus/plugin` exists; Windows Git Bash installs may not support the
+stable symlink. Run this as a single Bash call.
 
 ```bash
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor
+OCTO_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
+if [[ -z "$OCTO_PLUGIN_ROOT" || ! -x "$OCTO_PLUGIN_ROOT/scripts/orchestrate.sh" ]]; then
+  OCTO_PLUGIN_ROOT="${HOME}/.claude-octopus/plugin"
+fi
+if [[ ! -x "$OCTO_PLUGIN_ROOT/scripts/orchestrate.sh" ]] && command -v octopus >/dev/null 2>&1; then
+  OCTO_BIN="$(command -v octopus)"
+  OCTO_PLUGIN_ROOT="$(cd "$(dirname "$OCTO_BIN")/.." && pwd)"
+fi
+if [[ ! -x "$OCTO_PLUGIN_ROOT/scripts/orchestrate.sh" ]]; then
+  OCTO_PLUGIN_ROOT="$(
+    find "${HOME}/.claude/plugins" -type f -path "*/scripts/orchestrate.sh" -print 2>/dev/null \
+      | sed 's#/scripts/orchestrate.sh$##' \
+      | grep -E '(nyldn-plugins|claude-octopus|/octo(/[0-9]|$))' \
+      | sort \
+      | tail -1
+  )"
+fi
+if [[ -z "$OCTO_PLUGIN_ROOT" || ! -x "$OCTO_PLUGIN_ROOT/scripts/orchestrate.sh" ]]; then
+  echo "Claude Octopus plugin root not found. Reinstall the octo plugin, then retry /octo:doctor."
+  exit 1
+fi
+mkdir -p "${HOME}/.claude-octopus"
+ln -sfn "$OCTO_PLUGIN_ROOT" "${HOME}/.claude-octopus/plugin" 2>/dev/null || true
+export OCTO_PLUGIN_ROOT
+cd "$OCTO_PLUGIN_ROOT" && bash scripts/orchestrate.sh doctor
 ```
 
 This runs all 11 check categories and displays a formatted report.
@@ -111,7 +139,11 @@ AskUserQuestion({
 ```
 If user chooses install, run it, then offer hook setup.
 
-**RTK installed but hook not configured:**
+**RTK installed but hook not configured on macOS/Linux:**
+
+On Windows Git Bash, do not offer `rtk init -g`. RTK uses CLAUDE.md injection
+mode there, so report the hook check as skipped.
+
 ```javascript
 AskUserQuestion({
   questions: [{
@@ -119,7 +151,7 @@ AskUserQuestion({
     header: "RTK Hook",
     multiSelect: false,
     options: [
-      {label: "Run rtk init -g (Recommended)", description: "Auto-installs Claude Code bash hook"},
+      {label: "Run rtk init -g (Recommended)", description: "Auto-installs Claude Code bash hook on macOS/Linux"},
       {label: "Skip", description: "I'll configure it later"}
     ]
   }]
@@ -184,7 +216,7 @@ All checks pass — no action needed.
 | Stale state | Delete `.octo/state.json` and re-initialize |
 | Invalid hooks.json | Check `hooks.json` syntax — must be valid JSON |
 | RTK not installed | Offer to install: `brew install rtk && rtk init -g` (saves 60-90% tokens). Use AskUserQuestion to offer brew vs cargo install. |
-| RTK installed but hook not configured | Offer to configure: use AskUserQuestion to offer `rtk init -g` for automatic bash output compression |
+| RTK installed but hook not configured | On macOS/Linux, offer `rtk init -g`; on Windows Git Bash, report skipped because RTK uses CLAUDE.md injection mode |
 | RTK gain stats unavailable | Run some bash commands first, then check `rtk gain` to see token savings |
 | Conflicting plugins | Uninstall conflicting plugins or adjust scope |
 

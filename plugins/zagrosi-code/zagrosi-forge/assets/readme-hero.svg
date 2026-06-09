@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">Zagrosi Forge workflow hero</title>
+  <desc id="desc">A dark product banner with the Zagrosi Forge furnace icon and a three-step project, plan, implement workflow.</desc>
+  <defs>
+    <linearGradient id="heroBg" x1="0" y1="0" x2="1200" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#041312"/>
+      <stop offset=".62" stop-color="#0A2C29"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+    <linearGradient id="cardBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0D2A28"/>
+      <stop offset="1" stop-color="#071D1B"/>
+    </linearGradient>
+    <filter id="softShadow" x="-18%" y="-18%" width="136%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity=".32"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="520" rx="34" fill="url(#heroBg)"/>
+  <rect x="24" y="24" width="1152" height="472" rx="26" fill="none" stroke="#99F6E4" stroke-opacity=".2" stroke-width="2"/>
+
+  <g opacity=".16" stroke="#CCFBF1" stroke-width="1.2" stroke-linecap="round">
+    <path d="M76 102h156M76 148h96M80 418h190M958 102h154M1000 148h112M930 418h190"/>
+    <path d="M162 72 1018 446M1038 72 188 446" opacity=".28"/>
+  </g>
+
+  <g transform="translate(78 66)" filter="url(#softShadow)">
+    <g transform="scale(.68)">
+      <path d="M190 104h132v52H190Z" fill="#F8FAFC"/>
+      <path d="M144 156h224l36 254H108Z" fill="#F8FAFC"/>
+      <path d="M174 410V262c0-54 37-98 82-98s82 44 82 98v148Z" fill="#0F766E"/>
+      <path d="M202 410V272c0-38 24-70 54-70s54 32 54 70v138Z" fill="#082F2C"/>
+      <path d="M208 344h96v66h-96Z" fill="#F97316"/>
+      <path d="M226 314h60l18 30h-96Z" fill="#F97316"/>
+      <path d="M238 410v-54l18-30 18 30v54Z" fill="#FEF3C7"/>
+      <path d="M156 196h64M292 196h64M145 246h44M323 246h44M137 388h48M327 388h48" fill="none" stroke="#0F766E" stroke-width="12" stroke-linecap="square"/>
+    </g>
+  </g>
+
+  <g transform="translate(466 84)">
+    <text x="0" y="46" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="42" font-weight="760">Forge complex work into</text>
+    <text x="0" y="98" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="42" font-weight="760">tested implementation sections</text>
+    <text x="0" y="140" fill="#99F6E4" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="540">Project decomposition, research-backed planning, TDD gates,</text>
+    <text x="0" y="166" fill="#99F6E4" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="540">review, traceability, and resume-safe state for Codex.</text>
+
+    <g transform="translate(0 206)" filter="url(#softShadow)">
+      <rect width="170" height="104" rx="14" fill="url(#cardBg)" stroke="#2DD4BF" stroke-opacity=".28"/>
+      <text x="20" y="34" fill="#CCFBF1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">01 PROJECT</text>
+      <text x="20" y="65" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui" font-size="19" font-weight="720">split the brief</text>
+      <text x="20" y="88" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui" font-size="14">manifest + specs</text>
+    </g>
+
+    <path d="M188 258h38" fill="none" stroke="#5EEAD4" stroke-width="4" stroke-linecap="round"/>
+    <path d="m218 248 14 10-14 10" fill="none" stroke="#5EEAD4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g transform="translate(250 206)" filter="url(#softShadow)">
+      <rect width="170" height="104" rx="14" fill="url(#cardBg)" stroke="#2DD4BF" stroke-opacity=".28"/>
+      <text x="20" y="34" fill="#CCFBF1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">02 PLAN</text>
+      <text x="20" y="65" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui" font-size="19" font-weight="720">design the path</text>
+      <text x="20" y="88" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui" font-size="14">research + TDD</text>
+    </g>
+
+    <path d="M438 258h38" fill="none" stroke="#5EEAD4" stroke-width="4" stroke-linecap="round"/>
+    <path d="m468 248 14 10-14 10" fill="none" stroke="#5EEAD4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g transform="translate(500 206)" filter="url(#softShadow)">
+      <rect width="170" height="104" rx="14" fill="url(#cardBg)" stroke="#2DD4BF" stroke-opacity=".28"/>
+      <text x="20" y="34" fill="#CCFBF1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">03 IMPLEMENT</text>
+      <text x="20" y="65" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui" font-size="19" font-weight="720">ship sections</text>
+      <text x="20" y="88" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui" font-size="14">tests + review</text>
+    </g>
+
+    <g transform="translate(0 340)">
+      <rect width="540" height="52" rx="12" fill="#031716" stroke="#2DD4BF" stroke-opacity=".2"/>
+      <text x="22" y="33" fill="#CCFBF1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">requirements -> plan -> TDD -> sections -> traceability</text>
+    </g>
+  </g>
+</svg>

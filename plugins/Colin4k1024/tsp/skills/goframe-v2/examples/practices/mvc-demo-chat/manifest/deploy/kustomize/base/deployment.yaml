@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mvc-demo-chat
+  labels:
+    app: mvc-demo-chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mvc-demo-chat
+  template:
+    metadata:
+      labels:
+        app: mvc-demo-chat
+    spec:
+      containers:
+        - name : main
+          image: mvc-demo-chat
+          imagePullPolicy: Always
+

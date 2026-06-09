@@ -7,25 +7,42 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🎯 Session Orchestrator v2.0.0-beta.5 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
+            "command": "echo '🎯 Session Orchestrator v3.8.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
             "async": false
           },
           {
             "type": "command",
-            "command": "bash \"$CODEX_PLUGIN_ROOT/hooks/on-session-start.sh\"",
-            "timeout": 3,
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/on-session-start.mjs\"",
+            "timeout": 5,
             "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/on-session-end.mjs\"",
+            "timeout": 5
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CODEX_PLUGIN_ROOT/hooks/enforce-scope.sh\"",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/enforce-scope.mjs\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/config-protection.mjs\"",
             "timeout": 5
           }
         ]
@@ -35,7 +52,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CODEX_PLUGIN_ROOT/hooks/enforce-commands.sh\"",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/pre-bash-destructive-guard.mjs\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/pre-bash-staging-fence.mjs\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/pre-bash-memory-propose-audit.mjs\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/enforce-commands.mjs\"",
             "timeout": 5
           }
         ]
@@ -47,8 +79,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CODEX_PLUGIN_ROOT/hooks/post-edit-validate.sh\"",
-            "timeout": 2
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/post-edit-validate.mjs\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/loop-guard.mjs\"",
+            "timeout": 5
           }
         ]
       }
@@ -59,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CODEX_PLUGIN_ROOT/hooks/on-stop.sh\"",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/on-stop.mjs\"",
             "timeout": 5
           }
         ]
@@ -71,8 +113,71 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CODEX_PLUGIN_ROOT/hooks/on-subagent-stop.sh\"",
-            "timeout": 3
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/on-stop.mjs\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/subagent-telemetry.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/post-tool-failure-corrective-context.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/post-tool-batch-wave-signal.mjs\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/operator-steer.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/subagent-telemetry.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/cwd-change-restore.mjs\"",
+            "timeout": 5
           }
         ]
       }

@@ -139,14 +139,41 @@ Finalize session metrics by reading the wave data accumulated during execution:
    - `total_agents`: sum of agents across all waves
    - `total_files_changed`: unique files changed across entire session (from `git diff --stat`)
    - `agent_summary`: `{complete: N, partial: N, failed: N, spiral: N}`
-3. Prepare the JSONL entry (written in Phase 3.7):
+3. Prepare the JSONL entry (written in Phase 3.7) by **constructing it programmatically** — DO NOT manually hand-compose ISO timestamp strings. The `completed_at` value MUST come from `new Date().toISOString()` to prevent issue #540-class corruption (e.g., `.3NZ` malformed-fraction inputs). The validator at `scripts/lib/session-schema/validator.mjs` rejects any timestamp that does not match the canonical `YYYY-MM-DDTHH:MM:SS[.SSS]Z` regex.
+
+   Use this snippet pattern (adapt the field values from the session's in-memory state, but keep `new Date().toISOString()` for `completed_at` literally):
+
+   ```bash
+   # Issue #540: completed_at is constructed programmatically — DO NOT manually
+   # edit the ISO timestamp string. Use the snippet as-is to prevent .3NZ-class
+   # corruption.
+   METRICS_ENTRY=$(node --input-type=module -e "
+   const entry = {
+     session_id: '<branch>-<YYYY-MM-DD>-<HHmm>',
+     session_type: '<type>',
+     platform: '<claude|codex>',
+     started_at: '<ISO 8601 from STATE.md frontmatter started_at — already canonical>',
+     completed_at: new Date().toISOString(),  // canonical YYYY-MM-DDTHH:MM:SS.SSSZ
+     duration_seconds: <N>,
+     total_waves: <N>,
+     total_agents: <N>,
+     total_files_changed: <N>,
+     agent_summary: {complete: <N>, partial: <N>, failed: <N>, spiral: <N>},
+     waves: [/* {wave, role, agent_count, files_changed, quality} */],
+     // Optional fields populated per the Conditional Fields rules below.
+   };
+   process.stdout.write(JSON.stringify(entry));
+   ")
+   ```
+
+   **Canonical JSONL schema** (for field reference — populated by the snippet above):
    ```json
    {
      "session_id": "<branch>-<YYYY-MM-DD>-<HHmm>",
      "session_type": "<type>",
      "platform": "<claude|codex>",
-     "started_at": "<ISO 8601>",
-     "completed_at": "<ISO 8601>",
+     "started_at": "<canonical ISO 8601 from STATE.md>",
+     "completed_at": "<canonical ISO 8601 from new Date().toISOString()>",
      "duration_seconds": N,
      "total_waves": N,
      "total_agents": N,
@@ -186,6 +213,8 @@ Finalize session metrics by reading the wave data accumulated during execution:
      }
    }
    ```
+
+   > **ISO-8601 canonical format (#540):** `started_at`, `completed_at`, and `lease_acquired_at` MUST match the regex `/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/`. The validating writer (`scripts/emit-session.mjs`) rejects any non-canonical form. Use `new Date().toISOString()` (Node-native, always canonical) — never hand-edit fractional digits or timezone suffixes.
 
 > **Effectiveness counting rules** (extract from Phase 1 verification results):
 > - `planned_issues`: count of issue numbers listed in `<state-dir>/STATE.md` frontmatter `issues:` array. If the `issues` array is empty (e.g., lifecycle simulation sessions that don't target VCS issues), `planned_issues` = 0 — this is expected, not a bug.

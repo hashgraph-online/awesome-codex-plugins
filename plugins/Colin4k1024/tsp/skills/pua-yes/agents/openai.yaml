@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA Yes"
+  short_description: "鼓励语气下的高标准执行模式"
+  default_prompt: "Use $pua-yes when you need the same execution standards as PUA but with a more encouraging tone."

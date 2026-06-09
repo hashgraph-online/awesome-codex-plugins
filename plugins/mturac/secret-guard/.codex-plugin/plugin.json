@@ -1,0 +1,37 @@
+{
+  "name": "secret-guard",
+  "version": "0.1.0",
+  "description": "Pre-commit secret scanner (pattern + entropy).",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-secret-guard",
+  "repository": "https://github.com/mturac/pluginpool-secret-guard",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "secrets",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Secret Guard",
+    "shortDescription": "Pre-commit secret scanner (pattern + entropy).",
+    "longDescription": "Pre-commit secret scanner using pattern matching and entropy detection, with redacted output.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-secret-guard",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-secret-guard/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-secret-guard/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Secret Guard to pre-commit secret scanner (pattern + entropy)."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

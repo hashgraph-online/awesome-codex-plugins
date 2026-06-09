@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quick-demo
+  labels:
+    app: quick-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quick-demo
+  template:
+    metadata:
+      labels:
+        app: quick-demo
+    spec:
+      containers:
+        - name : main
+          image: quick-demo
+          imagePullPolicy: Always
+

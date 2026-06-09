@@ -1,0 +1,26 @@
+# GRPC Server.
+# https://goframe.org/docs/micro-service/config
+grpc:
+  address: ":8001"
+  logPath: ""
+  logStdout: true
+  errorStack: true
+  errorLogEnabled: true
+  errorLogPattern: "error-{Ymd}.log"
+  accessLogEnabled: true
+  accessLogPattern: "access-{Ymd}.log"
+
+# Global logging.
+logger:
+  level: "all"
+  stdout: true
+
+# MongoDB Server.
+mongo:
+  database: "user"
+  address: "mongodb://127.0.0.1:27017/test?retryWrites=true"
+
+# Redis Server.
+redis:
+    address: "127.0.0.1:6379"
+    password:

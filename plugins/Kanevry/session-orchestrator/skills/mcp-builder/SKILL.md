@@ -1,6 +1,7 @@
 ---
 name: mcp-builder
 description: Use when creating a new MCP (Model Context Protocol) server, extending an existing one, or debugging tool discoverability/performance. Guides through research → implementation → test → eval phases with TypeScript-first guidance matching our stack. Trigger on phrases like "build an MCP server", "expose X as an MCP tool", "write MCP tools for Y", "integrate Z via MCP".
+model: sonnet
 ---
 
 # MCP Server Development
@@ -52,6 +53,93 @@ Fetch via WebFetch only when needed — don't dump entire docs into context upfr
 - Review the target service's API docs (auth, core endpoints, data models)
 - List endpoints by priority — most-common operations first
 - Identify destructive vs. read-only operations (matters for tool annotations)
+
+## Tool-Hosting Pattern — In-Process vs Stdio MCP
+
+Before writing a line of implementation code, choose a hosting pattern. The wrong choice cannot be refactored cheaply once tooling is wired.
+
+### Decision tree
+
+```
+≤ 5 tools AND latency-critical (<50ms tool resolution)?
+│
+├─ Yes → tools share the SDK process AND no external auth required?
+│        │
+│        ├─ Yes → In-process @tool decorator (single-process, sub-ms resolution)
+│        └─ No  → Stdio MCP Server
+│
+└─ No  → Stdio MCP Server
+         (≥ 6 tools, external auth, language/runtime mismatch, long-lived process)
+```
+
+### In-process @tool decorator (Python — anthropics/claude-agent-sdk-python)
+
+Use `create_sdk_mcp_server` when your tools live entirely inside the SDK process and you need the lowest possible latency. Source reference: [`examples/mcp_calculator.py` L11–99](https://github.com/anthropics/claude-agent-sdk-python/blob/main/examples/mcp_calculator.py).
+
+```python
+from claude_agent_sdk import tool, create_sdk_mcp_server
+
+@tool(name="add", description="Add two numbers", input_schema={"a": int, "b": int})
+async def add(args):
+    return {"content": [{"type": "text", "text": str(args["a"] + args["b"])}]}
+
+server = create_sdk_mcp_server(name="calc", version="1.0.0", tools=[add])
+```
+
+### In-process registration (TypeScript — @modelcontextprotocol/sdk)
+
+Our default stack uses `McpServer.registerTool()` from `@modelcontextprotocol/sdk`. The inline Zod schema is parsed at registration time — no separate schema file needed for small tool sets.
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+
+const server = new McpServer({ name: 'calc', version: '1.0.0' });
+
+server.registerTool(
+  'add',
+  {
+    title: 'Add two numbers',
+    inputSchema: { a: z.number(), b: z.number() },
+  },
+  async ({ a, b }) => ({
+    content: [{ type: 'text', text: String(a + b) }],
+  }),
+);
+```
+
+### Tool annotations — `readOnlyHint` and `destructiveHint`
+
+Annotations are first-class SDK metadata that Claude and downstream hooks use for permission decisions. Set them on every tool:
+
+```typescript
+server.registerTool(
+  'delete-file',
+  {
+    title: 'Delete a file',
+    inputSchema: { path: z.string() },
+    annotations: { readOnlyHint: false, destructiveHint: true },
+  },
+  handler,
+);
+```
+
+- **`readOnlyHint: true`** — signals the tool only reads state; Claude can call it freely without a permission prompt.
+- **`destructiveHint: true`** — signals irreversible side effects; our `pre-bash-destructive-guard` hook and `agents/security-reviewer.md` both elevate review priority for tools carrying this flag. Any tool that deletes, overwrites, or mutates shared state must set this.
+- Missing `destructiveHint: true` on a destructive tool is a known pitfall — see the "Common pitfalls" table below.
+
+### Pattern comparison
+
+| Aspect | In-Process @tool | Stdio MCP Server |
+|--------|-----------------|------------------|
+| Tool count | ≤ 5 | 6+ |
+| Latency | Sub-ms resolution | 5–50 ms IPC overhead |
+| Auth complexity | Shares SDK auth | Separate auth context |
+| Language constraint | Must match SDK | Any runtime |
+| Process isolation | None (in-SDK) | Full (separate child) |
+| Lifecycle | Bound to SDK session | Long-lived independent |
+
+For the **stdio MCP server** implementation path (≥ 6 tools, external auth, or language mismatch), continue with [Phase 2 — Implementation](#phase-2--implementation) below, which covers project structure, core infrastructure, and the full TypeScript stdio setup.
 
 ## Phase 2 — Implementation
 

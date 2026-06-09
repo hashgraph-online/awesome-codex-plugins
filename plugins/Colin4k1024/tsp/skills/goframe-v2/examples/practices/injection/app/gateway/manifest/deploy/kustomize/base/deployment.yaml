@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      volumes:
+        - name: gateway-configmap
+          configMap:
+            name: gateway-configmap
+      containers:
+        - name : main
+          image: gateway
+          imagePullPolicy: Always
+          command:
+            - /app/main
+            - server
+          volumeMounts:
+            - name: gateway-configmap
+              mountPath: "/app/config"
+

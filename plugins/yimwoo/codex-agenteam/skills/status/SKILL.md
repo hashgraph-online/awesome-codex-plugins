@@ -47,6 +47,10 @@ Last Event: stage_verified (implement) — fail, attempt 2
 
 The progress view includes elapsed times per stage, the current
 verify attempt if applicable, and the most recent event for context.
+When `governance.adoption` is present, include the high-signal governance
+items in the readable status: open follow-ups/escalations, recorded tripwire
+blocks or warnings, gate rejections, and criteria overrides. Do not ask the
+user to inspect raw `.agenteam/governance` files for these summary facts.
 
 ### 3. No Active Run
 

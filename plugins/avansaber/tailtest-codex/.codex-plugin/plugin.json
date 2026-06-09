@@ -1,6 +1,6 @@
 {
   "name": "tailtest",
-  "version": "4.7.0",
+  "version": "4.9.1",
   "description": "Automatically generates and runs tests alongside your Codex session. Any language. No commands. No setup.",
   "author": {
     "name": "AvanSaber Inc.",
@@ -10,7 +10,34 @@
   "homepage": "https://tailtest.com",
   "repository": "https://github.com/avansaber/tailtest-codex",
   "license": "MIT",
-  "keywords": ["testing", "auto-test", "codex", "openai", "assistant", "framework-agnostic"],
-  "hooks": { "config": "hooks/hooks.json" },
-  "skills": [{ "path": "skills/tailtest" }]
+  "keywords": [
+    "testing",
+    "auto-test",
+    "codex",
+    "openai",
+    "assistant",
+    "framework-agnostic"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tailtest",
+    "composerIcon": "./assets/icon.svg",
+    "shortDescription": "Auto-generates and runs tests on every Codex turn",
+    "longDescription": "Tailtest watches every file Codex edits in your session and queues it for test generation at end of turn. It writes production-shaped scenarios using the R1-R15 rule layer, runs them, and surfaces only failures. Works with Python, JavaScript/TypeScript, Java, Kotlin, C#, Go, Rust, and Ruby out of the box. Supports an adversarial test mode that biases scenarios toward breakage paths (8 categories: boundary inputs, format/injection, type confusion, concurrent state, time/locale edges, partial failures, resource exhaustion, off-by-one logic). No prompting, no commands; runs automatically as Codex works.",
+    "developerName": "AvanSaber Inc.",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://tailtest.com",
+    "defaultPrompt": [
+      "Write tests for the file I just edited",
+      "Run an adversarial scan on my last change",
+      "Show tailtest summary for this session"
+    ],
+    "brandColor": "#F59E0B",
+    "screenshots": []
+  }
 }

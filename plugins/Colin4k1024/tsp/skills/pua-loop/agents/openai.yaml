@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA Loop"
+  short_description: "持续追结果的自动迭代模式"
+  default_prompt: "Use $pua-loop for iterative execution with explicit stop conditions, escalation rules, and structured pause reporting."

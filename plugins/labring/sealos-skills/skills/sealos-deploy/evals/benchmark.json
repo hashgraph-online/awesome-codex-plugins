@@ -1,0 +1,489 @@
+{
+  "metadata": {
+    "skill_name": "sealos-deploy",
+    "skill_path": "/Users/jingyang/zjy365/demo/github-pack/seakills/skills/sealos-deploy",
+    "executor_model": "claude-opus-4-6",
+    "analyzer_model": "claude-opus-4-6",
+    "timestamp": "2026-03-12T06:00:00Z",
+    "evals_run": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "eval_name": "web-app-deploy",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 269.8,
+        "tokens": 64653,
+        "tool_calls": 48,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-nodejs", "passed": true, "evidence": "Report states 'Language: Node.js' and identifies Express.js + Socket.IO stack"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score is 9/12 (Good), well above 4 threshold"},
+        {"text": "detects-external-db", "passed": true, "evidence": "Report identifies 'External database detected (PostgreSQL/MySQL/MongoDB)' and default SQLite"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with 6-dimension scoring table, signals summary, Docker readiness section"},
+        {"text": "creates-log-file", "passed": true, "evidence": "Deploy log file created at ~/.sealos/logs/deploy-20260312-102318.log"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "eval_name": "web-app-deploy",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 161.4,
+        "tokens": 54511,
+        "tool_calls": 35,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-nodejs", "passed": true, "evidence": "Report states 'Runtime: Node.js >= 20.4.0'"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score is 8/12"},
+        {"text": "detects-external-db", "passed": true, "evidence": "Identifies SQLite and MariaDB"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with scoring criteria, dimension table"},
+        {"text": "creates-log-file", "passed": false, "evidence": "No deploy log file created (no skill instructions)"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "cli-tool-reject",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 3,
+        "failed": 1,
+        "total": 4,
+        "time_seconds": 256.4,
+        "tokens": 63069,
+        "tool_calls": 39,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-cli-tool", "passed": true, "evidence": "Report states 'bat is a command-line utility (CLI tool)'"},
+        {"text": "score-below-4", "passed": false, "evidence": "Score is 4/12 (not < 4). score-model.mjs gives Rust binaries 2/2 for scalability and startup by default"},
+        {"text": "recommends-stop", "passed": true, "evidence": "Decision: STOP. AI correctly overrides with CLI tool stop condition"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with dimension breakdown, signal detection, STOP rationale"}
+      ],
+      "notes": ["score-model.mjs inflates Rust CLI tools to 4/12 by giving 2/2 for scalability and startup to all compiled binaries"]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "cli-tool-reject",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 139.9,
+        "tokens": 51363,
+        "tool_calls": 33,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-cli-tool", "passed": true, "evidence": "Report identifies 'short-lived, interactive command-line tool'"},
+        {"text": "score-below-4", "passed": true, "evidence": "Score is 0/12, all dimensions inapplicable"},
+        {"text": "recommends-stop", "passed": true, "evidence": "Recommendation: REJECT"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with dimension scoring, architecture analysis"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "current-project",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 233.4,
+        "tokens": 55156,
+        "tool_calls": 37,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-nextjs", "passed": true, "evidence": "Report identifies a Next.js landing page in a subdirectory"},
+        {"text": "gives-score", "passed": true, "evidence": "Score is 5/12, with an adjusted estimate after inspecting the subdirectory app"},
+        {"text": "identifies-project-structure", "passed": true, "evidence": "Report identifies a mixed repository with skills plus a landing page"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with dimension table, signal detection, anti-pattern check"}
+      ],
+      "notes": ["score-model.mjs scans repo root and can miss Dockerfiles in subdirectories, which underestimates readiness"]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "current-project",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 167.2,
+        "tokens": 35611,
+        "tool_calls": 45,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-nextjs", "passed": true, "evidence": "Identifies a Next.js 16 landing page in a subdirectory"},
+        {"text": "gives-score", "passed": true, "evidence": "Score is 9.5/12"},
+        {"text": "identifies-project-structure", "passed": true, "evidence": "Identifies a two-part project with skills plus a landing page"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with scoring criteria, dimension tables, Dockerfile analysis"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "go-web-app",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 244.1,
+        "tokens": 56861,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-go", "passed": true, "evidence": "Report identifies Go with Gin framework"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 11/12 (Excellent)"},
+        {"text": "identifies-http-server", "passed": true, "evidence": "Identifies REST API + WebDAV on ports 5244/5245"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with dimensions, signals, env vars"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "go-web-app",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 170.7,
+        "tokens": 57018,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-go", "passed": true, "evidence": "Identifies Go language"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 10/12"},
+        {"text": "identifies-http-server", "passed": true, "evidence": "Identifies web application with Docker images"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with dimensions and deployment recommendations"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "nextjs-monorepo",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 246.5,
+        "tokens": 68317,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-nextjs", "passed": true, "evidence": "Identifies Next.js + Hono + React 19"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 12/12 (Excellent)"},
+        {"text": "detects-monorepo-or-workspace", "passed": true, "evidence": "Identifies pnpm monorepo structure"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Detailed report with infrastructure dependencies and architecture"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "nextjs-monorepo",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 186.4,
+        "tokens": 69369,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-nextjs", "passed": true, "evidence": "Identifies Next.js framework"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 10/12"},
+        {"text": "detects-monorepo-or-workspace", "passed": true, "evidence": "Identifies complex build with multiple external services"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Detailed report with dimensions and deployment analysis"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "electron-desktop",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 210.3,
+        "tokens": 50101,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-desktop-app", "passed": true, "evidence": "Identifies Electron desktop GUI app with BrowserWindow, ipcMain, dialog"},
+        {"text": "score-below-4", "passed": true, "evidence": "Score 1/12 (Poor), below threshold"},
+        {"text": "recommends-stop", "passed": true, "evidence": "Decision: STOP, score below 4"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Report with scoring, disqualifying patterns, alternative recommendation"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "electron-desktop",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 155.6,
+        "tokens": 37042,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-desktop-app", "passed": true, "evidence": "Identifies Electron desktop GUI application"},
+        {"text": "score-below-4", "passed": true, "evidence": "Score 1/12"},
+        {"text": "recommends-stop", "passed": true, "evidence": "NOT DEPLOYABLE"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured assessment report"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "rust-web-docker",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 219.9,
+        "tokens": 71335,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-rust", "passed": true, "evidence": "Identifies Rust with Rocket web framework"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 12/12 (Excellent, maximum)"},
+        {"text": "identifies-web-service", "passed": true, "evidence": "Identifies REST API on port 80 with /alive health check"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Detailed report with architecture analysis and env vars"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "rust-web-docker",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 154.3,
+        "tokens": 55049,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-rust", "passed": true, "evidence": "Identifies Rust language"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 12/12 (Excellent)"},
+        {"text": "identifies-web-service", "passed": true, "evidence": "Identifies REST API with health checks"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Comprehensive assessment report"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "python-library",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 214.9,
+        "tokens": 52427,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-library", "passed": true, "evidence": "Identifies Flask as Python library/framework published to PyPI, not deployable service"},
+        {"text": "score-below-7", "passed": true, "evidence": "Score 6/12 (Fair) from script, AI correctly identifies as library"},
+        {"text": "explains-not-standalone", "passed": true, "evidence": "Explains repository is framework source code with no application entry point"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with dimensions and STOP recommendation"}
+      ],
+      "notes": ["score-model.mjs gives Flask framework source code 6/12 (false positive). AI assessment layer correctly overrides this and applies STOP condition."]
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "python-library",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 160.9,
+        "tokens": 59630,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-library", "passed": true, "evidence": "Identifies Flask as web framework (library), not standalone deployable application"},
+        {"text": "score-below-7", "passed": true, "evidence": "Score 2/12 (Poor)"},
+        {"text": "explains-not-standalone", "passed": true, "evidence": "Explains containerizing this repository would be meaningless"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with dimensions"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "eval_name": "python-fastapi",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 332.3,
+        "tokens": 79303,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-python", "passed": true, "evidence": "Identifies Python with FastAPI framework"},
+        {"text": "score-above-4", "passed": true, "evidence": "Raw 5/12, AI corrected to 10/12 (docker/ subdir issue)"},
+        {"text": "detects-external-db", "passed": true, "evidence": "Detects PostgreSQL support via psycopg2-binary"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Full report with scoring corrections and env var classification"}
+      ],
+      "notes": ["score-model.mjs misses Dockerfile in docker/ subdirectory, scoring 5/12 raw. AI assessment layer detects this limitation and corrects to 10/12."]
+    },
+    {
+      "eval_id": 8,
+      "eval_name": "python-fastapi",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 175.0,
+        "tokens": 58344,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-python", "passed": true, "evidence": "Identifies Python FastAPI application"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 11/12"},
+        {"text": "detects-external-db", "passed": true, "evidence": "Identifies PostgreSQL database dependency"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Detailed assessment with Docker analysis"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "eval_name": "java-springboot",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 202.6,
+        "tokens": 54979,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-java", "passed": true, "evidence": "Identifies Java 17+, Spring Boot 4.0.3"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 7/12 (Good)"},
+        {"text": "identifies-web-service", "passed": true, "evidence": "Identifies web app on port 8080 with Actuator endpoints"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Structured report with scoring and env var classification"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "eval_name": "java-springboot",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 145.7,
+        "tokens": 44745,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "identifies-java", "passed": true, "evidence": "Identifies Java Spring Boot"},
+        {"text": "score-above-4", "passed": true, "evidence": "Score 10/12"},
+        {"text": "identifies-web-service", "passed": true, "evidence": "Standard HTTP on port 8080"},
+        {"text": "produces-structured-report", "passed": true, "evidence": "Detailed report with K8s readiness analysis"}
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 0.975, "stddev": 0.075, "min": 0.75, "max": 1.0},
+      "time_seconds": {"mean": 243.0, "stddev": 36.1, "min": 202.6, "max": 332.3},
+      "tokens": {"mean": 61620, "stddev": 8882, "min": 50101, "max": 79303}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.980, "stddev": 0.060, "min": 0.8, "max": 1.0},
+      "time_seconds": {"mean": 161.7, "stddev": 13.1, "min": 139.9, "max": 186.4},
+      "tokens": {"mean": 52268, "stddev": 9928, "min": 35611, "max": 69369}
+    },
+    "delta": {
+      "pass_rate": "-0.005",
+      "time_seconds": "+81.3",
+      "tokens": "+9352"
+    }
+  },
+  "analyst_notes": [
+    "DISCRIMINATING ASSERTIONS: 'creates-log-file' (eval-0) is skill-specific and always fails without_skill — intentional. 'score-below-4' (eval-1 cli-tool-reject) fails for with_skill due to score-model.mjs inflating Rust binary scores — a known limitation.",
+    "SCORE-MODEL.MJS BUG #1 (Compiled binaries): Gives all compiled binaries (Rust/Go) 2/2 for scalability and startup regardless of whether they run an HTTP server. This inflates bat CLI from expected 0→4/12. The AI assessment layer correctly catches this and applies STOP via CLI tool pattern detection.",
+    "SCORE-MODEL.MJS BUG #2 (Subdirectory blind spot): Scans repo root only. Projects with Dockerfile/package.json in subdirectories get deflated scores: mealie (docker/ → raw 5/12 vs actual 10/12), while root-level projects like spring-petclinic are unaffected. AI correctly compensates when it inspects subdirectories.",
+    "SCORE-MODEL.MJS BUG #3 (Library false positive): Flask framework source code scores 6/12 (above CONTINUE threshold) because it has Python files and test structure. AI correctly identifies the absence of application entry point and applies STOP. Without-skill baseline scores it a correct 2/12.",
+    "COST TRADEOFF: With-skill runs average 81.3s slower and use 9352 more tokens (+18%). The overhead comes from reading skill files (~30KB), running score-model.mjs, and writing structured artifacts (context.json, deploy log). The payoff is deployment-specific artifacts and consistent structured output format.",
+    "NON-DISCRIMINATING ASSERTIONS: Most assertions (identifies-*, score-*, produces-structured-report) pass in both configurations across 9/10 evals. The skill's differentiated value shows in: (a) structured artifact output, (b) AI score correction via assessment layer, (c) consistent STOP logic for edge cases.",
+    "REJECTION ACCURACY: All 3 non-deployable cases (bat CLI, drawio desktop, Flask library) correctly identified by both configurations. With-skill provides more explicit STOP rationale and structured documentation of the rejection reason.",
+    "NOTABLE HIGH SCORERS: lobe-chat (Next.js monorepo, 12/12), vaultwarden (Rust+Docker, 12/12), alist (Go web, 11/12) — all correctly assessed as excellent K8s candidates.",
+    "OVERALL: Both with and without skill pass 97.5-98% of assertions. With-skill consistently provides deployment artifacts, structured logging, and compensates for score-model.mjs blind spots. The primary iteration target should be fixing score-model.mjs subdirectory scanning."
+  ]
+}

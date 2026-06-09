@@ -1,0 +1,37 @@
+{
+  "name": "standup-gen",
+  "version": "0.1.0",
+  "description": "Daily standup notes from git activity.",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-standup-gen",
+  "repository": "https://github.com/mturac/pluginpool-standup-gen",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "standup",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Standup Generator",
+    "shortDescription": "Daily standup notes from git activity.",
+    "longDescription": "Generates daily standup notes from git activity across one or many repositories.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-standup-gen",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-standup-gen/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-standup-gen/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Standup Generator to daily standup notes from git activity."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

@@ -249,6 +249,8 @@ Selected runtime/environment overrides:
 | `CODEX_TUI_V2=0/1` | Disable/enable codex-style tool output |
 | `CODEX_TUI_COLOR_PROFILE=truecolor|ansi256|ansi16` | Force terminal color profile |
 | `CODEX_TUI_GLYPHS=ascii|unicode|auto` | Force terminal glyph style |
+| `CODEX_TUI_MASK_EMAIL=0/1` | Hide account email in TUI quota status only |
+| `CODEX_TUI_MASK_EMAIL_DETAILS=0/1` | Also hide account email in quota details when prompt masking is enabled |
 | `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0/1` | Disable/enable per-project account pools |
 | `CODEX_AUTH_AUTO_UPDATE=0/1` | Disable/enable daily npm update check and cache refresh |
 | `CODEX_AUTH_UNSUPPORTED_MODEL_POLICY=strict|fallback` | Control unsupported-model retry behavior |

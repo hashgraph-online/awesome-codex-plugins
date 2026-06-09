@@ -1,0 +1,12 @@
+{
+  "mcp_servers": {
+    "cxs-rg-guard": {
+      "command": "python3",
+      "args": ["./mcp/cxs_mcp_server.py"],
+      "cwd": ".",
+      "env": {
+        "CXS_DEFAULT_SCOPES": "docs,src,tests,config,analysis"
+      }
+    }
+  }
+}

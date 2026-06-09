@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Design"
+  short_description: "用 Open Design 生成和评审本地优先设计 artifact"
+  default_prompt: "Use $open-design when a TSP task needs local-first prototypes, decks, dashboards, mobile flows, DESIGN.md systems, or exportable visual artifacts. Keep Open Design external, avoid vendoring upstream runtime assets, and feed artifact evidence back into /team-plan, /team-execute, or /team-review."

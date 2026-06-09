@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # audit.sh — two-pass skill audit
-# Pass 1 wraps heal-skill (structural hygiene); Pass 2 adds 8 NEW content-discipline checks.
+# Pass 1 gates through heal-skill --strict; Pass 2 adds 8 NEW content-discipline checks.
 #
 # Usage:
 #   audit.sh [--strict] [--json <path>] <skills/path>
@@ -15,6 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 HEAL_SH="$REPO_ROOT/skills/heal-skill/scripts/heal.sh"
+SCORE_PY="$SCRIPT_DIR/score_agentops_skill.py"
 
 STRICT=0
 JSON_OUT=""
@@ -45,26 +46,53 @@ SKILL_MD="$TARGET/SKILL.md"
 PASS1_OUT=""
 PASS1_FINDINGS_JSON="[]"
 PASS1_AUTOFIXABLE=0
+PASS1_STATUS="pass"
+PASS1_EXIT_CODE=0
+PASS1_FINDING_COUNT=0
 
 if [[ -x "$HEAL_SH" ]]; then
-  PASS1_OUT="$(bash "$HEAL_SH" --check "$TARGET" 2>&1 || true)"
-  # Parse [CODE] path: msg lines into JSON
-  PASS1_FINDINGS_JSON=$(echo "$PASS1_OUT" | awk '
-    BEGIN{print "["; first=1}
-    /^\[[A-Z_]+\]/ {
-      gsub(/"/, "\\\"")
-      match($0, /^\[([A-Z_]+)\] ([^:]+): (.*)$/, m)
-      if (m[1]) {
-        if (!first) print ","
-        first=0
-        printf "{\"code\":\"%s\",\"path\":\"%s\",\"msg\":\"%s\"}", m[1], m[2], m[3]
-      }
-    }
-    END{print "]"}
-  ')
+  if PASS1_OUT="$(bash "$HEAL_SH" --check --strict "$TARGET" 2>&1)"; then
+    PASS1_STATUS="pass"
+    PASS1_EXIT_CODE=0
+  else
+    PASS1_EXIT_CODE=$?
+    PASS1_STATUS="fail"
+  fi
+  # Parse [CODE] path: msg lines into JSON. Use Python here because BSD awk
+  # lacks gawk's match(..., array) extension.
+  PASS1_FINDINGS_JSON=$(PASS1_OUT="$PASS1_OUT" python3 - <<'PY'
+import json
+import os
+import re
+
+findings = []
+pattern = re.compile(r"^\[([A-Z_]+)\] ([^:]+): (.*)$")
+for line in os.environ.get("PASS1_OUT", "").splitlines():
+    match = pattern.match(line)
+    if match:
+        code, path, msg = match.groups()
+        findings.append({"code": code, "path": path, "msg": msg})
+print(json.dumps(findings))
+PY
+)
   # Count autofixable codes (per heal.sh: MISSING_NAME, MISSING_DESC, NAME_MISMATCH, UNLINKED_REF, EMPTY_DIR)
   PASS1_AUTOFIXABLE=$(echo "$PASS1_OUT" | grep -cE '^\[(MISSING_NAME|MISSING_DESC|NAME_MISMATCH|UNLINKED_REF|EMPTY_DIR)\]' || true)
+else
+  PASS1_STATUS="fail"
+  PASS1_EXIT_CODE=2
+  PASS1_OUT="heal-skill delegate missing or not executable: $HEAL_SH"
+  PASS1_FINDINGS_JSON='[{"code":"HEAL_SKILL_MISSING","path":"skills/heal-skill/scripts/heal.sh","msg":"heal-skill delegate missing or not executable"}]'
 fi
+PASS1_FINDING_COUNT=$(PASS1_FINDINGS_JSON="$PASS1_FINDINGS_JSON" python3 - <<'PY'
+import json
+import os
+
+try:
+    print(len(json.loads(os.environ.get("PASS1_FINDINGS_JSON", "[]"))))
+except Exception:
+    print(0)
+PY
+)
 
 # --- Pass 2: 8 NEW checks ------------------------------------------------
 
@@ -216,6 +244,65 @@ run_check quality-rubric             warn check_quality_rubric
 run_check references-modularization  warn check_references_modularization
 run_check trigger-clarity            warn check_trigger_clarity
 
+# --- Advisory density report ---------------------------------------------
+# This is deliberately not part of the PASS/WARN/FAIL verdict. Packet-boundary
+# enforcement belongs to the execution-packet schema; this block helps reviewers
+# find low-signal skill prose before fresh-context dispatch.
+declare -A DENSITY_PRESENT=()
+declare -A DENSITY_EVIDENCE=()
+
+check_density_field() {
+  local id="$1"
+  local pattern="$2"
+  if grep -Eiq -- "$pattern" "$SKILL_MD"; then
+    DENSITY_PRESENT[$id]="true"
+    DENSITY_EVIDENCE[$id]="matched advisory pattern"
+  else
+    DENSITY_PRESENT[$id]="false"
+    DENSITY_EVIDENCE[$id]="missing advisory pattern"
+  fi
+}
+
+check_density_field intent 'intent|goal|behavior|capability'
+check_density_field boundary 'boundary|bounded context|write scope|non-goal|non-goals'
+check_density_field evidence 'evidence|test|tests|verdict|validation|acceptance'
+check_density_field decision 'decision|rationale|why|because|chosen'
+check_density_field constraint 'constraint|constraints|guardrail|guardrails|limit|limits|scope'
+check_density_field next_action 'next_action|next action|next steps|completion marker|report completion'
+
+density_present_count=0
+for id in intent boundary evidence decision constraint next_action; do
+  if [[ "${DENSITY_PRESENT[$id]}" == "true" ]]; then
+    density_present_count=$((density_present_count + 1))
+  fi
+done
+if (( density_present_count == 6 )); then
+  DENSITY_STATUS="pass"
+else
+  DENSITY_STATUS="warn"
+fi
+
+# --- Pass 3: rubric scoring (advisory) -----------------------------------
+# Folds the 10-category Skill Quality Rubric (docs/reference/skill-quality-rubric.md)
+# into the report via score_agentops_skill.py --audit-block. Each category gets a
+# deterministic 0-3 score plus an explainable reason; total is 0-30 with a C/B/A/S
+# rating band. Advisory-only: it never changes the PASS/WARN/FAIL verdict — the
+# rubric measures market-facing maturity, not template conformance (which Pass 1+2
+# already gate). Reason: a low rubric score on a structurally-clean skill is a
+# productization backlog signal, not a ship blocker.
+RUBRIC_JSON="null"
+RUBRIC_SUMMARY=""
+RUBRIC_SCORE="n/a"
+RUBRIC_RATING="?"
+if [[ -f "$SCORE_PY" ]] && command -v python3 >/dev/null 2>&1; then
+  if rubric_out="$(python3 "$SCORE_PY" "$TARGET" --audit-block 2>/dev/null)"; then
+    RUBRIC_JSON="$rubric_out"
+    RUBRIC_SCORE="$(printf '%s' "$rubric_out" | awk -F': ' '/"total_score"/{gsub(/[, ]/,"",$2); print $2; exit}')"
+    RUBRIC_RATING="$(printf '%s' "$rubric_out" | awk -F'"' '/"rating"/{print $4; exit}')"
+    RUBRIC_SUMMARY=" Rubric: ${RUBRIC_SCORE}/30 (${RUBRIC_RATING}) [advisory]."
+  fi
+fi
+
 # --- Aggregate verdict ---------------------------------------------------
 fails=0
 warns=0
@@ -226,7 +313,9 @@ for id in description-has-triggers constraints-frontloaded rationale-present ver
   esac
 done
 
-if (( fails > 0 )); then
+if [[ "$PASS1_STATUS" == "fail" ]]; then
+  VERDICT="FAIL"
+elif (( fails > 0 )); then
   VERDICT="FAIL"
 elif (( warns > 0 )); then
   VERDICT="WARN"
@@ -240,6 +329,9 @@ emit_json() {
   printf '  "target": "%s",\n' "$TARGET"
   printf '  "verdict": "%s",\n' "$VERDICT"
   printf '  "pass1": {\n'
+  printf '    "status": "%s",\n' "$PASS1_STATUS"
+  printf '    "exit_code": %s,\n' "$PASS1_EXIT_CODE"
+  printf '    "strict": true,\n'
   printf '    "findings": %s,\n' "$PASS1_FINDINGS_JSON"
   printf '    "autofixable": %s\n' "$PASS1_AUTOFIXABLE"
   printf '  },\n'
@@ -249,12 +341,26 @@ emit_json() {
   for id in description-has-triggers constraints-frontloaded rationale-present verification-checkpoints output-spec-explicit quality-rubric references-modularization trigger-clarity; do
     if (( ! first )); then printf ',\n'; fi
     first=0
-    printf '      {"id":"%s","status":"%s","evidence":"%s"}' "$id" "${CHECK_STATUS[$id]}" "${CHECK_EVIDENCE[$id]}"
+  printf '      {"id":"%s","status":"%s","evidence":"%s"}' "$id" "${CHECK_STATUS[$id]}" "${CHECK_EVIDENCE[$id]}"
   done
   printf '\n    ]\n'
   printf '  },\n'
-  printf '  "summary": "Pass1: %d findings (%d autofixable). Pass2: %d fails, %d warns. Verdict: %s."\n' \
-    "$(echo "$PASS1_FINDINGS_JSON" | grep -c '"code":' | head -1)" "$PASS1_AUTOFIXABLE" "$fails" "$warns" "$VERDICT"
+  printf '  "density": {\n'
+  printf '    "status": "%s",\n' "$DENSITY_STATUS"
+  printf '    "advisory": true,\n'
+  printf '    "fields": [\n'
+  first=1
+  for id in intent boundary evidence decision constraint next_action; do
+    if (( ! first )); then printf ',\n'; fi
+    first=0
+    printf '      {"id":"%s","present":%s,"evidence":"%s"}' "$id" "${DENSITY_PRESENT[$id]}" "${DENSITY_EVIDENCE[$id]}"
+  done
+  printf '\n    ],\n'
+  printf '    "summary": "%d/6 density signals present; advisory-only and not execution-packet enforcement."\n' "$density_present_count"
+  printf '  },\n'
+  printf '  "rubric": %s,\n' "$RUBRIC_JSON"
+  printf '  "summary": "Pass1: %s via heal --strict (exit %d, %d findings, %d autofixable). Pass2: %d fails, %d warns.%s Verdict: %s."\n' \
+    "$PASS1_STATUS" "$PASS1_EXIT_CODE" "$PASS1_FINDING_COUNT" "$PASS1_AUTOFIXABLE" "$fails" "$warns" "$RUBRIC_SUMMARY" "$VERDICT"
   printf '}\n'
 }
 
@@ -265,11 +371,13 @@ fi
 # Always print human-readable summary to stderr
 {
   echo "=== Skill Audit: $TARGET ==="
-  echo "Pass 1 (heal-skill): $(echo "$PASS1_FINDINGS_JSON" | grep -c '"code":' || echo 0) findings ($PASS1_AUTOFIXABLE autofixable)"
+  echo "Pass 1 (heal-skill --strict): $PASS1_STATUS (exit $PASS1_EXIT_CODE), $PASS1_FINDING_COUNT findings ($PASS1_AUTOFIXABLE autofixable)"
   echo "Pass 2 (8 NEW checks):"
   for id in description-has-triggers constraints-frontloaded rationale-present verification-checkpoints output-spec-explicit quality-rubric references-modularization trigger-clarity; do
     printf "  [%-4s] %s\n" "${CHECK_STATUS[$id]}" "$id"
   done
+  echo "Density advisory: $density_present_count/6 fields present ($DENSITY_STATUS)"
+  echo "Pass 3 rubric (advisory): ${RUBRIC_SCORE}/30 (${RUBRIC_RATING})"
   echo "VERDICT: $VERDICT"
 } >&2
 

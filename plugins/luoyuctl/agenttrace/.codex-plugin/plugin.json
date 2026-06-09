@@ -38,8 +38,8 @@
       "Create a Markdown overview report for agent sessions."
     ],
     "brandColor": "#54FF00",
-    "composerIcon": "./assets/logo-icon.png",
-    "logo": "./assets/logo-icon.png",
+    "composerIcon": "./assets/plugin-icon.svg",
+    "logo": "./assets/plugin-icon.svg",
     "screenshots": [
       "./assets/tui-preview.png",
       "./assets/terminal-demo.png"

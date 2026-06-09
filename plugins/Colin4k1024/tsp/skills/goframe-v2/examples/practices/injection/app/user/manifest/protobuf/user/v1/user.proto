@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "practices/injection/app/user/api/user/v1";
+
+import "entity/user.proto";
+
+// User service definition
+service User{
+    // Create creates a new user
+    rpc Create(CreateReq) returns (CreateRes) {}
+
+    // GetOne retrieves a single user by ID
+    rpc GetOne(GetOneReq) returns (GetOneRes) {}
+
+    // GetList retrieves a list of users
+    rpc GetList(GetListReq) returns (GetListRes) {}
+
+    // Delete removes a user by ID
+    rpc Delete(DeleteReq) returns (DeleteRes) {}
+}
+
+// Request for creating a user
+message CreateReq {
+    // v: required
+    string name = 1;
+}
+// Response for user creation
+message CreateRes {
+    string id = 1; // Created user ID
+}
+
+// Request for retrieving a single user
+message GetOneReq {
+    // v: required
+    string id = 1;
+}
+// Response for single user retrieval
+message GetOneRes {
+    entity.User data = 1; // User details
+}
+
+// Request for retrieving a list of users
+message GetListReq {
+    // v:required
+    repeated string ids = 1;
+}
+// Response for user list retrieval
+message GetListRes {
+    repeated entity.User list = 1; // List of users
+}
+
+// Request for deleting a user
+message DeleteReq {
+    // User ID to delete
+    // v: min:1#
+    // v: Please select the user to be deleted.
+    string id = 1;
+}
+// Response for user deletion
+message DeleteRes {}

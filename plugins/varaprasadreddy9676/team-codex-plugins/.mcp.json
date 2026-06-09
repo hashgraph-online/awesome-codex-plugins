@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "openproject": {
+      "type": "stdio",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "python3 ./plugins/openproject/scripts/openproject_mcp.py 2>/dev/null || python3 ./scripts/openproject_mcp.py"
+      ]
+    }
+  }
+}

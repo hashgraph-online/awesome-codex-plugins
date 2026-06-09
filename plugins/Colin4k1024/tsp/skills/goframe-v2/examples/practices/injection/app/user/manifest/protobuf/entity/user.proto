@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package entity;
+
+option go_package = "practices/injection/app/user/api/entity";
+
+message User {
+    string id         = 1   ; // User ID
+    string name       = 2   ; // User Name
+    int64  created_at = 3   ; // Created Time
+    int64  update_at  = 4   ; // Updated Time
+}

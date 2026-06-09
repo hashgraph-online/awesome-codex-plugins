@@ -1,0 +1,57 @@
+{
+  "skill_name": "sealos-database",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "/sealos-database create a cloud Postgres database for this repo and wire DATABASE_URL",
+      "expected_output": "Analyzes the project, checks sealos-cli auth/workspace, lists existing databases, creates or reuses PostgreSQL, writes the local DATABASE_URL without printing secrets, and verifies the app database path.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "uses-analyzer",
+          "description": "Runs scripts/analyze-project-database.mjs or performs equivalent file-backed detection before choosing the database type"
+        },
+        {
+          "name": "uses-sealos-cli",
+          "description": "Uses sealos-cli database commands instead of raw kubectl database manifests"
+        },
+        {
+          "name": "protects-secrets",
+          "description": "Does not print passwords or full connection strings in the final answer"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "/sealos-database connect this app to an existing Sealos Redis database for local development",
+      "expected_output": "Lists existing databases, selects a matching Redis database or asks if ambiguous, fetches connection details, updates the existing Redis env key, and verifies the app's cache/queue path.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "prefers-reuse",
+          "description": "Checks database list before creating a new database"
+        },
+        {
+          "name": "maps-env-key",
+          "description": "Uses REDIS_URL or the existing project-specific Redis env key"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/sealos-database my local laptop cannot reach the private database endpoint",
+      "expected_output": "Explains that local-machine access may require public access, asks before enabling it, and recommends disabling public access after testing if no longer needed.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "asks-before-public",
+          "description": "Does not run enable-public without user confirmation"
+        },
+        {
+          "name": "cleanup-guidance",
+          "description": "Mentions disable-public when public access is temporary"
+        }
+      ]
+    }
+  ]
+}

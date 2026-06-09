@@ -30,6 +30,14 @@
  * canonical to catch any out-of-band edits.
  *
  * 2026-04-13: tagPathRegex added for Obsidian nested-tag support (e.g. meta/schema).
+ *
+ * 2026-05-23 (#503, I5): `peer-card` appended to vaultNoteTypeSchema via the
+ *   vendored-edit + sync-script-baseline-update path. Upstream canonical
+ *   (projects-baseline/packages/zod-schemas/src/vault-frontmatter.ts) is
+ *   behind until #503 lands there; until then, `sync-vault-schema.mjs --check`
+ *   will report drift in CI. Tracked as upstream-sync-debt in the #503 PRD.
+ *   When upstream catches up, re-run `node scripts/sync-vault-schema.mjs --write`
+ *   to confirm idempotency.
  * ────────────────────────────────────────────────────────────────────────────
  */
 
@@ -64,6 +72,7 @@ const vaultNoteTypeSchema = z.enum([
   'idea',
   'learning',
   'session',
+  'peer-card',
 ]);
 
 const vaultNoteStatusSchema = z.enum([

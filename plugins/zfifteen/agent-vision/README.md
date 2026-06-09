@@ -4,7 +4,7 @@
 
 Agent Vision is a macOS-only Codex plugin that lets a local Codex session capture camera frames through a signed local app and materialize them as JPEG files.
 
-It gives Codex a tiny, explicit window into the physical world around your Mac. Not a browser camera hack. Not a cloud vision service. Not an always-on surveillance product wearing a fake mustache and pretending to be productivity software. Just a signed native macOS app, an MCP-backed capture path, and a local JPEG file when you ask for one.
+It gives Codex a tiny, explicit window into the physical world around your Mac. Not a browser camera hack. Not a cloud vision service. Not an always-on surveillance product wearing a fake mustache and pretending to be productivity software. Just a signed native macOS app and a local JPEG file when you ask for one.
 
 Some people will love this. Some people will absolutely hate it. Both reactions are reasonable.
 
@@ -12,12 +12,7 @@ If the idea of an AI assistant seeing your desk makes your soul leave your body 
 
 ## What It Does
 
-Version 1.0.1 gives Codex four explicit MCP tools:
-
-- `agent_vision_snapshot`
-- `agent_vision_start`
-- `agent_vision_frame`
-- `agent_vision_stop`
+Version 1.0.3 gives Codex an explicit one-shot file capture path. Installing the plugin, enabling the plugin, opening Codex, or sending unrelated prompts must not start `agent-vision-mcp`, `AgentVision.app`, or any Agent Vision camera-capable helper process.
 
 The user-facing slash command is intentionally small:
 
@@ -25,21 +20,24 @@ The user-facing slash command is intentionally small:
 /agent-vision snapshot
 /agent-vision streaming
 /agent-vision roast
+/agent-vision mood
 ```
 
 Snapshot mode starts the camera if needed, waits for a usable JPEG frame, materializes that frame under `~/.codex/agent-vision/frames`, displays it with an absolute Markdown image link, and stops the camera only if snapshot started it. If the camera returns a black warm-up frame, Agent Vision keeps the camera on, waits 5 seconds between attempts, and tries up to 3 total attempts.
 
-Streaming mode keeps the camera session active so Codex can pull frames when visual context would help. The Mac camera indicator should stay on while streaming mode is active.
+Streaming mode is temporarily disabled in 1.0.3 while the runtime is being moved to an explicit start/stop design that does not depend on plugin-load MCP server lifecycle.
 
-Roast mode is snapshot plus prose: it materializes a usable JPEG frame, passes that exact file to `codex exec -i`, and returns one opt-in playful roast of 400 characters or fewer. There is no separate roast MCP tool in version 1.0.1.
+Roast mode is snapshot plus prose: it materializes a usable JPEG frame, passes that exact file to `codex exec -i`, and returns one opt-in playful roast of 400 characters or fewer.
 
-To stop streaming, tell Codex to stop camera use:
+Mood mode is snapshot plus delivery calibration: it materializes a usable JPEG frame, passes that exact file to `codex exec -i`, parses strict JSON with `presence`, `interaction_state`, `confidence`, `observable_basis`, and `assistant_adjustments`, and applies that result internally. The normal user experience shows neither the captured image nor the raw JSON. The result shapes only the current response or task phase: pacing, verbosity, clarification threshold, evidence density, tone, and repair behavior. It does not change facts, permissions, approval behavior, user intent, or task scope.
+
+If you ask for streaming, Agent Vision reports the temporary disabled state and launches no Agent Vision process:
 
 ```text
-Agent Vision streaming off
+Agent Vision streaming is temporarily disabled in 1.0.3 while the runtime is being moved to an explicit start/stop design.
 ```
 
-The installed skill maps that request to `agent_vision_stop`.
+Stop-streaming requests also launch no Agent Vision process because there is no streaming session to stop in 1.0.3.
 
 ## What It Does Not Do
 
@@ -51,9 +49,10 @@ Agent Vision does not implement:
 - Device selection.
 - Browser `getUserMedia`.
 - Remote camera access.
-- Automatic frame ingestion when streaming mode is off.
+- Automatic frame ingestion.
+- Mood history, training datasets, background mood detection, or a separate image archive.
 
-The camera stays local. Snapshot and roast mode use a saved JPEG file as the user-visible image contract; MCP image bytes are not treated as directly inspectable model vision input.
+The camera stays local. Snapshot, roast, and mood mode use a saved JPEG file as the user-visible image contract.
 
 ## Who This Is For
 
@@ -80,16 +79,16 @@ Ask Codex to install Agent Vision from the repository URL:
 Install Agent Vision from https://github.com/zfifteen/agent-vision
 ```
 
-Codex should download the packaged release from that repository, extract it, run the package `install.sh`, and then open a new Codex session so `/agent-vision` and the Agent Vision MCP tools are loaded.
+Codex should download the packaged release from that repository, extract it, run the package `install.sh`, and then open a new Codex session so `/agent-vision` is loaded.
 
 For QA evidence that the install and uninstall lifecycle maps to the available OpenAI/Codex plugin guidance, see [docs/agent-vision-install-uninstall-traceability.md](docs/agent-vision-install-uninstall-traceability.md).
 
 Manual package install:
 
 ```bash
-curl -L -o agent-vision-1.0.1.tar.gz https://github.com/zfifteen/agent-vision/releases/download/v1.0.1/agent-vision-1.0.1.tar.gz
-tar -xzf agent-vision-1.0.1.tar.gz
-cd agent-vision-1.0.1
+curl -L -o agent-vision-1.0.3.tar.gz https://github.com/zfifteen/agent-vision/releases/download/v1.0.3/agent-vision-1.0.3.tar.gz
+tar -xzf agent-vision-1.0.3.tar.gz
+cd agent-vision-1.0.3
 ./install.sh
 ```
 
@@ -98,7 +97,7 @@ cd agent-vision-1.0.1
 If you are asking Codex to install the plugin for you, use a prompt like this:
 
 ```text
-Install Agent Vision from https://github.com/zfifteen/agent-vision. Use the packaged release archive from the repo releases, not the source/developer installer. Extract the archive, run ./install.sh, and open a new Codex session before using /agent-vision.
+Install Agent Vision from https://github.com/zfifteen/agent-vision. Use the packaged release archive from the repo releases, not the source/developer installer. Extract the archive, run ./install.sh, and open a new Codex session before using /agent-vision. Confirm install and idle Codex startup create no Agent Vision process.
 ```
 
 ## Slash Commands
@@ -115,23 +114,23 @@ Take one image and turn the camera off:
 /agent-vision snapshot
 ```
 
-Use this when you want one usable image and then want the camera off. If the camera is already on because streaming mode is active, snapshot leaves streaming mode active. Codex should show the saved JPEG through an absolute Markdown image link.
+Use this when you want one usable image and then want the camera off. Codex should show the saved JPEG through an absolute Markdown image link.
 
-Start streaming mode and keep the camera available:
+Streaming mode is temporarily disabled:
 
 ```text
 /agent-vision streaming
 ```
 
-Use this when Codex may need to inspect more than one moment in time. While streaming mode is active, Codex can pull frames as needed without asking for each frame. The camera indicator should stay on while this mode is active.
+This launches no Agent Vision process in 1.0.3. The command returns the temporary disabled message.
 
-Stop streaming mode and release the camera:
+Stop streaming:
 
 ```text
 Agent Vision streaming off
 ```
 
-You can also say `stop streaming` or `turn off the camera`. Codex maps those requests to `agent_vision_stop`.
+You can also say `stop streaming` or `turn off the camera`. In 1.0.3, Codex reports that there is no Agent Vision streaming session to stop and launches no Agent Vision process.
 
 Take one image and request immediate emotional damage, responsibly:
 
@@ -154,9 +153,9 @@ What does the label on this device say?
 Debug a physical setup:
 
 ```text
-/agent-vision streaming
+/agent-vision snapshot
 
-Watch this prototype while I press the button. Tell me whether the status LED changes.
+Compare this prototype state to the expected wiring and tell me what looks wrong.
 ```
 
 Use it as the least glamorous lab assistant ever hired:
@@ -193,21 +192,28 @@ Roast me in 400 characters or fewer.
 
 The plugin cannot touch objects, move the camera, choose a different camera, or infer anything outside the returned image. If the camera cannot see it, Agent Vision cannot see it either. This is still software, not a dramatic scene from a hacking movie.
 
+Estimate current interaction state for response delivery:
+
+```text
+/agent-vision mood
+```
+
+Mood mode is opt-in. It uses the same saved JPEG frame path as snapshot and roast, then asks a separate image-input Codex pass for strict JSON. The captured image and JSON are internal control signals and are not displayed in the normal response. Low-confidence or unusable images return `uncertain` or `absent` and do not apply state-specific response shaping. User correction overrides the visual estimate for the current response or task phase.
+
 ## Architecture
 
 ```mermaid
 flowchart LR
   A["Codex slash command"] --> B["agent-vision-capture-file"]
-  B --> C["Agent Vision MCP wrapper"]
-  C --> D["AgentVision.app"]
-  D --> E["AVFoundation"]
-  E --> F["Built-in Mac camera"]
-  F --> G["JPEG frame"]
-  G --> C
+  B --> C["AgentVision.app capture-file"]
+  C --> D["AVFoundation"]
+  D --> E["Built-in Mac camera"]
+  E --> F["JPEG frame"]
+  F --> C
   C --> B
-  B --> H["Saved JPEG file"]
-  H --> A
-  A --> I["Markdown image link or codex exec -i"]
+  B --> G["Saved JPEG file"]
+  G --> A
+  A --> H["Markdown image link or codex exec -i"]
 ```
 
 The plugin package contains:
@@ -217,19 +223,18 @@ The plugin package contains:
 - `commands/agent-vision.md`
 - `skills/camera-control/SKILL.md`
 - `dist/AgentVision.app`
-- `dist/agent-vision-mcp`
 - `dist/agent-vision-capture-file`
 
-The native app owns the camera permission. The MCP wrapper launches the signed app bundle and bridges JSON-RPC over named FIFOs. The file materializer calls the wrapper, decodes exactly one returned JPEG image, writes it to an explicit absolute path, and prints JSON. This preserves the macOS app identity that Camera permission is attached to while giving Codex an inspectable local file.
+The native app owns the camera permission. The file materializer launches the signed app bundle only for explicit one-shot capture, writes exactly one JPEG image to an explicit absolute path, and prints JSON. This preserves the macOS app identity that Camera permission is attached to while giving Codex an inspectable local file.
 
-The installer stages the plugin under `~/plugins/agent-vision`, caches it under `~/.codex/plugins/cache/local/agent-vision/1.0.1`, registers the home-local marketplace and `agent-vision@local` plugin entry in `~/.codex/config.toml`, removes legacy duplicate `mcp_servers.agent_vision` config, verifies the MCP tool list, and runs a Codex admission check before exiting.
+The installer stages the plugin under `~/plugins/agent-vision`, caches it under `~/.codex/plugins/cache/local/agent-vision/1.0.3`, registers the home-local marketplace and `agent-vision@local` plugin entry in `~/.codex/config.toml`, removes legacy duplicate `mcp_servers.agent_vision` and `mcp_servers."agent-vision"` config, verifies that no Agent Vision MCP wrapper is installed, and runs a Codex admission check before exiting.
 
 ## Camera Modes
 
 Snapshot mode:
 
 1. Codex runs `agent-vision-capture-file --output "$OUTPUT" --json`.
-2. The file materializer calls `agent_vision_snapshot` through the installed MCP wrapper.
+2. The file materializer launches `AgentVision.app capture-file`.
 3. `AgentVision.app` starts the built-in camera if it is not already running.
 4. The app waits for and returns one usable JPEG frame.
 5. The file materializer writes the JPEG to `$OUTPUT` and prints JSON with `ok: true`.
@@ -239,25 +244,29 @@ Roast mode:
 
 1. Codex runs `agent-vision-capture-file --output "$OUTPUT" --json`.
 2. The file materializer writes one usable JPEG to `$OUTPUT`.
-3. Codex runs `codex exec --ephemeral -i "$OUTPUT" -- "...roast prompt..."`.
+3. Codex runs `codex exec --ephemeral --skip-git-repo-check -i "$OUTPUT" -- "...roast prompt..."`.
 4. Codex returns the saved JPEG link and the roast text from that image-input pass.
 
-Streaming mode:
+Mood mode:
 
-1. Codex calls `agent_vision_start`.
-2. `AgentVision.app` keeps a capture session active.
-3. Codex calls `agent_vision_frame` whenever visual context would help.
-4. Codex calls `agent_vision_stop` when the user asks to stop camera use.
+1. Codex runs `agent-vision-capture-file --output "$OUTPUT" --json`.
+2. The file materializer writes one usable JPEG to `$OUTPUT`.
+3. Codex runs `codex exec --ephemeral --skip-git-repo-check -i "$OUTPUT" -- "...mood JSON prompt..."`.
+4. Codex parses the strict JSON from that image-input pass.
+5. Codex applies permitted response-shape adjustments only to the current response or task phase.
+6. Codex does not display the captured image, raw JSON, confidence band, or visual-analysis rationale unless the user explicitly asks to debug mood mode.
 
-The user-visible invariant is simple: snapshot should blink the camera on briefly; streaming should keep the camera indicator on until stopped.
+Streaming mode is disabled in 1.0.3. `/agent-vision streaming`, `stop streaming`, and `turn off the camera` launch no Agent Vision process.
+
+The user-visible invariant is simple: snapshot, roast, and mood blink the camera on briefly; install, idle Codex startup, unrelated prompts, streaming requests, and stop-streaming requests create no Agent Vision process.
 
 ## Privacy
 
-Agent Vision is explicit and pull-based. Snapshot mode starts the camera only for one frame. Streaming mode starts only when Codex calls `agent_vision_start`; frames are returned only when Codex calls `agent_vision_frame`; the session stops when Codex calls `agent_vision_stop`.
+Agent Vision is explicit and one-shot in 1.0.3. Snapshot, roast, and mood mode start the camera only for one frame. There is no installed Agent Vision MCP server and no streaming session.
 
 macOS asks for camera permission for the signed `AgentVision.app` the first time the capture session starts. Repeated prompts usually mean the app identity changed and the local installer should be rerun.
 
-Version 1.0.1 does not implement background recording, cloud upload, device selection, audio capture, or unsolicited streaming into Codex context.
+Version 1.0.3 does not implement background recording, cloud upload, device selection, audio capture, unsolicited streaming into Codex context, streaming mode, mood history, training datasets, or a separate mood image archive.
 
 See [PRIVACY.md](PRIVACY.md) for the standalone policy.
 
@@ -287,12 +296,6 @@ Run the slash-command matrix:
 scripts/test-slash-commands.sh
 ```
 
-Verify file-backed snapshot while streaming is active:
-
-```bash
-scripts/test-streaming-interaction.sh
-```
-
 Build a release archive:
 
 ```bash
@@ -313,14 +316,12 @@ The source installer is for development and release production. It builds and si
 If the slash command does not appear, verify the local plugin cache exists:
 
 ```bash
-ls ~/.codex/plugins/cache/local/agent-vision/1.0.1
+ls ~/.codex/plugins/cache/local/agent-vision/1.0.3
 ```
 
 If macOS repeatedly asks for camera permission, rerun the installer. Camera permission is tied to the signed `AgentVision.app` identity.
 
-If streaming says it started but the camera indicator is off, the MCP process is not being kept alive. Streaming mode requires a persistent MCP session.
-
-If frames are unavailable immediately after starting streaming, wait briefly and pull again. If frame errors persist, report the exact camera error instead of substituting another capture path.
+If streaming is requested, Agent Vision 1.0.3 reports that streaming is temporarily disabled and launches no process.
 
 If snapshot or roast mode sees a black frame, it treats that as camera warm-up and keeps the camera on. The 5-second wait happens between attempts, for 3 total attempts. After 3 black-frame attempts, it returns an error instead of handing Codex a useless image.
 

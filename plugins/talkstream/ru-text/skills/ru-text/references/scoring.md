@@ -33,7 +33,7 @@ Context-aware LLM evaluation based on ~1 044 rules from 16 sources.
 
 Formula-based tools (Glavred, Turgenev, Advego) count surface features: stop-words, sentence length, keyword density. Removing «очень» raises the score without improving the text. An SEO text scored 9.1 on Glavred without any real quality.
 
-This rubric evaluates text contextually against 1 040 rules. «Очень» in quoted direct speech is not penalized. «Инновационный» without evidence is penalized. Five orthogonal dimensions cannot be optimized simultaneously without genuinely improving the text.
+This rubric evaluates text contextually against ~1 044 rules. «Очень» in quoted direct speech is not penalized. «Инновационный» without evidence is penalized. Five orthogonal dimensions cannot be optimized simultaneously without genuinely improving the text.
 
 The only way to raise the score is to write better.
 
@@ -62,7 +62,7 @@ Type: hard (objective). Rule source: [typography.md](typography.md) (96 rules).
 
 ### Ч — Clarity (weight 0.25)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [anti-patterns.md](anti-patterns.md) (139 rules). Secondary signals (low weight): [addenda.md](addenda.md) AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception).
+Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [anti-patterns.md](anti-patterns.md) (138 rules). Secondary signals (low weight): [addenda.md](addenda.md) AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception).
 
 | Score | Criteria |
 |---|---|

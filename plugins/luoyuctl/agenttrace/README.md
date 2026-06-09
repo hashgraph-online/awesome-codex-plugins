@@ -5,7 +5,7 @@
 <h1 align="center">AgentTrace</h1>
 
 <p align="center">
-  Review AI coding agent history across cost, tokens, and time, then find why a run was slow.
+  Local-first TUI and reports for AI coding-agent session history, cost, tokens, time, and slow-run diagnosis.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
   <a href="https://goreportcard.com/report/github.com/luoyuctl/agenttrace"><img src="https://goreportcard.com/badge/github.com/luoyuctl/agenttrace" alt="Go Report Card"></a>
   <img src="https://img.shields.io/badge/go-1.25+-00ADD8.svg" alt="Go">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
-  <img src="https://img.shields.io/badge/Homebrew-v0.4.2-2bbc8a.svg" alt="Homebrew">
+  <img src="https://img.shields.io/badge/Homebrew-v0.5.2-2bbc8a.svg" alt="Homebrew">
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@
 
 ---
 
-**agenttrace** is a local TUI and report generator for AI coding agent session history. It reads Claude Code, Codex CLI, Gemini CLI, Qwen Code, Cursor, Aider, OpenCode, OpenClaw, Hermes Agent, Kimi CLI, and Copilot-style logs, then helps with two daily jobs: see what multiple agents spent across cost, tokens, and time; and diagnose why a task ran slowly.
+**agenttrace** is a local-first terminal TUI and report generator for AI coding-agent session history. It reads Claude Code, Codex CLI, Gemini CLI, Qwen Code, Cline, Aider, Cursor exports, Hermes Agent, OpenCode, OpenClaw, Pi, Oh My Pi, Kimi CLI, Copilot-style logs, and generic JSON/JSONL traces, then helps with two daily jobs: see what multiple agents spent across cost, tokens, and time; and diagnose why a task ran slowly.
 
 ## Why agenttrace?
 
@@ -41,6 +41,7 @@ It helps you answer:
 
 - **What did my agents spend?** Compare historical sessions by agent source, model, input/output/cache tokens, estimated cost, and wall-clock time.
 - **Why was this task slow?** Catch long gaps, hanging sessions, retry loops, slow tool calls, large parameters, and context pressure.
+- **Did a run regress?** Compare against a local baseline when supplied, then inspect incident timelines and conservative tool authority categories in reports.
 - **What should I inspect first?** Rank sessions by cost, duration, turns, health, failures, anomalies, model, source, or text search.
 - **Can I inspect this privately?** Everything runs locally; prompts, code, and logs do not need to leave your machine.
 
@@ -63,17 +64,17 @@ agenttrace
 That local run found:
 
 ```text
-AGENTTRACE v0.4.2
+AGENTTRACE v0.5.2
 ```
 
 | Signal | What agenttrace found |
 |---|---:|
-| Analyzed sessions | 1,714 |
-| Total tokens | 8.93B |
-| Estimated cost | $4,896.61 |
-| Tool failure rate | 1.5% |
-| Critical sessions | 35 |
-| Average health | 90% |
+| Analyzed sessions | 1,761 |
+| Total tokens | 9.13B |
+| Estimated cost | $5,037.26 |
+| Tool failure rate | 1.1% |
+| Critical sessions | 16 |
+| Average health | 91% |
 
 ## Install
 
@@ -94,8 +95,6 @@ Windows:
 iwr -useb https://raw.githubusercontent.com/luoyuctl/agenttrace/master/install.ps1 | iex
 ```
 
-The npm wrapper is also available as `agenttrace` after each release is published.
-
 ## Common workflows
 
 ```bash
@@ -111,6 +110,12 @@ agenttrace --overview -f json
 # Create a self-contained report for CI artifacts or issue links
 agenttrace --overview -f html -o agenttrace-overview.html
 
+# Save a local baseline, then compare a later run
+agenttrace --overview -f json -o agenttrace-baseline.json
+agenttrace --overview -f json \
+  --baseline agenttrace-baseline.json \
+  -o agenttrace-overview.json
+
 # Fail CI on unhealthy agent runs
 agenttrace --overview \
   --fail-under-health 80 \
@@ -122,7 +127,7 @@ agenttrace --overview \
 
 agenttrace supports local sessions from:
 
-Claude Code, Codex CLI, Gemini CLI, Qwen Code, Cline, Aider, Cursor exports, Hermes Agent, OpenCode, OpenClaw, Oh My Pi, Kimi CLI, Copilot-style logs, and generic JSON/JSONL traces.
+Claude Code, Codex CLI, Gemini CLI, Qwen Code, Cline, Aider, Cursor exports, Hermes Agent, OpenCode, OpenClaw, Pi, Oh My Pi, Kimi CLI, Copilot-style logs, and generic JSON/JSONL traces.
 
 ## What you get
 
@@ -130,6 +135,7 @@ Claude Code, Codex CLI, Gemini CLI, Qwen Code, Cline, Aider, Cursor exports, Her
 |---|---|
 | Historical spend review | Sessions grouped across agents with token totals, model pricing, estimated cost, and elapsed time |
 | Slow-task diagnosis | Latency stats, long gaps, hanging sessions, retry loops, slow tools, large params, and context pressure |
+| Regression evidence | Local baseline comparison when supplied, incident timelines, and conservative tool authority categories in reports |
 | First-session triage | Sort and filter by cost, duration, health, failures, anomalies, model, source, or text search |
 | Shareable evidence | JSON, Markdown, and self-contained HTML reports |
 | Local-first inspection | No hosted backend required |
@@ -143,7 +149,19 @@ Claude Code, Codex CLI, Gemini CLI, Qwen Code, Cline, Aider, Cursor exports, Her
 - Parser guide: [docs/parser-guide.md](docs/parser-guide.md)
 - Launch notes: [docs/launch-kit.md](docs/launch-kit.md)
 
-Listed in [Awesome Gemini CLI](https://github.com/Piebald-AI/awesome-gemini-cli), [Charm in the Wild](https://github.com/charm-and-friends/charm-in-the-wild), and [Awesome Claude Code and Skills](https://github.com/GetBindu/awesome-claude-code-and-skills).
+Listed in:
+
+- [Awesome Gemini CLI](https://github.com/Piebald-AI/awesome-gemini-cli)
+- [Charm in the Wild](https://github.com/charm-and-friends/charm-in-the-wild)
+- [Awesome Claude Code and Skills](https://github.com/GetBindu/awesome-claude-code-and-skills)
+- [awesome-x-ops](https://github.com/xlabs-club/awesome-x-ops)
+- [Awesome DevOps AI](https://github.com/hammadhaqqani/awesome-devops-ai)
+- [agentic-ai-knowledge-base](https://github.com/ankurkumarz/agentic-ai-knowledge-base)
+- [awesome-harness-engineering](https://github.com/walkinglabs/awesome-harness-engineering)
+- [awesome-ai-tools](https://github.com/QAInsights/awesome-ai-tools)
+- [awesome-claude-code-toolkit](https://github.com/rohitg00/awesome-claude-code-toolkit)
+- [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins)
+- [awesome-agent-skills](https://github.com/kodustech/awesome-agent-skills)
 
 ## Contributing
 

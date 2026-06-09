@@ -2,17 +2,20 @@
 /**
  * checker.mjs — CLAUDE.md narrative drift-check (claude-md-drift-check).
  *
- * Five checks: path-resolver, project-count-sync, issue-reference-freshness,
- * session-file-existence, command-count. Scans CLAUDE.md + _meta/**\/*.md by default.
+ * Seven checks: path-resolver, project-count-sync, issue-reference-freshness,
+ * session-file-existence, command-count, session-config-parity, vault-dir-parity.
+ * Scans CLAUDE.md + _meta/**\/*.md by default.
  * Emits JSON on stdout. Exit 0 (ok/warn/skip), 1 (hard + errors), 2 (infra).
  *
- * Pure Node stdlib — no runtime dependencies.
+ * Reuses `_parseVaultIntegration` from scripts/lib/config/ for Check 7;
+ * otherwise pure Node stdlib.
  */
 
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { resolveInstructionFile } from '../../scripts/lib/common.mjs';
+import { _parseVaultIntegration } from '../../scripts/lib/config/vault-integration.mjs';
 
 const FORWARD_HEADING_RE =
   /(?:^|\b)(what'?s?\s+next|backlog|open\s+issues?|offene\s+(?:issues?|themen)|todo|next\s+steps?|roadmap)(?:$|\b)/i;
@@ -29,6 +32,7 @@ function parseArgs(argv) {
     skipSessionFiles: false,
     skipCommandCount: false,
     skipSessionConfigParity: false,
+    skipVaultDirParity: false,
     repo: null,
     commandsDir: null,
     configTemplate: null,
@@ -46,6 +50,7 @@ function parseArgs(argv) {
     else if (a === '--skip-session-files') out.skipSessionFiles = true;
     else if (a === '--skip-command-count') out.skipCommandCount = true;
     else if (a === '--skip-session-config-parity') out.skipSessionConfigParity = true;
+    else if (a === '--skip-vault-dir-parity') out.skipVaultDirParity = true;
     else if (a === '--help' || a === '-h') {
       process.stdout.write('Usage: checker.mjs [--mode hard|warn|off] [--include-path GLOB]... [--repo OWNER/NAME] [--commands-dir PATH] [--config-template PATH] [--skip-*]\n');
       process.exit(0);
@@ -133,6 +138,32 @@ function extractTopLevelKeys(body) {
     keys.push(m[1]);
   }
   return keys;
+}
+
+/**
+ * Read a file's `vault-integration` settings for the vault-dir-parity check.
+ *
+ * Returns `{ present, vaultDir }`:
+ *   - `present` is true when the file contains a `vault-integration:` block or
+ *     inline-object literal (block-form header `vault-integration:` on its own
+ *     line, or `vault-integration: { ... }`), matching the source shapes
+ *     `_parseVaultIntegration` recognises.
+ *   - `vaultDir` is the parsed `vault-integration.vault-dir` value (null when
+ *     unset/absent), produced by reusing `_parseVaultIntegration` rather than
+ *     hand-rolling YAML.
+ *
+ * @param {string} filePath — absolute path to CLAUDE.md / AGENTS.md
+ * @returns {{ present: boolean, vaultDir: string|null }}
+ */
+function readVaultIntegration(filePath) {
+  const content = readFileSync(filePath, 'utf8');
+  // Detect block-form header (`vault-integration:` alone on a line) or inline
+  // object literal (`vault-integration: { ... }`), with or without a list dash.
+  const present =
+    /^(?:-\s+)?vault-integration:\s*$/m.test(content) ||
+    /^(?:-\s+)?vault-integration:\s*\{[^}]*\}\s*(?:#.*)?$/m.test(content);
+  const parsed = _parseVaultIntegration(content);
+  return { present, vaultDir: parsed['vault-dir'] };
 }
 
 function classifySection(heading) {
@@ -312,6 +343,44 @@ function main() {
     checksSkipped.push('session-config-parity: explicitly skipped');
   }
   if (configParityRan) checksRun.push('session-config-parity');
+
+  // Check 7: vault-dir-parity (issue #600) — when BOTH instruction files
+  // (CLAUDE.md AND AGENTS.md) exist as transparent aliases, they must agree on
+  // `vault-integration.vault-dir`. A sibling project carried a dead vault-dir in
+  // AGENTS.md for weeks while CLAUDE.md was correct; resolveInstructionFile()
+  // picks only one file, so the disagreement went undetected. This check reads
+  // both files independently and flags any divergence.
+  let vaultDirParityRan = false;
+  if (!args.skipVaultDirParity) {
+    const claudePath = join(vaultDir, 'CLAUDE.md');
+    const agentsPath = join(vaultDir, 'AGENTS.md');
+    const claudeExists = existsSync(claudePath) && statSync(claudePath).isFile();
+    const agentsExists = existsSync(agentsPath) && statSync(agentsPath).isFile();
+
+    if (!claudeExists || !agentsExists) {
+      checksSkipped.push('vault-dir-parity: requires both CLAUDE.md and AGENTS.md (only one present)');
+    } else {
+      const claudeVi = readVaultIntegration(claudePath);
+      const agentsVi = readVaultIntegration(agentsPath);
+      if (!claudeVi.present && !agentsVi.present) {
+        checksSkipped.push('vault-dir-parity: neither file has a vault-integration: block');
+      } else {
+        vaultDirParityRan = true;
+        const claudeDir = claudeVi.vaultDir;
+        const agentsDir = agentsVi.vaultDir;
+        if (claudeDir !== agentsDir) {
+          errors.push({
+            check: 'vault-dir-parity', file: 'AGENTS.md', line: 1,
+            message: `vault-integration.vault-dir disagrees between instruction files: CLAUDE.md='${claudeDir ?? '(unset)'}' vs AGENTS.md='${agentsDir ?? '(unset)'}'`,
+            extracted: agentsDir ?? '(unset)',
+          });
+        }
+      }
+    }
+  } else {
+    checksSkipped.push('vault-dir-parity: explicitly skipped');
+  }
+  if (vaultDirParityRan) checksRun.push('vault-dir-parity');
 
   if (scopeFiles.length === 0) {
     process.stdout.write(JSON.stringify({

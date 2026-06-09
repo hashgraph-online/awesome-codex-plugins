@@ -156,4 +156,4 @@ The asset list of the previous release is the regression baseline — every name
 
 ---
 
-> Pattern adopted from `gh-actions` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `gh-actions` (ACFS skill corpus). Methodology only — no verbatim text.

@@ -1,0 +1,20 @@
+{
+  "name": "zagrosi",
+  "interface": {
+    "displayName": "Zagrosi"
+  },
+  "plugins": [
+    {
+      "name": "zagrosi-forge",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Coding"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA P9"
+  short_description: "高压 orchestration 与任务拆解模式"
+  default_prompt: "Use $pua-p9 to split work, manage subagents, and enforce evidence-based status reporting."

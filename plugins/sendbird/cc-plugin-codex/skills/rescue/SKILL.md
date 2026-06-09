@@ -1,6 +1,6 @@
 ---
 name: rescue
-description: 'Delegate a substantial diagnosis, implementation, or follow-up task to Claude Code through the tracked-job runtime. Args: --background, --wait, --resume, --resume-last, --fresh, --write, --model <model>, --effort <low|medium|high|max>, --prompt-file <path>, [task text]. Use when Claude should investigate or change things, not when the user only wants review findings.'
+description: 'Delegate a substantial diagnosis, implementation, or follow-up task to Claude Code through the tracked-job runtime. Args: --background, --wait, --resume, --resume-last, --fresh, --write, --model <model>, --effort <low|medium|high|xhigh|max>, --prompt-file <path>, [task text]. Defaults to opus + xhigh effort. Use when Claude should investigate or change things, not when the user only wants review findings.'
 ---
 
 # Claude Code Rescue
@@ -16,13 +16,13 @@ Prefer `$cc:rescue` when the user wants Claude Code to diagnose the issue, valid
 Do not use rescue for "just review this diff" unless the user also wants follow-through work beyond review findings.
 Do not use rescue merely because the main Codex thread plans to fix things after combining its own review with a separate Claude review. Rescue is only the right delegation when Claude itself is supposed to investigate, edit, test, or otherwise own the follow-through work.
 
-Do not derive the companion path from this skill file or any cache directory. Always run the installed copy:
-`node "<installed-plugin-root>/scripts/claude-companion.mjs" task ...`
+Resolve `<plugin-root>` as two directories above this `SKILL.md` file. Always run the companion from that active plugin root:
+`node "<plugin-root>/scripts/claude-companion.mjs" task ...`
 
 Raw slash-command arguments:
 `$ARGUMENTS`
 
-Supported arguments: `--background`, `--wait`, `--resume`, `--resume-last`, `--fresh`, `--write`, `--model <model>`, `--effort <low|medium|high|max>`, `--prompt-file <path>`, plus free-text task text
+Supported arguments: `--background`, `--wait`, `--resume`, `--resume-last`, `--fresh`, `--write`, `--model <model>`, `--effort <low|medium|high|xhigh|max>`, `--prompt-file <path>`, plus free-text task text
 
 Main-thread routing rules:
 - If the user explicitly invoked `$cc:rescue` or `Claude Code Rescue`, do not keep the work in the main Codex thread. Delegate it.
@@ -42,7 +42,7 @@ Main-thread routing rules:
 - Default to `--write` unless the user explicitly wants read-only behavior or only review, diagnosis, or research without edits.
 - If `--resume` or `--resume-last` is present, continue the latest tracked Claude Code task. If `--fresh` is present, start a new task.
 - If none of `--resume`, `--resume-last`, or `--fresh` is present, first run:
-  `node "<installed-plugin-root>/scripts/claude-companion.mjs" task-resume-candidate --json`
+  `node "<plugin-root>/scripts/claude-companion.mjs" task-resume-candidate --json`
 - If that helper reports `available: true`, ask the user once whether to continue the current Claude Code thread or start a new one.
 - Use exactly these two choices:
   - `Continue current Claude Code thread`
@@ -70,7 +70,7 @@ Subagent launch:
 - Pass only the routing and task arguments that actually belong to `claude-companion.mjs task`.
 - If the free-text task begins with `/`, preserve it verbatim in the spawned subagent request. Do not strip the slash or rewrite it into a local Codex command.
 - Before spawning the built-in child, capture the task job id plus routing context in one call:
-  `node "<installed-plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind task --json`
+  `node "<plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind task --json`
 - If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command so tracked Claude Code jobs stay attached to the user-facing parent session for `$cc:status` / `$cc:result`.
 - If it returns an empty `ownerSessionId`, omit `--owner-session-id` entirely. Never leave an empty routing placeholder such as `--owner-session-id  --job-id`.
 - If that helper returns a non-empty `jobId`, pass it into the companion command as an internal `--job-id <reserved-job-id>` routing flag.

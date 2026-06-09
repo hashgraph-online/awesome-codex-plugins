@@ -1,0 +1,37 @@
+{
+  "name": "env-lint",
+  "version": "0.1.0",
+  "description": ".env vs .env.example key parity (never prints values).",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/pluginpool-env-lint",
+  "repository": "https://github.com/mturac/pluginpool-env-lint",
+  "license": "MIT",
+  "keywords": [
+    "env",
+    "config",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Env Lint",
+    "shortDescription": ".env vs .env.example key parity (never prints values).",
+    "longDescription": "Compares .env vs .env.example key parity without ever printing values.",
+    "developerName": "Mehmet Turac",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/pluginpool-env-lint",
+    "privacyPolicyURL": "https://github.com/mturac/pluginpool-env-lint/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/mturac/pluginpool-env-lint/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Env Lint to .env vs .env.example key parity (never prints values)."
+    ],
+    "brandColor": "#7c3aed",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

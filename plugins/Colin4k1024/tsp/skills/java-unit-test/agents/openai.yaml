@@ -1,0 +1,4 @@
+interface:
+  display_name: "Java Unit Test"
+  short_description: "为 Spring Boot 代码补齐单元测试"
+  default_prompt: "Use $java-unit-test to design and write focused Java unit tests for the affected behavior."

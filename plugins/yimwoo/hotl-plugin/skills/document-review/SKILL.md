@@ -19,12 +19,15 @@ Before doing anything else, classify the input into one of four categories:
 
 | Category | Detection | Review Path |
 |---|---|---|
-| **HOTL markdown** | Path matches canonical `docs/designs/*.md` or `docs/plans/*-workflow.md`, or legacy `docs/plans/*-design.md`, `docs/plans/*-plan.md`, or `hotl-workflow-*.md` | Phase 1 (HOTL lint) → Phase 2 (HOTL AI review) |
-| **Generic text/markdown** | Any other `.md`, `.txt`, or pasted text | Skip Phase 1 → Phase 2 (generic AI review) |
+| **HOTL workflow** | Canonical `docs/plans/*-workflow.md` or legacy `hotl-workflow-*.md` | Phase 1 (HOTL lint, hard gate) → Phase 2 (HOTL AI review) |
+| **HOTL design doc (marked)** | A design-doc-shaped file (canonical `docs/designs/*.md` or legacy `*-design.md` / `*-plan.md`) whose YAML frontmatter declares `design_type:` (one of `feature \| phase \| initiative \| architecture \| contract \| reference`) OR `hotl_managed: true` | Phase 1 (HOTL lint) → Phase 2 (HOTL AI review) |
+| **Generic text/markdown** | Any other `.md`, `.txt`, or pasted text — including design-shaped files in `docs/designs/` that lack an HOTL marker | Skip Phase 1 → Phase 2 (generic AI review) |
 | **PDF** | `.pdf` extension | If the current runtime can read/extract the content, treat as generic text and review. Otherwise, ask the user for a text, markdown, or PDF-text export. |
 | **DOCX / PPTX / binary** | `.docx`, `.pptx`, or other binary formats | **STOP.** Ask the user for a markdown, plain text, or PDF export. Do not attempt conversion. |
 
-**Announce the classification:** e.g., "Classified as HOTL design doc — running lint + HOTL review." or "Classified as generic markdown — skipping lint, running generic review."
+**Phase 1.6 opt-in rule:** Path alone does NOT classify a file as HOTL. A design-shaped Markdown file in `docs/designs/` without an HOTL frontmatter marker (`design_type:` or `hotl_managed: true`) is treated as generic markdown — `document-lint.sh` will SKIP it cleanly, and this skill routes it through Phase 2's generic-rubric AI review. To opt a hand-authored design doc into HOTL strict review, add `design_type: <recognized-value>` or `hotl_managed: true` to its frontmatter.
+
+**Announce the classification:** e.g., "Classified as HOTL design doc (marked via design_type) — running lint + HOTL review." or "Classified as generic markdown — skipping lint, running generic review."
 
 ## Phase 1: Structural Lint (HOTL Documents Only)
 

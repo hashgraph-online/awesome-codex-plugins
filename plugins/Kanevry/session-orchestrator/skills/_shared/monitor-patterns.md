@@ -183,6 +183,24 @@ never advances and the watcher keeps emitting the stale-SHA line every
 
 ---
 
+## Pattern — `/tmux-layout` (operator-side persistent visualization)
+
+> Per ADR-0007 + GitLab #561 #562 #563. Opt-in skill, NOT Monitor/loop replacement.
+
+`/tmux-layout` is a sibling primitive to `Monitor` and `/loop` — not a substitute. The three serve genuinely different purposes:
+
+| Primitive | Purpose | When to use |
+|---|---|---|
+| **`Monitor` tool** | Event-driven stream → coordinator reaction | The coordinator must REACT to each terminal-state line (CI fails → take action, build error → patch). Each stdout line = one coordinator notification. |
+| **`/loop` skill** | Periodic coordinator-side polling | "Check vault-staleness every 30 minutes while session runs." Lives inside the coordinator's turn budget. |
+| **`/tmux-layout` skill** | Operator-side persistent visualization (4-pane) | The OPERATOR (human) wants to peripherally observe side-channels — STATE.md tail, CI watch, events.jsonl — in a SECOND terminal without coordinator reaction. Pure observability. |
+
+**Key distinction:** `/tmux-layout` visualizes the *outputs* of `Monitor` and `/loop` peripherally so the coordinator pane stays focused on decisions (AUQ-001). It does NOT replace either — Pane 3 of the default layout, for example, runs a `glab ci status` poll-loop equivalent to a `/loop` cadence, but the coordinator does not see those refreshes (the operator does).
+
+**See also:** `docs/adr/0007-tmux-visualization-substrate.md`, `skills/tmux-layout/SKILL.md`.
+
+---
+
 ## Anti-patterns
 
 - **`tail -f log | grep "passed"`** — silent on failure. See LM-002.

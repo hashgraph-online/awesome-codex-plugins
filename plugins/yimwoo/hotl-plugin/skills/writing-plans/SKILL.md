@@ -135,6 +135,19 @@ Break work into atomic steps:
 - "Verify UI renders correctly" (loop: false, verify: type: browser)
 - "Human review of security logic" (loop: false, gate: human — REQUIRED for risk_level: high)
 
+## No Placeholders
+
+Every workflow step must contain enough concrete information for an agent to execute it without guessing. These are plan failures:
+
+- `TBD`, `TODO`, `later`, `fill in`, or empty sections
+- Vague instructions such as "add validation", "handle edge cases", "improve error handling", or "update docs" without exact files and success signals
+- "Similar to Step N", "repeat the pattern", or references that require reading another step to know what to do
+- Functions, files, commands, artifacts, or config keys referenced before they are defined
+- Verification that does not prove the step's action worked
+- Human-review checks where an automated shell, browser, or artifact check would provide a deterministic signal
+
+If a step cannot be made concrete yet, stop and ask for clarification instead of saving the workflow.
+
 ## Branch And Worktree Authoring Guidance
 
 - Default execution branch is `hotl/<slug>` unless the workflow frontmatter sets `branch: ...`
@@ -174,6 +187,7 @@ Example:
 After saving the workflow file, run a self-check before offering execution options. Review the workflow for:
 
 - **Step sizing** — each step should be 2-5 minutes of atomic work
+- **No placeholders** — no TBD/TODO text, vague instructions, undefined references, or "similar to Step N" shortcuts
 - **Verify coverage** — every looped step has a verify command that tests what the step claims
 - **Gate placement** — risky steps (auth, encryption, billing, secrets) have `gate: human`
 - **Loop safety** — `max_iterations` is reasonable (typically 3-5)

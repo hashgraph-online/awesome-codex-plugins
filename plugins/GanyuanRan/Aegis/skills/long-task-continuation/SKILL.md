@@ -1,6 +1,6 @@
 ---
 name: long-task-continuation
-description: Use when a task is multi-step, may span context resets or sessions, uses subagents, or risks losing state before completion - keeps todo, checkpoint, resume, drift, and evidence discipline without granting completion authority
+description: Use when a task is multi-step, may span context resets or sessions, uses subagents, or risks losing state before completion.
 ---
 
 # Long Task Continuation
@@ -55,40 +55,76 @@ Maintain artifacts under `docs/aegis/work/YYYY-MM-DD-<slug>/`:
 
 For medium+ complexity tasks only. Low-complexity tasks skip work/.
 
+Planless Slice Lane:
+
+- Use this lane when a parent plan or parent spec already owns the long-task
+  workstream and the current micro-slice only executes or refines one bounded
+  parent task.
+- Record a compact Slice Card instead of creating another durable plan/spec:
+
+  ```text
+  Slice Card:
+  - Goal:
+  - Parent plan/spec:
+  - Files:
+  - Boundary:
+  - Verification:
+  - Stop:
+  ```
+
+- Slice Card `Goal` anchors slice-level completeness only.
+- It does not by itself grant whole-task completion.
+- Final completion still requires `verification-before-completion` Goal Closure
+  against the parent plan/spec and any active goal frame.
+
+- Do not create new plan/spec files for micro-slices that stay inside the
+  parent plan, existing compatibility boundary, and known verification path.
+- Update the existing checkpoint, evidence, and drift records when persistent
+  state is needed.
+- Escalate out of this lane only when a new owner, contract, schema, public API,
+  architecture boundary, migration, persistence, security/permission,
+  distribution/release surface, or unclear verification boundary appears.
+
+When durable architecture decisions are in scope, these work records are the
+preferred ADR Auto Backfill source. Preserve ADR signals, source refs,
+alternatives, compatibility boundaries, drift checks, retirement notes, and
+baseline-sync questions in the work record instead of relying on memory at
+completion time.
+
 These are draft / hint / projection inputs. They are not authoritative runtime records.
 
 ## Workspace Helper Protocol
 
-When `scripts/aegis-workspace.py` is available in the active method-pack
-checkout, use it for the target project workspace and lifecycle records:
+When configured Aegis workspace support or installed Aegis workspace support is
+available, use it for the target project workspace and lifecycle records:
 
 1. Initialize before writing work records:
 
    ```bash
-   python scripts/aegis-workspace.py init --root <target-project-root>
+   python <aegis-workspace-helper> init --root <target-project-root>
    ```
 
 2. For a new medium+ task process trail, prefer helper-backed lifecycle
    creation over hand-created files:
 
    ```bash
-   python scripts/aegis-workspace.py new-work --root <target-project-root> --date YYYY-MM-DD --slug <slug> --title "<title>" --requested-outcome "<outcome>" --scope "<scope>" --change-kind <kind>
+   python <aegis-workspace-helper> new-work --root <target-project-root> --date YYYY-MM-DD --slug <slug> --title "<title>" --requested-outcome "<outcome>" --scope "<scope>" --change-kind <kind>
    ```
 
 3. After each slice, update checkpoint, evidence, and drift through the helper:
 
    ```bash
-   python scripts/aegis-workspace.py add-checkpoint --root <target-project-root> --work YYYY-MM-DD-<slug> ...
-   python scripts/aegis-workspace.py add-evidence --root <target-project-root> --work YYYY-MM-DD-<slug> ...
-   python scripts/aegis-workspace.py add-drift-check --root <target-project-root> --work YYYY-MM-DD-<slug> ...
+   python <aegis-workspace-helper> add-checkpoint --root <target-project-root> --work YYYY-MM-DD-<slug> ...
+   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work YYYY-MM-DD-<slug> ...
+   python <aegis-workspace-helper> add-drift-check --root <target-project-root> --work YYYY-MM-DD-<slug> ...
    ```
 
 4. Before pause, handoff, or completion candidate, assemble a structural proof
    bundle and check the workspace:
 
    ```bash
-   python scripts/aegis-workspace.py bundle --root <target-project-root> --work YYYY-MM-DD-<slug>
-   python scripts/aegis-workspace.py check --root <target-project-root>
+   python <aegis-workspace-helper> bundle --root <target-project-root> --work YYYY-MM-DD-<slug>
+   python <aegis-workspace-helper> check --root <target-project-root>
    ```
 
 These helper checks validate workspace structure, index coverage, and JSON
@@ -100,17 +136,20 @@ authoritative `GateDecision`, and do not grant completion authority.
 Before long-task execution:
 
 1. State the requested outcome, scope, non-goals, and risk hints.
-2. Identify baseline refs that must be read before changing files.
-3. Create or update the todo map.
-4. Create the first checkpoint:
+2. If goal framing exists, restate goal, success evidence, stop condition, and
+   non-goals. Stop condition must allow done, blocked, needs-verification, and
+   scope-exceeded outcomes.
+3. Identify baseline refs that must be read before changing files.
+4. Create or update the todo map.
+5. Create the first checkpoint:
    - current todo
    - active slice
    - completed todos
    - evidence refs
    - blocked-on items
    - next step
-5. If baseline refs are missing, pause in `needs-baseline-readback`.
-6. If the workspace helper is available, use `aegis-workspace.py new-work` to
+6. If baseline refs are missing, pause in `needs-baseline-readback`.
+7. If the workspace helper is available, use `aegis-workspace.py new-work` to
    create/index the first `docs/aegis/work/` files and run `check --root
    <target-project-root>` before continuing.
 
@@ -123,6 +162,9 @@ Before each work slice, restate:
 3. intended edits
 4. explicit non-edits
 5. verification command or manual check
+
+For micro-slices under an existing parent plan, use the Planless Slice Lane and
+state the Slice Card instead of opening a new planning/specification artifact.
 
 After each work slice, update:
 
@@ -155,6 +197,7 @@ Never resume from memory alone.
 Answer these after each slice:
 
 - Does the current work still serve the original task intent?
+- Does the current work still serve the goal and stop condition?
 - Did the slice stay inside the compatibility boundary?
 - Did any new owner, fallback, adapter, or branch appear?
 - Is the retirement track still explicit?
@@ -183,12 +226,15 @@ Before saying work is complete:
 3. Confirm blockers are resolved or externalized.
 4. Confirm evidence refs cover the acceptance criteria.
 5. Confirm drift check has no blocking state.
-6. Run `python scripts/aegis-workspace.py bundle --root <target-project-root>
+6. Run `python <aegis-workspace-helper> bundle --root <target-project-root>
    --work YYYY-MM-DD-<slug>` if the helper is available and a work record
    exists.
-7. Run `python scripts/aegis-workspace.py check --root <target-project-root>`
+7. Run `python <aegis-workspace-helper> check --root <target-project-root>`
    if the helper is available and the task wrote `docs/aegis/` records.
 8. Treat the generated `GateInputPack` as future-runtime input only.
+9. If durable architecture decisions were in scope, pass the work record,
+   proof bundle, drift checks, evidence refs, and ADR signals into
+   aegis:verification-before-completion for ADR Backfill Check.
 
 Method Pack output is verified evidence and advisory judgment only. It is not authoritative completion.
 

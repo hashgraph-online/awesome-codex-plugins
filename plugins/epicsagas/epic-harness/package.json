@@ -1,0 +1,43 @@
+{
+  "name": "epic-harness",
+  "version": "0.5.1",
+  "description": "8 commands, auto-trigger skills, self-evolving agent harness for Claude Code",
+  "author": "epicsagas",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/epicsagas/epic-harness.git"
+  },
+  "homepage": "https://github.com/epicsagas/epic-harness",
+  "bugs": "https://github.com/epicsagas/epic-harness/issues",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "harness",
+    "agent",
+    "self-evolving",
+    "hooks",
+    "ai"
+  ],
+  "files": [
+    "registry/commands/",
+    "registry/skills/",
+    "registry/agents/",
+    "hooks/",
+    "registry/presets/",
+    "docs/",
+    "plugin.json",
+    "CLAUDE.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "tauri": "tauri",
+    "app:dev": "tauri dev",
+    "app:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.1"
+  }
+}

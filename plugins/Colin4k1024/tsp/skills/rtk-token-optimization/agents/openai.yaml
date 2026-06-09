@@ -1,0 +1,4 @@
+interface:
+  display_name: "RTK Token Optimization"
+  short_description: "CLI proxy that reduces LLM token consumption by 60-90%"
+  default_prompt: "Use rtk to optimize token consumption for shell commands. Run `rtk gain` to see savings stats, `rtk discover` to find missed optimization opportunities."

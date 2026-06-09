@@ -1,6 +1,6 @@
 {
   "name": "@tartinerlabs/skills",
-  "version": "1.18.0",
+  "version": "1.21.0",
   "description": "Agent skills for git workflows, GitHub automation, security audits, code refactoring, and project tooling",
   "author": "ruchern.chong@tartinerlabs.com",
   "license": "MIT",
@@ -31,11 +31,13 @@
     "prepare": "husky",
     "prepublishOnly": "pnpm run build"
   },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.14.24"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
     "@commitlint/cli": "20.4.1",
     "@commitlint/config-conventional": "20.4.1",
-    "@opencode-ai/plugin": "1.14.24",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/git": "10.0.1",
     "@types/node": "22.19.17",
@@ -43,9 +45,6 @@
     "lint-staged": "16.4.0",
     "semantic-release": "25.0.3",
     "typescript": "6.0.3"
-  },
-  "peerDependencies": {
-    "@opencode-ai/plugin": "1.14.24"
   },
   "packageManager": "pnpm@11.0.6",
   "lint-staged": {

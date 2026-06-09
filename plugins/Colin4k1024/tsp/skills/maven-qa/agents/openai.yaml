@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maven QA"
+  short_description: "执行 Maven 质量闸口验证"
+  default_prompt: "Use $maven-qa to run compile, test, static analysis, and startup checks without silently fixing failures."

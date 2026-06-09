@@ -1,6 +1,7 @@
 ---
 name: vault-sync
-description: Validates vault frontmatter (Zod schema) and wiki-link integrity. Phase 1: hard gate at session-end. Used by session-end skill to block close on invalid vault state.
+description: Use when you need to validate the Meta-Vault's Markdown frontmatter and wiki-link integrity before closing a session or after vault edits. Runs as a hard gate at session-end Phase 1 — blocks close if any `.md` file fails the Zod frontmatter schema or has dangling `[[wiki-links]]`. Supports three modes: `hard` (blocks on errors), `warn` (reports without blocking), `off` (skip). Reads `vault-sync.*` from Session Config; respects per-vault exclude globs from `CLAUDE.md`. Triggers: "vault validation failed at session close", "fix vault frontmatter errors", "check vault wiki-links", "why is session-end blocked by vault-sync". <example>Context: session-end Phase 1 quality gate, vault-sync.enabled=true, vault-sync.mode="hard". user: "/close" assistant: "vault-sync found 2 frontmatter errors in vault/40-learnings/ml-notes.md — missing required `id` field. Fixing before close."</example>
+model: haiku
 ---
 
 # Vault Sync Skill
@@ -186,6 +187,13 @@ The following fields are planned for Phase 2/3 but are not consumed by the curre
 8. How are secrets in vault files handled? If a note contains an accidentally-committed token in its `sources` field, should the skill block on it (SEC-type check) or is that strictly the job of the existing secret-scan pre-commit hook?
 
 ## Schema sync
+
+### Allowed `type` values
+
+The vault-frontmatter `type` enum currently allows:
+`note`, `daily`, `project`, `person`, `reference`, `idea`, `learning`, `session`, `peer-card`.
+
+The `peer-card` value supports Honcho-style USER.md / AGENT.md operator/agent identity files written under `.orchestrator/peers/` (introduced in #503). Peer cards complement the host-wide `owner.yaml` (see `.claude/rules/owner-persona.md`) with per-repo behavioural identity; the validator at `scripts/lib/peer-cards/schema.mjs` enforces the additional `target`/`source_sessions` fields, while `validator.mjs` here only checks that `type` is one of the values above.
 
 ### Source of truth
 

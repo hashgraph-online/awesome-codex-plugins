@@ -25,9 +25,9 @@ When `$rpi --from=discovery` is invoked:
 
 If `bd list --type epic --status open` returns an epic matching the current goal, `$plan` reuses it rather than creating a duplicate. This prevents epic proliferation on re-runs.
 
-## $validation
+## $validate
 
-`$validation` is **NOT idempotent** — each run produces a new vibe report and post-mortem.
+`$validate` is **NOT idempotent** — each run produces a new vibe report and post-mortem.
 
 ### Re-run Behavior
 

@@ -32,8 +32,9 @@ check "leadership-quartet has verdict formats" "grep -q 'verdict_format:' '$SKIL
 check "leadership-quartet mixed mode documents 8 judges" "grep -q '8 total judges' '$SKILL_DIR/references/personas.md'"
 check "mocked --mixed artifact smoke reads default and leadership-quartet outputs" "bash '$SKILL_DIR/scripts/validate-mixed-artifacts.sh'"
 # Behavioral contracts: verify key features remain documented
-check "SKILL.md mentions --debate mode" "grep -q '\-\-debate' '$SKILL_DIR/SKILL.md'"
-check "SKILL.md mentions --quick mode" "grep -q '\-\-quick' '$SKILL_DIR/SKILL.md'"
+check "SKILL.md documents the --adversarial verdict intensifier" "grep -q '\-\-adversarial' '$SKILL_DIR/SKILL.md'"
+check "SKILL.md documents the three-mode taxonomy" "grep -q 'mode=debate' '$SKILL_DIR/SKILL.md' && grep -q 'mode=brainstorm' '$SKILL_DIR/SKILL.md'"
+check "SKILL.md mentions --quick depth alias" "grep -q '\-\-quick' '$SKILL_DIR/SKILL.md'"
 check "SKILL.md mentions verdict field" "grep -q 'verdict' '$SKILL_DIR/SKILL.md'"
 check "SKILL.md mentions PASS/WARN/FAIL" "grep -q 'PASS.*WARN.*FAIL\|PASS | WARN | FAIL' '$SKILL_DIR/SKILL.md'"
 

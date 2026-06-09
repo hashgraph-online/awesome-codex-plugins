@@ -1,6 +1,6 @@
 ---
 name: beads
-description: 'Track issues with bd/br, triage with bv, and convert plans to beads.'
+description: "Run beads."
 ---
 
 # Beads - Persistent Task Memory for AI Agents
@@ -124,14 +124,28 @@ NEVER run bare `bv`. Always use `--robot-*` flags.
 
 Convert a markdown plan into fully dependency-wired beads:
 
-1. Read the plan file
-2. Create beads with `br create` for each issue, including full context in the description
-3. Wire dependencies with `br dep add`
-4. Polish iteratively (run polish prompt 6-9 times until steady-state)
-5. Validate: `br dep cycles` must be empty, `bv --robot-insights` for graph health
-6. Begin: `bv --robot-next` for first bead
+1. Read the full plan, AGENTS.md, README, linked intent issue, and acceptance criteria.
+2. Create beads with `br create` for each issue, including full context in the description.
+3. For every feature, bug, or product-facing behavior, include a fenced `gherkin`
+   block or link to a filled intent issue. Mechanical chores may omit Gherkin
+   only when their acceptance criteria are fully command/file based.
+4. Include the `hexagon:` boundary block from
+   `docs/architecture/intent-to-loop-hexagon.md` for substantial beads:
+   inbound port, bounded context, adapters, context packet, and done state.
+5. Wire dependencies with `br dep add` / `bd dep add`. Do not hand-edit JSONL or
+   database files.
+6. Polish iteratively (usually 6-9 passes) until steady-state. Check for lost
+   features, oversimplification, missing tests, unclear boundaries, missing e2e
+   coverage, and weak logging.
+7. Validate: `br dep cycles` must be empty; run `bv --robot-insights` for graph
+   health; use `bv --robot-next` for the first bead. Never run bare `bv`.
+8. Sync explicitly before commit: `br sync --flush-only`, then `git add .beads/`
+   and commit tracker changes when appropriate.
 
-Beads should be so detailed that a fresh agent can implement without consulting the original plan.
+Beads should be so detailed that a fresh agent can implement without consulting
+the original plan. Ready-to-implement beads have clear scope, explicit
+dependencies, BDD or mechanical acceptance, unit/e2e test expectations, detailed
+logging expectations, a named done state, and no dependency cycles.
 
 ## Troubleshooting
 

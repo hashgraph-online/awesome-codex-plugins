@@ -1,7 +1,7 @@
 {
   "name": "codiris-agentizer",
   "version": "2.1.1",
-  "description": "Turn any website into an AI-powered agentfront \u2014 crawl, generate, deploy in one command.",
+  "description": "Turn any website into an AI-powered agentfront — crawl, generate, deploy in one command.",
   "author": {
     "name": "Iris Lab",
     "email": "hello@codiris.app",

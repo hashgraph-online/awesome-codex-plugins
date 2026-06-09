@@ -68,6 +68,6 @@ Add to `package.json`:
 If ESLint or Prettier are detected, suggest:
 
 ```bash
-npx @biomejs/biome migrate eslint
-npx @biomejs/biome migrate prettier
+pnx @biomejs/biome migrate eslint
+pnx @biomejs/biome migrate prettier
 ```

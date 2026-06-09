@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA P10"
+  short_description: "战略减法与方向校准模式"
+  default_prompt: "Use $pua-p10 for strategic prioritization, scope reduction, and hard direction calls."

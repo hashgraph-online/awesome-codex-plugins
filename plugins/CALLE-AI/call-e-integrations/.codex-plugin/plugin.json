@@ -1,6 +1,6 @@
 {
   "name": "calle",
-  "version": "0.1.8",
+  "version": "0.1.10",
   "description": "Use CALL-E from Codex through the calle CLI.",
   "author": {
     "name": "CALLE AI",
@@ -38,6 +38,7 @@
       "Use CALL-E to plan a phone call.",
       "Use CALL-E to check a call run status."
     ],
+    "composerIcon": "./assets/CALL-E-Icon-Black.svg",
     "brandColor": "#10A37F"
   }
 }

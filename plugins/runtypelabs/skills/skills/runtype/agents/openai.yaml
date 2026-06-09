@@ -1,0 +1,14 @@
+interface:
+  display_name: 'Runtype'
+  short_description: 'Route and scope Runtype platform work'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $runtype to help me connect to Runtype and choose the right Runtype workflow.'
+dependencies:
+  tools:
+    - type: 'mcp'
+      value: 'runtype'
+      description: 'Hosted Runtype MCP server for live platform docs and account operations'
+      transport: 'streamable_http'
+      url: 'https://api.runtype.com/v1/mcp/protocol'
+policy:
+  allow_implicit_invocation: true

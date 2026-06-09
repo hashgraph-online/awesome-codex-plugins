@@ -1,0 +1,11 @@
+.git/
+.github/
+.tmp-paper-text/
+.tmp-proposal-analysis/
+.tmp-presentation-analysis/
+*.pdf
+*.pptx
+*.docx
+*.zip
+__pycache__/
+.pytest_cache/

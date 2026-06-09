@@ -27,6 +27,18 @@ Use this skill for:
 Do not use this skill when the user only wants a call script, roleplay,
 simulated conversation, or general contact lookup that does not require CALL-E.
 
+## Tool routing
+
+When this Codex plugin skill is active, use only the `calle` CLI flow documented
+below. Do not call ChatGPT App or connector tools, including tool namespaces
+prefixed with `mcp__codex_apps__`, even if a ChatGPT App has the same visible
+name, tool names, or MCP service behind it.
+
+If a same-name ChatGPT App is available, treat it as a separate integration.
+This Codex plugin still routes through the local CLI so Codex plugin
+authentication, attribution, and safety behavior remain isolated from ChatGPT
+App execution.
+
 ## Safety and consent
 
 - Real phone calls may contact external people or businesses.
@@ -45,7 +57,7 @@ All CLI commands run from this Codex plugin must include the CALL-E integration
 attribution environment:
 
 ```bash
-env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.8
+env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.10
 ```
 
 Use the first command form that works.
@@ -53,19 +65,19 @@ Use the first command form that works.
 Prefer the repository-local CLI when the current workspace contains it:
 
 ```bash
-env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.8 node packages/cli/bin/calle.js
+env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.10 node packages/cli/bin/calle.js
 ```
 
 If the repository-local CLI is unavailable, use the global command:
 
 ```bash
-env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.8 calle
+env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.10 calle
 ```
 
-If neither command works, use the pinned npm package through `npx`:
+If neither command works, use the npm package through `npx`:
 
 ```bash
-env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.8 npx -y @call-e/cli@0.3.2
+env CALLE_SOURCE=codex CALLE_INTEGRATION=codex_plugin CALLE_INTEGRATION_VERSION=0.1.10 npx -y @call-e/cli
 ```
 
 Only tell the user to install the CLI globally if `npx` is unavailable,

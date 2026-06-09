@@ -1,7 +1,7 @@
 {
   "name": "hotl",
   "description": "Structured guardrails for AI coding: brainstorm, plan, execute, review, and verify.",
-  "version": "2.13.0",
+  "version": "2.18.0",
   "author": {
     "name": "Yiming Wu"
   },
@@ -31,7 +31,11 @@
     "longDescription": "HOTL adds structure to AI coding work. Use it to clarify intent, generate a workflow plan, execute with verification, review the result, and prove the change is ready before it lands on main. Includes skills for brainstorming, plan execution, PR review, code review, and final verification.",
     "developerName": "Yiming Wu",
     "category": "Productivity",
-    "capabilities": ["Interactive", "Read", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
     "defaultPrompt": [
       "Design and plan this feature before coding",
       "Review this pull request",

@@ -1,6 +1,6 @@
 ---
 name: goals
-description: 'Maintain AgentOps goals.'
+description: "Run goals."
 ---
 # $goals — Fitness Goal Maintenance
 

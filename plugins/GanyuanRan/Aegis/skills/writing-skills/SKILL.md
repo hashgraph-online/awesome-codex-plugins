@@ -96,9 +96,11 @@ skills/
 - Two required fields: `name` and `description` (see [agentskills.io/specification](https://agentskills.io/specification) for all supported fields)
 - Max 1024 characters total
 - `name`: Use letters, numbers, and hyphens only (no parentheses, special chars)
-- `description`: Third-person, describes ONLY when to use (NOT what it does)
+- `description`: Third-person, describes when to use the skill, not its
+  workflow
   - Start with "Use when..." to focus on triggering conditions
-  - Include specific symptoms, situations, and contexts
+  - Include specific symptoms, situations, contexts, and user-facing outcomes
+    that help identify the trigger
   - **NEVER summarize the skill's process or workflow** (see CSO section for why)
   - Keep under 500 characters if possible
 
@@ -147,9 +149,12 @@ Concrete results
 
 **Format:** Start with "Use when..." to focus on triggering conditions
 
-**CRITICAL: Description = When to Use, NOT What the Skill Does**
+**CRITICAL: Description = Trigger Conditions, NOT Workflow Summary**
 
-The description should ONLY describe triggering conditions. Do NOT summarize the skill's process or workflow in the description.
+The description should describe triggering conditions. It may mention the
+user-facing capability or outcome when that helps answer "Should I read this
+skill right now?" Do NOT summarize the skill's process or workflow in the
+description.
 
 **Why this matters:** Testing revealed that when a description summarizes the skill's workflow, Claude may follow the description instead of reading the full skill content. A description saying "code review between tasks" caused Claude to do ONE review, even though the skill's flowchart clearly showed TWO reviews (spec compliance then code quality).
 
@@ -168,7 +173,7 @@ description: Use for TDD - write test first, watch it fail, write minimal code, 
 description: Use when executing implementation plans with independent tasks in the current session
 
 # ✅ GOOD: Triggering conditions only
-description: Use when implementing any feature or bugfix, before writing implementation code
+description: Use when strict TDD is explicitly requested, or when an approved atomic implementation task has already chosen TDD Route strict.
 ```
 
 **Content:**

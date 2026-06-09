@@ -1,0 +1,24 @@
+{
+  "name": "codebase-recon-skill",
+  "interface": {
+    "displayName": "Codebase Recon"
+  },
+  "owner": {
+    "name": "Jiachen Yu",
+    "url": "https://github.com/yujiachen-y"
+  },
+  "plugins": [
+    {
+      "name": "codebase-recon",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codebase-recon"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

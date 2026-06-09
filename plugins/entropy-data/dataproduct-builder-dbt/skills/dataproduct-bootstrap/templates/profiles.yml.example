@@ -1,0 +1,5 @@
+{{DBT_PROJECT_NAME}}:
+  target: dev
+  outputs:
+    dev:
+      {{PROFILE_BLOCK}}

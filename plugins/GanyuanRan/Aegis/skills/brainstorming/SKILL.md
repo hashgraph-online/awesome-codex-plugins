@@ -1,31 +1,35 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "Use when defining new features, product behavior, UI/component design, architecture choices, contract changes, or ambiguous medium/high-complexity work before implementation."
 ---
 
 # Execute
 
-→ Creative work (feature, component, behavior change)? → **Design first. No code until design approved.**
+→ New feature, product behavior, UI/component design, architecture/contract change, or ambiguous medium/high-complexity work? → **Design first. No implementation until the needed design/spec is approved.**
   1. Explore project context → read authority docs, check for existing patterns
   2. Ask clarifying questions one at a time (prefer multiple choice)
   3. Propose 2-3 approaches with trade-offs and your recommendation
   4. Present design sections → get user approval after each
   5. Write spec → self-review → user review → transition to writing-plans
-→ HARD GATE: Do NOT write code, scaffold projects, or invoke implementation skills until design is approved.
+→ HARD GATE: For tasks that match this skill, do NOT write code, scaffold projects, or invoke implementation skills until design/spec approval is satisfied.
 
 # Brainstorming Ideas Into Designs
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
 
-Start by understanding the current project context and authority boundary, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Start by understanding the current project context and authority boundary, then ask questions one at a time to refine the idea. Once you understand what you're building, present the smallest design artifact that stabilizes the work and get the required approval.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take implementation action for work that matches this skill until you have presented the required design/spec and the user has approved it where this workflow requires approval.
 </HARD-GATE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## Route Away When It Is Small
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+Do not force this workflow onto low-complexity work. A tiny wording edit,
+single-owner bug fix, simple config/status question, or local utility change
+can proceed through concise intent, baseline check, TDD/debugging, and
+verification. If uncertainty or impact grows, escalate back here and write the
+smallest stabilizing spec.
 
 ## Checklist
 
@@ -33,15 +37,14 @@ You MUST create a task for each of these items and complete them in order:
 
 1. **Explore project context** — check files, docs, recent commits, authority docs, CONTEXT.md
 2. **Choose the path and scope** — real design? diagnosis? route accordingly or decompose first
-3. **Offer visual companion** (if visual questions ahead) — own message, no other content
-4. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-5. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `ImpactStatementDraft`
-6. **Propose 2-3 approaches** — with trade-offs and your recommendation
-7. **Present design** — in sections scaled to complexity, get user approval after each
-8. **Write design doc** — save to `docs/aegis/specs/YYYY-MM-DD-<topic>-design.md` and commit
-9. **Spec self-review** — check for placeholders, contradictions, ambiguity, scope, boundary
-10. **User reviews written spec** — ask user to review before proceeding
-11. **Transition to implementation** — invoke writing-plans skill (terminal state)
+3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `ImpactStatementDraft`
+5. **Propose 2-3 approaches** — with trade-offs and your recommendation
+6. **Present design** — in sections scaled to complexity, get user approval where required
+7. **Write spec artifact** — save a Spec Brief or Design Spec under `docs/aegis/specs/` when persistent requirements are needed
+8. **Spec self-review** — check for placeholders, contradictions, ambiguity, scope, boundary
+9. **User reviews written spec** — ask user to review before proceeding
+10. **Transition to implementation** — invoke writing-plans skill (terminal state)
 
 **The terminal state is invoking writing-plans.** Do NOT invoke any other implementation skill.
 
@@ -55,11 +58,101 @@ You MUST create a task for each of these items and complete them in order:
 - Ask clarifying questions one at a time, prefer multiple choice
 - Separate facts, assumptions, unknowns while exploring
 
-**Working artifacts:** Keep three drafts: `TaskIntentDraft` (outcome, scope, risks), `BaselineReadSetHint` (candidate docs, authority gaps), `ImpactStatementDraft` (affected layers, owners, invariants, compat, non-goals). Refresh when scope changes.
+**Working artifacts:** Keep three drafts: `TaskIntentDraft` (outcome, goal,
+success evidence, stop condition, non-goals, scope, risks),
+`BaselineReadSetHint` (candidate docs, authority gaps), `ImpactStatementDraft`
+(affected layers, owners, invariants, compat, non-goals). Refresh when scope
+changes.
 
-**Exploring approaches:** Propose 2-3 approaches with trade-offs and recommendation. Make scope boundary explicit: what's in, what's deferred, what belongs elsewhere.
+**Compact output contract:** `TaskIntentDraft`, `BaselineReadSetHint`,
+`ImpactStatementDraft`, `Product Risk Lens`, `Architecture Integrity Lens`,
+`Baseline Role Alignment`, `Plan-Time Complexity Check`, `Options`, and
+`Decision Needed`. Use this compact shape before expanding into a full design
+structure.
 
-**Presenting the design:** Scale sections to complexity. Cover: architecture, components, data flow, error handling, testing, compatibility boundary. Get approval after each section.
+**Product Risk Lens:** For ambiguous product, feature, UI, workflow, or
+architecture choices, add a compact review lens, not persona roleplay:
+
+```text
+Product Risk Lens:
+- Value:
+- Non-goals:
+- Trade-offs:
+- Decision needed:
+```
+
+This is a review lens, not persona output. It does not override baseline evidence,
+approved requirements, or current authority docs; it only makes the product risk
+and decision point visible before implementation.
+
+**Plan-Time Complexity Check:** Before choosing an implementation direction for
+medium/high work, inspect the likely owner files and current shape. This is an
+advisory design pressure check, not a gate and not completion authority. Do not
+force it onto tiny low-risk edits.
+
+```text
+Plan-Time Complexity Check:
+- Better file boundary:
+- Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
+```
+
+Pressure signals: 800+ line source file, 80+ line block, router/manager/handler
+or generic utility receiving a new responsibility, fallback/adapter/guard
+growth, duplicate owner risk, or owner mismatch. A new file still needs a clear
+owner, contract, and retirement story.
+
+**Exploring approaches:** Propose 2-3 approaches with trade-offs and
+recommendation. Make scope boundary explicit: what's in, what's deferred, what
+belongs elsewhere.
+
+Before approach selection, use `first-principles-review` and its
+`Decision Hygiene Review` when the candidate direction introduces a new owner,
+duplicate owner, fallback, adapter, compat-only carrier, delete-first question,
+unverified assumption, or "long-term stable" claim. Do not make it a
+universal design ceremony; return to this workflow once the decision surface is
+clean.
+
+When the central decision is internal retirement vs compat retention vs
+persistent-state confirmation, compose `anti-entropy-governance`. It classifies
+the deletion target, chooses `delete-first | compat-exception |
+confirmation-first`, and keeps destructive authority outside the design skill.
+
+Use the narrower `Architecture Integrity Lens` when the main risk is not broad
+strategy but architecture coherence: unclear canonical owner, responsibility
+overlap, caller-side fallback, stale path carrying real logic, or a possible
+higher-level owner / contract / source-of-truth simplification. The lens should
+answer invariant, canonical owner / contract, responsibility overlap,
+higher-level simplification, retirement / falsifier, and verdict before the
+approach is recommended.
+
+**Baseline Role Alignment:** When a question may involve both "what should be
+built" and "where it should live", keep requirement truth separate from
+architecture truth:
+
+```text
+Baseline Role Alignment:
+- Product / Requirement Baseline:
+- Architecture / Runtime Boundary Baseline:
+- Result: aligned | Design Defect | Implementation Drift | missing-authority | needs-clarification
+- scope: requirements | architecture | both
+- Next action:
+```
+
+Use `Design Defect` when the relevant requirement, design, or baseline is wrong.
+Use `Implementation Drift` when the work deviates from a correct unchanged
+baseline. `Architecture Defect` and `Architecture Drift` remain compatibility
+aliases for architecture-scoped `Design Defect` and architecture-scoped
+`Implementation Drift`. This is a review lens, not a runtime gate or completion
+authority.
+
+**Presenting the design:** Scale sections to complexity. Cover only the surfaces that matter: architecture, components, data flow, error handling, testing, compatibility boundary. Get approval for the design before implementation when behavior, contract, architecture, or user-facing flow is being decided.
+
+**ADR signals:** When the design/spec touches durable architecture surfaces
+(owner, public contract, artifact shape, dependency direction,
+source-of-truth, host compatibility, runtime-ready boundary, fallback,
+adapter, or retirement schedule), mark the ADR signal, source refs, real
+alternatives, and expected baseline-sync question for later completion. Do not
+create accepted architecture memory from unexecuted ideas.
 
 **Design for isolation:** Each unit = one clear purpose, well-defined interface, testable independently. Can someone understand it without reading internals? Can you change internals without breaking consumers?
 
@@ -70,10 +163,10 @@ You MUST create a task for each of these items and complete them in order:
 **Documentation:**
 
 1. **Aegis Project Workspace initialization (first creation only):**
-   If `docs/aegis/` does not exist and `scripts/aegis-workspace.py` is
-   available in the active method-pack checkout, initialize the target project:
-   `python scripts/aegis-workspace.py init --root <target-project-root>`.
-   If the helper is unavailable, create it manually:
+   If `docs/aegis/` does not exist and configured Aegis workspace support is
+   available, initialize the target project:
+   `python <aegis-workspace-helper> init --root <target-project-root>`.
+   If installed Aegis workspace support is unavailable, create it manually:
    a. Create `docs/aegis/README.md` — describes workspace purpose and structure
    b. Create `docs/aegis/INDEX.md` — empty index, will be appended below
    c. Create `docs/aegis/BASELINE-GOVERNANCE.md` from the template in
@@ -83,17 +176,22 @@ You MUST create a task for each of these items and complete them in order:
       "Initial Baseline Snapshot Template" below
    If `docs/aegis/` already exists, use it — do not recreate.
 
-2. **Write the validated design (spec):**
-   Save to `docs/aegis/specs/YYYY-MM-DD-<topic>-design.md`.
-   Spec always goes to `specs/` — never to `work/`.
+2. **Write the validated spec artifact when needed:**
+   Use the smallest artifact that stabilizes the task:
+   - Spec Brief: `docs/aegis/specs/YYYY-MM-DD-<topic>-brief.md` for medium
+     tasks that need what/why/acceptance pinned before planning.
+   - Design Spec: `docs/aegis/specs/YYYY-MM-DD-<topic>-design.md` for high
+     complexity, architecture, contract, migration, cross-module, or ambiguous
+     behavior requiring user review.
+   Specs always go to `specs/` — never to `work/`.
 
 3. **Update INDEX.md:**
-   Prefer the helper: `python scripts/aegis-workspace.py append-index --root
+   Prefer configured Aegis workspace support: `python <aegis-workspace-helper> append-index --root
    <target-project-root> --path docs/aegis/specs/<filename>.md --kind spec
-   --title "<title>"`. If the helper is unavailable, append the new spec entry
+   --title "<title>"`. If workspace support is unavailable, append the new spec entry
    to `docs/aegis/INDEX.md` manually.
-   After the append, run `python scripts/aegis-workspace.py check --root
-   <target-project-root>` when the helper is available. This validates
+   After the append, run `python <aegis-workspace-helper> check --root
+   <target-project-root>` when configured workspace support is available. This validates
    structure and index coverage only; it does not grant completion authority.
 
 4. Commit the design document to git.
@@ -109,16 +207,20 @@ After writing the spec document, look at it with fresh eyes:
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-5. **Boundary check:** Did you clearly mark invariants, compatibility boundaries, owners, and non-goals?
+5. **Boundary check:** Did you clearly mark invariants, compatibility
+   boundaries, owners, non-goals, and any ADR signals for later completion
+   backfill? If the spec endorses a risky approach, confirm the
+   `first-principles-review` `Decision Hygiene Review` or `Architecture
+   Integrity Lens` result is reflected or explicitly marked unnecessary.
 
 Fix any issues inline. No need to re-review — just fix and move on.
 
 **User Review Gate:**
-After the spec review loop passes, ask the user to review the written spec before proceeding:
+After a Design Spec review loop passes, ask the user to review the written spec before proceeding:
 
 > "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
 
-Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
+Wait for the user's response when this workflow requires review. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves. For a small Spec Brief created only to pin medium-task acceptance, user review may be concise unless project rules require a formal approval step.
 
 **Implementation:**
 
@@ -134,25 +236,6 @@ Wait for the user's response. If they request changes, make them and re-run the 
 - **Incremental validation** - Present design, get approval before moving on
 - **Be flexible** - Go back and clarify when something doesn't make sense
 
-## Visual Companion
-
-A browser-based companion for showing mockups, diagrams, and visual options during brainstorming. Available as a tool — not a mode. Accepting the companion means it's available for questions that benefit from visual treatment; it does NOT mean every question goes through the browser.
-
-**Offering the companion:** When you anticipate that upcoming questions will involve visual content (mockups, layouts, diagrams), offer it once for consent:
-> "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)"
-
-**This offer MUST be its own message.** Do not combine it with clarifying questions, context summaries, or any other content. The message should contain ONLY the offer above and nothing else. Wait for the user's response before continuing. If they decline, proceed with text-only brainstorming.
-
-**Per-question decision:** Even after the user accepts, decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
-
-- **Use the browser** for content that IS visual — mockups, wireframes, layout comparisons, architecture diagrams, side-by-side visual designs
-- **Use the terminal** for content that is text — requirements questions, conceptual choices, tradeoff lists, A/B/C/D text options, scope decisions
-
-A question about a UI topic is not automatically a visual question. "What does personality mean in this context?" is a conceptual question — use the terminal. "Which wizard layout works better?" is a visual question — use the browser.
-
-If they agree to the companion, read the detailed guide before proceeding:
-`skills/brainstorming/visual-companion.md`
-
 ## BASELINE-GOVERNANCE.md Template
 
 When creating `docs/aegis/BASELINE-GOVERNANCE.md` for the first time, use this template:
@@ -160,25 +243,44 @@ When creating `docs/aegis/BASELINE-GOVERNANCE.md` for the first time, use this t
 ```markdown
 # Baseline Governance
 
-## 1. Architecture Defect
-A confirmed error, gap, or contradiction IN the baseline itself.
-- Fix baseline first, then align implementation to corrected baseline.
+## 1. Baseline Roles
+- Product / Requirement Baseline: problem, accepted behavior, success evidence,
+  non-goals, workflow constraints, and approved requirement/spec intent.
+- Architecture / Runtime Boundary Baseline: canonical owner, contract,
+  source-of-truth boundary, dependency direction, compatibility, runtime-ready
+  boundary, and retirement state.
+
+## 2. Design Defect
+A confirmed error, gap, contradiction, or wrong abstraction IN the relevant
+requirement, design, or baseline.
+- Fix the defective requirement/design/baseline first.
+- Then align implementation to the corrected baseline.
 - Do NOT patch implementation around a defective baseline.
 
-## 2. Architecture Drift
-Implementation has deviated from a confirmed, correct baseline.
-- Return to baseline via the simplest path.
+## 3. Implementation Drift
+Implementation, plan, review, or documentation has deviated from a confirmed,
+correct, unchanged requirement or architecture baseline.
+- Return to baseline via the simplest stable path.
 - Do NOT "update baseline to match drift" without explicit review.
 
-## 3. Baseline Check Protocol
-Before non-trivial changes:
-1. Read the latest baseline snapshot in `baseline/`
-2. Compare current code structure against ownership map
-3. Compare current contracts against contract inventory
-4. Check for new anti-patterns not recorded in known list
-5. Report: aligned / minor drift (self-correctable) / material drift (needs review)
+## 4. Compatibility Aliases
+- Architecture Defect = architecture-scoped Design Defect.
+- Architecture Drift = architecture-scoped Implementation Drift.
+- New findings should report Design Defect / Implementation Drift plus
+  `scope: requirements | architecture | both`.
 
-## 4. Architecture Review — 7 Dimensions
+## 5. Baseline Check Protocol
+Before non-trivial changes:
+1. Read the latest Product / Requirement Baseline candidate.
+2. Read the latest Architecture / Runtime Boundary Baseline candidate.
+3. Compare current work against requirement acceptance and architecture owner /
+   contract boundaries.
+4. Check for new anti-patterns not recorded in known list.
+5. Report: aligned / Design Defect / Implementation Drift /
+   missing-authority / needs-clarification, with
+   `scope: requirements | architecture | both`.
+
+## 6. Architecture Review — 7 Dimensions
 After each non-trivial change:
 1. **Ownership integrity** — every component has exactly one canonical owner
 2. **Module boundaries** — no unauthorized cross-module coupling
@@ -188,7 +290,7 @@ After each non-trivial change:
 6. **Retirement completeness** — old owners/fallbacks/paths removed or scheduled
 7. **Entropy flow** — net complexity decreased or stayed; no unjustified new entities
 
-## 5. Hard Boundaries
+## 7. Hard Boundaries
 - BASELINE-GOVERNANCE.md is the constitution for THIS project's Aegis workspace
 - Baseline snapshots in `baseline/` are evidence, not authority
 - ADRs in `adr/` record decisions; they do not replace baseline governance
@@ -199,13 +301,70 @@ After each non-trivial change:
 
 When creating the first `docs/aegis/baseline/YYYY-MM-DD-initial-baseline.md`:
 
-1. **Project structure** — top-level directory map, key entry points
-2. **Tech stack** — language, framework, database, key dependencies
-3. **Ownership mapping** — component → canonical owner file/module
-4. **Contract inventory** — public APIs, published interfaces, data contracts
-5. **Dependency direction convention** — which layers depend on which
-6. **Test system** — framework, coverage baseline, test categories
-7. **Build & deploy** — build system, CI pipeline, deploy targets
-8. **Known anti-patterns** — patterns to avoid, previously identified issues
-9. **Last review findings** — date, reviewer, key findings, open items
-10. **Compatibility boundaries** — what must NOT break
+Bootstrap the project's dual baselines instead of writing a flat repo inventory.
+The first baseline should make later `Baseline Role Alignment` checks possible
+even when the repo is still early or partially defined.
+
+Minimum shape:
+
+```markdown
+# <Project> Initial Baseline
+
+Date: `YYYY-MM-DD`
+Status: `initial dual-baseline snapshot`
+
+## 1. Purpose
+- why this baseline exists
+- what later alignment checks should use it for
+
+## 2. Workspace Structure
+- top-level directories, entry points, substrate roots, or seams worth tracking
+
+## 3. Current Authority Surfaces
+- README / AGENTS / ADR / spec / baseline / external reference roots
+- current authority gaps or missing documents
+
+## 4. Product / Requirement Baseline
+### 4.1 Current Truth
+- accepted problem
+- target user or workflow
+- success evidence, value claim, or phase focus already fixed
+
+### 4.2 Non-negotiables
+1. ...
+
+### 4.3 Product Non-goals
+- ...
+
+## 5. Architecture / Runtime Boundary Baseline
+### 5.1 Current Truth
+- canonical owner or substrate split
+- contract / source-of-truth boundary
+- dependency direction or owner layering already fixed
+
+### 5.2 Architecture Non-negotiables
+1. ...
+
+### 5.3 Architecture Non-goals
+- ...
+
+## 6. Ownership / Contract Snapshot
+- important surface -> current owner
+- contract seams, missing seam inventory, or boundary gaps
+
+## 7. Current State and Risks
+- current stage
+- known risks, unknowns, or missing evidence
+
+## 8. Alignment Use
+- when to read the Product / Requirement Baseline
+- when to read the Architecture / Runtime Boundary Baseline
+- when to report `scope: both`
+
+## 9. Compatibility Boundary
+- what must NOT break during early work
+```
+
+Do not collapse the first bootstrap baseline into a generic 10-field checklist.
+If the project is sparse, keep sections short and mark authority gaps explicitly
+instead of guessing.

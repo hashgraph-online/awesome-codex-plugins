@@ -1,0 +1,14 @@
+# HTTP Server.
+server:
+  address:             ":8199"
+  serverRoot:          "resource/public"
+  dumpRouterMap:       true
+  routeOverWrite:      true
+  accessLogEnabled:    true
+  openapiPath:         "/api.json"
+  swaggerPath:         "/swagger"
+
+# Global logging.
+logger:
+    level : "all"
+    stdout: true

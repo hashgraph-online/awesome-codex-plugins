@@ -1,0 +1,5 @@
+{
+  "name": "espresso",
+  "description": "Concentrated output + full token-saving stack. Zero fluff, max power per token.",
+  "hooks": "./hooks/hooks.json"
+}

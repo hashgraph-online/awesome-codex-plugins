@@ -1,6 +1,6 @@
 ---
 name: using-hotl
-description: Use when starting any conversation - establishes how to find and use HOTL skills for implementation tasks
+description: Use when the user explicitly asks for HOTL routing or needs guidance choosing the right HOTL workflow skill.
 ---
 
 ## When to Use HOTL Skills
@@ -20,19 +20,20 @@ HOTL skills are for **code-changing tasks that require planning** — new featur
 
 ## Available HOTL Skills
 
-Use the `Skill` tool to invoke any of these when appropriate:
+Invoke any of these when appropriate:
 
 | Skill | When to Use |
 |---|---|
 | `hotl:brainstorming` | Before any feature work — design with HOTL contracts |
-| `hotl:writing-plans` | After design approval — produces `hotl-workflow-<slug>.md` |
+| `hotl:writing-plans` | After design approval — produces `docs/plans/YYYY-MM-DD-<slug>-workflow.md` |
 | `hotl:executing-plans` | Linear execution with human checkpoints |
-| `hotl:loop-execution` | Execute a `hotl-workflow-*.md` with loops + auto-approve |
+| `hotl:loop-execution` | Execute a workflow file with loops + auto-approve |
 | `hotl:subagent-execution` | Delegated step runner over the loop execution engine — delegates eligible steps to fresh subagents |
 | `hotl:dispatch-agents` | 2+ independent tasks that can run in parallel |
 | `hotl:finishing-a-development-branch` | After execution — merge back, publish/PR, keep, or discard the execution branch/worktree |
 | `hotl:tdd` | Before writing any implementation code |
 | `hotl:systematic-debugging` | When encountering any bug or unexpected behavior |
+| `hotl:skill-authoring` | When creating, editing, or reviewing HOTL skills, agents, commands, or behavior-shaping instructions |
 | `hotl:document-review` | Optional — review existing docs, external specs, or hand-authored plans |
 | `hotl:requesting-code-review` | Dispatched by executors at review checkpoints — standardizes what context the reviewer receives |
 | `hotl:receiving-code-review` | Invoked when review findings arrive — verify, evaluate against contracts, then implement |

@@ -119,4 +119,4 @@ Pair with `references/iterative-retrieval.md` when first scoped search misses.
 
 ---
 
-> Pattern adopted from `codebase-archaeology` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `codebase-archaeology` (ACFS skill corpus). Methodology only — no verbatim text.

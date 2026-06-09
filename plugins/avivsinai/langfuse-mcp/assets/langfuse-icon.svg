@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title>Langfuse Observability</title>
+  <desc>A trace waterfall with nested spans and a highlighted observation.</desc>
+  <defs>
+    <linearGradient id="bg" x1="64" x2="448" y1="36" y2="476" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B0F1D"/>
+      <stop offset="1" stop-color="#070B16"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(240 0 0 240 318 247)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18304F" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#18304F" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="span" x1="84" x2="421" y1="117" y2="393" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8EAEE"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="138" x2="386" y1="298" y2="298" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#35D8C2"/>
+      <stop offset="1" stop-color="#22C7AE"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="92" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="92" fill="url(#glow)"/>
+
+  <g fill="#35D8C2">
+    <circle cx="90" cy="174" r="2.5"/>
+    <circle cx="90" cy="182" r="2.5"/>
+    <circle cx="90" cy="190" r="2.5"/>
+    <circle cx="90" cy="198" r="2.5"/>
+    <circle cx="90" cy="206" r="2.5"/>
+    <circle cx="90" cy="214" r="2.5"/>
+    <circle cx="90" cy="222" r="2.5"/>
+    <circle cx="90" cy="230" r="2.5"/>
+    <circle cx="90" cy="238" r="2.5"/>
+    <circle cx="90" cy="246" r="2.5"/>
+    <circle cx="90" cy="254" r="2.5"/>
+    <circle cx="90" cy="262" r="2.5"/>
+    <circle cx="90" cy="270" r="2.5"/>
+    <circle cx="90" cy="278" r="2.5"/>
+    <circle cx="90" cy="286" r="2.5"/>
+    <circle cx="90" cy="294" r="2.5"/>
+    <circle cx="99" cy="220" r="2.5"/>
+    <circle cx="108" cy="220" r="2.5"/>
+    <circle cx="117" cy="220" r="2.5"/>
+    <circle cx="99" cy="296" r="2.5"/>
+    <circle cx="108" cy="296" r="2.5"/>
+    <circle cx="117" cy="296" r="2.5"/>
+    <circle cx="126" cy="296" r="2.5"/>
+    <circle cx="135" cy="296" r="2.5"/>
+    <circle cx="158" cy="328" r="2.5"/>
+    <circle cx="158" cy="337" r="2.5"/>
+    <circle cx="158" cy="346" r="2.5"/>
+    <circle cx="158" cy="355" r="2.5"/>
+    <circle cx="158" cy="364" r="2.5"/>
+    <circle cx="167" cy="364" r="2.5"/>
+    <circle cx="176" cy="364" r="2.5"/>
+  </g>
+
+  <rect x="68" y="117" width="340" height="52" rx="26" fill="url(#span)"/>
+  <rect x="118" y="194" width="200" height="52" rx="26" fill="url(#span)"/>
+  <rect x="138" y="272" width="242" height="52" rx="26" fill="url(#accent)"/>
+  <rect x="180" y="350" width="176" height="52" rx="26" fill="url(#span)"/>
+</svg>

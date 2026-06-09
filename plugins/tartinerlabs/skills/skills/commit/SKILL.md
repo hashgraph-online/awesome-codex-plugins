@@ -28,7 +28,7 @@ Before committing, ensure GitLeaks is configured:
 
 1. Check for `.husky/pre-commit` containing `gitleaks protect`
 2. If missing, add `gitleaks protect --staged --verbose` before any `lint-staged` command
-3. If `.husky/` doesn't exist, run `npx husky init` first
+3. If `.husky/` doesn't exist, run `pnx husky init` first
 
 ## Workflow
 

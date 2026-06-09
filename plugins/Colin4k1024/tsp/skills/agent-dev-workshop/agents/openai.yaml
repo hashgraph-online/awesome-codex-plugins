@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Dev Workshop"
+  short_description: "交互式拆解 Agent 需求、架构与代码生成流程"
+  default_prompt: "Use $agent-dev-workshop to walk the user through agent discovery, architecture, tool design, prompt orchestration, code generation, and verification."

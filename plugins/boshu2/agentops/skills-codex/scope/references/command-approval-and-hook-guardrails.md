@@ -29,4 +29,4 @@ Use this reference when path-scope protection is not enough and a session needs 
 
 ---
 
-**Source:** Adapted from jsm / `dcg`, `cc-hooks`, and `slb`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `dcg`, `cc-hooks`, and `slb`. Pattern-only, no verbatim text.

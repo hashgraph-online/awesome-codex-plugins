@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mvc-demo-chat
+spec:
+  template:
+    spec:
+      containers:
+        - name : main
+          image: mvc-demo-chat:develop

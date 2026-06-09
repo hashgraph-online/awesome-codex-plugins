@@ -1,6 +1,7 @@
 name: Sync to awesome-ai-plugins
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -15,12 +16,11 @@ jobs:
   dispatch:
     name: Trigger sync to awesome-ai-plugins
     runs-on: ubuntu-latest
-    # Requires BOT_TOKEN secret with repo scope for cross-repo dispatch
-    # Without it, this step will be skipped
+    # Requires the configured repo secret with repo scope for cross-repo dispatch.
     steps:
       - name: Repository Dispatch
         uses: peter-evans/repository-dispatch@v4
         with:
+          token: ${{ secrets.BOT_TOKEN }}
           repository: hashgraph-online/awesome-ai-plugins
           event-type: sync-to-ai-plugins
-          token: ${{ secrets.BOT_TOKEN }}

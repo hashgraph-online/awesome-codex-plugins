@@ -30,6 +30,8 @@
     "eval:ab:live:dry": "node tools/run-live-ab-evals.mjs --dry-run",
     "release:evidence": "node tools/run-live-ab-evals.mjs --evidence",
     "release:evidence:dry": "node tools/run-live-ab-evals.mjs --evidence --dry-run",
+    "scenario:list": "node tools/check-scenarios.mjs --list",
+    "scenario:check": "node tools/check-scenarios.mjs --check",
     "journal:init": "node skills/writers-loop/scripts/journal.mjs init",
     "journal:append": "node skills/writers-loop/scripts/journal.mjs append",
     "journal:derive": "node skills/writers-loop/scripts/journal.mjs derive",
@@ -38,6 +40,6 @@
     "style:list": "node skills/writers-loop/scripts/style-pack.mjs list",
     "style:show": "node skills/writers-loop/scripts/style-pack.mjs show",
     "test:real": "node tools/run-real-usage-tests.mjs",
-    "test": "npm run validate && npm run scan:secrets && npm run eval && npm run eval:ab && npm run test:real"
+    "test": "npm run scenario:check && npm run validate && npm run scan:secrets && npm run eval && npm run eval:ab && npm run test:real"
   }
 }

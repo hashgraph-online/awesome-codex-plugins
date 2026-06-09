@@ -11,4 +11,4 @@ When a generated skill references a host tool, use the active Codex equivalent:
 | task plan tool | use Codex task planning/status tools when present |
 | `/octo:*` command examples | use the installed skill name or run `scripts/orchestrate.sh` directly |
 
-Provider and model availability must be checked at runtime. If a skill names a provider that is missing in the current Codex session, mark it unavailable and continue only with available providers.
+Provider and model availability must be checked at runtime. If `OCTO_ALLOWED_PROVIDERS` is set, treat providers outside that list as unavailable even when installed. If a skill names a provider that is missing or disallowed in the current Codex session, mark it unavailable and continue only with available providers.

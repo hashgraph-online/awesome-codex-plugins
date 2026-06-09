@@ -222,3 +222,74 @@ But do NOT read implementation details of the specific feature being specified.
    # Record verdict in epic notes
    bd update <epic-id> --append-notes "CRANK_ACCEPT: wave=$wave verdict=<PASS|WARN|FAIL> at $(date -Iseconds)"
    ```
+
+## CI-Policy Parity Gate
+
+> **Principle:** When a wave touches GitHub Actions workflows, the AGENTS.md CI table and the workflow's `summary.needs:` / `summary.if:` fail-set MUST stay in three-way sync. A drift means the docs lie about which jobs are blocking — exactly the failure mode that produced commit `c587b361` (manual fix codex-team applied AFTER soc-lmww1 added `factory-claim-ledger-strict (advisory)` to validate.yml without updating AGENTS.md or `summary.needs:`).
+
+The crank orchestrator runs `scripts/validate-ci-policy-parity.sh` as a conditional acceptance gate inside Step 5.5.
+
+### Trigger detection
+
+```bash
+# Only trigger when wave actually touches a workflow YAML file.
+# CODEOWNERS-only or markdown-only changes do NOT trigger this gate.
+if git diff --name-only "$WAVE_START_SHA" HEAD -- | grep -qE '^\.github/workflows/.*\.ya?ml$'; then
+    bash scripts/validate-ci-policy-parity.sh || exit 1
+fi
+```
+
+The grep pattern is intentionally narrow:
+- `^\.github/workflows/` anchors the trigger to the workflows directory (not `.github/CODEOWNERS`, not action templates elsewhere).
+- `\.ya?ml$` matches `.yml` and `.yaml` only.
+
+### Pre-fix state (simulating the c587b361 bug)
+
+A worker adds `factory-claim-ledger-strict` as a new advisory job in `validate.yml` but does NOT add it to `summary.needs:` and does NOT add a row to the `### CI Jobs and What They Check` table in AGENTS.md.
+
+The orchestrator's gate fires:
+
+```
+$ bash scripts/validate-ci-policy-parity.sh
+CI_POLICY_PARITY: Job list drift detected (AGENTS table vs validate.yml summary.needs).
+--- AGENTS jobs
++++ Workflow summary.needs jobs
++factory-claim-ledger-strict
+Action: align AGENTS CI table entries or summary.needs job list.
+CI_POLICY_PARITY: FAILED (1 drift group(s) detected)
+$ echo $?
+1
+```
+
+Wave verdict → **FAIL**.
+
+### Post-fix state
+
+Add the job to `summary.needs:` and add a row to AGENTS.md (mark `(non-blocking)` when the job has `continue-on-error: true`). The gate then passes:
+
+```
+$ bash scripts/validate-ci-policy-parity.sh
+CI_POLICY_PARITY: PASS (47 jobs; 7 non-blocking)
+$ echo $?
+0
+```
+
+### Fix-it message format
+
+When the gate fails, surface a concise summary to the operator:
+
+```
+[wave-acceptance] CI-policy parity drift detected (validate-ci-policy-parity exit 1).
+  Drift kind: <Job list | Non-blocking policy | Blocking policy>
+  Required edits:
+    - <align AGENTS.md ### CI Jobs and What They Check table>
+    - <align .github/workflows/validate.yml summary.needs and/or summary.if fail set>
+  Re-run after fix:
+    bash scripts/validate-ci-policy-parity.sh
+```
+
+### Why this gate exists
+
+- Commit `c587b361 ci(reconcile): wire factory-claim-ledger-strict into summary + AGENTS parity` is the manual fix that motivated this gate (soc-lmww1 drift). PR-F (this gate) is the formalization of `finding-2026-05-07-ci-parity-as-wave-acceptance`.
+- The validator (`scripts/validate-ci-policy-parity.sh`) is also wired into `scripts/pre-push-gate.sh`. Wave acceptance hits the same gate earlier — at wave-close time — so drift never escapes a wave.
+- Narrow trigger keeps the gate cheap and prevents false positives from CODEOWNERS, README, or non-workflow YAML changes.

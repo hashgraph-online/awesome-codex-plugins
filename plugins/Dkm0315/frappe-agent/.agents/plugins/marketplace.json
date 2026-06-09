@@ -1,0 +1,20 @@
+{
+  "name": "frappe-agent",
+  "interface": {
+    "displayName": "Frappe Agent Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "frappe-agent",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_FIRST_USE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

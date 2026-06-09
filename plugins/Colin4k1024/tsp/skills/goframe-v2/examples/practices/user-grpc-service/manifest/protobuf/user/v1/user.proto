@@ -1,0 +1,45 @@
+// protoc --go_out=plugins=grpc:. *.proto
+
+syntax = "proto3";
+
+package user;
+
+option go_package = "practices/user-grpc-service/api/user/v1";
+
+import "pbentity/user.proto";
+
+service User{
+    rpc Create(CreateReq) returns (CreateRes) {}
+    rpc GetOne(GetOneReq) returns (GetOneRes) {}
+    rpc GetList(GetListReq) returns (GetListRes) {}
+    rpc Delete(DeleteReq) returns (DeleteRes) {}
+}
+
+message CreateReq {
+    string Passport = 1; // v: required
+    string Password = 2; // v: required
+    string Nickname = 3; // v: required
+}
+message CreateRes {}
+
+message GetOneReq {
+    uint64 Id = 1; // v: required
+}
+message GetOneRes {
+    pbentity.User User = 1;
+}
+
+message GetListReq {
+    int32 Page = 1;
+    int32 Size = 2;
+}
+message GetListRes {
+    repeated pbentity.User Users = 1;
+}
+
+message DeleteReq {
+    // v: min:1#
+    // v: Please select the user to be deleted.
+    uint64 Id = 1;
+}
+message DeleteRes {}

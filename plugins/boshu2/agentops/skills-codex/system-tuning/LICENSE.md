@@ -1,6 +1,6 @@
 # system-tuning (Codex twin) — Attribution and Licensing
 
-Methodology source: jsm `system-performance-remediation`. Pattern-adopted only;
+Methodology source: an external `system-performance-remediation` skill corpus. Pattern-adopted only;
 no source text reused. The triage method (diagnose → ordered kill hierarchy →
 confused-parent detection → renice survivors → verify) and the
 "whack-a-mole" anti-pattern framing are due to the original work.

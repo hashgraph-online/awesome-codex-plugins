@@ -4,6 +4,8 @@ description: Use when adding CI/CD, creating workflows, auditing GitHub Actions,
 allowed-tools: Read Glob Grep Edit Write Bash(gh:*)
 model: sonnet
 effort: high
+context: fork
+agent: general-purpose
 ---
 
 ## Mode Detection

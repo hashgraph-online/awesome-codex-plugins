@@ -1,0 +1,13 @@
+[project]
+name = "zagrosi-forge"
+version = "0.2.0"
+description = "Zagrosi Forge Codex-native project, planning, and TDD implementation skills"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Zagrosi" }]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

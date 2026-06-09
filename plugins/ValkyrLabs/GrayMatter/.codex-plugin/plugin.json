@@ -1,0 +1,55 @@
+{
+  "name": "graymatter",
+  "version": "0.2.1",
+  "description": "Durable memory, shared graph state, and live api-docs schema awareness for Codex and OpenClaw agents.",
+  "author": {
+    "name": "ValkyrLabs",
+    "email": "support@valkyrlabs.com",
+    "url": "https://valkyrlabs.com/"
+  },
+  "homepage": "https://github.com/ValkyrLabs/GrayMatter",
+  "repository": "https://github.com/ValkyrLabs/GrayMatter",
+  "license": "Proprietary",
+  "keywords": [
+    "graymatter",
+    "memory",
+    "durable-memory",
+    "agent-memory",
+    "schema-awareness",
+    "analytics",
+    "semantic-layer",
+    "mcp",
+    "valkyrai",
+    "openclaw",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "GrayMatter",
+    "shortDescription": "Durable memory and live schema context for agents",
+    "longDescription": "GrayMatter gives Codex and OpenClaw agents a durable memory layer, shared graph context, authenticated awareness of the live ValkyrAI api-0 schema, and a bundled mcp-server for direct tool access. Use it to persist decisions, query context, inspect business objects, and coordinate agent state through ValkyrAI.",
+    "developerName": "ValkyrLabs",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/ValkyrLabs/GrayMatter",
+    "privacyPolicyURL": "https://github.com/ValkyrLabs/GrayMatter/blob/main/docs/privacy-policy.md",
+    "termsOfServiceURL": "https://valkyrlabs.com/v1/docs/Legal/tos/",
+    "composerIcon": "./assets/composer-icon.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Use GrayMatter to remember this decision",
+      "Query GrayMatter for relevant context",
+      "Inspect the live api-docs schema with GrayMatter",
+      "Use GrayMatter to set up analytics context"
+    ],
+    "brandColor": "#245B4A",
+    "screenshots": [
+      "./assets/screenshot.svg"
+    ]
+  }
+}

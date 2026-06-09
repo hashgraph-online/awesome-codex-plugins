@@ -2,11 +2,12 @@
 name: plan
 user-invocable: false
 tags: [planning, prd, requirements, research]
+model: opus
 model-preference: opus
 model-preference-codex: gpt-5.4
 model-preference-cursor: claude-opus-4-6
 description: >
-  Structured project planning and PRD generation with three modes:
+  Use this skill when performing structured project planning and PRD generation with three modes:
   new (project kickoff with repo scaffolding), feature (compact feature PRD),
   retro (data-driven retrospective). All modes share a researched Q&A engine
   that dispatches parallel Explore agents before each question wave, presents
@@ -57,6 +58,8 @@ If no `## Session Config` section exists at all, stop and report: "Error: No Ses
 > On Codex CLI, Explore agents map to the `explorer` agent role. See `skills/_shared/platform-tools.md`.
 
 ## Phase 2: Mode Router
+
+> **Ambiguous scope?** If the feature's UX/scope is still ambiguous before starting, run `/brainstorm` first (see `skills/brainstorm/SKILL.md`) to produce a design spec, then return here with the spec as input. `/brainstorm` outputs `docs/specs/YYYY-MM-DD-<slug>-design.md`.
 
 Parse `$ARGUMENTS` to determine the planning mode:
 
@@ -196,6 +199,55 @@ Write the document to the configured location:
 Use today's date. Derive the name slug from the project name (for new) or feature name (for feature) — lowercase, hyphens, no special characters.
 
 Ensure the target directory exists (create with `mkdir -p` if needed) before writing.
+
+## Phase 3.5: Package Legitimacy Audit (Slopcheck — #520)
+
+> Despite the name, this phase runs *after* Phase 4 (Document Generation) and *before* Phase 5 (PRD Review). The "3.5" identifier is historical, anchored to the PRD's Pattern-2 specification so cross-references stay searchable.
+
+> Skip this phase if `slopcheck.enabled: false` in Session Config (default).
+
+After the PRD is generated, scan the PRD body for package mentions and run
+`classifyPackages()` from `scripts/lib/slopcheck.mjs` against them.
+
+### Detection
+
+Look for these patterns in the PRD body:
+- npm: code-fenced blocks with `pnpm add`, `npm install`, `npm i`, or
+  bare package names in `## Dependencies` / `## Affected Files` sections
+- pip: `pip install`, `requirements.txt` references
+- cargo: `cargo add`, `Cargo.toml` deps section
+
+Extract package names + registry tuples: `[{name: 'react', registry: 'npm'}, ...]`.
+
+### Dispatch
+
+```javascript
+import { classifyPackages } from '../../scripts/lib/slopcheck.mjs';
+const results = await classifyPackages(detectedPackages);
+```
+
+### Handling per classification
+
+- **LEGITIMATE**: no action, continue.
+- **ASSUMED**: append "Package Legitimacy Audit" section to PRD body with the
+  ASSUMED list. No user interaction required. Operator can review before close.
+- **SUS**: AskUserQuestion: "Package <name> has audit warning: <evidence>.
+  Continue anyway, replace, or remove?"
+- **SLOP**: AskUserQuestion (BLOCKING): "Package <name> not found in <registry>
+  registry. Possible LLM hallucination. Options: abort plan, correct name,
+  mark as experimental in PRD body."
+
+### Fail-Soft
+
+If `classifyPackages` returns `{classification: 'ASSUMED', evidence: 'registry-timeout'}`
+or `'cache-error'`, treat as ASSUMED + log to stderr. Never block plan
+generation due to slopcheck failure — log + continue.
+
+### Skip Conditions
+
+- `slopcheck.enabled: false` in Session Config (default)
+- PRD contains no package mentions
+- `slopcheck.sources` does not include `plan` (e.g., set to `[discovery]` only)
 
 ## Phase 5: PRD Review (skip for retro mode)
 

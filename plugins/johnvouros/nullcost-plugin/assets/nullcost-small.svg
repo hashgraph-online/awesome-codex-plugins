@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <style>
+      @media (prefers-reduced-motion: no-preference) {
+        .rgb-shift {
+          animation: rgbShift 18s ease-in-out infinite alternate;
+        }
+        .rgb-glow {
+          animation: glowShift 24s ease-in-out infinite alternate;
+        }
+      }
+      @keyframes rgbShift {
+        0% { filter: hue-rotate(0deg) saturate(1); }
+        50% { filter: hue-rotate(16deg) saturate(1.08); }
+        100% { filter: hue-rotate(-12deg) saturate(1.04); }
+      }
+      @keyframes glowShift {
+        0% { opacity: 0.30; }
+        50% { opacity: 0.42; }
+        100% { opacity: 0.34; }
+      }
+    </style>
+    <linearGradient id="tile" x1="72" y1="72" x2="440" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="0.54" stop-color="#070A0F"/>
+      <stop offset="1" stop-color="#0D1512"/>
+    </linearGradient>
+    <linearGradient id="nCore" x1="128" y1="122" x2="392" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D7FFE5"/>
+      <stop offset="0.38" stop-color="#25CE69"/>
+      <stop offset="0.72" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#F43F5E"/>
+    </linearGradient>
+    <filter id="softGlow" x="30" y="30" width="452" height="452" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.14 0 0 0 0 0.92 0 0 0 0 0.47 0 0 0 0.7 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+  <rect x="56" y="56" width="400" height="400" rx="92" fill="url(#tile)"/>
+  <rect x="57.5" y="57.5" width="397" height="397" rx="90.5" stroke="#25CE69" stroke-opacity="0.22" stroke-width="3"/>
+  <path class="rgb-glow" d="M146 366V146L366 366V146" stroke="#00E5FF" stroke-width="82" stroke-linecap="round" stroke-linejoin="round" opacity="0.38"/>
+  <path class="rgb-glow" d="M134 358V138L354 358V138" stroke="#FF2D55" stroke-width="82" stroke-linecap="round" stroke-linejoin="round" opacity="0.28"/>
+  <path class="rgb-glow" d="M140 362V142L360 362V142" stroke="#25CE69" stroke-width="92" stroke-linecap="round" stroke-linejoin="round" opacity="0.38" filter="url(#softGlow)"/>
+  <path d="M140 362V142L360 362V142" stroke="#06100B" stroke-width="110" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="rgb-shift" d="M140 362V142L360 362V142" stroke="url(#nCore)" stroke-width="82" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M140 142L360 362" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="18" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Zagrosi Implement"
+  short_description: "Implement Zagrosi Plan sections with TDD"
+  brand_color: "#0F766E"
+  default_prompt: "Use $zagrosi-forge:zagrosi-implement to implement these section files with TDD and review."

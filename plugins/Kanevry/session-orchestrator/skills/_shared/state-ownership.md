@@ -17,7 +17,7 @@ current-wave: <N>
 total-waves: <N>
 # Optional fields (schema-version 1, additive for backward-compat):
 updated: <ISO 8601 UTC>      # last write timestamp, touched by any writer
-session: <session-id>        # <branch>-<YYYY-MM-DD>-<HHmm>, set Pre-Wave 1b
+session: <session-id>        # <branch>-<YYYY-MM-DD>-<mode>-<n> (semantic, since #573); legacy UUID-v4 also accepted by parseSessionId
 session-start-ref: <sha>     # git ref at session start
 ---
 ```
@@ -25,7 +25,7 @@ session-start-ref: <sha>     # git ref at session start
 ### Required vs. optional fields
 
 - `schema-version`, `session-type`, `branch`, `issues`, `started_at`, `status`, `current-wave`, `total-waves` — **required** in every session-owned STATE.md.
-- `updated`, `session`, `session-start-ref` — **optional**. Added by #184. STATE.md files without these fields remain valid and should be treated as `updated: null` / `session: null`. Writers SHOULD populate these fields but readers MUST tolerate their absence.
+- `updated`, `session`, `session-start-ref` — **optional**. Added by #184. STATE.md files without these fields remain valid and should be treated as `updated: null` / `session: null`. Writers SHOULD populate these fields but readers MUST tolerate their absence. The `session` field's value format is `<branch>-<YYYY-MM-DD>-<mode>-<n>` since #573 (Epic #568 Parallel-Aware Sessions P2.2); pre-#573 files may contain a UUID-v4 — both formats are read via `parseSessionId()` from `scripts/lib/session-id.mjs` per PRD §3 P2 row 3 (backward-compat).
 
 The `session-type: none` + `status: idle` combination is used only for bootstrap-scaffolded placeholder files (no active session).
 
@@ -36,8 +36,27 @@ The `session-type: none` + `status: idle` combination is used only for bootstrap
 | `## Current Wave` | Next wave to execute | wave-executor (post-wave) |
 | `## Wave History` | Completed wave records | wave-executor (post-wave) |
 | `## Deviations` | Plan adaptation log | wave-executor (step 3) |
+| `## What Not To Retry` | Failed/abandoned approaches not to repeat (#623) | session-end (Phase 1.6) |
 
 Wave History lines MAY include a `→ issue #NNN` suffix (or `→ existing #NNN` when a duplicate was detected) for SPIRAL/FAILED agents, linking to the auto-created carryover issue (#261). This is optional and backward-compatible; readers that do not recognize the notation can skip it. Session-end Phase 1.6 uses the presence of this suffix to decide whether to retro-file a carryover as a fallback safety net.
+
+### `## What Not To Retry` (cross-session continuity slot, #623)
+
+A log of failed or abandoned approaches that future sessions should NOT re-attempt. Each entry has the shape `{approach, why_failed, session_id, date}` and renders as:
+
+```markdown
+## What Not To Retry
+
+- **<approach>** (<session_id>, <date>)
+  - why: <why_failed>
+```
+
+- **Writer:** session-end Phase 1.6 — for every SPIRAL/FAILED agent it appends one entry via `appendWhatNotToRetryOnDisk(repoRoot, entry)`; the coordinator MAY also add a free-text entry through the same helper.
+- **Reader:** session-start Phase 6.5.1 — surfaces the section as a forced-read block wrapped in the HISTORICAL guard banner (`scripts/lib/historical-guard.mjs`). It is a READER only and never mutates the slot.
+- **Cap:** at most `MAX_WHAT_NOT_TO_RETRY` (10) entries, pruned FIFO (oldest dropped) on each append — a simple last-N trim, NOT a per-entry success-clear.
+- **Idle-Reset preservation (load-bearing):** **`## What Not To Retry` SURVIVES the completed-branch Idle Reset** — unlike per-session `## Deviations` (which is emptied) and `## Wave History` (which is demoted into `## Previous Session`). It is a cross-session continuity record, so session-start's Idle Reset MUST NOT clear, demote, or drop it.
+
+Helpers: `appendWhatNotToRetry` (pure), `readWhatNotToRetry` (pure), `appendWhatNotToRetryOnDisk` (lock-guarded write) — all exported from `scripts/lib/state-md.mjs`.
 
 ## Ownership Model
 
@@ -45,7 +64,7 @@ Wave History lines MAY include a `→ issue #NNN` suffix (or `→ existing #NNN`
 |-------|--------|------------|
 | **wave-executor** | Read + Write (owner) | Creates STATE.md (Pre-Wave 1b), updates after each wave (current-wave, Wave History, Deviations) |
 | **session-end** | Read + Status-only write | Reads for metrics extraction (Phase 1.7), sets `status: completed` (Phase 3.4). Exception: only field modified is `status` in frontmatter. |
-| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations`. Never resets on `active` or `paused` (those paths are user-interactive). |
+| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. Surfaces `## What Not To Retry` as a forced-read HISTORICAL block (Phase 6.5.1). May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations` — but PRESERVES `## What Not To Retry` (cross-session continuity, #623). Never resets on `active` or `paused` (those paths are user-interactive). |
 | **evolve** | Read-only | Reads `## Deviations` section for deviation pattern extraction (Step 2.2, pattern 5) |
 
 ## Guards
@@ -70,3 +89,62 @@ The `schema-version` field enables future migration. Current version: `1`. If a 
 ## Concurrency
 
 STATE.md is NOT safe for concurrent access. Only one session should be active per branch at a time. If session-start detects `status: active`, it prompts the user to resume or start fresh (which overwrites the stale STATE.md).
+
+- **Discovery grep-verification** — distributional claims in W1 outputs (e.g., "N of M callers", "100% adopt pattern X") MUST quote the executed grep + file scope + count. See [`../../.claude/rules/parallel-sessions.md`](../../.claude/rules/parallel-sessions.md) § PSA-006.
+
+## Worktree-Auto-Promotion (#574, Epic #568 P3.1)
+
+When a session is promoted to a sibling worktree via `enterWorktree({basePath, sessionId, branch, repoRoot})` from `scripts/lib/autopilot/worktree-pipeline.mjs`, the new worktree gets its OWN STATE.md scoped to that worktree. The original repo's STATE.md is unaffected.
+
+- Original worktree (where PROMOTION_OFFER was issued): retains its STATE.md, no changes from the promotion event.
+- New sibling worktree: runs `session-start` from scratch in the new tree; Phase 1.2 acquires its own session-lock; Phase 1b writes its own STATE.md.
+- Cleanup ownership: `session-end` Phase 4a in the promoted worktree handles `git worktree remove` after Phase 4 commit+push completes. The cleanup writes a deviation entry to its own STATE.md before removing the worktree.
+
+Cross-references:
+- `skills/session-end/SKILL.md § Phase 4a` (cleanup)
+- `scripts/lib/autopilot/worktree-pipeline.mjs § enterWorktree` (creation)
+- `skills/_shared/parallel-aware-auq.md` (PROMOTION_OFFER AUQ)
+
+## Session Lock Schema (v2, since Epic #583)
+
+The `.orchestrator/session.lock` file is written mechanically by `hooks/_lib/lock-bootstrap.mjs` on every `SessionStart` hook invocation (Epic #583 D1 fix). Prior to Epic #583, the lock was only created when the coordinator-LLM executed Phase 1.2 prose — a silent-skip risk.
+
+### Lock body (schema v2)
+
+```json
+{
+  "session_id":          "<UUID-v4 OR semantic-id>",
+  "semantic_session_id": "<branch>-<YYYY-MM-DD>-<mode>-<n>",
+  "started_at":          "<ISO-8601 UTC>",
+  "last_heartbeat":      "<ISO-8601 UTC>",
+  "mode":                "deep|feature|housekeeping|session|...",
+  "pid":                 12345,
+  "host":                "hostname",
+  "ttl_hours":           4
+}
+```
+
+### Field notes
+
+| Field | Required since | Description |
+|---|---|---|
+| `session_id` | v1 | The session identifier (UUID-v4 on Claude Code, semantic on Codex/Cursor). |
+| `semantic_session_id` | v2 (Epic #583) | The semantic form (`<branch>-<YYYY-MM-DD>-<mode>-<n>`) **always present**, even when `session_id` is a UUID. Closes D4 gap: semantic-id branch was previously dead code on Claude Code (stdin always provides UUID). |
+| `started_at` | v1 | ISO-8601 timestamp when the lock was written. |
+| `last_heartbeat` | v2 (Epic #583) | ISO-8601 timestamp updated by the `SessionStart` hook and by `PostToolBatch`/`Stop` hooks. **Basis for liveness determination** — replaces PID-liveness (see below). |
+| `mode` | v1 | Session mode consulted by exclusivity-matrix. May be `"unknown"` in the provisional lock written by the hook before Session Config + AUQ have settled. |
+| `pid` | v1 | **Forensic only — do NOT use for liveness.** Records the writer's process PID (the hook subprocess, ~500ms lifetime). Dead PIDs are expected and normal. See D2 / D3 notes below. |
+| `host` | v1 | `os.hostname()` of the machine that wrote the lock. Cross-host locks skip PID checks. |
+| `ttl_hours` | v1 | Maximum age before the lock is considered stale regardless of other signals. Default 4h. |
+
+### Liveness rule (v2)
+
+```
+isAlive = (Date.now() - Date.parse(last_heartbeat)) < ttl_hours * 3600 * 1000
+```
+
+This replaces the v1 PID-liveness check (`process.kill(pid, 0)`) which was fundamentally broken because the recorded `pid` belongs to the ephemeral hook subprocess (dies in <1s), not the long-lived Claude coordinator process. The PostgreSQL pattern — use a heartbeat timestamp rather than PID to establish liveness — is the authoritative reference (see W1-D4 best-practices §1.5).
+
+### Schema v1 → v2 backward-compat
+
+Readers (e.g., `readLock()` in `session-lock.mjs`, `discoverActiveSessions()`) MUST tolerate absent `last_heartbeat` and `semantic_session_id` fields (v1 locks written before Epic #583). When `last_heartbeat` is absent, fall back to TTL-based expiry from `started_at`. When `semantic_session_id` is absent, treat as unknown.

@@ -1,0 +1,59 @@
+{
+  "name": "stark",
+  "version": "0.7.2",
+  "description": "UI/UX design plugin for AI coding agents. Routes product flow, platform idiom, originality, motion, assets, and tokens before implementation.",
+  "author": {
+    "name": "stark contributors",
+    "url": "https://github.com/f0d010c/stark"
+  },
+  "homepage": "https://github.com/f0d010c/stark",
+  "repository": "https://github.com/f0d010c/stark",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "design",
+    "ui",
+    "ux",
+    "frontend",
+    "swiftui",
+    "winui",
+    "compose",
+    "tauri",
+    "electron",
+    "tailwind",
+    "anti-slop"
+  ],
+  "skills": "./skills/",
+  "include": [
+    "./agents/",
+    "./assets/",
+    "./commands/",
+    "./docs/review-contract.md",
+    "./references/",
+    "./scripts/detect_platform.py",
+    "./scripts/token_export.py"
+  ],
+  "interface": {
+    "displayName": "stark",
+    "shortDescription": "Multi-platform UI/UX design skills for AI coding agents.",
+    "longDescription": "stark helps AI coding agents design from product flow, platform, native/cross-platform track, originality, assets, motion, and reference analysis before generating code. It includes UX, web, Windows, Apple, Android, cross-platform design, design-token skills, references, commands, curated proof assets, and small helper scripts.",
+    "developerName": "stark contributors",
+    "category": "Development & Workflow",
+    "capabilities": [
+      "Design",
+      "UX",
+      "Code Generation",
+      "Audit",
+      "Reference",
+      "Frontend"
+    ],
+    "websiteURL": "https://github.com/f0d010c/stark",
+    "defaultPrompt": [
+      "Design a non-generic landing page.",
+      "Make this desktop app actually original.",
+      "Improve the onboarding UX for this app.",
+      "Audit this UI for AI slop."
+    ],
+    "brandColor": "#111111"
+  }
+}

@@ -52,6 +52,10 @@ Skip the deviation entry on `proceed`, even when `concurrentSessions` warns — 
 
 ### 1. Dispatch Agents
 
+When `worker-pool.enabled: true` in Session Config, dispatch via `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` with `maxParallel = worker-pool.max-parallel || agents-per-wave`. Else fall back to single-message parallel Agent() dispatch.
+
+**Worker-pool timing note:** when `worker-pool.enabled: true`, per-agent start and end times are recorded individually in subagents.jsonl as workers pull from the cursor at different moments. Wave-level timings (for progress updates and metrics) are computed as first-worker-start to last-worker-finish, not as a uniform fan-out timestamp.
+
 Use the **Agent tool** to dispatch all agents for this wave IN PARALLEL in a SINGLE message.
 
 Read each wave's dispatch metadata from the session plan header (e.g., `(4 agents, parallel, isolation: worktree)`). When the plan specifies `isolation`, use it verbatim. When the plan does not specify, resolve the effective value via `resolveIsolation({ agentCount, sessionType, collisionRisk, configIsolation })` from `scripts/lib/wave-sizing.mjs` — the graduated default (#194) replaces the previous session-type-only switch. Pass the resolved value to each Agent() tool call per `circuit-breaker.md` (omit the parameter when resolved to `none`).
@@ -184,7 +188,7 @@ Capture stdout as `$GROUNDING_BLOCK`. If empty, dispatch the agent unchanged (le
 
     <original prompt>
 
-The helper emits one `grounding_injected` event per injected file to `.orchestrator/metrics/events.jsonl`. The helper never returns non-zero; any failure (missing jq, missing events.jsonl, unreadable file) results in silent no-op so wave dispatch is never blocked.
+The helper emits one `orchestrator.grounding.injected` event per injected file to `.orchestrator/metrics/events.jsonl` (routed through `scripts/emit-event.mjs` → the canonical `emitEvent()` path). The helper never returns non-zero; any failure (missing jq, missing events.jsonl, unreadable file) results in silent no-op so wave dispatch is never blocked.
 
 **Fallback for agents without explicit file scope:** if the session plan's agent specification does not list a "Files:" scope for an agent, fall back to the wave-level `allowedPaths` (from `wave-scope.json`). If that is also empty, skip injection for that agent.
 
@@ -347,6 +351,27 @@ Run this step for every wave, regardless of isolation setting — it is a no-op 
 After ALL agents in the wave complete:
 
 1. **Read each agent's result** carefully
+1a. **Validate agent output schema** (if `output-schema-validation.enabled: true` in Session Config — default `false`):
+
+   For each completed agent record, call `validateAgentOutput({ agentName, raw })` from `scripts/lib/agent-output-schema.mjs` where `agentName` is the kebab-case agent name and `raw` is the agent's full return text.
+
+   Handle the four result modes:
+
+   - **`mode: 'validated', ok: true`** — silent. Set `schema_status: 'ok'` on the agent record in `subagents.jsonl`.
+   - **`mode: 'validated', ok: false`** — schema violation. Annotate the agent record with `schema_violation: true` and `schema_errors: [...]`. Then:
+     - Under `enforce: warn` (default): log the violation in the wave progress update and continue. The wave is NOT blocked.
+     - Under `enforce: strict`: surface the violation as a wave-blocking finding. Halt further agent processing and report to the coordinator before proceeding to the conflict check.
+     - Under `enforce: off`: record the violation in `subagents.jsonl` for diagnostics (`schema_violation: true`, `schema_errors: [...]` are set on the agent record) but do NOT emit a log line in the wave progress update and do NOT block the wave. This is identical to `warn` minus the in-wave noise — forensic data is preserved; operator output is silenced.
+   - **`mode: 'parse-error'`** — two distinct diagnostic sub-cases collapsed into one mode for backward-compat; either:
+     - **parse-error (no-block)**: agent output contains no fenced ```json block at all. Common backward-compat case for agents that predate the schema contract.
+     - **parse-error (bad-json)**: a fenced ```json block exists but the block fails `JSON.parse`. Indicates an agent-side serialisation bug — more interesting than no-block from a diagnostic standpoint, and the operator may want to follow up.
+
+     Both sub-cases share the same recovery: log a warning in the wave progress update, set `schema_status: 'parse-error'` on the agent record in `subagents.jsonl`, and do NOT block the wave (#474 LOW-8 distinguishes the two so future tooling can route diagnostics differently per sub-case).
+   - **`mode: 'schema-error'`** — the fenced ```json block parses cleanly but the parsed object fails AJV validation against the agent's declared `output-schema:`. This is a stronger signal than `parse-error`: the agent emitted JSON, but the shape diverged from its declared contract. Treat the same way as `validated, ok: false` under the configured `enforce` level (`warn` / `strict` / `off`) so the violation is recorded with `schema_violation: true` and `schema_errors: [...]`. Note: the legacy `validateAgentOutput()` returns `'validated', ok: false` for this case today — `schema-error` is the spec-level name (per #474 LOW-8) for the same condition, kept distinct from `parse-error` so the diagnostic log can route differently.
+   - **`mode: 'unvalidated'`** — the agent has no declared `output-schema:` frontmatter. Silent skip (backward-compat path; as of #449 all 11 plugin agents are enrolled, but third-party agents installed via marketplace plugins may not be).
+
+   Reference: agent contract at `agents/code-implementer.md`; runtime module at `scripts/lib/agent-output-schema.mjs::validateAgentOutput`.
+
 2. **Check for conflicts**: did two agents modify the same file? → manual merge needed
 3. **Check for failures**: did any agent report errors or blockers?
 3a. **Apply stagnation patterns** (per agent): review each agent's tool-call sequence against the three patterns in `circuit-breaker.md` § Stagnation Patterns — Pagination Spiral, Turn-Key Repetition, Error Echo. Mark each agent STAGNANT/SPIRAL/FAILED accordingly; recovery feeds into step 3 (Adapt Plan). Two different agents reading the same file is coordination, not stagnation.
@@ -375,6 +400,30 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
 
 3c. **File-level grounding** (per wave, informational, gated by `grounding-check: true` — default): compute Planned (union of agent file scopes for this wave from the dispatch metadata) vs Actual (files actually edited by this wave's agents). Report scope creep (Actual ∖ Planned) and incomplete coverage (Planned ∖ Actual). Does NOT block the next wave. Reuses the semantics defined in `skills/session-end/plan-verification.md` § 1.1a — the session-end variant computes against `$SESSION_START_REF`, the per-wave variant computes against the wave's pre-dispatch HEAD snapshot. Not to be confused with pre-dispatch grounding injection (§ Pre-Dispatch Grounding Injection above): that feature is per-agent and runs before dispatch to prevent friction; this check is per-wave and runs after dispatch to detect scope creep. Skip the entire check when `grounding-check: false`.
 4. **Run incremental verification** (per the quality-gates skill, based on the wave's role):
+
+   **Shared-lib touch auto-promotion (#555 FL-3)** — before selecting the role-based gate variant below, check whether this wave touched files under `scripts/lib/`, `hooks/`, or `.husky/`. If so, auto-promote the inter-wave gate from Quality-Lite (Incremental) to Full Gate (typecheck + test + lint). Rationale: an Impl wave that touches shared code has a wider blast radius than the agent can predict — deep-1647 inter-wave 3→4 caught 2 such regressions only because the Lite step happened to run the full test suite. Auto-promotion makes that coverage deterministic without imposing per-session cost on waves that don't touch shared code (W1-D5 chose Option B over the always-full Option A on this exact tradeoff).
+
+   ```js
+   import { detectSharedLibTouch } from '$PLUGIN_ROOT/scripts/lib/quality-gate.mjs';
+
+   const touchResult = detectSharedLibTouch({
+     repoRoot: process.cwd(),
+     sinceRef: SESSION_START_REF,
+     promoteWhenTouched: ['scripts/lib/', 'hooks/', '.husky/'],
+   });
+
+   if (touchResult.touched && (waveRole === 'Impl-Core' || waveRole === 'Impl-Polish')) {
+     console.log(
+       `ℹ Quality-Lite auto-promoted to Full Gate — wave touched shared code: ` +
+       `${touchResult.paths.join(', ')} (#555 FL-3)`,
+     );
+     // Run Full Gate (typecheck + test + lint) instead of the role-default Incremental.
+   } else {
+     // Existing role-based selection (Discovery: none, Impl-*: Incremental, Quality: Full, Finalization: git status).
+   }
+   ```
+
+   `detectSharedLibTouch` never throws — on any git failure (invalid sinceRef, detached HEAD, missing repo) it returns `{ touched: false, paths: [] }`, so a probe failure silently falls back to the role-default Incremental rather than blocking the wave. When `waveRole === 'Quality'`, the gate is **already Full** — no further promotion possible, no double-promotion. When `waveRole === 'Discovery'` or `'Finalization'`, this check is skipped entirely (the role's verification semantics don't include a test gate to promote).
 
    **Baseline cache check (#258)** — before running Incremental quality checks for this wave, consult the session-start Baseline cache. If the cache is still valid and the diff since `$SESSION_START_REF` is narrow (<50 files), skip Incremental for this wave and note the skip in the wave progress update.
 
@@ -411,6 +460,81 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
    - After **Quality**: Full Gate quality checks per quality-gates (typecheck + test + lint, must all pass)
      (Full Gate is NEVER skipped regardless of cache state — this is the close-safety invariant.)
    - After **Finalization**: final git status check
+
+#### Auto-Fix Protocol (#521)
+
+When `verification-auto-fix.enabled: true`, the inter-wave Quality-Gate uses
+`runQualityGateWithRetry()` to dispatch up to `max-retries` (default 2)
+fixer-agent attempts before aborting.
+
+Per attempt:
+1. Run quality-gate (lint, typecheck, test in order).
+2. On failure, collect: failure output, corrective_context from
+   `.orchestrator/current-session.json`, changed files since last green SHA.
+3. Dispatch code-implementer fixer-subagent with the bundle.
+4. Re-run quality-gate.
+5. After max-retries → write `.orchestrator/metrics/verification-failures/<ts>.json`
+   diagnostics bundle and abort the wave.
+
+See `SKILL.md` § "Inter-Wave Quality-Gate (with Auto-Fix Loop — #521)" for
+the full invocation pattern.
+
+##### STATE.md Deviation — Auto-Fix Result
+
+After `runQualityGateWithRetry()` returns:
+
+- **If `result.ok === true`:** No deviation entry — quality gate passed, wave proceeds normally.
+- **If `result.attempts > 1` and `result.ok === true`:** Append ONE entry to `## Deviations` in `<state-dir>/STATE.md`:
+  ```
+  - [<ISO 8601 UTC>] Wave N auto-fix succeeded after N attempts (max-retries config: M). Failed gate(s): <gate-names>. Final pass on attempt N.
+  ```
+- **If `result.ok === false`:** Append ONE entry to `## Deviations` in `<state-dir>/STATE.md`:
+  ```
+  - [<ISO 8601 UTC>] Wave N auto-fix exhausted retries after N attempts (max-retries config: M). Failed gate: <gate-name>. Diagnostics bundle: <bundlePath>. Coordinator to review bundle and decide: fix manually, disable auto-fix and retry, or abort wave.
+  ```
+
+Use `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` from `scripts/lib/state-md.mjs`.
+This is a **coordinator-only** write — fixer-subagents do not write STATE.md. The lock library
+ensures atomicity if multiple coordinator-level deviations land in the same wave.
+
+#### Auto-Commit Checkpoint (Optional, Opt-In)
+
+> Gate conditions — ALL of the following must be true for this step to run:
+> 1. `$CONFIG["auto-commit-per-wave"] === true`
+> 2. `$CONFIG.persistence === true`
+> 3. The Incremental quality check in step 4 returned **PASS** (skip or fail → do not commit)
+> 4. Worktree base-ref freshness check (step 3b) returned **pass** or **warn** for all agents (not **block**)
+> 5. No unresolved merge conflicts in the working tree (`git status --short` shows no `UU`/`AA`/`DD` lines)
+>
+> When any condition is false, skip this step silently. Log "auto-commit-per-wave skipped" in the wave progress update if the gate condition was `auto-commit-per-wave: true` but another condition failed — so the operator knows the flag is set but the checkpoint did not fire.
+
+**Commit message format:**
+
+```
+chore(wave-N): auto-checkpoint — <Role> wave complete
+
+Quality-Lite: PASS | Wave: N / <total-waves> | Session: <session_id>
+Agents: <done>/<total> done, <partial> partial, <failed> failed
+```
+
+**Env-var bypass:** `SO_SKIP_AUTO_COMMIT=1` disables the commit for the current shell invocation regardless of config — useful for CI environments or when a human is reviewing changes mid-session.
+
+**STATE.md deviation logging:** after a successful commit, append one entry to `## Deviations` using `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` from `scripts/lib/state-md.mjs` (acquires the lock automatically):
+
+**Wrapper choice:** the canonical on-disk wrapper is `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` — it acquires the STATE.md lock automatically before reading + writing. Callers in `.mjs` modules MUST prefer the on-disk wrapper; callers that pre-read STATE.md contents may use `appendDeviation(stateContents, isoTimestamp, message)` directly but MUST then route the write through `writeStateMd()`. Never use `readFileSync(STATE) → transform → writeFileSync(STATE)` — the race window allows STATE.md corruption under parallel waves (PSA-005).
+
+```
+- [<ISO 8601 UTC>] Wave N auto-commit: <sha> (<Role>, Quality-Lite PASS, <N> files staged)
+```
+
+If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), do NOT append the deviation. Instead, log the failure in the wave progress update as a WARN and continue to the next step without blocking.
+
+**Mission-status transition:** after a successful auto-commit, transition the mission status for all tasks in this wave from `in-dev` → `testing` using `setMissionStatus(stateContent, taskId, 'testing')` from `scripts/lib/state-md.mjs`. This matches the coordinator-level rule in `SKILL.md § Mission-Status Updates`: "in-dev → testing: Quality wave begins and this item's implementation wave completed without failure." The auto-commit checkpoint fires at the same logical moment — after implementation completes and Quality-Lite passes.
+
+**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in V3.6 as `scripts/lib/auto-commit.mjs` (see follow-up issue GitLab #214). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal").
+
+---
+
 5a. **Persona-reviewer dispatch** (opt-in, gated by `wave-reviewers` config):
    - Read `wave-reviewers` from Session Config. If the key is absent or the array is empty → skip this step entirely (no-op).
    - Applicable waves: **Impl-Core** and **Impl-Polish** only. Skip for Discovery, Quality, and Finalization waves.
@@ -433,6 +557,7 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
    - Supported reviewer names (plugin-provided): `architect-reviewer`, `qa-strategist`, `analyst`. Custom reviewer agents in `agents/` are also valid if their `name` frontmatter matches.
 
 5. **Session-reviewer dispatch** (after Impl-Core, Impl-Polish, and Quality waves only):
+   - When integrating reviewer findings, follow the receiving-review protocol — see `.claude/rules/receiving-review.md` for the 6-step pattern (READ → UNDERSTAND → VERIFY → EVALUATE → RESPOND → IMPLEMENT) and the forbidden-phrase list.
    - After **Impl-Core** and **Impl-Polish** waves, dispatch the session-reviewer agent to verify wave output:
      ```
      Agent({
@@ -526,6 +651,179 @@ After each wave completes and before the progress update, update `<state-dir>/ST
    ```
    - [<ISO timestamp>] Wave N: <what changed and why>
    ```
+
+5. **Heartbeat refresh (#590-3)** — after the STATE.md write, refresh the session-lock heartbeat so long-running deep sessions do not let the 4h TTL lapse between waves. Best-effort: a failure must NOT block the wave.
+
+   ```js
+   // Per-wave heartbeat refresh (#590-3) — keeps session.lock fresh during long deep sessions.
+   // sessionId = the session identifier established by session-start Phase 1.2 acquire()
+   //   and stored in .orchestrator/session.lock (session_id field); matches the
+   //   STATE.md frontmatter `session:` field written during Pre-Wave 1b initialization.
+   import { updateHeartbeat } from '../../scripts/lib/session-lock.mjs';
+   updateHeartbeat({ sessionId, repoRoot: process.cwd() });
+   ```
+
+   Skip silently if `persistence: false` in Session Config (no session.lock exists in that mode).
+
+### 3a-bis. Agent-Status Telemetry (#565)
+
+> Optional operator-side observability — NOT load-bearing. Best-effort, fire-and-forget telemetry that a tmux `--with-status-pane` (see `skills/tmux-layout/SKILL.md`) renders as a live side-channel per ADR-0007. A status push must NEVER block or fail a wave — mirror the §3a heartbeat-refresh framing exactly.
+
+**Gate:** `persistence: true` in Session Config. When `persistence: false`, skip every push below — there is no runtime side-channel to feed.
+
+The helper is `scripts/lib/agent-status.mjs`. Its exports (`setStatus`, `setProgress`, `readCurrentStatus`) are all no-throw and return `{ ok: true } | { ok: false, reason }`; the coordinator ignores the return value (best-effort). Push at **three anchors** in the wave loop:
+
+1. **dispatch** — in `### 1. Dispatch Agents`, as each agent is dispatched, push its status. Use `setProgress` when the wave's per-agent ordinal is meaningful, else `setStatus`:
+
+   ```js
+   import { setStatus, setProgress } from '../../scripts/lib/agent-status.mjs';
+
+   // For each agent dispatched in this wave (i = 0-based position, total = wave agent count):
+   await setStatus(agentId, `dispatched — ${subagentType}`);              // free-text variant
+   // — or —
+   await setProgress(agentId, { step: i + 1, total, label: subagentType }); // progress variant
+   ```
+
+   `agentId` is a stable per-agent key (e.g. `wave${waveN}-${i}-${subagentType}`). There is **no separate "agent-start" hook distinct from dispatch** — wave agents are in-process `Agent()` calls with no PID/TTY (see `skills/tmux-layout/SKILL.md § When NOT to Use`), so dispatch IS the start signal. Do not invent one.
+
+2. **agent-end** — in `### 2. Review Agent Outputs` step 1 (Read each agent's result), as each agent's terminal status is determined, push it:
+
+   ```js
+   // status ∈ {'done','partial','failed'} from the agent's STATUS: line
+   await setStatus(agentId, status);
+   ```
+
+3. **wave-end rollup** — in `### 3a. Post-Wave: Update STATE.md`, beside the `updateHeartbeat` call (step 5), push one wave-level rollup using a wave-scoped key:
+
+   ```js
+   // e.g. agentId = `wave${waveN}` ; counts from the wave's per-agent results
+   await setStatus(`wave${waveN}`, `wave ${waveN} complete — ${done} done, ${partial} partial, ${failed} failed`);
+   ```
+
+A push failure (timeout, fs-error, invalid-input) is logged to the wave progress update at most as a one-line WARN — never block, never retry, never surface to the user. If `agent-status.mjs` is absent (older plugin checkout), wrap the import defensively and no-op, exactly as `layouts.mjs` does for its telemetry import.
+
+### 3b. Persona-Gate Hook (#458)
+
+> Opt-in mid-wave hook that fans out a `/persona-panel`-style review after a configured wave completes. Distinct from `### 5a. Persona-reviewer dispatch` (which uses the `wave-reviewers` Session Config key and dispatches code-oriented `architect-reviewer` / `qa-strategist` / `analyst` agents). This hook uses the `persona-gate-wave` Session Config key and dispatches catalog personas (domain-experts, buyer-personas, auditors) from `.claude/personas/`. The two keys are independent and may both be configured on the same project.
+
+**Gate conditions** — ALL must be true for the hook to fire:
+
+1. `persona-gate-wave.enabled: true` in Session Config (default: `false`).
+2. The just-completed wave matches `persona-gate-wave.after` — one of `'quality'` or `'impl-polish'`. The hook runs AFTER step 3a (STATE.md updated) and BEFORE step 4 (progress update), so the dispatch context already reflects the completed wave's results.
+3. `persona-gate-wave.mode !== 'off'` (when `mode: 'off'` the hook is a silent no-op even when `enabled: true`).
+
+When any gate condition is false, skip this step entirely — proceed to `### 4. Progress Update`.
+
+**Dispatch sequence:**
+
+```js
+import { loadCatalog } from '$PLUGIN_ROOT/scripts/lib/persona-panel/catalog-loader.mjs';
+import { buildPersonaPrompt, validatePersonaOutput } from '$PLUGIN_ROOT/scripts/lib/persona-panel/persona-runner.mjs';
+import { consolidate } from '$PLUGIN_ROOT/scripts/lib/persona-panel/consolidator.mjs';
+import { writeJsonAtomic } from '$PLUGIN_ROOT/scripts/lib/io.mjs';
+import { appendDeviationOnDisk } from '$PLUGIN_ROOT/scripts/lib/state-md.mjs';
+
+const cfg = $CONFIG['persona-gate-wave'];                        // already normalised by parseSessionConfig
+const catalog = await loadCatalog();                              // throws if .claude/personas/ missing or invalid
+const rosterNames = cfg.personas.length > 0
+  ? cfg.personas
+  : [...catalog.keys()];                                          // empty list → all catalog personas
+const personas = rosterNames.map((n) => catalog.get(n)).filter(Boolean);
+```
+
+Dispatch each persona in parallel via the Agent tool, using `cfg['dispatch-model']` as the model and `Read, Grep, Glob` tools only (panel personas are read-only by contract). Each dispatch wraps the wave's scope summary + changed-files list in `buildPersonaPrompt(persona.persona, target, targetContent)`.
+
+After all agents return, collect their outputs and validate each via `validatePersonaOutput(persona.persona, agentText)`. Compose the panel verdict via `consolidate(outputs, 'hard-gate-threshold', { threshold: cfg.threshold_parsed })`.
+<!-- threshold_parsed is pre-computed by _normalizePersonaGateWave in persona-gate-wave.mjs; no re-parse needed here -->
+
+**Behaviour by mode:**
+
+| `mode` | Action on consolidator result |
+|--------|--------------------------------|
+| `off` | No dispatch (gate condition above). |
+| `warn` | Log findings to the wave progress update under a `Persona-gate:` bullet. Continue to step 4 regardless of `final_verdict`. |
+| `strict` | If `final_verdict === 'PROCEED'`: log to progress, continue. Otherwise pause and surface an `AskUserQuestion` with three options:<br>1. **proceed-as-is** — log Deviation, continue (Recommended only after operator inspects sidecar)<br>2. **revise-remaining-waves** — return `{ verdict: 'FIX_REQUIRED', revision_context: { dissenting_personas, recommendations } }` to the wave-executor caller<br>3. **abort-session** — return `{ verdict: 'BLOCKED' }` to the caller |
+
+**Sidecar write:** before reporting any verdict, validate the panel result against `agents/schemas/persona-panel-sidecar.schema.json` (via `validateAgentOutput` or a direct AJV compile) and then write atomically via `writeJsonAtomic(path, value, { schemaPath })`:
+
+```
+.orchestrator/persona-panel/<iso-timestamp>-<runId>.json
+```
+
+The sidecar carries `personas_invoked`, per-persona `outputs`, and the full `consolidation` block — operators consult it from the AskUserQuestion prompt before deciding `strict`-mode follow-up.
+
+**STATE.md deviation contract:** on `warn` (with at least one dissenting persona) or any `strict`-mode non-PROCEED verdict, append one timestamped entry to `## Deviations` via `appendDeviationOnDisk(repoRoot, iso, message)` from `scripts/lib/state-md.mjs` (acquires the STATE.md lock):
+
+```
+- [<ISO 8601 UTC>] Wave N persona-gate <warn|strict-proceed|strict-revise|strict-abort>: dissenting=[<persona-1>, <persona-2>], threshold=<cfg.threshold>, mode=<cfg.mode>. Sidecar: <relative-path>.
+```
+
+On a clean `PROCEED` no deviation is written — the sidecar alone is sufficient evidence.
+
+**Wave metrics extension:** when persistence is enabled, extend the wave metrics record (step 7 of `### 2. Review Agent Outputs`) with a `persona_gate` block:
+
+```json
+"persona_gate": {
+  "triggered": true,
+  "threshold": "<cfg.threshold>",
+  "personas_pass": <N>,
+  "personas_fail": <M>,
+  "mode_used": "<cfg.mode>",
+  "final_verdict": "<PROCEED|PROCEED_WITH_FOLLOWUPS|BLOCKED|REQUIRES_COORDINATOR>",
+  "sidecar_path": ".orchestrator/persona-panel/<...>.json"
+}
+```
+
+When the hook is skipped (gate condition false), omit the `persona_gate` field entirely — never write `triggered: false` for skipped runs, so a downstream consumer can distinguish "hook did not fire" from "hook fired but found no dissent".
+
+**Motivating example:** the `gotzendorfer-v2` W5 Buyer-Panel pattern (six buyer personas at `hard-gate-threshold` `6-of-6`, `mode: 'strict'`, `after: 'quality'`) — UI work is gate-checked against every persona before commit, abort on any dissent. See `docs/session-config-reference.md § Persona-Gate Wave (#458)` and `commands/persona-panel.md` for the standalone CLI equivalent.
+
+### 3c. Strategic Compact-Nudge (#620)
+
+> Advisory-only checkpoint. Never auto-compacts. `/compact` is a user slash-command; the coordinator/operator decides when to invoke it.
+
+**Gate conditions** — ALL must be true for the nudge to emit:
+
+1. `compact-nudge.enabled: true` in Session Config (default: `false`).
+2. The just-completed wave's role is listed in `compact-nudge.after` (default: `['discovery', 'impl']`). Compare the wave's canonical role string (lower-case) against the list.
+3. `compact-nudge.mode !== 'off'` (when `mode: 'off'` the nudge is a silent no-op even when `enabled: true`).
+
+When any gate condition is false, skip this step entirely — proceed to `### 4. Progress Update`.
+
+**Nudge format** — when the gate fires, append ONE advisory bullet to the wave progress update (step `### 4`):
+
+```
+- 💡 Compact checkpoint: Wave N (<Role>) complete — consider /compact before Wave N+1 (<NextRole>) to free context (advisory only; see decision table). Never auto-compacts.
+```
+
+**What survives `/compact` vs what is lost:**
+
+| Survives | Lost |
+|---|---|
+| CLAUDE.md, STATE.md (on disk), wave-scope.json, JSONL metrics (.orchestrator/), git history, all files on disk | Intermediate reasoning/thinking traces, previously-read file contents cached in context, tool-call history for prior waves |
+
+This frames the nudge: the persistent artefacts (plan, scope, STATE.md, git diff) are the distilled output of completed work; losing in-context file reads is the cost. Compact is worth it when the completed wave produced bulky research/audit output that is unlikely to be re-referenced verbatim.
+
+**Decision table:**
+
+| Wave boundary (completed → next) | Compact? | Why |
+|---|---|---|
+| Discovery → Impl-Core | Yes | Research/audit context is bulky; the plan + wave-scope.json is the distilled output. |
+| Impl-Core → Impl-Polish (long Core) | Maybe | Compact only if Polish targets different files; keep if Polish builds on Core's changes. |
+| Impl-Polish → Quality | No | Quality references the just-written code; losing it is costly. |
+| Quality → Finalization | No | Finalization needs the full session diff. |
+| Mid-implementation (within a wave) | No | Losing file paths + partial state is expensive. |
+| After a FAILED/aborted wave | Yes | Clear the dead-end reasoning before the adapted retry. |
+| Switching to an unrelated task block (deep session) | Yes | Debug/exploration traces pollute unrelated downstream work. |
+
+**Behaviour by mode:**
+
+| `mode` | Action |
+|--------|--------|
+| `off` | No nudge (gate condition above). |
+| `warn` | Emit the advisory bullet in the wave progress update. Coordinator/operator acts at their discretion. |
+
+The nudge is informational only — no AskUserQuestion, no state-md write, no sidecar. This step never blocks forward progress.
 
 ### 4. Progress Update
 

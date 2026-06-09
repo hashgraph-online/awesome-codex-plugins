@@ -2,11 +2,12 @@
 name: wave-executor
 user-invocable: false
 tags: [orchestration, execution, agents, waves]
-model-preference: sonnet
+model: opus
+model-preference: opus
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 description: >
-  Executes the agreed session plan in waves with role-based execution and parallel subagents. Handles inter-wave
+  Use this skill when executing the agreed session plan in waves with role-based execution and parallel subagents. Handles inter-wave
   quality checks, plan adaptation, and progress tracking. Core orchestration engine for
   feature and deep sessions. Triggered by /go command.
 ---
@@ -58,6 +59,22 @@ Read `skills/_shared/bootstrap-gate.md` and execute the gate check. If the gate 
 <HARD-GATE>
 Do NOT proceed past Phase 0 if GATE_CLOSED. There is no bypass. Refer to `skills/_shared/bootstrap-gate.md` for the full HARD-GATE constraints.
 </HARD-GATE>
+
+## Phase 0.5: Parallel-Aware Preamble
+
+> Skip silently when `persistence: false` in Session Config.
+
+Before Phase 1, run the parallel-aware preamble per `skills/_shared/parallel-aware-preamble.md`. The preamble detects other active sessions in the worktree-family via `findPeers(repoRoot, { mySessionId })`, classifies the caller's mode via `classifyMode(callerMode)` against the exclusivity-matrix, and fires the appropriate AUQ on conflict.
+
+**Outcome handling:**
+- `PASS_THROUGH` → continue to Phase 1
+- `EXCLUSIVE_BLOCKED` → exit Phase 0 cleanly per the AUQ outcome
+- `PROMOTION_OFFER` → user picks Worktree-Promotion (see `parallel-aware-auq.md` outcome-handling — calls `enterWorktree()`), in-place + Deviation, or Abbrechen
+
+For session-end specifically: the preamble is DETECTION-ONLY. The lock-release path in later phases keeps its current behavior — releasing the OWN session's lock requires no matrix consultation.
+
+**Implementation reference:** `skills/_shared/parallel-aware-preamble.md § Implementation`.
+**AUQ reference:** `skills/_shared/parallel-aware-auq.md`.
 
 ## Pre-Execution Check
 
@@ -226,17 +243,51 @@ Applies to every interaction point in `wave-loop.md` that currently says "inform
 Each agent prompt MUST include:
 
 1. **Clear scope boundary**: "You are working on [X]. Do NOT modify files outside [paths]."
-2. **Full context**: file paths, current code structure, issue description
+2. **Full context**: file paths, current code structure, issue description. If a bite-sized executable plan exists at `docs/plans/<feature>.md` for the wave's tasks (see `skills/write-executable-plan/SKILL.md`), include the path in each agent's prompt and instruct the agent to follow the plan's 5-step structure verbatim.
 3. **Acceptance criteria**: measurable definition of done
 4. **Rule references**: "Follow patterns in <state-dir>/rules/[relevant].md"
 5. **Testing expectation**: "Write tests for your changes" or "Run existing tests"
 6. **Commit instruction**: "Do NOT commit. The coordinator handles commits."
 7. **Turn limit**: Include the maxTurns instruction from `circuit-breaker.md`
+8. **Verification before completion**: Before claiming any task done, run the verification command and quote the evidence inline. See `.claude/rules/verification-before-completion.md`.
 
 Each agent prompt MUST NOT include:
 - References to other agents' tasks (isolation)
 - Vague instructions like "improve" or "optimize" without specifics
 - Assumptions about code state — provide the actual state
+
+## Agent Memory-Proposal Capability (#501)
+
+Wave-executor agents may propose memory entries (learnings) mid-session via the `memory.propose` CLI. The coordinator surfaces proposals at session-end Phase 3.6.3 (`skills/session-end/SKILL.md`) for AUQ-confirm before promoting them to `learnings.jsonl` with `_provenance: agent-proposed@<wave-id>`. Conservative safety model: max `memory.proposals.quota-per-wave` (default 5) per wave, `memory.proposals.confidence-floor` (default 0.5).
+
+**Agent prompt boilerplate** — when dispatching an Impl-Core / Impl-Polish / Quality agent in a session where `memory.proposals.enabled: true` (default), include this block in the agent's prompt so the capability is discoverable:
+
+```
+## Memory Proposal Capability (optional)
+
+During this wave, you may propose a learning to the session's memory via the CLI:
+
+  SO_WAVE_AGENT=1 node scripts/memory-propose.mjs \
+      --type <one of: workflow-pattern|anti-pattern|pattern|recurring-issue|fragile-file|effective-sizing|proven-pattern|mode-selector-accuracy|hardware-pattern|autopilot-effectiveness> \
+      --subject "one-line title (max 100 chars, no newlines)" \
+      --insight "your discovery paragraph (max 2000 chars)" \
+      --evidence "concrete proof: code citation / log excerpt / commit ref (max 5000 chars)" \
+      --confidence <0.5 to 1.0>
+
+MUST prefix with `SO_WAVE_AGENT=1` — without it the CLI returns exit 3 `rejected-wrong-context`. The env-var is the per-process guard that distinguishes wave-executor agents from coordinator-context invocations.
+
+Exit code 0 = queued (the coordinator will present at session-end via AskUserQuestion); 1 = quota-exceeded; 2 = rejected-low-confidence (below floor 0.5); 3 = rejected-wrong-context (STATE.md not active OR SO_WAVE_AGENT != "1"); 4 = error (arg validation or internal).
+
+Use ONLY when you find a recurring pattern, anti-pattern, or constraint worth carrying into future sessions. The coordinator confirms each proposal before it lands in learnings.jsonl. Do NOT over-propose — quota is bounded per wave.
+```
+
+**Skip injection** when:
+- `memory.proposals.enabled: false` in Session Config, OR
+- Discovery / Finalization waves (Discovery is read-only; Finalization is coordinator-direct)
+
+**Audit trail:** the `hooks/pre-bash-memory-propose-audit.mjs` hook logs every CLI invocation to `.orchestrator/metrics/events.jsonl` with the value of `--insight` / `--subject` / `--evidence` redacted (privacy-by-default).
+
+Cross-reference: PRD F2.1 / issue #501 / `agents/memory-proposal-collector.md` (coordinator-side AUQ rendering reference doc) / `scripts/lib/memory-proposals/{schema,store,collector,sink}.mjs` (the modules).
 
 ## Session Type Behavior
 
@@ -277,6 +328,7 @@ End with a single commit summarizing all housekeeping work.
 | TypeScript errors introduced | Track count, run Full Gate per quality-gates by Quality wave |
 | New critical issue discovered | Inform user, add to Impl-Polish+ roles if fits scope |
 | Agent edits wrong files | Revert via git, re-dispatch with stricter scope |
+| New critical issue discovered with broken behavior | Apply `skills/debug/SKILL.md` Iron Law 4-phase investigation before proposing a fix |
 
 ## Return Shape Contract (Autopilot Integration, #300)
 
@@ -299,6 +351,11 @@ When wave-executor is invoked as `sessionRunner` from `scripts/lib/autopilot.mjs
     carryover?:      number,                    // / planned > carryoverThreshold → carryover-too-high
     completion_rate?: number,
     completed_issues?: number,
+  },
+
+  usage?: {                                     // schema-canonical (autopilot token-budget kill-switch, #355)
+    output_tokens?: number,                     // cumulative output tokens for this session; absence → 0 (forward-compat)
+    total_tokens?: number,                      // alternative name accepted as fallback
   },
 }
 ```
@@ -332,11 +389,82 @@ The diff JSON block (`{ new_errors, resolved_errors, baseline_count, current_cou
 
 > **Cross-reference:** baseline file shape, diff output schema, and schema-hash mismatch handling are documented in `skills/vault-sync/SKILL.md` § Modes (#327).
 
+## Inter-Wave Quality-Gate (with Auto-Fix Loop — #521)
+
+After each wave, run the Quality-Gate. If `verification-auto-fix.enabled: true`
+in Session Config, the gate uses `runQualityGateWithRetry()` from
+`scripts/lib/quality-gate.mjs` which dispatches up to `max-retries` (default 2)
+fixer-agent dispatches on failure.
+
+### Invocation
+
+```javascript
+import { runQualityGateWithRetry } from '../../scripts/lib/quality-gate.mjs';
+
+const result = await runQualityGateWithRetry({
+  maxRetries: config['verification-auto-fix']?.['max-retries'] ?? 2,
+  repoRoot: process.cwd(),
+  dispatchFixer: async ({ failures, correctiveContext, changedFiles }) => {
+    // Coordinator dispatches a code-implementer fixer subagent here with:
+    //   - failures (gate + output)
+    //   - correctiveContext (from .orchestrator/current-session.json)
+    //   - changedFiles (since last green SHA)
+    // Subagent's task: fix the failing gate, never broaden scope.
+    await dispatchFixerSubagent({ failures, correctiveContext, changedFiles });
+  },
+});
+```
+
+### Decision flow
+
+- `result.ok === true` → Wave green, proceed to next wave or session-end.
+- `result.ok === false` → Hard abort.
+  - quality-gate.mjs writes `.orchestrator/metrics/verification-failures/<ts>.json` (diagnostics bundle — automatic, redacted per `redactDiagnosticsBundle()`).
+  - **Coordinator** (not fixer-subagent) appends a deviation entry to STATE.md via `appendDeviationOnDisk()` — see `wave-loop.md` § STATE.md Deviation — Auto-Fix Result.
+  - Wave execution is blocked; operator must manually fix or disable auto-fix.
+- `result.attempts > 1` → **Coordinator** logs a Deviation in STATE.md via `appendDeviationOnDisk()`: `auto-fix used N retries to clear Wave <wave>`.
+
+### Skip Conditions
+
+- `verification-auto-fix.enabled: false` (default) → fall back to single-shot
+  quality-gate, abort on first failure (current behavior preserved per PRD § 3
+  Gherkin negative path).
+- `verification-auto-fix.max-retries: 0` → equivalent to disabled.
+
+### Anti-pattern (BE-012 awareness)
+
+The fixer-agent prompt MUST include a reminder of `.claude/rules/testing.md` § "Test Quality — False-Positive Prevention"
+"test-the-mock" anti-pattern. A fix that makes tests green by mocking out the
+real failure is a regression vector. The fixer prompt should explicitly say:
+"Do NOT change test mocks to make tests pass. Fix the actual code defect."
+
+### Heartbeat cadence at inter-wave checkpoints (#590-3)
+
+After each quality-gate PASS, the coordinator refreshes the session-lock heartbeat via the post-wave STATE.md step. See `wave-loop.md § 3a. Post-Wave: Update STATE.md` — step 5 contains the `updateHeartbeat` instruction and best-effort framing. The `sessionId` passed to `updateHeartbeat` is the session identifier established by session-start Phase 1.2 `acquire()` and stored in `.orchestrator/session.lock` (its `session_id` field); it matches the STATE.md frontmatter `session:` field written during Pre-Wave 1b initialization.
+
+## Agent-Status Telemetry (#565)
+
+Optional, best-effort operator-side observability: the coordinator pushes lightweight per-agent status at three anchors (dispatch, agent-end, wave-end rollup) via `scripts/lib/agent-status.mjs`, gated on `persistence: true`. A push NEVER blocks a wave. The tmux `--with-status-pane` flag (`skills/tmux-layout/SKILL.md`) renders the live feed. See `wave-loop.md § 3a-bis. Agent-Status Telemetry` for the exact anchors and invocation.
+
 ## Frontmatter-Guard (#328)
 
 When an agent's task scope includes vault paths (`~/Projects/vault/` or vault subdirectories such as `40-learnings/`, `50-sessions/`, `03-daily/`, `01-projects/`), the wave-executor injects a deterministic frontmatter-schema snippet into the agent's prompt. This eliminates the recurring failure class where agents guess at enum values for `type`, `status`, or `tags`.
 
 See `wave-loop.md` § Pre-Dispatch: Frontmatter-Guard Injection for the exact contract. The snippet generator is `scripts/lib/frontmatter-guard.mjs` (skill: `skills/frontmatter-guard/`).
+
+## Worker-Pool Dispatch (#415)
+
+An opt-in bounded-concurrency cursor-based pull loop that replaces the default Promise.all() fan-out for agent dispatch. Controlled by three Session Config fields under the `worker-pool` object:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `worker-pool.enabled` | boolean | `false` | When `false` (default), the existing single-message parallel Agent() dispatch is used (backward-compatible). When `true`, `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` is used instead. |
+| `worker-pool.max-parallel` | integer | value of `agents-per-wave` | Maximum concurrent workers in the pool. Falls back to `agents-per-wave` when unset. Useful for capping concurrency below `agents-per-wave` on memory-constrained hosts. |
+| `worker-pool.drain-timeout-ms` | integer | `10000` (10 s) | When an abort signal fires mid-run (e.g., a MAX_HOURS kill-switch), workers are sent SIGTERM via their per-worker AbortController and the pool waits at most this many milliseconds before returning partial results. |
+
+**Backward compatibility:** `worker-pool.enabled` defaults to `false`. All existing sessions that omit the `worker-pool` block behave identically to before — full Promise.all() fan-out, all agents start simultaneously. No migration required.
+
+**When to enable:** use `worker-pool.enabled: true` when `agents-per-wave` is high (≥ 8) and the host is memory-constrained, or when you want to observe incremental agent completion rather than waiting for all agents to finish before inter-wave checks begin.
 
 ## Anti-Patterns
 
@@ -347,3 +475,10 @@ See `wave-loop.md` § Pre-Dispatch: Frontmatter-Guard Injection for the exact co
 - **NEVER** dispatch more agents than configured in `agents-per-wave`
 - **NEVER** let wave execution run without reporting progress to the user
 - **NEVER** ask the user a decision as inline prose or a numbered markdown list — always use `AskUserQuestion` (see `.claude/rules/ask-via-tool.md`)
+- **NEVER** perform auto-commits from inside a dispatched subagent — the Auto-Commit Checkpoint (see `wave-loop.md § Auto-Commit Checkpoint`) is coordinator-only and fires only after Quality-Lite PASS. Agents report STATUS lines; the coordinator decides whether and when to commit. Subagent commits bypass the quality gate, skip the STATE.md deviation log, and violate parallel-session isolation (PSA-004 in `.claude/rules/parallel-sessions.md`).
+
+**Auto-commit vs. coordinator-snapshot:** these two features are complementary, not competing.
+- `coordinator-snapshot.mjs` (`wave-loop.md § Pre-Dispatch Coordinator Snapshot`) fires **before** agent dispatch as a stash-based working-tree backup — it protects uncommitted coordinator state from worktree merge-back collisions.
+- Auto-Commit Checkpoint fires **after** Quality-Lite PASS as a durable git commit — it provides a permanent recovery point for session crashes or `git stash` incidents (V3.3 RESCUE incident, GitLab #214).
+
+Both are gated on `persistence: true`. Neither replaces the other. The snapshot is pre-dispatch insurance; the auto-commit is post-gate durability.

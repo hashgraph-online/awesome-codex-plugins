@@ -1,0 +1,22 @@
+{
+  "name": "espresso",
+  "version": "1.0.0",
+  "description": "Concentrated Claude. Zero fluff, max power per token.",
+  "author": "Mirko Bozzetto <mirko.prodev@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mirkobozzetto/espresso"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "token-optimization",
+    "productivity",
+    "espresso"
+  ],
+  "files": [
+    ".claude-plugin/",
+    "src/hooks/"
+  ]
+}

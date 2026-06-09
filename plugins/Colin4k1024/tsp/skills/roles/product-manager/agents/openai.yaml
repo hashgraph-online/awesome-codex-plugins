@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Manager（产品经理）"
+  short_description: "负责需求澄清、PRD、用户故事、验收标准与范围边界定义。"
+  default_prompt: "Use $product-manager to take the lead on the Product Manager（产品经理） responsibilities for this task. Start with $frontend-ui-ux-system when those shared capabilities apply. Pull in $pairwise-test-design when deeper engineering execution or verification guidance is needed."

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Session Orchestrator">
+  <title>Session Orchestrator</title>
+  <!-- Rounded square frame -->
+  <rect x="32" y="32" width="448" height="448" rx="72" ry="72" fill="none" stroke="currentColor" stroke-width="24"/>
+  <!-- Five wave lines representing the 5 orchestration waves -->
+  <path d="M 96 160 Q 192 120 256 160 T 416 160" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 96 208 Q 192 168 256 208 T 416 208" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 96 256 Q 192 216 256 256 T 416 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 96 304 Q 192 264 256 304 T 416 304" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 96 352 Q 192 312 256 352 T 416 352" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"/>
+</svg>

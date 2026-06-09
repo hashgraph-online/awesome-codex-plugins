@@ -28,6 +28,7 @@ Evaluate the PRD against these 6 criteria. For each, report **PASS** or **FAIL**
 ### 3. Clarity
 - Requirements are specific enough to implement without guessing
 - Acceptance criteria are testable (Given/When/Then with concrete values)
+- If an EARS Acceptance Criteria section is present (`## 3.A` or `## Acceptance Criteria (EARS)`), verify well-formed `shall` statements across all 5 canonical patterns (Ubiquitous, State-driven, Event-driven, Optional feature, Unwanted behaviour) and that Unwanted/Optional templates cover edge cases not in the narrative Gherkin
 - Technical notes reference actual file paths or components (not vague "the backend")
 - Success metrics have numbers, not qualitative statements ("improve performance" -> "p95 latency < 200ms")
 - **FAIL if:** an engineer would need to ask clarifying questions to start implementing

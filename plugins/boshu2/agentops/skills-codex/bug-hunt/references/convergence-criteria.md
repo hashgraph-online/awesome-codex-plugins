@@ -67,4 +67,4 @@ File the escalation in the audit report and stop. Convergence under unreliable s
 
 ---
 
-> Pattern adopted from `multi-pass-bug-hunting` (jsm/ACFS skill corpus). Methodology only — no verbatim text.
+> Pattern adopted from `multi-pass-bug-hunting` (ACFS skill corpus). Methodology only — no verbatim text.

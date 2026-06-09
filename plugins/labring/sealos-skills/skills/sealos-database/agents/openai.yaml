@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: Sealos Database"
+  short_description: "Use Sealos cloud databases while developing."
+  default_prompt: "Use $sealos-database to create or connect a Sealos Cloud database for this project."

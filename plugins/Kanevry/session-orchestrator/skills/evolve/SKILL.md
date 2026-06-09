@@ -2,11 +2,21 @@
 name: evolve
 user-invocable: false
 tags: [learning, intelligence, meta]
+model: sonnet
 model-preference: sonnet
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
+args-schema:
+  - flag: --apply
+    description: "Apply dialectic-derived diff to USER.md + AGENT.md"
+  - flag: --dry-run
+    description: "Show diff without writing (default)"
+  - flag: --model <name>
+    description: "Override single-pass LLM (haiku|sonnet|opus)"
+  - flag: --budget-tokens <N>
+    description: "Token budget for derivation prompt (default 8000)"
 description: >
-  Extract session patterns into reusable learnings. Three modes: analyze (extract from session history),
+  Use this skill when extracting session patterns into reusable learnings. Three modes: analyze (extract from session history),
   review (edit/manage existing learnings), list (display active learnings). Manages .orchestrator/metrics/learnings.jsonl.
 ---
 
@@ -38,7 +48,7 @@ Extract `persistence` from `$CONFIG`. If `persistence` is `false`, abort with me
 
 Read mode from `$ARGUMENTS`:
 - If empty or not provided, default to `analyze`
-- Valid modes: `analyze`, `review`, `list`
+- Valid modes: `analyze`, `review`, `list`, `dialectic`
 - If invalid mode provided, report error and list valid modes
 
 ### 1.4 Load Data
@@ -66,6 +76,7 @@ Route based on mode:
 - `analyze` → Phase 3
 - `review` → Phase 4
 - `list` → Phase 5
+- `dialectic` → Phase 6
 
 ---
 
@@ -222,7 +233,10 @@ For confirmed learnings, use atomic rewrite strategy:
    - `expires_at`: current date + `learning-expiry-days` (default: 30) (ISO 8601)
 5. **Verify write**: Read back the first line of the written file to confirm valid JSON. If read-back fails or is not valid JSON, report error to user.
 6. **Prune:** remove entries where `expires_at` < current date OR `confidence` <= 0.0
-7. **Consolidate duplicates:** if same `type` + `subject` appears more than once, keep the entry with highest confidence
+7. **Consolidate duplicates (NULL-SUBJECT SAFE):** if same `type` + `subject` appears more than once
+   AND `subject` is a non-empty string, keep the entry with highest confidence.
+   Entries with null/empty/missing `subject` are NEVER collapsed — each is keyed by its unique `id`
+   and always preserved. (Fix for issue #284: empty-subject dedupe collapse.)
 8. Write entire result back to `.orchestrator/metrics/learnings.jsonl` with `>` (atomic rewrite, NOT append `>>`)
 9. **Vault mirror (conditional):** Check `$CONFIG."vault-integration".enabled` via jq. If the field is missing or `false`, skip this step entirely — skill behavior is unchanged.
 
@@ -315,7 +329,8 @@ Use the same atomic rewrite strategy as Phase 3, Step 3.5:
    - **Delete:** remove selected entries
    - **Extend:** reset expires_at to current date + `learning-expiry-days`
 3. Prune entries where `expires_at` < current date OR `confidence` <= 0.0
-4. Consolidate duplicates (same type + subject): keep highest confidence
+4. Consolidate duplicates (same `type` + non-empty `subject`): keep highest confidence.
+   Null-subject entries are preserved individually (keyed by `id`). See SKILL.md #284 fix note.
 5. Write entire result back with `>` (atomic rewrite)
 
 Report: "Updated N learnings. Total active: K."
@@ -362,6 +377,82 @@ N active learnings (M high confidence, K expiring soon)
 
 - **High confidence** = confidence > 0.7
 - **Expiring soon** = expires_at within 14 days of current date
+
+---
+
+## Phase 6: Dialectic Mode
+
+Single-pass LLM derivation of USER.md + AGENT.md (peer cards from #503) updates from current learnings + sessions + steering files. Dry-run-default per #506 EARS contract.
+
+### Step 6.0: Argument Parsing
+
+Parse `$ARGUMENTS` for trailing flags after the `dialectic` keyword:
+
+| Flag | Default | Behavior |
+|---|---|---|
+| `--apply` | `false` | Write diff to USER.md/AGENT.md via merger.mjs; without it = dry-run |
+| `--dry-run` | `true` | Explicit dry-run (default); mutually exclusive with --apply |
+| `--model <name>` | from Session Config `dialectic.model` (default `haiku`) | Override LLM |
+| `--budget-tokens <N>` | from Session Config `dialectic.budget-tokens` (default 8000) | Token budget |
+
+Mutex check: `--apply` + `--dry-run` together = error "flags mutually exclusive".
+
+### Step 6.1: Pre-checks
+- Bootstrap gate (Phase 0) — already executed
+- Persistence check (Phase 1.2) — already executed
+- Cadence check: if invoked via session-end Phase 3.6.7 auto-trigger, the trigger has already pre-checked cadence. For manual invocation, skip cadence — manual always runs.
+
+### Step 6.2: Data Load
+Read all 4 input sources via `runDialecticDeriver()` from `scripts/dialectic-deriver.mjs` (see W2 I1):
+1. Top-N learnings from `.orchestrator/metrics/learnings.jsonl` (default 50, sorted by confidence DESC)
+2. Last-K sessions from `.orchestrator/metrics/sessions.jsonl` (default 10, sorted by completed_at DESC)
+3. Peer cards via `readPeerCards(repoRoot)` from `scripts/lib/peer-cards/reader.mjs` — returns `{user, agent}` or null
+4. Project steering files (CLAUDE.md / AGENTS.md Session Config block + narratives)
+
+Graceful degradation: any null/empty source is acceptable. If ALL inputs empty → return `{status: 'empty-input'}`.
+
+### Step 6.3: Dispatch the Deriver Agent
+
+Construct a `dispatchAgent` function that uses the harness Agent tool to invoke the `dialectic-deriver` agent (see `agents/dialectic-deriver.md`):
+
+```javascript
+const dispatchAgent = async ({ model, prompt, maxTokens }) => {
+  // Coordinator uses Agent tool with subagent_type: "session-orchestrator:dialectic-deriver"
+  // and the model parameter to invoke the right tier
+  const result = await Agent({
+    description: "Dialectic-deriver LLM pass",
+    subagent_type: "session-orchestrator:dialectic-deriver",
+    model,
+    prompt,
+  });
+  return { text: result.text, usage: result.usage ?? { input_tokens: 0, output_tokens: 0 } };
+};
+
+> **Why `maxTokens` is not passed to Agent():** the Claude Code harness `Agent()` tool does not currently accept a `max_tokens` parameter. Output-token budget is therefore enforced via prompt text (see line 414 in `skills/session-end/SKILL.md`: "with budget ${budget-tokens} input + 4000 output tokens"). The dispatchAgent contract declares `maxTokens` as the canonical interface; the evolve skill destructures it for forward-compat but routes enforcement through the prompt body. When the harness adds a max_tokens hint, this dispatchAgent becomes the single update point.
+
+const result = await runDialecticDeriver({
+  dispatchAgent,
+  repoRoot: process.cwd(),
+  model: argv.model ?? config.dialectic?.model ?? 'haiku',
+  budget: { input: argv['budget-tokens'] ?? config.dialectic?.['budget-tokens'] ?? 8000, output: 4000 },
+  dryRun: !argv.apply,
+  allowEmptying: argv['allow-emptying'] ?? false,
+});
+```
+
+### Step 6.4: Diff Output & Apply Gate
+- If dry-run (default): present diff inline; write to `.orchestrator/dialectic-pending.md` (atomic tmp+rename); EXIT. Suggestion: "Re-run with `/evolve --dialectic --apply` to apply."
+- If `--apply`: call `mergePeerCard(existingBody, managedUpdates)` from `scripts/lib/peer-cards/merger.mjs` for each card target, then `writePeerCard(repoRoot, 'user', mergedUserCard)` and `writePeerCard(repoRoot, 'agent', mergedAgentCard)` from `scripts/lib/peer-cards/writer.mjs`. Update the `updated:` frontmatter.
+- Report: `Dialectic-derived: M deltas to USER.md, N deltas to AGENT.md. Dry-run | Applied. Tokens: in=<X> out=<Y>.`
+
+### Step 6.5: Error Handling
+- `status: 'unknown-model'` → fail with clear error (already thrown by validateModel)
+- `status: 'budget-exceeded'` → emit `{status:'budget-exceeded', used:N, budget:M}`, do NOT truncate
+- `status: 'would-empty-card'` → warn + require `--allow-emptying` flag
+- `status: 'empty-input'` → exit clean with message "dialectic: skipped (no input)"
+- subagent crash → log ⚠, exit cleanly (do NOT write to `.orchestrator/dialectic-pending.md`)
+
+Cross-reference: PRD #506 AC1-AC4 + EARS gates. Vault Integration: dialectic does NOT mirror to vault (#506 scope — peer cards are repo-local by design; vault mirror is for cross-repo sessions/learnings).
 
 ---
 

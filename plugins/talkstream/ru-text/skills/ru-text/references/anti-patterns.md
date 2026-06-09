@@ -3,7 +3,7 @@
 Catalog of common mistakes organized by severity. Format: wrong|correct.
 
 ## Contents
-- [Critical: Typography (16 entries)](#critical-typography-16-entries)
+- [Critical: Typography (15 entries)](#critical-typography-15-entries)
 - [Critical: Канцелярит и номинализация (32 entries)](#critical-канцелярит-и-номинализация-32-entries)
 - [High: Vague Adjectives (11 entries)](#high-vague-adjectives-11-entries)
 - [High: Passive Voice (10 entries)](#high-passive-voice-10-entries)
@@ -15,7 +15,7 @@ Catalog of common mistakes organized by severity. Format: wrong|correct.
 - [Low: Overly Formal (5 entries)](#low-overly-formal-5-entries)
 - [Summary](#summary)
 
-## Critical: Typography (16 entries)
+## Critical: Typography (15 entries)
 
 Full typography rules: see [typography.md](typography.md). Top 5 most frequent crimes:
 
@@ -26,7 +26,7 @@ Wrong|Correct
 Знак номера: "No." или "#"|№ (знак номера)
 CAPS LOCK ДЛЯ ВЫДЕЛЕНИЯ|**Полужирный** или *курсив*
 
-Remaining 11: nested quotes, en-dash in ranges, double dashes, space before comma, no space after period, latin x vs multiplication sign, inconsistent ё, double spaces, tight % sign, (c) vs ©, minus vs em-dash in text. All covered in [typography.md](typography.md).
+Remaining 10: nested quotes, en-dash in ranges, double dashes, space before comma, no space after period, latin x vs multiplication sign, inconsistent ё, double spaces, (c) vs ©, minus vs em-dash in text. All covered in [typography.md](typography.md).
 
 ## Critical: Канцелярит и номинализация (32 entries)
 
@@ -208,7 +208,7 @@ Formal|Appropriate
 ## Summary
 
 Severity|Category|Entries
-Critical|Typography|16
+Critical|Typography|15
 Critical|Канцелярит и номинализация|32
 High|Vague adjectives|11
 High|Passive voice|10
@@ -218,4 +218,4 @@ Medium|Tautology/pleonasm|22
 Low|Anglicisms|11
 Low|Archaic|6
 Low|Overly formal|5
-**Total**||**139**
+**Total**||**138**

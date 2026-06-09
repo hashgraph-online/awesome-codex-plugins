@@ -43,36 +43,23 @@ It follows the shape of [openai/codex-plugin-cc](https://github.com/openai/codex
 
 ### 1. Install
 
-Use one of these install paths, in this order:
+Install from the Sendbird marketplace:
 
-1. **Sendbird marketplace (preferred)**
-   ```bash
-   codex marketplace add sendbird/codex-marketplace
-   ```
-   Then install `cc` from the Sendbird marketplace inside Codex, and run `$cc:setup` once. Marketplace/plugin install places the plugin, but this plugin still owns global hook setup and repair.
+```bash
+codex marketplace add sendbird/codex-marketplace
+```
 
-2. **`npx` installer**
-   ```bash
-   npx cc-plugin-codex install
-   ```
-   This is the cross-platform path we test on every release.
+Then install `cc` from the Sendbird marketplace inside Codex, and run `$cc:setup` once.
 
-3. **Local checkout install**
-   ```bash
-   git clone https://github.com/sendbird/cc-plugin-codex.git ~/.codex/plugins/cc
-   cd ~/.codex/plugins/cc
-   node scripts/local-plugin-install.mjs install --plugin-root ~/.codex/plugins/cc
-   ```
-   After install, run `$cc:setup`.
+`cc-plugin-codex` uses Codex native plugin hooks. The active plugin copy lives under Codex's plugin cache, and hook commands resolve through `$PLUGIN_ROOT`; there is no separate local checkout install.
 
-The `npx` installer:
-- Copies the plugin to `~/.codex/plugins/cc`
-- Activates the plugin through Codex app-server when available
-- Falls back to config-based activation on older Codex builds
-- Enables `codex_hooks = true`
-- Installs lifecycle, review-gate, and unread-result hooks
+The optional `npx` helper runs the same marketplace/cache install path and enables the required Codex feature gates:
 
-On Windows, prefer either the Sendbird marketplace path or the `npx` path. The shell-script installer below is POSIX-only.
+```bash
+npx cc-plugin-codex install
+```
+
+On Windows, prefer the Sendbird marketplace path or the `npx` helper. The shell-script helper below is POSIX-only.
 Codex CLI's official guidance still treats Windows support as experimental and recommends a WSL workspace for the best Codex experience. Claude Code supports both native Windows and WSL.
 
 > **Prerequisites:** Node.js 18+, Codex with hook support, and `claude` CLI installed and authenticated.
@@ -128,14 +115,17 @@ Quick routing rule:
 Standard read-only review of your current work.
 
 ```text
-$cc:review                          # review uncommitted changes
+$cc:review                          # review uncommitted changes (default: opus + xhigh effort)
 $cc:review --base main              # review branch vs main
 $cc:review --scope branch           # explicitly compare branch tip to base
 $cc:review --background             # run in background, check with $cc:status later
-$cc:review --model sonnet           # use a specific Claude model
+$cc:review --model sonnet           # switch to sonnet (defaults to high effort)
+$cc:review --model opus --effort high   # opus with a lighter effort
 ```
 
-**Flags:** `--base <ref>`, `--scope <auto|working-tree|branch>`, `--wait`, `--background`, `--model <model>`
+**Flags:** `--base <ref>`, `--scope <auto|working-tree|branch>`, `--wait`, `--background`, `--model <model>`, `--effort <low|medium|high|max>`
+
+**Defaults:** model `opus` (resolves to `claude-opus-4-7[1m]`, the 1M-context variant) with `xhigh` effort. If you pick `sonnet`, it resolves to `claude-sonnet-4-6[1m]` (also 1M context) and the default effort drops to `high`. `haiku` resolves to `claude-haiku-4-5` and has no effort setting. Pass `--model` and `--effort` to override.
 
 Scope `auto` (the default) inspects `git status` and chooses between working-tree and branch automatically.
 
@@ -179,8 +169,8 @@ $cc:rescue --model sonnet --effort medium investigate the flaky test
 | `--resume-last` | Alias for `--resume` |
 | `--fresh` | Force a new task (don't resume) |
 | `--write` | Allow file edits (default) |
-| `--model <model>` | Claude model (`sonnet`, `haiku`, or full ID) |
-| `--effort <level>` | Reasoning effort: `low`, `medium`, `high`, `max` |
+| `--model <model>` | Claude model (`opus`, `sonnet`, `haiku`, or full ID; defaults to `opus`. The `opus` and `sonnet` aliases resolve to their 1M-context variants `claude-opus-4-7[1m]` and `claude-sonnet-4-6[1m]`.) |
+| `--effort <level>` | Reasoning effort: `low`, `medium`, `high`, `xhigh`, `max` (default: `xhigh` for opus, `high` for sonnet, unset for haiku) |
 | `--prompt-file <path>` | Read task description from a file |
 
 **Resume behavior:** If you don't pass `--resume` or `--fresh`, rescue checks for a resumable Claude session and asks once whether to continue or start fresh. Your phrasing guides the recommendation — "continue the last run" → resume, "start over" → fresh.
@@ -229,8 +219,8 @@ $cc:setup --enable-review-gate      # turn on stop-time review gate
 $cc:setup --disable-review-gate     # turn it off
 ```
 
-Setup checks Claude Code availability, hook installation, and review-gate state. If hooks are missing, it reinstalls them. If Claude Code isn't installed, it offers to install it.
-This is also the repair path for marketplace-installed copies of the plugin: marketplace install can place the plugin, but `$cc:setup` is what confirms `codex_hooks = true` and installs the managed global hooks if they are missing.
+Setup checks Claude Code availability, native plugin hook feature gates, and review-gate state. If Claude Code isn't installed, it offers to install it.
+This is also the repair path for marketplace-installed copies of the plugin: `$cc:setup` confirms `[features].hooks = true` and `[features].plugin_hooks = true`, then trusts this plugin's current native hook hashes so Codex loads the bundled hooks from the active plugin cache.
 
 ## Background Jobs
 
@@ -293,7 +283,7 @@ The review gate is an **optional** stop-time hook. When enabled, pressing Ctrl+C
 - **Tracked job ownership** — background jobs track unread/viewed state and session ownership, with safe PID-validated cleanup on session exit.
 - **Built-in background notify** — rescue and review flows can now wake the parent thread and point directly to `$cc:result <job-id>` instead of relying only on later polling.
 - **Unread-result nudges** — completed background jobs are still surfaced in your next prompt as a reliable fallback.
-- **Idempotent installer** — manages plugin files, hooks, and config in a single atomic step. Safe to re-run for updates. Falls back gracefully on older Codex builds.
+- **Idempotent installer** — installs through Codex's marketplace/cache path and enables native hook feature gates. Safe to re-run for updates.
 
 ## Install Variants
 
@@ -311,9 +301,9 @@ Then install `cc` from the Sendbird marketplace inside Codex, and run:
 $cc:setup
 ```
 
-Marketplace/plugin install places the plugin, but it does **not** install this plugin's managed global hooks for you. `$cc:setup` is the repair/install step that confirms `codex_hooks = true` and installs hooks when they are missing.
+Marketplace/plugin install places the plugin under Codex's plugin cache. `$cc:setup` verifies Claude Code, confirms `[features].hooks = true` plus `[features].plugin_hooks = true`, and trusts the current `hooks/hooks.json` hook hashes from the active plugin cache.
 
-### npx
+### npx helper
 
 ```bash
 npx cc-plugin-codex install
@@ -325,21 +315,7 @@ After install, run:
 $cc:setup
 ```
 
-### Local checkout
-
-```bash
-git clone https://github.com/sendbird/cc-plugin-codex.git ~/.codex/plugins/cc
-cd ~/.codex/plugins/cc
-node scripts/local-plugin-install.mjs install --plugin-root ~/.codex/plugins/cc
-```
-
-After install, run:
-
-```text
-$cc:setup
-```
-
-`local-plugin-install.mjs` expects `--plugin-root` to be the managed install directory itself. If you want to install from an arbitrary checkout path, use `npx cc-plugin-codex install` instead.
+The helper adds the Sendbird marketplace, installs `cc` through Codex app-server, enables native hook feature gates, and removes stale global hook entries from older installs.
 
 ### Shell script (POSIX-only)
 
@@ -355,7 +331,7 @@ $cc:setup
 
 ### Update
 
-Re-run the install command — it's idempotent.
+Re-run the marketplace update/install flow or the `npx` helper — both are idempotent.
 
 ```bash
 npx cc-plugin-codex update
@@ -376,10 +352,10 @@ claude auth login
 ```
 
 **Commands not recognized in Codex**
-Re-run install. If your Codex build doesn't support `plugin/install`, the installer falls back to config-based activation and generates skill wrapper files automatically. You'll see a warning in the install output.
+Re-run install and restart Codex. This plugin expects Codex plugin support and no longer installs local skill-wrapper fallbacks.
 
 **Hooks not firing**
-Check that `codex_hooks = true` is set in `~/.codex/config.toml` under `[features]`. Run `$cc:setup` to verify and auto-repair.
+Check that `hooks = true` and `plugin_hooks = true` are set in `~/.codex/config.toml` under `[features]`. Run `$cc:setup` to verify and auto-repair the feature gates plus this plugin's hook trust hashes, then restart Codex if those flags were just changed.
 
 **A background job finished but I did not get the result nudge**
 Use:

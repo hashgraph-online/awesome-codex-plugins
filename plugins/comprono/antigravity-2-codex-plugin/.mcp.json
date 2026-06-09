@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "antigravity-devtools": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "& \"$env:USERPROFILE\\plugins\\antigravity-2\\scripts\\antigravity-devtools-mcp.ps1\""
+      ],
+      "env": {
+        "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1"
+      }
+    },
+    "antigravity-local": {
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "& node \"$env:USERPROFILE\\plugins\\antigravity-2\\scripts\\antigravity-local-mcp.js\""
+      ]
+    }
+  }
+}

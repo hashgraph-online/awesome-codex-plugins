@@ -46,4 +46,4 @@ Record real-service test safety in `.agents/test/summary.md`:
 
 ---
 
-**Source:** Adapted from jsm / `testing-real-service-e2e-no-mocks`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `testing-real-service-e2e-no-mocks`. Pattern-only, no verbatim text.

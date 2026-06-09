@@ -1,6 +1,6 @@
 {
   "name": "kachilu-browser",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Browser automation CLI and MCP tools for AI agents, with human-like browser control and WSL2 Windows Chrome support.",
   "author": {
     "name": "Kachilu Inc."

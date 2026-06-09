@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "launchfast": {
+      "type": "http",
+      "url": "https://launchfastlegacyx.com/api/mcp/server",
+      "note": "LaunchFast MCP server for Amazon product research. Codex handles OAuth through the LaunchFast MCP metadata flow. During authorization, localhost or 127.0.0.1 loopback callback URLs are expected for the local Codex client and should not be rewritten to the LaunchFast domain."
+    }
+  }
+}

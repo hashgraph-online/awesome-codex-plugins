@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA"
+  short_description: "高能动性、高压闭环执行协议"
+  default_prompt: "Use $pua to enforce fact-driven, exhaustive, high-agency execution before claiming completion."

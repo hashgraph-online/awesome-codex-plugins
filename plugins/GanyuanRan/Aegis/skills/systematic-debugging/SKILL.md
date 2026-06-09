@@ -6,12 +6,12 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 # Execute
 
 → Bug? Test failure? Unexpected behavior? → **Find root cause first. No fixes without evidence.**
-  1. Isolate: read error → reproduce → check git diff → drill down through diagnostic layers:
+  1. Isolate: read error → reproduce → check git diff → drill upward through diagnostic layers:
      L1 symptom → L2 logic → L3 system → L4 architecture →
      L5 cross-system contract → L6 platform constraint → L7 spec gap.
      Stop when no deeper "why" remains OR terminal unactionable (T1-T4).
   2. Identify owner: compare with working code → locate canonical owner → flag duplicate owners as a finding
-  3. Before fixing, run Ripple Signal Triage if the candidate fix touches shared/core/cross-module behavior, contract, source-of-truth, fallback, adapter, duplicate owner, producer+consumer, or consumer-side patching.
+  3. Before fixing, run Patch-Shape Triage and Ripple Signal Triage if the candidate fix touches shared/core/cross-module behavior, contract, source-of-truth, fallback, adapter, duplicate owner, producer+consumer, or consumer-side patching. Also run Pre-Edit Complexity Check when the candidate fix touches an overloaded owner or may worsen source complexity.
   4. Prove: one hypothesis → minimal test → iterate. 3+ failed fixes = question architecture, do not attempt another code fix.
      After fix, if any symptom persists → differential diagnosis (Phase 4 Step 4bis).
   5. Fix: failing test → minimal code at canonical owner → verify → Reflection + architecture review → repair + retirement track
@@ -23,13 +23,23 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 Random fixes waste time and create new bugs. Symptom fixes are failure.
 
-This skill is the canonical debugging workflow. Use it to move from symptom to root cause, then to the smallest justified fix and retirement plan.
+This skill is the canonical debugging workflow. Use it to move from symptom to
+root cause, then to the smallest sufficient stable repair and retirement plan.
+Smallest repair means correct owner + bug class fixed + bounded entropy, not the smallest textual diff.
 
 ## When to Use
 
 Any technical issue: test failures, bugs, unexpected behavior, performance problems, build/integration failures.
 
 Especially under time pressure, when "just one quick fix" seems obvious, after multiple failed fixes, or when duplicate owners / fallback chains may be involved.
+
+## Quick bug lane
+
+For low-risk, single-owner bugs, keep the report compact: `Symptom`,
+`Reproduction`, `Root Cause`, `Fix Boundary`, and `Verification`. Still collect
+root-cause evidence before editing. If fallback, duplicate owner, consumer-side
+patching, contract risk, shared logic, or cross-module behavior appears,
+escalate to the full workflow.
 
 ## The Four Phases
 
@@ -58,9 +68,9 @@ Especially under time pressure, when "just one quick fix" seems obvious, after m
    - Keep tracing up until you find the source. Fix at source, not at symptom.
    - For the complete backward tracing technique, see `root-cause-tracing.md`.
 
-6. **Drill Down Through Diagnostic Layers**
+6. **Drill Upward Through Diagnostic Layers**
 
-   Start at L1. Exhaust all "why" questions at each layer before descending.
+   Start at L1. Exhaust all "why" questions at each layer before moving upward.
    The chain is open-ended — architecture is not the endpoint.
 
    ```
@@ -75,6 +85,90 @@ Especially under time pressure, when "just one quick fix" seems obvious, after m
 
    Hard signal definitions (H/T/D) are in the Quality Gate — apply them there,
    not during initial investigation.
+
+   When the stop layer is not obvious, the user asks where the diagnosis
+   stops, the issue crosses component/system boundaries, or a user-provided
+   fact falsifies the current layer, expose a compact `Layer Stop Card` before
+   fixing:
+
+   ```text
+   Layer Stop Card:
+   - Current Stop Layer: L1 Symptom | L2 Logic | L3 System | L4 Architecture | L5 Cross-system Contract | L6 Platform | L7 Spec Gap | T-class boundary
+   - Checked Path:
+   - Evidence For Stop:
+   - Excluded Layers:
+   - Falsifier:
+   - User Intervention Point:
+   - Next Action:
+   ```
+
+   The card is an advisory readback of the diagnostic stop point. It is not a
+   `GateDecision`, `PolicySnapshot`, or completion authority.
+
+7. **Patch-Shape Triage Before Editing**
+
+   Treat the first obvious fix as evidence, not clearance to edit. If the
+   candidate fix shape matches any item below, continue upward before changing
+   code unless you can prove the local layer is the canonical owner:
+
+   - keyword, phrase, regex, negation-word list, or sample-text exception
+   - local guard, extra conditional, `try`/`catch`, early return, or one-off branch
+   - fallback, adapter, compatibility branch, prompt branch, or legacy path expansion
+   - consumer/caller/readiness/presentation-layer patch
+   - downstream re-parsing of raw text when typed intent, normalized state,
+     contract, or another source-of-truth already exists
+   - artifact/download/export/readback/cache patch that does not first locate
+     the producer and source-of-truth owner
+   - duplicate parsing, duplicate owner, or "keep both for now" reasoning
+   - fix that only names the observed sample instead of the bug class
+
+   Required output before editing when this gate fires:
+
+   ```text
+   PatchShape:
+   CanonicalOwner:
+   UpwardDrillSignal:
+   Decision: fix owner | continue investigation | escalate
+   ```
+
+   If the tempting fix is "just add a small guard/fallback", also run:
+
+   ```text
+   Minimality Check:
+   - Smallest textual diff:
+   - Correct owner:
+   - Bug class fixed:
+   - New branch/fallback added:
+   - Old path retired or scheduled:
+   - Verdict: sufficient repair | local patch | needs first-principles review
+   ```
+
+   `local patch` is a mitigation, not a sufficient repair, unless it is the
+   canonical owner and includes a retention reason plus retirement trigger.
+
+   If the repair or retirement boundary depends on deleting old paths,
+   retaining compat for a proven external dependency, or stopping on
+   persistent-state risk, compose `anti-entropy-governance` before editing. It
+   decides the path; it does not grant destructive authority.
+
+8. **Pre-Edit Complexity Check**
+
+   After root cause and canonical owner are identified, check whether the fix
+   adds complexity to the wrong or overloaded place:
+
+   ```text
+   Pre-Edit Complexity Check:
+   - Target edit file:
+   - Existing pressure signal:
+   - Owner fit:
+   - Safer edit boundary:
+   - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+   ```
+
+   Use this for 800+ line files, 80+ line blocks, generic owners,
+   fallback/adapter/guard paths, or unclear root-cause ownership. Advisory only:
+   if the safer boundary changes the implementation shape, pause and update the
+   plan/spec.
 
 ### Phase 2: Pattern Analysis
 
@@ -106,9 +200,10 @@ Especially under time pressure, when "just one quick fix" seems obvious, after m
    - Address the root cause identified. ONE change at a time.
    - No "while I'm here" improvements. No bundled refactoring.
    - Prefer changing the canonical owner instead of stacking more logic into a fallback path.
-   - If Ripple Signal Triage fired, carry its owner, downstream, contract,
-     source-of-truth, fallback, retirement, and verification findings into the
-     fix boundary before editing code.
+   - If Patch-Shape Triage, Ripple Signal Triage, or Pre-Edit Complexity Check
+     fired, carry its owner, downstream, contract, source-of-truth, fallback,
+     retirement, edit-boundary, and verification findings into the fix
+     boundary before editing code.
 
 3. **Verify Fix**
    - Test passes now? No other tests broken? Issue actually resolved?
@@ -132,10 +227,10 @@ Especially under time pressure, when "just one quick fix" seems obvious, after m
 
    | Residual pattern | Diagnosis | Action |
    | --- | --- | --- |
-   | Same reproduction conditions as fixed symptom | Fix is incomplete | Continue drilling from same source |
-   | Different reproduction conditions, chains converge to same source | Fix was at wrong depth | Re-drill from the shared source |
+   | Same reproduction conditions as fixed symptom | Fix is incomplete | Continue upward drilling from same source |
+   | Different reproduction conditions, chains converge to same source | Fix was at wrong depth | Drill upward again from the shared source |
    | Different reproduction conditions, chains diverge | Compound root cause (≥2 independent roots) | Each root needs its own fix |
-   | Same symptom, reduced but not eliminated | Fix was a downstream patch | Re-drill from source |
+   | Same symptom, reduced but not eliminated | Fix was a downstream patch | Drill upward again from source |
 
    4. If uncertain whether convergent or divergent: **escalate. Do not guess.**
 
@@ -169,29 +264,44 @@ Especially under time pressure, when "just one quick fix" seems obvious, after m
 Before you claim debugging is complete:
 
 0. **Workspace record for non-trivial debugging** — if this is medium+ complexity
-   or it writes `docs/aegis/` records, initialize/check through the helper when
-   available:
+   or it writes `docs/aegis/` records, initialize/check through configured
+   Aegis workspace support when available:
 
    ```bash
-   python scripts/aegis-workspace.py init --root <target-project-root>
-   python scripts/aegis-workspace.py new-work --root <target-project-root> ...
-   python scripts/aegis-workspace.py add-evidence --root <target-project-root> --work <YYYY-MM-DD-slug> ...
-   python scripts/aegis-workspace.py check --root <target-project-root>
+   python <aegis-workspace-helper> init --root <target-project-root>
+   python <aegis-workspace-helper> new-work --root <target-project-root> ...
+   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work <YYYY-MM-DD-slug> ...
+   python <aegis-workspace-helper> check --root <target-project-root>
    ```
+
+   Fast bug fix or quick bug fix pressure does not skip this: if Ripple Signal
+   Triage fires, do the triage before editing and expand verification to the
+   canonical owner plus affected downstream path.
 
    These records are method-pack evidence trails only. They do not grant
    authoritative completion.
 
-1. **Stop-when review** — re-read the diagnostic layer where you stopped. Did you reach "no deeper why remains" or a T-class terminal boundary? If the chain ended at L1-L2 and the evidence is conclusive, that is a valid endpoint. If there are still unexplained "why" questions, continue drilling before claiming done.
+1. **Stop-when review** — re-read the diagnostic layer where you stopped. Did you reach "no deeper why remains" or a T-class terminal boundary? If the chain ended at L1-L2 and the evidence is conclusive, that is a valid endpoint. If there are still unexplained "why" questions, continue upward drilling before claiming done.
+   - Use a `Layer Stop Card` when the stop point affects the fix boundary,
+     contract owner, spec/product decision, or user correction path. Keep
+     simple fast-path explanations cheap; do not emit the card for ordinary
+     factual Q&A about the skill itself.
 2. **Hard signal check** — apply these countable facts, not judgments:
 
-   Must continue drilling (H-class — ANY hit = NOT done):
+   Must continue upward drilling (H-class — ANY hit = NOT done):
    - **H1** — fix added a conditional branch (`if` / `switch` / `catch` / `try`)
    - **H2** — fix touched multiple sites but only 1 covered by failing test
    - **H3** — fix is at consumer/caller, not canonical owner
    - **H4** — same bug pattern exists elsewhere in repo (grep for it)
    - **H5** — original reproduction still produces any anomaly
    - **H6** — `git log --grep` shows this symptom was "fixed" before → Read that commit's diff. Understand why it failed. Do not repeat the same patch pattern.
+   - **H7** — candidate fix adds keyword, phrase, regex, negation-word list, or sample-text exception
+   - **H8** — candidate fix adds a local guard, one-off branch, early return, fallback, adapter, compatibility branch, prompt branch, or legacy path expansion
+   - **H9** — candidate fix patches a consumer/caller/readiness/presentation layer while an upstream owner could own correctness
+   - **H10** — downstream logic re-parses raw text or re-infers action/state while typed intent, normalized state, contract, or another source-of-truth exists
+   - **H11** — candidate fix patches artifact/download/export/readback/cache symptoms without proving the producer and source-of-truth owner
+   - **H12** — candidate fix keeps duplicate owners active, moves authority silently, or says "keep both for now" without a retirement trigger
+   - **H13** — candidate fix names only the observed sample wording/input instead of proving the bug class
 
    Terminal unactionable (T-class — any hit = stop drilling, switch to mitigation):
    - **T1** — required change is outside this repo's boundary
@@ -206,6 +316,8 @@ Before you claim debugging is complete:
    - **D2** — fix is at canonical owner
    - **D3** — original reproduction steps no longer trigger any anomaly
    - **D4** — no same-pattern occurrences remain unaddressed in repo
+   - **D5** — Minimality Check verdict is `sufficient repair`, or the local
+     patch is explicitly bounded with retention reason and retirement trigger
 
 3. **Reflection** — re-run Goal / DeeperCause / Evidence / Risk/Unknown / Decision
 4. **Confirm** the fix addressed the source, not just the sample

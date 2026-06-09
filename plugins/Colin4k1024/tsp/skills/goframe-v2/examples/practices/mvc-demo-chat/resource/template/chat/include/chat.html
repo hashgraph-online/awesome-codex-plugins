@@ -1,0 +1,146 @@
+<style type="text/css">
+    .input-form {
+        display:flex;
+    }
+    .online-container {
+
+    }
+    .list-group {
+        max-height:500px;
+        overflow: auto;
+    }
+    .online-title {
+        text-align: center;
+    }
+    .online-user {
+        width:200px;
+        float:left;
+    }
+    #txtContent {
+        display:flex;
+        flex-direction: column;
+    }
+    #btnSend {
+        margin-top:15px;
+        width: 100px;
+        height: 60px;
+    }
+</style>
+
+<div class="container">
+    <div class="list-group"></div>
+    <div>
+        <div class="online-container">
+            <div class="online-title">Current Online Users</div>
+            <hr>
+            <div class="online-list"></div>
+        </div>
+        <div style="clear:both;height:40px;"></div>
+        <div class="input-form">
+            <input class="form-control" id="txtContent" autofocus rows="6" placeholder="Send something">
+        </div>
+        <div style="text-align: center"><button class="btn btn-primary" id="btnSend">Just Send</button></div>
+    </div>
+</div>
+
+<script type="application/javascript">
+    function showInfo(content) {
+        $("<div class=\"list-group-item list-group-item-info\">" + content + "</div>").appendTo(".list-group");
+        $(".list-group").smoothScroll({position:$(".list-group")[0].scrollHeight, speed: 100});
+    }
+    function showWaring(content) {
+        $("<div class=\"list-group-item list-group-item-warning\">" + content + "</div>").appendTo(".list-group");
+        $(".list-group").smoothScroll({position:$(".list-group")[0].scrollHeight, speed: 100});
+    }
+    function showSuccess(content) {
+        $("<div class=\"list-group-item list-group-item-success\">" + content + "</div>").appendTo(".list-group");
+        $(".list-group").smoothScroll({position:$(".list-group")[0].scrollHeight, speed: 100});
+    }
+    function showError(content) {
+        $("<div class=\"list-group-item list-group-item-danger\">" + content + "</div>").appendTo(".list-group");
+        $(".list-group").smoothScroll({position:$(".list-group")[0].scrollHeight, speed: 100});
+    }
+
+    $(function () {
+        // send message to server.
+        function sendMsg(name, data, type) {
+            ws.send(JSON.stringify({
+                name : "",
+                data : data,
+                type : type,
+            }));
+        }
+
+        var url = "ws://" + window.location.origin.replace("http://", "") + "/chat/websocket";
+        var ws  = new WebSocket(url);
+        try {
+            // ws success.
+            ws.onopen = function () {
+                showInfo("WebSocket Server Connected Successfully!");
+            };
+            // ws closed.
+            ws.onclose = function () {
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+                showError("WebSocket Server Connection Closed!");
+            };
+            // ws error.
+            ws.onerror = function () {
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+                showError("WebSocket Server Connection Closed!");
+            };
+
+            // ws response handling.
+            ws.onmessage = function (result) {
+                var msg = JSON.parse(result.data);
+                switch (msg.type) {
+                    case "send":
+                        showSuccess(msg.name + " says: " + msg.data);
+                        break;
+
+                    case "list":
+                        var content = "";
+                        for (i = 0; i < msg.data.length; i++) {
+                            content += '<div class="online-user"><i class="am-icon-user"></i> '+ msg.data[i] +'</div>';
+                        }
+                        $('.online-list').html(content);
+                        break;
+
+                    case "error":
+                        showError(msg.data);
+                        break;
+                }
+            };
+        } catch (e) {
+            layer.msg(e.message);
+        }
+
+        // Click button to send message.
+        $("#btnSend").on("click", function () {
+            if (ws == null) {
+                showError("WebSocket Server [" + url +"] Connection Failed, Please Reload Page!");
+                return;
+            }
+            var name    = $.trim($("#txtName").val()).replace("/[\n]/g", "");
+            var content = $.trim($("#txtContent").val()).replace("/[\n]/g", "");
+            if (content.length <= 0) {
+                layer.msg("Please input something!");
+                return;
+            }
+            $("#txtContent").val("");
+            sendMsg(name, content, "send")
+        });
+
+        // On Enter key event to send message.
+        $("#txtContent").on("keydown", function (event) {
+            if (event.keyCode == 13) {
+                $("#btnSend").trigger("click");
+            }
+        });
+    })
+</script>

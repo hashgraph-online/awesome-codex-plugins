@@ -13,6 +13,10 @@ description: "Evidence before claims — run verification commands before declar
 
 ## The Iron Law
 
+<HARD-GATE>
+NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+</HARD-GATE>
+
 ```
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```

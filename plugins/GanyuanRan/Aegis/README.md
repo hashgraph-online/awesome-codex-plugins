@@ -1,567 +1,208 @@
 <p align="center">
     <a href="https://linux.do/t/topic/2108966/20" alt="LINUX DO">
         <img
-            src="https://img.shields.io/badge/LINUX-DO-FFB003.svg?logo=data:image/svg%2bxml;base64,DQo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiPjxwYXRoIGQ9Ik00Ni44Mi0uMDU1aDYuMjVxMjMuOTY5IDIuMDYyIDM4IDIxLjQyNmM1LjI1OCA3LjY3NiA4LjIxNSAxNi4xNTYgOC44NzUgMjUuNDV2Ni4yNXEtMi4wNjQgMjMuOTY4LTIxLjQzIDM4LTExLjUxMiA3Ljg4NS0yNS40NDUgOC44NzRoLTYuMjVxLTIzLjk3LTIuMDY0LTM4LjAwNC0yMS40M1EuOTcxIDY3LjA1Ni0uMDU0IDUzLjE4di02LjQ3M0MxLjM2MiAzMC43ODEgOC41MDMgMTguMTQ4IDIxLjM3IDguODE3IDI5LjA0NyAzLjU2MiAzNy41MjcuNjA0IDQ2LjgyMS0uMDU2IiBzdHlsZT0ic3Ryb2tlOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7ZmlsbDojZWNlY2VjO2ZpbGwtb3BhY2l0eToxIi8+PHBhdGggZD0iTTQ3LjI2NiAyLjk1N3EyMi41My0uNjUgMzcuNzc3IDE1LjczOGE0OS43IDQ5LjcgMCAwIDEgNi44NjcgMTAuMTU3cS00MS45NjQuMjIyLTgzLjkzIDAgOS43NS0xOC42MTYgMzAuMDI0LTI0LjM4N2E2MSA2MSAwIDAgMSA5LjI2Mi0xLjUwOCIgc3R5bGU9InN0cm9rZTpub25lO2ZpbGwtcnVsZTpldmVub2RkO2ZpbGw6IzE5MTkxOTtmaWxsLW9wYWNpdHk6MSIvPjxwYXRoIGQ9Ik03Ljk4IDcwLjkyNmMyNy45NzctLjAzNSA1NS45NTQgMCA4My45My4xMTNRODMuNDI2IDg3LjQ3MyA2Ni4xMyA5NC4wODZxLTE4LjgxIDYuNTQ0LTM2LjgzMi0xLjg5OC0xNC4yMDMtNy4wOS0yMS4zMTctMjEuMjYyIiBzdHlsZT0ic3Ryb2tlOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7ZmlsbDojZjlhZjAwO2ZpbGwtb3BhY2l0eToxIi8+PC9zdmc+" /></a>
+            src="https://img.shields.io/badge/LINUX-DO-FFB003.svg?logo=data:image/svg%2bxml;base64,DQo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cGF0aCBkPSJNNjguMi0uMDU1aDYuMjVxMjMuOTY5IDIuMDYyIDM4IDIxLjQyNmM1LjI1OCA3LjY3NiA4LjIxNSAxNi4xNTYgOC44NzUgMjUuNDV2Ni4yNXEtMi4wNjQtMjMuOTY4LTIxLjQzIDM4LTExLjUxMiA3Ljg4NS0yNS40NDUgOC44NzRoLTYuMjVxLTIzLjk3LTIuMDY0LTM4LjAwNC0yMS40M1EuOTcxIDY3LjA1Ni0uMDU0IDUzLjE4di02LjQ3M0MxLjM2MiAzMC43ODEgOC41MDMgMTguMTQ4IDIxLjM3IDguODE3IDI5LjA0NyAzLjU2MiAzNy41MjcuNjA0IDQ2LjgyMS0uMDU2IiBzdHlsZT0ic3Ryb2tlOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7ZmlsbDojZWNlY2VjO2ZpbGwtb3BhY2l0eToxIi8+PHBhdGggZD0iTTQ3LjI2NiAyLjk1N3EyMi41My0uNjUgMzcuNzc3IDE1LjczOGE0OS43IDQ5LjcgMCAwIDEgNi44NjcgMTAuMTU3cS00MS45NjQuMjIyLTgzLjkzIDAgOS43NS0xOC42MTYgMzAuMDI0LTI0LjM4N2E2MSA2MSAwIDAgMSA5LjI2Mi0xLjUwOCIgc3R5bGU9InN0cm9rZTpub25lO2ZpbGwtcnVsZTpldmVub2RkO2ZpbGw6IzE5MTkxOTtmaWxsLW9wYWNpdHk6MSIvPjxwYXRoIGQ9Ik03Ljk4IDcwLjkyNmMyNy45NzctLjAzNSA1NS45NTQgMCA4My45My4xMTNRODMuNDI2IDg3LjQ3MyA2Ni4xMyA5NC4wODZxLTE4LjgxIDYuNTQ0LTM2LjgzMi0xLjg5OC0xNC4yMDMtNy4wOS0yMS4zMTctMjEuMjYyIiBzdHlsZT0ic3Ryb2tlOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7ZmlsbDojZjlhZjAwO2ZpbGwtb3BhY2l0eToxIi8+PC9zdmc+" /></a>
+    <a href="https://dev.to/_879c5a0279451d52e43c3/aegis-a-method-pack-for-more-reliable-ai-coding-agents-1gfm" alt="DEV.to">
+        <img src="https://img.shields.io/badge/DEV.to-Article-0A0A0A?logo=devdotto&logoColor=white" /></a>
+    <a href="https://github.com/GanyuanRan/Aegis/actions/workflows/ci.yml" alt="CI">
+        <img src="https://img.shields.io/github/actions/workflow/status/GanyuanRan/Aegis/ci.yml?branch=main&label=CI" /></a>
+    <a href="https://github.com/GanyuanRan/Aegis/releases/latest" alt="Latest Release">
+        <img src="https://badgen.net/github/release/GanyuanRan/Aegis?label=Latest%20Release" /></a>
 </p>
 
 <p align="center">
-    <img src="assets/aegis-hero.png" alt="Aegis architecture-driven AI coding agent hero banner" />
+    <img src="assets/aegis-hero.png" alt="Aegis 架构驱动 AI 编程 agent 头图" />
 </p>
 
 # Aegis
 
-<p align="center"><strong>Architecture-driven discipline for AI coding agents.</strong></p>
+<p align="center">
+    <strong>Aegis Method Pack</strong><br/>
+    面向 AI 编程 agent 的 baseline-first、evidence-driven 工作流程纪律包。
+</p>
 
-中文版本：[README.zh-CN.md](README.zh-CN.md)
+<p align="center">
+    <a href="README.md"><strong>中文</strong></a>
+    ·
+    <a href="README.en.md"><strong>English</strong></a>
+    ·
+    <a href="docs/current/AEGIS_WORKFLOW_GUIDE_ZH.md">工作流程说明</a>
+    ·
+    <a href="docs/current/AEGIS_WORKFLOW_GUIDE.md">Workflow Guide</a>
+</p>
 
-## Minimal Install
+## 为什么需要 Aegis
 
-If you are using an AI coding agent, you can ask it to install Aegis for you:
+Aegis 是面向真实软件工作的 **Superpowers 升级版**。它保留 composable
+skills 的优点，并进一步加入：
 
-```text
-Please read the installation instructions in https://github.com/GanyuanRan/Aegis carefully, identify the correct path for my AI coding host, install Aegis globally, restart or reload the host if needed, and verify that the Aegis skills are discoverable.
-```
+- baseline first：高风险改动前先读当前项目事实
+- evidence before completion：没有 fresh verification evidence，不声明完成
+- repair track + retirement track：修复问题时同步说明旧路径保留或退役
+- 工作流质量（Workflow Quality）护栏：简单任务保持轻量，风险升高才展开
+- 多宿主可移植 method-pack skills
 
-## Updating Aegis
+当 agent 容易在目标、owner、架构边界或验证路径不清楚时就开始写代码，Aegis
+能把工作拉回更稳的工程节奏。
 
-If Aegis is already installed, you can ask your AI coding agent to update it for you:
+## 极简安装
 
-```text
-Please update my installed Aegis to the latest main branch version from https://github.com/GanyuanRan/Aegis, using the correct update path for my current AI coding host, then restart or reload the host if needed and verify Aegis skills are discoverable.
-```
-
-## Optional Lite Global Rules
-
-For smoother host-level behavior, copy the whole block below into your AI
-coding tool's global user rules. It improves Aegis routing and skill triggering
-without duplicating the full workflows:
-
-```markdown
-# Aegis Lite Global Rules
-
-If Aegis is installed:
-
-- At the start of each turn, check whether the task matches an installed Aegis
-  skill. If it matches, load and follow that skill.
-- Simple, local, low-risk tasks may use a fast path. Do not expand the full
-  governance workflow just because Aegis exists.
-- Complex, diagnostic, architecture, refactor, contract, cross-module, shared
-  module, compatibility, or long-running tasks should use the relevant Aegis
-  workflow by default.
-- Before implementation, identify the goal, scope, impact surface, and
-  verification method. Read project baseline or authority docs when relevant.
-- Before claiming completion, provide fresh verification evidence. If
-  verification is blocked, state the blocker and residual risk.
-- Aegis is a method layer, not a final authority system. Do not claim final
-  gate decisions or completion authority.
-- The user's current instruction and the target project's rules take priority
-  over Aegis guidance.
-```
-
-For stricter teams or governance-heavy projects, you can instead start from the
-full advanced templates and merge only the parts you need:
-
-- [Advanced English template](GLOBAL_USER_RULES_TEMPLATE.md)
-- [Advanced Chinese template](GLOBAL_USER_RULES_TEMPLATE.zh-CN.md)
-
-## Activation Mode
-
-Aegis defaults to automatic mode. To switch to manual mode, edit:
+把下面这段话交给你的 AI 编程 Agent：
 
 ```text
-~/.config/aegis/config.toml
+请阅读 https://github.com/GanyuanRan/Aegis，识别我当前使用的 AI 编程宿主，并按对应宿主说明全局安装 Aegis。如果需要重启或重新加载宿主，请明确告诉我；然后从已安装的 Aegis method-pack 根目录运行完整安装验证。不要在目标项目目录中运行 doctor 命令。先定位 `<aegis-method-pack-root>`，再运行 `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`。只有当 JSON 输出包含 `"ok": true`、`"workspaceSupport": "available"` 和 `"configStatus": "configured"` 时，才把安装视为完成；如果宿主有单独的 skill discovery 目录，也要额外用 `--discovery-root <path>` 验证它指向当前版本。
 ```
 
-Windows:
+## 更新 Aegis
 
-```text
-%USERPROFILE%\.config\aegis\config.toml
-```
+完成安装并登记当前宿主之后，后续更新可以用自然语言直接让 agent `更新 Aegis`，
+也可以显式说 `aegis:update`。agent 可以把这两种方式路由到本地更新路径：先定位
+已安装的 method-pack 根目录，读取本机 host-scoped registry，再调用
+`scripts/aegis-update.py` 默认更新当前宿主。只有用户明确要求 `--all` 时才更新所有
+已登记宿主。Aegis 默认不做后台自动更新。
 
-If the file does not exist, create it manually. Add:
+## 使用前必须知道
 
-```toml
-activation_mode = "explicit"
-```
-
-To return to automatic mode, set `activation_mode = "auto"` or delete the file.
-
-Then restart the host. In explicit mode, supported bootstrap hooks stop
-injecting Aegis automatically, while direct skill calls such as
-`aegis:using-aegis` remain available. Host caveats are documented in
-[docs/current/AEGIS_ACTIVATION_MODE.md](docs/current/AEGIS_ACTIVATION_MODE.md).
-
-`Aegis` is an Architecture-Driven Development (ADD) method pack for AI coding agents.
-
-It builds on the original `superpowers` methodology and adds evidence-driven governance, TLREF execution flow, and dual-track repair/retirement rules.
-
-In Aegis, ADD means the agent should understand the project's baseline, architecture boundaries, owners, impact surface, compatibility constraints, and verification path before making substantial changes.
-
-Current release shape:
+Aegis 当前发布形态是：
 
 > `Aegis Method Pack (runtime-ready)`
 
-This repository is **not** the full `Aegis Platform`. It does not provide authoritative runtime-core decisions, authoritative `GateDecision`, or completion authority.
+它不是完整的 Aegis Platform，不是 daemon，不是后台 runner，不是 runtime core，
+不提供 authoritative `GateDecision`，不提供 authoritative `PolicySnapshot`，
+也不授予 final completion authority。用户当前指令和目标项目规则优先于 Aegis。
 
-## Problems Aegis Solves
+为了让宿主级行为更顺滑，可以使用：
 
-AI coding agents are strong at local execution, but long or risky software work often fails for process reasons:
+- [轻量全局规则](GLOBAL_USER_RULES_LITE.zh-CN.md)
+- [高级全局规则模板](GLOBAL_USER_RULES_TEMPLATE.zh-CN.md)
 
-- work starts before the task boundary and baseline are clear
-- the agent claims completion without fresh evidence
-- bug fixes add new fallback logic while old owners keep running
-- long tasks lose state after compaction, handoff, or multi-agent work
-- architecture drift is noticed only after the change has already spread
-
-Aegis addresses those problems at the method-pack layer. It makes the agent frame the task,
-read the relevant baseline, keep evidence close to claims, track repair and retirement together,
-and maintain resumable checkpoints for long work.
-
-## What Users Get
-
-Installing Aegis gives an AI coding tool a stricter development discipline without requiring a new runtime platform:
-
-- clearer task framing before edits
-- safer debugging and refactoring loops
-- fewer unsupported "done" claims
-- better long-task continuity through todo checkpoints, resume hints, and drift checks
-- explicit compatibility and retirement thinking when behavior changes
-- portable workflows across Codex, OpenCode, Claude Code, and other skill-aware hosts
-
-## What Aegis Adds
-
-Aegis keeps the useful parts of `superpowers`:
-
-- composable skills
-- skill-triggered workflows
-- multi-host install and plugin distribution skeletons
-- implementation planning, review, debugging, and verification practices
-
-Aegis adds a stricter governance spine:
-
-- baseline-first work
-- evidence before claims
-- impact-aware task framing
-- TLREF / DIVE / Reflection / QA execution discipline
-- repair track plus retirement track for bug fixes, refactors, contract changes, and governance cleanup
-- long-task continuation with todo checkpoints, resume hints, drift checks, and evidence bundles
-- runtime-ready artifacts that remain drafts, hints, projections, and evidence bundles
-
-## Current Scope
-
-Aegis currently owns:
-
-- method-pack skills
-- initial instructions and contributor guardrails
-- host installation guidance
-- representative tests and verification assets
-- runtime-ready artifact shapes
-- release, rollback, known-limitation, and compatibility checklists for maintainers
-
-Aegis does not currently own:
-
-- `Host Adapters`
-- `Runtime Core`
-- authoritative `GateDecision`
-- final completion authority
-- full production rollout guarantees
-
-For the current authority map, read:
-
-- [docs/current/README.md](docs/current/README.md)
-- [docs/adr/ADR-0001-aegis-method-pack-is-not-runtime-core.md](docs/adr/ADR-0001-aegis-method-pack-is-not-runtime-core.md)
-
-## Host Compatibility
-
-Aegis keeps the multi-host plugin-installable goal.
-
-Current host-facing status:
-
-| Host | Current status |
-| --- | --- |
-| `Codex` | Representative smoke path verified; Git Bash naive smoke still has known observation items |
-| `OpenCode` | Base suite and integration closeout have passed in the current method-pack scope |
-| `Claude Code` | Plugin skeleton and install guide exist; release-level fresh host smoke is still pending |
-| `CodeBuddy` | Plugin skeleton and native `SKILL.md` manual install guide exist; release-level fresh host smoke is still pending |
-| `DeepSeek-TUI` | Native `SKILL.md` discovery supports manual Aegis skill install; release-level fresh host smoke is still pending |
-| `Trae` | Native `SKILL.md` discovery supports manual Aegis skill install; release-level fresh host smoke is still pending |
-
-Other hosts remain product targets, but are not yet current release-level verdicts.
-
-Read:
-
-- [docs/current/AEGIS_HOST_COMPATIBILITY_MATRIX_SNAPSHOT.md](docs/current/AEGIS_HOST_COMPATIBILITY_MATRIX_SNAPSHOT.md)
-- [docs/current/AEGIS_KNOWN_LIMITATIONS.md](docs/current/AEGIS_KNOWN_LIMITATIONS.md)
-
-## Installation
-
-Aegis can be installed through each host's native discovery or plugin path.
-A public marketplace listing is not required for the paths below.
-
-After installation and host restart, Aegis skills are discovered automatically.
-For normal use, users can ask for development work naturally; the agent should
-select the relevant Aegis method when the task matches a skill. Explicit skill
-commands are still available when you want to force, test, or debug a workflow.
-
-### Codex
-
-macOS / Linux:
+Aegis 默认自动模式。要切换到显式模式，在已安装的 method-pack 根目录运行：
 
 ```bash
-git clone https://github.com/GanyuanRan/Aegis.git ~/.codex/aegis
-mkdir -p ~/.agents/skills
-ln -s ~/.codex/aegis/skills ~/.agents/skills/aegis
+cd <aegis-method-pack-root>
+python scripts/aegis-doctor.py activation-mode explicit
 ```
 
-Windows PowerShell:
+修改后需要重启宿主。长期设置方式和宿主注意事项见
+[docs/current/AEGIS_ACTIVATION_MODE.md](docs/current/AEGIS_ACTIVATION_MODE.md)。
 
-```powershell
-git clone https://github.com/GanyuanRan/Aegis.git "$env:USERPROFILE\.codex\aegis"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.agents\skills"
-cmd /c mklink /J "$env:USERPROFILE\.agents\skills\aegis" "$env:USERPROFILE\.codex\aegis\skills"
-```
-
-Optional Codex config for subagent-heavy skills:
-
-```toml
-[features]
-multi_agent = true
-```
-
-Restart Codex, then ask it to use `aegis:using-aegis` or an Aegis skill such as
-`brainstorming`.
-
-### OpenCode
-
-Use the plugin shortcut by adding Aegis to the `plugin` array in your global or
-project `opencode.json`:
-
-```json
-{
-  "plugin": ["aegis@git+https://github.com/GanyuanRan/Aegis.git"]
-}
-```
-
-If the file already has plugins, append Aegis:
-
-```json
-{
-  "plugin": [
-    "other-plugin",
-    "aegis@git+https://github.com/GanyuanRan/Aegis.git"
-  ]
-}
-```
-
-Then restart OpenCode and verify:
+TDD mode 默认是 `auto`：Aegis 会按风险自动选择严格 TDD、轻量验证，或在
+不适合 TDD 的任务中跳过 TDD。若只想关闭自动 TDD 路由，但仍保留完成前验证：
 
 ```bash
-opencode --version
+cd <aegis-method-pack-root>
+python scripts/aegis-doctor.py tdd-mode off
 ```
 
-Ask: `Tell me about your aegis`.
+详细语义见 [docs/current/AEGIS_TDD_MODE.md](docs/current/AEGIS_TDD_MODE.md)。
 
-### Claude Code
+## 宿主兼容性
 
-Marketplace flow:
+Aegis 保留多宿主、plugin-installable 的分发目标。
 
-```bash
-claude plugin marketplace add GanyuanRan/Aegis
-claude plugin install aegis@aegis-dev --scope user
-```
+| 宿主组 | 当前状态 | 从这里开始 |
+| --- | --- | --- |
+| `Codex`, `OpenCode` | 当前 method-pack 范围内已有 fresh evidence | [Codex](docs/README.codex.md), [OpenCode](docs/README.opencode.md) |
+| `Claude Code`, `CodeBuddy`, `DeepSeek-TUI`, `Trae`, `GitHub Copilot`, `Qoder` | 已有安装说明；release-level fresh host smoke 仍待补证 | [Claude Code](docs/README.claude-code.md), [CodeBuddy](docs/README.codebuddy.md), [DeepSeek-TUI](docs/README.deepseek-tui.md), [Trae](docs/README.trae.md), [GitHub Copilot](docs/README.copilot.md), [Qoder](docs/README.qoder.md) |
+| `CC GUI (JetBrains IDEA)` | Claude Code / OpenAI-GPT 通道的 IDE 插件层结构性支持；release-level fresh host smoke 仍待补证 | [CC GUI](docs/README.cc-gui.md) |
+| `Antigravity CLI`, `Antigravity IDE`, `Antigravity App` | 结构性目标；release-level fresh host smoke 仍待补证 | [Antigravity](docs/README.antigravity.md) |
+| `Pi CLI`, `OpenClaw`, `Hermes Agent` | 结构性 Agent Skills / `SKILL.md` skill-host 适配；release-level fresh host smoke 仍待补证 | [Pi CLI](docs/README.pi.md), [OpenClaw](docs/README.openclaw.md), [Hermes Agent](docs/README.hermes-agent.md) |
+| `Gemini CLI` | Antigravity 支持成熟前的过渡兼容面 | [兼容性矩阵](docs/current/AEGIS_HOST_COMPATIBILITY_MATRIX_SNAPSHOT.md) |
 
-Local checkout flow:
+对外声明支持状态前，先读：
 
-```bash
-git clone https://github.com/GanyuanRan/Aegis.git ~/aegis
-claude --plugin-dir ~/aegis
-```
+- [宿主兼容性矩阵](docs/current/AEGIS_HOST_COMPATIBILITY_MATRIX_SNAPSHOT.md)
+- [已知限制](docs/current/AEGIS_KNOWN_LIMITATIONS.md)
 
-Inside Claude Code, run `/reload-plugins`, then try `/aegis:using-aegis`.
+## 如何使用
 
-### CodeBuddy
+安装并重启宿主后，直接自然描述开发任务即可。任务匹配时，agent 应选择对应
+Aegis 方法。
 
-CodeBuddy supports both plugin metadata and native `SKILL.md` skill discovery.
-For the transparent manual path:
-
-macOS / Linux:
-
-```bash
-git clone https://github.com/GanyuanRan/Aegis.git ~/.codebuddy/aegis
-mkdir -p ~/.codebuddy/skills
-cp -R ~/.codebuddy/aegis/skills/* ~/.codebuddy/skills/
-```
-
-Windows PowerShell:
-
-```powershell
-git clone https://github.com/GanyuanRan/Aegis.git "$env:USERPROFILE\.codebuddy\aegis"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codebuddy\skills"
-Copy-Item -Recurse -Force "$env:USERPROFILE\.codebuddy\aegis\skills\*" "$env:USERPROFILE\.codebuddy\skills\"
-```
-
-Aegis also ships `.codebuddy-plugin/` metadata for CodeBuddy plugin flows.
-Restart CodeBuddy, then ask it to describe its Aegis skills.
-
-### DeepSeek-TUI
-
-DeepSeek-TUI discovers skills from `SKILL.md` directories. Install Aegis by
-copying its skill directories into DeepSeek-TUI's global skills path:
-
-macOS / Linux:
-
-```bash
-git clone https://github.com/GanyuanRan/Aegis.git ~/.deepseek/aegis
-mkdir -p ~/.deepseek/skills
-cp -R ~/.deepseek/aegis/skills/* ~/.deepseek/skills/
-```
-
-Windows PowerShell:
-
-```powershell
-git clone https://github.com/GanyuanRan/Aegis.git "$env:USERPROFILE\.deepseek\aegis"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.deepseek\skills"
-Copy-Item -Recurse -Force "$env:USERPROFILE\.deepseek\aegis\skills\*" "$env:USERPROFILE\.deepseek\skills\"
-```
-
-Restart DeepSeek-TUI, then verify with `/skills` and `/skill using-aegis`.
-
-### Trae
-
-Trae discovers skills from `SKILL.md` directories. Install Aegis by copying its
-skill directories into Trae's global skills path:
-
-macOS / Linux:
-
-```bash
-git clone https://github.com/GanyuanRan/Aegis.git ~/.trae/aegis
-mkdir -p ~/.trae/skills
-cp -R ~/.trae/aegis/skills/* ~/.trae/skills/
-```
-
-Windows PowerShell:
-
-```powershell
-git clone https://github.com/GanyuanRan/Aegis.git "$env:USERPROFILE\.trae\aegis"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.trae\skills"
-Copy-Item -Recurse -Force "$env:USERPROFILE\.trae\aegis\skills\*" "$env:USERPROFILE\.trae\skills\"
-```
-
-Restart Trae, then ask it to describe its Aegis skills.
-
-Full host guides:
-
-- [Claude Code](docs/README.claude-code.md)
-- [CodeBuddy](docs/README.codebuddy.md)
-- [Codex](docs/README.codex.md)
-- [DeepSeek-TUI](docs/README.deepseek-tui.md)
-- [OpenCode](docs/README.opencode.md)
-- [Trae](docs/README.trae.md)
-
-The project still preserves the broader multi-host distribution skeleton inherited from `superpowers`, including Cursor and Gemini-related package surfaces. Those surfaces should not be interpreted as current fresh release-level closeout unless the compatibility matrix says so.
-
-## First Project Baseline
-
-Aegis works best when the target project has a small, explicit baseline before
-large development work starts. Without one, Aegis can still run, but task
-framing, authority lookup, verification, and drift checks rely more on ad-hoc
-context and may be less stable.
-
-For a new or undocumented project, first ask the agent to create a lightweight
-project baseline, for example:
+高风险任务前可以先用轻量目标框定；它会先框定目标，然后默认继续进入已选
+workflow：
 
 ```text
-Use Aegis to establish this project's baseline before implementation:
-purpose, current architecture, authority docs, run/test commands, compatibility
-boundaries, non-goals, and verification expectations.
+Aegis goal: 修复登录后偶发跳回登录页，不重写 auth 系统。
 ```
 
-For an existing project, point the agent at the repository's current source of
-truth, such as `README`, `CONTRIBUTING`, architecture docs, ADRs, or local
-project rules, and ask it to treat those as baseline references before changing
-code.
+当你想强制指定方法时，可以显式点名 skill：
 
-## Execution Model
+- `aegis:brainstorming`
+- `aegis:systematic-debugging`
+- `aegis:writing-plans`
+- `aegis:first-principles-review`
+- `aegis:requesting-code-review`
+- `aegis:verification-before-completion`
 
-Aegis is not a daemon, background runner, or authoritative runtime core.
-It works through host-level skill discovery, bootstrap context, and explicit skill loading.
+如果预期 skill 没有触发，不要先当成提示词措辞问题。按触发链路诊断：
+安装/版本可见性、宿主 skill discovery、activation mode、`using-aegis` 路由、
+任务到 skill 的匹配、以及上下文压力。阅读
+[docs/current/AEGIS_TRIGGER_HEALTH_BASELINE.md](docs/current/AEGIS_TRIGGER_HEALTH_BASELINE.md)。
 
-Automatic behavior:
+## 工作流形态
 
-- Codex discovers Aegis skills from the configured skills directory at startup.
-- OpenCode loads the Aegis plugin, mirrors skills into OpenCode's global skills path,
-  and injects compact bootstrap context.
-- Claude Code loads Aegis through its plugin namespace or a local plugin directory.
-- CodeBuddy discovers copied Aegis skill directories from native `SKILL.md`
-  skill paths, or loads Aegis through `.codebuddy-plugin/` metadata.
-- DeepSeek-TUI discovers copied Aegis skill directories from its native
-  `SKILL.md` skill paths.
-- Trae discovers copied Aegis skill directories from its native `SKILL.md`
-  skill paths.
-- `using-aegis` tells the agent to check whether a task-specific skill applies before responding.
-- In day-to-day use, you do not need to manually name a skill for every request;
-  explicit commands are the override path when you want a specific method.
+Aegis 在实施前按复杂度路由：
 
-Explicit use:
+- 低复杂度：简短 intent、baseline check、TDD Route、验证。
+- 中复杂度：baseline read set、Spec Brief 或稳定需求、writing plan、atomic tasks、验证。
+- 高复杂度：Design Spec、plan、必要时用户确认，然后执行。
 
-- Ask for a skill by name, such as `aegis:brainstorming`,
-  `aegis:systematic-debugging`, `aegis:long-task-continuation`,
-  or `aegis:verification-before-completion`.
-- In OpenCode, use the native `skill` tool, for example: `use skill tool to load aegis/brainstorming`.
-- In Claude Code, use the plugin namespace, for example: `/aegis:using-aegis`.
-- In CodeBuddy, ask it to load an Aegis skill such as `systematic-debugging`.
-- In DeepSeek-TUI, use the native skill command, for example: `/skill systematic-debugging`.
-- In Trae, ask it to load an Aegis skill such as `systematic-debugging`.
+核心纪律是：
 
-Long-task behavior:
+- **Baseline first**：重大改动前先读当前项目 authority。
+- **Evidence before claims**：没有 fresh verification evidence，不声明完成。
+- **Repair plus retirement**：修复 owner，同时说明旧路径保留或退役。
+- **Workflow Quality**：简单任务保持轻量，风险升高才展开。
 
-- Aegis can keep `TodoCheckpointDraft`, `ResumeStateHint`, `DriftCheckDraft`,
-  and `EvidenceBundleDraft` discipline around long work.
-- This improves resumability and reduces drift, but it does not create a host watchdog,
-  automatic retry loop, or final completion authority.
+完整说明见：
 
-## Core Workflow
+- [工作流程说明](docs/current/AEGIS_WORKFLOW_GUIDE_ZH.md)
+- [工作流质量基线](docs/current/AEGIS_WORKFLOW_QUALITY_BASELINE.md)
+- [Runtime-ready 边界](docs/current/AEGIS_RUNTIME_READY_BOUNDARY.md)
+- [Artifact schema baseline](docs/current/AEGIS_ARTIFACT_SCHEMA_BASELINE.md)
 
-The method pack is organized around agent workflows:
+## 维护者入口
 
-1. **Brainstorming**
-   - clarify intent, scope, impact, and baseline read set before implementation
-2. **Writing Plans**
-   - produce bite-sized, verifiable plans with exact files, verification steps, and compatibility boundaries
-3. **Systematic Debugging**
-   - move from symptoms to root cause with evidence before fixes
-4. **Test-Driven Development**
-   - use red/green/refactor where applicable
-5. **Requesting Code Review**
-   - review for behavioral risks, regressions, and missing tests
-6. **Verification Before Completion**
-   - no completion claim without fresh verification evidence
-
-Aegis routes work by complexity before implementation:
-
-- Low-complexity tasks can proceed with a concise intent, baseline check, TDD, and verification.
-- Medium-complexity tasks require a baseline read set, plan, and atomic tasks before TDD.
-- High-complexity tasks require a spec/design and plan first, with user review where the workflow calls for it.
-
-When a project needs persistent Aegis records, Aegis creates a lightweight
-project workspace lazily. The default workspace includes `README.md`,
-`INDEX.md`, `BASELINE-GOVERNANCE.md`, and standard `adr/`, `baseline/`,
-`specs/`, `plans/`, and `work/` directories under `docs/aegis/`. Task process
-records live under `docs/aegis/work/YYYY-MM-DD-<task-slug>/`. Existing project
-docs and ADRs remain the preferred authority; reusable Aegis outputs are
-promoted only when the workflow needs them.
-
-For host or workflow authors, this repository includes a zero-dependency helper
-for target-project workspace operations:
-
-```bash
-python scripts/aegis-workspace.py init --root /path/to/target-project
-python scripts/aegis-workspace.py check --root /path/to/target-project
-python scripts/aegis-workspace.py append-index --root /path/to/target-project --path docs/aegis/specs/example.md --kind spec --title "Example"
-python scripts/aegis-workspace.py validate-artifact --type TaskIntentDraft --file /path/to/target-project/docs/aegis/work/example/task-intent-draft.json
-```
-
-The helper writes only to the explicit target project root. The Aegis
-method-pack repository itself does not ship a precreated live `docs/aegis/`
-workspace. Artifact validation checks JSON sidecar structure only; it does not
-judge evidence sufficiency or grant completion authority.
-
-For bug fixes, architecture changes, contract work, and governance cleanup, Aegis requires:
-
-- **Repair track**
-  - real root cause
-  - canonical owner
-  - smallest necessary change
-  - compatibility boundary
-  - verification method
-- **Retirement track**
-  - old owner / fallback / patch location
-  - whether it is still active
-  - reason to keep it, if any
-  - deletion or convergence trigger
-  - validation before removal
-
-## Runtime-Ready Artifacts
-
-Current method-pack outputs may include:
-
-- `TaskIntentDraft`
-- `BaselineReadSetHint`
-- `ImpactStatementDraft`
-- `EvidenceBundleDraft`
-- `GateInputPack`
-- `TodoCheckpointDraft`
-- `ResumeStateHint`
-- `DriftCheckDraft`
-
-These are advisory and runtime-ready. They are not authoritative runtime decisions.
-
-Read:
-
-- [docs/current/AEGIS_ARTIFACT_SCHEMA_BASELINE.md](docs/current/AEGIS_ARTIFACT_SCHEMA_BASELINE.md)
-- [docs/current/AEGIS_RUNTIME_READY_BOUNDARY.md](docs/current/AEGIS_RUNTIME_READY_BOUNDARY.md)
-
-## Testing
-
-Primary verification entry:
+主要验证入口：
 
 ```bash
 bash tests/e2e/run-all.sh --full --host-profile fast
 ```
 
-Focused checks:
+聚焦文档 / method-pack 检查：
 
 ```bash
 bash tests/e2e/boundary-compliance-check.sh
-bash tests/e2e/artifact-schema-check.sh
-bash tests/opencode/run-tests.sh
-bash tests/codex-plugin-sync/test-sync-to-codex-plugin.sh
+bash tests/e2e/workflow-quality-check.sh
+bash tests/e2e/install-verification-policy-check.sh
+bash tests/e2e/layer1-fast-check.sh --host-profile none
 ```
 
-Read:
+阅读：
 
 - [docs/testing.md](docs/testing.md)
-- [docs/current/AEGIS_METHOD_PACK_RELEASE_CHECKLIST.md](docs/current/AEGIS_METHOD_PACK_RELEASE_CHECKLIST.md)
+- [发布检查清单](docs/current/AEGIS_METHOD_PACK_RELEASE_CHECKLIST.md)
+- [当前 authority map](docs/current/README.md)
+- [贡献说明](CONTRIBUTING.md)
 
-## Contributing
+## 与 Superpowers 的关系
 
-Read:
+Aegis 派生自 **[Superpowers](https://github.com/obra/superpowers)**，由
+[Jesse Vincent](https://github.com/obra) 创建。Superpowers 开创了 composable、
+multi-harness agent skills 的基础；Aegis 在此基础上加入面向真实软件项目的
+architecture- and evidence-focused method layer。
 
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [SECURITY.md](SECURITY.md)
-- [SUPPORT.md](SUPPORT.md)
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+项目还借鉴了 [mattpocock/skills](https://github.com/mattpocock/skills)
+中关于极简沟通、共享语言和严谨调试的思路。这些思路均在 Aegis 自有格式中
+重新实现，而不是原样复制。
 
-Before changing behavior-shaping skill content, also read:
+## 许可证
 
-- [skills/writing-skills/SKILL.md](skills/writing-skills/SKILL.md)
-- [skills/verification-before-completion/SKILL.md](skills/verification-before-completion/SKILL.md)
+MIT License。见 [LICENSE](LICENSE)。
 
-## Relationship To Superpowers
+## AI编程工具Aegis_QQ交流群：694329785
 
-Aegis is derived from **[Superpowers](https://github.com/obra/superpowers)**, created by [Jesse Vincent](https://github.com/obra). Superpowers pioneered the idea of composable, multi-harness agent skills — the foundation this project builds on.
-
-We are grateful to Jesse and all Superpowers contributors for creating and maintaining the original project under the MIT license, and for establishing the plugin distribution patterns (Claude Code, Codex, Cursor, OpenCode, Gemini CLI) that Aegis continues to use.
-
-This project adds a governance-focused method layer and public release path for the `Aegis Method Pack`, while preserving Superpowers' zero-dependency philosophy and multi-harness compatibility.
-
-## Acknowledgments
-
-We thank [Matt Pocock](https://github.com/mattpocock) and all contributors to [mattpocock/skills](https://github.com/mattpocock/skills) (MIT license) for sharing their skill designs openly. Several ideas from that project — particularly around concise communication, shared language glossaries, and disciplined debugging — have influenced Aegis skill design.
-
-| Aegis skill | Inspired by | What we adapted |
-|-------------|-------------|-----------------|
-| `communicating-concisely` | `/caveman` | Ultra-compressed communication mode with auto-clarity exception |
-| `establishing-project-context` | `/grill-with-docs` | CONTEXT.md shared language system, terminology tightening during brainstorming |
-| ADR creation gate | `/grill-with-docs` ADR discipline | Three-condition gate before creating architecture decision records |
-| Feedback loop construction | `/diagnose` Phase 1 | Priority ladder for building automated bug reproduction loops |
-
-These ideas were re-implemented in Aegis format — shorter, multi-harness compatible, and integrated with the TLREF/DIVE/Reflection governance spine rather than copied verbatim.
-
-Internal implementation notes are kept out of the public release tree. The
-public contract is the skill content, current authority docs, and this
-acknowledgment.
-
-## License
-
-MIT License. See [LICENSE](LICENSE).
+<p align="center">
+    <img src="assets/aegis-qrcode.jpg" alt="Aegis QQ交流群二维码" width="320" />
+</p>

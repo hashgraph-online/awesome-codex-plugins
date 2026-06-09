@@ -1,0 +1,8 @@
+# Local Codex state and generated artifacts
+.env
+.env.*
+tmp/
+.tmp*/
+memory/
+scripts/__pycache__/
+*.log

@@ -1,0 +1,20 @@
+{
+  "name": "codex-seo-local",
+  "interface": {
+    "displayName": "Codex SEO"
+  },
+  "plugins": [
+    {
+      "name": "codex-seo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-seo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

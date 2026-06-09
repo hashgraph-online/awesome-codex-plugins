@@ -30,9 +30,43 @@ The only difference is **how each step body runs:**
 3. If delegated:
    - Dispatch a fresh subagent with the full step text, the relevant files, and the success condition
    - Do not make the subagent infer the plan from scratch — provide the step directly
+   - Require the delegated worker to return one of the statuses defined below
    - Answer clarifying questions before letting the subagent continue
 4. If inline: execute the step directly in the controller session
 5. Run verification, loop rules, and gate rules as defined in the state machine
+
+## Delegated Worker Prompt Requirements
+
+Every delegated implementation prompt must include:
+
+- Full workflow step text, including `action`, `loop`, `verify`, `gate`, and any relevant frontmatter context
+- Exact files or directories the worker may inspect or edit
+- The success condition in plain language
+- A reminder that the worker is not alone in the codebase and must not revert unrelated changes
+- A reminder that the worker must not call `hotl-rt`, mark workflow checkboxes, run gates, or finalize the run
+- The required report format:
+
+```
+Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
+Summary:
+Files changed:
+Tests or checks run:
+Concerns or blockers:
+```
+
+## Handling Worker Status
+
+Treat the worker's status as an input to controller judgment, not as proof of completion.
+
+**DONE:** Continue with controller-owned verification for the step.
+
+**DONE_WITH_CONCERNS:** Read the concerns before verification. If they raise correctness, scope, safety, or architecture risk, address them before marking the step verified. If they are non-blocking observations, record them in the runtime report and continue to verification.
+
+**NEEDS_CONTEXT:** Provide the missing context and re-dispatch the same step. Do not count this as a failed loop iteration unless the worker had enough context and still could not proceed.
+
+**BLOCKED:** Stop the step and assess the blocker. Options are: provide more context, split the step, run the step inline in the controller, or mark the step blocked through `hotl-rt step ... block`. Do not retry the same prompt unchanged.
+
+Never mark a delegated step complete from the worker report alone. The controller must inspect the changed files as needed, run the configured verification, apply loop rules, and record the result with the pinned `run_id`.
 
 ## Critical Invariants
 

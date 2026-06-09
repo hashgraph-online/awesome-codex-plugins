@@ -1,0 +1,4 @@
+interface:
+  display_name: "DevOps Engineer（运维工程师）"
+  short_description: "负责环境变更、发布执行、监控、回滚与运行保障。"
+  default_prompt: "Use $devops-engineer to take the lead on the DevOps Engineer（运维工程师） responsibilities for this task. Start with $doc-architecture when those shared capabilities apply. Pull in $karpathy-guidelines, $maven-qa, $browser-smoke-testing, $systematic-debugging when deeper engineering execution or verification guidance is needed."

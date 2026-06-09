@@ -12,7 +12,7 @@ Every AI model has blind spots. Claude Octopus puts up to eight of them on every
   <a href="https://claude.ai"><img src="https://img.shields.io/badge/Claude-Built_with_AI-c96442?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJhMTAgMTAgMCAxIDAgMCAyMCAxMCAxMCAwIDAgMCAwLTIwbTAgMS44YTEuMiAxLjIgMCAwIDEgLjg1LjM1bDEuNSA0LjVhLjYuNiAwIDAgMCAuMzUuMzVsNC41IDEuNWExLjIgMS4yIDAgMCAxIDAgMi4yN2wtNC41IDEuNWEuNi42IDAgMCAwLS4zNS4zNWwtMS41IDQuNWExLjIgMS4yIDAgMCAxLTIuMjcgMGwtMS41LTQuNWEuNi42IDAgMCAwLS4zNS0uMzVsLTQuNS0xLjVhMS4yIDEuMiAwIDAgMSAwLTIuMjdsNC41LTEuNWEuNi42IDAgMCAwIC4zNS0uMzVsMS41LTQuNUExLjIgMS4yIDAgMCAxIDEyIDMuOCIvPjwvc3ZnPg==&labelColor=333" alt="Built with Claude"></a>
   <a href="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml"><img src="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <img src="https://img.shields.io/badge/Tests-117_suites_passing-brightgreen" alt="117 suites passing">
-  <img src="https://img.shields.io/badge/Version-9.37.0-blue" alt="Version 9.37.0">
+  <img src="https://img.shields.io/badge/Version-9.42.3-blue" alt="Version 9.42.3">
   <img src="https://img.shields.io/badge/Claude_Code-v2.1.14+_required-blueviolet" alt="Requires Claude Code v2.1.14+">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
 </p>
@@ -25,7 +25,7 @@ Every AI model has blind spots. Claude Octopus puts up to eight of them on every
 
 🔄 **Four-phase methodology, not just tools.** Every task moves through Discover → Define → Develop → Deliver, with quality gates between phases. Other orchestrators give you infrastructure. Octopus gives you the workflows.
 
-🐙 **32 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **48 commands** (slash commands you type), **52 skills** (reusable workflow modules). Say "audit my API" and the right expert activates. Don't know the command? The smart router figures it out.
+🐙 **32 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **50 commands** (slash commands you type), **54 skills** (reusable workflow modules). Say "audit my API" and the right expert activates. Don't know the command? The smart router figures it out.
 
 🐙 **Works with just Claude. Scales to eight.** Zero providers needed to start. Add them one at a time — each activates automatically when detected.
 
@@ -35,9 +35,17 @@ Every AI model has blind spots. Claude Octopus puts up to eight of them on every
 
 ## What's New
 
+> 🆕 **v9.41 — Multi-LLM Council.** `/octo:council` runs a structured 3/5/7-persona deliberation across Claude, Codex, Gemini, and OpenCode with goal modes (`advice`, `decision`, `plan`, `implement`, `review`), styles (`balanced`, `adversarial`, `red-team`, `executive`, `implementation`), benchmark-aware role routing, quorum + critical-veto gates, budget caps, and gated worktree handoff for approved plans. Use it when one model's opinion isn't enough.
+>
+> ```bash
+> /octo:council --goal decision --style adversarial "Should this service stay monolithic?"
+> /octo:council --goal implement --implement plan-only "Refactor the auth flow"
+> ```
+
 | Version | Best Features |
 |---------|--------------|
-| **v9** (current) | Up to 8 providers (Codex, Gemini, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OpenCode). Four-way AI debates. Smart router — just say what you need. Agent summary tables show which providers actually contributed. Provider-aware prompt preflight prevents silent oversize failures. Research breadth modes fan out light, standard, or exhaustive investigations. Setup aliases and fuzzy `/octo:*` corrections reduce command friction. Discipline mode with 8 auto-invoke gates. Two-stage review. Circuit breakers with automatic provider recovery. Cursor + OpenCode + Codex cross-compatibility. Token compression: `bin/octo-compress` pipe + auto PostToolUse hook save ~7,300 tokens/session. PostCompact context recovery. `bin/octopus` CLI. 170+ CC feature flags through v2.1.132. |
+| **v9.41** (new) | **`/octo:council`** promoted to first-class workflow — structured multi-LLM deliberation with goal modes, adversarial/red-team styles, benchmark-aware persona routing, quorum and critical-veto gates, budget preflight, and gated worktree handoff for approved implementation plans. |
+| **v9** (current) | Up to 8 providers (Codex, Gemini, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OpenCode). Four-way AI debates and configurable multi-LLM councils. Smart router — just say what you need. Agent summary tables show which providers actually contributed. Provider-aware prompt preflight prevents silent oversize failures. Research breadth modes fan out light, standard, or exhaustive investigations. Setup aliases and fuzzy `/octo:*` corrections reduce command friction. Discipline mode with 8 auto-invoke gates. Two-stage review. Circuit breakers with automatic provider recovery. Cursor + OpenCode + Codex cross-compatibility. Token compression: `bin/octo-compress` pipe + auto PostToolUse hook save ~7,300 tokens/session. PostCompact context recovery. `bin/octopus` CLI. 175+ CC feature flags through v2.1.157, including Opus 4.8 and dynamic workflow awareness. |
 | **v8** | Multi-LLM code review with inline PR comments. Parallel workstreams in isolated git worktrees. Reaction engine — auto-responds to CI failures. 32 specialized personas. Dark Factory autonomous pipeline. |
 | **v7** | Double Diamond workflow. Multi-provider dispatch. Quality gates and consensus scoring. Configurable sandbox modes. |
 
@@ -56,7 +64,7 @@ claude plugin install octo@nyldn-plugins
 
 That's it. Setup detects installed providers, shows what's missing, and walks you through configuration. You need **zero** external providers to start — Claude is built in.
 
-Claude Code **v2.1.14+** is the minimum supported runtime. Newer Claude Code releases unlock additional Octopus diagnostics and release checks automatically; the current plugin tracks feature flags through **Claude Code v2.1.132**.
+Claude Code **v2.1.14+** is the minimum supported runtime. Newer Claude Code releases unlock additional Octopus diagnostics and release checks automatically; the current plugin tracks feature flags through **Claude Code v2.1.157**.
 
 <details>
 <summary>Install for Codex CLI</summary>
@@ -229,13 +237,14 @@ Set `OCTO_TIER=prototype|mvp|production` as a project hint. It does not hard-blo
 
 ---
 
-## 8 Commands That Matter Most
+## 9 Commands That Matter Most
 
-🐙 Eight commands — one per arm. *A real octopus has eight arms, each with its own neurons that can act independently.* These eight tentacles work the same way: each orchestrates up to three AI providers, applies quality gates, and produces a deliverable.
+Nine high-traffic commands cover the common Octopus workflows: lifecycle execution, councils, debate, research, design, quality, and specs.
 
 ```bash
 /octo:embrace build stripe integration     # Full lifecycle: research → define → develop → deliver
 /octo:factory "build a CLI that converts CSV to JSON"  # Autonomous pipeline — spec in, software out
+/octo:council --goal decision "Should we keep this service monolithic?"  # Persona council with budget/veto gates
 /octo:debate monorepo vs microservices     # Structured four-way AI debate with consensus
 /octo:research --breadth=standard htmx vs react in 2026  # Attributed multi-provider research
 /octo:design mobile checkout redesign       # UI/UX design with BM25 style intelligence
@@ -244,7 +253,9 @@ Set `OCTO_TIER=prototype|mvp|production` as a project hint. It does not hard-blo
 /octo:prd mobile checkout redesign          # AI-optimized PRD with 100-point scoring
 ```
 
-Plus 30+ more: review, debug, extract, deck, docs, schedule, parallel, sentinel, optimize, brainstorm, claw, doctor, and [the full set](docs/COMMAND-REFERENCE.md).
+`/octo:council` uses the real runner by default. Single-model simulation is only used when explicitly requested with `--simulate` or `--single-model`; `--research-first` writes a research artifact before fanout, and `--corpus-mode append|require` preserves synthesis and plans in project corpus workflows.
+
+Plus 40+ more: review, debug, extract, deck, docs, schedule, parallel, sentinel, optimize, brainstorm, claw, doctor, and [the full set](docs/COMMAND-REFERENCE.md).
 
 Don't remember the command name? Just describe what you need:
 
@@ -267,6 +278,7 @@ Not sure which command to use? Pick by goal:
 | I want to... | Use |
 |--------------|-----|
 | Research a topic thoroughly | `/octo:research` or `/octo:discover` |
+| Get a panel recommendation or gated implementation plan | `/octo:council` |
 | Debate two approaches | `/octo:debate` |
 | Build a feature end-to-end | `/octo:embrace` |
 | Design a UI or style system | `/octo:design` |
@@ -315,11 +327,13 @@ Claude Octopus coordinates up to eight AI providers — one per tentacle:
 | 🟢 Copilot (GitHub) | Zero-cost research — uses existing GitHub Copilot subscription |
 | 🟤 Qwen (Alibaba) | Free-tier research — 1,000-2,000 requests/day via Qwen OAuth |
 | ⚫ Ollama (Local) | Zero-cost local LLM — offline, privacy-sensitive, fallback |
-| 🔵 Claude (Anthropic, Opus 4.7 + Sonnet 4.6) | Architecture, strategy, security review, orchestration, consensus, final synthesis |
+| 🔵 Claude (Anthropic, Opus 4.8 + Sonnet 4.6) | Architecture, strategy, security review, orchestration, consensus, final synthesis |
 
 Providers run in parallel for research, sequentially for problem scoping, and adversarially for review. A 75% consensus quality gate prevents questionable work from shipping. Only Claude is required — all others are optional and auto-detected.
 
-**v9.29.0 role defaults** (April 2026 benchmark refresh): `architect`, `strategist`, and `security-reviewer` default to Claude Opus 4.7 (leads SWE-bench Pro 64.3, MCP-Atlas tool use +9.2, LMArena #1). `code-reviewer` and `implementer` default to GPT-5.4 (leads Terminal-Bench 75.1, edge-case review). Opt out with `OCTOPUS_LEGACY_ROLES=1` to restore the v9.28 mapping. See [CHANGELOG](CHANGELOG.md#9290---2026-04-22) and [GPT-5.4 prompting guide](docs/GPT-5.4-PROMPTING.md).
+**Premium Claude routing** defaults `architect`, `strategist`, `security-reviewer`, and opt-in `implementer-heavy` to the current Opus family. On Claude Code v2.1.154+ that is Opus 4.8; older supported hosts fall back to Opus 4.7 and then 4.6. `code-reviewer` and `implementer` default to GPT-5.4 (Terminal-Bench and edge-case review). Opt out with `OCTOPUS_LEGACY_ROLES=1` to restore the v9.28 mapping. See [CHANGELOG](CHANGELOG.md) and [GPT-5.4 prompting guide](docs/GPT-5.4-PROMPTING.md).
+
+**Native dynamic workflows:** Claude Code v2.1.154+ can run native dynamic workflows for huge single-Claude migrations. Use that path when one Claude workflow is enough; use Octopus when you need multi-provider disagreement, councils, adversarial review, external model validation, or blind-spot coverage.
 
 ### Four Phases: Discover, Define, Develop, Deliver
 
@@ -340,7 +354,7 @@ Specialized agents that activate automatically based on your request. When you s
 
 Categories: Software Engineering (11), Specialized Development (6), Documentation & Communication (5), Research & Strategy (3), Business & Compliance (3), Creative & Design (4).
 
-[Full persona reference](docs/AGENTS.md) | [All 52 skills](docs/COMMAND-REFERENCE.md)
+[Full persona reference](docs/AGENTS.md) | [All 54 skills](docs/COMMAND-REFERENCE.md)
 
 ### Built-in Reaction Engine
 
@@ -394,11 +408,13 @@ Everything except multi-AI features. You get all 32 personas, structured workflo
 
 ## Trust, Safety, and Limits
 
-**Namespace isolation** — Only `/octo:*` commands and `octo` natural language prefix activate the plugin. Your existing Claude Code setup is untouched.
+**Command namespace** — Slash commands are namespaced under `/octo:*` and the `octo` natural-language prefix routes through the plugin's intent detection. Lifecycle hooks (session start/end, prompt submit, tool use, compaction, plan mode, worktrees, task lifecycle, idle, config change, permission events) also attach to Claude Code so multi-provider routing, freeze/discipline modes, and the work-queue watcher can function. See `.claude-plugin/hooks.json` for the full list. Uninstall removes every hook.
 
 **Data locations** — Results in `~/.claude-octopus/results/`, logs in `~/.claude-octopus/logs/`, project state in `.octo/`. Nothing hidden.
 
 **Provider transparency** — Every command shows a 🐙 activation indicator on launch. Colored dots (🔴 🟡 🟣 🔵) show exactly which providers are running and when external APIs are called. You always know what's happening.
+
+**Session provider controls** — Temporarily disable exhausted providers without uninstalling them. For example, `/octo:model-config disable codex --session` keeps Codex out of provider detection and multi-LLM fanout for the current session; `/octo:model-config clear-allowlist --session` restores the default.
 
 **Clean uninstall** — Run `claude plugin uninstall octo` from your terminal. If you see a scope error, add `--scope project`. No residual config changes.
 
@@ -450,7 +466,7 @@ Once enabled, it exposes:
 
 - `octopus_discover`, `octopus_define`, `octopus_develop`, `octopus_deliver` — Individual phases
 - `octopus_embrace` — Full Double Diamond workflow
-- `octopus_debate`, `octopus_review`, `octopus_security` — Specialized workflows
+- `octopus_debate`, `octopus_council`, `octopus_review`, `octopus_security` — Specialized workflows
 - `octopus_list_skills`, `octopus_status` — Introspection
 
 Any MCP-compatible client can connect to the server.

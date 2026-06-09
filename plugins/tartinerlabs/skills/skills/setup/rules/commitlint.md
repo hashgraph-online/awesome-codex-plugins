@@ -47,5 +47,5 @@ export default config;
 Create `.husky/commit-msg`:
 
 ```bash
-npx --no -- commitlint --edit $1
+pnx --no -- commitlint --edit $1
 ```

@@ -8,6 +8,7 @@ Run ALL checks — do NOT skip any:
 
 1. **Full Gate checks**: TypeScript (0 errors), tests (must pass), lint (must pass, warnings OK)
    Alternatively, run `node "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-$PLUGIN_ROOT}}/scripts/run-quality-gate.mjs" --variant full-gate --config "$CONFIG"` for deterministic quality gate execution with structured JSON output.
+   - **Stub detection:** if `result.stubbed` is non-empty, emit WARN per SKILL.md Phase 2.0a. Refer to `docs/recipes/quality-gate-container-pattern.md` for the container-PHPUnit pattern.
 2. **Git status**: `git status` → understand all changes
 3. **Uncommitted changes**: everything should be staged for commit
 4. **No debug artifacts**: search for `console.log`, `debugger`, `TODO: remove` in changed files

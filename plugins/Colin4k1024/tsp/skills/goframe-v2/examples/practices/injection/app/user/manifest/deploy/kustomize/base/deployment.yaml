@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  labels:
+    app: user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      volumes:
+        - name: user-configmap
+          configMap:
+            name: user-configmap
+      containers:
+        - name: main
+          image: loads/user:develop
+          imagePullPolicy: Always
+          command:
+            - /app/main
+            - server
+          volumeMounts:
+            - name: user-configmap
+              mountPath: "/app/config"
+

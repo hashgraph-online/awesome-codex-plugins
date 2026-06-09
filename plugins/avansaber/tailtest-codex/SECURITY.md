@@ -10,7 +10,7 @@
 
 Please do not report security vulnerabilities through public GitHub issues.
 
-Email: security@avansaber.com
+Email: support@avansaber.com
 
 Include a description of the issue, steps to reproduce, and the potential impact.
 You will receive a response within 5 business days. We ask that you give us reasonable

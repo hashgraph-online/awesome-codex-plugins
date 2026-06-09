@@ -1,0 +1,5 @@
+interface:
+  display_name: "Zagrosi Plan"
+  short_description: "Create reviewed TDD implementation plans"
+  brand_color: "#0F766E"
+  default_prompt: "Use $zagrosi-forge:zagrosi-plan to turn this spec into reviewed implementation sections."

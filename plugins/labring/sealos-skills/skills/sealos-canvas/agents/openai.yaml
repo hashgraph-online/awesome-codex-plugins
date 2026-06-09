@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sealos: Sealos Canvas"
+  short_description: "Run a local Sealos resource canvas UI."
+  default_prompt: "Use $sealos-canvas to run a local read-only UI for this repo's deployed Sealos resources."

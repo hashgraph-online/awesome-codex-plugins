@@ -1,0 +1,35 @@
+{
+  "name": "dodopayments",
+  "version": "0.3.3",
+  "description": "Dodo Payments tools for Codex: integration skills + API/docs MCP servers.",
+  "author": {
+    "name": "Dodo Payments",
+    "email": "support@dodopayments.com"
+  },
+  "homepage": "https://docs.dodopayments.com",
+  "repository": "https://github.com/dodopayments/dodo-agent-plugin",
+  "license": "MIT",
+  "keywords": [
+    "dodopayments",
+    "payments",
+    "billing",
+    "subscriptions",
+    "codex",
+    "mcp",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Dodo Payments",
+    "shortDescription": "Payments, billing, subscriptions - integrated into Codex.",
+    "longDescription": "Official Dodo Payments plugin. Bundles eight integration skills (checkout, subscriptions, webhooks, usage-based billing, credits, license keys, billing SDK, best practices) plus two MCP servers: a live API server and a documentation search server.",
+    "developerName": "Dodo Payments",
+    "category": "Developer Tools",
+    "defaultPrompt": [
+      "Set up Dodo Payments webhook handlers in my Next.js app.",
+      "Create a subscription checkout session with a 14-day trial.",
+      "Implement usage-based billing with meters and events."
+    ]
+  }
+}

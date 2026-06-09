@@ -1,0 +1,132 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+tag-pattern = "v*"
+
+[project]
+name = "langfuse-mcp"
+dynamic = ["version"]
+description = "Langfuse MCP server for accessing and analyzing telemetry data via natural language"
+authors = [
+    {name = "Aviv Sinai", email = "avivsinai@gmail.com"}
+]
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+keywords = ["mcp", "langfuse", "observability", "tracing", "agents", "llm", "debugging"]
+dependencies = [
+    "langfuse>=3.11.2,<5.0.0",
+    "mcp[cli]>=1.6.0",
+    "pydantic>=2.0.0",
+    "cachetools>=5.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
+    "pyright",
+    "ruff",
+]
+
+[project.scripts]
+langfuse-mcp = "langfuse_mcp.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/avivsinai/langfuse-mcp"
+Repository = "https://github.com/avivsinai/langfuse-mcp"
+Issues = "https://github.com/avivsinai/langfuse-mcp/issues"
+
+[tool.hatch.build.targets.sdist]
+packages = ["langfuse_mcp"]
+exclude = [
+    "/.*/",               # All hidden directories
+    "/dist/",
+    "/.env",
+    "/.env.example",
+    "/.gitignore",
+    "/.python-version",
+    "/*.log*",
+    "/uv.lock",
+    "/*.csv",
+    "/*.md",              # Exclude all markdown files except README.md
+    "/data/",
+    "/.pytest_cache/",
+    "/__pycache__/",
+    "/bin/",
+    "/logs/",
+    "/.venv/",
+    "/*.code-workspace"
+]
+include = [
+    "/README.md",
+    "/LICENSE",
+    "/MANIFEST.in",
+    "/tests/",            # Include tests in source distribution
+    "/pytest.ini",        # Include test configuration
+    "/.github/",          # Include GitHub workflows/configs
+    "/examples/"          # Include examples in source distribution
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["langfuse_mcp"]  # Only include the actual package in the wheel
+
+[dependency-groups]
+dev = ["ruff"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",      # https://docs.astral.sh/ruff/rules/#error-e
+    "F",      # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "I",      # https://docs.astral.sh/ruff/rules/#isort-i
+    "FA",     # https://docs.astral.sh/ruff/rules/#flake8-future-annotations-fa
+    "UP",     # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "RUF100", # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "D",      # Enforce the use of Google-style docstrings
+    "D401",   # Augment the convention by requiring an imperative mood for all docstrings
+]
+ignore = ["UP031"] # https://docs.astral.sh/ruff/rules/printf-string-formatting/
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.uv]
+exclude-newer = "7 days"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple/"
+publish-url = "https://upload.pypi.org/legacy/"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"

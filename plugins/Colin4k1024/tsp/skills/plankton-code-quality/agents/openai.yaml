@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plankton Code Quality"
+  short_description: "在写入时自动执行格式化、lint 与修复"
+  default_prompt: "Use $plankton-code-quality to enforce write-time formatting, linting, and quality fixes for the files being changed."

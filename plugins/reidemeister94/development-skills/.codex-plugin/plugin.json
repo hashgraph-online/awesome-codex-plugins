@@ -1,0 +1,36 @@
+{
+  "name": "development-skills",
+  "version": "0.6.0",
+  "description": "Development workflow: three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase Research+Plan → Chronicle → Implement+Verify → Review+Finalize) with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent.",
+  "repository": "https://github.com/reidemeister94/development-skills",
+  "homepage": "https://github.com/reidemeister94/development-skills",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "tdd",
+    "code-review",
+    "subagent",
+    "claude-code",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Development Skills",
+    "shortDescription": "Disciplined development workflows for AI coding agents",
+    "longDescription": "Use Development Skills for coding, debugging, refactoring, test design, code review, documentation alignment, and cross-agent workflow discipline. Three-tier triage (PASS_THROUGH for trivial · LIGHT for mechanical changes · FULL 4-phase workflow) with language/framework auto-detection (Python, Java, TypeScript, Swift, frontend including React/Next.js/Raycast/Vite) and a named staff-reviewer subagent.",
+    "developerName": "reidemeister",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use development-skills to implement this feature.",
+      "Use development-skills to debug this failure."
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

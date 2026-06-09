@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>__TITLE__</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #111019;
+      --panel: #171620;
+      --panel-2: #1d1c28;
+      --panel-3: #242230;
+      --line: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.12);
+      --muted: #a09dab;
+      --quiet: #7f7a8e;
+      --text: #f7f5fb;
+      --accent: #6c55ff;
+      --radius: 8px;
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ready: #74d7a6;
+      --warning: #f4be5e;
+      --failed: #ff7a90;
+      --sleeping: #6ad6aa;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --shadow-card: 0 18px 48px rgba(0, 0, 0, 0.22);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background:
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.14) 1px, transparent 0) 0 0 / 32px 32px,
+        var(--bg);
+    }
+
+    button,
+    a {
+      color: inherit;
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      touch-action: manipulation;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-rows: 68px minmax(0, 1fr) 132px;
+      grid-template-columns: minmax(0, 1fr) 344px;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .topbar {
+      grid-column: 1 / 3;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 20px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(17, 16, 25, 0.95);
+      z-index: 30;
+    }
+
+    .identity {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+    }
+
+    .identity-text {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 720;
+      letter-spacing: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .summary-line {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .summary-line span,
+    .summary-line a {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .summary-line a {
+      color: rgba(247, 245, 251, 0.86);
+      text-decoration: none;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 auto;
+      height: 20px;
+      padding: 0 7px;
+      border: 1px solid rgba(116, 215, 166, 0.34);
+      border-radius: 999px;
+      color: var(--ready);
+      background: rgba(116, 215, 166, 0.08);
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: 0.01em;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .toolbar button {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      color: rgba(247, 245, 251, 0.78);
+      background: transparent;
+      cursor: pointer;
+      transition: background-color 160ms var(--ease), color 160ms var(--ease), transform 160ms var(--ease);
+    }
+
+    @media (hover: hover) {
+      .toolbar button:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.075);
+      }
+    }
+
+    .toolbar button:active {
+      transform: scale(0.96);
+    }
+
+    .toolbar button:focus-visible,
+    .node:focus-visible {
+      outline: 2px solid rgba(108, 85, 255, 0.86);
+      outline-offset: 2px;
+    }
+
+    .canvas-region {
+      position: relative;
+      grid-column: 1;
+      grid-row: 2;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .canvas-region.dragging {
+      cursor: grabbing;
+    }
+
+    .world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+    }
+
+    .edges {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .edge {
+      fill: none;
+      stroke: rgba(174, 169, 191, 0.42);
+      stroke-width: 1.45;
+      stroke-dasharray: 6 8;
+      stroke-linecap: round;
+    }
+
+    .edge.strong {
+      stroke: rgba(116, 215, 166, 0.58);
+      stroke-dasharray: none;
+    }
+
+    .edge-label-bg {
+      fill: rgba(17, 16, 25, 0.92);
+      stroke: var(--line);
+      stroke-width: 1px;
+    }
+
+    .arrow-head {
+      fill: rgba(174, 169, 191, 0.68);
+    }
+
+    .edge-label {
+      fill: rgba(231, 228, 240, 0.78);
+      font-size: 11px;
+      font-weight: 680;
+      paint-order: stroke;
+    }
+
+    .node {
+      position: absolute;
+      width: 390px;
+      min-height: 166px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: inherit;
+      background: var(--panel);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 160ms var(--ease), background-color 160ms var(--ease);
+    }
+
+    .node.small {
+      width: 330px;
+      min-height: 128px;
+    }
+
+    .node.selected {
+      border-color: rgba(108, 85, 255, 0.62);
+      background: var(--panel-2);
+    }
+
+    .node.warning {
+      border-color: rgba(244, 190, 94, 0.42);
+    }
+
+    .node.failed {
+      border-color: rgba(255, 122, 144, 0.48);
+    }
+
+    .node-header {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 13px;
+      align-items: center;
+      padding: 24px 24px 13px;
+    }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      color: var(--accent);
+    }
+
+    .icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+    }
+
+    .title {
+      min-width: 0;
+    }
+
+    .title strong {
+      display: block;
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 740;
+      letter-spacing: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      color: var(--quiet);
+      font-size: 13px;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .node-body {
+      padding: 16px 24px 22px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid rgba(116, 215, 166, 0.28);
+      border-radius: 999px;
+      color: var(--ready);
+      background: rgba(116, 215, 166, 0.08);
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 680;
+    }
+
+    .status.warning {
+      color: var(--warning);
+      border-color: rgba(244, 190, 94, 0.32);
+      background: rgba(244, 190, 94, 0.08);
+    }
+
+    .status.failed {
+      color: var(--failed);
+      border-color: rgba(255, 122, 144, 0.32);
+      background: rgba(255, 122, 144, 0.08);
+    }
+
+    .status.sleeping {
+      color: var(--sleeping);
+      border-color: rgba(106, 214, 170, 0.32);
+      background: rgba(106, 214, 170, 0.08);
+    }
+
+    .status svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+    }
+
+    .meta {
+      display: grid;
+      gap: 8px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      min-width: 0;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.055);
+    }
+
+    .meta-row span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: rgba(234, 231, 240, 0.84);
+    }
+
+    .attachments {
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .attachment {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      align-items: center;
+      min-height: 52px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .attachment:first-child {
+      border-top: 0;
+    }
+
+    .attachment .attachment-icon {
+      display: grid;
+      place-items: center;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .attachment svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+    }
+
+    .attachment span:last-child {
+      padding-right: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-panel {
+      grid-column: 2;
+      grid-row: 2 / 4;
+      min-width: 0;
+      min-height: 0;
+      border-left: 1px solid var(--line);
+      background: rgba(17, 16, 25, 0.92);
+      overflow: auto;
+    }
+
+    .panel-section {
+      padding: 18px 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-section h2 {
+      margin: 0 0 12px;
+      color: rgba(247, 245, 251, 0.88);
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 760;
+    }
+
+    .detail-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    .detail-title strong {
+      font-size: 22px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-title span {
+      color: var(--quiet);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 0;
+      margin: 0;
+    }
+
+    .detail-row {
+      display: grid;
+      gap: 4px;
+      padding: 11px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.065);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .detail-row:first-child {
+      border-top: 0;
+    }
+
+    .detail-row dt {
+      color: var(--muted);
+      letter-spacing: 0.01em;
+    }
+
+    .detail-row dd {
+      margin: 0;
+      color: rgba(247, 245, 251, 0.88);
+      overflow-wrap: anywhere;
+    }
+
+    .events-panel {
+      grid-column: 1;
+      grid-row: 3;
+      min-width: 0;
+      border-top: 1px solid var(--line);
+      background: rgba(17, 16, 25, 0.88);
+      overflow: hidden;
+    }
+
+    .events-panel h2 {
+      margin: 0;
+      padding: 13px 18px 0;
+      color: rgba(247, 245, 251, 0.88);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .events {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(260px, 360px);
+      gap: 10px;
+      overflow-x: auto;
+      padding: 12px 18px 14px;
+    }
+
+    .event {
+      display: grid;
+      gap: 5px;
+      min-height: 74px;
+      padding: 12px 12px 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.075);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.028);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .event strong {
+      color: var(--text);
+      font-weight: 680;
+    }
+
+    .event span {
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .app-shell {
+        grid-template-rows: auto minmax(0, 1fr) 210px;
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .topbar,
+      .canvas-region,
+      .events-panel {
+        grid-column: 1;
+      }
+
+      .detail-panel {
+        display: none;
+      }
+
+      .toolbar {
+        justify-self: start;
+      }
+
+      .summary-line {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 5px 8px;
+        white-space: normal;
+      }
+
+      .summary-line span,
+      .summary-line a {
+        white-space: nowrap;
+      }
+
+      .summary-line a {
+        grid-column: 1 / -1;
+      }
+
+      #generated-at {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="identity">
+        <div class="identity-text">
+          <h1 id="app-title"></h1>
+          <div class="summary-line">
+            <span class="pill" id="app-status"></span>
+            <span id="app-namespace"></span>
+            <a id="app-url" href="#" target="_blank" rel="noreferrer"></a>
+            <span id="generated-at"></span>
+          </div>
+        </div>
+      </div>
+      <nav class="toolbar" aria-label="Canvas controls">
+        <button type="button" data-action="fit" title="Fit view" aria-label="Fit view">⌖</button>
+        <button type="button" data-action="zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+        <button type="button" data-action="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+        <button type="button" data-action="reset" title="Reset view" aria-label="Reset view">↺</button>
+      </nav>
+    </header>
+
+    <main class="canvas-region" id="viewport" aria-label="Sealos resource topology canvas">
+      <section class="world" id="world">
+        <svg class="edges" id="edges" aria-hidden="true">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path class="arrow-head" d="M 0 0 L 10 5 L 0 10 z"></path>
+            </marker>
+          </defs>
+        </svg>
+        <div id="nodes"></div>
+      </section>
+    </main>
+
+    <aside class="detail-panel" aria-label="Selected resource details">
+      <section class="panel-section">
+        <h2>Selected Resource</h2>
+        <div class="detail-title">
+          <strong id="detail-name"></strong>
+          <span id="detail-subtitle"></span>
+        </div>
+      </section>
+      <section class="panel-section">
+        <h2>Safe Summary</h2>
+        <dl class="detail-list" id="detail-list"></dl>
+      </section>
+    </aside>
+
+    <aside class="events-panel" aria-label="Recent events">
+      <h2>Recent Events</h2>
+      <div class="events" id="events"></div>
+    </aside>
+  </div>
+
+  <script id="canvas-model" type="application/json">__CANVAS_MODEL__</script>
+  <script>
+    const model = JSON.parse(document.getElementById('canvas-model').textContent);
+    const root = document.documentElement;
+    root.style.setProperty('--accent', model.theme.accent);
+    root.style.setProperty('--radius', model.theme.radius);
+    root.style.setProperty('--font', model.theme.font);
+
+    const icons = {
+      app: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 8h16v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z"/><path d="M8 8a4 4 0 0 1 8 0"/><path d="M8 8V6m8 2V6"/></svg>',
+      ingress: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M5 16h14"/><path d="M7 4h10l4 4v8l-4 4H7l-4-4V8l4-4Z"/></svg>',
+      service: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/><path d="m3 18 9 5 9-5"/></svg>',
+      pod: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 2 4 6.5v11L12 22l8-4.5v-11L12 2Z"/><path d="M12 8v8"/><path d="m8 10 4-2 4 2"/><path d="m8 14 4 2 4-2"/></svg>',
+      config: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><circle cx="8" cy="5" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="19" r="2"/></svg>',
+      secret: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M7 11V8a5 5 0 0 1 10 0v3"/><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M12 15v2"/></svg>',
+      volume: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 17 7 7h10l3 10"/><path d="M4 17h16v3H4z"/><path d="M9 13h6"/></svg>',
+      ready: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
+      warning: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5"/><path d="M12 18h.01"/></svg>',
+      failed: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+      sleeping: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/><path d="M16 4h4l-4 5h4"/></svg>'
+    };
+
+    const viewport = document.getElementById('viewport');
+    const world = document.getElementById('world');
+    const edgesSvg = document.getElementById('edges');
+    const nodesEl = document.getElementById('nodes');
+    let selectedNode = model.nodes.find((node) => node.id === 'app') || model.nodes[0];
+    let state = { x: 0, y: 0, scale: 1 };
+    let drag = null;
+
+    function escapeHtml(value = '') {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function setText(id, text) {
+      document.getElementById(id).textContent = text || '';
+    }
+
+    function renderHeader() {
+      setText('app-title', model.app.name);
+      setText('app-status', model.app.status);
+      setText('app-namespace', model.app.namespace);
+      setText('generated-at', `Generated ${new Date(model.generatedAt).toLocaleString()}`);
+      const appUrl = document.getElementById('app-url');
+      appUrl.textContent = model.app.url || 'No public URL';
+      if (model.app.url) appUrl.href = model.app.url;
+    }
+
+    function renderEdges() {
+      edgesSvg.setAttribute('width', model.layout.width);
+      edgesSvg.setAttribute('height', model.layout.height);
+      edgesSvg.setAttribute('viewBox', `0 0 ${model.layout.width} ${model.layout.height}`);
+      const defs = edgesSvg.querySelector('defs').outerHTML;
+      const edgeMarkup = model.edges.map((edge) => {
+        const from = model.nodes.find((node) => node.id === edge.from);
+        const to = model.nodes.find((node) => node.id === edge.to);
+        if (!from || !to) return '';
+        const start = { x: from.x + from.width, y: from.y + Math.min(86, from.height / 2) };
+        const end = { x: to.x, y: to.y + Math.min(86, to.height / 2) };
+        if (from.x > to.x) {
+          start.x = from.x;
+          end.x = to.x + to.width;
+        }
+        const midX = start.x + (end.x - start.x) * 0.5;
+        const pathData = `M ${start.x} ${start.y} C ${midX} ${start.y}, ${midX} ${end.y}, ${end.x} ${end.y}`;
+        const labelX = (start.x + end.x) / 2;
+        const labelY = (start.y + end.y) / 2 - 8;
+        const safeLabel = escapeHtml(edge.label || '');
+        const labelWidth = Math.max(48, safeLabel.length * 7 + 22);
+        return `<path class="edge ${edge.strong ? 'strong' : ''}" marker-end="url(#arrow)" d="${pathData}"></path>
+          <rect class="edge-label-bg" x="${labelX - labelWidth / 2}" y="${labelY - 16}" width="${labelWidth}" height="22" rx="6"></rect>
+          <text class="edge-label" x="${labelX}" y="${labelY}" text-anchor="middle">${escapeHtml(edge.label || '')}</text>`;
+      }).join('');
+      edgesSvg.innerHTML = defs + edgeMarkup;
+    }
+
+    function renderNodes() {
+      world.style.width = `${model.layout.width}px`;
+      world.style.height = `${model.layout.height}px`;
+      nodesEl.innerHTML = model.nodes.map((node) => {
+        const meta = (node.meta || []).filter(([key, value]) => key && value).slice(0, 5)
+          .map(([key, value]) => `<div class="meta-row"><span>${escapeHtml(key)}</span><span title="${escapeHtml(value)}">${escapeHtml(value)}</span></div>`).join('');
+        const attachments = (node.attachments || [])
+          .map((attachment) => `<div class="attachment"><span class="attachment-icon">${icons[attachment.icon] || icons.volume}</span><span>${escapeHtml(attachment.label)}</span></div>`).join('');
+        const className = ['node', node.width < 390 ? 'small' : '', node.status, node.id === selectedNode?.id ? 'selected' : ''].filter(Boolean).join(' ');
+        return `<button class="${className}" data-node-id="${escapeHtml(node.id)}" style="left:${node.x}px;top:${node.y}px;width:${node.width}px;min-height:${node.height}px">
+          <header class="node-header">
+            <span class="icon">${icons[node.icon] || icons.app}</span>
+            <div class="title">
+              <strong title="${escapeHtml(node.title)}">${escapeHtml(node.title)}</strong>
+              <div class="subtitle" title="${escapeHtml(node.subtitle || node.kind)}">${escapeHtml(node.subtitle || node.kind)}</div>
+            </div>
+          </header>
+          <div class="node-body">
+            <div class="status ${escapeHtml(node.status)}">${icons[node.status] || icons.ready}<span>${escapeHtml(node.statusText)}</span></div>
+            ${meta ? `<div class="meta">${meta}</div>` : ''}
+          </div>
+          ${attachments ? `<div class="attachments">${attachments}</div>` : ''}
+        </button>`;
+      }).join('');
+      nodesEl.querySelectorAll('[data-node-id]').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedNode = model.nodes.find((node) => node.id === button.dataset.nodeId) || selectedNode;
+          renderNodes();
+          renderDetails();
+        });
+      });
+    }
+
+    function renderDetails() {
+      if (!selectedNode) return;
+      setText('detail-name', selectedNode.title);
+      setText('detail-subtitle', `${selectedNode.kind} · ${selectedNode.statusText}`);
+      const rows = [
+        ['Kind', selectedNode.kind],
+        ['Status', selectedNode.statusText],
+        ['Subtitle', selectedNode.subtitle],
+        ...(selectedNode.meta || []),
+        ...(selectedNode.attachments || []).map((attachment) => ['Attachment', attachment.label])
+      ].filter(([, value]) => value);
+      document.getElementById('detail-list').innerHTML = rows.map(([key, value]) => `
+        <div class="detail-row">
+          <dt>${escapeHtml(key)}</dt>
+          <dd>${escapeHtml(value)}</dd>
+        </div>
+      `).join('');
+    }
+
+    function renderEvents() {
+      const eventsEl = document.getElementById('events');
+      if (!model.events.length) {
+        eventsEl.innerHTML = '<div class="event"><strong>No recent events</strong><span>No related Kubernetes events were returned.</span></div>';
+        return;
+      }
+      eventsEl.innerHTML = model.events.map((event) => `
+        <div class="event">
+          <strong>${escapeHtml(event.reason)} · ${escapeHtml(event.type)}</strong>
+          <span>${escapeHtml(event.involved)} ${event.time ? `· ${escapeHtml(event.time)}` : ''}</span>
+          <span>${escapeHtml(event.message)}</span>
+        </div>
+      `).join('');
+    }
+
+    function applyTransform() {
+      world.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+    }
+
+    function fit() {
+      const margin = 110;
+      const sx = (viewport.clientWidth - margin) / model.layout.width;
+      const sy = (viewport.clientHeight - margin) / model.layout.height;
+      state.scale = Math.max(0.42, Math.min(1.12, sx, sy));
+      state.x = (viewport.clientWidth - model.layout.width * state.scale) / 2;
+      state.y = (viewport.clientHeight - model.layout.height * state.scale) / 2;
+      applyTransform();
+    }
+
+    function reset() {
+      state = { x: 90, y: 80, scale: 0.9 };
+      applyTransform();
+    }
+
+    function zoom(delta) {
+      const next = Math.max(0.35, Math.min(1.7, state.scale + delta));
+      const cx = viewport.clientWidth / 2;
+      const cy = viewport.clientHeight / 2;
+      const wx = (cx - state.x) / state.scale;
+      const wy = (cy - state.y) / state.scale;
+      state.scale = next;
+      state.x = cx - wx * state.scale;
+      state.y = cy - wy * state.scale;
+      applyTransform();
+    }
+
+    viewport.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('.node')) return;
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, ox: state.x, oy: state.y };
+      viewport.setPointerCapture(event.pointerId);
+      viewport.classList.add('dragging');
+    });
+
+    viewport.addEventListener('pointermove', (event) => {
+      if (!drag || drag.id !== event.pointerId) return;
+      state.x = drag.ox + event.clientX - drag.x;
+      state.y = drag.oy + event.clientY - drag.y;
+      applyTransform();
+    });
+
+    viewport.addEventListener('pointerup', (event) => {
+      if (!drag || drag.id !== event.pointerId) return;
+      drag = null;
+      viewport.classList.remove('dragging');
+    });
+
+    viewport.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      zoom(event.deltaY > 0 ? -0.08 : 0.08);
+    }, { passive: false });
+
+    document.querySelector('[data-action="fit"]').addEventListener('click', fit);
+    document.querySelector('[data-action="zoom-out"]').addEventListener('click', () => zoom(-0.12));
+    document.querySelector('[data-action="zoom-in"]').addEventListener('click', () => zoom(0.12));
+    document.querySelector('[data-action="reset"]').addEventListener('click', reset);
+    window.addEventListener('resize', fit);
+
+    renderHeader();
+    renderEdges();
+    renderNodes();
+    renderDetails();
+    renderEvents();
+    fit();
+  </script>
+</body>
+</html>

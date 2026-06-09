@@ -1,0 +1,42 @@
+{
+  "name": "staff-engineer-mode",
+  "version": "2.1.0",
+  "description": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
+  "author": {
+    "name": "sirmarkz",
+    "url": "https://github.com/sirmarkz/staff-engineer-mode"
+  },
+  "homepage": "https://github.com/sirmarkz/staff-engineer-mode",
+  "repository": "https://github.com/sirmarkz/staff-engineer-mode",
+  "license": "MIT",
+  "keywords": [
+    "staff-engineer",
+    "engineering-lifecycle",
+    "devops",
+    "sre",
+    "reliability",
+    "security",
+    "architecture",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Staff Engineer Mode",
+    "shortDescription": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
+    "longDescription": "Technology-agnostic guidance for applying large-scale engineering practices to architecture, reliability, resilience, delivery, operations, security, privacy, data, platform, client, and cost-aware reliability work. The router automatically selects the smallest useful routed specialist set from natural-language engineering requests.",
+    "developerName": "sirmarkz",
+    "category": "Coding",
+    "composerIcon": "./assets/icon.png",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Design the production readiness checks for this service.",
+      "Make this architecture reliable and operable.",
+      "Decide the right engineering constraints for this change."
+    ],
+    "brandColor": "#1F6FEB"
+  }
+}

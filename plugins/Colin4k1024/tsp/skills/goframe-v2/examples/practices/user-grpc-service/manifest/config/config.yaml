@@ -1,0 +1,27 @@
+# GRPC Server.
+grpc:
+  address: ":8000"
+  name: "demo"
+  logPath: ""
+  logStdout: true
+  errorStack: true
+  errorLogEnabled: true
+  errorLogPattern: "error-{Ymd}.log"
+  accessLogEnabled: true
+  accessLogPattern: "access-{Ymd}.log"
+
+# Global logging.
+logger:
+  level: "all"
+  stdout: true
+
+# Database.
+database:
+  logger:
+    level: "all"
+    stdout: true
+
+  default:
+    link: "mysql:root:12345678@tcp(127.0.0.1:3306)/test"
+    debug: true
+

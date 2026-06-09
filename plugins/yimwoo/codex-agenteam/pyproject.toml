@@ -1,0 +1,39 @@
+[project]
+name = "agenteam"
+version = "3.10.0"
+description = "Specialist AI agents orchestrated as a configurable team pipeline for Codex."
+requires-python = ">=3.10"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"runtime/agenteam/dispatch.py" = ["S603", "S607"]
+"runtime/agenteam/gates.py" = ["S603", "S607"]
+"runtime/agenteam/state.py" = ["S607"]
+"test/*" = ["S101", "S603", "S607"]
+
+[tool.mypy]
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = "agenteam.cli"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "agenteam.constants"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "agenteam.branch"
+disallow_untyped_defs = true

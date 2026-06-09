@@ -2,7 +2,9 @@
 
 Codex plugin package for OrgX:
 
-- OrgX MCP server wiring via `https://mcp.useorgx.com/`
+- OrgX MCP server wiring via `https://mcp.useorgx.com/mcp`
+- Operator chronicle reporting for yesterday/week/30-day decisions, PRs,
+  artifacts, goals, gaps, and priorities
 - Initiative-aware Codex skills for OrgX execution
 - Runtime reporting guidance and passive hook templates for progress, artifacts,
   blockers, and completion
@@ -30,6 +32,7 @@ skills/orgx-initiative-ops/SKILL.md
 skills/orgx-runtime-reporting/SKILL.md
 hooks/codex/hooks.json
 hooks/scripts/orgx-session-hook.mjs
+hooks/scripts/orgx-work-graph-reconcile.mjs
 assets/icon.png
 assets/logo.png
 scripts/verify-plugin.mjs
@@ -47,6 +50,19 @@ workstream, milestone, task, blocker, or decision.
 Keep OrgX updated during live Codex execution with progress, artifacts,
 blockers, and completion events.
 
+For reporting or daily-brief style questions, start with
+`get_operator_chronicle` when the live OrgX MCP tool map exposes it. Its
+`reportingNarrative.briefMarkdown` is the canonical concise answer for
+decisions made yesterday, the past week, the past 30 days, artifacts, PR
+receipts, velocity, top priorities, goals, and gaps.
+
+If an AI client has not refreshed its callable MCP schema after OrgX publishes
+the direct tool, use the existing `orgx_recommend` / `_orgx_recommend` fallback
+with `mode: "morning_brief"` and present the same
+`reportingNarrative.briefMarkdown`. Direct `get_operator_chronicle` calls remain
+preferred when callable; the fallback prevents a stale plugin session from
+blocking the report.
+
 ## Runtime hooks
 
 The plugin now includes Codex hook templates, but the recommended install path is
@@ -54,23 +70,61 @@ through `orgx-wizard hooks install`. The wizard can merge global hook config,
 preserve existing `notify` integrations such as Computer Use, and write a local
 outbox under `~/.config/useorgx/wizard/hooks/events.jsonl`.
 
-Hook events are a passive backstop. They record compact session metadata and
-safe summaries so a later Work Graph reconciliation can answer:
+Client hook coverage is tracked in
+[docs/client-hook-coverage.md](./docs/client-hook-coverage.md). Current verdict:
+the Codex package covers Codex skills, MCP setup, stale-client chronicle
+fallback, and passive hook templates, but it is not sufficient proof that every
+AI client exposes the same hooks or direct `get_operator_chronicle` tool. Use
+that matrix before claiming ChatGPT, Claude Code, or Cursor parity.
 
+Hook events are a passive backstop. They record compact session metadata and
+safe summaries so Work Graph reconciliation can answer:
+
+- What changed yesterday, this week, and in the past 30 days?
+- Which decisions, PRs, artifacts, goals, and priorities should be surfaced?
 - Did the session call OrgX MCP?
 - Did meaningful work happen without OrgX writeback?
 - Are there decisions, blockers, artifacts, people, product surfaces, or goals
   that should become an OrgX initiative kickoff?
 
-Each reconciliation report should also emit a stable `work_graph_fingerprint`
-and `signup_hydration.hydration_key`. That fingerprint is the bridge between a
-pre-signup audit/share surface and the user's future OrgX workspace: after
-signup, OrgX can claim the fingerprint, dedupe replays, and attach the redacted
-Work Graph to a kickoff initiative.
+This package includes `orgx-codex-reconcile-hooks`, a local reconciler that
+reads the hook outbox and emits a summary-only Work Graph report with a stable
+`work_graph_fingerprint` and `signup_hydration.hydration_key`. That fingerprint
+is the bridge between a pre-signup audit/share surface and the user's future
+OrgX workspace: after signup, OrgX can claim the fingerprint, dedupe replays,
+and attach the redacted Work Graph to a kickoff initiative.
+
+The Codex `Stop` hook also invokes `orgx-reconcile-hook.mjs`, which writes the
+latest local Work Graph report to
+`~/.config/useorgx/wizard/hooks/reports/latest-work-graph-report.json`. This is
+non-blocking and exits successfully even when the outbox is missing, credentials
+are absent, or posting fails. To make Stop-hook reconciliation publish to OrgX,
+set `ORGX_HOOK_RECONCILE_POST=true` or
+`ORGX_WIZARD_HOOK_RECONCILE_POST=true` and provide `ORGX_API_KEY`.
 
 Raw transcripts are not sent by the hook template. The reconciler should keep
 transcripts local and write only redacted summaries, hashes, evidence refs,
 Work Graph fingerprints, and approved OrgX activity.
+
+Dry-run reconciliation does not require OrgX credentials:
+
+```bash
+orgx-codex-reconcile-hooks \
+  --outbox ~/.config/useorgx/wizard/hooks/events.jsonl \
+  --output /tmp/orgx-work-graph-report.json
+```
+
+To publish the report to OrgX, provide an API key and opt in explicitly:
+
+```bash
+ORGX_API_KEY=oxk_... orgx-codex-reconcile-hooks --post
+```
+
+For automatic publish on Codex session stop:
+
+```bash
+ORGX_HOOK_RECONCILE_POST=true ORGX_API_KEY=oxk_... codex
+```
 
 ## Local verification
 
@@ -152,21 +206,27 @@ was copied under `~/.codex/plugins/`.
 
 ## MCP server behavior
 
-The bundled `.mcp.json` config uses the hosted OrgX root URL:
+The bundled `.mcp.json` config uses the hosted OrgX streamable HTTP endpoint:
 
 ```json
 {
   "mcpServers": {
     "orgx": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://mcp.useorgx.com/"]
+      "type": "http",
+      "url": "https://mcp.useorgx.com/mcp"
     }
   }
 }
 ```
 
-This follows current OrgX MCP docs, which recommend the hosted root URL for
-external clients and let OAuth happen in-browser on first use.
+This follows current OrgX MCP docs and lets OAuth happen in-browser on first
+use. After bootstrap, the preferred reporting first call is
+`get_operator_chronicle` with `period: "30d"` when the client exposes it.
+When the hosted MCP bootstrap advertises `get_operator_chronicle` but a client
+session still exposes only older OrgX tools, call `orgx_recommend` with
+`mode: "morning_brief"` as the compatibility path. Passive runtime hooks are a
+reconciliation backstop for session evidence; they are not a substitute for MCP
+read/write calls during the live operator report.
 
 ## Sources used
 

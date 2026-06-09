@@ -36,12 +36,17 @@ jobs:
         run: |
           python3 scripts/generate_plugins_json.py
           if ! git diff --quiet -- plugins.json .agents/plugins/marketplace.json plugins; then
-            echo "::notice::marketplace artifacts were out of sync — auto-committing"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add plugins.json .agents/plugins/marketplace.json plugins
-            git commit -m "chore: sync marketplace artifacts with README"
-            git push
+            echo "::notice::marketplace artifacts were out of sync"
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "::notice::auto-committing synced artifacts"
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add plugins.json .agents/plugins/marketplace.json plugins
+              git commit -m "chore: sync marketplace artifacts with README"
+              git push
+            else
+              echo "::notice::skipping push on ${{ github.event_name }} (detached HEAD on PR merge ref)"
+            fi
           else
             echo "marketplace artifacts are up to date"
           fi

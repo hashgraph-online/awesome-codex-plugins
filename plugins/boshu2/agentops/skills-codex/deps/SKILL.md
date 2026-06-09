@@ -1,6 +1,6 @@
 ---
 name: deps
-description: 'Audit dependency risks and updates.'
+description: "Run deps."
 ---
 # Deps Skill
 

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoFrame File Upload Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .upload-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .file-input {
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .submit-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>File Upload Demo</h1>
+        <form class="upload-form" id="uploadForm">
+            <div>
+                <label for="file">Select File:</label>
+                <input type="file" id="file" name="file" class="file-input" required>
+            </div>
+            <div>
+                <label for="msg">Message:</label>
+                <input type="text" id="msg" name="msg" placeholder="Optional message">
+            </div>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <button type="submit" class="submit-button">Upload File</button>
+        </form>
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('file');
+            const msgInput = document.getElementById('msg');
+            const progressBar = document.getElementById('progressBar');
+            const progress = document.getElementById('progress');
+            const message = document.getElementById('message');
+            
+            if (fileInput.files.length === 0) {
+                showMessage('Please select a file', false);
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            formData.append('msg', msgInput.value);
+            
+            progressBar.style.display = 'block';
+            message.style.display = 'none';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        progress.style.width = percentCompleted + '%';
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(`File "${result.fileName}" uploaded successfully!`, true);
+                } else {
+                    showMessage('Upload failed: ' + result.message, false);
+                }
+            } catch (error) {
+                showMessage('Upload failed: ' + error.message, false);
+            } finally {
+                progressBar.style.display = 'none';
+                progress.style.width = '0%';
+            }
+        });
+        
+        function showMessage(text, isSuccess) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = 'message ' + (isSuccess ? 'success' : 'error');
+            message.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

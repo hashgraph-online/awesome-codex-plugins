@@ -1,0 +1,65 @@
+<style type="text/css">
+    .container {
+        margin-top:10%;
+    }
+    .container, .input-form {
+        text-align: center;
+    }
+    #txtName {
+        width:300px;
+        display:inline;
+        font-size:26px;
+        height:70px;
+        padding:10px;
+        text-align: center;
+        margin-top:20px;
+    }
+    #btnSend {
+        margin-top:15px;
+        width: 100px;
+        height: 50px;
+        font-size:20px;
+    }
+</style>
+
+<form method="post" id="submitForm">
+    <div class="container">
+        <div>
+            <div class="input-form">
+                <h2>Welcome! Let's create an awesome name before game starts!</h2>
+                <input class="form-control"
+                       id="txtName" name="name" minlength="1" maxlength="7"
+                       value="{{.Session.ChatNameTemp}}" placeholder="My Awesome Name">
+            </div>
+            <div style="text-align: center">
+                <button class="btn btn-primary" type="submit" id="btnSend">Let's go!</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+
+<script type="application/javascript">
+    $(function () {
+        $('#submitForm').submit(function(e){
+            $.ajax({
+                type:     "POST",
+                dataType: "json",
+                url:      "/chat/name",
+                data:     $('#submitForm').serialize(),
+                success: function (data) {
+                    if (data.code != 0) {
+                        layer.msg(data.message);
+                    } else {
+                        window.location.reload()
+                    }
+                },
+                error: function(data) {
+                    console.log(data)
+                    alert(data)
+                }
+            });
+            e.preventDefault();
+        });
+    });
+</script>

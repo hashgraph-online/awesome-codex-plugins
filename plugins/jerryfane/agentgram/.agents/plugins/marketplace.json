@@ -1,0 +1,20 @@
+{
+  "name": "agentgram",
+  "interface": {
+    "displayName": "Agentgram"
+  },
+  "plugins": [
+    {
+      "name": "agentgram",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentgram"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

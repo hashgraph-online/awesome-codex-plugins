@@ -1,0 +1,24 @@
+{
+  "name": "education-agent-skills",
+  "version": "1.0.0",
+  "description": "## Install",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GarethManning/education-agent-skills.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GarethManning/education-agent-skills/issues"
+  },
+  "homepage": "https://github.com/GarethManning/education-agent-skills#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "yaml": "^2.8.3"
+  }
+}

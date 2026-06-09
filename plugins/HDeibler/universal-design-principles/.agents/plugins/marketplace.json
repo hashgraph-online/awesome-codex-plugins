@@ -1,0 +1,90 @@
+{
+  "name": "universal-design-principles",
+  "interface": {
+    "displayName": "Universal Design Principles",
+    "shortDescription": "Framework-agnostic UX and product-design skills.",
+    "longDescription": "A working library of 42 design principles packaged as five composable skill plugins for perception, cognition, interaction, aesthetics, and process."
+  },
+  "plugins": [
+    {
+      "name": "perception-and-hierarchy-principles",
+      "source": {
+        "source": "local",
+        "path": "./plugins/perception-and-hierarchy-principles"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Design",
+      "interface": {
+        "displayName": "Perception & Hierarchy",
+        "shortDescription": "Visual perception, hierarchy, layout, and attention."
+      }
+    },
+    {
+      "name": "cognition-and-learnability-principles",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cognition-and-learnability-principles"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Design",
+      "interface": {
+        "displayName": "Cognition & Learnability",
+        "shortDescription": "Mental models, memory load, complexity, and learnability."
+      }
+    },
+    {
+      "name": "interaction-and-control-principles",
+      "source": {
+        "source": "local",
+        "path": "./plugins/interaction-and-control-principles"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Design",
+      "interface": {
+        "displayName": "Interaction & Control",
+        "shortDescription": "Affordance, feedback, errors, controls, and user agency."
+      }
+    },
+    {
+      "name": "aesthetics-and-emotion-principles",
+      "source": {
+        "source": "local",
+        "path": "./plugins/aesthetics-and-emotion-principles"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Design",
+      "interface": {
+        "displayName": "Aesthetics & Emotion",
+        "shortDescription": "Beauty, perceived quality, brand voice, and emotional response."
+      }
+    },
+    {
+      "name": "process-and-robustness-principles",
+      "source": {
+        "source": "local",
+        "path": "./plugins/process-and-robustness-principles"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Design",
+      "interface": {
+        "displayName": "Process & Robustness",
+        "shortDescription": "Accessibility, iteration, prototyping, reliability, and pruning."
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Langfuse MCP Tool Reference
 
-Complete documentation for all 25 Langfuse MCP tools.
+Reference documentation for the Langfuse MCP tools. The top-level README lists the current full tool inventory; this reference focuses on the most common debugging and management workflows.
 
 ## Tools by Category
 
@@ -12,6 +12,8 @@ Complete documentation for all 25 Langfuse MCP tools.
 | Exceptions | find_exceptions, find_exceptions_in_file, get_exception_details, get_error_count |
 | Prompts | list_prompts, get_prompt, get_prompt_unresolved, create_text_prompt*, create_chat_prompt*, update_prompt_labels* |
 | Datasets | list_datasets, get_dataset, list_dataset_items, get_dataset_item, create_dataset*, create_dataset_item*, delete_dataset_item* |
+| Annotation Queues | list_annotation_queues, create_annotation_queue, get_annotation_queue, list_annotation_queue_items, get_annotation_queue_item, create_annotation_queue_item, update_annotation_queue_item, delete_annotation_queue_item, create_annotation_queue_assignment, delete_annotation_queue_assignment |
+| Scores | list_scores_v2, get_score_v2 |
 | Schema | get_data_schema |
 
 *\*Tools marked with \* are disabled in read-only mode (`--read-only` or `LANGFUSE_MCP_READ_ONLY=true`).*

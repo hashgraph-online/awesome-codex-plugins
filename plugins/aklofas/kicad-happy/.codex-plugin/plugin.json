@@ -1,6 +1,6 @@
 {
   "name": "kicad-happy",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "KiCad electronics design skills. Analyze schematics, review PCB layouts, download datasheets, source components, and prep boards for fabrication.",
   "author": {
     "name": "aklofas",
@@ -9,7 +9,20 @@
   "homepage": "https://github.com/aklofas/kicad-happy",
   "repository": "https://github.com/aklofas/kicad-happy",
   "license": "MIT",
-  "keywords": ["electronics", "eda", "kicad", "kicad-schematics", "pcb-design", "kicad-pcb", "hardware-design", "design-review", "schematic-analysis", "emc", "bom", "spice"],
+  "keywords": [
+    "electronics",
+    "eda",
+    "kicad",
+    "kicad-schematics",
+    "pcb-design",
+    "kicad-pcb",
+    "hardware-design",
+    "design-review",
+    "schematic-analysis",
+    "emc",
+    "bom",
+    "spice"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "kicad-happy",
@@ -17,7 +30,11 @@
     "longDescription": "Suite of 12 skills for electronics design with KiCad 5–10. Structured Python analysis for schematics, PCB layouts, and Gerbers, plus EMC checks, SPICE simulation, component sourcing, BOM management, datasheet extraction, and manufacturing prep.",
     "developerName": "aklofas",
     "category": "Development & Code Tools",
-    "capabilities": ["Read", "Write", "Shell"],
+    "capabilities": [
+      "Read",
+      "Write",
+      "Shell"
+    ],
     "websiteURL": "https://github.com/aklofas/kicad-happy"
   }
 }

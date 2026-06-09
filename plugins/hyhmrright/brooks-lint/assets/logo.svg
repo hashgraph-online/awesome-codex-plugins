@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="80" fill="#1e293b"/>
+  <!-- Book spine -->
+  <rect x="108" y="96" width="48" height="320" rx="8" fill="#3b82f6"/>
+  <!-- Book pages -->
+  <rect x="152" y="112" width="252" height="288" rx="4" fill="#f8fafc"/>
+  <!-- Code lines -->
+  <rect x="180" y="160" width="120" height="12" rx="4" fill="#6366f1"/>
+  <rect x="180" y="188" width="80" height="12" rx="4" fill="#94a3b8"/>
+  <rect x="196" y="216" width="100" height="12" rx="4" fill="#94a3b8"/>
+  <rect x="196" y="244" width="60" height="12" rx="4" fill="#94a3b8"/>
+  <rect x="180" y="272" width="90" height="12" rx="4" fill="#6366f1"/>
+  <rect x="180" y="300" width="140" height="12" rx="4" fill="#94a3b8"/>
+  <!-- Check badge -->
+  <circle cx="360" cy="340" r="52" fill="#1e293b"/>
+  <circle cx="360" cy="340" r="44" fill="#22c55e"/>
+  <polyline points="337,340 353,356 385,322" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -127,10 +127,15 @@ bkt repo clone <repository> [flags]
 Create a new repository in a Bitbucket project (Data Center) or workspace (Cloud).
 
 On Data Center, the repository is created under the specified project with optional
-flags for visibility, forking policy, and default branch. On Cloud, the repository
-is created in the specified workspace; use --cloud-project to assign it to a
-Bitbucket Cloud project. Repositories are private by default on Cloud; pass
---public to make them public.
+flags for visibility, forking policy, SCM, and default branch. On Cloud, the
+repository is created in the specified workspace; use --cloud-project to assign
+it to a Bitbucket Cloud project. Repositories are private by default on Cloud;
+pass --public to make them public.
+
+Host-specific flags are validated before any API request. Data Center accepts
+--project, --forkable, --default-branch, and --scm. Cloud accepts --workspace
+and --cloud-project. Passing a flag that only applies to the other host kind
+returns an error instead of silently ignoring it.
 
 ### Usage
 
@@ -143,13 +148,13 @@ bkt repo create <repository> [flags]
 | Flag | Short | Description |
 |---|---|---|
 | `--cloud-project` |  | Bitbucket Cloud project key |
-| `--default-branch` |  | Default branch to set after creation |
+| `--default-branch` |  | Data Center default branch to set after creation |
 | `--description` |  | Repository description |
-| `--forkable` |  | Allow forking of the repository |
-| `--project` |  | Bitbucket project key override |
+| `--forkable` |  | Allow forking of the Data Center repository |
+| `--project` |  | Bitbucket Data Center project key override |
 | `--public` |  | Create repository as public |
-| `--scm` |  | SCM type (git) |
-| `--workspace` |  | Bitbucket workspace override (Cloud) |
+| `--scm` |  | Data Center SCM type (git) |
+| `--workspace` |  | Bitbucket Cloud workspace override |
 
 ### Inherited Flags
 
@@ -183,8 +188,8 @@ bkt repo create <repository> [flags]
 Manage default reviewers configured for a repository.
 
 On Cloud, returns the effective default reviewers (merged from workspace and
-repository-level settings). On Data Center, returns the default reviewers
-configured at the repository level within the project.
+repository-level settings). On Data Center, returns the effective default
+reviewers for a pull request from --source to --target.
 
 ```
 bkt repo default-reviewers <command> [flags]
@@ -200,8 +205,9 @@ List the default reviewers configured for a repository.
 
 On Cloud, this returns the effective default reviewers that would be automatically
 added to new pull requests, including reviewers inherited from workspace-level
-settings. On Data Center, this returns the default reviewer conditions set at the
-repository level within the project.
+settings. On Data Center, this returns the effective default reviewers that would
+be added to a pull request from --source to --target. Data Center requires
+source and target branch or tag names.
 
 The workspace/project and repository are resolved from the active context unless
 overridden with flags.
@@ -218,6 +224,8 @@ bkt repo default-reviewers list [flags]
 |---|---|---|
 | `--project` |  | Bitbucket project key override |
 | `--repo` |  | Repository slug override |
+| `--source` |  | Data Center source branch or tag |
+| `--target` |  | Data Center target branch or tag |
 | `--workspace` |  | Bitbucket Cloud workspace override |
 
 ### Inherited Flags
@@ -241,7 +249,7 @@ bkt repo default-reviewers list [flags]
   bkt repo default-reviewers list --workspace my-team --repo api-service
 
   # List default reviewers for a Data Center repository
-  bkt repo default-reviewers list --project PLATFORM --repo backend
+  bkt repo default-reviewers list --project PLATFORM --repo backend --source feature/auth --target main
 ```
 
 ## bkt repo list

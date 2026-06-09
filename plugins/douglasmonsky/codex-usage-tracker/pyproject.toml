@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-usage-tracker"
+version = "0.2.0"
+description = "Unofficial local Codex plugin and dashboard for investigating aggregate token usage, costs, caching, and thread patterns."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Douglas Monsky" }
+]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["codex", "mcp", "tokens", "usage", "dashboard", "openai", "prompt-caching", "cost-analysis"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Framework :: Pytest",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: System :: Monitoring",
+]
+dependencies = [
+  "mcp>=1.2.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/douglasmonsky/codex-usage-tracker"
+Repository = "https://github.com/douglasmonsky/codex-usage-tracker"
+Issues = "https://github.com/douglasmonsky/codex-usage-tracker/issues"
+Changelog = "https://github.com/douglasmonsky/codex-usage-tracker/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "mypy>=1.10",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.8",
+  "tomli>=2.0; python_version < '3.11'"
+]
+
+[project.scripts]
+codex-usage-tracker = "codex_usage_tracker.cli:main"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"codex_usage_tracker.plugin_data" = [
+  "assets/*",
+  "dashboard/*",
+  "docs/*",
+  "docs/assets/*",
+  "rate_cards/*",
+  "skills/codex-usage-api/*",
+  "skills/codex-usage-tracker/*",
+]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["__pycache__/*", "*.py[cod]"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["codex_usage_tracker"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+files = [
+  "src/codex_usage_tracker/json_contracts.py",
+  "src/codex_usage_tracker/models.py",
+  "src/codex_usage_tracker/recommendations.py",
+  "src/codex_usage_tracker/reports.py",
+  "src/codex_usage_tracker/schema.py",
+  "src/codex_usage_tracker/store.py",
+]

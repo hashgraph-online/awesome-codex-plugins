@@ -3352,9 +3352,13 @@ def detect_led_drivers(ctx: AnalysisContext, transistor_circuits: list[dict]) ->
         for dc in load_comps:
             if dc["type"] != "resistor":
                 continue
-            # KH-147: Reject resistors that are too large for current limiting
+            # KH-147: Reject resistors that are too large for current limiting,
+            # or whose value field can't be parsed (e.g. "215k_0402_C0123XYZ"
+            # from importers that append package/MPN suffixes). Without a
+            # parseable value we can't confirm current-limiting role, so skip
+            # to avoid false-positive LED driver findings.
             r_ohms = ctx.parsed_values.get(dc["reference"])
-            if r_ohms is not None and r_ohms > 100e3:
+            if r_ohms is None or r_ohms > 100e3:
                 continue
             # Follow the resistor to its other net
             r_n1, r_n2 = ctx.get_two_pin_nets(dc["reference"])

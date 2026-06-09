@@ -8650,6 +8650,86 @@ def analyze_schematic(path: str, project_root: str | None = None,
 
     parsed = parse_all_sheets(path, root_tree=root_tree)
 
+    # --- top_level_sheets support (Altium flat multi-page imports) ---
+    # KiCad's Altium importer registers all pages as top_level_sheets in
+    # .kicad_pro instead of creating (sheet ...) hierarchy references.
+    # Trigger only when the root has zero (sheet ...) nodes — checking
+    # len(sheets_parsed) alone is fragile because parse_all_sheets silently
+    # drops (sheet ...) refs whose files are missing, which would otherwise
+    # cause us to mix in unrelated top_level_sheets. Runs regardless of
+    # no_hierarchy so the sub-sheet redirect path still picks up peers.
+    if (len(parsed.get("sheets_parsed", [])) <= 1
+            and find_first(root_tree, "sheet") is None):
+        pro = load_kicad_pro(path)
+        if pro:
+            tls = pro.get("schematic", {}).get("top_level_sheets", [])
+            if len(tls) > 1:
+                root_abs = str(Path(path).resolve())
+                extra_sheets = []
+                seen = {root_abs}
+                for entry in tls:
+                    fn = entry.get("filename", "")
+                    if not fn:
+                        continue
+                    sheet_path = os.path.join(os.path.dirname(path), fn)
+                    if not os.path.isfile(sheet_path):
+                        continue
+                    abs_path = str(Path(sheet_path).resolve())
+                    if abs_path in seen:
+                        continue
+                    seen.add(abs_path)
+                    extra_sheets.append(abs_path)
+
+                if extra_sheets:
+                    print(f"Note: discovered {len(extra_sheets)} additional "
+                          f"top-level sheets from .kicad_pro",
+                          file=sys.stderr)
+                    sym_inst = parsed.get("root_symbol_instances", {})
+                    base_idx = len(parsed["sheets_parsed"])
+                    for sheet_path in extra_sheets:
+                        try:
+                            (_, comps, wires, labels, junctions,
+                             no_connects, _, lib_syms, text_annot,
+                             bus_elems, title_blk) = \
+                                parse_single_sheet(
+                                    sheet_path,
+                                    symbol_instances=sym_inst)
+                        except Exception as exc:
+                            print(f"Warning: failed to parse "
+                                  f"{os.path.basename(sheet_path)}: {exc}",
+                                  file=sys.stderr)
+                            continue
+                        sheet_idx = base_idx
+                        base_idx += 1
+                        for c in comps:
+                            c["_sheet"] = sheet_idx
+                        for w in wires:
+                            w["_sheet"] = sheet_idx
+                        for lb in labels:
+                            lb["_sheet"] = sheet_idx
+                        for j in junctions:
+                            j["_sheet"] = sheet_idx
+                        for nc in no_connects:
+                            nc["_sheet"] = sheet_idx
+                        parsed["components"].extend(comps)
+                        parsed["wires"].extend(wires)
+                        parsed["labels"].extend(labels)
+                        parsed["junctions"].extend(junctions)
+                        parsed["no_connects"].extend(no_connects)
+                        parsed["lib_symbols"].update(lib_syms)
+                        parsed["text_annotations"].extend(text_annot)
+                        for bk, bv in bus_elems.items():
+                            if isinstance(bv, list):
+                                parsed["bus_elements"].setdefault(bk, []).extend(bv)
+                            elif isinstance(bv, dict):
+                                parsed["bus_elements"].setdefault(bk, {}).update(bv)
+                        parsed["sheets_parsed"].append(sheet_path)
+                    # Power symbols were extracted from root-sheet components
+                    # only; refresh from the merged list so peer-sheet ones are
+                    # included.
+                    parsed["power_symbols"] = extract_power_symbols(
+                        parsed["components"])
+
     all_components = parsed["components"]
     all_wires = parsed["wires"]
     all_labels = parsed["labels"]

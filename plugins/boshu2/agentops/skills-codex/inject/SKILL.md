@@ -1,21 +1,31 @@
 ---
 name: inject
-description: 'Load relevant .agents context.'
+description: "Run inject."
 ---
-> **DEPRECATED (removal target: v3.0.0)** — Use `ao lookup --query "topic"` for on-demand learnings retrieval, or see `.agents/AGENTS.md` for knowledge navigation. This skill and the `ao inject` CLI command still work but are no longer called from hooks or other skills.
+> **DEPRECATED (removal target: v3.0.0)** — Use `ao lookup --query "topic"` for on-demand learnings retrieval and phase-scoped context packets. This skill and the `ao inject` CLI command still work as compatibility adapters, but they are not the canonical context path and are not called from default hooks or other skills.
 
 # Inject Skill
 
 **On-demand knowledge retrieval. Not run automatically at startup (since ag-8km).**
 
-Inject relevant prior knowledge into the current session.
-Treat `$inject` as passive context loading, not as a task-planning or task-execution entrypoint.
+Load relevant prior knowledge into the current session as a legacy adapter.
+Treat `$inject` as passive compatibility lookup, not as a task-planning or task-execution entrypoint.
+
+## Lease
+
+| Field | Value |
+|---|---|
+| Lease | retire-candidate |
+| Replacement port | `retrieve_context` / `assemble_context` |
+| Replacement adapters | `ao lookup`, knowledge brief artifacts |
+| Current allowed use | manual compatibility lookup only |
+| Not allowed | default startup injection, hidden hook delivery, task planning |
 
 ## How It Works
 
-In the default `manual` startup mode, MEMORY.md is auto-loaded by Codex and no startup injection occurs. Use `$inject` or `ao inject` for on-demand retrieval when you need deeper context.
+In the default hookless startup path, no startup injection occurs. Run `ao session bootstrap` for the standard orientation report, then prefer `ao lookup` / `ao inject` for on-demand retrieval and bounded per-phase packets. Use `$inject` or `ao inject` only for legacy compatibility.
 
-In `lean` or `legacy` startup modes (set via `AGENTOPS_STARTUP_CONTEXT_MODE`), the SessionStart hook runs:
+If you author an opt-in SessionStart hook or run a legacy hook profile, it may call:
 ```bash
 # lean mode (MEMORY.md fresh): 400 tokens
 ao inject --apply-decay --format markdown --max-tokens 400 \
@@ -26,7 +36,7 @@ ao inject --apply-decay --format markdown --max-tokens 800 \
   [--bead <bead-id>] [--predecessor <handoff-path>]
 ```
 
-This searches for relevant knowledge and injects it into context.
+This legacy path searches for relevant knowledge and prints a bounded summary.
 
 ### Work-Scoped Injection
 
@@ -50,7 +60,7 @@ Given `$inject [topic]`:
 
 **With ao CLI:**
 ```bash
-ao inject --context "<topic>" --format markdown --max-tokens 1000
+ao lookup --query "<topic>" --limit 5
 ```
 
 **Without ao CLI, search manually:**
@@ -122,16 +132,16 @@ Knowledge relevance decays over time (~17%/week). More recent learnings are weig
 
 ## Key Rules
 
-- **Runs automatically** - usually via hook
+- **Does not run automatically** - default context delivery is explicit
 - **Context-aware** - filters by current directory/topic
 - **Token-budgeted** - respects max-tokens limit
 - **Recency-weighted** - newer knowledge prioritized
 
 ## Examples
 
-### SessionStart Hook Invocation (lean/legacy modes only)
+### Opt-In Hook Profile Invocation (legacy only)
 
-**Hook triggers:** `session-start.sh` runs at session start with `AGENTOPS_STARTUP_CONTEXT_MODE=lean` or `legacy`
+**Hook trigger:** an externally authored or legacy `session-start.sh` may run at session start with `AGENTOPS_STARTUP_CONTEXT_MODE=lean` or `legacy`
 
 **What happens:**
 1. Hook calls `ao inject --apply-decay --format markdown --max-tokens 400` (lean) or `--max-tokens 800` (legacy)
@@ -140,16 +150,16 @@ Knowledge relevance decays over time (~17%/week). More recent learnings are weig
 4. CLI outputs top-ranked knowledge as markdown within token budget
 5. Agent presents injected knowledge in session context
 
-**Result:** Prior learnings, patterns, research automatically available at session start without manual lookup.
+**Result:** Prior learnings, patterns, and research are available for legacy hook profiles. This is not the default AgentOps 3.0 path.
 
-**Note:** In the default `manual` mode, MEMORY.md is auto-loaded by Codex and this hook emits only a pointer to on-demand retrieval commands (`ao search`, `ao lookup`).
+**Note:** In the default hookless path, run `ao session bootstrap` and then pull context explicitly with `ao lookup` or `ao inject`.
 
 ### Manual Context Injection
 
 **User says:** `$inject authentication` or "recall knowledge about auth"
 
 **What happens:**
-1. Agent calls `ao inject --context "authentication" --format markdown --max-tokens 1000`
+1. Agent calls `ao lookup --query "authentication" --limit 5`
 2. CLI filters artifacts by topic relevance
 3. Agent reads top-ranked learnings and patterns
 4. Agent summarizes injected knowledge for current work

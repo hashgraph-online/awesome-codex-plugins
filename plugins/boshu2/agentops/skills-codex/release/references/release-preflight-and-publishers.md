@@ -39,4 +39,4 @@ When multiple repositories must move together:
 
 ---
 
-**Source:** Adapted from jsm / `release-preparations`, `rust-crates-publishing`, `vercel`, `gh-cli`, `dsr`, and `ru-multi-repo-workflow`. Pattern-only, no verbatim text.
+**Source:** Adapted from an external skill corpus / `release-preparations`, `rust-crates-publishing`, `vercel`, `gh-cli`, `dsr`, and `ru-multi-repo-workflow`. Pattern-only, no verbatim text.

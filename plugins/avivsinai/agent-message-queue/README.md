@@ -112,6 +112,8 @@ amq coop exec claude -- --dangerously-skip-permissions
 amq coop exec --session feature-a codex
 ```
 
+Managed launchers can add `--require-wake` to fail instead of launching the agent when the wake watcher cannot start.
+
 ### 3. Send & Receive
 
 ```bash
@@ -225,7 +227,7 @@ Higher-level layers can store launch records, role metadata, restore state, and 
 <AM_ROOT>/agents/<handle>/extensions/<layer>/
 ```
 
-Layer names use lowercase ASCII letters, digits, hyphen, underscore, and dot; reverse-DNS names such as `io.github.omriariav.amq-squad` are supported. AMQ does not create files inside layer-owned directories, and `amq cleanup` leaves extension directories alone unless a future command explicitly targets extension metadata.
+Layer names use lowercase ASCII letters, digits, hyphen, underscore, and dot; reverse-DNS names are supported. For example, [amq-squad](https://github.com/omriariav/amq-squad) — a role-aware agent team launcher built on AMQ — stores its launch records and role state under `io.github.omriariav.amq-squad`. AMQ does not create files inside layer-owned directories, and `amq cleanup` leaves extension directories alone unless a future command explicitly targets extension metadata.
 
 Layers may publish a passive manifest at:
 
@@ -299,6 +301,14 @@ AMQ uses the battle-tested [Maildir](https://cr.yp.to/proto/maildir.html) format
 4. **Process** — Reader moves to `cur/` after reading
 
 This guarantees crash-safety: if the process dies mid-write, no corrupt message appears in the inbox. See [CLAUDE.md](CLAUDE.md) for the full directory layout.
+
+## Built on AMQ
+
+AMQ is meant to be the messaging layer underneath higher-level orchestrators. Projects building on it:
+
+- **[amq-squad](https://github.com/omriariav/amq-squad)** by [@omriariav](https://github.com/omriariav) — a role-aware agent team launcher. AMQ owns messaging between agents; amq-squad owns the layer above: who is on the team, what role each agent plays, the shared norms they follow, and how to bring the whole squad up, down, back, or into a new workstream. It builds on AMQ's [extension metadata](#extension-metadata) surface for launch records and role state.
+
+Building something on AMQ? Open an issue or PR to be listed here.
 
 ## Documentation
 

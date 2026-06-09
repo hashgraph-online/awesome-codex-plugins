@@ -1,11 +1,12 @@
 ---
 name: mode-selector
 description: >
-  Deterministic mode selection for session-start. Reads Phase A STATE.md
+  Use this skill when performing deterministic mode selection for session-start. Reads Phase A STATE.md
   recommendations + (future) learnings, sessions, backlog, bootstrap signals
   and returns {mode, rationale, confidence, alternatives}. Pure-function
   contract — no side effects, no STATE.md writes. Phase B scaffold (issue #276);
   full heuristic is follow-up sub-issues.
+model: haiku
 user-invocable: false
 tags: [phase-b, autopilot, mode-selection, scaffold]
 ---
@@ -166,8 +167,8 @@ VCS backlog priority-weighting, and bootstrap.lock tier — is the Phase B-1 fol
 - Backlog signal source: `scripts/lib/backlog-scan.mjs` (Phase B-3, #293)
 - Accuracy feedback writer: `scripts/lib/mode-selector-accuracy.mjs` (Phase B-4, #294)
 - PRD: `docs/prd/2026-04-25-mode-selector.md`
-- Epic: [#271 v3.2 Autopilot](https://gitlab.gotzendorfer.at/infrastructure/session-orchestrator/-/issues/271)
-- Issue: [#276 Phase B Mode-Selector](https://gitlab.gotzendorfer.at/infrastructure/session-orchestrator/-/issues/276)
+- Epic: [#271 v3.2 Autopilot](https://github.com/Kanevry/session-orchestrator/issues/271)
+- Issue: [#276 Phase B Mode-Selector](https://github.com/Kanevry/session-orchestrator/issues/276)
 - Phase A Contract PRD: `docs/prd/2026-04-24-state-md-recommendations-contract.md`
 - Phase A parser: `scripts/lib/state-md.mjs::parseRecommendations` (issue #272)
 - Phase A writer: `skills/session-end/SKILL.md` Phase 3.7a (issue #273)

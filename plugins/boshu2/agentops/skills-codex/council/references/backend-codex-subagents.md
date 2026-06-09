@@ -56,18 +56,11 @@ Pre-flight is strict:
 
 If any pre-flight fails, stop before spawning any judges. Do not silently run a runtime-native-only council.
 
-**`AGENTOPS_INTENT_ECHO_DISABLED=1` in the env is mandatory** — the
-`intent-echo.sh` UserPromptSubmit hook on agentops-codex installs would
-otherwise detect council-packet keywords and force an Intent/Confirm
-preamble that captures as the assistant message, leaving the judge with no
-real output. See
-`.agents/learnings/2026-05-02-codex-intent-echo-hook-blocks-mixed-council.md`.
-
 ```bash
 mkdir -p .agents/council
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-1.json "$PACKET"
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-2.json "$PACKET"
-AGENTOPS_INTENT_ECHO_DISABLED=1 codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-3.json "$PACKET"
+codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-1.json "$PACKET"
+codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-2.json "$PACKET"
+codex exec -s read-only -C "$(pwd)" --output-schema skills/council/schemas/verdict.json -o .agents/council/codex-3.json "$PACKET"
 ```
 
 Only add `-m "$COUNCIL_CODEX_MODEL"` when the override is explicitly set. If `--output-schema` is unsupported, use `.md` output as an output-format fallback; Codex itself is still required.

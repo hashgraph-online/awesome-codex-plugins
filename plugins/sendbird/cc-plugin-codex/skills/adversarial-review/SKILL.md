@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: 'Run a design-challenging Claude Code review of local git changes in this repository. Args: --wait, --background, --base <ref>, --scope <auto|working-tree|branch>, --model <model>, [focus text]. Use only when the user wants stronger scrutiny than a normal review, such as explicit tradeoff challenge, risky-change review, or custom focus text.'
+description: 'Run a design-challenging Claude Code review of local git changes in this repository. Args: --wait, --background, --base <ref>, --scope <auto|working-tree|branch>, --model <model>, --effort <low|medium|high|xhigh|max>, [focus text]. Defaults to opus + xhigh effort. Use only when the user wants stronger scrutiny than a normal review, such as explicit tradeoff challenge, risky-change review, or custom focus text.'
 ---
 
 # Claude Code Adversarial Review
@@ -13,10 +13,10 @@ If the user wants Claude Code to go beyond review and perform investigation, val
 If the user asks for a local review plus a separate Claude background review and then wants the main Codex thread to aggregate the findings and apply fixes, keep the delegated Claude portion on `$cc:review` unless the user explicitly asks for the adversarial angle.
 Unlike `$cc:review`, this skill accepts custom focus text after the flags. The moment the user wants to steer Claude toward a specific angle or risk question, prefer `$cc:adversarial-review`.
 
-Do not derive the companion path from this skill file or any cache directory. Always run the installed copy:
-`node "<installed-plugin-root>/scripts/claude-companion.mjs" adversarial-review ...`
+Resolve `<plugin-root>` as two directories above this `SKILL.md` file. Always run the companion from that active plugin root:
+`node "<plugin-root>/scripts/claude-companion.mjs" adversarial-review ...`
 
-Supported arguments: `--wait`, `--background`, `--base <ref>`, `--scope auto|working-tree|branch`, `--model <model>`, plus optional focus text after the flags
+Supported arguments: `--wait`, `--background`, `--base <ref>`, `--scope auto|working-tree|branch`, `--model <model>`, `--effort <low|medium|high|xhigh|max>`, plus optional focus text after the flags (defaults: model=opus, effort=xhigh; sonnet defaults to high; haiku has no effort)
 
 Raw slash-command arguments:
 `$ARGUMENTS`
@@ -56,20 +56,20 @@ Argument handling:
 
 Foreground flow:
 - Run:
-  `node "<installed-plugin-root>/scripts/claude-companion.mjs" adversarial-review --view-state on-success <arguments with --wait/--background removed>`
+  `node "<plugin-root>/scripts/claude-companion.mjs" adversarial-review --view-state on-success <arguments with --wait/--background removed>`
 - Foreground adversarial review belongs to the main Codex thread. Do not spawn a review subagent, do not invoke a generic review-runner role, and do not proxy this foreground path through any background worker abstraction.
-- Do not fall back to raw `claude`, `claude-code`, `claude review`, `bash -lc ...claude...`, or any other direct Claude CLI syntax when the companion path is available. The foreground syntax contract here is the installed companion command above, not a hand-rolled Claude invocation.
-- If the installed companion command fails, surface that failure. Do not silently retry foreground adversarial review through a different CLI shape, a generic review runner, or a custom shell wrapper.
+- Do not fall back to raw `claude`, `claude-code`, `claude review`, `bash -lc ...claude...`, or any other direct Claude CLI syntax when the companion path is available. The foreground syntax contract here is the resolved companion command above, not a hand-rolled Claude invocation.
+- If the resolved companion command fails, surface that failure. Do not silently retry foreground adversarial review through a different CLI shape, a generic review runner, or a custom shell wrapper.
 - Present the companion stdout faithfully.
 - Do not fix anything mentioned in the review output.
 
 Background flow:
 - For background adversarial review, use Codex's built-in `default` subagent instead of a detached background shell command.
-- Do not satisfy background adversarial review by using a generic `claude_review_runner`-style helper role, raw Claude CLI, or any other review executor that bypasses the installed companion command.
+- Do not satisfy background adversarial review by using a generic `claude_review_runner`-style helper role, raw Claude CLI, or any other review executor that bypasses the resolved companion command.
 - Never satisfy background adversarial review by running the companion command itself with shell backgrounding such as `&`, `nohup`, detached `spawn`, or any equivalent direct background process launch.
 - Background here means "spawn the forwarding child via `spawn_agent` and do not wait in the parent turn." The companion adversarial-review command inside that child still runs once, in the foreground, inside the child thread.
 - Before spawning the built-in child, capture the review job id plus routing context in one call:
-  `node "<installed-plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind review --json`
+  `node "<plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind review --json`
 - If that helper returns a non-empty `jobId`, pass it into the companion command as an internal `--job-id <reserved-job-id>` routing flag.
 - If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command.
 - If it returns an empty `ownerSessionId`, omit `--owner-session-id` entirely. Never leave an empty placeholder such as `--owner-session-id  --job-id`.
@@ -89,7 +89,7 @@ Background flow:
 - The built-in child must be a pure forwarder. It should:
   - run exactly one shell command
   - execute:
-    `node "<installed-plugin-root>/scripts/claude-companion.mjs" adversarial-review --view-state defer <arguments with --wait/--background removed>`
+    `node "<plugin-root>/scripts/claude-companion.mjs" adversarial-review --view-state defer <arguments with --wait/--background removed>`
   - run that command as one blocking foreground shell-tool call, not as a background terminal/session
   - do not request a shell session id, poll a shell session later, or return before the companion command exits
   - if the available shell tool is `exec_command`, call it once in non-interactive mode and wait for command exit in that same call

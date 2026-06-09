@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Stocktake"
+  short_description: "批量盘点 skills 与 commands 的质量状态"
+  default_prompt: "Use $skill-stocktake to audit changed or installed skills, summarize quality gaps, and prioritize the highest-risk fixes."

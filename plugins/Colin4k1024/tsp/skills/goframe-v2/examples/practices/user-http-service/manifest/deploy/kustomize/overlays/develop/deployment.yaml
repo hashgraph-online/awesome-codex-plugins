@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-http-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: main
+          image: user-http-service:develop

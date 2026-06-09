@@ -2,6 +2,6 @@
   "generator": "manual-maintained",
   "source_skill": "skills/reverse-engineer-rpi",
   "layout": "modular",
-  "source_hash": "9ca90e1be933d3150672204075f6768c908f4f8c46d41dc6565e80a4a648f485",
-  "generated_hash": "2166a1d4b1d7361134aa8a64c97298d47877e557c7c46082439635cdf3f8c2c5"
+  "source_hash": "a3ba1517c06f9a5eeb788375f09cabb393af85288b640e926a3a3f162cb20a6d",
+  "generated_hash": "09320cb29ca3ce9d8fea6c69e710c8969dedc7adb68d0725d55ab9ef5ef4052b"
 }

@@ -1,6 +1,6 @@
 ---
 name: skill-builder
-description: 'Scaffold a new SKILL.md.'
+description: "Run skill builder."
 ---
 # $skill-builder — Scaffold or absorb a new SKILL.md
 
@@ -12,6 +12,12 @@ Materializes a new skill against the unified template at `references/skill-templ
 - **Self-audit is mandatory.** After every successful build, the build script invokes `$skill-auditor` against the new skill directory. A FAIL verdict aborts the build. **Why:** PR-002 (external validation gate) — the builder must not declare its own work complete.
 - **Codex parity is day-1, not later.** `from-scratch`, `from-template`, and `absorb-external` modes must produce both `skills/<name>/SKILL.md` AND `skills-codex/<name>/SKILL.md` + `skills-codex/<name>/prompt.md`. **Why:** finding `2026-05-03-codex-skill-shape-is-dual-file` — codex SKILL.md uses slim frontmatter (no `skill_api_version`); prompt.md is mandatory; `audit-codex-parity.sh` is a content scanner that won't catch frontmatter drift.
 - **250-line ceiling on new SKILL.md.** Use `references/` for overflow. **Why:** finding `f-2026-05-01-025` — every skill invocation reloads 5-15KB; multi-lifecycle sessions compound to 150-200KB+ pure scaffolding.
+- **Clean-room factory inputs only.** When using lessons learned from external corpora, read [references/agentops-skill-factory.md](references/agentops-skill-factory.md) and use only AgentOps-owned summaries, scripts, and rubrics. **Why:** productization must improve structure without copying protected third-party skill content.
+- **Real gate means exit code.** Validate with `heal-skill --check --strict <skill-dir>` and `$skill-auditor`; never infer green from grep/regex output. **Why:** regex checks created false-greens during the scale build.
+- **One skill directory = one writer.** Bulk builds fan out only when each worker owns a distinct new `skills/<name>/` plus `skills-codex/<name>/`; existing-dir mutations run in a later serial wave. **Why:** overlapping writers deleted untracked work.
+- **Trust repository state, not subagent reports.** Check `git status`, generated hashes, final files, and gate exit codes before declaring success. **Why:** stale self-reports can describe work that never persisted.
+- **Clean-room includes names.** Mint AgentOps-owned names; do not reuse exact third-party skill names for source skills, Codex mirrors, or wrappers. **Why:** provenance safety applies to labels too.
+- **Do not use the Workflow tool as the skill factory.** For scale authoring, use deterministic wave scripts or NTM/Agent Mail lanes with one worker per skill. **Why:** skill creation needs file ownership and durable git evidence.
 
 ## Modes
 
@@ -43,7 +49,7 @@ build.sh from-pattern                            # → ao flywheel close-loop
 
 For `absorb-external`, the external SKILL.md's content (Constraints / Workflow / Output / Quality sections) is preserved verbatim where possible; AgentOps' structured frontmatter is added on top; the external description is reformatted to satisfy `description-has-triggers`.
 
-**Checkpoint:** `$heal-skill --check skills/<new-name>` returns clean.
+**Checkpoint:** `heal-skill --check --strict skills/<new-name>` exits 0.
 
 ### Phase 3: Codex parity
 
@@ -56,6 +62,25 @@ For `absorb-external`, the external SKILL.md's content (Constraints / Workflow /
 The build script tail invokes `$skill-auditor` on `skills/<new-name>`. WARN is acceptable for v1 skills (e.g., `experimental` stability). FAIL aborts.
 
 **Checkpoint:** `audit_pass=true` in build report.
+
+### Phase 5: Factory score overlay
+
+For AgentOps skill upgrades, use the productization score as a patch selector,
+not as a replacement for `$skill-auditor`:
+
+```bash
+python3 skills-codex/skill-auditor/scripts/score_agentops_skill.py skills/<name> --markdown
+```
+
+Choose the smallest patch that improves the score while preserving the
+canonical template and Codex parity constraints.
+
+### Phase 6: Scale factory discipline
+
+For more than one skill, run ownership waves: create-only one-worker-per-new-dir,
+then existing-dir mutations, then Codex mirror/package refresh. Each wave ends
+with `git status`, `scripts/regen-all.sh --check`, and target gates by exit code.
+If ownership overlaps, stop and rescope.
 
 ## Output Specification
 
@@ -77,7 +102,10 @@ skills-codex/<name>/
 ## Quality Rubric
 
 - [ ] All four modes produce skills that pass `skill-auditor` PASS or WARN (not FAIL)
+- [ ] `heal-skill --check --strict` exits 0 for every generated source and Codex skill directory
 - [ ] Codex parity files exist and pass slim-frontmatter check
+- [ ] Batch authoring has one writer per skill directory and validates persisted git state
+- [ ] Clean-room review covers exact names as well as prose, scripts, and examples
 - [ ] No SKILL.md exceeds 250 lines (overflow goes to `references/`)
 - [ ] Build report JSON validates against `schemas/build-report.json`
 - [ ] `from-pattern` mode prominently marked alpha/passthrough in user output
@@ -130,6 +158,7 @@ $skill-builder absorb-external dcf-helper \
 ### references/
 
 - [references/skill-template.md](references/skill-template.md) — canonical SKILL.md template + auditor checklist + PRODUCT.md alignment
+- [references/agentops-skill-factory.md](references/agentops-skill-factory.md) — clean-room factory workflow and productization rules
 
 ### scripts/
 

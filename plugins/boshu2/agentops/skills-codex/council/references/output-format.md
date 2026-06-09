@@ -132,18 +132,18 @@ Each judge investigated a different aspect of the topic:
 
 ## Debate Report Additions
 
-When `--debate` is used, add these sections to any report format:
+When `--adversarial` is used, add these sections to any report format:
 
 **Header addition:**
 ```markdown
-**Mode:** {task_type}, --debate
+**Mode:** {task_type}, --adversarial
 **Rounds:** 2 (independent assessment + adversarial debate)
 **Fidelity:** full (native teams -- judges retained full R1 context for R2)
 ```
 
 If debate ran in fallback mode (re-spawned with truncated R1 verdicts), use instead:
 ```markdown
-**Mode:** {task_type}, --debate
+**Mode:** {task_type}, --adversarial
 **Rounds:** 2 (independent assessment + adversarial debate)
 **Fidelity:** degraded (fallback -- R1 verdicts truncated for R2 re-spawn)
 ```

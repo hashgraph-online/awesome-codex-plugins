@@ -1,7 +1,7 @@
 ---
 name: deps
 description: Use when hardening npm supply chain, pinning dependency versions, adding .npmrc security flags, or setting up Renovate and audit workflows. Locks down install-time scripts, registries, version ranges, and CI checks.
-allowed-tools: Read Glob Grep Write Edit Bash(pnpm:*) Bash(npm:*) Bash(bun:*) Bash(yarn:*) Bash(npx:*) Bash(gh:*)
+allowed-tools: Read Glob Grep Write Edit Bash(pnpm:*) Bash(pnx:*) Bash(npm:*) Bash(bun:*) Bash(yarn:*) Bash(gh:*)
 model: sonnet
 effort: medium
 ---
@@ -44,6 +44,7 @@ Read each rule file for detailed instructions and config templates.
 | Audit workflow | HIGH | `rules/audit-workflow.md` |
 | Dependency review | HIGH | `rules/dependency-review.md` |
 | Lockfile integrity | MEDIUM | `rules/lockfile-integrity.md` |
+| Package runner | MEDIUM | `rules/package-runner.md` |
 
 ## 4. Output Summary
 

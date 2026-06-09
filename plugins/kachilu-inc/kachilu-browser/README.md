@@ -45,16 +45,21 @@ install script is needed.
 
 - If `--target` is omitted in an interactive terminal, `kachilu-browser onboard` prompts for the host target
 - In non-interactive runs, pass `--target codex`, `--target claudecode`, or `--target claudedesktop`
-- For Codex and Claude Code on WSL2, `onboard` persists `KACHILU_BROWSER_AUTO_CONNECT_TARGET=windows` and auto-detected `KACHILU_BROWSER_WINDOWS_LOCALAPPDATA` unless you override them
-- When targeting Windows browsers from WSL2, `onboard` also ensures `%USERPROFILE%\.wslconfig` has `[wsl2] networkingMode=mirrored` and reports when `wsl --shutdown` is required
+- Use `--skill-only` or `--no-mcp` for desktop hosts that already provide a browser session and only need the Codex or Claude Code skill
+- For Codex and Claude Code on WSL2, full MCP onboarding persists `KACHILU_BROWSER_AUTO_CONNECT_TARGET=windows` and auto-detected `KACHILU_BROWSER_WINDOWS_LOCALAPPDATA` unless you override them
+- When targeting Windows browsers from WSL2 through MCP, `onboard` also ensures `%USERPROFILE%\.wslconfig` has `[wsl2] networkingMode=mirrored` and reports when `wsl --shutdown` is required
 - `codex`: writes `~/.codex/config.toml` and links `~/.codex/skills/kachilu-browser`
 - `claudecode`: writes `~/.claude.json` and links `~/.claude/skills/kachilu-browser`
 - `claudedesktop`: writes the Claude Desktop local MCP config. Use `claude-desktop` as an equivalent alias.
 - Claude Desktop Skills are distributed as `kachilu-browser-skill.zip` on GitHub Releases and must be uploaded through Claude Desktop's Skills UI.
 
+```bash
+kachilu-browser onboard --target codex --codex-home <desktop-codex-home> --skill-only
+```
+
 ## MCP control plane
 
-Agents should keep using the MCP prepare/exec workflow whenever the tools are available, including after context compaction or resume. This preserves the host-managed session, profile, and WSL2 Windows-browser target from the MCP env block.
+Agents should keep using a host-provided browser session when one is explicit. Otherwise, they should keep using the MCP prepare/exec workflow whenever the tools are available, including after context compaction or resume. For MCP-managed sessions, this preserves the session, profile, and WSL2 Windows-browser target from the MCP env block.
 
 Raw `kachilu-browser` shell commands are a fallback for environments without MCP, explicit CLI requests, or intentional local WSL/Linux browser work. On WSL2, a raw shell command can miss `KACHILU_BROWSER_AUTO_CONNECT_TARGET=windows` and launch or control a WSL2-local browser instead of the intended Windows browser.
 

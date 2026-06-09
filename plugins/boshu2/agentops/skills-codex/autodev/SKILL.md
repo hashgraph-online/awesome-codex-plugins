@@ -1,6 +1,6 @@
 ---
 name: autodev
-description: 'Manage bounded autonomous dev loops.'
+description: "Run autodev."
 ---
 # $autodev
 
@@ -15,7 +15,7 @@ development. It does not replace `$evolve` or `$rpi`.
 - `$rpi` runs one Codex research -> plan -> implement -> validate lifecycle.
 
 In Codex, `$autodev` hands work to `$evolve` or `$rpi` as skill invocations.
-Treat `ao evolve` and `ao rpi` as terminal wrapper commands, not as the Codex
+Treat retired terminal CLIs as wrapper commands, not as the Codex
 default handoff path.
 
 ## Codex Lifecycle Guard

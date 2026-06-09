@@ -17,6 +17,7 @@ import datetime
 import io
 import json
 import re
+import shutil
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -31,20 +32,41 @@ USER_AGENT = "awesome-codex-plugins-generator"
 RAW_DEFAULT_BRANCH_REF = "HEAD"
 OPTIONAL_PLUGIN_FILES = (
     "README.md",
+    "NOTICE.md",
     "SECURITY.md",
     "LICENSE",
     "LICENSE.md",
     "LICENSE.txt",
+    "pyproject.toml",
     "package.json",
     "pnpm-lock.yaml",
     "package-lock.json",
     "yarn.lock",
     ".codexignore",
+    ".agents/plugins/marketplace.json",
   )
+METADATA_ONLY_MIRROR_REPOS = {
+    # EOC's repo-root Codex plugin references a large skills/commands catalog.
+    # Keep the directory mirror installable as marketplace metadata without
+    # copying the full upstream repository or leaving broken local references.
+    "mturac/everything-openai-codex",
+}
+EXTRA_MIRROR_PATHS = {
+    # Staff Engineer Mode exposes one router skill and loads routed specialist
+    # files from a top-level specialists/ directory at runtime.
+    "sirmarkz/staff-engineer-mode": ("specialists",),
+}
 
 
 def normalize_relative_path(value: str) -> str:
-    return value.replace("\\", "/").lstrip("./")
+    # Normalize backslashes to forward slashes
+    value = value.replace("\\", "/")
+    # Strip only a leading '/' or './' prefix, preserving dot-prefixed filenames like ".mcp.json"
+    if value.startswith('/'):
+        value = value[1:]
+    if value.startswith('./'):
+        value = value[2:]
+    return value
 
 
 def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
@@ -172,6 +194,7 @@ def collect_selected_paths(
     manifest: dict[str, object],
     all_names: set[str],
     plugin_root: PurePosixPath,
+    plugin: dict[str, str],
 ) -> set[str]:
     selected = {".codex-plugin/plugin.json"}
 
@@ -180,7 +203,7 @@ def collect_selected_paths(
         if candidate in all_names:
             selected.add(optional_name)
 
-    for key in ("skills", "mcpServers", "apps", "app", "appConfig"):
+    for key in ("skills", "scripts", "mcpServers", "apps", "app", "appConfig", "hooks"):
         value = manifest.get(key)
         if isinstance(value, str):
             add_recursive_selection(selected, all_names, plugin_root, value)
@@ -197,7 +220,72 @@ def collect_selected_paths(
                 if isinstance(screenshot, str):
                     add_recursive_selection(selected, all_names, plugin_root, screenshot)
 
+    for extra_path in EXTRA_MIRROR_PATHS.get(f"{plugin['owner']}/{plugin['repo']}", ()):
+        add_recursive_selection(selected, all_names, plugin_root, extra_path)
+
     return selected
+
+
+def is_metadata_only_mirror(plugin: dict[str, str]) -> bool:
+    return f"{plugin['owner']}/{plugin['repo']}" in METADATA_ONLY_MIRROR_REPOS
+
+
+def collect_metadata_only_paths(
+    manifest: dict[str, object],
+    all_names: set[str],
+    plugin_root: PurePosixPath,
+) -> set[str]:
+    selected = {".codex-plugin/plugin.json"}
+
+    for optional_name in ("LICENSE", "LICENSE.md", "LICENSE.txt", ".codexignore"):
+        candidate = plugin_root.joinpath(optional_name).as_posix()
+        if candidate in all_names:
+            selected.add(optional_name)
+
+    interface = manifest.get("interface")
+    if isinstance(interface, dict):
+        for key in ("composerIcon", "logo"):
+            value = interface.get(key)
+            if isinstance(value, str):
+                add_recursive_selection(selected, all_names, plugin_root, value)
+
+    return selected
+
+
+def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[str, str]) -> dict[str, object]:
+    sanitized = json.loads(json.dumps(manifest))
+
+    for key in ("skills", "commands", "hooks", "apps", "app", "appConfig"):
+        sanitized.pop(key, None)
+
+    if f"{plugin['owner']}/{plugin['repo']}" == "mturac/everything-openai-codex":
+        repo_url = "https://github.com/mturac/everything-openai-codex"
+        sanitized["description"] = (
+            "Open-source Codex workflow collection with install profiles, repo "
+            "conventions, validation checks, and documentation."
+        )
+        sanitized["author"] = {
+            "name": "Mehmet Turac",
+            "url": "https://github.com/mturac",
+        }
+        sanitized["homepage"] = repo_url
+
+        interface = sanitized.setdefault("interface", {})
+        if isinstance(interface, dict):
+            interface["shortDescription"] = (
+                "Codex workflow collection with install profiles, repo conventions, "
+                "validation checks, and documentation."
+            )
+            interface["longDescription"] = (
+                "Everything OpenAI Codex (EOC) is a community-maintained Codex "
+                "workflow collection. The upstream repository contains the full "
+                "documentation, install profiles, skills, commands, and validation material."
+            )
+            interface["developerName"] = "Mehmet Turac"
+            interface["category"] = "Coding"
+            interface["websiteURL"] = repo_url
+
+    return sanitized
 
 
 def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str, str]:
@@ -212,28 +300,51 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
     except ValueError:
         raise ValueError(f"Archive for {owner_repo} does not contain .codex-plugin/plugin.json") from None
     manifest = load_manifest(archive, plugin_root)
-    selected_paths = collect_selected_paths(manifest, names, plugin_root)
+    metadata_only = is_metadata_only_mirror(plugin)
+    selected_paths = (
+        collect_metadata_only_paths(manifest, names, plugin_root)
+        if metadata_only
+        else collect_selected_paths(manifest, names, plugin_root, plugin)
+    )
+    mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
 
     destination_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
+    # Clear destination to avoid stale files from previous runs (Thread 2 fix)
+    if destination_root.exists():
+        shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
 
     for relative_path in sorted(selected_paths):
         archive_name = plugin_root.joinpath(PurePosixPath(relative_path)).as_posix()
         destination_path = destination_root / PurePosixPath(relative_path)
         destination_path.parent.mkdir(parents=True, exist_ok=True)
-        destination_path.write_bytes(archive.read(archive_name))
+        if relative_path == ".codex-plugin/plugin.json":
+            destination_path.write_text(
+                json.dumps(mirrored_manifest, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        else:
+            destination_path.write_bytes(archive.read(archive_name))
 
-    return manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative_path(plugin_root)
+    return mirrored_manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative_path(plugin_root)
 
 
 def build_marketplace_entry(
     plugin: dict[str, str],
     manifest: dict[str, object],
     marketplace_path: str,
+    icon_path: str | None = None,
 ) -> dict[str, object]:
     manifest_name = str(manifest.get("name") or "").strip() or plugin["repo"]
-    return {
+    interface = manifest.get("interface", {})
+    display_name = plugin["name"]  # from README, human-readable
+    description = plugin.get("description", "").strip()
+    if not description:
+        description = str(interface.get("shortDescription") or interface.get("longDescription") or "").strip()
+
+    entry: dict[str, object] = {
         "name": manifest_name,
+        "displayName": display_name,
         "source": {
             "source": "local",
             "path": marketplace_path,
@@ -244,6 +355,12 @@ def build_marketplace_entry(
         },
         "category": plugin["category"],
     }
+    if description:
+        entry["description"] = description
+    if icon_path:
+        entry["icon"] = icon_path
+
+    return entry
 
 
 def write_json(path: Path, data: dict[str, object]) -> None:
@@ -257,7 +374,29 @@ def main() -> None:
     for plugin in plugins:
         manifest, marketplace_path, plugin_root_relative = mirror_plugin_bundle(plugin)
         plugin["install_url"] = build_raw_manifest_url(plugin, plugin_root_relative)
-        mirrored_entries.append(build_marketplace_entry(plugin, manifest, marketplace_path))
+
+        # Determine icon path if available and actually mirrored
+        icon_path: str | None = None
+        interface = manifest.get("interface", {})
+        if isinstance(interface, dict):
+            composer_icon = interface.get("composerIcon") or interface.get("logo")
+            if isinstance(composer_icon, str) and composer_icon.strip():
+                # Thread 1 fix: reject placeholder values like "[TODO: ./assets/icon.png]"
+                stripped = composer_icon.strip()
+                if not (stripped.startswith('[') and ('TODO' in stripped or 'PLACEHOLDER' in stripped)):
+                    # Properly strip leading "./" or "/" only, preserving dot-prefixed filenames like ".mcp.json"
+                    rel = composer_icon
+                    if rel.startswith('./'):
+                        rel = rel[2:]
+                    elif rel.startswith('/'):
+                        rel = rel[1:]
+                    candidate = f"{marketplace_path}/{rel}"
+                    # Verify the file exists in the mirrored plugin directory
+                    abs_path = PLUGINS_ROOT / plugin["owner"] / plugin["repo"] / rel
+                    if abs_path.exists():
+                        icon_path = candidate
+
+        mirrored_entries.append(build_marketplace_entry(plugin, manifest, marketplace_path, icon_path))
 
     marketplace = {
         "name": "awesome-codex-plugins",

@@ -2,6 +2,8 @@
 
 Public metadata repository for the Bring Your AI remote MCP server.
 
+[![Agent surface proof](https://github.com/unitedideas/bringyour-mcp/actions/workflows/agent-surface-proof.yml/badge.svg)](https://github.com/unitedideas/bringyour-mcp/actions/workflows/agent-surface-proof.yml)
+
 Bring Your AI moves agent-harness context between tools, starting with Claude Code to Codex. The paid CLI runs locally on the user's machine. This hosted MCP endpoint is intentionally no-data: it only exposes preview, target-listing, and install-command tools. It does not accept harness files, generated memories, project files, API keys, GitHub handles, or file contents.
 
 ## Endpoint
@@ -30,6 +32,9 @@ https://bringyour.ai/.well-known/mcp.json
 - `preview_build_setup` - Preview first-setup generation options without receiving user files or work history.
 - `install_local_cli` - Return local CLI installation commands and verification steps.
 - `list_targets` - List supported source and destination agent harnesses.
+- `list_products` - Return the buyable local CLI products and checkout routes.
+- `quote_lifetime_license` - Return a deterministic quote for the lifetime license without receiving harness files.
+- `start_checkout` - Start the Stripe-hosted checkout handoff for a selected license tier.
 
 ## Local CLI Flow
 
@@ -43,6 +48,25 @@ Codex import validation pages:
 
 - https://bringyour.ai/codex-import-checklist
 - https://bringyour.ai/agents-md-claude-md
+- https://bringyour.ai/codex-import-audit
+
+Agent-readable buying surfaces:
+
+- https://bringyour.ai/.well-known/agent.json
+- https://bringyour.ai/.well-known/commerce.json
+- https://bringyour.ai/api/v1/catalog
+- https://bringyour.ai/api/v1/quote
+- https://bringyour.ai/api/v1/checkout
+- https://bringyour.ai/agent-buying-guide
+- https://bringyour.ai/agent-buying-guide.json
+- https://bringyour.ai/pricing.json
+
+No-secret smoke payloads for agent buyers and directory reviewers:
+
+- `examples/agent-discovery/directory-review-proof.json` - single machine-readable proof bundle for directory reviewers and agent buyers.
+- `examples/agent-discovery/mcp-tools-call.json` - JSON-RPC tools/list payload for the no-data remote MCP endpoint.
+- `examples/agent-discovery/quote-request.json` - quote request shape for the local CLI lifetime license.
+- `examples/agent-discovery/checkout-request.json` - checkout handoff request shape with placeholder return URLs.
 
 Manual Codex-to-Codex sync:
 
@@ -64,14 +88,29 @@ This repo also carries installable, no-secret public artifacts for auditing migr
 - `skills/bringyour-migration-auditor/SKILL.md` - Codex skill for checking AGENTS.md/CLAUDE.md scope, hooks, MCP config, skills, secrets, and validation notes after a migration.
 - `agents/harness-migration-auditor.toml` - Codex subagent config for the same read-only audit path.
 - `.github/workflows/agent-surface-proof.yml` - public CI proof that the hosted discovery, commerce, and MCP handoff surfaces stay callable without secrets.
-- `examples/github-actions/bringyour-agent-surface-check.yml` - reusable workflow sample for teams that want a scheduled check before relying on Bring Your AI during a Claude Code to Codex move.
+- `examples/github-actions/bringyour-agent-surface-check.yml` - reusable workflow sample for teams that want a scheduled discovery, MCP, quote, and checkout handoff check before relying on Bring Your AI during a Claude Code to Codex move.
 - `examples/github-actions/codex-import-audit.yml` - reusable workflow sample for teams that want a Codex import audit record before allowing Codex to edit source after a Claude Code migration.
+- `examples/github-actions/claude-codex-continuity-check.yml` - pull-request workflow sample that inventories AGENTS.md, CLAUDE.md, .claude, .codex, and MCP config changes, then writes Codex validation notes before source edits.
+- `examples/github-actions/mcp-config-migration-check.yml` - pull-request workflow sample that inventories MCP config surfaces, verifies the public no-data checklist, and writes target-side MCP validation notes.
+- `examples/agent-discovery/*.json` - no-secret proof and payload examples for directory review, MCP tools/list, quote, and checkout smoke checks.
+- `examples/codex-import-audit/sample-report.json` - machine-readable example audit report for Claude Code to Codex import review.
+- `examples/mcp-config-migration/checklist.json` - agent-readable MCP config migration checklist that preserves the no-data remote boundary.
+
+Directory reviewers can use the latest `agent-surface-proof` workflow run as public evidence that the MCP endpoint, agent manifests, commerce surfaces, quote endpoint, and checkout handoff are live without receiving private harness data.
 
 ## Links
 
 - Site: https://bringyour.ai
 - Claude Code to Codex guide: https://bringyour.ai/claude-code-to-codex
 - Codex import checklist: https://bringyour.ai/codex-import-checklist
+- Codex import audit: https://bringyour.ai/codex-import-audit
 - AGENTS.md vs CLAUDE.md guide: https://bringyour.ai/agents-md-claude-md
+- Agent buying guide: https://bringyour.ai/agent-buying-guide
+- Agent buying guide JSON: https://bringyour.ai/agent-buying-guide.json
+- Pricing JSON: https://bringyour.ai/pricing.json
+- Commerce manifest: https://bringyour.ai/.well-known/commerce.json
+- Agent manifest: https://bringyour.ai/.well-known/agent.json
+- Catalog API: https://bringyour.ai/api/v1/catalog
+- MCP config migration checklist: https://bringyour.ai/mcp-config-migration.json
 - OpenAPI: https://bringyour.ai/openapi.yaml
 - llms.txt: https://bringyour.ai/llms.txt

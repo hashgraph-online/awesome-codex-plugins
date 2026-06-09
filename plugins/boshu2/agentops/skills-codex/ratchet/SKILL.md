@@ -1,6 +1,6 @@
 ---
 name: ratchet
-description: 'Record Brownian Ratchet gates.'
+description: "Run ratchet."
 ---
 # Ratchet Skill
 

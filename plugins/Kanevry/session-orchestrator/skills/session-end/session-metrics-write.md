@@ -57,11 +57,20 @@
      VM_DIR=$(echo "$CONFIG" | jq -r '."vault-integration"."vault-dir" // empty')
      : "${VM_DIR:=$VAULT_DIR}"
 
+     # Quality-gate thresholds (PRD F1.2). Defaults match
+     # scripts/vault-mirror.mjs (400 chars / 0.5 confidence). The nested key
+     # path `vault-mirror.quality.*` is owned by the I6 config parser; this
+     # site is a read-only consumer.
+     VM_QUALITY_NARRATIVE=$(echo "$CONFIG" | jq -r '."vault-mirror".quality."min-narrative-chars" // 400')
+     VM_QUALITY_CONFIDENCE=$(echo "$CONFIG" | jq -r '."vault-mirror".quality."min-confidence" // 0.5')
+
      VM_OUTPUT=$(node "$PLUGIN_ROOT/scripts/vault-mirror.mjs" \
        --vault-dir "$VM_DIR" \
        --source .orchestrator/metrics/sessions.jsonl \
        --kind session \
-       --session-id "$SESSION_ID" 2>&1)
+       --session-id "$SESSION_ID" \
+       --quality-min-narrative-chars "$VM_QUALITY_NARRATIVE" \
+       --quality-min-confidence "$VM_QUALITY_CONFIDENCE" 2>&1)
      VM_EXIT=$?
 
      # Surface script output so user can see skipped-handwritten results
@@ -84,6 +93,13 @@
        if [[ -n "$VM_DEST" ]]; then
          echo "Mirrored session summary to $VM_DEST"
        fi
+
+       # Quality gate summary (PRD F1.2): count entries skipped because they
+       # failed the quality filter, so the operator can tune thresholds.
+       VM_QUALITY_SKIP=$(echo "$VM_OUTPUT" | jq -rc 'select(.action == "skipped-quality-low")' 2>/dev/null | wc -l | tr -d ' ')
+       if [[ "${VM_QUALITY_SKIP:-0}" -gt 0 ]]; then
+         echo "vault-mirror: ${VM_QUALITY_SKIP} entry/entries skipped by quality gate (set vault-mirror.quality.min-narrative-chars / min-confidence to tune)"
+       fi
      fi
    fi
    ```
@@ -97,4 +113,4 @@
    | `true` | `warn`  | Run mirror; on failure surface a warning but do NOT block close |
    | `true` | `strict` | Run mirror; on failure block session close with an error message |
 
-   > **Hand-written note protection:** `vault-mirror.mjs` checks for a `_generator: session-orchestrator-vault-mirror@1` marker before overwriting any existing file. When it skips an existing hand-written note it emits a JSON line `{"action":"skipped-handwritten","path":"<path>","kind":"<kind>","id":"<id>"}` — the step above surfaces this output so the user can see the result. Action names: `created`, `updated`, `skipped-noop`, `skipped-handwritten`, `skipped-collision-resolved`, `skipped-invalid` (entry failed required-field validation).
+   > **Hand-written note protection:** `vault-mirror.mjs` checks for a `_generator: session-orchestrator-vault-mirror@1` marker before overwriting any existing file. When it skips an existing hand-written note it emits a JSON line `{"action":"skipped-handwritten","path":"<path>","kind":"<kind>","id":"<id>"}` — the step above surfaces this output so the user can see the result. Action names: `created`, `updated`, `skipped-noop`, `skipped-handwritten`, `skipped-collision-resolved`, `skipped-invalid` (entry failed required-field validation), `skipped-quality-low` (entry failed quality gate — PRD F1.2; line carries a `reason` field).

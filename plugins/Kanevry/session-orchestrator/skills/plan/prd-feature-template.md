@@ -59,6 +59,35 @@ When {{action}}
 Then {{graceful handling}}
 ```
 
+## 3.A Acceptance Criteria (EARS)
+
+> Optional companion to Section 3 — translates each Feature Area's acceptance criteria into EARS-shaped statements for deterministic vitest stub generation by `/write-executable-plan`. Leave blank if Section 3's narrative Gherkin suffices.
+
+### Feature Area 1 — {{name}}
+
+**Ubiquitous** (always-true invariants — no trigger, no state):
+- The {{system}} shall {{response}}.
+
+**State-driven** (`While …`):
+- While {{precondition}}, the {{system}} shall {{response}}.
+
+**Event-driven** (`When …`):
+- When {{trigger}}, the {{system}} shall {{response}}.
+
+**Optional feature** (`Where …`):
+- Where {{feature enabled}}, the {{system}} shall {{response}}.
+
+**Unwanted behaviour** (`If … then …`):
+- If {{unwanted condition}}, then the {{system}} shall {{response}}.
+
+### Feature Area 2 — {{name}}
+
+[repeat pattern]
+
+### Edge Case / Error Handling
+
+[repeat pattern, typically focused on Unwanted + Optional]
+
 ## 4. Technical Notes
 
 ### Affected Files

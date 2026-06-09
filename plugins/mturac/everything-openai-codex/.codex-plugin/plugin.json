@@ -1,0 +1,31 @@
+{
+  "name": "eoc",
+  "version": "2.0.0-rc.1",
+  "description": "Open-source Codex workflow collection with install profiles, repo conventions, validation checks, and documentation.",
+  "author": {
+    "name": "Mehmet Turac",
+    "url": "https://github.com/mturac"
+  },
+  "homepage": "https://github.com/mturac/everything-openai-codex",
+  "repository": "https://github.com/mturac/everything-openai-codex",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "workflow",
+    "documentation"
+  ],
+  "mcpServers": {},
+  "interface": {
+    "displayName": "Everything OpenAI Codex",
+    "shortDescription": "Codex workflow collection with install profiles, repo conventions, validation checks, and documentation.",
+    "longDescription": "Everything OpenAI Codex (EOC) is a community-maintained Codex workflow collection. The upstream repository contains the full documentation, install profiles, skills, commands, and validation material.",
+    "developerName": "Mehmet Turac",
+    "composerIcon": "./assets/icon.svg",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mturac/everything-openai-codex"
+  }
+}

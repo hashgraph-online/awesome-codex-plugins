@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title>Thermal-Fluid Research Workflow</title>
+  <desc>Stylized heat plume, fluid streamline, and research node network.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f766e"/>
+      <stop offset="1" stop-color="#0b1020"/>
+    </linearGradient>
+    <linearGradient id="heat" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <path d="M125 330c58 34 113 33 165-3 42-29 75-35 107-19" fill="none" stroke="#67e8f9" stroke-width="28" stroke-linecap="round"/>
+  <path d="M141 252c51 25 101 23 151-6 38-22 74-25 108-9" fill="none" stroke="#99f6e4" stroke-width="18" stroke-linecap="round" opacity=".9"/>
+  <path d="M257 116c-45 52-32 89-3 122 30 34 45 70 3 121 70-42 91-93 48-145-30-36-40-61-48-98z" fill="url(#heat)"/>
+  <circle cx="148" cy="160" r="22" fill="#e0f2fe"/>
+  <circle cx="365" cy="145" r="18" fill="#e0f2fe"/>
+  <circle cx="395" cy="368" r="22" fill="#e0f2fe"/>
+  <path d="M168 162h80M275 138h70M310 306l66 48" fill="none" stroke="#e0f2fe" stroke-width="10" stroke-linecap="round" opacity=".85"/>
+  <circle cx="256" cy="256" r="155" fill="none" stroke="#ffffff" stroke-width="10" opacity=".16"/>
+</svg>

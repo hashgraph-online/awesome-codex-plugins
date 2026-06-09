@@ -1,0 +1,4 @@
+interface:
+  display_name: "Continuous Learning V2"
+  short_description: "按项目边界提炼并隔离可复用经验"
+  default_prompt: "Use $continuous-learning-v2 to capture project-scoped instincts, avoid cross-project contamination, and evolve them into reusable assets."

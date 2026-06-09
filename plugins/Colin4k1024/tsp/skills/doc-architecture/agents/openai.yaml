@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doc Architecture"
+  short_description: "把架构文档能力并入 team 主链"
+  default_prompt: "Use $doc-architecture to structure discovery, decomposition, and consistency audit outputs into docs/artifacts, docs/adr, and docs/memory."

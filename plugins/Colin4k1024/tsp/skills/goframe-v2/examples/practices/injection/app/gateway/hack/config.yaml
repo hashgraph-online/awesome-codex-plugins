@@ -1,0 +1,8 @@
+# CLI tool, only in development environment.
+# https://goframe.org/docs/cli
+gfcli:
+  build:
+    path:   "temp"
+    arch:   "amd64"
+    system: "linux"
+

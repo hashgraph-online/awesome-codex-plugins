@@ -10,6 +10,9 @@ Complete command reference for `jk`. Run `jk <command> --help` for details.
 # Login with credentials
 jk auth login https://jenkins.example.com --username alice --token <API_TOKEN>
 
+# Login to a Jenkins controller that uses Google/OIDC/SSO in the browser
+jk auth login https://jenkins.example.com --username alice@example.com --token <JENKINS_API_TOKEN>
+
 # With context name
 jk auth login https://jenkins.example.com --name prod --username alice --token <TOKEN>
 
@@ -26,13 +29,15 @@ jk auth login https://jenkins.example.com --username alice --token <TOKEN> --all
 
 Options:
 - `--name` — Context name (defaults to hostname)
-- `--username` — Jenkins username
-- `--token` — API token
+- `--username` — Jenkins user ID (Google/SSO users: usually your email)
+- `--token` — Jenkins API token
 - `--insecure` — Skip TLS verification
 - `--proxy` — Proxy URL
 - `--ca-file` — Custom CA bundle path
 - `--set-active` — Set as active context (default: true)
 - `--allow-insecure-store` — Allow encrypted file fallback
+
+For Google OAuth, OpenID Connect, Okta, Azure AD, or other browser SSO security realms, first sign in to Jenkins in the browser and create a Jenkins API token from `/me/configure`. Use that Jenkins API token with `--token`; do not use a Google/OIDC access token.
 
 ### Status and Logout
 

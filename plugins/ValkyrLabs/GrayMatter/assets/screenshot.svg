@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="GrayMatter plugin screenshot">
+  <rect width="1280" height="720" fill="#F6F8F5"/>
+  <rect x="72" y="64" width="1136" height="592" rx="12" fill="#FFFFFF" stroke="#D9E3DE"/>
+  <rect x="72" y="64" width="1136" height="72" rx="12" fill="#245B4A"/>
+  <text x="112" y="110" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">GrayMatter</text>
+  <text x="112" y="184" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#1F2933">Durable memory</text>
+  <text x="112" y="222" font-family="Inter, Arial, sans-serif" font-size="18" fill="#52635C">Persist decisions, context, artifacts, and follow-ups through ValkyrAI MemoryEntry.</text>
+  <rect x="112" y="270" width="456" height="112" rx="8" fill="#F1F6F3" stroke="#C8D8D0"/>
+  <text x="144" y="314" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#245B4A">MemoryEntry/write</text>
+  <text x="144" y="350" font-family="Inter, Arial, sans-serif" font-size="15" fill="#52635C">Save reusable context with typed records and tags.</text>
+  <rect x="112" y="410" width="456" height="112" rx="8" fill="#F1F6F3" stroke="#C8D8D0"/>
+  <text x="144" y="454" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#245B4A">SwarmOps/graph</text>
+  <text x="144" y="490" font-family="Inter, Arial, sans-serif" font-size="15" fill="#52635C">Coordinate shared object-graph state across agents.</text>
+  <rect x="640" y="184" width="456" height="338" rx="8" fill="#12251E"/>
+  <text x="676" y="238" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#8FD4B3">$ scripts/gm-activate</text>
+  <text x="676" y="288" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#EAF2EE">OK auth source detected</text>
+  <text x="676" y="330" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#EAF2EE">OK schema synced</text>
+  <text x="676" y="372" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#EAF2EE">OK agent registered</text>
+  <text x="676" y="430" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#8FD4B3">GrayMatter ready</text>
+</svg>

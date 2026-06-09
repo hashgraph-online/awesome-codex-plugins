@@ -1,0 +1,4 @@
+interface:
+  display_name: "Karpathy Guidelines"
+  short_description: "先暴露假设，再做最小且可验证的改动"
+  default_prompt: "Use $karpathy-guidelines to tighten assumptions, prefer the simplest implementation, keep changes surgical, and turn the task into explicit success criteria before we code."

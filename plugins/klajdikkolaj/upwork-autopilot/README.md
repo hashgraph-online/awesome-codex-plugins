@@ -2,6 +2,8 @@
 
 Codex plugin for controlled Upwork job search, qualification, and proposal submission sessions.
 
+[![Upwork Autopilot on HOL Registry (Trust Score)](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dklajdikkolaj%252Fupwork-autopilot%26metric%3Dtrust%26style%3Dfor-the-badge%26label%3DUpwork+Autopilot)](https://hol.org/registry/plugins/klajdikkolaj%2Fupwork-autopilot)
+
 ## What it does
 
 - launches either an isolated Chrome profile or your normal logged-in Chrome profile with CDP enabled
@@ -41,6 +43,27 @@ skills/
 The applicant profile is intentionally user-specific. Proposal tone, differentiators, proof points, and closing CTA should be customized per applicant rather than hardcoded into the plugin.
 
 ## Quick start
+
+Install with npm:
+
+```bash
+npm install -g upwork-autopilot
+upwork-autopilot install-home
+upwork-autopilot setup-profile
+upwork-autopilot launch
+upwork-autopilot probe
+```
+
+Install with Homebrew:
+
+```bash
+brew tap klajdikkolaj/upwork-autopilot https://github.com/klajdikkolaj/upwork-autopilot
+brew install klajdikkolaj/upwork-autopilot/upwork-autopilot
+upwork-autopilot install-home
+upwork-autopilot setup-profile
+```
+
+Install from a local checkout:
 
 ```bash
 cd /path/to/upwork-autopilot
@@ -85,6 +108,16 @@ UPWORK_AUTOPILOT_PORT=9225
 ## Main commands
 
 ```bash
+upwork-autopilot setup-profile
+upwork-autopilot search-plan
+upwork-autopilot search-inspect 'AI integration developer LLM automation'
+upwork-autopilot search-inspect 'AI integration developer LLM automation' detail 0
+upwork-autopilot apply-probe '<job-url>'
+upwork-autopilot submit-proposal '<proposal-url>' /abs/path/to/payload.json
+upwork-autopilot launch
+upwork-autopilot launch-isolated
+upwork-autopilot validate
+
 node scripts/setup-applicant-profile.mjs
 node scripts/upwork-search-plan.mjs
 node scripts/upwork-search-inspect.mjs 'AI integration developer LLM automation'
@@ -98,9 +131,13 @@ bash scripts/package-release.sh
 bash scripts/export-github-repo.sh
 ```
 
+Run `upwork-autopilot --help` for the full installed command list.
+
 ## Install for personal use
 
 ```bash
+upwork-autopilot install-home
+# or, from a checkout:
 bash scripts/install-home.sh
 ```
 

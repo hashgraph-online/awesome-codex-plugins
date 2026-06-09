@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-grpc-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: main
+          image: user-grpc-service:develop

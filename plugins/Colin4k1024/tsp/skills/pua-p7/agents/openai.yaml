@@ -1,0 +1,4 @@
+interface:
+  display_name: "PUA P7"
+  short_description: "方案驱动的执行骨干模式"
+  default_prompt: "Use $pua-p7 when the work needs concise execution, strict verification, and shortest-path delivery."

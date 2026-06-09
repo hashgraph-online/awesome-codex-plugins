@@ -18,9 +18,9 @@ Quickstart does three things fast:
 
 Discovery primitive. Reads code, understands patterns, maps architecture, and surfaces prior bookkeeping before you change anything.
 
-### Validation (`$validation`, `$council`, `$vibe`)
+### Validation (`$validate`, `$council`, `$vibe`)
 
-Validation is not one command. `$council` pressure-tests plans and diffs, `$vibe` reviews code quality, and `$validation` closes out finished work and extracts learnings.
+Validation is not one command. `$council` pressure-tests plans and diffs, `$vibe` reviews code quality, and `$validate` closes out finished work and extracts learnings.
 
 ### RPI (`$rpi`)
 
@@ -45,7 +45,7 @@ Based on what quickstart found, pick your next action:
 - **Want cross-model validation?** Run `$council validate <target>` for multi-judge review
 - **Want to cut a release?** Run `$release` for changelog, version bumps, and tagging
 - **Want a full lifecycle?** Run `$rpi` for discovery → implementation → validation in one command
-- **Want repo-native bookkeeping?** Install the `ao` CLI: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops && ao init --hooks`
+- **Want repo-native bookkeeping?** Install the `ao` CLI: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops && ao quick-start`
 
 ## The Operating Model
 

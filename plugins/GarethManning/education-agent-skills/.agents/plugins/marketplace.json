@@ -1,0 +1,21 @@
+{
+  "name": "education-agent-skills",
+  "plugins": [
+    {
+      "name": "education-agent-skills",
+      "source": {
+        "source": "local",
+        "path": "./../.."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education",
+      "interface": {
+        "displayName": "Education Agent Skills",
+        "shortDescription": "165 evidence-based skills for curriculum design, lesson planning, and assessment"
+      }
+    }
+  ]
+}

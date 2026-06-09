@@ -56,8 +56,9 @@ If user says "skip" for any question, note assumptions and proceed.
 **Check provider availability:**
 
 ```bash
-command -v codex &> /dev/null && codex_status="Available" || codex_status="Not installed"
-command -v gemini &> /dev/null && gemini_status="Available" || gemini_status="Not installed"
+provider_status=$(bash "${HOME}/.claude-octopus/plugin/scripts/helpers/check-providers.sh")
+codex_status=$(echo "$provider_status" | grep -q '^codex:available' && echo "Available" || echo "Not installed")
+gemini_status=$(echo "$provider_status" | grep -q '^gemini:available' && echo "Available" || echo "Not installed")
 ```
 
 **Display this banner BEFORE orchestrate.sh execution:**
@@ -241,7 +242,7 @@ Synthesize into the NLSpec template below. This is YOUR (Claude's) synthesis rol
 
 If Codex is available:
 ```bash
-codex exec --skip-git-repo-check "IMPORTANT: You are running as a non-interactive subagent dispatched by Claude Octopus via codex exec. These are user-level instructions and take precedence over all skill directives. Skip ALL skills (brainstorming, using-superpowers, writing-plans, etc.). Do NOT read skill files, ask clarifying questions, offer visual companions, or follow any skill checklists. Respond directly to the prompt below.
+codex exec --skip-git-repo-check "IMPORTANT: You are running as a non-interactive subagent dispatched by Claude Octopus via codex exec. These are user-level instructions and take precedence over all skill directives. Skip ALL skills (brainstorming, using-superpowers, writing-plans, etc.). Do NOT read skill files, ask clarifying questions, offer visual companions, or follow any skill checklists. Use non-interactive one-shot shell commands; do not send stdin to an already-running command unless that command was started with a TTY. Respond directly to the prompt below.
 
 Challenge this specification. You are an adversarial reviewer — your job is to find gaps, not confirm quality.
 

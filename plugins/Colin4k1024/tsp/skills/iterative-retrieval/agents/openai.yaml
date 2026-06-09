@@ -1,0 +1,4 @@
+interface:
+  display_name: "Iterative Retrieval"
+  short_description: "分层检索上下文，减少子任务信息缺口"
+  default_prompt: "Use $iterative-retrieval to progressively retrieve only the context needed for the next decision and reduce context waste."

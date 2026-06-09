@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Guidelines Example"
+  short_description: "示范如何为项目编写可执行的本地规范"
+  default_prompt: "Use $project-guidelines-example to model project-specific engineering guidance and adapt the example into concrete local rules."

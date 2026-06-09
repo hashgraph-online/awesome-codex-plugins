@@ -1,6 +1,6 @@
 ---
 name: system-tuning
-description: 'Restore system responsiveness via safe, ordered process cleanup and agent-swarm hygiene.'
+description: "Run system tuning."
 ---
 # System Tuning Skill
 
@@ -127,4 +127,4 @@ Triage reports go to `.agents/system-tuning/YYYY-MM-DD-triage.md` with:
 
 ## Attribution
 
-Methodology pattern-adopted from the jsm `system-performance-remediation` skill. See `LICENSE.md` in this skill directory. No source text reused.
+Methodology pattern-adopted from an external `system-performance-remediation` skill corpus. See `LICENSE.md` in this skill directory. No source text reused.
