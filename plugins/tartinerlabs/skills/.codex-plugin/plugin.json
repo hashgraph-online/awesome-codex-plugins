@@ -29,6 +29,7 @@
     "shortDescription": "Git, GitHub, security, refactor, and project tooling skills.",
     "developerName": "Tartiner Labs",
     "category": "Coding",
-    "websiteURL": "https://github.com/tartinerlabs/skills"
+    "websiteURL": "https://github.com/tartinerlabs/skills",
+    "composerIcon": "./assets/icon.svg"
   }
 }
