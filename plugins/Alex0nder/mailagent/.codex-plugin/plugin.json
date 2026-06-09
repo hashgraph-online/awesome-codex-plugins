@@ -20,6 +20,8 @@
     "category": "Productivity",
     "capabilities": ["MCP", "Skills"],
     "websiteURL": "https://webmailagent.com/",
+    "privacyPolicyURL": "https://webmailagent.com/privacy.html",
+    "termsOfServiceURL": "https://webmailagent.com/terms.html",
     "defaultPrompt": [
       "Verify a signup flow with a temporary inbox.",
       "Create an inbox and wait for an OTP email.",
