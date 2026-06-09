@@ -1,7 +1,7 @@
 {
   "name": "a-team",
-  "version": "1.0.0",
-  "description": "Universal multi-agent infrastructure. 25 specialist agents, 16 enforced workflow skills, and a lead orchestrator — for Claude Code, Codex CLI, Cursor, and OpenCode.",
+  "version": "1.1.0",
+  "description": "A complete engineering team in one folder. 25 pre-configured specialists, 18 enforced workflow skills, a lead orchestrator, and a Pipeline Auditor — for Claude Code, Codex CLI, Cursor, and OpenCode.",
   "author": {
     "name": "RBraga01",
     "url": "https://github.com/RBraga01"
@@ -9,6 +9,9 @@
   "homepage": "https://rbraga01.github.io/a-team/",
   "repository": "https://github.com/RBraga01/a-team",
   "license": "MIT",
+  "websiteURL": "https://rbraga01.github.io/a-team/",
+  "privacyPolicyURL": "https://github.com/RBraga01/a-team/blob/main/SECURITY.md",
+  "termsOfServiceURL": "https://github.com/RBraga01/a-team/blob/main/LICENSE",
   "keywords": [
     "multi-agent",
     "ai-agents",
@@ -23,7 +26,7 @@
   "interface": {
     "composerIcon": "../assets/ATeam.png",
     "displayName": "A Team",
-    "shortDescription": "25 specialist agents and 16 enforced workflow skills",
+    "shortDescription": "Complete pre-configured engineering team. Not a marketplace.",
     "longDescription": "A Team enforces structured development workflows: design before code, TDD before implementation, code review after every change, and hard gates that block completion without verified evidence. Drop it into any project to get an immediately operational team of specialists.",
     "developerName": "RBraga01",
     "category": "Coding",

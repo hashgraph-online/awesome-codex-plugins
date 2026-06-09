@@ -79,7 +79,7 @@ The following are not treated as vulnerabilities in this repository:
 
 Security override rationale (`package.json` -> `overrides`):
 
-- `hono`: pinned to `4.12.18` to keep builds out of the vulnerable `4.12.0-4.12.1` range reported in `GHSA-xh87-mx6m-69f3` (authentication bypass advisory).
+- `hono`: pinned to `4.12.21` to keep builds out of the vulnerable `<4.12.21` range reported in `GHSA-3hrh-pfw6-9m5x`, `GHSA-2gcr-mfcq-wcc3`, `GHSA-xrhx-7g5j-rcj5`, and `GHSA-f577-qrjj-4474` (Set-Cookie injection, `app.mount()` path-decoding, IPv6 IP-restriction bypass, and JWT scheme-acceptance advisories).
 - `rollup`: pinned to `^4.59.0` to keep the Vite and Vitest transitive graph above the vulnerable `<4.59.0` range surfaced by `npm audit`.
 
 Before release and after dependency changes:

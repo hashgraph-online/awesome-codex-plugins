@@ -1,6 +1,6 @@
 ---
 name: test
-description: 'Generate tests and coverage plans.'
+description: "Run test."
 ---
 # Test Skill
 

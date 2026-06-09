@@ -5,7 +5,7 @@ description: "Audit phase. Parallel review: code quality + security + tests. Out
 
 # Audit — Verify Everything
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
 
 ## Execution Modes
 

@@ -1,0 +1,17 @@
+{
+  "name": "agent-harness-skills",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Reusable skills for building agent-ready repository harnesses.",
+  "homepage": "https://github.com/yfge/agent-harness-skills",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/yfge/agent-harness-skills.git"
+  },
+  "main": ".opencode/plugins/agent-harness-skills.js",
+  "scripts": {
+    "validate": "python3 -m unittest discover -s scripts -p 'test_*.py' && node --test scripts/test_opencode_plugin.mjs && python3 scripts/validate_skill_quality.py && python3 scripts/check_skill_language.py && python3 scripts/check_skill_closure.py && python3 scripts/check_reference_neutrality.py && python3 scripts/check_profile_consistency.py && python3 scripts/validate_plugin_metadata.py && node --check .opencode/plugins/agent-harness-skills.js",
+    "validate:plugin": "node --test scripts/test_opencode_plugin.mjs && python3 scripts/validate_plugin_metadata.py && python3 scripts/check_profile_consistency.py && node --check .opencode/plugins/agent-harness-skills.js"
+  },
+  "license": "MIT"
+}

@@ -47,14 +47,14 @@ Client-side quality is production reliability for the user's device and network.
 ## Workflow
 
 1. **Pick user journeys and routes.** Check user journeys and the application shell.
-2. **Set budgets.** Define journey-level payload, dependency, critical path, rendering, and interaction budgets.
-3. **Use field and lab signals.** Use lab checks for fast feedback and field data for real user impact.
+2. **Set budgets.** Define journey-level payload, JavaScript transfer-and-execution, main-thread / long-task, dependency, critical path, rendering, and interaction budgets.
+3. **Use field and lab signals.** Use lab checks for fast pre-merge feedback and field data for real user impact. Set field targets at a high percentile (for example p75 of real users) with a minimum sample size before a "good" verdict is trusted.
 4. **Segment enough to see regressions.** Track mobile/desktop, browser, device class, common extension/add-on configurations, geography/network, and key customer segments where relevant.
 5. **Exercise component states.** Cover variable content, long lists, empty/error/loading states, localization, permissions, and constrained containers on critical journeys.
 6. **Validate request targets.** For browser code, embedded scripts, or SDKs that call service endpoints, verify the generated URL, origin, redirect behavior, and customer-error handling in real document contexts before broad exposure.
 7. **Check accessibility smoke checks.** Automate high-signal checks such as missing labels, landmarks, contrast failures detectable by tooling, and keyboard traps where feasible.
 8. **Mark releases.** Attach deploy, config, and feature markers to client telemetry and error reports.
-9. **Define stop/rollback.** State thresholds for halting rollout, disabling flags, reverting bundles, or forward-fixing.
+9. **Define stop/rollback.** State thresholds for halting rollout, disabling flags, reverting bundles, or forward-fixing, including a per-journey client runtime-error and unhandled-rejection rate threshold (relative to the prior release baseline) alongside loading, interaction, and layout thresholds.
 10. **Route backend causes.** If client experience regresses due to backend saturation, follow up with capacity/performance.
 
 ## Synthesized Default
@@ -96,7 +96,8 @@ Use user-centric journey-level budgets, field monitoring, lab checks, runtime-er
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Client runtime SLI/SLO table by journey, screen, or route.
-- Performance budget for payload, dependency, critical path, rendering, and interaction costs.
+- Performance budget for payload, JavaScript transfer/execution, main-thread/long-task, dependency, critical path, rendering, and interaction costs.
+- Client runtime-error budget with a per-journey threshold and rollback trigger.
 - Field and lab measurement plan.
 - Component-state check matrix for critical journeys.
 - Client request-target check for service calls, embedded scripts, redirects, and error handling.
@@ -110,6 +111,7 @@ Use user-centric journey-level budgets, field monitoring, lab checks, runtime-er
 
 - `user_experience_check`: user-centric load, interaction, and visual stability metrics have journey-level targets.
 - `budget_check`: payload, dependency, critical path, rendering, and interaction budgets exist with failure response.
+- `error_rate_check`: client runtime-error and unhandled-rejection rates have a per-journey blocking threshold tied to rollback, not just tracking.
 - `field_lab_check`: both field and lab signals are used or a low-traffic exception is recorded.
 - `component_state_check`: critical components cover variable content, long lists, empty/error/loading states, localization, permissions, and constrained containers.
 - `request_target_check`: client-generated service calls use the intended origin, path, redirect behavior, and failure handling in real document contexts.
@@ -136,3 +138,4 @@ Use user-centric journey-level budgets, field monitoring, lab checks, runtime-er
 | No deploy markers | Tag releases, config, and feature flags in telemetry. |
 | Happy-path UI checks | Exercise variable content, permissions, and constrained containers. |
 | Broad accessibility scope creep | Keep release checks to automated smoke checks and route larger work separately. |
+| Tracking errors without a gate | Set a per-journey client error-rate threshold tied to rollback. |

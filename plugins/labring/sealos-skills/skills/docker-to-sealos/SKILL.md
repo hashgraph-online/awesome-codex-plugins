@@ -170,6 +170,7 @@ If validation fails, fix template/rules/examples first.
 - PostgreSQL API: `apps.kubeblocks.io/v1alpha1`.
 - PostgreSQL RBAC unified naming: `${{ defaults.app_name }}-pg`.
 - PostgreSQL RBAC requires `app.kubernetes.io/instance` and `app.kubernetes.io/managed-by` labels.
+- Every KubeBlocks database `Cluster` must include `kb.io/database`, `sealos-db-provider-cr`, and `clusterdefinition.kubeblocks.io/name` labels; `sealos-db-provider-cr` must equal `metadata.name` so dbprovider can list and classify the database. Related Pods, Services, and OpsRequests should carry `app.kubernetes.io/instance=<database name>` for detail views.
 - PostgreSQL role wildcard permission requirement remains as defined in current spec.
 - PostgreSQL cluster must include required labels/fields (`kb.io/database: postgresql-16.4.0`, `clusterdefinition.kubeblocks.io/name: postgresql`, `clusterversion.kubeblocks.io/name: postgresql-16.4.0`, `clusterVersionRef: postgresql-16.4.0`, `disableExporter: true`, `enabledLogs: [running]`, `switchPolicy.type: Noop`, `serviceAccountName`).
 - MongoDB cluster must follow upgraded structure (`componentDef: mongodb`, `serviceVersion: 8.0.4`, labels `kb.io/database` and `app.kubernetes.io/instance`).

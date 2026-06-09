@@ -1,6 +1,6 @@
 ---
 name: using-agentops
-description: 'Explain AgentOps workflows.'
+description: "Run using agentops."
 ---
 # AgentOps Operating Model
 
@@ -11,7 +11,7 @@ Publicly, it gives you four things:
 - **Bookkeeping** — captured learnings, findings, and reusable context
 - **Validation** — plan and code review before work ships
 - **Primitives** — single skills, hooks, and CLI surfaces
-- **Flows** — named compositions like `$research`, `$validation`, and `$rpi`
+- **Flows** — named compositions like `$research`, `$validate`, and `$rpi`
 
 Technically, AgentOps acts as a context compiler: raw session signal becomes reusable knowledge, compiled prevention, and better next work.
 
@@ -59,7 +59,7 @@ $swarm                 # Parallel execution (fresh context per agent)
 ```bash
 $vibe [target]         # Code validation (finding classification + suppression + domain checklists)
 $post-mortem           # Validation + streak tracking + prediction accuracy + retro history
-$retro                 # Quick-capture a single learning
+$post-mortem --quick   # Quick-capture a single learning (folded the retired $retro)
 ```
 
 **Output:** `.agents/learnings/`, `.agents/patterns/`
@@ -70,14 +70,14 @@ $retro                 # Quick-capture a single learning
 |-------|---------------|-------------------|
 | **Discovery** | `$discovery` | `$brainstorm`, `$research`, `$plan`, `$pre-mortem` |
 | **Implement** | `$crank` | `$implement` (single issue), `$swarm` (parallel execution) |
-| **Validate** | `$validation` | `$vibe`, `$post-mortem`, `$retro`, `$forge` |
+| **Validate** | `$validate` | `$vibe`, `$post-mortem`, `$forge` |
 
 **Choosing the skill:**
 - Use `$implement` for **single issue** execution. **Now defaults to TDD-first** — writes failing tests before implementing. Skip with `--no-tdd`.
 - Use `$crank` for **autonomous epic execution** (loops waves via swarm until done). Auto-generates file-ownership maps to prevent worker conflicts.
 - Use `$discovery` for the **discovery phase only** (brainstorm → search → research → plan → pre-mortem).
-- Use `$validation` for the **validation phase only** (vibe → post-mortem → retro → forge).
-- Use `$rpi` for **full lifecycle** — delegates to `$discovery` → `$crank` → `$validation`.
+- Use `$validate` for the **validation phase only** (vibe → post-mortem → forge).
+- Use `$rpi` for **full lifecycle** — delegates to `$discovery` → `$crank` → `$validate`.
 - Use `$ratchet` to **gate/record progress** through RPI.
 
 ## Start Here (12 starters)
@@ -90,9 +90,9 @@ These are the skills every user needs first. Everything else is available when y
 | `$research` | Deep codebase exploration |
 | `$council` | Multi-model consensus review + finding auto-extraction |
 | `$vibe` | Code validation (classification + suppression + domain checklists) |
-| `$rpi` | Full RPI lifecycle orchestrator (`$discovery` → `$crank` → `$validation`) |
+| `$rpi` | Full RPI lifecycle orchestrator (`$discovery` → `$crank` → `$validate`) |
 | `$implement` | Execute single issue |
-| `$retro --quick` | Quick-capture a single learning into the flywheel |
+| `$post-mortem --quick` | Quick-capture a single learning into the flywheel |
 | `$status` | Single-screen dashboard of current work and suggested next action |
 | `$goals` | Maintain GOALS.yaml fitness specification |
 | `$push` | Atomic test-commit-push workflow |
@@ -103,7 +103,7 @@ These are the skills every user needs first. Everything else is available when y
 | Skill | Purpose |
 |-------|---------|
 | `$compile` | Active knowledge intelligence — Mine → Grow → Defrag cycle |
-| `$knowledge-activation` | Operationalize a mature `.agents` corpus into beliefs, playbooks, briefings, and gap surfaces |
+| `$inject` | Operationalize a mature `.agents` corpus into beliefs, playbooks, briefings, and gap surfaces (folded the retired `$knowledge-activation`) |
 | `$brainstorm` | Structured idea exploration before planning |
 | `$discovery` | Full discovery phase orchestrator (brainstorm → search → research → plan → pre-mortem) |
 | `$plan` | Epic decomposition into issues |
@@ -117,12 +117,11 @@ These are the skills every user needs first. Everything else is available when y
 | `$autodev` | PROGRAM.md autonomous development contract setup and validation |
 | `$dream` | Interactive Dream operator surface for setup, bedtime runs, and morning reports |
 | `$doc` | Documentation generation — repo docs (default), gold-standard README (`--mode=readme`), OSS doc packs (`--mode=oss`) |
-| `$retro` | Quick-capture a learning (full retro → $post-mortem) |
-| `$validation` | Full validation phase orchestrator (vibe → post-mortem → retro → forge) |
+| `$post-mortem --quick` | Quick-capture a learning (folded the retired `$retro`) |
+| `$validate` | Full validation phase orchestrator (vibe → post-mortem → forge) |
 | `$ratchet` | Brownian Ratchet progress gates for RPI workflow |
 | `$forge` | Mine transcripts for knowledge — decisions, learnings, patterns |
-| `$security` | Continuous repository security scanning and release gating |
-| `$security-suite` | Binary and prompt-surface security suite — static analysis, dynamic tracing, offline redteam, policy gating |
+| `$security` | Repository security scanning and release gating, plus the composable binary/prompt-surface suite — static analysis, dynamic tracing, offline redteam, policy gating |
 | `$hooks-authoring` | Author and validate AgentOps runtime hooks |
 | `$system-tuning` | Restore system responsiveness via safe, ordered process cleanup and agent-swarm hygiene |
 | `$skill-auditor` | Two-pass audit of an existing SKILL.md against the unified template (15 checks) |
@@ -133,12 +132,12 @@ These are the skills every user needs first. Everything else is available when y
 | Skill | Purpose |
 |-------|---------|
 | `$grafana-platform-dashboard` | Build Grafana platform dashboards from templates/contracts |
-| `$codex-team` | Parallel Codex agent execution |
+| `$swarm` | Parallel Codex agent execution (folded the retired `$codex-team`) |
 | `$openai-docs` | Official OpenAI docs lookup with citations |
 | `$reverse-engineer-rpi` | Reverse-engineer a product into feature catalog and specs |
 | `$pr-research` | Upstream repository research before contribution |
 | `$pr-implement` | Fork-based PR implementation |
-| `$pr-validate` | PR-specific validation and isolation checks |
+| `$validate --mode=pr` | PR-specific validation and isolation checks (folded the retired `$pr-validate`) |
 | `$pr-prep` | PR preparation and structured body generation |
 | `$ship-loop` | Bot-paired internal-PR fast-lane cycle |
 | `$complexity` | Code complexity analysis |
@@ -166,13 +165,13 @@ AgentOps has several runtime modes. Do not assume hook automation exists everywh
 
 | Mode | When it applies | Start path | Closeout path | Guarantees |
 |------|-----------------|------------|---------------|------------|
-| `substrate` (out-of-session) | A swappable orchestration substrate available out-of-session: an NTM tmux swarm, MCP (`ao mcp serve`), or managed-agents (`ao agent`) | The operator or a lead agent runs `bd ready` and dispatches a whole loop per bead (`ao rpi <bead>`); cron / managed triggers run maintenance | The substrate owns the merge gate (CI-green is the signal) and triggers the knowledge-flywheel feedback | The substrate orchestrates *whole* `ao rpi`/`ao evolve` loops — it never sees the loop's insides; the seam is substrate → `ao` as a subprocess. There is no in-CLI `runtime=gc` executor. Codex skills still chain `$skill` invocations for lead orchestration. See [docs/3.0.md](https://github.com/boshu2/agentops/blob/main/docs/3.0.md). |
+| `substrate` (out-of-session) | A swappable orchestration substrate available out-of-session: an NTM tmux swarm, MCP (`ao mcp serve`), or managed-agents (`ao agent`) | The operator or a lead agent runs `bd ready` and dispatches a whole loop per bead (`ao rpi <bead>`); cron / managed triggers run maintenance | The substrate owns the merge gate (CI-green is the signal) and triggers the knowledge-flywheel feedback | The substrate orchestrates *whole* `ao rpi` loops — it never sees the loop's insides; the seam is substrate → `ao` as a subprocess. There is no in-CLI `runtime=gc` executor. Codex skills still chain `$skill` invocations for lead orchestration. See [docs/3.0.md](https://github.com/boshu2/agentops/blob/main/docs/3.0.md). |
 | `codex-hookless-fallback` | Codex Desktop / Codex CLI without hook surfaces | `ao codex start` or `ao codex ensure-start` | `ao codex stop` or `ao codex ensure-stop` | Explicit startup context, citation tracking, transcript fallback, and close-loop metrics without hooks |
 | `manual` | Codex cannot resolve repo/runtime state automatically | `ao inject` / `ao lookup` | `ao forge transcript` + `ao flywheel close-loop` | Works everywhere, but lifecycle actions are operator-driven |
 
 Codex skill orchestration default is `$skill` chaining. Inside a Codex skill,
-invoke peer skills such as `$rpi`, `$discovery`, `$crank`, `$validation`,
-`$evolve`, `$plan`, and `$pre-mortem` directly. Use `ao rpi`, `ao evolve`, or
+invoke peer skills such as `$rpi`, `$discovery`, `$crank`, `$validate`,
+`$evolve`, `$plan`, and `$pre-mortem` directly. Use `ao rpi` or
 similar lifecycle wrapper commands only when the user explicitly asks for a
 terminal wrapper or when documenting a non-skill runtime path. Operational CLI
 commands such as `ao lookup`, `ao goals measure`, `ao ratchet`, and
@@ -180,7 +179,7 @@ commands such as `ao lookup`, `ao goals measure`, `ao ratchet`, and
 
 In Codex hookless mode, entry skills such as `$rpi`, `$research`, `$implement`,
 `$status`, `$recover`, and `$discovery` should ensure the start path once per
-thread. Dedicated closeout skills such as `$validation`, `$post-mortem`, and
+thread. Dedicated closeout skills such as `$validate`, `$post-mortem`, and
 `$handoff` should ensure the stop path once per thread.
 
 ## Issue Tracking
@@ -202,7 +201,7 @@ bd vc status          # Inspect Dolt state if needed (JSONL auto-sync is automat
 2. AgentOps inspects `.agents/`, runs safe close-loop maintenance, syncs MEMORY.md, and writes `.agents/ao/codex/startup-context.md`.
 3. Surfaced learnings, patterns, and findings are cited as `retrieved`.
 4. Use `ao lookup` for automatic citations during work, or `ao search --cite retrieved|reference|applied` when a search result is adopted.
-5. End the session through `$validation`, `$post-mortem`, or `$handoff`, which ensure `ao codex ensure-stop` once for the current thread, then verify loop health with `ao codex status` when needed.
+5. End the session through `$validate`, `$post-mortem`, or `$handoff`, which ensure `ao codex ensure-stop` once for the current thread, then verify loop health with `ao codex status` when needed.
 
 **Result:** In hookless Codex mode, the agent still gets prior context, citations, and closeout without hidden hooks.
 
@@ -223,7 +222,7 @@ bd vc status          # Inspect Dolt state if needed (JSONL auto-sync is automat
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Skill not auto-loaded | Hook runtime unavailable or startup path not run | Hook-capable runtimes: verify `hooks/session-start.sh` exists and is enabled. Codex: let an entry skill ensure `ao codex ensure-start`, or use `ao codex status` / `ao codex start` as the manual fallback |
+| Skill not loaded | Startup path not run | Run `ao session bootstrap`, then `ao inject` / `ao lookup`; for Codex lifecycle recovery, run `ao codex ensure-start` or `ao codex start` explicitly |
 | Outdated skill catalog | This file not synced with actual skills/ directory | Update skill list in this file after adding/removing skills |
 | Wrong skill suggested | Natural language trigger ambiguous | User explicitly calls skill with `/skill-name` syntax |
 | Workflow unclear | RPI phases not well-documented here | Read full workflow guide in README.md or docs/ARCHITECTURE.md |

@@ -1,6 +1,6 @@
 ---
 name: eval-outcomes
-description: 'Holdout-safe Outcomes grading: project the locked eval substrate, then ingest one verdict.'
+description: "Run eval outcomes."
 ---
 
 # $eval-outcomes — Outcomes as a Projection of the Locked Eval Substrate (Codex Native)

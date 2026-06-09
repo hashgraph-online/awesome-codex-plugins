@@ -12,7 +12,7 @@ This skill is for **you** (the human) to reflect on how well you're leveraging A
 ```
 Hook (auto)                    Skill (on-demand /reflect)
 ─────────────                  ──────────────────────────
-observe → obs/*.jsonl  ──→     epic-harness reflect --context 30
+observe → obs/*.jsonl  ──→     epic reflect --context 30
 evolve → metrics.json  ──→     5-dimension scorecard
 seed → evolved skills  ──→     Action items for the human
 ingest → memory graph  ──→     Trend analysis
@@ -29,7 +29,7 @@ Block self-serving bias: "doing well" conclusions require concrete metrics.
 
 ```bash
 # Uses Rust subcommand — works on all platforms (Linux, macOS, Windows)
-epic-harness reflect --context 30 > /tmp/reflect_ctx.json
+epic reflect --context 30 > /tmp/reflect_ctx.json
 ```
 
 Fallback if subcommand fails:
@@ -40,9 +40,9 @@ python3 -c "import json; m=json.load(open('$HARNESS_DIR/metrics.json')); print('
 
 Query memory (if active):
 ```bash
-epic-harness mem recall "AI usage patterns decisions metacognition" --limit 8
-epic-harness mem list --type decision --limit 5
-epic-harness mem list --type pattern --limit 5
+epic mem recall "AI usage patterns decisions metacognition" --limit 8
+epic mem list --type decision --limit 5
+epic mem list --type pattern --limit 5
 ```
 
 ### Step 1 — 5-Dimension Reflection
@@ -174,7 +174,7 @@ Format: `[Priority] Title — Concrete action — Expected impact`
 Recommended action pool (select by low-scoring dimensions):
 - Thought Amplification low → council mode weekly, /spec writing habit
 - Self-Improvement low → `/evolve history` periodic review, manual pattern notes
-- Metacognition low → `epic-harness mem add --type decision` after every important decision
+- Metacognition low → `epic mem add --type decision` after every important decision
 - Prompt low → post low-quality session prompt review → seed improved evolved skill
 - Efficiency low → Agent parallel sub-agent patterns, script repetitive Bash calls
 
@@ -182,7 +182,7 @@ Recommended action pool (select by low-scoring dimensions):
 
 Save reflection to memory (if mem tools active):
 ```bash
-epic-harness mem add \
+epic mem add \
   --type session \
   --title "AI usage reflection {date}" \
   --tags "reflection,metacognition" \
@@ -199,7 +199,7 @@ epic-harness mem add \
 | "Too few sessions for accurate reflection" | Even 3 sessions reveal patterns. Insufficient data is not an excuse for a high score. | Reflect on available data; add data collection improvement as an action item. |
 | "Bash-heavy because it's a Rust project" | Tool usage distribution doesn't only reflect task type. Check for Bash calls that could be delegated to Agent. | Find ≥ 3 Bash calls that could be replaced by Agent delegation. |
 | "Score 0.75 is good enough" | 0.75 is not an absolute standard. Trend vs previous period matters more. | Compare last 5-session average vs prior 5-session average in score_history. |
-| "No memory needed — context is enough" | Context dies at session end. Without cross-session learning continuity, you start from scratch every time. | Start the habit of `epic-harness mem add` after every important decision — now. |
+| "No memory needed — context is enough" | Context dies at session end. Without cross-session learning continuity, you start from scratch every time. | Start the habit of `epic mem add` after every important decision — now. |
 | "Code output is already good, so it's fine" | Code output quality ≠ thought amplification. Good code can still mean AI is doing the thinking for you. | Count how many decisions in the last 5 sessions you actually designed yourself. |
 
 ## Evidence Required

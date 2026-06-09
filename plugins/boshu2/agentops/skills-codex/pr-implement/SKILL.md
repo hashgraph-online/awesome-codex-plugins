@@ -1,6 +1,6 @@
 ---
 name: pr-implement
-description: 'Implement a scoped OSS PR.'
+description: "Run pr implement."
 ---
 # PR Implement Skill
 

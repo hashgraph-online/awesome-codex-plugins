@@ -1,6 +1,6 @@
 Author and manage holdout scenarios for Stage 4 behavioral validation.
 
-Scenarios are stored in `.agents/holdout/` where implementing agents cannot see them (enforced by holdout-isolation-gate hook). Evaluator agents validate code against scenarios during STEP 1.8 in `$validation`.
+Scenarios are stored in `.agents/holdout/` where implementing agents cannot see them (enforced by holdout-isolation-gate hook). Evaluator agents validate code against scenarios during STEP 1.8 in `$validate`.
 
 ## Commands
 

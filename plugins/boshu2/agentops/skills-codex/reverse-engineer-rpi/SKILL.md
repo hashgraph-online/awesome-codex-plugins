@@ -1,6 +1,6 @@
 ---
 name: reverse-engineer-rpi
-description: 'Reverse-engineer product specs.'
+description: "Run reverse engineer RPI."
 ---
 # $reverse-engineer-rpi
 

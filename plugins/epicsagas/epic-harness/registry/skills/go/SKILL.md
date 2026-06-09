@@ -5,7 +5,7 @@ description: "Go phase. Reads approved SPEC, maps requirements to tasks, execute
 
 # Go — Build It
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
 
 ## Execution Modes
 

@@ -30,6 +30,9 @@ every role:
 - `model` (personal preference)
 - `reasoning_effort` (personal preference)
 - `system_instructions` (may contain personal addenda)
+- `nickname_candidates` (personal display preference)
+- `mcp_servers` (local/private tool wiring)
+- `skills_config` (local/private skill wiring)
 
 These fields are stripped because they should not become team policy.
 The user can review and re-add team-relevant instructions manually.
@@ -57,6 +60,9 @@ What was stripped (personal-only fields):
   - roles.*.model
   - roles.*.reasoning_effort
   - roles.*.system_instructions
+  - roles.*.nickname_candidates
+  - roles.*.mcp_servers
+  - roles.*.skills_config
 
 Review it before committing. To customize:
   - Team settings: edit .agenteam.team/config.yaml (tracked in git)
@@ -72,6 +78,7 @@ Next steps:
 - The team config becomes the source of truth for pipeline, stages,
   gates, roles, and isolation.
 - Personal overrides in `.agenteam/config.yaml` can only change
-  `model`, `reasoning_effort`, and `system_instructions` (append).
+  `model`, `reasoning_effort`, `system_instructions` (append),
+  `nickname_candidates`, `mcp_servers`, and `skills_config`.
 - The team can widen personal overrides with `allow_personal_override`
   in the team config.

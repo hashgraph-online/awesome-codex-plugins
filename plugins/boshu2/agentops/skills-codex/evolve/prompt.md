@@ -1,6 +1,6 @@
 # evolve
 
-Run `$evolve` as the Codex-facing operator loop: post-mortem finished work, analyze repo state, select or create the next highest-value item, let `$rpi` plan/pre-mortem/implement/validate it, harvest follow-ups, and repeat until a real stop condition fires. Do not shell out to `ao evolve`, `ao rpi`, or any wrapper command for the lead cycle.
+Run `$evolve` as the Codex-facing operator loop: post-mortem finished work, analyze repo state, select or create the next highest-value item, let `$rpi` plan/pre-mortem/implement/validate it, harvest follow-ups, and repeat until a real stop condition fires. Drive the lead cycle in-session through the skills; do not shell out to a CLI loop wrapper.
 
 ## Codex Execution Profile
 
@@ -9,7 +9,7 @@ Run `$evolve` as the Codex-facing operator loop: post-mortem finished work, anal
 3. Prefer Codex sub-agents for generator layers and sidecar audits when they can run in parallel without blocking the main loop.
 4. Persist loop state under `.agents/evolve/` and recover from disk instead of relying on live context.
 5. When `PROGRAM.md` or `AUTODEV.md` exists, treat it as the active execution layer: keep selection inside mutable scope, escalate immutable-scope work, and use its validation and decision policy in the cycle gate.
-6. Do not invent a new loop skill name when the user asks what this should be called; the Codex-facing loop is `$evolve`, while `ao evolve` is only the terminal wrapper.
+6. Do not invent a new loop skill name when the user asks what this should be called; the Codex-facing loop is `$evolve`, the in-session skill.
 7. For Nightly/evolve maintenance cycles, start with the rolling Nightly evidence brief when present, or generate one with `scripts/nightly-rpi-brief.sh`, before selecting the next `$rpi` objective.
 8. Prefer recurring code-driven failures over runtime-artifact-only or corpus-state-only fitness movement; treat those non-code signals as diagnostics unless the operator explicitly asks for corpus maintenance.
 

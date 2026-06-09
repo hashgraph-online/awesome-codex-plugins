@@ -6,8 +6,8 @@ Every specialist file must be concise, triggerable, and artifact-oriented.
 
 - YAML frontmatter with `name` and trigger-only `description`.
 - `# Skill Name`
-- `## Overview`
 - `## Iron Law`
+- `## Overview`
 - `## When To Use`
 - `## When Not To Use`
 - `## Info To Gather`

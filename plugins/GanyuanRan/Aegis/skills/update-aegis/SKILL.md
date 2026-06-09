@@ -32,6 +32,12 @@ python scripts/aegis-update.py status --json
 If the registry is missing, register the current host before updating. Use the
 host's install guide and actual discovery path rather than guessing.
 
+If `~/.config/aegis/config.toml` already declares `method_pack_root`, prefer
+that canonical root when registering additional hosts. Host-specific discovery
+paths, copied skill directories, plugin caches, or adapter payloads should be
+treated as generated / host-managed views into the same Aegis body, not as
+separate editable checkouts.
+
 Codex example:
 
 ```bash
@@ -97,6 +103,10 @@ the post-update doctor verification succeeds. For link-based discovery roots
 through to `aegis-doctor.py --discovery-root`. For copy-based hosts, it verifies
 that copied Aegis skill directories exist after the copy step, then runs doctor
 against the method-pack root.
+
+When multiple registered hosts share the same `methodPackRoot`, the updater now
+reuses a single method-pack checkout update and then refreshes each host's
+exposure or verification path separately.
 
 Report:
 

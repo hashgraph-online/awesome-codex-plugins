@@ -1,6 +1,6 @@
 ---
 name: using-ntm
-description: Use NTM as the out-of-session substrate for unattended AgentOps loops.
+description: "Run using NTM."
 ---
 
 # Using NTM as the Out-of-Session Substrate
@@ -14,7 +14,7 @@ external tool (`ntm` on `PATH`), **not** an AgentOps-owned surface.
 
 > **Skills are the runtime, not the CLI.** The substrate dispatches a *whole
 > loop* by spawning an agent that **runs the $rpi or $evolve skill** — it does
-> **not** shell out to an `ao rpi` / `ao evolve` subprocess. Those terminal
+> **not** shell out to a retired CLI subprocess. Those terminal
 > wrappers are retired; the loop lives as a skill an agent executes. The seam is
 > **NTM pane → agent → $rpi <bead>**, one bead dispatched as one invocable unit.
 
@@ -40,7 +40,7 @@ tend AgentOps loops on an NTM swarm.
    invariants, and AgentOps owns the loop. Dispatch the skill; don't reimplement it.
 2. **Agents inherit the skills via overlay.** Each pane is a Claude or Codex
    agent with the AgentOps Codex skills installed, so `$rpi`, `$evolve`,
-   `$validation` resolve in-pane.
+   `$validate` resolve in-pane.
 3. **The bead queue is the work source.** A lead runs `bd ready`, picks the next
    bead, and dispatches it to a free worker pane.
 4. **Green CI is the merge gate.** Each worker drives its bead to a green PR from
@@ -95,7 +95,7 @@ pane also looks idle.
 
 ## Anti-patterns
 
-- ❌ Shelling out to `ao rpi` / `ao evolve` — retired CLI; dispatch the `$rpi` / `$evolve` skill instead.
+- ❌ Shelling out to a retired CLI; dispatch the `$rpi` / `$evolve` skill instead.
 - ❌ Decomposing the loop into substrate steps — dispatch the whole loop as one invocable unit.
 - ❌ Editing the shared checkout from a pane — worktree-per-bead, always.
 - ❌ Treating NTM as AgentOps-owned — it is an adopted external substrate; a managed-agents driver (`ao agent`) or a plain in-session run are equally valid legs. Choose via $automation-shape-routing.

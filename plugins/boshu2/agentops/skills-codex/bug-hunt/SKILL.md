@@ -1,6 +1,6 @@
 ---
 name: bug-hunt
-description: 'Investigate bugs and root causes.'
+description: "Run bug hunt."
 ---
 # Bug Hunt Skill
 
@@ -11,7 +11,7 @@ description: 'Investigate bugs and root causes.'
 Systematic investigation to find root cause and design a complete fix — or proactive audit to find hidden bugs before they bite.
 
 **Requires:**
-- session-start.sh has executed (creates `.agents/` directories for output)
+- writable `.agents/` output directories; create them explicitly if absent
 - bd CLI (beads) for issue tracking if creating follow-up issues
 
 ## Modes

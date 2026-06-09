@@ -45,6 +45,7 @@ Cost is an operational signal, but reliability headroom is not waste by default.
 - Recent deploys, traffic changes, incidents, abuse signals, and cost regressions.
 - Metered usage, pricing or discount rules, eligibility boundaries, and reconciliation evidence for customer-visible charges.
 - Reliability risk tolerance and confirmation path for reducing headroom.
+- Cost of downtime or degradation per unit time for the affected journey, used to size justified reliability spend.
 
 ## Workflow
 
@@ -80,7 +81,7 @@ Optimize unit cost with allocation, anomaly detection, right-sizing, and capacit
 ## Exceptions
 
 - Non-critical batch or preemptible workloads may use cheaper interruptible capacity if retries, deadlines, and data correctness are safe.
-- Emergency cost controls can temporarily degrade non-critical features if user impact and rollback are explicit.
+- Emergency cost controls can temporarily degrade non-critical features if user impact and rollback are explicit. Define graceful-degradation tiers (pre-defined service levels that shed non-critical work in order) as a cost-versus-reliability lever instead of an all-or-nothing cut.
 - Regulated, safety-critical, or externally committed systems may keep high headroom even when utilization looks inefficient.
 - Public abuse cost spikes should use `edge-traffic-and-ddos-defense` instead.
 - Small estates may not justify heavy allocation pipelines; use coarse unit tracking until savings exceed instrumentation cost.
@@ -117,6 +118,7 @@ Optimize unit cost with allocation, anomaly detection, right-sizing, and capacit
 - `driver_check`: cost drivers are separated before recommending cuts.
 - `charge_reconciliation`: metered units, pricing rules, discounts, credits, and eligibility boundaries are reconciled for customer-visible charges or allocation.
 - `opportunity_tracking`: optimization recommendations have owner, status, and actual-versus-estimated impact review.
+- `degradation_tiers`: pre-defined degradation tiers exist as a spend/reliability lever, sized against the cost of downtime.
 - `rollback_check`: optimization has rollback or mitigation plan.
 - `regression_check`: post-change cost and reliability signals are monitored.
 

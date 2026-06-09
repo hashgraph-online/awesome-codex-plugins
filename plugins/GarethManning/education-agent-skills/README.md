@@ -5,7 +5,7 @@
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 [![Last Commit](https://img.shields.io/github/last-commit/GarethManning/education-agent-skills)](https://github.com/GarethManning/education-agent-skills/commits/main)
 
-An open-source library of 165 evidence-based pedagogical skills across 20 domains — works in Claude Code, Claude.ai (via MCP), and OpenAI Codex, and engineered for AI agent orchestration. Domains 1–19 are teacher and designer-facing. Domain 20 is the first student-facing domain: live AI interaction patterns that shape how AI responds to learners during study sessions.
+An open-source library of 165 evidence-based pedagogical skills across 20 domains — works in Claude Code, Claude.ai (via MCP), OpenAI Codex, and Hermes Agent, and is engineered for AI agent orchestration. Domains 1–19 are teacher and designer-facing. Domain 20 is the first student-facing domain: live AI interaction patterns that shape how AI responds to learners during study sessions.
 
 > [!IMPORTANT]
 > **Hosted MCP access now requires an auth token.**
@@ -18,7 +18,7 @@ An open-source library of 165 evidence-based pedagogical skills across 20 domain
 
 ## Get Started
 
-Works with Claude, Codex, and any tool that supports the Agent Skills standard.
+Works with Claude, Codex, Hermes Agent, and any tool that supports the Agent Skills standard.
 
 For sustainable free use, install or copy the skills locally from GitHub where possible. The hosted MCP server is a convenience endpoint for remote clients, not a requirement for using the library.
 
@@ -71,6 +71,23 @@ cp -r skills/memory-learning-science/spaced-practice-scheduler ~/.codex/skills/
 
 Full Codex guide: [docs/CODEX.md](docs/CODEX.md).
 
+### Hermes Agent
+
+Hermes users should keep this repository as the canonical source, then install only the skills they actually need locally.
+
+```bash
+hermes skills tap add GarethManning/education-agent-skills
+hermes skills install \
+  GarethManning/education-agent-skills/skills/original-frameworks/learning-target-authoring-guide \
+  --category education --yes
+```
+
+Recommended starting point: install selected skills or a small starter pack rather than all 165 skills. That keeps your local Hermes index useful instead of noisy.
+
+If you want intelligent skill discovery and recommendation rather than local/offline installs, use the hosted MCP server's `find_skills` and `suggest_skills` tools. The MCP route and the Hermes tap serve different adopter types; a separate Hermes plugin is not currently planned.
+
+Full Hermes guide: [docs/HERMES.md](docs/HERMES.md).
+
 ### Any Agent Skills-compatible tool
 
 Copy skill folders from `skills/` into your agent's skills directory. Each skill is a folder containing `SKILL.md` with name/description frontmatter — no dependencies, no build step.
@@ -95,7 +112,7 @@ I'd love to hear your thoughts. If you have suggestions, find bugs, or want to c
 ---
 
 **I'm an educator — [start here](#try-it-now)**
-No setup required. Install the plugin and start teaching.
+No setup required. Use the plugin, a local skill install, or manual copy-paste and start teaching.
 
 **I'm a developer or AI builder — [start here](#architecture)**
 YAML schemas, typed inputs and outputs, chaining metadata, [live MCP server](#mcp-server).
@@ -132,9 +149,9 @@ That is one use case. The same library can power school-wide curriculum audits, 
 
 ## Try It Now
 
-### With the plugin (recommended)
+### With a runtime install (recommended)
 
-Install the plugin, then tell Claude what you need in plain language. The skills activate automatically.
+Install the skills in Claude, Codex, or Hermes, then tell your agent what you need in plain language. The relevant skills can be selected automatically or searched locally.
 
 **Example:** Say *"I'm planning a Year 9 science unit on cells — 6 weeks, 3 lessons a week."*
 

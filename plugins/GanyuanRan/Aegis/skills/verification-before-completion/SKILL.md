@@ -64,12 +64,14 @@ Semantic Slots:
   residual risk, confidence, and any triggered governance closure.
 
 TDD Completion Boundary:
-- A passing GREEN cycle proves local behavior only.
-- Final completion must compare any available `Slice Card`, `TaskIntentDraft`,
-  and parent plan/spec acceptance against the claim being made.
-- If only the slice goal is satisfied, do not claim whole-task `done`; state
-  covered and uncovered scope and downgrade to `needs-verification` unless the
-  parent acceptance is also satisfied.
+- Judge the completion claim against the highest available explicit boundary.
+- Parent plan/spec acceptance decides whole-task completion; `TaskIntentDraft`
+  decides current-task completion; `Slice Card` decides slice completion only.
+- Match the boundary to the claim being made, and keep any higher open boundary
+  explicit.
+- If only slice-level evidence exists, do not claim whole-task `done`.
+- If no explicit boundary exists and atomicity is not clear, downgrade to
+  `needs-verification` or return to framing/planning.
 
 1. **Remove/Restore**: side effects? temp instrumentation restored?
 2. **Evidence Bundle**: exact command, scope, exit status, key output. State what's covered and what's not. Include target test and related regression evidence. When automation is blocked, provide reproducible manual verification steps.
@@ -79,10 +81,12 @@ TDD Completion Boundary:
 6. **Goal Closure**: when `goal-framing` or optional `TaskIntentDraft` goal
    fields shaped the work, explicitly check the goal before claiming completion:
 
-   Evidence precedence for completion judgment:
-   1. `Slice Card` Goal / Verification / Stop for the current slice, when present
-   2. `TaskIntentDraft` Goal / Success evidence / Non-goals, when present
-   3. Parent plan/spec acceptance, when present
+   Available boundary check for completion judgment:
+   1. Parent plan/spec acceptance for whole-task completion, when present
+   2. `TaskIntentDraft` Goal / Success evidence / Non-goals for the current
+      task, when present
+   3. `Slice Card` Goal / Verification / Stop for the current slice, when
+      present
 
    ```text
    Goal Closure:

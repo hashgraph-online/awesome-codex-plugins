@@ -1,6 +1,6 @@
 ---
 name: complexity
-description: 'Find focused refactor hotspots.'
+description: "Run complexity."
 ---
 # Complexity Skill
 

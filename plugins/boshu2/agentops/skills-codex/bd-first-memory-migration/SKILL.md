@@ -1,6 +1,6 @@
 ---
 name: bd-first-memory-migration
-description: 'Consolidate fragmented agent-memory layers into one bd-canonical store, then GC/retire the rest. Triggers: "memory migration", "consolidate agent memory", "beads-first memory".'
+description: "Run bd first memory migration."
 ---
 
 # bd-first-memory-migration (Codex twin)

@@ -9,7 +9,7 @@ modes:
 
 # Skill: Orchestrate
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
 
 ## Process
 
@@ -20,7 +20,7 @@ Each mode follows its own step sequence below. In auto mode: check state → rea
 Triggered automatically when an active multi-agent orchestration is detected.
 
 ### Step 1: Check orchestration state
-1. Run `HARNESS_DIR=$(epic-harness path)`
+1. Run `HARNESS_DIR=$(epic path)`
 2. Read `$HARNESS_DIR/orchestrator/run.json`
 3. If no active run, this skill does not apply — return
 

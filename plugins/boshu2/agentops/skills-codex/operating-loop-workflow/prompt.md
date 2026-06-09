@@ -4,7 +4,7 @@ Run the operating-loop seven-move loop (shape → plan → pre-flight → implem
 
 ## Codex Execution Profile
 
-1. In Codex, the operating-loop seven moves ARE the `$rpi` chain (`$discovery` → `$crank` → `$validation`); there is no separate engine to install.
+1. In Codex, the operating-loop seven moves ARE the `$rpi` chain (`$discovery` → `$crank` → `$validate`); there is no separate engine to install.
 2. Run `$rpi --auto "<intent>"` for the full loop, or `$discovery "<intent>"` stopping after `$pre-mortem` for the plan-only half.
 3. Keep cross-runtime references brief and non-blocking.
 

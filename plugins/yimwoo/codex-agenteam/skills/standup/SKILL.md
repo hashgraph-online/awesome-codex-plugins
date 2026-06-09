@@ -36,6 +36,8 @@ Capture the JSON output. Expected fields:
 - `task` -- task description
 - `stages` -- list of stages with status, assigned role, and gate state
 - `artifact_paths` -- map of role name to artifact directory
+- `governance.adoption` -- optional summary of decisions, escalations,
+  tripwire checks, gate rejections, and criteria overrides
 - `output_path` -- where to write the final report (e.g., `docs/meetings/<timestamp>-standup.md`)
 
 ### 3. Read Role Artifacts
@@ -112,7 +114,9 @@ Rules for the report:
   three parts: the problem, the proposed next step, and the owner
   responsible for unblocking.
 - **Decisions** captures key architectural or strategic decisions found
-  in design docs or strategy files. Omit this section if none are
+  in `governance.adoption`, design docs, or strategy files. Include open
+  follow-ups, escalations, tripwire blocks, gate rejections, and criteria
+  overrides when the runtime JSON reports them. Omit this section if none are
   found.
 - **Next** describes what happens once current in-progress work
   completes (the next stage in the pipeline, or follow-up actions).

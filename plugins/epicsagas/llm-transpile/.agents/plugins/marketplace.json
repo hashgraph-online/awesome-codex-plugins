@@ -1,0 +1,21 @@
+{
+  "name": "epicsagas",
+  "interface": {
+    "displayName": "epicsagas Plugins"
+  },
+  "plugins": [
+    {
+      "name": "llm-transpile",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "pluginManifest": "./.codex-plugin/plugin.json",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow"
+    }
+  ]
+}

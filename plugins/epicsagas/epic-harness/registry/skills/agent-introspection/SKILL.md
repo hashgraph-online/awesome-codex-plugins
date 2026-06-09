@@ -56,7 +56,7 @@ Generate a structured report:
 
 Save to memory:
 ```bash
-epic-harness mem add \
+epic mem add \
   --title "Self-diagnosis: {error_type} in {file}" \
   --type error \
   --body "Pattern: ...\nRoot cause: ...\nRecovery: ...\n"

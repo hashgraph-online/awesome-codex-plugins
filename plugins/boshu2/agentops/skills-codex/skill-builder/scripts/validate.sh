@@ -5,12 +5,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"
 
-# Run heal-skill structural check on ourselves
-bash "$REPO_ROOT/skills/heal-skill/scripts/heal.sh" --check "$SKILL_DIR"
+# Run heal-skill structural check on ourselves by exit code.
+bash "$REPO_ROOT/skills/heal-skill/scripts/heal.sh" --check --strict "$SKILL_DIR"
 
 # Verify required artifacts exist
 for f in SKILL.md scripts/build.sh scripts/init.sh references/skill-template.md schemas/build-report.json; do
   [[ -f "$SKILL_DIR/$f" ]] || { echo "validate.sh: missing $SKILL_DIR/$f" >&2; exit 1; }
+done
+
+# Verify scale-factory lessons stay encoded.
+for phrase in \
+  "heal-skill --check --strict" \
+  "One skill directory = one writer" \
+  "git status" \
+  "Clean-room includes names" \
+  "Workflow tool"; do
+  grep -q "$phrase" "$SKILL_DIR/SKILL.md" "$SKILL_DIR/references/agentops-skill-factory.md" || {
+    echo "validate.sh: missing scale-factory lesson: $phrase" >&2
+    exit 1
+  }
 done
 
 # Verify SKILL.md is within churn budget

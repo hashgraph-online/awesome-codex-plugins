@@ -49,6 +49,18 @@ fi
 
 # Pass 3: audit.sh must fold the rubric block in, and the scorer must support
 # --audit-block. The rubric must be advisory (not in the Pass-2 verdict loop).
+grep -q -- '--check --strict' "$SKILL_DIR/scripts/audit.sh" || {
+  echo "validate.sh: scripts/audit.sh must invoke heal.sh with --check --strict" >&2
+  exit 1
+}
+grep -q 'PASS1_EXIT_CODE' "$SKILL_DIR/scripts/audit.sh" || {
+  echo "validate.sh: scripts/audit.sh must gate Pass 1 on heal.sh exit code" >&2
+  exit 1
+}
+grep -q '"exit_code": %s' "$SKILL_DIR/scripts/audit.sh" || {
+  echo "validate.sh: audit-report.json must include Pass-1 heal.sh exit_code" >&2
+  exit 1
+}
 grep -q 'score_agentops_skill.py' "$SKILL_DIR/scripts/audit.sh" || {
   echo "validate.sh: scripts/audit.sh missing Pass-3 rubric invocation (score_agentops_skill.py)" >&2
   exit 1

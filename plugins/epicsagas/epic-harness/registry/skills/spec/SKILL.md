@@ -5,7 +5,7 @@ description: "Spec phase. Converts user requirements into numbered Requirements 
 
 # Spec — Define What to Build
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
 
 ## Process
 

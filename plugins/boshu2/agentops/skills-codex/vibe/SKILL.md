@@ -1,6 +1,6 @@
 ---
 name: vibe
-description: 'Validate code readiness.'
+description: "Run vibe."
 ---
 # Vibe Skill
 

@@ -6,7 +6,7 @@ description: >-
   built-in CLI tools, sandboxes, code-first stored/upsert/virtual agents or flows, local
   tools, hidden parameters, or source-controlled Runtype workflows.
 user-invocable: true
-argument-hint: "[SDK, CLI, or Marathon task]"
+argument-hint: '[SDK, CLI, or Marathon task]'
 ---
 
 # Runtype SDK And Marathon
@@ -63,6 +63,9 @@ Common commands include `runtype agents list`, `runtype dispatch`, `runtype flow
 `runtype records create`, `runtype schedules`, `runtype models`, `runtype batch`,
 `runtype eval`, `runtype persona`, `runtype products init`, and
 `runtype validate-product`.
+
+For command flags not listed here, run `runtype --help` or
+`runtype marathon --help` instead of expanding this skill with CLI reference text.
 
 ## Marathon
 

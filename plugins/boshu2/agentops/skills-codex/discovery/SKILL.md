@@ -1,13 +1,13 @@
 ---
 name: discovery
-description: 'Create dense execution packets.'
+description: "Run discovery."
 ---
 # $discovery - Dense Discovery Phase Adapter
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
 Discovery turns a goal plus delegated child artifacts into one dense execution
-packet for `$crank` and `$validation`.
+packet for `$crank` and `$validate`.
 
 ## Strict Delegation Contract
 

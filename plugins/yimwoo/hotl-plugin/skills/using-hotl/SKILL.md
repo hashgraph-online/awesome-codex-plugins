@@ -1,6 +1,6 @@
 ---
 name: using-hotl
-description: Use when starting any conversation - establishes how to find and use HOTL skills for implementation tasks
+description: Use when the user explicitly asks for HOTL routing or needs guidance choosing the right HOTL workflow skill.
 ---
 
 ## When to Use HOTL Skills
@@ -20,7 +20,7 @@ HOTL skills are for **code-changing tasks that require planning** — new featur
 
 ## Available HOTL Skills
 
-Use the `Skill` tool to invoke any of these when appropriate:
+Invoke any of these when appropriate:
 
 | Skill | When to Use |
 |---|---|

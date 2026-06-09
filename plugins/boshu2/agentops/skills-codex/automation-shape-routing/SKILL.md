@@ -1,6 +1,6 @@
 ---
 name: automation-shape-routing
-description: 'Front door for agent automation: route to the right builder.'
+description: "Run automation shape routing."
 ---
 # $automation-shape-routing — Orchestration vs NTM vs Skill
 

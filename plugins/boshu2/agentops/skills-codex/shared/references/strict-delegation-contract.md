@@ -1,6 +1,6 @@
 # Strict Delegation Contract (shared)
 
-> Applies to all top-level orchestrator skills: `/rpi`, `/discovery`, `/validation`.
+> Applies to all top-level orchestrator skills: `/rpi`, `/discovery`, `/validate`.
 > Strict sub-skill delegation is the **default**, not opt-in.
 
 ## The Contract
@@ -21,7 +21,7 @@ For high-cost lifecycle phases, the desired runtime shape is:
 2. A phase runner receives only the phase skill name, the bounded handoff
    artifact, and the minimum objective context.
 3. The runner executes the declared skill contract (`$discovery`, `$crank`, or
-   `$validation`) in an isolated phase context.
+   `$validate`) in an isolated phase context.
 4. The orchestrator receives only artifact path, verdict, and next action.
 
 This is not a compression escape. It is strict delegation over an isolated
@@ -37,7 +37,7 @@ phases. Typical rationalizations to reject:
 - *"I'll compress the three phases into one pass."*
 - *"Let me do discovery inline — I already know what to do."*
 - *"Nested `$<skill>` calls waste context; I'll spawn a Codex sub-agent instead."*
-- *"The implementation is validated by tests passing; skipping `/validation`."*
+- *"The implementation is validated by tests passing; skipping `/validate`."*
 - *"The plan looks good, skipping pre-mortem to save time."*
 - *"I'll just spawn 3 judges directly — it's what `/vibe` does anyway."*
 - *"Post-mortem is just writing a summary, I'll do it inline."*
@@ -77,7 +77,7 @@ These flags scale *gate depth* or *scope*, **never skip phases**. They are the o
 - `--interactive` / `--auto` — control human-gate behavior in research and plan
 - `--no-scaffold` — skip STEP 4.5 scaffold auto-invocation (canonical name; `--no-lifecycle` is a deprecated alias through v2.40.0)
 
-### `/validation`
+### `/validate`
 - `--quick` — fast inline gates inside sub-skills (vibe, post-mortem)
 - `--no-retro` / `--no-forge` — skip specific sub-skills
 - `--no-lifecycle` — skip STEP 1.7 lifecycle checks (test, deps, review, perf)
@@ -97,7 +97,7 @@ $discovery <goal> --auto      # Phase 1
 $crank <packet-path> [--test-first]   # Phase 2
   → <promise>DONE</promise>
   → reads .agents/rpi/phase-2-summary-*.md
-$validation --complexity=<level> [--strict-surfaces]   # Phase 3
+$validate --complexity=<level> [--strict-surfaces]   # Phase 3
   → <promise>DONE</promise>
   → writes .agents/rpi/phase-3-summary-*.md
 ```

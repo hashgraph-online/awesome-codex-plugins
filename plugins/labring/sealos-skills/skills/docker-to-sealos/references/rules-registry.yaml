@@ -94,6 +94,9 @@ rules:
   - id: R037
     description: PostgreSQL Cluster metadata.name must align with referenced *-pg-conn-credential secret names in the same template artifact.
     severity: error
+  - id: R040
+    description: Database Cluster resources must include dbprovider visibility labels kb.io/database, sealos-db-provider-cr, and clusterdefinition.kubeblocks.io/name.
+    severity: error
   - id: R008
     description: App workload cloud.sealos.io/app-deploy-manager label must exist and match metadata.name.
     severity: error

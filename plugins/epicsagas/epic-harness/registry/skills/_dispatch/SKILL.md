@@ -5,7 +5,7 @@ description: "Core router. Always active. Auto-invokes matching skill before eve
 
 # Skill Dispatch Engine
 
-**CRITICAL**: When accessing harness data, run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: When accessing harness data, run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
 
 You have access to the following skills. **Invoke the matching skill BEFORE responding or taking action.** Even a 1% chance of relevance means you should invoke it.
 
@@ -25,7 +25,7 @@ You have access to the following skills. **Invoke the matching skill BEFORE resp
 | User request is vague, unfocused, or presents a solution without a clear problem | **discover** |
 | User shares code for review, mentions code smells, or asks to refactor/analyze | **episteme** → `analyze_code` + `suggest_refactorings` → feed results into **go:plan** mode |
 | User invokes `/reflect`, asks about AI usage quality, "am I using AI well", "thought amplifier", or requests AI usage self-assessment | **reflect** |
-| Session start (project has psychographic node in memory) | Run `epic-harness mem list --type psychographic` → apply 5-dimension profile to all subsequent skill dispatch |
+| Session start (project has psychographic node in memory) | Run `epic mem list --type psychographic` → apply 5-dimension profile to all subsequent skill dispatch |
 | Orchestration run active (`$HARNESS_DIR/orchestrator/run.json` exists with status "running") | **orchestrate** |
 | Agent tool output received with inter-agent message | **orchestrate** |
 | User runs `/intervene` | **orchestrate** |
@@ -129,11 +129,11 @@ This enables Ring 3 to analyze which skills fire most often, which are effective
 
 Before invoking any skill, **proactively recall** relevant knowledge from the memory graph:
 
-1. **At task start**: Run `epic-harness mem recall "TASK_HINT"` with a hint describing the current task (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
-2. **On errors**: Run `epic-harness mem recall "ERROR_CATEGORY"` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
-3. **On architectural decisions**: Run `epic-harness mem recall "DOMAIN_AREA"` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
-4. **After resolution**: Record via `epic-harness mem add --title "TITLE" --type resolution --body "BODY"` (auto-importance=0.8) or `--type decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
-5. **Fallback**: If `mem recall` is unavailable, use `epic-harness mem search "KEYWORD"` (keyword FTS) or `epic-harness mem context --project PROJ` (project-scoped smart recall).
+1. **At task start**: Run `epic mem recall "TASK_HINT"` with a hint describing the current task (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
+2. **On errors**: Run `epic mem recall "ERROR_CATEGORY"` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
+3. **On architectural decisions**: Run `epic mem recall "DOMAIN_AREA"` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
+4. **After resolution**: Record via `epic mem add --title "TITLE" --type resolution --body "BODY"` (auto-importance=0.8) or `--type decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
+5. **Fallback**: If `mem recall` is unavailable, use `epic mem search "KEYWORD"` (keyword FTS) or `epic mem context --project PROJ` (project-scoped smart recall).
 
 Memory scoring: recency(25%) + importance(35%) + access_freq(15%) + FTS_match(25%). Frequently accessed and important memories naturally float to the top; unused noise decays over time.
 
@@ -164,7 +164,7 @@ Check `$HARNESS_DIR/evolved/` for project-specific auto-evolved skills. These ar
 
 ## Psychographic Adaptation
 
-When user preference data is available via `epic-harness mem list --type psychographic`, adapt dispatch behavior:
+When user preference data is available via `epic mem list --type psychographic`, adapt dispatch behavior:
 
 ### 5-Dimension Profile
 
@@ -178,7 +178,7 @@ When user preference data is available via `epic-harness mem list --type psychog
 
 ### How to use
 
-1. At session start, run `epic-harness mem list --type psychographic` to load profile
+1. At session start, run `epic mem list --type psychographic` to load profile
 2. If no profile exists, use defaults: moderate/balanced/standard/collaborative/balanced
 3. Apply profile dimensions to skill selection and execution parameters:
 
@@ -190,7 +190,7 @@ When user preference data is available via `epic-harness mem list --type psychog
 
 ### Profile storage
 
-Store profiles using `epic-harness mem add` with:
+Store profiles using `epic mem add` with:
 - type: "psychographic"
 - title: "user-profile: {project}"
 - tags: ["psychographic", "profile", project slug]

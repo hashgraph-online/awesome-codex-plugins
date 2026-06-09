@@ -40,6 +40,11 @@
 | Cache | Key | Invalidation Trigger | Poisoning Defense |
 | --- | --- | --- | --- |
 
+## Cache Hermeticity Evidence
+
+| Cache | Declared Inputs | Stale-Output Detection | Miss-Path Check | Release Trust Decision |
+| --- | --- | --- | --- | --- |
+
 ## Release Checks
 
 | Check | Required Or Advisory | Evidence | Failure Response |

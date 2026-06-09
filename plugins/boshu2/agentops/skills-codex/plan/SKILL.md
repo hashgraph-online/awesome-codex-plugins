@@ -1,6 +1,6 @@
 ---
 name: plan
-description: 'Decompose goals into issue plans.'
+description: "Run plan."
 ---
 
 # $plan - Issue-Ready Decomposition

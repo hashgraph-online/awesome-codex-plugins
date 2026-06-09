@@ -1,6 +1,6 @@
 {
   "name": "orgx-codex-plugin",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "OrgX MCP access and initiative-aware Codex skills for operating inside OrgX workstreams.",
   "author": {
     "name": "OrgX Team",
@@ -20,8 +20,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "OrgX for Codex",
-    "shortDescription": "Install OrgX MCP and initiative-aware workflows in Codex.",
-    "longDescription": "Bundles OrgX MCP configuration, Codex skills, and runtime hook templates for initiative orchestration, passive Work Graph reconciliation, artifact registration, and human-in-the-loop decision flows.",
+    "shortDescription": "Install OrgX MCP, chronicle reporting, and initiative-aware workflows in Codex.",
+    "longDescription": "Bundles OrgX MCP configuration, Codex skills, and runtime hook templates for operator chronicle reporting, initiative orchestration, passive Work Graph reconciliation, artifact registration, and human-in-the-loop decision flows.",
     "developerName": "OrgX Team",
     "category": "Productivity",
     "capabilities": [
@@ -33,7 +33,7 @@
     "privacyPolicyURL": "https://useorgx.com/privacy",
     "termsOfServiceURL": "https://useorgx.com/terms",
     "defaultPrompt": [
-      "Use OrgX to show me what needs my approval right now.",
+      "Use OrgX to show my operator chronicle: yesterday, week, 30 days, decisions, PRs, artifacts, goals, gaps, and top priorities. Call get_operator_chronicle first; if this Codex session has a stale tool list, use orgx_recommend mode=\"morning_brief\" and lead with reportingNarrative.briefMarkdown.",
       "Use OrgX to scaffold this goal into workstreams, milestones, and tasks."
     ],
     "brandColor": "#14B8A6",
