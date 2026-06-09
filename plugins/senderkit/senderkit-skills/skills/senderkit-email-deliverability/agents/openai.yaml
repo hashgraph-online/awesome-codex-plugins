@@ -1,0 +1,4 @@
+interface:
+  display_name: "SenderKit Email Deliverability"
+  short_description: "Authenticate a domain so email reaches the inbox"
+  default_prompt: "Use $senderkit-email-deliverability to diagnose and fix SPF, DKIM, and DMARC for my sending domain."

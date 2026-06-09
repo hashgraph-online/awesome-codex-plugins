@@ -1398,6 +1398,21 @@
       "description": "Reverse engineer Rust binaries and libraries: triage targets, demangle symbols, recover crate namespaces, and map panic, unwind, async, and FFI paths."
     },
     {
+      "name": "senderkit",
+      "displayName": "SenderKit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/senderkit/senderkit-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Add transactional email, SMS, push, and web-push to any app from your AI coding agent, then create templates, send, and monitor messages over MCP — no provider lock-in.",
+      "icon": "./plugins/senderkit/senderkit-skills/assets/icon.svg"
+    },
+    {
       "name": "sitemd",
       "displayName": "sitemd",
       "source": {

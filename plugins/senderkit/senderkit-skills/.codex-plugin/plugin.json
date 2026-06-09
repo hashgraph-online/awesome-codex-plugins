@@ -1,0 +1,30 @@
+{
+  "name": "senderkit",
+  "version": "0.1.0",
+  "description": "Build complete messaging experiences right from your AI coding agent. Add transactional email, SMS, push, and web-push — welcome emails, OTPs, receipts, and more — then create templates, send, and monitor every message your app sends. One messaging layer, no provider lock-in.",
+  "author": {
+    "name": "SenderKit",
+    "url": "https://www.senderkit.com"
+  },
+  "homepage": "https://docs.senderkit.com",
+  "repository": "https://github.com/senderkit/senderkit-skills",
+  "license": "MIT",
+  "keywords": ["senderkit", "transactional-email", "transactional-messaging", "email", "email-api", "send-email", "sms", "push-notifications", "web-push", "notifications", "notification-system", "otp", "verification-code", "magic-link", "password-reset-email", "receipts", "resend-alternative", "sendgrid-alternative", "postmark-alternative", "twilio-alternative", "mailgun", "ses", "smtp", "fcm", "apns", "expo", "mcp", "email-sdk", "email-deliverability", "dkim", "spf", "dmarc", "sender-reputation"],
+  "skills": "./skills/",
+  "mcpServers": ".codex-plugin/mcp.json",
+  "interface": {
+    "displayName": "SenderKit",
+    "shortDescription": "Send email, SMS & push from your AI agent.",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "Build complete messaging experiences right from your AI coding agent. Add transactional email, SMS, push, and web-push — welcome emails, OTPs, receipts, and more — then create templates, send, and monitor every message your app sends. One messaging layer, no provider lock-in. Wire it into your codebase, or just send and inspect messages live over MCP.",
+    "developerName": "SenderKit",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://www.senderkit.com",
+    "defaultPrompt": [
+      "Add a welcome email when a user signs up.",
+      "Set up SMS OTP / verification codes in this app.",
+      "Send a test email and check its status via SenderKit MCP."
+    ]
+  }
+}

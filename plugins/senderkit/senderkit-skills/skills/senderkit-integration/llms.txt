@@ -1,0 +1,36 @@
+# SenderKit Integration Skill
+
+A portable, open-source skill for AI coding agents and LLMs that need to add transactional email, SMS, push, or web-push notifications to a new or existing application — welcome emails, password resets, OTP/verification codes, magic links, receipts, or notification systems. Adds SenderKit, which sends directly or routes through providers like Resend, SendGrid, Postmark, Mailgun, SES, Twilio, FCM, APNs, and Expo (no vendor lock-in). Use it to add SenderKit, or to replace/route an existing provider through it.
+
+Canonical GitHub source:
+
+- `https://github.com/senderkit/senderkit-skills`
+
+Reusable skill folder:
+
+- `skills/senderkit-integration/`
+
+Canonical instructions:
+
+- `SKILL.md`
+
+Optional references:
+
+- `references/language-detection.md`
+- `references/api-reference.md`
+- `references/examples.md`
+- `references/migration-playbook.md`
+- `references/verification.md`
+- `references/sources.md`
+
+Utility:
+
+- `scripts/fetch_openapi.py`
+
+Official SenderKit OpenAPI:
+
+- `https://www.senderkit.com/openapi.yaml`
+
+Suggested prompt:
+
+Use the SenderKit Integration Skill in this directory to add SenderKit transactional messaging to my project. Detect my stack, fetch the current OpenAPI spec, preserve existing notification behavior, and verify the integration before live traffic.

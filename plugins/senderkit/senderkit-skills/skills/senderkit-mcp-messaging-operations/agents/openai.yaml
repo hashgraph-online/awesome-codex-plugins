@@ -1,0 +1,4 @@
+interface:
+  display_name: "SenderKit MCP Messaging Operations"
+  short_description: "Operate SenderKit through MCP tools"
+  default_prompt: "Use $senderkit-mcp-messaging-operations to send a test message and verify its status through SenderKit MCP."

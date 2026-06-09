@@ -1,0 +1,41 @@
+# SenderKit MCP Messaging Operations Skill
+
+A portable, open-source skill for AI agents and LLMs that need to send and operate transactional messages — email, SMS, push, or web-push — at runtime through the connected SenderKit MCP server: send test/live messages, draft and inspect templates, check delivery status, debug failed sends, and cancel pending sends.
+
+Canonical GitHub source:
+
+- `https://github.com/senderkit/senderkit-skills`
+
+Reusable skill folder:
+
+- `skills/senderkit-mcp-messaging-operations/`
+
+Canonical instructions:
+
+- `SKILL.md`
+
+Optional references:
+
+- `references/sources.md`
+
+Official SenderKit MCP docs:
+
+- `https://docs.senderkit.com/mcp/overview`
+- `https://docs.senderkit.com/mcp/tools`
+
+Supported MCP tools:
+
+- `senderkit_context`
+- `senderkit_send`
+- `senderkit_send_raw`
+- `senderkit_templates_list`
+- `senderkit_templates_get`
+- `senderkit_templates_create`
+- `senderkit_templates_regenerate`
+- `senderkit_messages_list`
+- `senderkit_messages_get`
+- `senderkit_cancel_message`
+
+Suggested prompt:
+
+Use the SenderKit MCP Messaging Operations Skill in this directory to confirm the SenderKit MCP mode, send a test message, inspect templates, check message status, or cancel a pending message.

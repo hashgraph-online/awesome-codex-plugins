@@ -1,0 +1,4 @@
+interface:
+  display_name: "SenderKit Integration"
+  short_description: "Add SenderKit to new or existing apps"
+  default_prompt: "Use $senderkit-integration to add SenderKit transactional messaging to this project."

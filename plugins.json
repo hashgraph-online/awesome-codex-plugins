@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-08",
-  "total": 105,
+  "last_updated": "2026-06-09",
+  "total": 107,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -968,6 +968,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jingjing2222/rust-reverse-engineering-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "SenderKit",
+      "url": "https://github.com/senderkit/senderkit-skills",
+      "owner": "senderkit",
+      "repo": "senderkit-skills",
+      "description": "Add transactional email, SMS, push, and web-push to any app from your AI coding agent, then create templates, send, and monitor messages over MCP — no provider lock-in.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/senderkit/senderkit-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "sitemd",

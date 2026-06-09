@@ -1,0 +1,6 @@
+# Repo tooling and docs are not part of the shipped plugin bundle.
+/docs/
+/scripts/
+/.github/
+.claude/
+.DS_Store
