@@ -181,6 +181,20 @@
       "icon": "./plugins/hyhmrright/brooks-lint/assets/logo.svg"
     },
     {
+      "name": "citadel",
+      "displayName": "Citadel",
+      "source": {
+        "source": "local",
+        "path": "./plugins/SethGammon/Citadel"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agent orchestration layer for OpenAI Codex and Claude Code with durable campaign memory, /do intent routing, lifecycle safety hooks, cost telemetry, and parallel agents in isolated git worktrees."
+    },
+    {
       "name": "cc",
       "displayName": "Claude Code for Codex",
       "source": {

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-08",
-  "total": 105,
+  "last_updated": "2026-06-11",
+  "total": 106,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -138,6 +138,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hyhmrright/brooks-lint/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Citadel",
+      "url": "https://github.com/SethGammon/Citadel",
+      "owner": "SethGammon",
+      "repo": "Citadel",
+      "description": "Agent orchestration layer for OpenAI Codex and Claude Code with durable campaign memory, /do intent routing, lifecycle safety hooks, cost telemetry, and parallel agents in isolated git worktrees.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/SethGammon/Citadel/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Claude Code for Codex",
