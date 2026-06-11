@@ -1,0 +1,46 @@
+{
+  "name": "vanguard-frontier-agentic",
+  "version": "2.10.1",
+  "description": "Cloud and zero-trust agentic workflow marketplace for skills, agents, rules, MCP references, and compliance-aware architecture.",
+  "author": {
+    "name": "Raishin",
+    "url": "https://github.com/Raishin"
+  },
+  "homepage": "https://github.com/Raishin/vanguard-frontier-agentic",
+  "repository": "https://github.com/Raishin/vanguard-frontier-agentic",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agentic",
+    "agents",
+    "marketplace",
+    "cloud",
+    "aws",
+    "azure",
+    "gcp",
+    "oci",
+    "alibaba",
+    "huawei",
+    "kubernetes",
+    "terraform",
+    "zero-trust",
+    "compliance",
+    "codex"
+  ],
+  "interface": {
+    "displayName": "Vanguard Frontier Agentic",
+    "shortDescription": "Cloud, zero-trust, and compliance-aware agentic workflow marketplace.",
+    "longDescription": "Vanguard Frontier Agentic is an enterprise-grade ecosystem of AI-agent workflows for cloud, security, compliance, ERP, and platform operations. It provides specialist agents, skills, rules, MCP references, routing patterns, and live-mutation guardrails for high-stakes agentic work across Codex and other coding agents.",
+    "developerName": "Raishin",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "composerIcon": "./assets/logos/vanguard-frontier-agentic.svg",
+    "websiteURL": "https://github.com/Raishin/vanguard-frontier-agentic",
+    "privacyPolicyURL": "https://github.com/Raishin/vanguard-frontier-agentic/blob/master/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/Raishin/vanguard-frontier-agentic/blob/master/LICENSE",
+    "brandColor": "#0f172a"
+  }
+}

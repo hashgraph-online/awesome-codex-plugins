@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-08",
-  "total": 105,
+  "last_updated": "2026-06-11",
+  "total": 107,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -508,6 +508,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/HDeibler/universal-design-principles/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Vanguard Frontier Agentic",
+      "url": "https://github.com/Raishin/vanguard-frontier-agentic",
+      "owner": "Raishin",
+      "repo": "vanguard-frontier-agentic",
+      "description": "Enterprise-grade agentic workflow marketplace with cloud, zero-trust, compliance, ERP, and platform specialist agents, skills, MCP references, and live-mutation guardrails across Codex and other coding agents.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hashgraph-online/awesome-codex-plugins/HEAD/plugins/Raishin/vanguard-frontier-agentic/.codex-plugin/plugin.json"
     },
     {
       "name": "Velith",
