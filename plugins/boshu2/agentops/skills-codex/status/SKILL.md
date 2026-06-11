@@ -1,6 +1,6 @@
 ---
 name: status
-description: 'Show AgentOps work status.'
+description: "Run status."
 ---
 # $status — Workflow Dashboard
 
@@ -33,7 +33,7 @@ ao codex ensure-start 2>/dev/null || true
 
 `ao codex ensure-start` is the single startup guard for Codex skills. It records
 startup once per thread and skips duplicate startup automatically. Leave
-`ao codex ensure-stop` to dedicated closeout skills such as `$validation`,
+`ao codex ensure-stop` to dedicated closeout skills such as `$validate`,
 `$post-mortem`, or `$handoff`.
 
 ---
@@ -200,7 +200,7 @@ QUICK COMMANDS
   $pre-mortem   Validate plan before coding
   $implement    Execute a single issue
   $crank        Autonomous epic execution
-  $validation   Full close-out and learnings
+  $validate   Full close-out and learnings
   $vibe         Targeted code review
 ══════════════════════════════════════════════════
 ```
@@ -216,10 +216,10 @@ Evaluate state top-to-bottom. Use the FIRST matching condition:
 | 3 | Plan done, no pre-mortem | "Run `$pre-mortem` to validate the plan before coding" |
 | 4 | Issues in-progress | "Continue working: `$implement <issue-id>` or `$crank` for autonomous execution" |
 | 5 | Ready issues available | "Pick up next issue: `$implement <first-ready-id>`" |
-| 6 | Uncommitted changes | "Review recent work: `$validation`" |
-| 7 | Implementation done, no vibe | "Run `$validation` for final close-out" |
-| 8 | Recent WARN/FAIL verdict | "Address findings in `<report-path>`, then re-run `$validation`" |
-| 10 | Vibe passed, no post-mortem | "Run `$validation` to complete closeout and extract learnings" |
+| 6 | Uncommitted changes | "Review recent work: `$validate`" |
+| 7 | Implementation done, no vibe | "Run `$validate` for final close-out" |
+| 8 | Recent WARN/FAIL verdict | "Address findings in `<report-path>`, then re-run `$validate`" |
+| 10 | Vibe passed, no post-mortem | "Run `$validate` to complete closeout and extract learnings" |
 | 11 | Pending knowledge items | "Promote learnings: `ao pool list --status pending --json`, then `ao pool stage <id>` and `ao pool promote <id>`" |
 | 12 | Clean state, nothing pending | "All clear. Start with `$research` or `$plan` to find new work" |
 
@@ -308,7 +308,7 @@ Render this with a single code block. No visual dashboard when `--json` is activ
 | Problem | Cause | Solution |
 |---------|-------|----------|
 | Shows "BD_UNAVAILABLE" or "AO_UNAVAILABLE" | CLI tools not installed or not in PATH | Install missing tools: `brew install bd` or `brew install ao`. Skill gracefully degrades by showing available state only. |
-| Ratchet phase shows stale data | Old chain.jsonl not cleaned up | Check timestamp of `.agents/ao/chain.jsonl`. If stale, delete it or run `$validation` to complete cycle and reset state. |
+| Ratchet phase shows stale data | Old chain.jsonl not cleaned up | Check timestamp of `.agents/ao/chain.jsonl`. If stale, delete it or run `$validate` to complete cycle and reset state. |
 | Suggested action doesn't match intent | State-aware rules didn't capture edge case | Review priority table in Step 3. May need to refine conditions. Use `--json` to inspect raw state and debug rule matching. |
 | JSON output malformed | Parallel bash calls returned unexpected format | Check each bash call individually. Ensure jq parsing works on actual data. Validate JSON structure with `jq .` before returning to user. |
 

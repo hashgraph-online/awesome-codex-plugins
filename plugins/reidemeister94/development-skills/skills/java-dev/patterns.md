@@ -113,7 +113,8 @@ Prefer Streams when readable. Fall back to loops for complex logic.
 | **Dependency Injection** | Constructor injection only. No `new` for dependencies. No static singletons. |
 | **Immutability** | Prefer immutable data structures. Use Records. |
 | **Purity** | Methods are pure whenever possible. Side effects isolated and explicit. |
-| **SRP** | Every method/class has ONE responsibility. |
+| **SRP** | One actor/reason to change per class — group by *who* requests the changes, not by counting methods. High cohesion beats granularity; don't over-split. |
+| **LSP** | Subtypes and overrides must honor the base contract — preserve preconditions, postconditions, invariants, not just signatures. Beware marker-subinterfaces created only for a distinct DI identity. |
 | **Conciseness** | Methods under 70 lines. Longer = refactor candidate. |
 | **DRY** | Refactor redundant code into reusable units. |
 | **Modularity** | Small, focused, reusable classes and methods. |

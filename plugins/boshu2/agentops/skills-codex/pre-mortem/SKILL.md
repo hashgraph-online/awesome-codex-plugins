@@ -1,6 +1,6 @@
 ---
 name: pre-mortem
-description: 'Stress-test plans before work.'
+description: "Run pre mortem."
 ---
 # Pre-Mortem Skill
 
@@ -329,6 +329,18 @@ When the plan introduces or modifies fields with a bounded set of valid values (
 | Are valid values defined as a constant set (not inline strings)? | Yes | severity=low: "Valid values are inline strings — extract to named constant set" |
 
 **Auto-triggered** when the plan introduces struct fields with comments mentioning valid values, config fields with bounded options, or string fields parsed from user input.
+
+### Step 2.9: No-self-grading invariant (author ≠ validator)
+
+The pre-mortem verdict must NOT be graded by the plan's own author. A verdict produced by the authoring context is autocorrelated — the same assumptions that shaped the plan pass it. This is the no-self-grading invariant (`ag-lmdx.4`): the independent-trust-domain check on the plan-acceptance verdict.
+
+**Rule:** the judge context MUST be distinct from the author context. Validation MAY run inside the authoring session, but the judge MUST be a **blind sub-agent** — a fresh, context-isolated agent acting as if it has no authoring context. Record `judge_id` (the isolated sub-agent context) distinct from `author_id` (the planning context). The `--deep`/`--mixed` council judges satisfy this when they are context-isolated sub-agents; an inline self-review by the planning agent does NOT.
+
+**Refuse** to emit a PASS verdict when the judge context equals the author context (`judge_id == author_id`) — re-run the verdict through a blind sub-agent judge instead.
+
+**Escape:** `--allow-self` (default OFF) waives the invariant for the inline fallback only (e.g. no sub-agent runtime available). Using it stamps the verdict as self-graded; downstream `ao turn verify` reports it as waived, not independently validated.
+
+**Enforcement:** `ao turn verify <bead>` evaluates the `author_neq_validator` predicate from the turn-input file's `author_id`/`judge_id` and fails the Evidenced-Turn DoD on a self-graded verdict unless `--allow-self` is passed.
 
 ### Step 3: Interpret Council Verdict
 

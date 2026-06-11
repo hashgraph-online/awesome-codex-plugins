@@ -38,9 +38,11 @@ Database changes are production releases with lock, lag, plan, and data-correcti
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Datastore type, topology, table/collection size, write rate, read patterns, and critical queries.
-- Whether the datastore is on a user-critical path, with failover mode, connection limits, query tail latency, restore readiness, and write behavior during failover.
+- Whether the datastore is on a user-critical path, with failover mode, replica/site dependency behavior, connection or session-establishment limits, metadata/control-plane health, query tail latency, restore readiness, and write behavior during failover.
 - Proposed DDL/DML, index, backfill, cleanup, or maintenance operation.
-- Lock behavior, replication lag, write amplification, query-plan risks, and operational windows.
+- Source and target versions, replication or change-capture mode, dump/snapshot method, writes during copy, and known engine or dependency defects for data migrations.
+- Lock behavior, replication lag, write amplification, query-plan risks, sequence or counter headroom, and operational windows.
+- Schema object permissions, grants, and service principals for every reader, writer, and query path affected by the change.
 - Backfill batch size, throttle rules, pause/abort controls, checkpointing, and idempotency.
 - Verification queries, counts, checksums, invariants, and sampled correctness checks.
 - Rollback versus forward-fix options, backup/restore test results, and destructive cleanup delay.
@@ -49,13 +51,15 @@ Database changes are production releases with lock, lag, plan, and data-correcti
 ## Workflow
 
 1. **Classify the change.** Separate additive schema, index, backfill, dual-write, cutover, cleanup, query-plan, and maintenance work.
-2. **Assess production risk.** Identify locks, lag, write amplification, query-plan shifts, shard/partition effects, cache churn, failover interactions, and whether user-critical paths depend on the datastore behavior during those conditions.
-3. **Use expand/contract in named phases.** Run schema evolution as four sequential phases: Expand (add the new structure, old code ignores it), Migrate (backfill data into the new structure), Transition (new code reads/writes both), Contract (remove the old structure once nothing references it). Each phase except Contract is rollback-safe on its own: a failed Expand drops the new structure, a failed Migrate leaves the old structure authoritative with the new partially populated, a failed Transition reverts code while the old structure still serves; a failed Contract has already validated everything, so investigate before retrying rather than rolling back.
-4. **Throttle and checkpoint.** Run in small batches with pause/abort controls, progress tracking, idempotency, and load-sensitive throttles.
-5. **Validate data.** Use verification queries, invariant checks, counts, sampling, and reconciliation before declaring completion.
-6. **Delay destructive cleanup.** Keep rollback/forward-fix options until telemetry shows the new path is stable.
-7. **Monitor during rollout.** Watch user symptoms, query latency, error rate, locks, lag, saturation, and job health.
-8. **Document recovery.** State rollback, forward-fix, restore, and manual repair options before running.
+2. **Assess production risk.** Identify locks, lag, write amplification, query-plan shifts, shard/partition effects, sequence or counter exhaustion, cache churn, metadata/control-plane operations, session establishment, failover interactions, replica or site dependency coupling, and whether user-critical paths depend on the datastore behavior during those conditions.
+3. **Use expand/contract in named phases.** Run schema evolution as four sequential phases: Expand (add the new structure, old code ignores it), Migrate (backfill data into the new structure), Transition (new code reads/writes both), Contract (remove the old structure once nothing references it). Each phase except Contract is rollback-safe on its own: a failed Expand drops the new structure, a failed Migrate leaves the old structure authoritative with the new partially populated, a failed Transition reverts code while the old structure still serves; a failed Contract has already validated everything, so investigate before retrying.
+4. **Validate schema permissions.** For every changed object, run the old and new read/write/query paths with the production identities that will use them; a schema that exists but denies the caller is still a failed rollout.
+5. **Validate data-migration compatibility.** Before moving data between versions, stores, or capture modes, verify source/target version behavior, dump or snapshot consistency, write handling during copy, replication semantics, known defects, and the manual fallback path.
+6. **Throttle and checkpoint.** Run in small batches with pause/abort controls, progress tracking, idempotency, and load-sensitive throttles.
+7. **Validate data.** Use verification queries, invariant checks, counts, sampling, and reconciliation before declaring completion.
+8. **Delay destructive cleanup.** Keep rollback/forward-fix options until telemetry shows the new path is stable.
+9. **Monitor during rollout.** Watch user symptoms, query latency, error rate, locks, lag, saturation, and job health.
+10. **Document recovery.** State rollback, forward-fix, restore, and manual repair options before running.
 
 ## Synthesized Default
 
@@ -93,9 +97,13 @@ Use compatible expand/contract migrations, throttled idempotent backfills, expli
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Database change plan with phases, confirmation points, and rollback checks.
 - Lock, lag, write-amplification, and query-plan risk assessment.
-- Critical-path database risk table covering failover, connection limits, query tail latency, restore readiness, and write behavior.
+- Critical-path database risk table covering failover, replica or site dependency behavior, connection or session-establishment limits, metadata/control-plane health, query tail latency, restore readiness, and write behavior.
+- Data migration compatibility matrix covering source/target versions, capture or dump mode, writes during copy, consistency validation, known defects, and fallback path.
+- Schema permission compatibility matrix covering old and new read/write/query paths, caller identity, required grant, and failure response.
+- Sequence, counter, identifier, and bounded-column headroom for write paths that can exhaust a stored value.
 - Backfill or maintenance runbook with throttle, pause, abort, and checkpointing.
 - Verification query/invariant plan.
 - Monitoring and alert additions for the change window.
@@ -105,7 +113,10 @@ Use compatible expand/contract migrations, throttled idempotent backfills, expli
 ## Checks Before Moving On
 
 - `lock_lag_check`: lock behavior, replication lag, and write amplification are assessed.
-- `db_critical_path`: database behavior on user-critical paths is assessed for failover, connection limits, query tail latency, restore readiness, and write behavior.
+- `db_critical_path`: database behavior on user-critical paths is assessed for failover, replica or site dependency behavior, connection or session-establishment limits, metadata/control-plane health, query tail latency, restore readiness, and write behavior.
+- `migration_compatibility`: source/target versions, capture or dump mode, writes during copy, consistency validation, known defects, and fallback path are checked.
+- `schema_permission_compatibility`: changed objects have permission checks for every production reader, writer, and query path.
+- `bounded_value_headroom`: sequences, counters, identifiers, and bounded columns on write paths have headroom checks or alerts.
 - `throttle_abort`: batch size, throttle, pause, abort, and confirmation point are defined.
 - `verification_check`: data correctness verification queries or invariants exist.
 - `rollback_check`: rollback or forward-fix path is written before execution.
@@ -114,9 +125,13 @@ Use compatible expand/contract migrations, throttled idempotent backfills, expli
 ## Red Flags - Stop And Rework
 
 - A migration runs as one unbounded transaction or job.
+- Data moves while writes continue without proof that the dump, snapshot, or change-capture mode preserves consistency.
 - Verification is "job completed" without data correctness checks.
 - Destructive cleanup happens before old and new paths have been compared.
 - Query plans are assumed unchanged after index/schema changes.
+- Schema objects are created or changed without validating grants for the identities that query them.
+- Monotonic counters or sequence columns can exhaust silently on a write path.
+- A replica, site, or dependency outage restarts writes or readers that should degrade.
 - There is no clear pause or abort mechanism.
 
 ## Common Mistakes

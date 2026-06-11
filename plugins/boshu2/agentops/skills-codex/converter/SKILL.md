@@ -1,6 +1,6 @@
 ---
 name: converter
-description: 'Convert AgentOps skill formats.'
+description: "Run converter."
 ---
 # $converter -- Cross-Platform Skill Converter
 

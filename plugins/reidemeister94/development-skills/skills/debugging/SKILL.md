@@ -7,7 +7,7 @@ allowed-tools: Glob, Grep, Read, Bash, Task, Skill, Edit, Write, AskUserQuestion
 
 # Systematic Debugging
 
-Apply [Iron Rules](../../shared/iron-rules.md) — Pillar 0 (be critical, don't pander to a wrong hypothesis), Pillar 3 (root cause beats symptom suppression), and Process Rule D (spirit beats letter — *"I'll add logging"* is not investigation) govern every step.
+Apply [Iron Rules](../../shared/iron-rules.md) — Principle 0 (be critical, don't pander to a wrong hypothesis), Principle 8 (no claim without fresh evidence — every hypothesis tested), Principle 9 (root cause, not symptoms), and the meta-rule (spirit beats letter — *"I'll add logging"* is not investigation) govern every step.
 
 ## THE IRON LAW
 

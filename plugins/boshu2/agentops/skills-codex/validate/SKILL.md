@@ -1,6 +1,6 @@
 ---
 name: validate
-description: 'Produce PASS/WARN/FAIL verdicts.'
+description: "Run validate."
 ---
 
 # $validate — Canonical Validator Skill

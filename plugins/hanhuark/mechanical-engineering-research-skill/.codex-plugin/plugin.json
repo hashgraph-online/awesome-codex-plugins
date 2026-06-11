@@ -15,6 +15,7 @@
     "mechanical-engineering",
     "research",
     "technical-writing",
+    "proposal-development",
     "data-analysis",
     "codex-skill"
   ],
@@ -33,6 +34,7 @@
     "websiteURL": "https://github.com/hanhuark/mechanical-engineering-research-skill",
     "defaultPrompt": [
       "Plan a thermal-fluid research workflow.",
+      "Develop a proposal narrative with reviewer-focused logic.",
       "Write a technical section with domain rigor.",
       "Review this figure and explain the physics."
     ],

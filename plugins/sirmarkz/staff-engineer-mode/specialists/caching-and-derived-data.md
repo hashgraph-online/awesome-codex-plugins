@@ -37,20 +37,21 @@ Caching is a correctness path, not only a performance optimization.
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Cached objects, keys, writers, invalidators, readers, and responsibility paths.
-- Freshness requirement, TTL, negative caching, versioning, and stale-read tolerance.
-- Backing dependency capacity, miss amplification, hot keys, and cache population path.
+- Canonical identity for derived entries, including normalization rules, duplicate detection, and whether alternate identifiers can create extra work or duplicate results.
+- Freshness requirement, TTL, negative or failure-state caching, versioning, and stale-read tolerance.
+- Backing dependency capacity, miss amplification, hot keys, cache population path, and scheduled refresh or rebuild shape.
 - Failure behavior: cache unavailable, cache cold, invalidation delayed, stale write, partial rebuild.
 - Normal hit-rate range, entry size bound, flush or eviction impact, and backing-load increase under cold-cache behavior.
-- Stampede controls: request coalescing, leases, single-flight, prewarming, and rate limits.
+- Stampede controls: request coalescing, leases, single-flight, prewarming, jittered refresh/rebuild, and rate limits.
 - Repair path: reindex, rebuild, invalidate all, partial repair, and correctness checks.
 - Metrics: hit/miss, stale reads, evictions, rebuild lag, invalidation lag, downstream load, and tail latency.
 
 ## Workflow
 
 1. **Confirm stale-read semantics.** If not decided, route to distributed data before choosing cache mechanics.
-2. **Map the lifecycle.** Identify write, invalidate, fill, read, expire, repair, and rebuild paths.
+2. **Map the lifecycle.** Identify write, canonicalize, invalidate, fill, read, expire, repair, and rebuild paths.
 3. **Set freshness policy.** Define TTL, maximum staleness, validation, version checks, and user-visible behavior.
-4. **Protect downstreams.** Model miss amplification and add coalescing, leases, prewarming, or load shedding.
+4. **Protect downstreams.** Model miss amplification, scheduled refresh spikes, and failure-state retry loops; add coalescing, leases, prewarming, jittered rebuilds, negative caching where semantics allow, rate limits, or load shedding.
 5. **Handle invalidation as correctness.** Use explicit invalidation, versioned values, or repair scans when stale writes can occur. For cache-aside writes, define the source-of-truth update and invalidation order.
 6. **Define degradation.** State behavior when cache is cold, unavailable, partitioned, or stale.
 7. **Instrument correctness and load.** Track stale-read rate, invalidation lag, rebuild lag, hit/miss, entry-size rejects, cold-cache state, and downstream saturation. Set hit-rate alerts tight against the normal operating point: at high hit rates, a small absolute drop translates to a multiplicative increase in backing load (a hit rate falling from 95% to 85% triples the miss rate, not doubles it), so alarming on a fixed absolute floor misses the operating-point sensitivity.
@@ -92,10 +93,12 @@ Use explicit TTLs, version-aware invalidation, request coalescing, downstream pr
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Cache or derived-data decision record.
 - Key, writer, invalidator, reader, and responsibility map.
+- Canonical-key and duplicate-derived-entry policy, including quota, cost, and user-visible duplicate-result impact.
 - Freshness, TTL, invalidation, and versioning policy.
-- Stampede and miss-amplification protection plan.
+- Stampede, scheduled-refresh, and miss-amplification protection plan.
 - Failure/degradation behavior.
 - Cache-loss and cold-cache behavior, including entry-size bounds and backing-load impact.
 - Metrics and alerts for freshness, stale reads, rebuilds, and downstream load.
@@ -105,7 +108,8 @@ Use explicit TTLs, version-aware invalidation, request coalescing, downstream pr
 
 - `freshness_check`: max staleness, TTL, and user-visible stale behavior are explicit.
 - `invalidation_map`: writers, invalidators, readers, and versioning/repair paths are documented.
-- `stampede_check`: miss storm and hot-key behavior are bounded.
+- `canonical_key`: derived data has a canonical identity rule, duplicate detection, and cleanup path for noncanonical entries.
+- `stampede_check`: miss storm, synchronized refresh, failure-state, and hot-key behavior are bounded.
 - `cache_loss_behavior`: cold, flushed, unavailable, or partitioned cache behavior is defined.
 - `cache_size_bound`: cache entries have size bounds or visibility into oversized entries.
 - `downstream_check`: backing dependency capacity under cold/miss conditions is modeled.

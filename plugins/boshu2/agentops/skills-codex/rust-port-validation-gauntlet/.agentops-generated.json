@@ -1,0 +1,7 @@
+{
+  "generator": "manual-maintained",
+  "source_skill": "skills/rust-port-validation-gauntlet",
+  "layout": "modular",
+  "source_hash": "28c63707bdd2dcb972a499f579c250cd0fc8f2616bccaf50a6205398d80c86a2",
+  "generated_hash": "d485114cb22f0426c18d23e56e399bc37925a751f4e10414a4c653d2d26b568e"
+}

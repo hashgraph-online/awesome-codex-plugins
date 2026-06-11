@@ -1,6 +1,6 @@
 ---
 name: automation-shape-routing
-description: 'Front door for agent automation: route to the right builder.'
+description: "Run automation shape routing."
 ---
 # $automation-shape-routing — Orchestration vs NTM vs Skill
 
@@ -14,7 +14,7 @@ description: 'Front door for agent automation: route to the right builder.'
 | Shape | What it is | Mechanism |
 |---|---|---|
 | **Orchestration** | Deterministic, reproducible fan-out / pipeline / loop over sub-agents, each returning structured output | Codex orchestration — `codex exec` driving `spawn_agents` (parallel fan-out), staged pipelines, and loop-until-budget, with an `output_schema` per sub-agent. Headless, reproducible, bounded concurrency. |
-| **NTM swarm** | Long-lived, human-in-the-loop multi-agent run | `ntm` / `*-with-ntm` — persistent tmux panes, robot API, mail/locks, attach + nudge + kill/relaunch. |
+| **NTM swarm** | Long-lived, human-in-the-loop multi-agent run | `ntm` (the CLI) driven by $using-ntm — persistent tmux panes running whole $rpi/$evolve loops over a bead queue, with attach + nudge + kill/relaunch and mail/locks coordination. |
 | **Plain skill** | One model reasoning through a procedure or knowledge | A single `SKILL.md`. No fan-out, or a strictly sequential edit-loop. |
 
 ## The decision rule (three axes)
@@ -109,7 +109,7 @@ decided, hand off:
 |---|---|---|
 | **plain skill** | `$skill-builder` | Scaffold a new `SKILL.md` against the unified template → then `$skill-auditor` → `$heal-skill`. |
 | **Orchestration** | `$workflow-builder` | Author a deterministic `codex exec` + `spawn_agents` orchestration with per-sub-agent `output_schema`. |
-| **NTM swarm** | `ntm` + `vibing-with-ntm` | Stand up + tend a persistent, human-attachable tmux swarm. |
+| **NTM swarm** | `ntm` + $using-ntm | Stand up + tend an NTM swarm running AgentOps loops ($rpi/$evolve) over a bead queue. |
 
 State the verdict and the deciding axis in one line, then invoke the chosen
 builder. Do not scaffold here.

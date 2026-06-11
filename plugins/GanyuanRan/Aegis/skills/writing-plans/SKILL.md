@@ -137,6 +137,11 @@ long-term stability claim that the spec did not already settle, use
 `first-principles-review` and its `Decision Hygiene Review` or `Architecture
 Integrity Lens` before task decomposition.
 
+When the plan must decide between deleting old internal paths, retaining compat
+for a proven external boundary, or stopping for persistent-state confirmation,
+compose `anti-entropy-governance`. Keep it as a narrow classification and
+guardrail owner; it does not authorize destructive execution.
+
 Use `Planless Slice Lane` before writing or saving a plan when all of these are
 true:
 

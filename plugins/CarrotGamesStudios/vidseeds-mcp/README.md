@@ -1,4 +1,4 @@
-# VidSeeds.ai connector for Claude Code & Codex
+# VidSeeds.ai MCP marketplace and connector catalog
 
 Drive **VidSeeds.ai** — pre-upload video **SEO & metadata optimization** and
 multi-platform publishing — directly from your AI coding client.
@@ -7,18 +7,30 @@ multi-platform publishing — directly from your AI coding client.
 > descriptions, tags, thumbnails, and chapters for YouTube, TikTok, Instagram, Facebook,
 > LinkedIn, and X, then publishes them. It is **not** a video generator or editor.
 
-This package is an [MCP](https://modelcontextprotocol.io) connector that exposes the
-VidSeeds.ai workflow (**149 tools**, all prefixed `vidseeds_`) as a plugin for
-**Claude Code** and **Codex**. The connector ships no credentials — it tells your client
-how to call the hosted endpoint `https://vidseeds.ai/api/mcp` with a token you supply.
+This repo is the public marketplace/catalog source for the hosted
+[MCP](https://modelcontextprotocol.io) connector that exposes the VidSeeds.ai workflow
+(**178 tools**, all prefixed `vidseeds_`). It ships the machine-readable metadata that
+different clients expect:
+
+| Client / catalog                              | What this repo provides                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Claude Code                                   | `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json`, `.mcp.json`, and workflow skills            |
+| Codex                                         | `.agents/plugins/marketplace.json`, `.codex-plugin/plugin.json`, `codex.mcp.json`, and workflow skills       |
+| Official MCP Registry and downstream catalogs | root `server.json` for `mcp-publisher` and registry-compatible crawlers                                      |
+| ChatGPT                                       | source metadata/assets plus docs for the separate Apps SDK endpoint at `https://vidseeds.ai/api/mcp/chatgpt` |
+| Cursor and other MCP clients                  | copy-paste Streamable HTTP config for `https://vidseeds.ai/api/mcp`                                          |
+
+The connector ships no credentials — it tells your client how to call the hosted endpoint
+with a token you supply.
 
 - **Endpoint:** `https://vidseeds.ai/api/mcp` (MCP Streamable HTTP)
 - **Auth (this plugin):** Personal Access Token (`Authorization: Bearer vs_pat_…`)
 - **Auth (Claude.ai / Desktop):** the same endpoint also supports **OAuth 2.0** (PKCE + Dynamic Client Registration) — add it as a custom connector, no token needed. See the in-app guide below.
-- **Server:** `vidseeds` v1.7.0
+- **ChatGPT App:** a dedicated endpoint `https://vidseeds.ai/api/mcp/chatgpt` powers the **OpenAI ChatGPT App** (Apps SDK) with rendered result widgets. Local-only tools (ffmpeg/ffprobe recipes, precision-trim, local-audio transcription) are hidden there since ChatGPT has no local shell — use this Claude Code / Codex plugin for those. ChatGPT distribution is through the ChatGPT Apps submission/directory flow, not by adding this Git repo as a custom marketplace.
+- **Server:** `vidseeds` v1.8.1 (granular regen fields + correct edit thumbnail pricing)
 
 > **More clients & a copy-paste walkthrough:** the in-app setup guide at
-> <https://vidseeds.ai/settings/developer-tokens> covers **Claude.ai & Desktop (OAuth)**,
+> <https://vidseeds.ai/settings/mcp-settings> covers **Claude.ai & Desktop (OAuth)**,
 > **Claude Code**, **Cursor**, **Codex**, and any other MCP client — with ready-to-copy
 > snippets for each.
 
@@ -33,7 +45,7 @@ how to call the hosted endpoint `https://vidseeds.ai/api/mcp` with a token you s
 ## 1. Get a Personal Access Token (required)
 
 1. Sign in at <https://vidseeds.ai> (free account).
-2. Open **Settings → Developer Tokens**: <https://vidseeds.ai/settings/developer-tokens>.
+2. Open **Settings → MCP Settings**: <https://vidseeds.ai/settings/mcp-settings>.
 3. Create a token and copy the secret (`vs_pat_…`) — it is shown **only once**
    (90-day default expiry).
 4. Expose it to your client as the `VIDSEEDS_PAT` environment variable (below).
@@ -116,9 +128,15 @@ codex mcp add vidseeds --url https://vidseeds.ai/api/mcp --bearer-token-env-var 
 
 ### Option C — repo/team marketplace
 
+```bash
+codex plugin marketplace add CarrotGamesStudios/vidseeds-mcp
+codex plugin add vidseeds@vidseeds
+```
+
 This repo also ships a Codex repo marketplace at `.agents/plugins/marketplace.json` and a
 plugin manifest at `.codex-plugin/plugin.json` (MCP config in `codex.mcp.json`). Point a
-Codex marketplace at this repo and install `vidseeds` via `codex` → `/plugins`. The same
+Codex marketplace at this repo and install `vidseeds` with `codex plugin add` or via
+`codex` → `/plugins`. The same
 `VIDSEEDS_PAT` environment variable applies.
 
 ---
@@ -148,7 +166,35 @@ Cursor rejects dotted names like `vidseeds.generate_thumbnail`.
 
 ---
 
-## 5. Agent skills (workflow guides)
+## 5. Official MCP Registry and other catalogs
+
+The root [`server.json`](server.json) is the registry-compatible description of the hosted
+remote server:
+
+- Name: `io.github.CarrotGamesStudios/vidseeds-mcp`
+- Remote: `streamable-http` at `https://vidseeds.ai/api/mcp`
+- Auth header: required secret `Authorization` value, for example
+  `Bearer vs_pat_your_token_here`
+- Repository: `https://github.com/CarrotGamesStudios/vidseeds-mcp`
+
+Maintainership note: publish or republish `server.json` with the official `mcp-publisher`
+CLI whenever the connector version, endpoint, auth requirements, or canonical description
+changes. Directory sites that ingest the official registry can then discover VidSeeds.ai
+without needing a Claude/Codex-specific plugin marketplace.
+
+---
+
+## 6. ChatGPT
+
+ChatGPT does not install this Git repo as a custom marketplace. Use the VidSeeds.ai ChatGPT
+App once it is published in the ChatGPT Apps directory, or use a client that supports
+custom MCP connectors with the hosted endpoint. The ChatGPT endpoint is
+`https://vidseeds.ai/api/mcp/chatgpt`; it exposes the ChatGPT-safe subset of tools and
+rendered widgets.
+
+---
+
+## 7. Agent skills (workflow guides)
 
 This plugin ships skills under [`skills/`](skills/) so agents use MCP efficiently without guessing tool chains. Read **`vidseeds-efficiency`** before expensive workflows.
 
@@ -166,9 +212,9 @@ Per-tool parameters and seed costs come from the hosted server's `tools/list` de
 
 ---
 
-## 6. What the connector can do
+## 8. What the connector can do
 
-149 tools spanning the full VidSeeds.ai creator workflow:
+177 tools spanning the full VidSeeds.ai creator workflow:
 
 | Area                     | Examples                                                                                                                    |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
@@ -226,20 +272,20 @@ or abuse in real money.
 - This package contains **no credentials**. It declares how Claude Code / Codex should
   call `https://vidseeds.ai/api/mcp` with a user-supplied PAT read from `VIDSEEDS_PAT`.
 - Never commit, paste, or share a `vs_pat_…` token. Rotate or revoke tokens at
-  <https://vidseeds.ai/settings/developer-tokens>.
+  <https://vidseeds.ai/settings/mcp-settings>.
 - Cookie/session auth is rejected by the server by design — a PAT is the only accepted
   credential, so a misconfigured client can't piggyback on a dashboard login.
 
 ## Versioning
 
-The plugin version tracks the VidSeeds.ai MCP connector package (currently **1.7.0**).
+The plugin version tracks the VidSeeds.ai MCP connector package (currently **1.8.1** — adds fields for targeted desc/tags regen + correct Grok edit thumbnail seed pricing).
 The wildcard PAT scope reaches new tools automatically as the server grows, so existing
 tokens keep working without being recreated.
 
 ## Links
 
 - Product: <https://vidseeds.ai>
-- Developer tokens: <https://vidseeds.ai/settings/developer-tokens>
+- MCP settings: <https://vidseeds.ai/settings/mcp-settings>
 - MCP: <https://modelcontextprotocol.io>
 
 ## License

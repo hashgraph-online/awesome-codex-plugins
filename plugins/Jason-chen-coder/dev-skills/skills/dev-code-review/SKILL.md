@@ -40,7 +40,7 @@ Only route to `dev-commit-writer` when the user explicitly says `skip review`, `
 
 For other workflow stages, route to the matching skill:
 
-- Fuzzy requirements before code → `dev-spec`
+- Fuzzy requirements before code → `dev-grill-docs` (`dev-spec` remains a compatibility alias)
 - Spec to implementation plan → `dev-plan`
 - Bug investigation / root cause fix → `dev-fix`
 

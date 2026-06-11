@@ -6,7 +6,7 @@ description: >-
   secrets, setup-required auth, validate_product and validate_product_* checks,
   distributable product packaging, import readiness, and avoiding credential leakage.
 user-invocable: true
-argument-hint: "[FPO or template task]"
+argument-hint: '[FPO or template task]'
 ---
 
 # Runtype Templates
@@ -29,6 +29,9 @@ When MCP is available, fetch current schema docs before writing or validating te
 - Direct resource when available: `runtype://types/surface-configs`
 
 Prefer the live MCP docs over this skill's local fallback references.
+For the template wrapper itself, read `runtype://types/fpo-template`; for the
+wrapped `productObject`, read `types-fpo` because the current FPO default is
+version `2.0`.
 
 ## Template Shape
 

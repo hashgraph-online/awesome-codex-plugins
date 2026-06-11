@@ -1,0 +1,40 @@
+{
+  "name": "pdf-monster",
+  "version": "0.1.0",
+  "description": "Analyze PDFs as agent-readable text, OCR text, page render images, and embedded image files without polluting the working directory.",
+  "author": {
+    "name": "Johnny Bae",
+    "url": "https://github.com/jbaehova"
+  },
+  "homepage": "https://github.com/jbaehova/pdf-monster",
+  "repository": "https://github.com/jbaehova/pdf-monster",
+  "license": "MIT",
+  "keywords": [
+    "pdf",
+    "ocr",
+    "documents",
+    "research",
+    "agent-skill",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PDF Monster",
+    "shortDescription": "Read PDFs through text, OCR, page images, and extracted figures",
+    "longDescription": "PDF Monster helps Codex inspect PDFs by converting them into structured, agent-readable evidence: per-page text, optional OCR text, rendered page images, and extracted embedded images. It keeps generated artifacts out of the user's working directory unless persistence is explicitly requested.",
+    "developerName": "Johnny Bae",
+    "category": "Research",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/jbaehova/pdf-monster",
+    "defaultPrompt": [
+      "Analyze this PDF with PDF Monster",
+      "Extract PDF text, OCR, and visual evidence"
+    ],
+    "brandColor": "#DC2626",
+    "composerIcon": "./assets/pdf-monster.svg",
+    "logo": "./assets/pdf-monster.svg",
+    "screenshots": []
+  }
+}

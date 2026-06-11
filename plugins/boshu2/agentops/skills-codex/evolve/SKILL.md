@@ -1,6 +1,6 @@
 ---
 name: evolve
-description: 'Run autonomous improvement loops.'
+description: "Run evolve."
 ---
 # $evolve — Goal-Driven Compounding Loop
 
@@ -8,7 +8,7 @@ description: 'Run autonomous improvement loops.'
 
 **Codex orchestration default:** keep the skill name `$evolve`. In Codex,
 run the loop by chaining Codex skills: `$evolve` selects work and invokes
-complete `$rpi --auto` cycles. Treat `ao evolve` and `ao rpi` as terminal
+complete `$rpi --auto` cycles. Treat retired CLI wrappers as terminal
 wrapper commands for humans or non-skill runtimes, not as the Codex skill
 default.
 
@@ -238,7 +238,7 @@ These notes inform work selection throughout the evolve session. Store them in a
 
 Skip if `--skip-baseline` or `--beads-only` or baseline already exists.
 
-The terminal wrapper (`ao evolve`) captures this automatically before entering the RPI loop. It hashes
+The `$evolve` skill captures this automatically before entering the RPI loop. It hashes
 the active GOALS.md or GOALS.yaml file to an era ID, then writes a snapshot
 under `.agents/evolve/fitness-baselines/goals-<hash>/` if that era directory
 does not already contain a JSON snapshot.

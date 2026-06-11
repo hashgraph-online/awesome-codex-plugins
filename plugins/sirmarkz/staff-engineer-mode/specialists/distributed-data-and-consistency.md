@@ -25,6 +25,7 @@ Data architecture starts with semantics, not storage brands.
 - A service boundary changes who is responsible for mutating data.
 - The design needs to choose between strong, eventual, read-your-writes, monotonic, causal, or quorum-style behavior.
 - The user asks whether stale reads, duplicate writes, or conflicts are acceptable.
+- Time, clock, TTL, lease, ordering, or stored-data semantic quality affects correctness.
 
 ## When Not To Use
 
@@ -32,6 +33,7 @@ Data architecture starts with semantics, not storage brands.
 - The question is online schema/backfill execution; use `database-operations` instead.
 - The work is service event choreography; use `event-workflows` instead.
 - The request is warehouse/ETL freshness rather than application data correctness; use `data-pipeline-reliability` instead.
+- The request is source-of-record lineage or recompute blast radius for reported figures; use `data-lineage-and-provenance`.
 
 ## Info To Gather
 
@@ -42,17 +44,20 @@ Data architecture starts with semantics, not storage brands.
 - Access patterns, read/write volume, fanout, hot keys, tenant/shard routing, and growth forecast.
 - Failure modes: partial writes, failover, replication lag, split brain, retries, duplicate leaders, and operator repair.
 - Migration constraints, responsibility, change history needs, and backup/restore requirements.
+- Clock sources, skew bounds, leap-second and daylight-saving behavior, monotonic versus wall-clock use, lease/TTL windows, scheduler behavior, and logical-clock needs.
+- Standing at-rest quality controls: golden records, recurring reconciliation, semantic anomaly detection, and repair ownership for stored business data.
 
 ## Workflow
 
 1. **Classify data by consequence.** Financial, authorization, privacy, and audit data usually need stronger guarantees than analytics or derived views.
-2. **Write operation semantics.** For each critical operation, define allowed staleness, conflict behavior, idempotency, and durability.
+2. **Write operation semantics.** For each critical operation, define allowed staleness, conflict behavior, idempotency, and durability. Choose conflict resolution from an explicit menu: last-writer-wins (note its silent-update-loss risk), CRDT/commutative merge, or application-level merge, and name the lever that implements the chosen read guarantee: sticky routing to the node that took the write, a read-from-primary window for read-your-writes, or R+W>N quorum with read-repair/anti-entropy.
 3. **Choose consistency deliberately.** Use the weakest guarantee that preserves correctness and user expectation; document the tradeoff.
-4. **Avoid cross-service transactions.** Prefer local transactions plus outbox, sagas, reconciliation, or compensating actions over distributed two-phase commit.
-5. **Plan partitioning early.** Choose shard/tenant keys, hot-key mitigations, locality needs, shard-map responsibility, resharding path, and responsibility boundaries.
-6. **Treat locks and leaders as dangerous.** Use well-tested coordination primitives when necessary, and design work to be idempotent under duplicate execution.
-7. **Define repair and verification.** Include reconciliation jobs, invariants, audit trails, and manual repair safety.
-8. **Route operational changes.** Schema/backfill execution goes to database operations; cache mechanics go to caching.
+4. **Choose time and ordering deliberately.** Use monotonic clocks for elapsed time, wall clocks only for human timestamps, explicit skew bounds for leases and TTLs, define leap-second and daylight-saving behavior for schedulers, and use logical clocks where wall-clock ordering is unsafe.
+5. **Avoid cross-service transactions.** Prefer local transactions plus outbox, sagas, reconciliation, or compensating actions over distributed two-phase commit.
+6. **Plan partitioning early.** Choose shard/tenant keys, hot-key mitigations, locality needs, shard-map responsibility, resharding path, and responsibility boundaries.
+7. **Treat locks and leaders as dangerous.** Use well-tested coordination primitives when necessary, and design work to be idempotent under duplicate execution.
+8. **Define repair and verification.** Include reconciliation jobs, invariants, audit trails, manual repair safety, and standing data-quality checks that catch semantic drift in stored records.
+9. **Route operational changes.** Schema/backfill execution goes to database operations; cache mechanics go to caching.
 
 ## Synthesized Default
 
@@ -90,21 +95,29 @@ Default to the simplest storage and consistency model that satisfies operation s
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Data classification table.
 - Operation-level consistency matrix.
 - Storage decision record with rejected alternatives.
 - Replication, failover, and conflict-resolution model.
+- Conflict-resolution choice from the explicit menu (LWW / CRDT / app-merge) with the read-your-writes or quorum lever that implements the chosen guarantee.
 - Sharding/hot-key/tenant-routing plan.
 - Transaction, outbox, saga, or reconciliation plan.
+- Time, clock, leap-second, daylight-saving, lease, TTL, and ordering decision where temporal correctness matters.
+- Standing at-rest data-quality control: golden-record resolution, recurring reconciliation, anomaly detection, and repair owner.
 - Correctness verification and repair plan.
 
 ## Checks Before Moving On
 
 - `semantics_check`: every critical operation has freshness, ordering, idempotency, conflict, and durability semantics.
+- `conflict_strategy`: the conflict-resolution approach is chosen from the explicit menu and the session-guarantee lever is named.
+- `failover_check`: replication-lag and failover behavior is defined for each read/write path, including the data-loss bound and split-brain prevention.
 - `consistency_choice`: chosen guarantees are justified by user consequence and failure behavior.
 - `responsibility_check`: every data class has an explicit mutation boundary and repair path.
 - `partition_check`: shard/tenant key, hot-key risk, and resharding approach are addressed where scale requires it.
 - `repair_check`: invariants, reconciliation, change history, or manual repair path exists for known inconsistency modes.
+- `clock_ordering`: elapsed-time, wall-clock, skew, leap-second, daylight-saving, lease/TTL, and logical-clock choices are explicit where correctness depends on time.
+- `data_quality`: stored business data has reconciliation, golden-record, semantic anomaly, or repair controls when silent drift is plausible.
 
 ## Red Flags - Stop And Rework
 
@@ -113,6 +126,8 @@ Default to the simplest storage and consistency model that satisfies operation s
 - Distributed locks are hand-rolled.
 - Hot keys or tenant skew are ignored for a high-scale path.
 - Cross-service writes are described as atomic without a mechanism or compensation plan.
+- Wall-clock timestamps are used for ordering, leases, TTL expiry, or scheduling without skew, leap-second, daylight-saving, and rollback behavior.
+- Stored business data can silently drift wrong with no recurring reconciliation or semantic anomaly control.
 
 ## Common Mistakes
 
@@ -122,3 +137,5 @@ Default to the simplest storage and consistency model that satisfies operation s
 | Using caches to solve semantics | Decide stale-read semantics here, then route cache mechanics. |
 | Ignoring repair | Define invariants, reconciliation, audit, and correction paths. |
 | Treating sharding as later | At least identify shard keys and hot-key risks early. |
+| Trusting wall-clock order | Use monotonic time for durations and logical clocks when ordering must survive skew. |
+| Treating stored data quality as a dashboard issue | Define standing reconciliation and repair ownership for semantic correctness. |

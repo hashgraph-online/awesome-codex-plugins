@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/install.js"
+          }
+        ],
+        "description": "Install transpile binary if missing (cross-platform)"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/registry/scripts/pre-read.js"
+          }
+        ],
+        "description": "Auto-compress .md, .html, .txt files before Read"
+      }
+    ]
+  }
+}

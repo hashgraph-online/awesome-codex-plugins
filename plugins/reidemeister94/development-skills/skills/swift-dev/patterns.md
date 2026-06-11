@@ -369,6 +369,8 @@ class User: TimestampedEntity {
 }
 ```
 
+**Behavioral substitutability (LSP):** a conforming type must honor the protocol's *contract* — preconditions, postconditions, invariants — not merely its signatures. A conformance that type-checks but weakens a guarantee is a latent bug. Avoid marker protocols whose only purpose is a distinct DI identity for a type that isn't semantically a kind of the base.
+
 ### Protocol Extensions for Default Behavior
 
 ```swift

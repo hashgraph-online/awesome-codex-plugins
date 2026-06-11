@@ -102,6 +102,7 @@ Treat flags as time-bounded. Release toggles expire when the rollout completes. 
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Flag inventory with name, category, declaration site, expiry, current production value per environment, fallback/default value if evaluation fails, outage behavior, and branch count.
 - Orphan report listing flags with missing classification, exceeded expiry, unsafe or undocumented fallback, identical branches, unreachable branch, registry/code mismatch, or stale evaluation.
 - Per-flag removal plan with target value, cleanup order, rollback path, and verification step for each flag scheduled for removal.

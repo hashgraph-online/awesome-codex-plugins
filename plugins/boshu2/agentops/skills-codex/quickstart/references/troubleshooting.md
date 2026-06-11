@@ -132,5 +132,5 @@ ao metrics flywheel status
 
 **Fixes:**
 - Install ao: `brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew install agentops && ao init`
-- Hookless by default: run `$validation` or `ao flywheel close-loop` explicitly at closeout.
+- Hookless by default: run `$validate` or `ao flywheel close-loop` explicitly at closeout.
 - Want hooks? They are opt-in and author-it-yourself via the `hooks-authoring` skill — there is no `ao` flag that installs them.

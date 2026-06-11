@@ -14,7 +14,8 @@ You are running the bot-paired fast lane PR cycle. Operator typed `$ship-loop` o
 2. `git checkout main && git pull --rebase`. Branch: `git checkout -b <type>/<slug>-<bead-id>`.
 3. Write the first FAILING test. Confirm it fails for the right reason.
 4. Write the minimal implementation. Confirm the test now passes.
-5. Run `scripts/pre-push-gate.sh --fast`. If a pre-existing blocker fires on content you didn't change, STOP and file an atomic side-quest fix PR first.
+5. Run `scripts/ship.sh` or the targeted checks for the files you changed.
+   If unchanged-from-base content blocks CI, STOP and file an atomic side-quest PR first.
 6. Commit with conventional-commit scope. Body reproduces the failure mode.
 7. Push + `gh pr create`. `gh pr merge <num> --squash --auto`.
 8. `bd close <id>` after the PR auto-merges.
@@ -27,9 +28,9 @@ You are running the bot-paired fast lane PR cycle. Operator typed `$ship-loop` o
 
 ## Verification
 
-- Local: `bats <test.bats>` AND `scripts/pre-push-gate.sh --fast` both pass before push.
+- Local: targeted tests and regeneration for the files you changed pass before push.
 - Remote: `claude-review` and the full `validate.yml` suite via `gh pr view <num> --json statusCheckRollup`.
 
 ## Output
 
-A merged PR on `origin/main` and a closed bead. If the chain has >=3 PRs in flight, invoke `scripts/gh-merge-chain.sh` to serialize them.
+A merged PR on `origin/main` and a closed bead. If the chain has >=3 PRs in flight, serialize it by waiting for predecessors and using `gh api repos/<owner>/<repo>/pulls/<num>/update-branch -X PUT` on BEHIND successors.

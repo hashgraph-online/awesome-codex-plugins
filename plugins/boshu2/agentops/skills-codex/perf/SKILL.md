@@ -1,6 +1,6 @@
 ---
 name: perf
-description: 'Profile and optimize hotspots.'
+description: "Run perf."
 ---
 # Perf Skill
 

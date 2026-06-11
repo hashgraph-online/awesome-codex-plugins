@@ -95,6 +95,7 @@ Keep records close to engineering workflows and automate collection where possib
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Engineering expectation-to-behavior-to-record map.
 - Translation map from broad practice items to one owning specialist, with non-technical items marked skipped.
 - Record inventory with source, cadence, and retention.

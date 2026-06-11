@@ -21,18 +21,18 @@ Engineering documentation is useful only when it is findable, maintained, curren
 
 ## When To Use
 
-- The user is designing, restructuring, or lifecycle-managing engineering docs, runbooks, design docs, decision records, onboarding guides, operational references, or documentation standards.
+- The user is designing, restructuring, or lifecycle-managing engineering docs, runbooks, design docs, decision records, onboarding guides, operational references, or documentation standards that need ownership, source-of-truth, freshness, archive, or operational-accuracy rules.
 - The user asks to inventory stale docs or decide ownership, source of truth, freshness rules, verification cadence, or archive criteria.
-- Documentation is stale, duplicated, missing hard to find, or disconnected from code and operations.
+- Documentation is stale, duplicated, missing, hard to find, or disconnected from code and operations.
 - A launch, migration, incident, or deprecation needs docs that remain accurate after the change lands.
-- You need a doc lifecycle, not just copy editing.
+- You need lifecycle rules beyond copy editing.
 
 ## When Not To Use
 
 - The main artifact is an architecture decision; use `architecture-decisions`.
 - The main artifact is an incident timeline or postmortem; use `incident-response-and-postmortems`.
 - The request is marketing, sales, or public positioning copy.
-- The request is routine editorial or mechanical documentation maintenance with no source-of-truth dispute, operational guidance gap, stale-doc risk, or lifecycle decision.
+- The request is routine editorial, explanatory, or mechanical documentation work with no source-of-truth dispute, operational guidance gap, stale-doc risk, or lifecycle decision.
 
 ## Info To Gather
 
@@ -40,6 +40,7 @@ Engineering documentation is useful only when it is findable, maintained, curren
 - Doc type, audience, source of truth, repo or system link, and user decision point.
 - Current doc set, duplicates, stale pages, search paths, and missing operational references.
 - Operational docs, runbooks, dashboard metric definitions, source of truth, freshness triggers, and alert/dashboard link health.
+- Claimed current state versus actual system state for topology, dependencies, routing, recovery paths, and planned or future-state docs.
 - Change triggers: code responsibility, service behavior, alerts, runbooks, interfaces, migrations, and deprecations.
 - Verification cadence, freshness signal, archival rule, and exception path.
 - Signs that users can find and apply the doc during real work.
@@ -49,15 +50,15 @@ Engineering documentation is useful only when it is findable, maintained, curren
 1. **Classify docs by job.** Place every doc asset into exactly one quadrant: tutorial (learning-oriented), how-to (task-oriented), reference (information-oriented), or explanation (understanding-oriented). Tag runbooks and decision records separately as operational and architectural artifacts. Split or rewrite any doc that mixes quadrants until each piece sits in one.
 2. **Name the audience.** State who uses the doc and what decision or task it supports.
 3. **Assign responsibility.** Give every critical doc a user/agent responsibility path and an update trigger tied to the system lifecycle. Anonymous docs become stale silently.
-4. **Pick the source of truth.** Remove or mark duplicates so readers know where authority lives.
-5. **Add freshness signals.** Include last-verified state, lifecycle stage, change trigger, and archive rule; operational docs refresh after incidents, threshold changes, dependency changes, or readiness findings.
+4. **Pick the source of truth.** Remove or mark duplicates so readers know where authority lives. Mark future-state docs as planned; replace current-state operational docs after the live system matches the planned topology, dependency, or recovery change.
+5. **Add freshness signals.** Include last-verified state, lifecycle stage, change trigger, and archive rule; operational docs refresh after incidents, threshold changes, dependency changes, maintenance, repairs, migrations, or readiness findings.
 6. **Connect docs to delivery.** Link docs to code, alerts, dashboards, runbooks, release checks, or decision records where they are used.
 7. **Test usability.** Verify a fresh agent or the user from a clean clone can find and follow the doc under realistic conditions.
 8. **Retire stale docs.** Archive misleading content rather than keeping it searchable with no current source of truth.
 
 ## Synthesized Default
 
-Use a lightweight documentation lifecycle: classify by user job, assign define source of truth, tie updates to system changes, add freshness signals, and archive stale material. Critical runbooks and launch docs should be checked as part of delivery, not after outages show they were wrong.
+Use a lightweight documentation lifecycle: classify by user job, define the source of truth, tie updates to system changes, add freshness signals, and archive stale material. Critical runbooks and launch docs should be checked as part of delivery, not after outages show they were wrong.
 
 
 
@@ -90,8 +91,10 @@ Use a lightweight documentation lifecycle: classify by user job, assign define s
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Documentation inventory **table with explicit columns**: `Doc | Diátaxis quadrant (tutorial / how-to / reference / explanation) | Responsibility path | Source of truth | Last verified | Verification cadence | Staleness signal`. Runbooks and decision records tagged separately as operational/architectural.
 - Source-of-truth map that **states the no-duplication rule explicitly** (e.g., "one canonical location per system; duplicates are marked non-authoritative or deleted").
+- Current-state verification for topology, dependency, routing, recovery, and planned-change docs.
 - Freshness rule naming **both verification cadence AND staleness signal** (e.g., "verify every 90 days; mark `stale` if last-verified > cadence or if linked alert/code changed without doc update").
 - Docs-as-code workflow: **traceable doc changes AND automated checks** (link-checker, markdown lint, CI build) running on every doc PR.
 - Required docs for launch, operations, migration, or maintenance.
@@ -106,6 +109,7 @@ Use a lightweight documentation lifecycle: classify by user job, assign define s
 - `doc_source`: responsibility path and source of truth are explicit.
 - `quadrant_classification`: every doc in the inventory **table carries a visible quadrant label** (tutorial / how-to / reference / explanation); runbooks and decision records tagged separately as operational/architectural. Mixed-quadrant docs are split.
 - `no_duplication_rule`: source-of-truth section states an explicit rule against duplication, beyond "remove duplicates."
+- `current_state_verified`: topology, dependency, routing, recovery, and planned-change docs are marked current after live-state verification.
 - `staleness_signal`: freshness policy names both a cadence and the signal that flips a doc to stale.
 - `docs_as_code`: doc changes flow through linked changes AND automated checks (lint, link-check, or CI).
 - `freshness_rule`: change trigger, lifecycle state, and archive rule exist.
@@ -118,6 +122,7 @@ Use a lightweight documentation lifecycle: classify by user job, assign define s
 - Two docs contradict each other and neither is marked authoritative.
 - A runbook has no source of truth or last-verified signal.
 - A launch depends on undocumented manual knowledge.
+- Future-state or planned-maintenance docs are searchable as current operating truth before the system matches them.
 - Stale docs remain searchable after the system changes.
 - Documentation standards focus on formatting while operational gaps remain.
 

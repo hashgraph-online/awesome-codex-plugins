@@ -548,14 +548,24 @@ metadata:
 
 ### Special Case: Database Resources
 
-Database resources (Clusters created via kubeblocks) use the special label `sealos-db-provider-cr` instead of `cloud.sealos.io/app-deploy-manager`:
+Database resources (Clusters created via kubeblocks) use dbprovider labels instead of `cloud.sealos.io/app-deploy-manager`.
+
+Required labels:
+
+1. `kb.io/database` must identify the KubeBlocks database/version.
+2. `sealos-db-provider-cr` must equal `metadata.name`.
+3. `clusterdefinition.kubeblocks.io/name` must identify the database engine, such as `postgresql`, `apecloud-mysql`, `mongodb`, `redis`, or `kafka`.
+4. Related Pods, Services, and OpsRequests should carry `app.kubernetes.io/instance=<database name>` for dbprovider detail views. Generated templates may also place this label on the Cluster for consistency, but dbprovider's Cluster list path primarily keys on `clusterdefinition.kubeblocks.io/name`.
 
 ```yaml
 # Correct labels for database resources
 metadata:
   name: ${{ defaults.app_name }}-redis
   labels:
+    kb.io/database: redis-7.2.7
     sealos-db-provider-cr: ${{ defaults.app_name }}-redis
+    app.kubernetes.io/instance: ${{ defaults.app_name }}-redis
+    clusterdefinition.kubeblocks.io/name: redis
 ```
 
 ## Object Storage Configuration
@@ -921,10 +931,10 @@ Allowed `limits.memory` values:
 - `256Mi`
 - `512Mi`
 - `1024Mi`
-- `2G`
-- `4G`
-- `8G`
-- `16G`
+- `2048Mi`
+- `4096Mi`
+- `8192Mi`
+- `16384Mi`
 
 `requests` must be derived from `limits` by dropping the last numeric digit:
 
@@ -942,10 +952,10 @@ Allowed `limits.memory` values:
 | `memory: 256Mi` | `memory: 25Mi` |
 | `memory: 512Mi` | `memory: 51Mi` |
 | `memory: 1024Mi` | `memory: 102Mi` |
-| `memory: 2G` | `memory: 200Mi` |
-| `memory: 4G` | `memory: 400Mi` |
-| `memory: 8G` | `memory: 800Mi` |
-| `memory: 16G` | `memory: 1600Mi` |
+| `memory: 2048Mi` | `memory: 204Mi` |
+| `memory: 4096Mi` | `memory: 409Mi` |
+| `memory: 8192Mi` | `memory: 819Mi` |
+| `memory: 16384Mi` | `memory: 1638Mi` |
 
 **Default lightweight application quota:**
 
@@ -977,10 +987,10 @@ resources:
 resources:
   requests:
     cpu: 200m
-    memory: 200Mi
+    memory: 204Mi
   limits:
     cpu: 2
-    memory: 2G
+    memory: 2048Mi
 ```
 
 **Invalid examples:**
@@ -1004,14 +1014,14 @@ resources:
     cpu: 1
     memory: 1024Mi
 
-# Incorrect: decimal G form is not the canonical 1G-class ladder value
+# Incorrect: G/Gi forms can make Sealos Template API quota preview parse memory as 0; use Mi ladder values
 resources:
   requests:
-    cpu: 100m
-    memory: 100Mi
+    cpu: 200m
+    memory: 200Mi
   limits:
-    cpu: 1
-    memory: 1G
+    cpu: 2
+    memory: 2G
 ```
 
 **Tuning guidance:**

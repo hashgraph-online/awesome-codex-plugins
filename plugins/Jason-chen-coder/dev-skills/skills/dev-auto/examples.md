@@ -32,7 +32,7 @@
 Slug   : user-export(自动推断,你可纠正)
 
 完整推荐链
-  1. dev-spec --default user-export      把模糊需求拆成结构化 spec(带 AC)
+  1. dev-grill-docs --deep user-export   拷问需求并生成结构化 spec(带 AC)
   2. dev-plan --deliberate user-export   complex 需求强制走 deliberate(pre-mortem + expanded test plan)
   3. dev-tdd                              红绿重构写代码
   4. dev-verify                           完成前证据门禁
@@ -44,20 +44,20 @@ Slug   : user-export(自动推断,你可纠正)
   已完成 artifacts:none
 
 下一步
-  $ 用 dev-spec --default user-export
-  为什么:dev-spec 多 wave 访谈会把「自助 vs 后台代导」「同步 vs 异步」
-         「字段白名单」等歧义拆出。complex 需求不需要 deep,但要 default 走完。
+  $ 用 dev-grill-docs --deep user-export
+  为什么:dev-grill-docs 会把「自助 vs 后台代导」「同步 vs 异步」
+         「字段白名单」等歧义拆出,并生成 designs/user-export.md。
 ```
 
 注意:
 - **不替用户决定 simple 跳过 dev-plan** —— complex 默认推荐走 plan
-- **不调起 dev-spec** —— 只输出命令让用户敲
+- **不调起 dev-grill-docs** —— 只输出命令让用户敲
 
 ---
 
 ## 例 2 — `--status` 中途定位
 
-**场景**:用户跑完 `dev-spec --default user-export`,artifact 已落 `.claude/artifacts/designs/user-export.md`(无论 Status 是 DRAFT / ALIGNED / IMPLEMENTED,dev-auto 都视作 spec 已存在),plan 还没跑。用户来问。
+**场景**:用户跑完 `dev-grill-docs --deep user-export`(或兼容入口 `dev-spec --deep user-export`),artifact 已落 `.claude/artifacts/designs/user-export.md`(无论 Status 是 DRAFT / ALIGNED / IMPLEMENTED,dev-auto 都视作 spec 已存在),plan 还没跑。用户来问。
 
 **用户**:「`dev-auto --status user-export`」(显式带 slug,准确)
 
@@ -75,7 +75,7 @@ Slug   : user-export(自动推断,你可纠正)
 ━━━ Status ━━━
 Slug:user-export
 Phase 1:spec 已存在(.claude/artifacts/designs/user-export.md)
-已完成:dev-spec
+已完成:dev-grill-docs(spec artifact)
 未完成:plan(可选,complex 推荐) / dev-tdd / dev-verify / dev-code-review / dev-finish
 ```
 
@@ -153,7 +153,7 @@ $ dev-plan --deliberate user-export
 你的需求路径不确定,请选一种:
 
   (a) 新功能 / 增强 inventory
-      → dev-spec(对齐你想加什么)→ dev-tdd → dev-verify → dev-code-review → ...
+      → dev-grill-docs(对齐你想加什么)→ dev-tdd → dev-verify → dev-code-review → ...
   (b) 修 inventory 的某个 bug
       → dev-fix(先复现 + regression test + root cause fix)→ dev-verify → dev-code-review → ...
   (c) 现有 inventory 代码我准备改 / 已改完想 review

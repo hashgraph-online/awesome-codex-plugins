@@ -2,7 +2,7 @@
 
 Reference for `create-test`'s TDD mode. Adds two pieces of guidance on top of the project's canonical RED/GREEN/REFACTOR loop: how tests should read once they exist, and how to use mocking sparingly.
 
-**Canonical RED/GREEN/REFACTOR + vertical-slice + "wrote production code first? delete it":** `shared/iron-rules.md` Process Rule B + `shared/phases/phase-3-implement-verify.md` Step 2. Do not paraphrase those here.
+**Canonical RED/GREEN/REFACTOR + vertical-slice + "wrote production code first? delete it":** `shared/iron-rules.md` Principle 7 + `shared/phases/phase-3-implement-verify.md` Step 2. Do not paraphrase those here.
 
 **When to apply this file:** new features with clear behavior, reproducible bug fixes, refactors covered by characterization tests. **When NOT:** exploratory prototypes where behavior emerges as you code.
 
@@ -100,6 +100,6 @@ class Api:
 
 ## Cross-link
 
-- Canonical RED/GREEN/REFACTOR: `shared/iron-rules.md` Process Rule B + `shared/phases/phase-3-implement-verify.md`.
+- Canonical RED/GREEN/REFACTOR: `shared/iron-rules.md` Principle 7 + `shared/phases/phase-3-implement-verify.md`.
 - Deep modules / deletion test / architecture glossary: `roast-my-code/references/architectural-depth.md`.
 - Advanced test patterns (property-based, characterization, golden fixture, e2e): other files in `create-test/references/`.

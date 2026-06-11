@@ -1,7 +1,7 @@
 {
   "name": "sealos",
-  "version": "0.1.0",
-  "description": "Sealos deployment and app-building skills for Codex.",
+  "version": "1.0.0",
+  "description": "Sealos deployment, database, object storage, and app-building skills for Codex.",
   "author": {
     "name": "Sealos",
     "url": "https://sealos.io/"
@@ -18,13 +18,16 @@
     "codex",
     "skills",
     "devops",
-    "desktop-apps"
+    "desktop-apps",
+    "database",
+    "object-storage",
+    "s3"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Sealos",
-    "shortDescription": "Deploy projects to Sealos Cloud from Codex",
-    "longDescription": "Use Sealos in Codex to assess cloud-native readiness, generate production Dockerfiles, build or reuse container images, convert Docker Compose services into Sealos templates, deploy and update workloads on Sealos Cloud, and build Sealos Desktop apps with SDK integration guidance. The plugin bundles Sealos Agent Skills under ./skills/ and is invoked as $sealos in Codex or /sealos in Claude Code-compatible hosts.",
+    "shortDescription": "Deploy apps and connect Sealos cloud services",
+    "longDescription": "Use Sealos in Codex to assess cloud-native readiness, generate production Dockerfiles, build or reuse container images, convert Docker Compose services into Sealos templates, deploy and update workloads on Sealos Cloud, connect cloud databases, configure S3-compatible object storage, and build Sealos Desktop apps with SDK integration guidance. The plugin bundles Sealos Agent Skills under ./skills/ and is invoked as $sealos in Codex or /sealos in Claude Code-compatible hosts.",
     "developerName": "Sealos",
     "category": "Coding",
     "capabilities": [
@@ -38,7 +41,7 @@
     "defaultPrompt": [
       "Deploy this repo to Sealos Cloud.",
       "Containerize this app and deploy it to Sealos.",
-      "Build a Sealos Desktop app starter."
+      "Create private S3 object storage and wire env vars."
     ],
     "brandColor": "#15B8A6",
     "composerIcon": "./assets/logo.svg",

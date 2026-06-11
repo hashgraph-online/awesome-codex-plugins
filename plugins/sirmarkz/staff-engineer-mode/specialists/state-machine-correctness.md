@@ -39,6 +39,7 @@ Some bugs are too subtle for example-based tests and too expensive to discover i
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - State machine, actors, operations, messages, retries, timers, crashes, recovery, and concurrency points.
+- Timed leases, grants, locks, heartbeat intervals, expiry thresholds, and reacquisition rules.
 - Safety properties: what must never happen.
 - Liveness properties: what must eventually happen, and under which assumptions.
 - Consistency, idempotency, ordering, durability, authorization, and isolation invariants.
@@ -50,13 +51,14 @@ Some bugs are too subtle for example-based tests and too expensive to discover i
 
 1. **Name the critical property.** Write invariants in plain language before choosing tools.
 2. **Model unknown outcomes.** Treat timeout, lost response, and interrupted commit paths as explicit `unknown` states, not as ordinary failures. For side-effecting operations, define what a retry, reconciliation, or user response must do when success cannot be proven.
-3. **Bound the model.** Include only state, actors, timing, failures, and nondeterminism needed to test the property.
-4. **Choose validation strength.** Match the technique to the invariant. Use property-based testing and fuzzing when the invariant is local and the input or interleaving space exceeds what examples cover; use deterministic simulation when timing, scheduling, crash, or retry interleavings dominate; use model checking when the protocol or concurrency interleaving is the source of risk; reserve formal verification for cryptographic, consensus, or safety-critical mechanisms. Move up the validation ladder when the lower technique cannot cover the state space; do not stop at examples for high-stakes invariants. Example-based distributed-boundary matrices, bounded property tests on pure logic, and parser-only fuzzing with no state-machine or invariant under test belong in `testing-and-quality-gates`.
-5. **Search for counterexamples.** Treat each failing trace as design feedback, not as a tool nuisance.
-6. **Connect model to code.** Record which code paths implement each transition and which tests or monitors check the mapping.
-7. **Verify recovery paths.** Include crash, retry, duplicate, reorder, timeout, unknown outcome, partial write, and restart behavior.
-8. **Add runtime checks.** Monitor invariants that can be checked in production without leaking sensitive data or harming users.
-9. **Re-run on design changes.** Update specs, properties, and generated cases when the protocol or state machine changes.
+3. **Model timed ownership.** For leases, grants, locks, or heartbeats, state when ownership remains valid, when it expires, what clients must stop doing after expiry, and how reacquisition avoids duplicate ownership or lost progress.
+4. **Bound the model.** Include only state, actors, timing, failures, and nondeterminism needed to test the property.
+5. **Choose validation strength.** Match the technique to the invariant. Use property-based testing and fuzzing when the invariant is local and the input or interleaving space exceeds what examples cover; use deterministic simulation when timing, scheduling, crash, or retry interleavings dominate; use model checking when the protocol or concurrency interleaving is the source of risk; reserve formal verification for cryptographic, consensus, or safety-critical mechanisms. Move up the validation ladder when the lower technique cannot cover the state space; do not stop at examples for high-stakes invariants. Example-based distributed-boundary matrices, bounded property tests on pure logic, and parser-only fuzzing with no state-machine or invariant under test belong in `testing-and-quality-gates`. Pin a single recorded seed, support reproducible replay of a failing schedule, and inject faults and clock movement so a discovered interleaving reproduces exactly.
+6. **Search for counterexamples.** Treat each failing trace as design feedback, not as a tool nuisance.
+7. **Connect model to code.** Record which code paths implement each transition and which tests or monitors check the mapping.
+8. **Verify recovery paths.** Include crash, retry, duplicate, reorder, timeout, unknown outcome, lease or grant expiry, partial write, and restart behavior.
+9. **Add runtime checks.** Monitor invariants that can be checked in production without leaking sensitive data or harming users.
+10. **Re-run on design changes.** Update specs, properties, and generated cases when the protocol or state machine changes.
 
 ## Synthesized Default
 
@@ -94,8 +96,11 @@ Use lightweight formal or semi-formal validation for high-stakes stateful behavi
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Correctness property list with safety and liveness split.
+- For retry or double-execution scope: an idempotency-key or dedup-token invariant that makes repeated execution safe.
 - Unknown-outcome semantics for timeout, lost response, retry, and reconciliation cases.
+- Lease, grant, lock, or heartbeat semantics with expiry, stop rule, renewal window, and reacquisition path when relevant.
 - State-machine or protocol model boundary.
 - Validation method selection and rationale.
 - Counterexample log and design changes.
@@ -108,7 +113,9 @@ Use lightweight formal or semi-formal validation for high-stakes stateful behavi
 - `invariant_list`: critical safety and liveness properties are written in plain, testable language.
 - `model_boundary`: actors, state, messages, timing, and failure assumptions are explicit.
 - `unknown_outcome`: timeout and lost-response cases define whether the side effect may have happened and how retry or reconciliation stays safe.
+- `timed_ownership`: lease, grant, lock, and heartbeat protocols define expiry, stop behavior, renewal, and reacquisition.
 - `counterexample_search`: validation attempts to find failing traces and confirm expected cases.
+- `sim_reproducibility`: deterministic simulation uses a recorded seed with reproducible replay and injected faults/clock so a failing interleaving replays exactly.
 - `code_mapping`: each modeled transition maps to implementation code, tests, or runtime checks.
 - `recovery_cases`: duplicate, reorder, retry, crash, timeout, and partial-failure cases are covered or explicitly exempted.
 

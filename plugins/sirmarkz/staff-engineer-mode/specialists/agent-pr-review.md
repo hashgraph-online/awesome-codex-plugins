@@ -72,7 +72,7 @@ files only when the user asks for a separate artifact.
 10. **Check operational artifacts.** Identify missing rollback path, missing telemetry for new behavior, missing runbook update, missing migration safety, missing SLO/error-budget consideration, missing threat consideration for new trust-boundary changes, and missing docs.
 11. **Classify findings.** For each finding, record category, support (file:line or behavior), recommended next action, and risk level (blocker, must-fix-before-merge, follow-up, or accepted with rationale).
 12. **Run specialist sanity checks.** Use the consolidated table below for extra lenses and follow-ups without reading adjacent specialist files; do not replace the pre-merge review when a concrete diff is under review.
-13. **Produce the structured artifact.** Output a single review with the categories below, not running prose. The user can use this and can act without re-reading the diff.
+13. **Produce the structured artifact.** Output a single user-visible review with the categories below, not running prose. If the shared `agent-pr-review` template is available, render its headings or tables in the reply or use the same shape. The review is not complete until the user can see the structured artifact without re-reading the diff.
 
 ## Synthesized Default
 
@@ -113,6 +113,7 @@ Run this table after mapping the diff and before the verdict. These routes are e
 ## Response Quality Bar
 
 - Lead with the structured review artifact, blocker list, or scope-creep finding requested.
+- Show the structured review artifact to the user before any commit receipt, merge, or override receipt. The artifact may use `skills/_shared/assets/templates/agent-pr-review.md` or the same headings and tables.
 - Treat blocker or request-changes verdicts as a stop for autonomous commits, not as a denial of an explicit user override after the findings are shown.
 - Start the artifact with an `Review anchors` line containing at least two changed `file:line` citations when the diff has two or more changed lines; one anchor may support intent, but blocker and must-fix findings still need separate cited support.
 - Cover intent verification, failure-mode pass, behavior verification, responsibility/scope details, public-surface impact, and missing operational artifacts before optional review breadth.
@@ -124,8 +125,27 @@ Run this table after mapping the diff and before the verdict. These routes are e
 - Stay inside pre-merge review of a single diff. Use the sanity-check table for extra surface lenses or follow-ups rather than replacing this review.
 - Be concise: prefer a single structured artifact with categorized findings over running narrative.
 
+## PR Review Output Scaling
+
+Show a user-visible structured PR review, scaled to diff size and risk. Do not replace review with a prose-only summary.
+
+Use compact output for tiny, mechanical, doc-only, or low-risk commit/amend diffs with no blocker or must-fix finding.
+
+Compact output must include:
+- Review anchors, or a note that the diff has fewer than two changed locations
+- Reconstructed intent and intent-match status
+- Explicit verdict: ready, request changes, or block
+- Behavior verification status
+- Findings table, even when findings are `none`
+- Failure-mode pass: silent assumptions, plausible-wrong logic, hallucinated APIs/imports/types, deleted-but-used code, unmotivated edits, missing edge cases, scope creep
+- Compact code-quality dimensions
+- Override or commit posture
+
+Use the full `agent-pr-review` template when the diff touches public contracts, production behavior, data, security boundaries, migrations, generated code, or has any blocker or must-fix finding.
+
 ## Required Outputs
 
+- Output shape: use PR Review Output Scaling. Use the full template when scaling requires a full review; include every compact required field for compact reviews.
 - Review anchors: at least two changed `file:line` citations from the diff, unless the diff itself has fewer than two changed lines.
 - One-sentence reconstructed intent and one-sentence assessment of whether the diff matches it, anchored to at least one changed file, function, or line when available.
 - Explicit merge verdict: ready to merge, request changes, or block, with reasons tied to observed issues or their absence.
@@ -162,6 +182,7 @@ Run this table after mapping the diff and before the verdict. These routes are e
 - Hallucinated APIs, types, or imports are not checked even though the author (human or AI) could have invented them.
 - Specialist concerns either replace the PR review or are absorbed without checking the sanity-check table.
 - The review produces prose only, with no categorized findings, support, next actions, or risk levels.
+- The review is performed privately and only the receipt or verdict is shown to the user.
 - The final verdict is given with fewer than two changed `file:line` review anchors when the diff contains enough changed lines.
 
 ## Common Mistakes

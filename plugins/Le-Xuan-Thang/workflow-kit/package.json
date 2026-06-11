@@ -1,0 +1,38 @@
+{
+  "name": "workflow-kit",
+  "version": "0.2.0",
+  "description": "Full product lifecycle toolkit: define Vision/Mission/Core → generate workplan → execute with reviewer agents → synthesize deliverables → maintain.",
+  "type": "module",
+  "main": "opencode-plugin.js",
+  "files": [
+    "opencode-plugin.js",
+    "postinstall.js",
+    "skills/"
+  ],
+  "scripts": {
+    "test": "node tests/test-plugin.mjs",
+    "copy-skills": "node postinstall.js"
+  },
+  "author": {
+    "name": "Le Xuan Thang",
+    "email": "lexuanthang.stock@gmail.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Le-Xuan-Thang/workflow-kit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Le-Xuan-Thang/workflow-kit.git"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "workflow",
+    "multi-agent",
+    "product-lifecycle",
+    "automation",
+    "skills"
+  ],
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

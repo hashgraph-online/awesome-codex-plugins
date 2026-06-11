@@ -13,8 +13,11 @@
 
 ## Parity Matrix
 
-| Dimension | Local | CI | Preview/Ephemeral | Staging | Production | Required Parity | Allowed Divergence |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Dimension | Local | CI | Preview/Ephemeral | Staging | Production |
+| --- | --- | --- | --- | --- | --- |
+
+| Dimension | Required Parity | Allowed Divergence |
+| --- | --- | --- |
 
 ## Drift Budget
 

@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: 'Separate goals from implementation.'
+description: "Run brainstorm."
 ---
 # $brainstorm — Clarify Goals Before Planning
 

@@ -15,7 +15,7 @@ allowed-tools: Glob, Read, Grep, Bash, Task, Skill, Edit, Write, AskUserQuestion
 
 **Before any command suggestion, you MUST detect the project's package manager.** Do NOT default to `npm` without checking.
 
-Read [../../shared/package-manager.md](../../shared/package-manager.md) and apply its detection algorithm: `packageManager` field in `package.json` wins; otherwise the lockfile (`bun.lock`/`bun.lockb` → bun, `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `package-lock.json` → npm). No signal → ask the user.
+Read [../typescript-dev/references/package-manager.md](../typescript-dev/references/package-manager.md) and apply its detection algorithm: `packageManager` field in `package.json` wins; otherwise the lockfile (`bun.lock`/`bun.lockb` → bun, `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `package-lock.json` → npm). No signal → ask the user.
 
 State the result before proceeding: *"Detected **[pm]** (via `[signal]`). Will use [pm] commands."*
 
@@ -91,7 +91,7 @@ WORKFLOW STATE Verification line: `<PM> run build, <lint-commands>, <PM> test` �
 
 ### Lint Enforcement (Phase 3)
 
-**Lint failures BLOCK Phase 3 verification** with the same severity as a failing test. Read [../../shared/lint-enforcement.md](../../shared/lint-enforcement.md) at the start of Phase 3 verification and follow it.
+**Lint failures BLOCK Phase 3 verification** with the same severity as a failing test. Read [../typescript-dev/references/lint-enforcement.md](../typescript-dev/references/lint-enforcement.md) at the start of Phase 3 verification and follow it.
 
 Detection is a union, not a priority ladder:
 1. If `package.json` defines `scripts.lint` → run `<PM> run lint`. Done.
@@ -149,7 +149,7 @@ Source: [vercel.com/blog/introducing-react-best-practices](https://vercel.com/bl
 - If the framework isn't listed, ASK the user — do not guess
 - Complete framework detection BEFORE starting Phase 1
 - Package manager detection is mandatory before emitting any `install` / `run <script>` / `exec <bin>` command — never default to `npm`
-- Lint failures BLOCK Phase 3 verify — same severity as test failures. Skip is allowed only when no linter is configured (no `scripts.lint`, no biome/eslint/oxlint config). See [../../shared/lint-enforcement.md](../../shared/lint-enforcement.md).
+- Lint failures BLOCK Phase 3 verify — same severity as test failures. Skip is allowed only when no linter is configured (no `scripts.lint`, no biome/eslint/oxlint config). See [../typescript-dev/references/lint-enforcement.md](../typescript-dev/references/lint-enforcement.md).
 
 ---
 

@@ -21,8 +21,9 @@ Produces a trust-boundary and data-flow map, an abuse-case table, a control mapp
 
 ## When To Use
 
-- The user asks for threat modeling, secure design, abuse cases, secure SDLC, input validation, authorization decisions, or application security requirements.
+- The user asks for threat modeling, secure design, abuse cases, secure SDLC, authorization decisions, or application security requirements.
 - A change crosses trust boundaries, handles sensitive data, exposes an interface, adds privileged operations, or changes operational access.
+- Server-side outbound request paths need egress allowlists, private-address blocking, DNS/IP rebinding checks, redirect policy, or audit fields.
 - A design needs security acceptance criteria before implementation or launch.
 - The user asks what attackers can abuse or what controls must exist.
 
@@ -31,6 +32,7 @@ Produces a trust-boundary and data-flow map, an abuse-case table, a control mapp
 - The main topic is build provenance, artifact signing, dependency inventory, or deployment admission; use `software-supply-chain-security` instead.
 - The main topic is identity, secrets, cryptography lifecycle, or access lifecycle; use `identity-and-secrets` or `cryptography-and-key-lifecycle` instead.
 - The main topic is LLM prompt, tool, or retrieval abuse; use `llm-application-security` instead.
+- The main topic is per-sink conventional input validation, encoding, parameterization, path safety, deserialization, upload handling, or mass assignment; use `input-validation-and-injection-defense` instead.
 - The request is broad legal/compliance program management; out of scope unless reframed as engineering controls.
 
 ## Info To Gather
@@ -41,6 +43,7 @@ Produces a trust-boundary and data-flow map, an abuse-case table, a control mapp
 - Entry points, APIs, background jobs, admin paths, operational access, and third-party integrations.
 - Server-side outbound request paths such as fetchers, webhooks, callbacks, link previews, imports, and URL-based integrations.
 - Abuse cases, attacker goals, known vulnerability classes, dependency assumptions, and misuse paths.
+- Audit-store integrity needs for high-risk actions: append-only or tamper-evident records, completeness under load, and separate access control.
 - Existing controls, tests, self-checks, scanning results, incidents, and residual risks.
 
 ## Workflow
@@ -48,13 +51,14 @@ Produces a trust-boundary and data-flow map, an abuse-case table, a control mapp
 1. **Map the system.** Identify actors, assets, trust boundaries, data flows, privileged paths, and externally reachable surfaces.
 2. **Classify data and operations.** Mark sensitive data, destructive operations, admin actions, and integrity-critical decisions.
 3. **List abuse cases.** Write what an attacker or malicious/buggy client tries to accomplish and what component might fail.
-4. **Apply a threat frame.** Use spoofing, tampering, repudiation, disclosure, denial, privilege elevation, or equivalent categories to avoid blind spots.
+4. **Apply a threat frame.** Use spoofing, tampering, repudiation, disclosure, denial, privilege elevation, or equivalent categories to avoid blind spots. Decompose with a data-flow diagram (processes, data stores, external entities, and the data flows that cross trust boundaries) and enumerate threats per element with STRIDE: spoofing, tampering, repudiation, information disclosure, denial of service, elevation of privilege. Make the secure path the default path (secure-by-default): insecure configuration requires an explicit, logged opt-out.
 5. **Map controls.** Assign authentication, authorization, validation, output handling, rate limits, audit, secrets handling, encryption, and isolation controls.
 6. **Constrain outbound requests.** For server-side fetchers, webhooks, callback URLs, or imports, define destination allowlists where feasible, DNS/IP rebinding checks, private and metadata address blocking, redirect policy, egress controls, timeout, size, content-type limits, and audit fields.
 7. **Map detection needs.** For high-risk abuse cases, state the detection hypothesis, telemetry or audit data needed, alert or review route, and runbook owner. Route detailed signal design to `observability-and-alerting` when detection coverage is central.
-8. **Make controls testable.** Define unit/integration/security tests, self-checks, runtime monitors, or operational checks for each high-risk control.
-9. **Record residual risk.** State compensating control, expiry, acceptance condition, and explicit user risk acceptance using the shared risk-register, risk-acceptance, and compensating-control formats.
-10. **Route specialized surfaces.** Identity/secrets, supply chain, LLM, tenant isolation, and vulnerability remediation go to their specialist skills when central.
+8. **Protect audit integrity.** For high-risk abuse cases, define whether records are append-only, tamper-evident, completeness-checked under load, and protected from the actors they observe.
+9. **Make controls testable.** Define unit/integration/security tests, self-checks, runtime monitors, or operational checks for each high-risk control.
+10. **Record residual risk.** State compensating control, expiry, acceptance condition, and explicit user risk acceptance using the shared risk-register, risk-acceptance, and compensating-control formats.
+11. **Route specialized surfaces.** Identity/secrets, supply chain, LLM, tenant isolation, per-sink input defense, and vulnerability remediation go to their specialist skills when central.
 
 ## Synthesized Default
 
@@ -92,11 +96,14 @@ Use lightweight threat modeling tied to secure SDLC checks: trust-boundary map, 
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Trust-boundary and data-flow map.
+- Data-flow diagram with trust boundaries and a STRIDE-per-element threat enumeration.
 - Threat and abuse-case table.
 - Security requirements and control mapping.
 - Server-side outbound request and egress-control decision where URLs, callbacks, webhooks, or external fetches exist.
 - Security detection and audit requirements for high-risk abuse cases.
+- Tamper-evident audit-store integrity decision for high-risk records.
 - Verification plan for controls.
 - Residual-risk register with explicit user acceptance and expiry using the shared risk-register format and risk-acceptance lifecycle.
 - Sensitive-data and logging decision.
@@ -106,8 +113,10 @@ Use lightweight threat modeling tied to secure SDLC checks: trust-boundary map, 
 
 - `boundary_check`: actors, trust boundaries, data flows, and privileged paths are explicit.
 - `threat_coverage`: high-risk abuse cases map to controls.
+- `stride_dfd`: a data-flow diagram with trust boundaries exists, threats are enumerated per element (STRIDE), and a secure-by-default posture is stated.
 - `outbound_request_control`: server-side URL fetching and callback paths have destination, redirect, network, timeout, size, and audit controls.
 - `detection_route`: high-risk abuse cases define the telemetry, audit event, alert, or review path that would show attempted or successful abuse.
+- `audit_integrity`: high-risk audit records are tamper-evident or append-only, completeness-checked under load, and access-controlled.
 - `verification_check`: every high-risk control has a test, self-check, runtime check, or source to inspect.
 - `data_handling`: sensitive data storage, transmission, logging, and retention behavior is addressed.
 - `risk_responsibility`: residual risks have explicit user acceptance, expiry, and compensating control using the shared risk-register, risk-acceptance, and compensating-control formats.
@@ -118,6 +127,7 @@ Use lightweight threat modeling tied to secure SDLC checks: trust-boundary map, 
 - Controls are stated but not testable.
 - Admin or operational access is ignored.
 - Sensitive data appears in logs, traces, errors, or analytics without controls.
+- Audit records can be modified, dropped under load, or accessed by the same actors being audited.
 - Residual risks have no user acceptance or expiry.
 
 ## Common Mistakes
@@ -128,3 +138,4 @@ Use lightweight threat modeling tied to secure SDLC checks: trust-boundary map, 
 | Treating security as a final checkpoint | Add controls to requirements, code, tests, release, and operations. |
 | Focusing only on external attackers | Include insider, compromised credential, confused deputy, and abusive tenant paths. |
 | Leaving controls as prose | Tie controls to tests, checks, or source records. |
+| Treating audit logs as ordinary logs | Add tamper evidence, completeness checks, and separate access control for high-risk records. |

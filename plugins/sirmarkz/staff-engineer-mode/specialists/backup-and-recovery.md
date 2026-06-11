@@ -39,18 +39,21 @@ Backups do not matter until a restore works.
 - Essential and critical data sets, customer journeys, data classification, and deletion/corruption blast radius.
 - RTO/RPO expectations by journey, tenant, data class, and regulatory/customer commitment.
 - Backup method, cadence, retention, location, encryption, key responsibility, immutability, and access policy.
+- Backup creation path, including snapshot/export control path, queue/backlog behavior, cell or partition blast radius, and retry or alternate-path behavior when creation fails.
 - Replication topology, lag, consistency model, PITR capability, and location dependencies.
-- Restore procedure, last restore test results, restore environment, validation queries, and rehearsal history.
+- Restore procedure, last restore test results, restore environment, alternate restore target, validation queries, and rehearsal history.
+- Restore volume, concurrency, live-traffic isolation, dependency quotas, and traffic-diversion plan when restore touches production or shared serving infrastructure.
+- Client-visible references created before recovery, such as links, notifications, exports, or API references, and whether restored data preserves or repairs them.
 - Destructive scenarios: operator error, ransomware, compromised credentials, bad deploy, bad migration, and key loss.
 
 ## Workflow
 
 1. **Classify what must be recovered.** Separate essential user-critical data sets from broader serving availability, durability, correctness, and audit/history requirements.
 2. **Set RTO/RPO.** Record maximum tolerable downtime and data loss for each critical journey and data set.
-3. **Map backup coverage.** Include data, metadata, schema, config, secrets/keys, object stores, queues, indexes, and derived state.
+3. **Map backup coverage.** Include data, metadata, schema, config, secrets/keys, object stores, queues, indexes, derived state, and the creation path that produces backup artifacts.
 4. **Check isolation.** Ensure backups and keys survive accidental deletion, malicious operator action, account compromise, and ransomware.
-5. **Design restore paths.** Include full restore, partial restore, point-in-time recovery, location rebuild, and corruption repair.
-6. **Run a restore check.** Restore into a controlled environment, run correctness checks, measure elapsed time and data loss, and record gaps.
+5. **Design restore paths.** Include full restore, partial restore, point-in-time recovery, alternate-target restore, location rebuild, corruption repair, and repair or redirect behavior for client-visible references emitted before recovery.
+6. **Run a restore check.** Restore into a controlled environment, run correctness checks, measure elapsed time and data loss, and record gaps. When a restore or recovery data operation must touch production or shared serving infrastructure, throttle by volume, dependency quota, lock/metadata pressure, and user impact; define traffic diversion before the restore begins. Verify backup-artifact integrity proactively (checksums, scrub, or test-decrypt) so silent corruption or bit-rot is detected before a restore is needed, not at restore time; keep at least one immutable and offline/air-gapped copy for ransomware and operator-error recovery.
 7. **Choose DR posture.** Use backup/restore, pilot light, warm standby, active-passive, or active-active based on RTO/RPO, complexity, cost, data residency, and operations maturity.
 8. **Feed findings back.** Create blockers for PRR, platform fixes, runbook updates, and future drills.
 
@@ -90,12 +93,17 @@ Use recent restore tests tied to RTO/RPO as the default. Protect backups and enc
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - DR strategy decision record.
 - RTO/RPO table by journey and data set.
 - Essential-data coverage table showing source of truth, restore type, validation, and measured result.
 - Backup coverage, retention, encryption, key, and immutability matrix.
+- Backup-integrity verification schedule and the immutable/offline copy location.
+- Backup creation-path dependency check with queue/backlog behavior, blast radius, retry safety, and alternate path.
 - Restore runbook with prerequisites, commands, validation, and rollback.
-- PITR, partial restore, corruption repair, and location recovery plan.
+- Restore capacity and quota guardrails for production or shared-infrastructure restores, including traffic diversion and safe restore volume.
+- Client-visible reference repair plan for links, notifications, exports, or API references that can remain broken after data is restored.
+- PITR, partial restore, alternate-target restore, corruption repair, and location recovery plan.
 - Restore test result log with measured RTO/RPO and gaps.
 - Remediation backlog for missing coverage or failed restore criteria.
 
@@ -106,8 +114,13 @@ Use recent restore tests tied to RTO/RPO as the default. Protect backups and enc
 - `rto_rpo_fit`: measured restore time and data loss meet the stated targets, or exceptions have a user-accepted deadline and verification path.
 - `measured_restore`: restore behavior is measured against the stated objective rather than described from intent.
 - `coverage_matrix`: critical data, metadata, schema, config, and keys have backup or rebuild coverage.
+- `backup_creation_path`: snapshot, export, or backup artifact creation has known control-path dependencies, backlog behavior, blast radius, retry safety, and alternate path.
 - `isolation_check`: backups and keys are protected from destructive operator, compromised credential, and ransomware scenarios.
+- `backup_integrity`: backups are integrity-verified on a schedule (not just "job succeeded"), with at least one immutable offline/air-gapped copy.
 - `validation_queries`: restored data has correctness checks and process completion checks.
+- `client_reference_repair`: externally visible links, notifications, exports, or API references emitted before recovery are preserved, redirected, repaired, or explicitly communicated as broken.
+- `restore_capacity_guard`: production or shared-infrastructure restores have volume, concurrency, dependency-quota, and traffic-diversion limits.
+- `alternate_restore_target`: restores can use a separate target when the original location, instance, or control path is impaired, or the missing option is called out.
 
 ## Red Flags - Stop And Rework
 

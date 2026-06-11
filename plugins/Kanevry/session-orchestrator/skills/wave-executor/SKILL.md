@@ -442,6 +442,10 @@ real failure is a regression vector. The fixer prompt should explicitly say:
 
 After each quality-gate PASS, the coordinator refreshes the session-lock heartbeat via the post-wave STATE.md step. See `wave-loop.md § 3a. Post-Wave: Update STATE.md` — step 5 contains the `updateHeartbeat` instruction and best-effort framing. The `sessionId` passed to `updateHeartbeat` is the session identifier established by session-start Phase 1.2 `acquire()` and stored in `.orchestrator/session.lock` (its `session_id` field); it matches the STATE.md frontmatter `session:` field written during Pre-Wave 1b initialization.
 
+## Agent-Status Telemetry (#565)
+
+Optional, best-effort operator-side observability: the coordinator pushes lightweight per-agent status at three anchors (dispatch, agent-end, wave-end rollup) via `scripts/lib/agent-status.mjs`, gated on `persistence: true`. A push NEVER blocks a wave. The tmux `--with-status-pane` flag (`skills/tmux-layout/SKILL.md`) renders the live feed. See `wave-loop.md § 3a-bis. Agent-Status Telemetry` for the exact anchors and invocation.
+
 ## Frontmatter-Guard (#328)
 
 When an agent's task scope includes vault paths (`~/Projects/vault/` or vault subdirectories such as `40-learnings/`, `50-sessions/`, `03-daily/`, `01-projects/`), the wave-executor injects a deterministic frontmatter-schema snippet into the agent's prompt. This eliminates the recurring failure class where agents guess at enum values for `type`, `status`, or `tags`.

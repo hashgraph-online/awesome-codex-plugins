@@ -112,7 +112,7 @@ interface ImportMetaEnv {
 
 ## Build & Development
 
-Run package.json scripts via the project's detected package manager — see [../../../shared/package-manager.md](../../../shared/package-manager.md). The placeholder `<PM> run <script>` resolves to `npm run <script>` / `pnpm <script>` / `yarn <script>` / `bun run <script>`.
+Run package.json scripts via the project's detected package manager — see [../../typescript-dev/references/package-manager.md](../../typescript-dev/references/package-manager.md). The placeholder `<PM> run <script>` resolves to `npm run <script>` / `pnpm <script>` / `yarn <script>` / `bun run <script>`.
 
 ```bash
 # Development with HMR

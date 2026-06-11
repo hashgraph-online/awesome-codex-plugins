@@ -1,6 +1,6 @@
 ---
 name: vibe
-description: 'Validate code readiness.'
+description: "Run vibe."
 ---
 # Vibe Skill
 
@@ -408,6 +408,20 @@ This is the same value — just labeled for the satisfaction scoring pipeline.
 
 When coverage gaps are found, run `$test <module>` to generate test candidates for uncovered code.
 
+### Scenario→Test Coverage (MANDATORY when the slice has scenarios)
+
+The test-pyramid inventory checks that tests *exist* and are well-shaped — it does NOT check that each of the slice's acceptance scenarios maps to a test. The leaf gate for that is `scripts/check-bead-scenario-coverage.sh` (C2, ag-9jle.4). It parses the bead's `## Scenarios` block (or a `.feature` file) and FAILS if any scenario lacks a `@covered-by:<test-path>` link — it works *forward from behavior*, not backward from coverage %.
+
+```bash
+# When validating a tracked bead with a ## Scenarios block:
+bash scripts/check-bead-scenario-coverage.sh --bead <bead-id> --json
+
+# When validating a .feature directly:
+bash scripts/check-bead-scenario-coverage.sh skills/<skill>/references/<name>.feature --json
+```
+
+A FAIL here is a vibe blocker, not a WARN: "tests exist" or a coverage percentage is NOT sufficient — every scenario must declare a covering test. Add `@covered-by:<test-path>` (optionally `::<TestName>`) directly above each uncovered `Scenario:`. Skip only when the slice has no scenarios (free-text acceptance must be promoted to scenarios first). When the covering tests are runnable in this checkout, prefer `--run` to require they actually PASS, not merely exist.
+
 ### Step 2g: Check for Product Context
 
 **Skip if `--quick` as a separate judge-fanout step.** In quick mode, the same DX expectations are still loaded inline during review. In non-quick modes, add the dedicated `developer-experience` perspective.
@@ -502,6 +516,32 @@ $council validate <target>
 - Sweep manifest (when `--deep` or `--sweep`, in `context.sweep_manifest` — judges shift to adjudication mode, see `references/deep-audit-protocol.md`)
 
 All council flags pass through: `--quick` (inline), `--mixed` (cross-vendor), `--preset=<name>` (override perspectives), `--explorers=N`, `--debate` (adversarial 2-round). See Quick Start examples and `$council` docs.
+
+### Step 4.5: No-self-grading invariant (author ≠ validator)
+
+The acceptance verdict must NOT be graded by the artifact's own author. A verdict produced by the authoring context is autocorrelated — the same blind spots that shipped the bug pass it. This is the no-self-grading invariant (`ag-lmdx.4`): the independent-trust-domain check that guards the `evidenced->validated` transition.
+
+**Rule:** the judge context MUST be distinct from the author context. Validation MAY run inside the authoring session, but the judge MUST be a **blind sub-agent** — a fresh, context-isolated agent acting as if it has no authoring context. Record `judge_id` (the isolated sub-agent context) distinct from `author_id` (the authoring context). The council judges spawned in Step 4 satisfy this when they are context-isolated sub-agents; an inline self-review by the authoring agent does NOT.
+
+**Blind sub-agent judge spawn (the mechanism, MANDATORY when validating in the authoring session):**
+
+When the verdict is being produced inside the session that authored the code, you MUST spawn the acceptance judge as a fresh-context sub-agent — do NOT grade inline. Concretely:
+
+1. Spawn the judge via the Codex sub-agent mechanism (the same context-isolated sub-agents Step 4's council uses). The sub-agent is the judge; the orchestrating authoring agent is NOT.
+2. Hand the blind judge **ONLY** the acceptance inputs — never the authoring conversation, plan, or reasoning:
+   - the **diff/artifact** under review (changed files + `git diff`),
+   - the **acceptance scenarios** (the bead's `## Scenarios` block or the `.feature` file) and any spec, complexity hotspots, and domain checklists,
+   - the verdict contract (`skills/council/schemas/verdict.json`).
+   Do NOT pass the authoring transcript, intermediate design notes, or "here's why I think it's correct" framing. The judge acts as if it has no authoring context.
+3. Use the sub-agent's PASS/WARN/FAIL as the acceptance verdict. Record `judge_id` = the isolated sub-agent context, `author_id` = the authoring context, into the turn-input consumed by `ao turn verify` (Enforcement below).
+
+This is what makes same-session validation trustworthy: the verdict is produced by a context that did not author the artifact, so the author's blind spots do not pass it.
+
+**Refuse** to emit a PASS verdict when the judge context equals the author context (`judge_id == author_id`) — i.e. when no blind sub-agent was spawned and the authoring agent graded itself. Re-run the verdict through a blind sub-agent judge instead.
+
+**Escape:** `--allow-self` (default OFF) waives the invariant for the inline fallback only (e.g. no sub-agent runtime available). Using it stamps the verdict as self-graded; downstream `ao turn verify` reports it as waived, not independently validated.
+
+**Enforcement:** `ao turn verify <bead>` evaluates the `author_neq_validator` predicate from the turn-input file's `author_id`/`judge_id` and fails the Evidenced-Turn DoD on a self-graded verdict unless `--allow-self` is passed. The `evidenced->validated` guard rejects a self-graded verdict.
 
 ### Step 5: Council Checks
 

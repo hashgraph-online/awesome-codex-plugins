@@ -1,7 +1,7 @@
 {
   "name": "agentgram",
-  "version": "0.1.1",
-  "description": "Codex and AI-agent Telegram messaging plugin with a local CLI.",
+  "version": "0.2.2",
+  "description": "Codex and AI-agent Telegram messaging and file-sending plugin with a local CLI.",
   "author": {
     "name": "Jerry Fane",
     "url": "https://github.com/jerryfane"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Agentgram",
-    "shortDescription": "Send Telegram messages from Codex and agent sessions.",
-    "longDescription": "Agentgram is a Codex Telegram plugin and local CLI for AI agents. It sends explicit, user-requested Telegram messages through the Telegram Bot API using a bot token and chat id from the user's environment.",
+    "shortDescription": "Send Telegram messages and files from Codex and agent sessions.",
+    "longDescription": "Agentgram is a Codex Telegram plugin and local CLI for AI agents. It sends explicit, user-requested Telegram messages and files through the Telegram Bot API using a bot token and chat id from the user's environment.",
     "developerName": "Jerry Fane",
     "category": "Productivity",
     "websiteURL": "https://github.com/jerryfane/agentgram",
@@ -32,7 +32,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Use Agentgram to send a Telegram message."
+      "Use Agentgram to send a Telegram message or file."
     ]
   }
 }

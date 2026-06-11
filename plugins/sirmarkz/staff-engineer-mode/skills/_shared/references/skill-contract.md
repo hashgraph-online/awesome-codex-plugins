@@ -6,8 +6,8 @@ Every specialist file must be concise, triggerable, and artifact-oriented.
 
 - YAML frontmatter with `name` and trigger-only `description`.
 - `# Skill Name`
-- `## Overview`
 - `## Iron Law`
+- `## Overview`
 - `## When To Use`
 - `## When Not To Use`
 - `## Info To Gather`
@@ -29,6 +29,10 @@ Every specialist Response Quality Bar must require technology-agnostic guidance
 by default: do not introduce provider, product, framework, database, protocol,
 or command names unless the user supplied them or explicitly requested
 tool-specific guidance.
+
+Every specialist's Required Outputs must include an output-shape rule: render
+the matching shared template headings or tables in the reply, or use the same
+shape. Keep templates, checklists, and reviews user-visible.
 
 Every specialist must state lifecycle behavior:
 

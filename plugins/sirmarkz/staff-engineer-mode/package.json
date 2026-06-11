@@ -1,9 +1,9 @@
 {
   "name": "staff-engineer-mode",
-  "version": "1.9.0",
+  "version": "2.1.0",
   "type": "module",
   "main": ".opencode/plugins/staff-engineer-mode.js",
-  "description": "Staff-engineering decision guidance for AI coding agents. Routes design, development, testing, release, operations, reliability, security, API, data, and platform work to specialist guidance.",
+  "description": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
   "license": "MIT",
   "repository": "https://github.com/sirmarkz/staff-engineer-mode",
   "homepage": "https://github.com/sirmarkz/staff-engineer-mode",

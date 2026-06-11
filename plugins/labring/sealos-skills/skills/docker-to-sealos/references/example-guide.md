@@ -637,8 +637,10 @@ metadata:
   finalizers:
     - cluster.kubeblocks.io/finalizer
   labels:
+    sealos-db-provider-cr: ${{ defaults.app_name }}-mongo
     kb.io/database: mongodb-8.0.4
     app.kubernetes.io/instance: ${{ defaults.app_name }}-mongo
+    clusterdefinition.kubeblocks.io/name: mongodb
   annotations: {}
   name: ${{ defaults.app_name }}-mongo
   generation: 1

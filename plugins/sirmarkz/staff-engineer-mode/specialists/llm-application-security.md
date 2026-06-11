@@ -32,6 +32,7 @@ LLM applications move untrusted text across tool, data, and decision boundaries.
 - The request is broad AI strategy, model strategy, or ethics work outside engineering controls.
 - The work is classical ML evaluation or drift; use `ml-reliability-and-evaluation` instead.
 - The request is general application threat modeling without LLM-specific boundaries; use `secure-sdlc-and-threat-modeling` instead.
+- The request is conventional non-model input reaching query, command, render, parser, path, upload, or deserialization sinks; use `input-validation-and-injection-defense` instead.
 - The issue is generic artifact provenance with no model/prompt/tool supply chain concern; use `software-supply-chain-security` instead.
 - The main work is personal-data lifecycle, retention, deletion, export, or prompt/response storage controls; use `privacy-and-data-lifecycle` instead unless LLM prompt, retrieval, tool, or output boundaries dominate.
 - The main work is tenant boundary enforcement outside LLM retrieval/session context; use `tenant-isolation` instead.
@@ -57,11 +58,11 @@ LLM applications move untrusted text across tool, data, and decision boundaries.
 
 1. **Frame impact and misuse.** State intended use, affected user groups, unacceptable harms or unsafe actions, misuse context, and where human escalation or override must exist.
 2. **Map boundaries.** Identify every place untrusted text can influence prompts, retrieval, tool calls, code paths, messages, or stored state.
-3. **Constrain tools.** Give tools minimum permissions, explicit schemas, rate limits, loop/depth limits, side-effect boundaries, and confirmation checks for high-risk actions.
+3. **Constrain tools.** Give tools minimum permissions, explicit schemas, rate limits, loop/depth limits, side-effect boundaries, and confirmation checks for high-risk actions. Treat deliberate cost or usage abuse (denial of wallet) as an adversarial scenario: cap per-caller token, tool, and cost budgets and coordinate cost ceilings with `llm-serving-cost-and-latency`.
 4. **Protect retrieval.** Enforce tenant/data permissions before retrieval and again before answer/action use.
-5. **Treat output as untrusted by sink.** Commands need allowlisted operations and dry-run/confirmation where risky; queries need parameterization and scoped credentials; rendered text needs contextual encoding; structured tool inputs need schema validation; documents/messages need destination policy checks; downstream prompts need boundary markers and instruction-isolation.
+5. **Treat output as untrusted by sink.** Commands need allowlisted operations and dry-run/confirmation where risky; queries need parameterization and scoped credentials; rendered text needs contextual encoding (including blocking auto-fetched markdown image/link URLs that can exfiltrate data); structured tool inputs need schema validation; documents/messages need destination policy checks; downstream prompts need boundary markers and instruction-isolation. Apply a content-moderation/safety check on both inputs and generated outputs for harmful or policy-violating content before the output reaches a user or sink.
 6. **Validate inputs and feedback.** Bound length and tokens, validate uploaded files by content and declared type, normalize or reject hidden/control characters, set an explicit link/URL policy, redact or block sensitive data by purpose, and apply the same controls to free-form feedback.
-7. **Separate instructions from data.** Do not let retrieved or user content override developer/system policy. Use structural boundaries, markers, and deterministic checks as defense in depth, not as guarantees.
+7. **Separate instructions from data.** Do not let retrieved or user content override developer/system policy. Use structural boundaries, markers, and deterministic checks as defense in depth, not as guarantees. Treat the system prompt, tool schemas, and hidden context as non-confidential: never place secrets or authorization decisions in them, and enforce access control outside the prompt so system-prompt disclosure cannot grant capability.
 8. **Protect stored prompts and responses.** Classify prompts and outputs, minimize retention, restrict human access by need, encrypt with accountable key responsibility, and audit access.
 9. **Protect session isolation.** Keep user sessions, conversation state, retrieved context, and mutable objects scoped per user/request; test race conditions that could leak history across users or tenants.
 10. **Plan emergency stop and rollback.** Define independent disable or rollback paths for prompt templates, tool permissions, model/config, retrieval corpus, index, and training or fine-tuning inputs.
@@ -108,6 +109,7 @@ Use least-privilege tools, permission-checked retrieval, input validation, untru
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - LLM threat model and trust-boundary map.
 - Intended-use, affected-user, misuse, unacceptable-harm, and escalation or override context.
 - Prompt, retrieval, tool, and output permission matrix.
@@ -120,6 +122,7 @@ Use least-privilege tools, permission-checked retrieval, input validation, untru
 - Prompt/response storage, access, retention, logging, and privacy requirements.
 - Emergency stop and rollback plan for prompt, model/config, retrieval corpus/index, tool permissions, and training or fine-tuning inputs.
 - Session isolation and cross-user leakage test plan.
+- Input/output content-moderation plan and system-prompt-confidentiality posture (no secrets or authorization logic in the prompt).
 - Model/prompt/tool/data supply-chain record with artifact ID, version, source, integrity checks, eval result, rollback target, and retire-by date.
 
 ## Checks Before Moving On
@@ -130,6 +133,8 @@ Use least-privilege tools, permission-checked retrieval, input validation, untru
 - `input_validation`: prompt, feedback, file, link, hidden/control-character, and size/token controls are defined before model use.
 - `output_handling`: model output is validated, encoded, or constrained before use in sensitive sinks.
 - `adversarial_check`: prompt injection, leakage, unsafe-action, and regression tests exist.
+- `output_moderation`: harmful or policy-violating content is checked on inputs and generated outputs before reaching users or sinks.
+- `prompt_confidentiality`: no secrets or authorization logic live in the system prompt; access control is enforced outside the prompt so prompt disclosure grants no capability.
 - `red_team_scope`: high-impact workflows have a scoped red-team plan, finding severity, and retest path, or an explicit risk-based skip.
 - `sensitive_data_control`: prompt/response storage, redaction, retention, and human access rules are defined.
 - `rollback_control`: prompt, model/config, retrieval, tool-permission, and training/fine-tuning inputs can be disabled or rolled back independently.
@@ -146,6 +151,8 @@ Use least-privilege tools, permission-checked retrieval, input validation, untru
 - Shared conversation or retrieval state can leak between users, tenants, or requests.
 - Eval set only tests happy-path answer quality.
 - Logs capture secrets or private prompts without redaction.
+- The system prompt holds secrets or is the only thing enforcing authorization.
+- Per-caller token, tool, and cost budgets are unbounded, allowing denial-of-wallet abuse.
 
 ## Common Mistakes
 

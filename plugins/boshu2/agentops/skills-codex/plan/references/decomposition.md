@@ -9,6 +9,7 @@ Before finalizing issue decomposition, verify the plan avoids these confirmed fa
 
 | Anti-Pattern | Detection Question | Gate |
 |---|---|---|
+| **Free-text-only acceptance** | Does every bead carry an embedded `## Scenarios` Gherkin block by default? | FAIL if any bead ships free-text-only acceptance with no `## Scenarios` (Given/When/Then) block — promote it to scenarios before creating the bead |
 | **Brainstorm masquerading as plan** | Does every issue have mechanically verifiable acceptance criteria? | FAIL if any issue lacks `files_exist`, `content_check`, `tests`, or `command` conformance checks |
 | **Dead infrastructure** | Does the plan provision anything without an activation test? | WARN if infrastructure is created without a corresponding smoke test issue |
 | **Propagation surface blindness** | Has the full propagation surface been enumerated for renames/refactors? | FAIL if structural changes lack a propagation surface table |

@@ -10,6 +10,10 @@
 
 ## Evidence To Record
 
+- Artifact path:
+- Owner:
+- Checked at:
+- Actual result:
 - Output, artifact, or observation:
 - Scope covered:
 - Known limitation:

@@ -37,7 +37,7 @@ Experiments are only useful when assignment, exposure, metrics, and decision rul
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Hypothesis, decision to make, target population, unit of assignment, treatment, control, and exposure rule.
-- Primary metric, guardrail metrics, diagnostic metrics, minimum effect, runtime, and stopping rule.
+- Primary metric, guardrail metrics, diagnostic metrics, minimum detectable effect, required sample size and power, runtime, and stopping rule.
 - Assignment implementation, eligibility filters, ramp plan, holdout policy, and contamination risks.
 - Exposure logging, event definitions, metric pipelines, missingness, delayed effects, and data-quality checks.
 - Segment/slice plan, interaction with other experiments, and decision point.
@@ -47,9 +47,9 @@ Experiments are only useful when assignment, exposure, metrics, and decision rul
 1. **State the decision.** Define the hypothesis and what action the readout will drive.
 2. **Choose assignment unit.** Pick a stable unit that matches the effect being measured and avoids cross-contamination.
 3. **Define exposure.** Log when the user or entity could be affected, not only when assignment occurred.
-4. **Predeclare metrics.** Name primary, guardrail, diagnostic, and segment metrics before reading results.
-5. **Check validity.** Test assignment balance, sample-ratio mismatch, missing telemetry, logging defects, and eligibility drift.
-6. **Plan interactions.** Identify overlapping experiments, long-lived holdouts, novelty effects, and downstream metric coupling.
+4. **Predeclare metrics and power.** Name primary, guardrail, diagnostic, and segment metrics before reading results. Pre-register the minimum detectable effect, the required sample size and power to detect it, and the fixed analysis and readout plan; an underpowered test is a design blocker, not a caveat.
+5. **Check validity.** Test assignment balance, sample-ratio mismatch, missing telemetry, logging defects, and eligibility drift. Use an A/A check (or prior A/A evidence) to validate the assignment, logging, and analysis pipeline before trusting an A/B readout.
+6. **Plan interactions and comparisons.** Identify overlapping experiments, long-lived holdouts, novelty/primacy effects, network or interference (spillover) effects, and downstream metric coupling. When evaluating many metrics or slices, control the false-positive rate (pre-registered primary metric plus a correction for the rest) so slice mining does not manufacture significance.
 7. **Check ramps.** Combine experiment outcomes with operational guardrails; do not let positive primary metrics hide safety regressions.
 8. **Record the decision.** Capture result, caveats, decision, rollback trigger, and follow-up measurement.
 
@@ -88,8 +88,10 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Experiment design with hypothesis, population, assignment unit, treatment, control, and exposure rule.
 - Metric map: primary, guardrail, diagnostic, and segment metrics.
+- Power analysis: minimum detectable effect, required sample size, runtime, and false-positive control across metrics and slices.
 - Validity checks for assignment, sample ratio, telemetry, eligibility, contamination, and missingness.
 - Ramp, stop, and readout decision rules.
 - Interaction and holdout notes.
@@ -102,6 +104,8 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 - `exposure_logged`: exposure event records who could be affected.
 - `guardrails_set`: safety and quality metrics can block a positive primary result.
 - `validity_checked`: metric trust failures are checked before readout.
+- `power_planned`: minimum detectable effect, required sample size, and runtime are computed before launch.
+- `readout_discipline`: the analysis is fixed in advance; any early reading uses a sequential or alpha-spending method; multiple metrics or slices have false-positive control.
 
 ## Red Flags - Stop And Rework
 
@@ -110,6 +114,8 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 - Sample-ratio mismatch is ignored.
 - A positive primary metric hides reliability, safety, or accessibility harm.
 - The ramp continues after validity checks fail.
+- A decision is read before the pre-registered sample size or runtime is reached, with no sequential method.
+- Many slices or metrics are mined for significance with no multiple-comparison control.
 
 ## Common Mistakes
 
@@ -119,3 +125,5 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 | Result-first metrics | Predeclare metrics and guardrails. |
 | Ignoring invalidation | Treat balance and telemetry failures as blockers. |
 | Average-only readouts | Check important slices and long-term effects. |
+| Underpowered tests | Pre-compute minimum detectable effect, sample size, and power before launch. |
+| Peeking until significant | Fix the horizon, or use a sequential / alpha-spending method. |

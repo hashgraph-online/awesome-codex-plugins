@@ -63,6 +63,16 @@ Semantic Slots:
   work. It names the boundary held, evidence, covered and uncovered scope,
   residual risk, confidence, and any triggered governance closure.
 
+TDD Completion Boundary:
+- Judge the completion claim against the highest available explicit boundary.
+- Parent plan/spec acceptance decides whole-task completion; `TaskIntentDraft`
+  decides current-task completion; `Slice Card` decides slice completion only.
+- Match the boundary to the claim being made, and keep any higher open boundary
+  explicit.
+- If only slice-level evidence exists, do not claim whole-task `done`.
+- If no explicit boundary exists and atomicity is not clear, downgrade to
+  `needs-verification` or return to framing/planning.
+
 1. **Remove/Restore**: side effects? temp instrumentation restored?
 2. **Evidence Bundle**: exact command, scope, exit status, key output. State what's covered and what's not. Include target test and related regression evidence. When automation is blocked, provide reproducible manual verification steps.
 3. **Prompt Hygiene**: when external output shaped judgment → state whether summaries or raw excerpts were used. Name large payloads not loaded. If summary insufficient → read back excerpt or lower claim. Include Evidence Used / Not Loaded / Next Evidence boundary when relevant.
@@ -70,6 +80,13 @@ Semantic Slots:
 5. **Authority**: verified evidence ≠ authoritative completion. Keep distinct.
 6. **Goal Closure**: when `goal-framing` or optional `TaskIntentDraft` goal
    fields shaped the work, explicitly check the goal before claiming completion:
+
+   Available boundary check for completion judgment:
+   1. Parent plan/spec acceptance for whole-task completion, when present
+   2. `TaskIntentDraft` Goal / Success evidence / Non-goals for the current
+      task, when present
+   3. `Slice Card` Goal / Verification / Stop for the current slice, when
+      present
 
    ```text
    Goal Closure:
@@ -112,15 +129,31 @@ Semantic Slots:
    authorization to commit, tag, publish, merge, or release. It cannot provide
    completion authority.
 10. **Natural Aegis closeout**: when Aegis skills materially shaped a
-   non-trivial task, use one sentence before the final claim to name the
-   boundary or quality risk Aegis held steady. Do not default to a visible `Aegis Contribution Note:` heading.
-   Keep it advisory method-pack discipline, not completion authority. Keep it
-   implicit for obvious fast-path replies unless the user asked about Aegis
-   routing.
+   non-trivial task, keep Aegis explicitly visible in the final completion
+   closeout.
 
-   ```text
-   This judgment used Aegis to hold one boundary steady: <boundary / quality risk>.
-   ```
+   The closeout should naturally show how Aegis influenced the result. Make at
+   least one of the following user-visible:
+   - what boundary Aegis helped hold steady
+   - what evidence or verification discipline Aegis required before the claim
+   - what residual risk, uncovered scope, or restraint Aegis kept visible
+
+   Use one sentence when Aegis mainly helped hold one boundary steady,
+   but more than one mention is valid when boundary, evidence, and
+   residual-risk visibility each materially shaped the judgment.
+
+   Keep this integrated into the normal completion summary rather than a fixed
+   slogan. Do not default to a visible `Aegis Contribution Note:` heading. Do
+   not default to one canonical closeout phrase, and do not repeat the same
+   Aegis closeout wording across unrelated tasks.
+
+   When Aegis materially shaped multiple parts of the judgment, it may appear
+   more than once across the closeout, as long as each mention is tied to a
+   concrete boundary, evidence decision, or risk callout.
+
+   Keep it advisory method-pack discipline, not completion authority. Keep it
+   implicit only for obvious fast-path replies unless the user asked about
+   Aegis routing.
 
    Natural expression may satisfy the visibility requirement when the semantic
    slots are still explicit. For example, "I will follow the Aegis order here:
@@ -311,6 +344,33 @@ Semantic Slots:
    - Lingering references checked:
    ```
 
+   If the work retires old logic, chooses between delete-first and compat
+   retention, or touches source-of-truth deletion boundaries, also include:
+
+   ```text
+   Anti-Entropy Declaration:
+   - Deletion Class:
+   - Source-of-Truth Data Risk:
+   - User Confirmation Required:
+   ```
+
+   If `User Confirmation Required: yes`, completion cannot be claimed until the
+   workflow stops at a guard shaped like:
+
+   ```text
+   Data Destruction Guard:
+   - Exact Target(s):
+   - Blocked Destructive Steps:
+   - Confirmation Required: yes
+   - Status: awaiting scoped confirmation
+   ```
+
+   Mentioning a warning or destructive rule never authorizes execution. Broad
+   assent such as "OK" or "continue" is not scoped confirmation. If
+   `persistent-state` deletion or another irreversible source-of-truth action
+   happened without explicit scoped confirmation, report the task as not
+   complete.
+
 ## Red Flags - QA Drift
 
 - Reporting "done" when only one layer was checked
@@ -324,3 +384,5 @@ Semantic Slots:
   Complexity Delta, Complexity Governance Suggestion, or residual-risk note
 - Retaining old logic without a Retention reason, Retirement trigger, and
   lingering-reference check
+- Treating a destructive warning or guard card as permission to execute
+- Treating generic assent as confirmation for irreversible deletion

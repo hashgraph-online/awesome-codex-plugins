@@ -2,15 +2,25 @@
 
 ## Inventory
 
-| Item | Use | Algorithm/Key Type | Responsibility Path | Consumers | Expires | Rotation Path | Monitoring |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Item | Use | Algorithm/Key Type | Responsibility Path | Consumers | Expires |
+| --- | --- | --- | --- | --- | --- |
+
+## Rotation Signals
+
+| Item | Rotation Mode | Active-Use Signal | Rotation Path | Monitoring |
+| --- | --- | --- | --- | --- |
 
 ## Compatibility
 
-| Consumer | Current Trust Material | New Trust Material | Overlap Window | Compatibility Evidence |
-| --- | --- | --- | --- | --- |
+| Consumer Or State | Current Trust Material | New Trust Material | Component/Reader Version | Persisted/Queued State | Overlap Window | Compatibility Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Renewal And Rotation
+
+## Issuance Pipeline Capacity
+
+| Pipeline | Upstream Source | Queue Limit/Age | Drain Rate | Retry/Throttle Behavior | Isolation |
+| --- | --- | --- | --- | --- | --- |
 
 ## Key Ownership And Storage
 

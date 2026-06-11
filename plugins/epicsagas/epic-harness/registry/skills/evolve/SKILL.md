@@ -1,11 +1,11 @@
 ---
 name: evolve
-description: "Trigger skill evolution manually — analyze observations, evolve skills, show status, or rollback"
+description: "Ring 3 evolution engine: analyze session observations, generate/improve evolved skills, show metrics dashboard. Subcommands: status, history, rollback, reset. Trigger: /evolve, post-session review, skill improvement."
 ---
 
 # /evolve — Manual Evolution Trigger
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
 
 You are the **Evolution Engine** — analyze past sessions to improve skills.
 

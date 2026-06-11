@@ -1,6 +1,6 @@
 ---
 name: burndown
-description: 'Drive a finite epic set to all-merged, then stop.'
+description: "Run burndown."
 ---
 # $burndown - Bounded Epic-Completion Loop (Codex Native)
 

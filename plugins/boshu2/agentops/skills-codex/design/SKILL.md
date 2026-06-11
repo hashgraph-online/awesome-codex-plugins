@@ -1,6 +1,6 @@
 ---
 name: design
-description: 'Validate product fit before discovery.'
+description: "Run design."
 ---
 # $design -- Product Validation Gate (Codex Native)
 

@@ -7,7 +7,7 @@ description: 'Use when a spec or scoped requirement exists and the user wants a 
 
 Convert a spec / scoped requirement into a **Critic-approved implementation plan** before coding. Single-agent in-context consensus loop:**Planner → Architect → Critic**, with iteration cap.
 
-This skill **only plans**. It does not gather requirements (`dev-spec` does that) and does not review or write code (`dev-code-review` / your editor / a coding skill do that).
+This skill **only plans**. It does not gather requirements (`dev-grill-docs` does that; `dev-spec` is a compatibility alias) and does not review or write code (`dev-code-review` / your editor / a coding skill do that).
 
 ---
 
@@ -54,9 +54,9 @@ baseline 与本 skill 的关联点:
 |---|---|
 | 找到匹配 spec | 加载,把 `In scope` / `Out of scope` / `Acceptance criteria` / `Core entities` 全部读入,作为本 plan 的 source of truth |
 | 没有 spec,但请求范围清晰 | 直接进 Step 2,先在 plan 里写一节 `Requirements summary` 概括用户请求 |
-| 没有 spec,且请求模糊 | **停止本 skill,提示用户先跑 `dev-spec`**,不要硬上 |
+| 没有 spec,且请求模糊 | **停止本 skill,提示用户先跑 `dev-grill-docs`**,不要硬上 |
 
-**判断「请求模糊」的标准**:与 `dev-spec` Step 1 的歧义清单维度对照,若 ≥ 2 个维度无法确认,视为模糊。
+**判断「请求模糊」的标准**:与 `dev-grill-docs` clarity / ambiguity 维度对照,若 ≥ 2 个维度无法确认,视为模糊。
 
 ---
 
@@ -335,7 +335,7 @@ ADR 是最终决定的**单一入口**,后续 dev-code-review 评审时如果 di
 
 ## Hard rules
 
-- **不要** 在 Step 1 检测到模糊请求时硬上 —— 提示用户先 `dev-spec`,不要拼凑 spec。
+- **不要** 在 Step 1 检测到模糊请求时硬上 —— 提示用户先 `dev-grill-docs`,不要拼凑 spec。
 - **不要** 默认模式只列 1 个 option —— RALPLAN-DR 强制 ≥ 2,只有 1 个时必须显式 invalidation rationale。
 - **不要** 把 Architect / Critic 跑成形式主义。Architect 必须 steelman、必须找 tension;Critic 必须按 7 维度逐项打分。
 - **不要** 让 Planner / Architect / Critic 在同一段里混着写。每个 pass 必须**单独成节**,用户能看到三方独立观点。
@@ -350,7 +350,7 @@ ADR 是最终决定的**单一入口**,后续 dev-code-review 评审时如果 di
 
 ## 与其他 skill 的协作
 
-- **上游**:`dev-spec` 的 spec(`.claude/artifacts/designs/<feature>.md`)是本 skill 的最佳输入。
+- **上游**:`dev-grill-docs` 生成的 spec(`.claude/artifacts/designs/<feature>.md`;兼容入口 `dev-spec` 也写同一路径)是本 skill 的最佳输入。
 - **下游**:本 skill 的 plan(`.claude/artifacts/plans/<feature>.md`)是 `dev-code-review` 的对齐参考(若存在,审查时应检查 diff 是否落实了 plan 的 AC 与 ADR;但触发 dev-code-review 仍由用户主动)。
 - **不调用**:本 skill 不主动 invoke 其他 skill —— 跨 skill 的衔接由用户控制。
 

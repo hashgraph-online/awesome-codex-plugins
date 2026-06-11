@@ -1,10 +1,10 @@
 ---
 name: recover
-description: 'Recover session context.'
+description: "Run recover."
 ---
 # $recover — Context Recovery After Compaction
 
-> **Purpose:** Help you get back up to speed after context compaction. Automatically detects in-progress work (RPI runs, evolve cycles), loads relevant knowledge, summarizes what you were doing and what's next, and prefers the Codex hookless lifecycle path when applicable.
+> **Purpose:** Help you get back up to speed after context compaction. Detects in-progress work (RPI runs, evolve cycles), loads relevant knowledge, summarizes what you were doing and what's next, and prefers the explicit Codex hookless lifecycle path when applicable.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
@@ -209,7 +209,7 @@ QUICK COMMANDS
   $plan         Decompose work into issues
   $implement    Execute a single issue
   $crank        Autonomous epic execution
-  $validation   Full close-out and learnings
+  $validate   Full close-out and learnings
 ══════════════════════════════════════════════════════════════
 ```
 
@@ -222,11 +222,11 @@ Evaluate context top-to-bottom. Use the FIRST matching condition:
 | 1 | RPI run in-progress + phase=research | "Continue research: `$research` or `$plan` if ready" |
 | 2 | RPI run in-progress + phase=plan | "Review plan: `$pre-mortem` to validate before coding" |
 | 3 | RPI run in-progress + phase=implement | "Resume implementation: `$implement <next-issue-id>`" |
-| 4 | RPI run in-progress + phase=validate | "Complete cycle: `$validation` to extract learnings and close out" |
+| 4 | RPI run in-progress + phase=validate | "Complete cycle: `$validate` to extract learnings and close out" |
 | 5 | Evolve cycle in-progress | "Continue autonomous improvements: `$evolve --resume`" |
 | 6 | In-progress issues exist | "Continue work: `$implement <issue-id>`" |
 | 8 | Ready issues available | "Pick next issue: `$implement <first-ready-id>`" |
-| 9 | Uncommitted changes | "Review recent work: `$validation`" |
+| 9 | Uncommitted changes | "Review recent work: `$validate`" |
 | 10 | Clean state, nothing pending | "Session recovered. Start with `$status` to plan next work" |
 
 ### Step 6: JSON Output (--json flag)
@@ -336,7 +336,7 @@ Render this with a single code block. No visual dashboard when `--json` is activ
 | Shows "BD_UNAVAILABLE" or "GT_UNAVAILABLE" | CLI tools not installed or not in PATH | Install missing tools: `brew install bd` or `brew install gt`. Skill gracefully degrades by showing available state only. |
 | RPI state shows wrong phase | Stale phased-state.json not updated | Check timestamp of `.agents/rpi/phased-state.json`. If stale, it may be from a previous run. Run `$status` to verify current phase. |
 | Evolve history shows wrong cycle | Old cycle-history.jsonl entries not pruned | Tail -3 shows most recent entries. Check all entries with `tail -20 .agents/evolve/cycle-history.jsonl`. |
-| Knowledge injection fails silently | ao CLI not installed or no knowledge artifacts | Ensure ao installed: `brew install ao`. If no learnings exist, run `$validation` to seed the knowledge base. |
+| Knowledge injection fails silently | ao CLI not installed or no knowledge artifacts | Ensure ao installed: `brew install ao`. If no learnings exist, run `$validate` to seed the knowledge base. |
 | Suggested action doesn't match context | State-aware rules didn't capture edge case | Use `--json` to inspect raw state and verify which condition matched. Review priority table in Step 5. |
 | JSON output malformed | Parallel bash calls returned unexpected format | Check each bash call individually. Ensure jq parsing works on actual data. Validate JSON structure before returning to user. |
 

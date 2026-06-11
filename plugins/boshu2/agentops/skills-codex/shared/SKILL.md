@@ -1,6 +1,6 @@
 ---
 name: shared
-description: 'Shared AgentOps skill contracts.'
+description: "Run shared."
 ---
 # Shared References
 
@@ -136,7 +136,7 @@ Skills that chain to other skills (e.g., `$rpi` calls `$research`, `$vibe` calls
 - [references/cli-command-failures-2026-02-26.md](references/cli-command-failures-2026-02-26.md)
 - [references/ralph-loop-contract.md](references/ralph-loop-contract.md)
 - [references/orchestration-as-prompt.md](references/orchestration-as-prompt.md)
-- [references/strict-delegation-contract.md](references/strict-delegation-contract.md) — canonical contract loaded by $rpi, $discovery, $validation: strict sub-skill delegation is the default for top-level orchestrators.
+- [references/strict-delegation-contract.md](references/strict-delegation-contract.md) — canonical contract loaded by $rpi, $discovery, $validate: strict sub-skill delegation is the default for top-level orchestrators.
 
 ## Local Resources
 

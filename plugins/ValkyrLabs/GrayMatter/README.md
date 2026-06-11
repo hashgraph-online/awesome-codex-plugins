@@ -1,14 +1,13 @@
 # GrayMatter
 
-GrayMatter is an installable and immediately usable OpenClaw skill for:
+GrayMatter is an installable OpenClaw skill and MCP service for:
 - **primary durable memory**
 - **shared object-graph state**
 - **live organizational schema awareness** through the ValkyrAI `api-0` OpenAPI
 
-GrayMatter lets an OpenClaw instance move beyond file memory and isolated chat context.
-When properly authenticated, the agent can persist durable memory, inspect the live business schema, and operate inside the organization's RBAC-scoped data environment.
+It lets an agent move beyond local files and isolated chat context. Once authenticated, the agent can persist durable memory, inspect the live business schema, and operate inside the organization's RBAC-scoped data environment.
 
-## Ready-to-rock release surfaces
+## Release surfaces
 
 GrayMatter ships as three related but independently usable surfaces:
 
@@ -17,6 +16,17 @@ GrayMatter ships as three related but independently usable surfaces:
 - **Standalone OpenClaw skill**: `graymatter.skill` packages `SKILL.md` and the required scripts for OpenClaw install, activation, hosted api-0 use, and GrayMatter Light local mode.
 
 If a GitHub sparse/root install only brings down root files, run `./graymatter-bootstrap` from the installed GrayMatter directory. It restores `scripts/` and `mcp-server/` from the bundled `graymatter.skill` archive so end-user installs do not depend on a full repo clone.
+
+## Quick start
+
+```bash
+git clone https://github.com/ValkyrLabs/GrayMatter.git
+cd GrayMatter
+brew install jq
+scripts/gm-activate
+```
+
+`scripts/gm-activate` is the preferred first-run path. It checks for updates, signs in, stores the session in Keychain when available, validates the install, registers the agent, syncs the OpenAPI schema, and runs the readiness checks needed for normal use.
 
 ## What GrayMatter is for
 
@@ -144,12 +154,15 @@ Rule:
 - `scripts/graymatter_api.sh` — authenticated production API transport
 - `scripts/gm-login` — login helper
 - `scripts/gm-activate` — one-shot auth + install + agent registration + schema sync bootstrap
+- `scripts/gm-self-update` — repo/plugin self-update check for startup, weekly refresh, and auth/connectivity recovery
 - `scripts/gm-install-check` — dependency and auth readiness check
+- `scripts/gm-doctor` — full readiness report for self-update, auth, memory, schema, MCP, replay, and smoke status
 - `scripts/gm-smoke` — production smoke test for write/query validation
 - `scripts/gm-query` — query `MemoryEntry`
 - `scripts/gm-retrieval-receipt` — create, fetch, and list retrieval receipts through ThorAPI
 - `scripts/gm-write` — write `MemoryEntry`, with tagged-write fallback behavior
 - `scripts/gm-fallback-append` — append failed writes to local replay queue at `memory/graymatter-fallback.json`
+- `scripts/gm-replay-deferred` — replay operations that were locally deferred during credit/connectivity/auth outages
 - `scripts/gm-graph` — inspect Swarm graph endpoints
 - `scripts/gm-openapi-sync` — fetch and cache the live OpenAPI spec locally
 - `scripts/gm-openapi-summary` — summarize live schema domains and endpoints
@@ -172,13 +185,14 @@ Rule:
 - `docs/prd-context-compaction-reset.md` — PRD for bounded chat compaction and reset flows
 - `docs/thorapi-integration.md` — ThorAPI relationship and bundle direction
 - `docs/graymatter-light.md` — local/offline notes
+- `docs/server-capabilities.md` — live api-0 memory, retrieval, graph, schema, auth, credit, and MCP capability map
 - `openai-app/submission-manifest.json` — non-secret app metadata for OpenAI dashboard submission
 - `examples/*` — example payloads and Light-mode starter assets
 - `references/*` — release and multi-agent guidance, including concurrency conventions
 - `references/mcp/memory-tool-contract.v1.json` — stable v1 portable tool contract for memory and graph operations
 - `clawhub.json` — publishing metadata
 
-## Install and use immediately
+## Install details
 
 ## Account signup and credits
 
@@ -219,7 +233,7 @@ brew install jq
 scripts/gm-activate
 ```
 
-`scripts/gm-activate` is the intended one-shot bootstrap for OpenClaw installs. It can use:
+`scripts/gm-activate` is the intended one-shot bootstrap for OpenClaw installs. It first runs `scripts/gm-self-update maybe` so startup checks the source-of-truth repo at least weekly, then authenticates and validates the install. It can use:
 - interactive username/password prompts, or
 - credentials already present in environment variables
 
@@ -236,9 +250,21 @@ Supported env inputs:
 
 `scripts/gm-register-agent` is part of the expected startup handshake. When an OpenClaw server connects to api-0, it should create or refresh an Agent record for itself before proceeding with normal work.
 
+`scripts/gm-self-update` is the normal plugin/repo update path. Agents should run it on startup and when auth or transport looks suspicious. It updates clean git checkouts with a fast-forward pull and updates packaged installs from `https://github.com/ValkyrLabs/GrayMatter.git` when the weekly interval is due or `force` is requested. Dirty git checkouts are never overwritten.
+
+`scripts/graymatter_api.sh` and the MCP server perform autonomous auth refresh when the stored token expires or api-0 returns a refreshable auth failure. Replay-safe write operations blocked by credits or transport can be deferred and retried with `scripts/gm-replay-deferred`.
+
 At that point the install should be immediately usable.
 
 If auth succeeds but memory query is temporarily credit-gated, `scripts/gm-activate` now continues in a degraded mode: auth is stored, the agent is registered, the OpenAPI is synced, and the script reports that memory query capability is limited until credits are available.
+
+For a one-command post-install report, run:
+
+```bash
+scripts/gm-doctor
+```
+
+`gm-doctor` checks self-update readiness, install dependencies, auth/keychain state, live memory and object-graph layer status, OpenAPI sync, MCP contract availability, deferred replay readiness, and the live write/query smoke path. Use `scripts/gm-doctor --quick` when you want the same report without consuming credits on the smoke query.
 
 ### Packaged-skill install
 
@@ -270,13 +296,13 @@ If those do not work, the skill is not truly ready.
 
 ## Bootstrap integration for OpenClaw
 
-The workspace `BOOTSTRAP.md` should be rewritten so OpenClaw:
+OpenClaw workspace bootstrap guidance should treat GrayMatter as the default durable context layer:
 - uses GrayMatter as its **primary durable memory**
 - loads the live OpenAPI at startup
 - understands the organization schema as the operating environment
 - uses local file memory only as backup
 
-That startup model is now part of the GrayMatter launch plan.
+That startup model keeps local files useful for recovery while making GrayMatter the normal source of reusable memory and live schema context.
 
 ## Typical usage
 
@@ -346,6 +372,7 @@ scripts/gm-graph GET
 scripts/gm-openapi-sync
 scripts/gm-openapi-summary
 scripts/gm-status
+scripts/gm-doctor --quick
 ```
 
 ### Arbitrary schema entity access
@@ -474,6 +501,16 @@ Check:
 - whether the environment blocks the docs endpoint
 
 If the live docs cannot be fetched, use the last cached copy temporarily, but treat it as stale.
+
+### Unsure what is broken
+
+Run:
+
+```bash
+scripts/gm-doctor --verbose
+```
+
+The doctor command continues through all checks and reports the exact required failure or warning instead of stopping at the first broken dependency. That is the preferred first diagnostic before changing auth, credits, MCP config, or local plugin files.
 
 ## Packaging
 

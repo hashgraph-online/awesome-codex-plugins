@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+</p>
+
+<p align="center">
   <a href="#the-six-decay-risks">The Six Decay Risks</a> •
   <a href="#what-it-looks-like">What It Looks Like</a> •
   <a href="#benchmark">Benchmark</a> •
@@ -22,6 +26,14 @@
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-blueviolet.svg" alt="Claude Code Plugin">
   <img src="https://img.shields.io/badge/Codex_CLI-Skill-orange.svg" alt="Codex CLI Skill">
   <img src="https://img.shields.io/github/stars/hyhmrright/brooks-lint?style=social" alt="GitHub Stars">
+</p>
+
+<p align="center">
+  <a href="https://hyhmrright.github.io/brooks-lint/"><img src="assets/demo.gif" alt="brooks-lint reviewing code: a /brooks-review command produces a 28/100 health score and cited Symptom → Source → Consequence → Remedy findings" width="820"></a>
+</p>
+
+<p align="center">
+  <strong><a href="https://hyhmrright.github.io/brooks-lint/">→ Visit the website</a></strong>
 </p>
 
 ---
@@ -147,6 +159,8 @@ The graph renders natively in GitHub, Notion, and other Markdown environments �
 ## See More Examples
 
 The [Full Gallery](docs/gallery.md) has real brooks-lint output across Python, TypeScript, Go, and Java — including PR reviews, architecture audits with Mermaid dependency graphs, tech debt assessments, and test quality reviews.
+
+New to the decay risks? The [**Decay Risk Field Guide**](https://hyhmrright.github.io/brooks-lint/guide.html) explains all six — diagnostic question, signature symptoms, source books, and remedy for each.
 
 ---
 

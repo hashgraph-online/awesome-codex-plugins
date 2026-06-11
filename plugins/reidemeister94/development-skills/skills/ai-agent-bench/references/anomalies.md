@@ -26,7 +26,7 @@ preserved.
 ### <ISO timestamp> — <Short title>
 
 - Step: <which phase>
-- Severity: <info|medium|high>
+- Severity: <low|medium|high>
 - Symptom: <one paragraph — what was observed>
 - Evidence: <exact commands, log excerpts with line numbers, exit codes>
 - Detailed analysis:
@@ -73,7 +73,7 @@ path as the dedupe marker). Subsequent events in the same run append directly un
 - **Evidence**: paste exact excerpts with file:line refs. Redact secrets.
 - **Detailed analysis**: mandatory. Do not compress to a terse summary when more detail helps audit the event. Include expected / observed / implication, plus concrete details such as assumptions, alternatives considered, why the disposition was chosen, and what would change the interpretation.
 - **Severity**:
-  - `info` — observed, does not affect validity
+  - `low` — observed, does not affect validity
   - `medium` — weakens interpretation, run continues
   - `high` — invalidates trial or requires user decision
 

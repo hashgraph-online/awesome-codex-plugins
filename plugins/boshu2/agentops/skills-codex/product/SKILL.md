@@ -1,6 +1,6 @@
 ---
 name: product
-description: 'Create or refine PRODUCT.md.'
+description: "Run product."
 ---
 # $product — Interactive PRODUCT.md Generation
 

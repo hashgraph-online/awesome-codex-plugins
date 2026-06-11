@@ -7,8 +7,16 @@
 
 ## Provenance And Integrity
 
-| Artifact | Source Revision | Accepted Change | Builder Identity | Dependency Inputs | Build Time | Confirmation Path | Verification Location |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Artifact | Source Revision | Accepted Change | Builder Identity | Dependency Inputs |
+| --- | --- | --- | --- | --- |
+
+| Artifact | Build Time | Confirmation Path | Verification Location |
+| --- | --- | --- | --- |
+
+## Provenance Consumer Compatibility
+
+| Provenance Change | Reader Or Display | Old-Type Behavior | New-Type Behavior | Deprecation Gate |
+| --- | --- | --- | --- | --- |
 
 ## Dependency Inventory
 

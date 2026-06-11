@@ -12,6 +12,11 @@
 | Key Or Dataset | Writer | Invalidator | Reader | Owner |
 | --- | --- | --- | --- | --- |
 
+## Canonical Identity
+
+| Derived Entry | Canonical Key Rule | Duplicate Signal | Cleanup Path | Quota Or Cost Impact |
+| --- | --- | --- | --- | --- |
+
 ## Freshness And Versioning
 
 | Data | TTL | Invalidation Trigger | Version Rule | Stale-Read Contract |
@@ -19,8 +24,8 @@
 
 ## Stampede And Miss Amplification
 
-| Scenario | Protection | Backing-Load Limit | Verification |
-| --- | --- | --- | --- |
+| Scenario | Protection | Refresh/Rebuild Spread | Backing-Load Limit | Verification |
+| --- | --- | --- | --- | --- |
 
 ## Failure Behavior
 

@@ -20,7 +20,7 @@ If answers are missing, return to Step 2 Q&A. Do not proceed blindly.
 
 ### 2. Generate 2-3 radically different designs
 
-Spawn 2-3 parallel subagents via the `Task` tool in a single message. Each subagent receives a divergent constraint. **They do not implement code** — only the shape of the interface. If subagents are unavailable, generate the designs sequentially in-thread. Tool translations for non-Claude-Code platforms: see `../../using-development-skills/references/codex-tools.md`.
+Spawn 2-3 parallel subagents via the `Task` tool in a single message. Each subagent receives a divergent constraint. **They do not implement code** — only the shape of the interface. On Codex, use `spawn_agent(agent_type="worker", message=…)` for each — see `../../using-development-skills/references/codex-tools.md`. If subagents are unavailable, generate the designs sequentially in-thread.
 
 Orthogonal constraints to assign (one per agent):
 

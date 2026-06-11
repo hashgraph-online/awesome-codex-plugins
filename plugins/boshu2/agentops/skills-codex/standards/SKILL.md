@@ -1,6 +1,6 @@
 ---
 name: standards
-description: 'Provide repo coding standards.'
+description: "Run standards."
 ---
 # Standards Skill
 

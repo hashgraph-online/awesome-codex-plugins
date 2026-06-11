@@ -140,7 +140,7 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
       - Run: `hotl-rt step N verify --run-id <run-id>`
       - The runtime runs the verify command, captures stdout/stderr, and atomically transitions the step to done or failed
       - If the verify type is unsupported, the runtime blocks the step with a clear reason
-      - For type: browser — if browser tooling unavailable, downgrade to type: human-review
+      - For type: browser — `hotl-rt` downgrades to a paused human-review request when browser tooling is unavailable inside the runtime. If the controller has platform browser tooling, perform the browser check before approving or rejecting that pause.
       - For type: human-review — the runtime returns a `human review required: ...` block reason and sets the run status to `paused`; ALWAYS pause for human (never auto-approve)
       - For type: artifact — runtime checks path exists and evaluates assert; for `matches-glob`, `path` must be the directory and `value` must be a filename glob only, so `src/*` is invalid and should be authored as `path: src`
 

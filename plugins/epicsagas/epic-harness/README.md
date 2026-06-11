@@ -86,7 +86,7 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 
 ## Installation
 
-> **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md).
+> **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md). For data storage details, see the [Data Map](docs/data-map.md).
 
 ### Claude Code
 
@@ -149,7 +149,7 @@ After installing the binary, run `epic install` (or `epic install claude`) to:
 
 1. Create `~/.harness/` directory structure
 2. Sync commands and skills to the tool's config directory
-3. Register the MCP server (harness-mem) for Claude Code
+3. Register the memory CLI for Claude Code
 4. Create `~/.harness/config.toml` with defaults if absent
 
 On Claude Code, `hooks/install.js` auto-runs on session start and installs the binary if missing. No manual step needed after the initial clone.
@@ -503,29 +503,29 @@ epic mem search "JWT"                                  # FTS5 search
 epic mem list --type decision --project my-project    # Filter
 epic mem context --project my-project                  # Project context
 epic mem serve                                         # Web UI → :7700 or custom port with --port 8800
-epic mem mcp-install                                   # Register MCP server
+epic mem mcp-install                                   # Register memory access
 epic mem export --out ./docs/memory                    # Export to Markdown
 ```
 
-### MCP Tools (6)
+### CLI Commands (6)
 
-| Tool | Purpose |
-|------|---------|
-| `mem_recall` | Smart contextual recall with hint + project + graph neighbors |
-| `mem_add` | Add node with auto-importance by type (or explicit 0.0–1.0) |
-| `mem_search` | Keyword search (full-text), ranked by importance |
-| `mem_query` | Filter by tag/type/project — alias for `mem_list` |
-| `mem_context` | Project-scoped smart recall (no hint) |
-| `mem_related` | Graph traversal from a node ID (finds connected knowledge) |
+| Command | Purpose |
+|---------|---------|
+| `epic-harness mem recall "HINT"` | Smart contextual recall with hint + project + graph neighbors |
+| `epic-harness mem add --title "T" --type TYPE --body "B"` | Add node with auto-importance by type (or explicit 0.0–1.0) |
+| `epic-harness mem search "QUERY"` | Keyword search (full-text), ranked by importance |
+| `epic-harness mem list` | Filter by tag/type/project |
+| `epic-harness mem context` | Project-scoped smart recall (no hint) |
+| `epic-harness mem related ID` | Graph traversal from a node ID (finds connected knowledge) |
 
 ### Node Types
 
 | Type | Created by | Importance |
 |------|-----------|------------|
-| `decision` | Manual / MCP | 0.9 |
-| `resolution` | Manual / MCP | 0.8 |
-| `concept` | Manual / MCP | 0.7 |
-| `project` | Manual / MCP | 0.7 |
+| `decision` | Manual / CLI | 0.9 |
+| `resolution` | Manual / CLI | 0.8 |
+| `concept` | Manual / CLI | 0.7 |
+| `project` | Manual / CLI | 0.7 |
 | `instinct` | Auto (reflect) | 0.7 |
 | `pattern` | Auto (reflect) | 0.5 |
 | `error` | Auto (reflect) | 0.4 |
@@ -533,7 +533,7 @@ epic mem export --out ./docs/memory                    # Export to Markdown
 
 Lifecycle: 30+ days without access → 10% importance decay (floor 0.05). 180+ days → tagged `stale`, excluded from recall. `pinned` tag prevents decay.
 
-> **WIP**: harness-mem is under active development. CLI, MCP server, Web UI, and auto-recording pipeline are not yet fully functional. Do not rely on this feature in production.
+> **WIP**: harness-mem is under active development. CLI, Web UI, and auto-recording pipeline are not yet fully functional. Do not rely on this feature in production.
 
 ---
 
@@ -554,17 +554,29 @@ All data lives in `~/.harness/` (home directory), not in your project root. Surv
 │   └── {org}/teams/{team}/
 │       ├── config.json, mission.md, playbook.md, agents/, .history/
 └── projects/{slug}/
+    ├── harness.db             # SQLite operational store (obs, sessions, metrics, evolution, orbit, evolved skills)
     ├── memory/                # Project patterns and rules
     ├── sessions/              # Session snapshots (for resume)
-    ├── obs/                   # Tool usage observation logs (JSONL)
+    ├── obs/                   # Tool usage observation logs (JSONL, legacy)
     ├── evolved/               # Auto-evolved skills
     │   ├── manifest.json
     │   └── {skill}/SKILL.md + meta.json
     ├── evolved_backup/        # Best checkpoint (for rollback)
     ├── dispatch/              # Skill dispatch logs
-    ├── evolution.jsonl        # Full evolution history
-    └── metrics.json           # Aggregate stats + skill attribution
+    ├── evolution.jsonl        # Full evolution history (legacy)
+    └── metrics.json           # Aggregate stats + skill attribution (legacy)
 ```
+
+### Migration (JSONL → SQLite)
+
+Since v0.4.9, operational data is stored in `harness.db` (SQLite). Existing users with JSONL/JSON files should run once after upgrading:
+
+```bash
+epic-harness migrate --dry-run   # preview what would be imported
+epic-harness migrate             # perform the import
+```
+
+Original files are **not deleted** after import. New users are automatically on SQLite — no action needed.
 
 Share safety rules with your team: `.harness/guard-rules.yaml` in the project root (committed to git).
 

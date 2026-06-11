@@ -38,7 +38,7 @@ Production should run artifacts whose source, build, dependencies, and confirmat
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Repositories, branches, change acceptance rules, merge rights, and source protection.
 - Build system, workers, isolation, inputs, dependencies, environment, and reproducibility needs.
-- Artifact types, registries, signing, checksums, provenance, dependency inventories, and retention.
+- Artifact types, registries, signing, checksums, provenance metadata versions, provenance readers or displays, dependency inventories, and retention.
 - Deployment path, admission controls, environment promotion, and rollback.
 - Automation credentials, token scopes, secret exposure, and third-party integrations.
 - Scanning coverage, vulnerability checkpoint, and incident/exception process.
@@ -49,14 +49,14 @@ Production should run artifacts whose source, build, dependencies, and confirmat
 1. **Map source to deploy.** Draw every step from code change through build, artifact, registry, deployment, and runtime admission.
 2. **Protect source.** Require traceable accepted changes, branch protections, responsibility, and tamper-evident history for production paths.
 3. **Harden builders.** Use isolated or ephemeral build environments for production artifacts; minimize mutable state and privileged credentials.
-4. **Record provenance.** Produce metadata linking artifact identity, source revision, accepted change, build steps, builder identity, dependency inputs, build time, and confirmation path. High-impact paths should make this metadata verifiable at deployment.
+4. **Record provenance.** Produce metadata linking artifact identity, source revision, accepted change, build steps, builder identity, dependency inputs, build time, and confirmation path. High-impact paths should make this metadata verifiable at deployment. Treat provenance schema, type, or field changes as compatibility changes: validate old and new readers, displays, policy checks, and audit consumers before removing or deprecating a provenance form.
 5. **Protect artifacts.** Sign or otherwise verify integrity; store artifacts in controlled registries with retention and rollback.
 6. **Generate inventories.** Produce structured, machine-readable dependency inventories when they support vulnerability response, customer requests, or release checks workflows; name the consumer so the artifact is not ritual.
 7. **Decide reproducibility level.** State whether the path needs byte-identical, declared-nondeterminism, or content-equivalent rebuild records, and record any expected differences.
 8. **Standardize secure pipelines.** Use reusable pipeline modules for production paths so scanning, integrity checks, dependency inventories, user confirmations, and secure compute are not optional per repository.
 9. **Control deployment.** Verify artifact integrity/provenance at admission and keep environment promotion traceable.
 10. **Constrain automation.** Use least-privilege, short-lived credentials and secret scanning across source/build paths.
-11. **Screen common attack classes.** Check for dependency confusion, typo or name-squatting, compromised package publishing, build-cache poisoning, unchecked install hooks, and compromised automation credentials.
+11. **Screen common attack classes.** Check for dependency confusion, typo or name-squatting, compromised package publishing, build-cache poisoning, unchecked install hooks, and compromised automation credentials. Pin dependencies to exact versions and integrity digests via a committed lockfile, and claim/scope internal namespaces and pin the resolution source so a public package cannot shadow an internal one. Target a graduated provenance maturity: post-facto record, then signed provenance, then hermetic-builder-backed provenance verified at admission.
 12. **Route vulnerability intake.** Define where security reports about dependencies, build artifacts, or release integrity enter triage, then hand deployed-risk decisions to `vulnerability-management` with artifact, exposure, and provenance details.
 
 ## Synthesized Default
@@ -96,9 +96,11 @@ Use accepted source, controlled production pipelines, isolated builds, provenanc
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Source-to-deploy supply-chain map.
 - Control matrix for source, build, artifact, registry, deployment, and automation.
-- Provenance and artifact integrity plan with minimum fields: artifact identity, source revision, accepted change, builder identity, dependency inputs, build time, confirmation path, and verification location.
+- Provenance and artifact integrity plan with minimum fields: artifact identity, source revision, accepted change, builder identity, dependency inputs, build time, confirmation path, verification location, and reader compatibility for metadata type or schema changes.
+- Dependency-pinning and namespace-scoping plan, and the target provenance maturity tier (record / signed / hermetic-verified-at-admission).
 - Structured dependency inventory policy with producer, consumer, retention, and vulnerability checkpoint.
 - Build and deployment credential hardening plan.
 - Secret scanning and exposure response plan.
@@ -110,7 +112,9 @@ Use accepted source, controlled production pipelines, isolated builds, provenanc
 - `source_acceptance`: production source changes require accepted source and protected merge path.
 - `builder_trust`: build environment identity, isolation, and credential scope are documented.
 - `provenance_check`: production artifacts have source/build provenance or a tracked exception.
+- `provenance_compatibility`: provenance metadata changes validate old and new readers, displays, policy checks, and audit consumers before deprecation.
 - `integrity_check`: deployment path verifies artifact integrity before promotion/admission.
+- `dependency_pinning`: dependencies are pinned to exact versions and digests in a committed lockfile, with internal namespaces claimed and the resolution source pinned.
 - `credential_check`: automation credentials are least privilege, short lived where possible, and secret-scanned.
 
 ## Red Flags - Stop And Rework

@@ -33,11 +33,16 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "node \"$CODEX_PLUGIN_ROOT/hooks/enforce-scope.mjs\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/config-protection.mjs\"",
             "timeout": 5
           }
         ]
@@ -75,6 +80,16 @@
           {
             "type": "command",
             "command": "node \"$CODEX_PLUGIN_ROOT/hooks/post-edit-validate.mjs\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEX_PLUGIN_ROOT/hooks/loop-guard.mjs\"",
             "timeout": 5
           }
         ]

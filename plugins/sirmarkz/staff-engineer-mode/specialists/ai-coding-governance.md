@@ -34,6 +34,7 @@ Produces a repo-local rule set for coding agents: allowed and forbidden actions,
 - The request is generic review routing, responsibility, change-size policy, or workflow metrics for human and agent code together, with no AI-agent control decision.
 - The request is broad AI ethics, legal rules, procurement, or staffing; out of scope.
 - The task is ordinary code review with no AI-assisted workflow concern; use `agent-pr-review` only when there is a concrete diff.
+- Dependency update cadence, lockfile safety, and dead-code cleanup mechanics route to `dependency-and-code-hygiene`.
 
 ## Info To Gather
 
@@ -90,6 +91,7 @@ Use repo-local agent instructions, least-privilege tool access, protected-path r
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - AI-assisted coding rule set for the repo or change.
 - Allowed and forbidden agent actions.
 - Sensitive-data and secret-handling boundaries.

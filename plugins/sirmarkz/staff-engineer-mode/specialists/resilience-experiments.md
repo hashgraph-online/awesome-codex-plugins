@@ -96,6 +96,7 @@ Use hypothesis-driven experiments that begin small, verify user-visible steady s
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Experiment hypothesis.
 - Experiment portfolio showing failure mode, test method, expected user behavior, stop condition, last run, next trigger, and follow-up.
 - Steady-state signal list and dashboard links.

@@ -17,8 +17,11 @@
 
 ## Deletion, Export, And Portability
 
-| Workflow | Scope | Store Coverage | Third-Party Coverage | Output Format | SLA | Verification | Exclusions | Completeness Check |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Workflow | Scope | Store Coverage | Third-Party Coverage | Output Format | SLA |
+| --- | --- | --- | --- | --- | --- |
+
+| Workflow | Verification | Exclusions | Completeness Check |
+| --- | --- | --- | --- |
 
 ## Backup And Derived-Data Propagation
 

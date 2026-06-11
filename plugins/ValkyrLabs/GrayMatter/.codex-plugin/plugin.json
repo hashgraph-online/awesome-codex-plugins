@@ -1,7 +1,7 @@
 {
   "name": "graymatter",
-  "version": "0.2.0",
-  "description": "Durable memory, shared graph state, and live ValkyrAI schema awareness for Codex and OpenClaw agents.",
+  "version": "0.2.1",
+  "description": "Durable memory, shared graph state, and live api-docs schema awareness for Codex and OpenClaw agents.",
   "author": {
     "name": "ValkyrLabs",
     "email": "support@valkyrlabs.com",
@@ -16,6 +16,8 @@
     "durable-memory",
     "agent-memory",
     "schema-awareness",
+    "analytics",
+    "semantic-layer",
     "mcp",
     "valkyrai",
     "openclaw",
@@ -42,7 +44,8 @@
     "defaultPrompt": [
       "Use GrayMatter to remember this decision",
       "Query GrayMatter for relevant context",
-      "Inspect the ValkyrAI schema with GrayMatter"
+      "Inspect the live api-docs schema with GrayMatter",
+      "Use GrayMatter to set up analytics context"
     ],
     "brandColor": "#245B4A",
     "screenshots": [

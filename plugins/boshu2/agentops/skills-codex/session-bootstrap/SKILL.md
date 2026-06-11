@@ -1,6 +1,6 @@
 ---
 name: session-bootstrap
-description: Agent init prompt.
+description: "Run session bootstrap."
 ---
 
 # `ao session bootstrap` — the universal init prompt
@@ -33,7 +33,7 @@ Four fail-open substeps, each producing a field in the [session-bootstrap.v1 sch
 | Flag        | Effect                                                                                |
 |-------------|---------------------------------------------------------------------------------------|
 | `--json`    | Emit the full status object (machine-readable, matches the v1 schema)                 |
-| `--robot`   | Same as `--json` plus a tight exit-code contract for SessionStart hooks               |
+| `--robot`   | Same as `--json` plus a tight exit-code contract for opt-in SessionStart hooks        |
 | `--no-mail` | Skip the mcp-agent-mail probe even when the MCP server is reachable                   |
 
 Default (no flags): one-line human summary on stdout, plus a stderr warning if `AGENTS.md` is missing.

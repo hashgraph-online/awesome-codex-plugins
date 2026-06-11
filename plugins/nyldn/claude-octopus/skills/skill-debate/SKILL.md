@@ -254,6 +254,8 @@ bash "${HOME}/.claude-octopus/plugin/scripts/helpers/check-providers.sh"
 
 **Use the ACTUAL results below. PROHIBITED: Showing only "🔵 Claude: Available ✓" without listing all providers.**
 
+Verification commands used during setup or provider checks must be portable in the active shell. Use `rg`, POSIX `grep -E`, or purpose-built helper scripts; never use `grep -P`. Do not write checks that print a clean result after a command error, such as `cmd && echo found || echo clean`; capture the exit code and report tool failure separately from "not found".
+
 Then display the banner with real provider status:
 ```
 🐙 **CLAUDE OCTOPUS ACTIVATED** - AI Debate Hub

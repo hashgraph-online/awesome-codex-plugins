@@ -53,7 +53,7 @@ Privacy controls fail when personal data is collected, copied, logged, retained,
 3. **Minimize collection.** Remove fields that are not needed; prefer derived, aggregated, tokenized, or on-device/local processing when it satisfies the purpose.
 4. **Constrain use.** Enforce purpose, consent, and access constraints in code, data jobs, schemas, policy, or workflow checks.
 5. **Control copies.** Apply privacy rules to logs, traces, metrics labels, crash reports, caches, search indexes, analytics, ML features, support tools, and third-party processors; remove stale telemetry fields and classify sensitive ones.
-6. **Engineer deletion and retention.** Define retention classes, delete propagation, deletion markers for asynchronous cleanup, derived-copy repair, backup expiry, restore-time cleanup, audit trail, holds/exclusions, and failure handling.
+6. **Engineer deletion and retention.** Define retention classes, delete propagation, deletion markers for asynchronous cleanup, derived-copy repair, backup expiry, restore-time cleanup, audit trail, holds/exclusions, and failure handling. Model deletion as typed edges over a personal-data catalog so every downstream and derived asset is reachable and deletion completeness is countable; make deletion bounded by an SLA, idempotent, and restartable so a crash resumes rather than silently drops it. For retired media or destroyed keys, state the sanitization level (clear, purge, cryptographic-erase, or destroy) and how it is verified.
 7. **Define the data-subject-rights workflow.** Specify how access, export, erasure, and portability requests are received, authenticated, scoped to stores and processors, completed within an SLA, verified for completeness, and closed with an audit record.
 8. **Assess anonymization labels.** Do not call data anonymized unless reidentification risk has been assessed with an explicit method such as equivalence-class thresholds, diversity checks, noise-based aggregation, motivated-intruder assessment, or equivalent domain assessment; otherwise call it pseudonymized, aggregated, or tokenized.
 9. **Verify export and erasure.** Test that subject, tenant, or account-scoped export/deletion finds expected copies, includes required third-party paths, uses a defined output format, and reports known exclusions.
@@ -87,7 +87,7 @@ Use privacy-by-design as engineering controls: data inventory, classification, m
 
 - Lead with the data-flow finding, privacy control design, retention/deletion plan, data-subject-rights workflow, or blocker list requested.
 - Cover inventory, classification, minimization, purpose/access enforcement, telemetry/support controls, retention/deletion propagation, and verification before optional privacy breadth.
-- For access, erasure, export, or portability requests, state the request workflow, responsible control points, SLA, store coverage, exception list, verification method, and closure notes event.
+- For access, erasure, export, or portability requests, state the request workflow, responsible control points, SLA, store coverage, exception list, verification method, and closure notes.
 - Make recommendations actionable with field-level decisions, control points, test checks, failure handling, and retention or exception expiry where relevant.
 - Name the details to inspect, such as field inventories, data stores, logs, caches, derived copies, consent/purpose rules, deletion traces, export tests, and backup behavior; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
@@ -96,12 +96,13 @@ Use privacy-by-design as engineering controls: data inventory, classification, m
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Personal-data flow inventory.
 - Field classification and minimization plan.
 - Purpose/consent/access enforcement plan.
 - Privacy-safe telemetry and support-tool controls.
 - Telemetry data review table for sensitive or stale log, trace, and metric fields.
-- Retention, deletion, backup, and derived-data propagation design.
+- Retention, deletion, backup, and derived-data propagation design with typed deletion edges, a deletion SLA, restartability, completeness accounting, third-party propagation, and the media-sanitization level.
 - Data-subject-rights workflow for access, erasure, export, and portability with intake, scope, SLA, verification, exclusions, and audit closure.
 - Anonymization or pseudonymization risk assessment when those labels are used.
 - Export/erasure verification plan with store coverage, third-party coverage, output format, exclusion list, and completeness checks.
@@ -114,6 +115,7 @@ Use privacy-by-design as engineering controls: data inventory, classification, m
 - `copy_control`: logs, metrics, traces, caches, exports, support tools, and analytics have privacy handling.
 - `telemetry_data_review`: log, trace, and metric fields are reviewed for sensitive data, stale fields, retention, and minimization.
 - `deletion_path`: retention, deletion trigger, propagation, backup behavior, and failure handling are defined.
+- `deletion_completeness`: deletion is modeled as typed edges over the data catalog, bounded by an SLA, restartable, and accounted for to completion across downstream, derived, backup, and third-party copies.
 - `dsr_workflow`: access, erasure, export, or portability requests have intake, SLA, scope, verification, exclusions, and closure notes.
 - `anonymization_check`: anonymized or pseudonymized outputs state reidentification-risk method and residual limits.
 - `verification_plan`: export, erasure, redaction, or minimization controls have tests or review results.
@@ -134,3 +136,4 @@ Use privacy-by-design as engineering controls: data inventory, classification, m
 | Mapping only primary storage | Include telemetry, derived data, backups, exports, and support tools. |
 | Redacting after collection | Minimize or tokenize before broad propagation. |
 | Trusting manual deletion | Automate propagation and verify with checks. |
+| Best-effort, uncountable deletion | Model typed deletion edges with an SLA, restartability, and completeness accounting. |

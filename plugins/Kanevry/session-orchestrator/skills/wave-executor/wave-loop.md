@@ -665,6 +665,43 @@ After each wave completes and before the progress update, update `<state-dir>/ST
 
    Skip silently if `persistence: false` in Session Config (no session.lock exists in that mode).
 
+### 3a-bis. Agent-Status Telemetry (#565)
+
+> Optional operator-side observability — NOT load-bearing. Best-effort, fire-and-forget telemetry that a tmux `--with-status-pane` (see `skills/tmux-layout/SKILL.md`) renders as a live side-channel per ADR-0007. A status push must NEVER block or fail a wave — mirror the §3a heartbeat-refresh framing exactly.
+
+**Gate:** `persistence: true` in Session Config. When `persistence: false`, skip every push below — there is no runtime side-channel to feed.
+
+The helper is `scripts/lib/agent-status.mjs`. Its exports (`setStatus`, `setProgress`, `readCurrentStatus`) are all no-throw and return `{ ok: true } | { ok: false, reason }`; the coordinator ignores the return value (best-effort). Push at **three anchors** in the wave loop:
+
+1. **dispatch** — in `### 1. Dispatch Agents`, as each agent is dispatched, push its status. Use `setProgress` when the wave's per-agent ordinal is meaningful, else `setStatus`:
+
+   ```js
+   import { setStatus, setProgress } from '../../scripts/lib/agent-status.mjs';
+
+   // For each agent dispatched in this wave (i = 0-based position, total = wave agent count):
+   await setStatus(agentId, `dispatched — ${subagentType}`);              // free-text variant
+   // — or —
+   await setProgress(agentId, { step: i + 1, total, label: subagentType }); // progress variant
+   ```
+
+   `agentId` is a stable per-agent key (e.g. `wave${waveN}-${i}-${subagentType}`). There is **no separate "agent-start" hook distinct from dispatch** — wave agents are in-process `Agent()` calls with no PID/TTY (see `skills/tmux-layout/SKILL.md § When NOT to Use`), so dispatch IS the start signal. Do not invent one.
+
+2. **agent-end** — in `### 2. Review Agent Outputs` step 1 (Read each agent's result), as each agent's terminal status is determined, push it:
+
+   ```js
+   // status ∈ {'done','partial','failed'} from the agent's STATUS: line
+   await setStatus(agentId, status);
+   ```
+
+3. **wave-end rollup** — in `### 3a. Post-Wave: Update STATE.md`, beside the `updateHeartbeat` call (step 5), push one wave-level rollup using a wave-scoped key:
+
+   ```js
+   // e.g. agentId = `wave${waveN}` ; counts from the wave's per-agent results
+   await setStatus(`wave${waveN}`, `wave ${waveN} complete — ${done} done, ${partial} partial, ${failed} failed`);
+   ```
+
+A push failure (timeout, fs-error, invalid-input) is logged to the wave progress update at most as a one-line WARN — never block, never retry, never surface to the user. If `agent-status.mjs` is absent (older plugin checkout), wrap the import defensively and no-op, exactly as `layouts.mjs` does for its telemetry import.
+
 ### 3b. Persona-Gate Hook (#458)
 
 > Opt-in mid-wave hook that fans out a `/persona-panel`-style review after a configured wave completes. Distinct from `### 5a. Persona-reviewer dispatch` (which uses the `wave-reviewers` Session Config key and dispatches code-oriented `architect-reviewer` / `qa-strategist` / `analyst` agents). This hook uses the `persona-gate-wave` Session Config key and dispatches catalog personas (domain-experts, buyer-personas, auditors) from `.claude/personas/`. The two keys are independent and may both be configured on the same project.
@@ -740,6 +777,53 @@ On a clean `PROCEED` no deviation is written — the sidecar alone is sufficient
 When the hook is skipped (gate condition false), omit the `persona_gate` field entirely — never write `triggered: false` for skipped runs, so a downstream consumer can distinguish "hook did not fire" from "hook fired but found no dissent".
 
 **Motivating example:** the `gotzendorfer-v2` W5 Buyer-Panel pattern (six buyer personas at `hard-gate-threshold` `6-of-6`, `mode: 'strict'`, `after: 'quality'`) — UI work is gate-checked against every persona before commit, abort on any dissent. See `docs/session-config-reference.md § Persona-Gate Wave (#458)` and `commands/persona-panel.md` for the standalone CLI equivalent.
+
+### 3c. Strategic Compact-Nudge (#620)
+
+> Advisory-only checkpoint. Never auto-compacts. `/compact` is a user slash-command; the coordinator/operator decides when to invoke it.
+
+**Gate conditions** — ALL must be true for the nudge to emit:
+
+1. `compact-nudge.enabled: true` in Session Config (default: `false`).
+2. The just-completed wave's role is listed in `compact-nudge.after` (default: `['discovery', 'impl']`). Compare the wave's canonical role string (lower-case) against the list.
+3. `compact-nudge.mode !== 'off'` (when `mode: 'off'` the nudge is a silent no-op even when `enabled: true`).
+
+When any gate condition is false, skip this step entirely — proceed to `### 4. Progress Update`.
+
+**Nudge format** — when the gate fires, append ONE advisory bullet to the wave progress update (step `### 4`):
+
+```
+- 💡 Compact checkpoint: Wave N (<Role>) complete — consider /compact before Wave N+1 (<NextRole>) to free context (advisory only; see decision table). Never auto-compacts.
+```
+
+**What survives `/compact` vs what is lost:**
+
+| Survives | Lost |
+|---|---|
+| CLAUDE.md, STATE.md (on disk), wave-scope.json, JSONL metrics (.orchestrator/), git history, all files on disk | Intermediate reasoning/thinking traces, previously-read file contents cached in context, tool-call history for prior waves |
+
+This frames the nudge: the persistent artefacts (plan, scope, STATE.md, git diff) are the distilled output of completed work; losing in-context file reads is the cost. Compact is worth it when the completed wave produced bulky research/audit output that is unlikely to be re-referenced verbatim.
+
+**Decision table:**
+
+| Wave boundary (completed → next) | Compact? | Why |
+|---|---|---|
+| Discovery → Impl-Core | Yes | Research/audit context is bulky; the plan + wave-scope.json is the distilled output. |
+| Impl-Core → Impl-Polish (long Core) | Maybe | Compact only if Polish targets different files; keep if Polish builds on Core's changes. |
+| Impl-Polish → Quality | No | Quality references the just-written code; losing it is costly. |
+| Quality → Finalization | No | Finalization needs the full session diff. |
+| Mid-implementation (within a wave) | No | Losing file paths + partial state is expensive. |
+| After a FAILED/aborted wave | Yes | Clear the dead-end reasoning before the adapted retry. |
+| Switching to an unrelated task block (deep session) | Yes | Debug/exploration traces pollute unrelated downstream work. |
+
+**Behaviour by mode:**
+
+| `mode` | Action |
+|--------|--------|
+| `off` | No nudge (gate condition above). |
+| `warn` | Emit the advisory bullet in the wave progress update. Coordinator/operator acts at their discretion. |
+
+The nudge is informational only — no AskUserQuestion, no state-md write, no sidecar. This step never blocks forward progress.
 
 ### 4. Progress Update
 

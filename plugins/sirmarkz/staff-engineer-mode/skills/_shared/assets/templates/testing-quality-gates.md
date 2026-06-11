@@ -15,6 +15,11 @@
 | Check | Expected Behavior | Stop Condition | Owner |
 | --- | --- | --- | --- |
 
+## Test Infrastructure Health
+
+| Environment Or Pool | Capacity Signal | Queue/Wait Signal | Cleanup Or Leak Signal | Failure Classification |
+| --- | --- | --- | --- | --- |
+
 ## Distributed-Boundary Failure Matrix
 
 | Boundary | Timeout | Unknown Result | Duplicate | Retry | Server-Side State Safety |
@@ -24,6 +29,16 @@
 
 | Lane | p95 Runtime Source | Budget | Action When Exceeded |
 | --- | --- | --- | --- |
+
+## Gate Integrity Under Cost Pressure
+
+| Slow/Costly Check | Preserved Coverage | Lane Split Or Placement | Bypass Prevention | Owner |
+| --- | --- | --- | --- | --- |
+
+## Build/Test Cache Correctness
+
+| Cache | Behavior-Changing Inputs | Key/Invalidation Rule | Stale-Output Failure Mode | Verification |
+| --- | --- | --- | --- | --- |
 
 ## Composition And Coverage
 

@@ -7,7 +7,7 @@ description: Use when implementing a feature, refactor, direct hotfix, or scoped
 
 Implementation workflow for behavior-changing code. The goal is to prevent "tests after" from becoming optimistic coverage that never proved it could catch the bug.
 
-This skill only governs the coding loop. It does not gather requirements (`dev-spec`), design implementation strategy (`dev-plan`), investigate root cause (`dev-fix`), or review the final diff (`dev-code-review`).
+This skill only governs the coding loop. It does not gather requirements (`dev-grill-docs`; `dev-spec` is a compatibility alias), design implementation strategy (`dev-plan`), investigate root cause (`dev-fix`), or review the final diff (`dev-code-review`).
 
 ---
 
@@ -54,7 +54,7 @@ Test target: <测试文件 / 测试命令>
 Production target: <实现文件>
 ```
 
-如果写不出 `Expected`,说明需求还没清楚,回 `dev-spec` 或向用户澄清。
+如果写不出 `Expected`,说明需求还没清楚,回 `dev-grill-docs` 或向用户澄清。
 
 ### SDD source check
 

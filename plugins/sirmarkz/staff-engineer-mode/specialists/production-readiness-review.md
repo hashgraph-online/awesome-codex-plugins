@@ -32,6 +32,7 @@ Produces a dimensioned launch posture with a readiness matrix, a blocker list, a
 - The user needs one narrow artifact, such as only an SLO table (use `slo-and-error-budgets` instead) or only a threat model (use `secure-sdlc-and-threat-modeling` instead).
 - The request is model-serving promotion details, eval thresholds, skew, drift, monitoring, or rollback; use `ml-reliability-and-evaluation` instead.
 - A live incident is underway; route to `incident-response-and-postmortems` first.
+- Stale runbook or onboarding-doc freshness gaps route to `documentation-lifecycle`.
 - The question is business confirmation, marketing launch, legal release decision, or procurement; out of scope.
 
 ## Info To Gather
@@ -53,9 +54,9 @@ Produces a dimensioned launch posture with a readiness matrix, a blocker list, a
 1. **Classify launch scope.** State what is launching, who is affected, and which standard applies.
 2. **Classify launch impact.** Classify launch impact along five dimensions, not as a single ordinal label: external commitment, customer-criticality, data sensitivity, state durability, and blast radius. Stricter checks attach to dimensions that apply, not to a number. This dimensioned approach follows the shared risk-response framing.
 3. **Collect artifacts.** Gather readiness details from specialist domains instead of rewriting all domain work inside PRR; mark stale details and drift since the last relevant readiness decision.
-4. **Check architecture shape.** Identify the component diagram or textual map, production dependencies, fault-domain map, and user-flow health model for the launch path; if these are missing for a customer-impacting launch, mark the architecture gap explicitly.
+4. **Check architecture shape.** Identify the component diagram or textual map, production dependencies, fault-domain map, and user-flow health model for the launch path; if these are missing for a customer-impacting launch, mark the architecture gap explicitly. Confirm each critical production dependency is itself launch-ready (capacity reserved, quotas raised, owners aware); an un-ready dependency on the launch path is a blocker.
 5. **Mark each domain.** Use Pass, Blocker, Exception, Follow-up, or Not Applicable. A gap is a Blocker when it can violate the launch's user, data, security, recovery, or rollback requirement before launch; it is a Follow-up only when launch risk remains bounded and the follow-up action, check path, and due date are explicit.
-6. **Check runtime readiness.** Require SLOs, journey health model, telemetry, alerts, runbooks, fallback path, diagnostics, and incident path for customer-impacting launches.
+6. **Check runtime readiness.** Require SLOs, journey health model, telemetry, alerts, runbooks, fallback path, diagnostics, and incident path for customer-impacting launches. Treat insufficient remaining error budget for an affected user journey as a launch blocker or a constraint on rollout pace, not an advisory note.
 7. **Check change readiness.** Require rollout, rollback, canary, compatibility, migration, and cleanup details.
 8. **Check resilience and recovery.** Require location or partition independence, static failover capacity, overload behavior, failover targets, recovery drills, and restore test results when relevant.
 9. **Check security and integrity.** Require threat model, access controls, secret handling, build integrity, and unresolved vulnerability posture.
@@ -91,6 +92,7 @@ Use PRR as a cross-domain readiness decision for launches and major changes. It 
 ## Response Quality Bar
 
 - Lead with the launch posture, blocker list, exception register, or readiness decision boundary requested.
+- Show the structured PRR artifact to the user before any release receipt, tag, promotion, or override receipt. Use `skills/_shared/assets/templates/prr-checklist.md` when available, or render the same headings and tables.
 - Cover architecture, responsibility, runtime readiness, safe change, recovery, security, and capacity details before optional PRR breadth.
 - Include an architecture row for customer-impacting launches: component diagram or textual map, dependencies, and fault-domain map.
 - Make recommendations actionable with missing details, checks, due dates, stop criteria, user risk acceptance, and exception expiry where relevant using the shared risk-acceptance lifecycle.
@@ -99,13 +101,33 @@ Use PRR as a cross-domain readiness decision for launches and major changes. It 
 - Stay inside launch readiness. Route only the highest-risk specialist follow-ups and cap them at two unless the user asks for a full readiness pack.
 - Be concise: avoid generic checklist prose and prefer compact readiness matrices, blocker tables, and exception registers.
 
+## PRR Output Scaling
+
+Show a user-visible structured PRR artifact, scaled to launch impact.
+
+- **Local source checkpoint:** local tag/build/checkpoint; no push, publish, deploy, users, runtime, production data, or external commitment.
+- **External artifact:** pushed tag, hosted release, package, or artifact used outside the local repo.
+- **Production/customer-impacting:** deploy, traffic shift, migration, stateful change, customer-facing change, or sensitive-data change.
+
+If scope is ambiguous, ask once:
+
+> I am treating this as local-only because it is not being pushed, published, deployed, or exposed to users. If wrong, tell me whether this is public or production/customer-impacting.
+
+Local output: compact table with scope, impact dimensions, checks, blockers/exceptions (`None` if absent), and advisory posture.
+
+External output: compact readiness matrix with commitment, compatibility, rollback, checks, blockers/exceptions, and advisory posture.
+
+Production/customer-impacting output: full `prr-checklist.md` shape.
+
 ## Required Outputs
 
+- Output shape: use PRR Output Scaling. Use the full template for production/customer-impacting changes; include compact structured fields for local source checkpoints and external artifacts.
 - PRR readiness matrix by domain and status.
 - Freshness and drift notes for readiness details that can go stale, such as dashboards, runbooks, rollout checks, recovery checks, and load tests.
 - Architecture entry with component diagram or textual map, production dependencies, and fault-domain map.
 - Launch ownership or automation path, plus post-launch verification plan with responder handoff, watch window, and success or abort checks.
 - Availability row covering fault-domain independence, static capacity under loss, recovery mechanism, and drill results.
+- Error-budget posture for affected journeys: remaining budget, burn trend, and the implication for launch decision and rollout pace.
 - Launch blocker list with required details, file/path or artifact reference, and due date.
 - Exception register with user risk acceptance, expiry, compensating control, and refresh trigger using the shared risk-acceptance lifecycle and compensating-control format.
 - Advisory launch posture and risk summary.
@@ -119,6 +141,8 @@ Use PRR as a cross-domain readiness decision for launches and major changes. It 
 - `ownership_check`: manual or semi-automated paths name launch and rollback owners; fully automated CI/CD with automatic rollback names the automation path; responder handoff, post-launch watch window, and success or abort checks are explicit.
 - `operability_check`: every production component has fallback path, diagnostics, impact context, and user decision point.
 - `runtime_check`: customer-impacting paths have SLOs, health states, telemetry, alerts, runbooks, and incident path.
+- `error_budget_check`: customer-impacting launches confirm affected journeys have sufficient remaining error budget, or record an explicit exception that constrains rollout pace.
+- `dependency_readiness_check`: critical upstream and downstream production dependencies are launch-ready (capacity, quota, owner awareness), or the gap is recorded as a blocker.
 - `change_check`: rollout, rollback, canary metrics, compatibility, and cleanup are documented.
 - `freshness_check`: readiness details that can drift have a last-checked signal, current source, or explicit follow-up using the shared continuous-monitoring and performance-evaluation discipline.
 - `availability_check`: customer-impacting systems have location/partition independence, static failed-domain capacity, recovery path, and validation results or an explicit exception.
@@ -129,6 +153,7 @@ Use PRR as a cross-domain readiness decision for launches and major changes. It 
 
 - The checklist is green but has no links, commands, artifact references, or explicit user decision point.
 - PRR gives go/no-go authority to the agent instead of presenting details for the user decision.
+- PRR is performed privately and only the receipt, verdict, or launch posture is shown to the user.
 - Exceptions never expire.
 - The launch can roll forward but cannot roll back or stop safely.
 - "Not applicable" is used to avoid security, recovery, or incident checks without rationale.

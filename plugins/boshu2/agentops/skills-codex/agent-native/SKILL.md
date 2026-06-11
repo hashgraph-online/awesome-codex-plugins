@@ -1,6 +1,6 @@
 ---
 name: agent-native
-description: 'Make an out-of-session agent AgentOps-native via skills + ao CLI + CI, not hooks.'
+description: "Run agent native."
 ---
 
 # $agent-native — Make Out-of-Session Agents AgentOps-Native (Codex Native)

@@ -63,7 +63,7 @@
 
 **用户原始请求**
 
-> 出个 plan,基于 dev-spec 那个 user-export 的 spec。
+> 出个 plan,基于 dev-grill-docs 那个 user-export spec。
 
 **Step 1**:加载 `.claude/artifacts/designs/user-export.md`,读取 In scope / Out of scope / AC / Core entities。
 
@@ -301,7 +301,7 @@ Option A + 强约束:**独立 worker pool + 单任务超时 + 限流(单用户 2
 
 ## 反模式备忘(不要这样跑 dev-plan)
 
-- ❌ **请求模糊就硬上** —— 应停下提示用户先 `dev-spec`,不要拼凑 spec 替用户做需求决策。
+- ❌ **请求模糊就硬上** —— 应停下提示用户先 `dev-grill-docs`,不要拼凑 spec 替用户做需求决策。
 - ❌ **只列 1 个 option 而无 invalidation rationale** —— 违反 baseline「不假设」,RALPLAN-DR 强制 ≥ 2 或显式说明为什么砍。
 - ❌ **Planner / Architect / Critic 写在一起** —— 三个 pass 必须**单独成节**,不能让用户分不清谁说了什么。
 - ❌ **Architect 走形式** —— 没有 steelman、没有 tension 就是没干活,Planner 该回去重写。

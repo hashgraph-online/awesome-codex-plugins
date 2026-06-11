@@ -1,6 +1,6 @@
 ---
 name: workflow-builder
-description: 'Author a deterministic Codex orchestration (codex exec + spawn_agents).'
+description: "Run workflow builder."
 ---
 # $workflow-builder — author a deterministic Codex orchestration
 

@@ -25,6 +25,7 @@ High availability is the ability to keep serving through expected failures witho
 - A design says it is active-active, active-passive, partitioned, shuffle-sharded, or multi-location.
 - A launch or PRR needs HA details.
 - The work changes topology, failover, load balancing, placement, or blast radius.
+- DNS, resolver, naming, TTL, or negative-cache behavior affects failover or availability.
 
 ## When Not To Use
 
@@ -33,29 +34,36 @@ High availability is the ability to keep serving through expected failures witho
 - The main question is planning a chaos experiment, game day, or fault injection drill; use `resilience-experiments` instead.
 - The work is only unit, integration, or CI testing.
 - The request is about generic uptime targets; define SLOs first via `slo-and-error-budgets`.
+- Failure-behavior requirements and non-functional targets before code exist belong to `resilience-requirements`; SLO math belongs to `slo-and-error-budgets`.
 
 ## Info To Gather
 
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - External commitment, customer-criticality, SLOs, critical user journeys, and maximum tolerable interruption.
 - Current topology: hosts, deployment units, locations, partitions, shards, queues, load balancers, stores, and control planes.
-- Fault domains: process, node, rack, location, deployment unit, administrative boundary, cluster, deployment ring, tenant, data partition, dependency, and operator action.
-- Capacity by domain, peak traffic, failover headroom, and dependency quotas.
-- Fault-domain independence, per-domain telemetry, data replication model, consistency needs, and any hidden global dependencies.
-- Per-domain health signals, traffic shift path, and last validation result for moving traffic away from an unhealthy domain.
+- Fault domains: process, node, rack, location, deployment unit, administrative boundary, cluster, deployment ring, tenant, data partition, dependency, supporting-infrastructure operating envelope, and operator action.
+- Capacity by domain, peak traffic, failover headroom, dependency quotas, cache-warmth assumptions, and refill load after traffic movement.
+- Fault-domain independence, per-domain telemetry, data replication model, replica or quorum placement within physical fault domains, consistency needs, hidden global dependencies, and mismatched protective thresholds or operating limits across shared support layers.
+- Per-domain health signals, including gray-failure thresholds for high latency, stuck work, partial errors, crash loops, and capacity loss, plus traffic shift path and last validation result for moving traffic away from an unhealthy domain.
+- Return-to-normal, drain or undrain, repair, startup, management, identity, observability, and support dependencies that are required during recovery.
+- Protective modes during partial failure, including whether read-only, fail-closed, or safety states still allow internal coordination, metadata writes, repair, and safe override.
 - Existing failover tests, incidents, game days, chaos experiments, and rollback procedures.
+- Name-resolution chain: authoritative zones, resolvers, provider or control-plane dependencies, TTLs, negative caches, delegated names, and failover steering behavior.
 
 ## Workflow
 
 1. **State the survival target.** Use the form: "survive loss of X while continuing Y, with no manual Z, within SLO W."
-2. **Draw the fault-domain map.** Include serving path, data path, control plane, deployment system, identity, config, DNS, observability, and operator access.
+2. **Draw the fault-domain map.** Include serving path, data path, control plane, deployment system, identity, config, DNS, observability, operator access, quorum or replica placement, and any shared support layer whose operating envelope can remove multiple domains at once.
 3. **Check fault-domain independence.** A serving path scoped to one location, partition, or deployment unit should not require synchronous calls to another independent fault domain or shared global state unless the exception, failure behavior, and customer impact are explicit.
-4. **Check static stability and constant-work behavior.** Confirm remaining domains already have enough capacity and quotas during the failure; do not count emergency scaling that depends on the failed domain. Prefer designs where the system does the same work in failure as in success: pre-provisioned headroom over reactive scaling, hedged parallel requests over retry-on-timeout, scheduled credential pushes over fetch-on-demand, heartbeat-based health over dedicated failure probes. Failure-only code paths get little real exercise and are the most common source of latent failure-mode bugs.
+4. **Check static stability and constant-work behavior.** Confirm remaining domains hold enough capacity, quotas, warm cache state, and backing-dependency headroom during the failure; do not count emergency scaling that depends on the failed domain. Include the refill load created when traffic shifts into cold caches or flushed derived state. Prefer designs where the system does the same work in failure as in success: pre-provisioned headroom over reactive scaling, hedged parallel requests over retry-on-timeout, scheduled credential pushes over fetch-on-demand, heartbeat-based health over dedicated failure probes. Failure-path code gets little real exercise and is the most common source of latent failure-mode bugs.
 5. **Choose topology deliberately.** Decide whether a single-location, location-redundant, multi-location, active-passive, active-active, stamp, or partition model is justified by the survival target.
 6. **Bound blast radius.** Use partitions, stamps, shards, shuffle sharding, tenant isolation, or location boundaries when one failure could otherwise affect the whole fleet. Operational actions should not affect multiple independent fault domains at once unless the user explicitly accepts the emergency risk.
-7. **Remove hidden coupling.** Find global locks, shared queues, shared caches, control-plane calls, cross-location synchronous writes, centrally coupled config, and externally hosted artifacts in the serving, deploy, scale, and startup paths.
-8. **Define failover behavior.** Specify automatic/manual trigger, traffic drain or shift, data consistency, split-brain prevention, client behavior, rollback to normal, and when the shift path was last validated.
-9. **Validate safely.** Define the validation objective, then route detailed fault-injection or game-day planning to resilience experiments when that is the main work.
+7. **Remove hidden coupling.** Find global locks, shared queues, shared caches, control-plane calls, cross-location synchronous writes, central config coupling, shared health-check or control-loop resource pools, health-report fanout that can overload control planes, and outside-hosted artifacts in the serving, deploy, scale, and startup paths.
+8. **Design name-resolution reliability.** Check resolver and zone availability, single-provider or single-control-plane dependencies, TTL and negative-cache strategy, failover steering, and client behavior while names converge.
+9. **Define failover behavior.** Specify automatic/manual trigger, traffic drain or shift, data consistency, split-brain prevention, client behavior, rollback to normal, and when the shift path was last validated. Treat partial or gray failures as first-class triggers; a domain that is still serving but too slow, crash-looping, or capacity-starved may need the same traffic shift as a hard outage.
+10. **Test protective modes.** If a support layer enters read-only, fail-closed, quarantine, or other safety state, verify it still permits required internal coordination, metadata writes, repair actions, and controlled override without violating the durability or security contract.
+11. **Validate return-to-normal.** Test or document drain, undrain, repair, startup, management, identity, observability, and support paths under degraded capacity; restoration can be riskier than the initial failover.
+12. **Bound validation risk.** Define the validation objective, then route detailed fault-injection or game-day planning to resilience experiments when that is the main work.
 
 ## Synthesized Default
 
@@ -93,25 +101,33 @@ Use fault-domain independence, static stability, and explicit fault-domain isola
 
 ## Required Outputs
 
-- Fault-domain inventory and serving-path map.
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
+- Fault-domain inventory and serving-path map, including shared support-layer operating-envelope or protective-threshold mismatches.
 - Survivability statement using "survive loss of X while continuing Y".
-- Capacity and quota model under normal, peak, and failed-domain conditions.
+- Capacity and quota model under normal, peak, and failed-domain conditions, including cache-warmth and refill-load assumptions.
+- Replica or quorum placement evidence for any shared data, lease, lock, or control-plane dependency needed during failover.
 - Fault-domain independence and hidden-coupling exception list.
 - Blast-radius analysis and partition/shard/tenant isolation recommendation.
 - Hidden dependency and control-plane risk list.
+- DNS and name-resolution reliability table: authoritative source, resolver path, TTL, negative-cache behavior, failover behavior, and single-provider exceptions.
 - Failover decision record with trigger, authority, data behavior, and rollback.
-- Per-fault-domain health and traffic-shift table with signal, action path, expected capacity, and last validation result.
+- Return-to-normal plan for drain, undrain, repair, startup, management, identity, observability, and support dependencies.
+- Protective-mode behavior and override criteria for safety states that can block recovery work.
+- Per-fault-domain health and traffic-shift table with signal, gray-failure threshold, action path, expected capacity, and last validation result.
 - Validation plan with scope, abort criteria, telemetry, and details to capture.
 
 ## Checks Before Moving On
 
-- `fault_domain_map`: expected failure domains and hidden shared dependencies are enumerated.
+- `fault_domain_map`: expected failure domains, hidden shared dependencies, replica or quorum placement, and operating-envelope mismatches across shared support layers are enumerated.
 - `location_independence`: serving, startup, deploy, scale, and recovery paths avoid synchronous cross-location or globally coupled dependencies, or document the exception and fallback.
 - `static_capacity`: remaining domains can serve target traffic after the named failure without emergency scaling.
 - `blast_radius_bound`: a single fault cannot exceed the documented partition, tenant, shard, or location impact boundary.
 - `failover_behavior`: trigger, authority, data consistency, traffic behavior, and rollback are written down.
-- `per_domain_signals`: each critical fault domain has health signals that can identify local impairment.
+- `per_domain_signals`: each critical fault domain has health signals that can identify hard outages and gray failures such as elevated latency, stuck work, crash loops, or capacity loss.
+- `name_resolution`: resolver, zone, TTL, negative-cache, and name-steering behavior preserve availability during failover or document the exception.
 - `shift_path`: moving traffic away from an unhealthy domain has an automatic or manual path and a last validation result.
+- `protective_mode`: read-only, fail-closed, quarantine, or other safety states preserve required internal coordination and have controlled override criteria.
+- `return_to_normal`: drain, undrain, repair, startup, management, identity, observability, and support paths are validated or marked unknown.
 - `validation_plan`: failover, game day, or chaos test has scope, abort criteria, telemetry, and check path.
 
 ## Red Flags - Stop And Rework
@@ -121,7 +137,10 @@ Use fault-domain independence, static stability, and explicit fault-domain isola
 - Remaining capacity after failure is assumed but not calculated.
 - Critical serving calls depend synchronously on a global control plane, config service, or cross-location dependency.
 - A deploy, scale-up, startup, or recovery path depends on artifacts or control planes unavailable during the named fault.
+- A safety state preserves durability or security but blocks the metadata writes or coordination needed to recover.
 - One operational action can damage multiple locations, deployment units, partitions, or shards at once.
+- Name resolution depends on one unavailable provider, resolver, zone, or stale negative cache during failover.
+- Failover works, but return-to-normal depends on untested repair, drain, startup, access, or support tooling.
 - Resilience experiments are proposed without blast-radius limits or abort criteria.
 
 ## Common Mistakes
@@ -131,4 +150,6 @@ Use fault-domain independence, static stability, and explicit fault-domain isola
 | Confusing HA with DR | HA keeps serving through expected faults; DR restores after loss or corruption. |
 | Counting autoscaling as static capacity | Model capacity already available when the domain fails. |
 | Testing only the happy failover path | Test detection, partial failure, rollback, and return-to-normal. |
+| Waiting for a domain to be fully down | Shift on validated gray-failure signals before slow partial failure exhausts regional capacity. |
 | Ignoring operator dependencies | Include identity, access, dashboards, deploy, and config systems in the map. |
+| Treating names as static | Model resolver, TTL, negative-cache, and failover steering behavior. |

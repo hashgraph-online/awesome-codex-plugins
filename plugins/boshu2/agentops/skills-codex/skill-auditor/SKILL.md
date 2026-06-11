@@ -1,11 +1,11 @@
 ---
 name: skill-auditor
-description: 'Audit a SKILL.md (15 checks).'
+description: "Run skill auditor."
 ---
 # $skill-auditor — Three-pass skill quality audit
 
 Validates a skill's SKILL.md against the unified AgentOps template. Pass 1
-wraps `heal-skill` for structural hygiene; Pass 2 adds 8 content-discipline
+gates through `heal-skill --strict` for structural hygiene; Pass 2 adds 8 content-discipline
 checks not covered by heal; Pass 3 folds the 10-category Skill Quality Rubric
 (`docs/reference/skill-quality-rubric.md`) into the report as a deterministic
 0-30 productization score (advisory). The report also includes an advisory
@@ -15,7 +15,7 @@ constraint, and next action coverage.
 ## ⚠️ Critical Constraints
 
 - **Auditor is read-only.** Reports findings; never modifies the target. **Why:** PR-002 (external validation) — the auditor must remain a separate gate from the implementer. To repair findings: use `heal-skill --fix` for Pass-1 issues, hand-edit for Pass-2 issues.
-- **Pass 1 delegates, never reimplements.** The auditor calls `$heal-skill --check <target>` and parses its output. **Why:** PR-006 (cross-layer consistency) — heal-skill's checks are the source of truth for structural hygiene; reimplementation creates drift.
+- **Pass 1 delegates, never reimplements.** The auditor calls `heal-skill --check --strict <target>` and gates on its exit code; parsing output is report-only. **Why:** PR-006 (cross-layer consistency) — heal-skill's checks are the source of truth for structural hygiene; reimplementation creates drift.
 - **Pass 2 must accept AgentOps' existing conventions.** Specifically `description-has-triggers` accepts THREE valid forms (YAML `|` block scalar OR `Triggers:`/`Use when:` markers OR `metadata.triggers` array with 3+ items). **Why:** finding `f-2026-05-06-auditor-checks-must-fit-host-conventions` — auditor checks must validate against the host substrate's existing valid artifacts before promotion to required gate.
 - **Verdict aggregation rule:** any check returns `fail` → FAIL; otherwise any returns `warn` → WARN; otherwise PASS. **Why:** prevents silent severity downgrade.
 - **Density coverage is advisory-only.** Missing density fields never changes
@@ -80,16 +80,16 @@ python3 skills-codex/skill-auditor/scripts/score_agentops_skill.py skills/<name>
 ### Step 1: Pass 1 (heal-skill delegation)
 
 ```bash
-bash skills/heal-skill/scripts/heal.sh --check <target>
+bash skills/heal-skill/scripts/heal.sh --check --strict <target>
 ```
 
-Capture stdout. Each line `[CODE] <path>: <msg>` becomes one Pass-1 finding.
+Gate on the exit code. Each stdout line `[CODE] <path>: <msg>` becomes one Pass-1 finding for the report.
 
 ### Step 2: Pass 2 (8 NEW checks)
 
 For each `check_*` function in `scripts/audit.sh`, run against `<target>/SKILL.md`. Each emits `pass`, `warn`, or `fail` to stdout.
 
-**Checkpoint:** Pass 2 must run independently of Pass 1 (no shared state); a heal.sh failure does NOT short-circuit Pass 2.
+**Checkpoint:** Pass 2 must run independently of Pass 1 (no shared state); a heal strict failure does NOT short-circuit Pass 2, but it DOES force the aggregate verdict to FAIL.
 
 ### Step 3: Pass 3 (rubric scoring)
 
@@ -117,7 +117,7 @@ JSON conforming to `schemas/audit-report.json` to stdout (or to file with `--jso
 
 **Format:** JSON conforming to `schemas/audit-report.json` (default) plus markdown text summary.
 **Filename:** typically `.agents/audits/<skill-name>-audit.json` when `--json <path>` is supplied; otherwise stdout.
-**Exit code:** 0 for PASS or WARN; 1 for FAIL; 2 for usage error or missing target.
+**Exit code:** 0 for PASS or WARN; 1 for FAIL (including any Pass-1 strict failure); 2 for usage error or missing target.
 
 **Density advisory:** JSON includes `density.status`, `density.fields[]`, and
 `density.summary`. Treat missing fields as review prompts, not gates.
@@ -125,7 +125,7 @@ JSON conforming to `schemas/audit-report.json` to stdout (or to file with `--jso
 ## Quality Rubric
 
 - [ ] Auditor never modifies target SKILL.md or any other file
-- [ ] Pass 1 invokes heal.sh with `--check` (NOT `--fix`)
+- [ ] Pass 1 invokes heal.sh with `--check --strict` (NOT `--fix`) and gates on exit code
 - [ ] All 8 Pass-2 checks emit one of: `pass`, `warn`, `fail`, `n/a`
 - [ ] `description-has-triggers` accepts all three valid forms (verified by running auditor against AgentOps' existing single-line-description skills like `forge`, `heal-skill`, `council`)
 - [ ] Aggregate verdict applies max-severity rule (no silent downgrade)
@@ -161,7 +161,7 @@ bash skills/skill-auditor/scripts/audit.sh --strict skills/my-skill
 | Problem | Cause | Solution |
 |---------|-------|----------|
 | All AgentOps skills fail check #1 | Auditor using old `description-multiline` logic | Verify check fn is `check_description_has_triggers`; should accept single-line + Triggers/Use-when markers + metadata.triggers array (per pre-mortem F1) |
-| heal.sh exits 1 even with `--check` | heal.sh has its own `--strict` mode | The auditor calls heal.sh WITHOUT `--strict`; if heal.sh exits non-zero, capture findings but continue Pass 2 |
+| heal.sh exits 1 in Pass 1 | `--strict` found structural issues | Capture findings, continue Pass 2 for a complete report, and force aggregate FAIL |
 | `references-modularization` fails on a 200-line skill | Check applies only when SKILL.md > 400 lines | Verify line count; status should be `n/a` for short skills |
 
 ## See Also

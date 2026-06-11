@@ -1,6 +1,9 @@
 <p align="center">
   <a href="https://ouonet.github.io/praxis/" target="_blank">
-    <img src="https://raw.githubusercontent.com/ouonet/praxis/main/assets/logo.svg" alt="Praxis" width="260"/>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ouonet/praxis/main/assets/logo-dark.svg"/>
+      <img src="https://raw.githubusercontent.com/ouonet/praxis/main/assets/logo.svg" alt="Praxis" width="260"/>
+    </picture>
   </a>
 </p>
 
@@ -38,17 +41,16 @@ At session start, a hook injects the `praxis:using-praxis` startup skill. It tel
 
 | Skill     | When                                        |
 | --------- | ------------------------------------------- |
-| discover  | problem space undefined — unknown what to build, for whom, or whether it's worth building |
-| onboard   | existing project with no docs/tech-spec.md  |
-| design    | scope ≥ standard, anything new             |
-| plan      | after design                                |
-| tdd       | implementing or fixing                      |
-| debug     | something broken                            |
-| review    | before merge / after subagent task          |
-| worktree  | non-trivial or parallel work                |
-| subagents | independent tasks, fan-out                  |
-| ship      | merge / PR / cleanup                        |
-| release   | version / tag / publish                     |
+| [onboard](skills/onboard/SKILL.md)   | existing project with no docs/tech-spec.md  |
+| [design](skills/design/SKILL.md)    | scope ≥ standard, anything new; also handles vague goals — clarifies before designing |
+| [plan](skills/plan/SKILL.md)      | after design                                |
+| [tdd](skills/tdd/SKILL.md)       | implementing or fixing                      |
+| [debug](skills/debug/SKILL.md)     | something broken                            |
+| [review](skills/review/SKILL.md)    | before merge / after subagent task          |
+| [worktree](skills/worktree/SKILL.md)  | non-trivial or parallel work                |
+| [subagents](skills/subagents/SKILL.md) | independent tasks, fan-out                  |
+| [ship](skills/ship/SKILL.md)      | merge / PR / cleanup                        |
+| [release](skills/release/SKILL.md)   | version / tag / publish                     |
 
 Skills range from ~100 to ~400 tokens each. Compare to Superpowers' 2,500–3,500 per skill.
 
@@ -68,22 +70,25 @@ Praxis enforces a strict documentation structure and keeps code and docs in sync
 
 ### Living Documentation
 
-Your project must maintain:
+**Living documentation** — describes current and future system state.
 
-- **`README.md`** — Project overview, what it is, who it's for, how to use it. Links to technical spec.
-- **`docs/tech-spec.md`** — Main technical specification (declarations only, no narrative).
-- **`docs/specs/*.md`** — Split-out details when the main spec grows too large.
+- **`README.md`** — for users: what it is, who for, how to use it
+- **`docs/tech-spec.md`** — for developers/agents: current system state ([format](skills/archive/SKILL.md#tech-spec-format))
+- **`docs/ROADMAP.md`** — direction and milestones (exists when project has ≥3 milestones or long-term direction)
 
-Technical specs are **facts only**: contracts, data shapes, invariants, failure modes. No interpretation, no plans.
+`docs/tech-spec.md` uses a structured declaration format:
 
-### Discovery Area
+```
+purpose / user / use-case / architecture / stack / entry /
+contract / flow / invariant / constraint / convention / milestone
+```
 
-During exploration of vague or undefined goals, Praxis uses:
+Facts only — no interpretation, no plans. If details are bulky, split into `docs/specs/` and link.
 
-- **`docs/discovery/YYYY-MM-DD-<topic>.md`** — Discovery note: hypotheses, investigation plan, experiments, findings.
-- **`spikes/YYYY-MM-DD-<topic>/`** — Throwaway code validating a hypothesis. Deleted when discovery ends.
+**Project artifacts** — records and conventions. Append-only or static.
 
-Discovery notes are **never deleted** — they accumulate as a permanent record across sessions. When discovery concludes, it either hands off to `design` or produces a knowledge artifact (`docs/discovery/<topic>-spec.md`) directly.
+- **`CHANGELOG.md`** — version history, maintained by `ship`
+- **`docs/decisions/`** — architectural decision log, append-only
 
 ### Staging Area
 
@@ -98,11 +103,11 @@ At `ship`, the staging spec merges into living docs; staging files are deleted (
 
 Praxis enforces synchronization at multiple checkpoints:
 
-- **During `tdd`**: After each RED-GREEN-refactor cycle, sync docs before commit.
+- **During [`tdd`](skills/tdd/SKILL.md)**: After each RED-GREEN-refactor cycle, sync docs before commit.
   - If staging spec exists → update it to match reality.
   - If no staging spec (small tasks) → update living docs directly.
-- **At `ship` gate**: Staging spec must reflect actual code behavior.
-- **At `review`**: Check that README/comments reflect actual behavior.
+- **At [`ship`](skills/ship/SKILL.md) gate**: Staging spec must reflect actual code behavior.
+- **At [`review`](skills/review/SKILL.md)**: Check that README/comments reflect actual behavior.
 
 **The rule**: Code changes without doc updates fail review. Docs that don't match code block merge.
 
@@ -125,7 +130,7 @@ claude plugins install praxis
 }
 ```
 
-Replace `<branch>` with the branch name, e.g. `feat/discover-skill`.
+Replace `<branch>` with the branch name.
 
 ---
 
@@ -184,6 +189,14 @@ copilot plugin install ouonet/praxis
 open customization of copilot -> Plugins -> Install Plugin From Source -> input  "ouonet/praxis"
 ```
 
+### Antigravity CLI
+
+```
+agy plugin install https://github.com/ouonet/praxis
+```
+
+The plugin loads `skills/using-praxis/SKILL.md` as session context, so triage runs from the first turn.
+
 ### Gemini CLI
 
 ```
@@ -212,10 +225,10 @@ Expected: agent outputs `praxis: scope=trivial, loading=` and just fixes it. **N
 
 ```
 You: I want to build something that helps developers manage their workflow
-Agent: triage -> vague -> discover
+Agent: triage -> vague -> design
 ```
 
-Discover asks one question per turn to surface hypotheses. Runs experiments (including spike code in `spikes/`). Ends when the direction is confirmed — either handing off to `design` or producing a knowledge artifact directly.
+Design asks one clarifying question per turn until the problem is concrete enough to spec. If exploration produces a knowledge artifact (protocol spec, RE findings), it goes to `docs/decisions/` via `archive`.
 
 ### Tiny fix
 
@@ -264,7 +277,7 @@ Release confirms the version, moves CHANGELOG `Unreleased`, then asks before com
 
 | You ask                | Praxis does                        |
 | ---------------------- | ---------------------------------- |
-| I want to build X (vague) | vague → discover              |
+| I want to build X (vague) | vague → design (clarifies first) |
 | fix typo               | trivial                            |
 | add small field        | small -> tdd                       |
 | add feature            | standard -> design/plan/tdd/review |
@@ -291,7 +304,6 @@ Praxis is directly inspired by [Superpowers](https://github.com/obra/superpowers
 | `finishing-a-development-branch`                                | `ship`                                   |
 | `verification-before-completion`                                | gate markers in `tdd` / `ship`         |
 | `writing-skills`                                                | — (not needed; skills are plain Markdown) |
-| —                                                                | `discover` (no Superpowers equivalent)   |
 | —                                                                | `onboard` (no Superpowers equivalent)    |
 | —                                                                | `archive` (no Superpowers equivalent)    |
 | —                                                                | `release` (no Superpowers equivalent)    |
@@ -329,6 +341,8 @@ hooks/
 .codex-plugin/         # Codex plugin manifest
 .copilot-plugin/       # Copilot CLI plugin manifest
 .opencode/             # OpenCode config + install doc
+plugin.json            # Antigravity CLI plugin manifest
+gemini-extension.json  # Gemini CLI extension manifest
 ```
 
 ## License

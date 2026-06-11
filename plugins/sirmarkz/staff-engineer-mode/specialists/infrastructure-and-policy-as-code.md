@@ -23,6 +23,7 @@ Infrastructure is safer when desired state, policy checks, drift handling, and r
 
 - The user is designing or changing infrastructure as code, declarative delivery, policy as code, deployment admission, drift detection, environment promotion, or infrastructure rollback.
 - A platform needs enforceable standards for deployment, networking, identity, secrets, tagging, or runtime configuration.
+- Infrastructure or platform baselines need hardened defaults for least functionality, debug exposure, headers, ciphers, default accounts, and dated deviations.
 - Manual infrastructure changes are causing drift, outages, or traceability gaps.
 - The user needs to map platform policies into automated checks.
 
@@ -41,6 +42,7 @@ Infrastructure is safer when desired state, policy checks, drift handling, and r
 - Policy requirements: security, reliability, identity, network, secrets, tagging, cost, and operational standards.
 - Deployment/admission points, promotion model, user confirmations, and emergency-change path.
 - Drift sources, detection methods, reconciliation authority, and incident history.
+- Secure-baseline content: required services, disabled defaults, account posture, exposed debug surfaces, header and cipher rules, benchmark expectations, and known deviations.
 - Rollback/roll-forward mechanisms, state storage, locks, and blast-radius controls.
 - Secret material, secret references, diff redaction, and state-store protection requirements.
 
@@ -48,15 +50,16 @@ Infrastructure is safer when desired state, policy checks, drift handling, and r
 
 1. **Define desired state.** Identify which infrastructure and runtime config must be represented declaratively.
 2. **Keep secrets out of desired-state diffs.** Store secret references, encrypted envelopes, or external secret bindings instead of plaintext; redact plans/diffs and fail the change if secret values appear in change artifacts.
-3. **Make changes traceable in version control.** Require responsible change path, plans/diffs, checks, and user confirmations appropriate to risk.
-4. **Encode and test policies.** Convert standards into automated rules with clear failure messages, fixture tests, historical dry runs where feasible, and an exception path.
-5. **Separate platform and workload boundaries.** Make shared services, application environments, fault-domain boundaries, shared control-plane dependencies, and responsibility explicit so policy inheritance and exceptions are understandable.
-6. **Enforce at the right point.** Use pre-merge, pre-deploy, admission, or continuous drift checks depending on risk and feasibility.
-7. **Detect drift.** Compare actual state to desired state and decide whether to alert, reconcile, or open a ticket.
-8. **Plan rollback.** State when rollback is possible, when roll-forward is safer, and how state is protected.
-9. **Handle emergencies.** Permit manual break-glass only with separate emergency identity, traceability, maximum duration, automatic re-locking, reconciliation, and post-change check.
-10. **Protect the source of truth.** Treat desired-state repositories, state stores, lock stores, and reconcilers as production control-plane dependencies with access control, backup, and recovery plans.
-11. **Feed records.** Surface policy and drift records to scorecards and PRR where useful.
+3. **Author secure baseline content.** Define least functionality, disabled default accounts, debug-surface exposure, header and cipher baselines, benchmark conformance, and a dated deviation register before policy enforces it.
+4. **Make changes traceable in version control.** Require responsible change path, plans/diffs, checks, and user confirmations appropriate to risk.
+5. **Encode and test policies.** Convert standards into automated rules with clear failure messages, fixture tests, historical dry runs where feasible, and an exception path.
+6. **Separate platform and workload boundaries.** Make shared services, application environments, fault-domain boundaries, shared control-plane dependencies, and responsibility explicit so policy inheritance and exceptions are understandable.
+7. **Enforce at the right point.** Use pre-merge, pre-deploy, admission, or continuous drift checks depending on risk and feasibility.
+8. **Detect drift.** Compare actual state to desired state and decide whether to alert, reconcile, or open a ticket. State the reconciliation mode (alert-only, converge-on-next-apply, or auto-remediate) and pause auto-reconciliation during an active break-glass window so it cannot revert an emergency fix. Require a reviewed plan/preview and approval before applying to production state, and stage infrastructure applies by environment or fault domain. Treat the state store as a secret-bearing control plane: encrypt at rest, lock against concurrent applies, and avoid persisting plaintext secrets.
+9. **Plan rollback.** State when rollback is possible, when roll-forward is safer, and how state is protected.
+10. **Handle emergencies.** Permit manual break-glass only with separate emergency identity, traceability, maximum duration, automatic re-locking, reconciliation, and post-change check.
+11. **Protect the source of truth.** Treat desired-state repositories, state stores, lock stores, and reconcilers as production control-plane dependencies with access control, backup, and recovery plans.
+12. **Feed records.** Surface policy and drift records to scorecards and PRR where useful.
 
 ## Synthesized Default
 
@@ -94,10 +97,12 @@ Use declarative desired state, traceable changes, automated policy checks, clear
 
 ## Required Outputs
 
+- Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Infrastructure change workflow.
 - Desired-state scope and responsibility.
 - Fault-domain infrastructure boundary map, including shared state or control-plane dependencies that can defeat intended independence.
 - Policy-as-code control matrix.
+- Secure-baseline content record: least-functionality defaults, disabled accounts, debug-surface exposure, header and cipher posture, benchmark conformance, and deviations with expiry.
 - Enforcement point and exception model.
 - Drift detection and reconciliation plan.
 - Rollback/roll-forward and emergency-change procedure.
@@ -111,7 +116,11 @@ Use declarative desired state, traceable changes, automated policy checks, clear
 - `change_record`: changes are linked to a plan/diff, responsible change path, and confirmation path.
 - `secret_check`: desired state and change artifacts do not expose plaintext secrets.
 - `policy_check`: policies map to engineering standards and enforcement/advisory mode.
+- `secure_baseline`: desired state encodes hardened baseline content before it reconciles settings.
 - `drift_check`: drift detection and reconciliation response are defined.
+- `reconcile_mode`: reconciliation mode is explicit and paused during break-glass.
+- `plan_before_apply`: production applies require a reviewed plan/preview and are staged by blast radius.
+- `state_integrity`: the state store is encrypted, locked, and free of plaintext secrets.
 - `infra_fault_boundary`: intended independent fault domains have separate configurable boundaries or an explicit shared-dependency exception.
 - `emergency_check`: manual break-glass changes require separate identity, expiry, change history, reconciliation, and re-locking.
 
@@ -121,6 +130,7 @@ Use declarative desired state, traceable changes, automated policy checks, clear
 - Policies block without clear error messages or exception path.
 - Desired state is split across undocumented sources.
 - Secret values appear in desired state, plan output, logs, or change diffs.
+- Desired state faithfully reconciles insecure defaults, debug surfaces, or permissive headers and ciphers.
 - Rollback assumes state can be reverted.
 - Emergency changes leave permanent drift.
 
@@ -132,3 +142,4 @@ Use declarative desired state, traceable changes, automated policy checks, clear
 | Blocking too early | Tune in advisory mode, then enforce high-signal rules. |
 | Ignoring drift | Define detection, reconciliation, and the change path. |
 | No emergency path | Add traceable break-glass and post-change cleanup. |
+| Automating insecure defaults | Author the hardened baseline content before enforcing reconciliation. |

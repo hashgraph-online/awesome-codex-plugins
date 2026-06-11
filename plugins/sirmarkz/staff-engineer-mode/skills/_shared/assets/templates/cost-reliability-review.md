@@ -10,6 +10,11 @@
 | Driver | Current Contribution | Trend | Optimization Constraint |
 | --- | --- | --- | --- |
 
+## Metering And Pricing Reconciliation
+
+| Charge Or Allocation | Metered Unit | Pricing/Discount Rule | Eligibility Boundary | Reconciliation Check | Correction Path |
+| --- | --- | --- | --- | --- | --- |
+
 ## Reliability Tradeoff Record
 
 | Option | Reliability Effect | Cost Effect | Headroom Impact | Decision |

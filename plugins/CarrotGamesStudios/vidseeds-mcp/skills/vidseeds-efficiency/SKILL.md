@@ -9,7 +9,7 @@ Read this before multi-step or charge-bearing workflows.
 
 ## Two cost layers
 
-1. **Per-tool seeds** — Some tools spend seeds (thumbnails, intelligence, translation, etc.). Read-only tools are free. Each tool's MCP `description` states seed cost; confirm with the user before charge-bearing calls.
+1. **Per-tool seeds** — Some tools spend seeds (thumbnails, intelligence, translation, etc.). Read-only tools are free. Each tool's MCP `description` states seed cost; confirm with the user before charge-bearing calls. (2026-06: use `fields: ["description","tags"]` on regenerate for light/correct-price partials; thumbnail edits cost more than generation when using input reference image.)
 2. **Daily MCP call quota** — Almost every tool call counts toward a plan bucket (continuous refill, not midnight reset). When the bucket is empty, each extra call costs **1 seed** on top of any per-tool cost.
 
 | Plan    | Refill / day | Bucket cap |

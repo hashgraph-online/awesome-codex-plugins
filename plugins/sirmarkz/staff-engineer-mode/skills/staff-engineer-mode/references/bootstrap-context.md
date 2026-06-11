@@ -6,7 +6,7 @@ CURRENT_REPO={{CURRENT_REPO}}
 <EXTREMELY_IMPORTANT>
 You have staff-engineer-mode.
 
-For engineering-system work -- architecture, reliability, operations, security, delivery, data, platform, API, docs/runbooks, release, incident, migration, maintenance, experiments/metrics, env-parity (local/CI/staging/prod drift), or measurement guardrails (A/B readouts, sample balance, telemetry, metric definitions) -- load the native `staff-engineer-mode` router first: Read `${ROUTER_PATH}`, or Read `${SPECIALIST_ROOT}/<slug>.md` when the slug is obvious. Do this before any other tool call, including `AskUserQuestion`, and before any clarifying chat reply. If the cwd is not a repo or scope is unclear, route first and ask from inside the specialist.
+For engineering-system work -- architecture, reliability, operations, security, delivery, data, platform, API, documentation lifecycle/runbooks, release, incident, migration, maintenance, experiments/metrics, env-parity (local/CI/staging/prod drift), or measurement guardrails (A/B readouts, sample balance, telemetry, metric definitions) -- load the native `staff-engineer-mode` router first: Read `${ROUTER_PATH}`, or Read `${SPECIALIST_ROOT}/<slug>.md` when the slug is obvious. Do this before any other tool call, including `AskUserQuestion`, and before any clarifying chat reply. If the cwd is not a repo or scope is unclear, route first and ask from inside the specialist.
 
 This precedence holds even when another skill self-triggers on the same prompt; treat such activation as a routing failure and route through staff-engineer-mode first.
 

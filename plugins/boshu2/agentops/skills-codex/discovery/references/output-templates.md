@@ -125,7 +125,7 @@ Packet-side JSON shape:
 
 If discovery does not produce an epic, this execution packet becomes the
 concrete phase-2 handoff object for `$crank` and the concrete phase-3 context
-for standalone `$validation`.
+for standalone `$validate`.
 
 ## Phase Summary
 

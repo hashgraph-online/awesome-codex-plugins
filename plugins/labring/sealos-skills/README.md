@@ -2,7 +2,7 @@
 
 Deploy projects to [Sealos Cloud](https://sealos.io) from your AI agent.
 
-Sealos Skills is a plugin-first skill pack centered on Sealos Cloud development and deployment. It helps an AI agent inspect a project, prepare missing deployment artifacts, connect Sealos Cloud databases for development, build or reuse a container image, ship the app to Sealos Cloud, and view deployed resources in a local read-only canvas.
+Sealos Skills is a plugin-first skill pack centered on Sealos Cloud development and deployment. It helps an AI agent inspect a project, prepare missing deployment artifacts, connect Sealos Cloud databases and object storage for development, build or reuse a container image, ship the app to Sealos Cloud, and view deployed resources in a local read-only canvas.
 
 The recommended way to use it is as an agent plugin installed with [`npx plugins`](https://www.npmjs.com/package/plugins). The same root `skills/` directory also remains compatible with `skills.sh` and context-only extension hosts such as Gemini CLI and Qwen Code.
 
@@ -43,6 +43,7 @@ $sealos deploy this repo to Sealos Cloud
 $sealos deploy /path/to/project
 $sealos deploy https://github.com/labring-sigs/kite
 $sealos create a cloud Postgres database for this repo and wire DATABASE_URL
+$sealos create private S3 object storage for uploads and wire env vars
 ```
 
 For Claude Code, use the same requests with `/sealos`:
@@ -52,6 +53,7 @@ For Claude Code, use the same requests with `/sealos`:
 /sealos deploy /path/to/project
 /sealos deploy https://github.com/labring-sigs/kite
 /sealos create a cloud Postgres database for this repo and wire DATABASE_URL
+/sealos create private S3 object storage for uploads and wire env vars
 ```
 
 In Codex App, select **Sealos** from **Plugins**, then describe what you want to deploy.
@@ -85,6 +87,8 @@ Then run the deploy skill directly:
 /sealos-deploy
 /sealos-deploy /path/to/project
 /sealos-deploy https://github.com/labring-sigs/kite
+/sealos-database create a cloud Postgres database for this repo and wire DATABASE_URL
+/sealos-s3 create private object storage for uploads and wire env vars
 ```
 
 After a project has been deployed, run a local Sealos resource canvas UI:
@@ -93,7 +97,7 @@ After a project has been deployed, run a local Sealos resource canvas UI:
 /sealos-canvas
 ```
 
-`/sealos-deploy` is the direct `skills.sh` skill entry. Plugin usage should go through `$sealos` in Codex or `/sealos` in Claude Code.
+`/sealos-deploy`, `/sealos-database`, and `/sealos-s3` are direct `skills.sh` skill entries. Plugin usage should go through `$sealos` in Codex or `/sealos` in Claude Code.
 
 ## Why Use the Plugin
 
@@ -128,14 +132,15 @@ python3 -m json.tool distribution/platforms.json >/dev/null
 
 You only need a plugin-compatible or `skills.sh` compatible AI agent and a project to deploy.
 
-During the deploy and database flows, Sealos Skills will:
+During the deploy, database, and object-storage flows, Sealos Skills will:
 
 - check whether tools such as Docker and `kubectl` are available
 - guide the user through Sealos login when needed
 - use `sealos-cli` for Sealos Cloud database creation, connection details, and database operations
+- use `sealos-cli s3` for Sealos object storage buckets, credentials, quota checks, object operations, and presigned URLs
 - use or help prepare a container registry path such as Docker Hub or GHCR
 
-For an actual deployment, you will still need a Sealos Cloud account and access to a container registry, but these do not need to be fully set up before the skill starts. For database work, you need a Sealos Cloud account and a workspace that can create database resources.
+For an actual deployment, you will still need a Sealos Cloud account and access to a container registry, but these do not need to be fully set up before the skill starts. For database and object-storage work, you need a Sealos Cloud account and a workspace that can create the requested resources.
 
 ## What Sealos Deploy Handles
 
@@ -158,6 +163,17 @@ For a local project or Devbox that needs a cloud database, the agent will:
 - verify the app's real database path through migrations, introspection, or startup checks
 - manage public access only after confirmation
 
+## What Sealos S3 Handles
+
+For a local project or Devbox that needs S3-compatible object storage, the agent will:
+
+- detect object-storage signals such as S3 env keys, AWS SDK usage, MinIO, upload paths, or presigned URL code
+- use `sealos-cli s3` from `zjy365/sealos-cli#28` to list, create, inspect, and update object storage buckets
+- initialize S3 credentials only when needed and keep access keys out of chat
+- wire the smallest required local env keys for bucket, endpoint, access key, secret key, region, and path-style settings
+- verify upload, list, download, delete, or presigned URL behavior with the project's real storage path
+- make buckets public or rotate credentials only after confirmation
+
 ## What Sealos Canvas Handles
 
 For a repository already deployed by `/sealos-deploy`, the agent will:
@@ -175,6 +191,7 @@ The plugin and `skills.sh` pack expose the same skill source:
 
 - `sealos-deploy` — deploy a local or GitHub project to Sealos Cloud
 - `sealos-database` — create, connect, and operate Sealos Cloud databases for development
+- `sealos-s3` — create buckets, connect credentials, check quota, and operate Sealos S3-compatible object storage
 - `sealos-canvas` — view deployed Sealos resources in a local read-only canvas UI
 - `sealos-app-builder` — build Sealos Desktop apps with SDK integration
 - `cloud-native-readiness` — assess deployment readiness

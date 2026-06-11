@@ -11,8 +11,11 @@
 
 ## Fields
 
-| Field | Meaning | Required | Default | Validity Rule | Compatibility Class | Sensitive | Responsibility Path |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Field | Meaning | Required | Default | Validity Rule |
+| --- | --- | --- | --- | --- |
+
+| Field | Compatibility Class | Sensitive | Responsibility Path |
+| --- | --- | --- | --- |
 
 ## Compatibility Rules
 

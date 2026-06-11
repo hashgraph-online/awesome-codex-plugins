@@ -1,6 +1,6 @@
 ---
 name: forge
-description: Mine transcripts into learnings.
+description: "Run forge."
 ---
 # Forge Skill
 

@@ -11,6 +11,11 @@
 | Policy | Enforcement Point | Mode | Exception Rule | Evidence |
 | --- | --- | --- | --- | --- |
 
+## Secure Baseline
+
+| Baseline Area | Required State | Enforcement Check | Deviation | Expiry |
+| --- | --- | --- | --- | --- |
+
 ## Fault-Domain Boundaries
 
 | Boundary | Shared State Or Control Plane | Independence Risk | Mitigation |
