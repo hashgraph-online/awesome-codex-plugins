@@ -1,0 +1,23 @@
+{
+  "name": "gcf-proxy",
+  "version": "1.0.0",
+  "description": "Save 71% on MCP tool call tokens. Wraps any MCP server with GCF encoding, zero code changes. Session stats hook shows savings per turn.",
+  "repository": "https://github.com/blackwell-systems/gcf-codex-plugin",
+  "license": "MIT",
+  "author": {
+    "name": "Blackwell Systems",
+    "url": "https://blackwell-systems.com"
+  },
+  "homepage": "https://gcformat.com",
+  "keywords": ["mcp", "proxy", "token-optimization", "gcf", "cost-reduction"],
+  "interface": {
+    "displayName": "GCF Proxy",
+    "shortDescription": "Save 71% on MCP tool call tokens with GCF encoding.",
+    "composerIcon": "./assets/icon.svg",
+    "links": {
+      "documentation": "https://gcformat.com/guide/claude-code.html",
+      "repository": "https://github.com/blackwell-systems/gcf-codex-plugin",
+      "homepage": "https://gcformat.com"
+    }
+  }
+}
