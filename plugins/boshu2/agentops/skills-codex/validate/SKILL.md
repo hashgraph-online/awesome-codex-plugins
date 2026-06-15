@@ -26,8 +26,8 @@ before returning PASS.
 | `--deep` | 4-judge thorough review | `$council --deep` |
 | `--mixed` | Cross-vendor (Claude + Codex), N×2 judges | `$council --mixed` |
 | `--debate` | Adversarial 2-round refinement | `$council --debate`, `$red-team` |
-| `--mode=post-impl` | Code-readiness pipeline (complexity → bug-hunt → council) | `$vibe` |
-| `--mode=pre-impl [--target=X]` | Plan/spec validation; target ∈ {scenario,fitness,ratchet,scope,skill,health} | `$pre-mortem`, `$scenario`, `$goals measure`, `$ratchet`, `$scope`, `$skill-auditor`, `ao doctor` |
+| `--mode=post-impl` | Code-readiness pipeline (complexity → bug-hunt → council); absorbs vibe (ag-s43tg) | `vibe` |
+| `--mode=pre-impl [--target=X]` | Plan/spec validation; target ∈ {scenario,fitness,ratchet,scope,skill,health} | `$pre-mortem`, `$eval-outcomes`, `$goals measure`, `$flywheel`, `$scope`, `$skill-auditor`, `ao doctor` |
 | `--mode=pr` | PR-shape verdict (diff review + acceptance check) | `$pr-validate`, `$review` |
 
 **Mode-budget assertion:** 8 modes. Adding a 9th requires demoting an existing one OR refusing the addition (per Fix-F § continuous CI gate).
@@ -78,7 +78,7 @@ For `--mode=pre-impl`, also load:
 
 For `--mode=post-impl`, run pre-checks:
 - complexity audit (radon for python, gocyclo for go)
-- bug-hunt sweep (skill-body convention; no `$bug-hunt` skill needed)
+- bug-hunt sweep (skill-body convention; no `$review` skill needed)
 
 For `--mode=pr`, fetch the PR diff (`gh pr diff <id>` or path).
 
@@ -188,9 +188,9 @@ For `--mode=pre-impl` reusable findings: append to `.agents/findings/registry.js
 | `--target` | What gets graded | Replaces |
 |---|---|---|
 | (default) | Plan/spec for an upcoming `$implement` | `$pre-mortem` |
-| scenario | Holdout scenario gate | `$scenario` |
+| scenario | Holdout scenario gate | `$eval-outcomes` |
 | fitness | GOALS.md fitness gates | `$goals measure`, `ao goals measure` |
-| ratchet | Brownian Ratchet checkpoint | `$ratchet`, `ao ratchet status` |
+| ratchet | Brownian Ratchet checkpoint | `$flywheel`, `ao ratchet status` |
 | scope | Frozen-dirs declaration | `$scope` |
 | skill | SKILL.md hygiene + audit | `$skill-auditor`, `$heal-skill` (audit half) |
 | health | Repo health probe | `ao doctor` |

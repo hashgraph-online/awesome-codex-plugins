@@ -142,7 +142,7 @@ Auto-create tracking issues for gaps:
 
 ```bash
 # Prefer beads
-bd create --title "docs: create code-map for $FEATURE" \
+br create --title "docs: create code-map for $FEATURE" \
           --type task --priority P1
 
 # Fallback to GitHub

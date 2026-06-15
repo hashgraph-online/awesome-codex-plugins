@@ -55,9 +55,9 @@ Protos are epics with the `template` label. Create manually or distill from exis
 
 ```bash
 # Manual creation
-bd create "Release Workflow" --type epic --label template
-bd create "Run tests for {{component}}" --type task
-bd dep add task-id epic-id --type parent-child
+br create "Release Workflow" --type epic --label template
+br create "Run tests for {{component}}" --type task
+br dep add task-id epic-id --type parent-child
 
 # Distill from ad-hoc work (extracts template from existing epic)
 bd mol distill bd-abc123 --as "Release Workflow" --var version=1.0.0
@@ -112,7 +112,7 @@ bd mol run mol-release --var version=2.0
 2. Assigns root issue to caller
 3. Pins root issue for session recovery
 
-**Use `mol run` when:** Starting durable work that should survive crashes. The pin ensures `bd ready` shows the work after restart.
+**Use `mol run` when:** Starting durable work that should survive crashes. The pin ensures `br ready` shows the work after restart.
 
 ### Spawn with Attachments
 
@@ -255,7 +255,7 @@ Projects can depend on capabilities shipped by other projects:
 bd ship auth-api                # Marks capability as available
 
 # Project B depends on it
-bd dep add bd-123 external:project-a:auth-api
+br dep add bd-123 external:project-a:auth-api
 ```
 
 ### Shipping Capabilities
@@ -274,12 +274,12 @@ bd ship <capability> --dry-run  # Preview
 ### Depending on External Capabilities
 
 ```bash
-bd dep add <issue> external:<project>:<capability>
+br dep add <issue> external:<project>:<capability>
 ```
 
 The dependency is satisfied when the external project has a closed issue with `provides:<capability>` label.
 
-**`bd ready` respects external deps:** Issues blocked by unsatisfied external dependencies won't appear in ready list.
+**`br ready` respects external deps:** Issues blocked by unsatisfied external dependencies won't appear in ready list.
 
 ---
 
@@ -289,10 +289,10 @@ The dependency is satisfied when the external project has a closed issue with `p
 
 ```bash
 # Create proto
-bd create "Weekly Review" --type epic --label template
-bd create "Review open issues" --type task
-bd create "Update priorities" --type task
-bd create "Archive stale work" --type task
+br create "Weekly Review" --type epic --label template
+br create "Review open issues" --type task
+br create "Update priorities" --type task
+br create "Archive stale work" --type task
 # Link as children...
 
 # Use each week

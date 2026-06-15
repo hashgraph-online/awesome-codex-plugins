@@ -7,9 +7,13 @@ description: Use before expensive VidSeeds MCP workflows — seeds, daily MCP ca
 
 Read this before multi-step or charge-bearing workflows.
 
+## Orient first (free)
+
+New to this server, or unsure which tool does the job? Call **`vidseeds_guide`** — it returns the capability map, the recommended tool chain for a stated `goal`, and what VidSeeds does not do. It is free and quota-exempt, so it never costs seeds or a call-bucket token. The server's `initialize` instructions and the `vidseeds://guide` resource carry the same orientation; workflow **prompts** (e.g. `optimize-youtube-video`, `make-thumbnail`) hand you the ready-made tool chain. Reach for these before concluding a capability is missing. **Parameter-level field docs are intentionally omitted from `tools/list` JSON schemas to save context** — use `vidseeds_guide` (with a `goal`) or read `vidseeds://guide` when you need argument semantics beyond types/enums.
+
 ## Two cost layers
 
-1. **Per-tool seeds** — Some tools spend seeds (thumbnails, intelligence, translation, etc.). Read-only tools are free. Each tool's MCP `description` states seed cost; confirm with the user before charge-bearing calls. (2026-06: use `fields: ["description","tags"]` on regenerate for light/correct-price partials; thumbnail edits cost more than generation when using input reference image.)
+1. **Per-tool seeds** — Some tools spend seeds (thumbnails, intelligence, translation, etc.). Read-only tools are free. Charge-bearing tools state their seed cost in the first sentence of their compressed `tools/list` description; when it is not there, call `vidseeds_guide` with the tool name for the confirmed cost. Confirm with the user before charge-bearing calls. (2026-06: use `fields: ["description","tags"]` on regenerate for light/correct-price partials; thumbnail edits cost more than generation when using input reference image.)
 2. **Daily MCP call quota** — Almost every tool call counts toward a plan bucket (continuous refill, not midnight reset). When the bucket is empty, each extra call costs **1 seed** on top of any per-tool cost.
 
 | Plan    | Refill / day | Bucket cap |
@@ -20,12 +24,12 @@ Read this before multi-step or charge-bearing workflows.
 | Agency  | 20,000       | 40,000     |
 | Trial   | 1,000        | 1,000      |
 
-**Free and quota-exempt:** `vidseeds_get_seed_balance`, `vidseeds_get_seed_balance_and_subscription`.
+**Free and quota-exempt:** `vidseeds_get_seed_balance`, `vidseeds_get_seed_balance_and_subscription`, `vidseeds_guide`.
 
 ## Before expensive work
 
 1. `vidseeds_get_seed_balance` — seeds, remaining included MCP calls, overage rate (free).
-2. Tell the user expected per-tool seed cost (from `tools/list` descriptions).
+2. Tell the user expected per-tool seed cost (from the tool's compressed description, or `vidseeds_guide` when the description omits it).
 3. Prefer **async + poll** for long jobs instead of hammering sync tools that may time out at the edge.
 
 ## Async job pattern
@@ -65,4 +69,4 @@ Thumbnail generation is typically **70–100s**. Project metadata regeneration c
 
 ## When `tools/list` is enough
 
-Parameter shapes, allowed enums, and per-call seed costs live in each tool's **description**. Skills teach composition; do not duplicate the full catalog here.
+`tools/list` descriptions are compressed (first sentence + safety signals: seed cost, destructive warnings, async polling); parameter shapes and full argument semantics live in **`vidseeds_guide`** / `vidseeds://guide`. Skills teach composition; do not duplicate the full catalog here.

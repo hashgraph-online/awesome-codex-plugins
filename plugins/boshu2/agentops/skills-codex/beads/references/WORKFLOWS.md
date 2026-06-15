@@ -5,7 +5,7 @@ Detailed step-by-step workflows for common bd usage patterns with checklists.
 ## Contents
 
 - [Authoritative State Reads](#authoritative-state-reads) - Prefer live bd queries over JSONL snapshots
-- [Session Start Workflow](#session-start) - Check bd ready, establish context
+- [Session Start Workflow](#session-start) - Check br ready, establish context
 - [Compaction Survival](#compaction-survival) - Recovering after compaction events
 - [Discovery and Issue Creation](#discovery) - Proactive issue creation during work
 - [Status Maintenance](#status-maintenance) - Keeping bd status current
@@ -36,12 +36,12 @@ Detailed step-by-step workflows for common bd usage patterns with checklists.
 **Read pattern**:
 
 ```bash
-bd ready --json
+br ready --json
 bd show <issue-id> --json
 bd export --json
 ```
 
-**Do not** decide what to work on by reading `.beads/issues.jsonl` first if `bd ready` or `bd show` can answer the question live.
+**Do not** decide what to work on by reading `.beads/issues.jsonl` first if `br ready` or `bd show` can answer the question live.
 
 ---
 
@@ -55,7 +55,7 @@ bd export --json
 
 ```
 Session Start (when bd is available):
-- [ ] Run bd ready --json
+- [ ] Run br ready --json
 - [ ] Treat bd output as authoritative over `.beads/issues.jsonl`
 - [ ] Report: "X items ready to work on: [summary]"
 - [ ] If using global ~/.beads, note this in report
@@ -63,7 +63,7 @@ Session Start (when bd is available):
 - [ ] Suggest next action based on findings
 ```
 
-**Pattern**: Always run `bd ready` when starting work where bd is available. Report status immediately to establish shared context.
+**Pattern**: Always run `br ready` when starting work where bd is available. Report status immediately to establish shared context.
 
 **Database selection**: bd auto-discovers which database to use (project-local `.beads/` takes precedence over global `~/.beads/`).
 
@@ -77,11 +77,11 @@ Session Start (when bd is available):
 
 ```
 After Compaction:
-- [ ] Run bd list --status in_progress to see active work
+- [ ] Run br list --status in_progress to see active work
 - [ ] Run bd show <issue-id> for each in_progress issue
 - [ ] Read notes field to understand: COMPLETED, IN PROGRESS, BLOCKERS, KEY DECISIONS
-- [ ] Check dependencies: bd dep tree <issue-id> for context
-- [ ] If notes insufficient, check bd list --status open for related issues
+- [ ] Check dependencies: br dep tree <issue-id> for context
+- [ ] If notes insufficient, check br list --status open for related issues
 - [ ] Reconstruct Task tools list from notes if needed
 ```
 
@@ -123,8 +123,8 @@ The good note contains:
 Discovery Workflow:
 - [ ] Notice bug, improvement, or follow-up work
 - [ ] Assess: Can defer or is blocker?
-- [ ] Create issue with bd create "Issue title"
-- [ ] Add discovered-from dependency: bd dep add current-id new-id --type discovered-from
+- [ ] Create issue with br create "Issue title"
+- [ ] Add discovered-from dependency: br dep add current-id new-id --type discovered-from
 - [ ] If blocker: pause and switch; if not: continue current work
 - [ ] Issue persists for future sessions
 ```
@@ -155,7 +155,7 @@ Issue Lifecycle:
 - [ ] During: Add dependencies if blockers discovered
 - [ ] Complete: Close with summary of what was done
 - [ ] After each tracker mutation: refresh tracked `.beads/issues.jsonl`, inspect `bd vc status`, and commit/push Dolt conditionally
-- [ ] After: Check bd ready to see what unblocked
+- [ ] After: Check br ready to see what unblocked
 ```
 
 **Pattern**: Keep bd status current so project state is always accurate.
@@ -221,9 +221,9 @@ Dynamic view: Current wavefront of in-progress work
 ```
 ⚠️ COGNITIVE TRAP:
 "Phase 1 before Phase 2" → brain thinks "Phase 1 blocks Phase 2"
-                         → WRONG: bd dep add phase1 phase2
+                         → WRONG: br dep add phase1 phase2
 
-Correct: "Phase 2 needs Phase 1" → bd dep add phase2 phase1
+Correct: "Phase 2 needs Phase 1" → br dep add phase2 phase1
 ```
 
 **The fix**: Name issues by what they ARE, think about what they NEED.
@@ -235,9 +235,9 @@ Epic Planning with Ready Fronts:
 - [ ] Create epic issue for high-level goal
 - [ ] Walk backward from goal: "What does the end state need?"
 - [ ] Create child issues named by WHAT, not WHEN
-- [ ] Add deps using requirement language: "X needs Y" → bd dep add X Y
+- [ ] Add deps using requirement language: "X needs Y" → br dep add X Y
 - [ ] Verify with bd blocked (tasks blocked BY prerequisites, not dependents)
-- [ ] Use bd ready to work through in dependency order
+- [ ] Use br ready to work through in dependency order
 ```
 
 ### The Graph Walk Pattern
@@ -274,24 +274,24 @@ Ready Front 3:  gt-streaming, gt-header (parallel, need messages)
 Ready Front 4:  gt-integration (needs streaming, header)
 ```
 
-At any moment, `bd ready` shows the current front. As issues close, blocked work becomes ready.
+At any moment, `br ready` shows the current front. As issues close, blocked work becomes ready.
 
 ### Example: OAuth Integration
 
 ```bash
 # Create epic (the goal)
-bd create "OAuth integration" -t epic
+br create "OAuth integration" -t epic
 
 # Walk backward: What does OAuth need?
-bd create "Login/logout endpoints" -t task        # needs token storage
-bd create "Token storage and refresh" -t task     # needs auth flow
-bd create "Authorization code flow" -t task       # needs credentials
-bd create "OAuth client credentials" -t task      # foundation
+br create "Login/logout endpoints" -t task        # needs token storage
+br create "Token storage and refresh" -t task     # needs auth flow
+br create "Authorization code flow" -t task       # needs credentials
+br create "OAuth client credentials" -t task      # foundation
 
 # Add deps using requirement language: "X needs Y"
-bd dep add endpoints storage      # endpoints need storage
-bd dep add storage flow           # storage needs flow
-bd dep add flow credentials       # flow needs credentials
+br dep add endpoints storage      # endpoints need storage
+br dep add storage flow           # storage needs flow
+br dep add flow credentials       # flow needs credentials
 # credentials has no deps - it's Ready Front 1
 
 # Verify: bd blocked should show sensible blocking
@@ -315,7 +315,7 @@ If `gt-setup` is blocked by `gt-integration` → deps are inverted, fix them
 
 ## Broad Parent Issue Handling {#broad-parent-issue-handling}
 
-**If `bd ready` returns an umbrella parent that is too broad to execute directly:**
+**If `br ready` returns an umbrella parent that is too broad to execute directly:**
 
 ```
 Broad parent workflow:
@@ -403,8 +403,8 @@ Actions:
 
 ```
 Resume Workflow:
-- [ ] Run bd ready to see available work
-- [ ] Trust live `bd ready`/`bd show` output over `.beads/issues.jsonl`
+- [ ] Run br ready to see available work
+- [ ] Trust live `br ready`/`bd show` output over `.beads/issues.jsonl`
 - [ ] Run bd stats for project overview
 - [ ] List recent closed issues for context
 - [ ] Show details on issue to work on
@@ -427,7 +427,7 @@ This workflow enables smooth work resumption by updating beads notes when stoppi
 
 ```
 Session Start with in_progress issues:
-- [ ] Run bd list --status in_progress
+- [ ] Run br list --status in_progress
 - [ ] For each in_progress issue: bd show <issue-id>
 - [ ] Read notes field to understand: COMPLETED, IN PROGRESS, NEXT
 - [ ] Report to user with context from notes field
@@ -550,14 +550,14 @@ Unblocking Workflow:
 **Example**:
 
 ```
-Situation: bd ready shows nothing
+Situation: br ready shows nothing
 
 Actions:
 1. bd blocked shows: "api-endpoint blocked by db-schema"
 2. Show db-schema: "Create user table schema"
 3. Work on db-schema issue
 4. Close db-schema when done
-5. bd ready now shows: "api-endpoint" (automatically unblocked)
+5. br ready now shows: "api-endpoint" (automatically unblocked)
 ```
 
 ---
@@ -612,7 +612,7 @@ Research or investigation work:
 1. Create issues for each refactoring step
 2. Add blocks dependencies for correct order
 3. Work through in dependency order
-4. bd ready automatically shows next step
+4. br ready automatically shows next step
 5. Each completion unblocks next work
 ```
 
@@ -635,7 +635,7 @@ Research or investigation work:
 
 ```
 - [ ] Check for .beads/ directory
-- [ ] If exists: bd ready
+- [ ] If exists: br ready
 - [ ] Report status to user
 - [ ] Get user input on what to work on
 - [ ] Show issue details
@@ -665,7 +665,7 @@ Research or investigation work:
 - [ ] Run `bd vc status`
 - [ ] Commit tracker changes if pending
 - [ ] Push tracker state only when a Dolt remote is configured
-- [ ] Check bd ready for unblocked work
+- [ ] Check br ready for unblocked work
 - [ ] Report completion and next available work
 ```
 
@@ -728,7 +728,7 @@ Research or investigation work:
 4. Closed issues can't be reopened in some systems, so create new if needed
 
 **"Too many issues, can't find what matters"**
-1. Use bd list with filters (priority, issue_type)
-2. Use bd ready to focus on unblocked work
+1. Use br list with filters (priority, issue_type)
+2. Use br ready to focus on unblocked work
 3. Consider closing old issues that no longer matter
 4. Use labels for organization

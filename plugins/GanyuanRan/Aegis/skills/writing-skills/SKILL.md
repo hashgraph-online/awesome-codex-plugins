@@ -19,6 +19,9 @@ You write test cases (pressure scenarios with subagents), watch them fail (basel
 
 **Official guidance:** For Anthropic's official skill authoring best practices, see anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
 
+Bare filenames in this skill refer to files relative to this skill directory
+unless stated otherwise.
+
 ## What is a Skill?
 
 A **skill** is a reference guide for proven techniques, patterns, or tools. Skills help future Claude instances find and apply effective approaches.
@@ -71,6 +74,7 @@ API docs, syntax guides, tool documentation (office docs)
 
 ## Directory Structure
 
+Repository canonical source layout:
 
 ```
 skills/
@@ -80,6 +84,10 @@ skills/
 ```
 
 **Flat namespace** - all skills in one searchable namespace
+
+Hosts may expose installed or generated views of the same skill content through
+different discovery roots while preserving this repository layout as the
+canonical source tree.
 
 **Separate files for:**
 1. **Heavy reference** (100+ lines) - API docs, comprehensive syntax

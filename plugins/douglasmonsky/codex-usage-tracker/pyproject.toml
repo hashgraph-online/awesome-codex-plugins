@@ -3,8 +3,8 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "codex-usage-tracker"
-version = "0.2.0"
+name = "codex-usage-tracking"
+version = "0.6.1"
 description = "Unofficial local Codex plugin and dashboard for investigating aggregate token usage, costs, caching, and thread patterns."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,11 +25,13 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: System :: Monitoring",
 ]
 dependencies = [
-  "mcp>=1.2.0"
+  "mcp>=1.2.0",
+  "tiktoken>=0.13.0"
 ]
 
 [project.urls]
@@ -61,6 +63,7 @@ where = ["src"]
 "codex_usage_tracker.plugin_data" = [
   "assets/*",
   "dashboard/*",
+  "dashboard/locales/*",
   "docs/*",
   "docs/assets/*",
   "rate_cards/*",

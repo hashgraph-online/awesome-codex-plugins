@@ -18,7 +18,48 @@
 > See step 2 below for the full invocation including exit-code handling.
 
 1. Ensure `.orchestrator/metrics/` directory exists: `mkdir -p .orchestrator/metrics`
-2. Append the prepared JSONL entry (from Phase 1.7) via the validating writer `scripts/emit-session.mjs` (issue #249):
+
+1a. **Token Rollup (#644)** — before emitting the JSONL record, aggregate token usage from `subagents.jsonl` and merge the three token fields onto the in-memory `$METRICS_ENTRY` JSON object. The join key is the session's UUID (`session_id` / `parent_session_id` on subagents.jsonl — the UUID form, not the semantic slug).
+
+   **Semantics:** `null` totals mean "no token data was captured for this session" — this is NOT the same as zero cost. Do NOT coerce null to 0 when displaying or summing across sessions.
+
+   Example (coordinator pseudo-code — adapt to your shell/JS context):
+
+   ```js
+   // Available from scripts/lib/session-token-rollup.mjs
+   import { rollupSessionTokens } from '../../scripts/lib/session-token-rollup.mjs';
+
+   const rollup = rollupSessionTokens({ parentSessionId: SESSION_UUID });
+   // rollup: { total_token_input, total_token_output, subagents_with_tokens, matched_records }
+   // Merge into the record — all three fields are optional in schema v1 (additive).
+   metricsEntry.total_token_input   = rollup.total_token_input;   // number | null
+   metricsEntry.total_token_output  = rollup.total_token_output;  // number | null
+   metricsEntry.subagents_with_tokens = rollup.subagents_with_tokens; // number (0 when no coverage)
+   ```
+
+   Or, from a bash context, call the rollup via a helper node invocation and `jq`-merge the three fields into `$METRICS_ENTRY` before step 2:
+
+   ```bash
+   ROLLUP_JSON=$(node -e "
+     import('$(dirname "$0")/../scripts/lib/session-token-rollup.mjs').then(m => {
+       const r = m.rollupSessionTokens({ parentSessionId: process.env.SESSION_UUID });
+       process.stdout.write(JSON.stringify(r));
+     });
+   " 2>/dev/null) || ROLLUP_JSON='{}'
+
+   # Merge token fields into METRICS_ENTRY (null for fields absent from rollup)
+   METRICS_ENTRY=$(printf '%s' "$METRICS_ENTRY" | jq \
+     --argjson r "${ROLLUP_JSON:-{}}" \
+     '. + {
+       total_token_input:    ($r.total_token_input // null),
+       total_token_output:   ($r.total_token_output // null),
+       subagents_with_tokens: ($r.subagents_with_tokens // 0)
+     }')
+   ```
+
+   **If the rollup call fails** (e.g., `subagents.jsonl` absent, parse error), set all three fields to `null` / `0` and continue — the rollup is non-blocking. A session without token data still writes cleanly.
+
+2. Append the prepared JSONL entry (from Phase 1.7, now including token fields from step 1a) via the validating writer `scripts/emit-session.mjs` (issue #249):
    ```bash
    printf '%s' "$METRICS_ENTRY" | node "$PLUGIN_ROOT/scripts/emit-session.mjs" --file .orchestrator/metrics/sessions.jsonl
    EMIT_EXIT=$?

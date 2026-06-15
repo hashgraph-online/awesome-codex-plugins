@@ -6,16 +6,16 @@ Use this reference when a project mixes bd with another issue tracker or when an
 
 1. Treat live `bd` state as the active AgentOps tracker unless the repo explicitly declares otherwise.
 2. Preserve source tracker IDs in issue descriptions, not as replacement IDs.
-3. Convert every blocker relation into a bd dependency edge.
+3. Convert every blocker relation into a br dependency edge.
 4. Convert "later" notes into explicit low-priority issues or drop them with rationale.
-5. After migration, run `bd ready --json` and verify the ready queue contains only actionable work.
+5. After migration, run `br ready --json` and verify the ready queue contains only actionable work.
 
 ## Triage Views
 
 | Question | bd query | Use |
 |---|---|---|
-| What can start now? | `bd ready --json` | Pick unblocked work. |
-| What is stale? | `bd list --status open --json` | Find old broad parents. |
+| What can start now? | `br ready --json` | Pick unblocked work. |
+| What is stale? | `br list --status open --json` | Find old broad parents. |
 | What blocks this? | `bd show <id> --json` | Read dependencies before planning. |
 | What changed? | `bd vc status` | Closeout and git sync evidence. |
 

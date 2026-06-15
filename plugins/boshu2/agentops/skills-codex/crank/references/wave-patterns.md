@@ -20,7 +20,7 @@ Crank follows FIRE for each wave:
 ### Beads Mode
 
 ```
-Wave 1: bd ready → [issue-1, issue-2, issue-3]
+Wave 1: br ready → [issue-1, issue-2, issue-3]
         ↓
         ↓
         $swarm → spawns 3 fresh-context agents
@@ -31,7 +31,7 @@ Wave 1: bd ready → [issue-1, issue-2, issue-3]
         ↓
         bd update --status closed for completed
 
-Wave 2: bd ready → [issue-4, issue-3-retry]
+Wave 2: br ready → [issue-4, issue-3-retry]
         ↓
         ↓
         $swarm → spawns 2 fresh-context agents
@@ -215,7 +215,7 @@ But do NOT read implementation details of the specific feature being specified.
    | Verdict | Action |
    |---------|--------|
    | **PASS** | Record verdict in epic notes. Advance to next wave. |
-   | **WARN** | Create fix beads as children of the epic (`bd create`). Execute fixes inline (small) or as wave N.5 via swarm. Re-run acceptance check. If PASS on re-check, advance. If still WARN after 2 attempts, treat as FAIL. WARN is only for non-critical review gaps after evidence is complete. |
+   | **WARN** | Create fix beads as children of the epic (`br create`). Execute fixes inline (small) or as wave N.5 via swarm. Re-run acceptance check. If PASS on re-check, advance. If still WARN after 2 attempts, treat as FAIL. WARN is only for non-critical review gaps after evidence is complete. |
    | **FAIL** | Record verdict in epic notes. Output `<promise>BLOCKED</promise>` and exit. Human review required. Includes missing mandatory evidence. |
 
    ```bash

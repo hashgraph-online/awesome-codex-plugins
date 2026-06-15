@@ -147,7 +147,7 @@ Check what product infrastructure exists and suggest appropriate gates:
 | Infrastructure | Suggested Gate |
 |---------------|----------------|
 | `.agents/learnings/` exists | `flywheel-compounding` — knowledge above escape velocity |
-| `skills/quickstart/` exists | `quickstart-under-5min` — onboarding time gate |
+| `skills/status/` exists | `quickstart-under-5min` — onboarding time gate |
 | `docs/comparisons/` exists | `competitive-freshness` — comparison docs updated within 45 days |
 | `PRODUCT.md` exists | `product-gaps-tracked` — Known Gaps section has entries |
 | `ao flywheel status` works | `flywheel-promotion-rate` — learnings promoted above threshold |

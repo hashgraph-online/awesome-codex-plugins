@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Audit phase. Parallel review: code quality + security + tests. Outputs PASS/WARN/FAIL per dimension. Validates spec coverage."
+description: "Audit phase. Parallel review: code quality + security + tests. Semantic dedup of cross-mode findings. Outputs PASS/WARN/FAIL per dimension. Validates spec coverage."
 ---
 
 # Audit — Verify Everything
@@ -14,6 +14,17 @@ This skill has 3 internal modes that run in parallel:
 1. **audit:code** — Code quality, logic, style, test coverage, spec coverage
 2. **audit:security** — OWASP Top 10 + performance (N+1, leaks)
 3. **audit:test** — Full test suite, AC verification, coverage delta
+
+### `--strict` Mode (Trust Boundary Isolation)
+
+When invoked with `--strict` (or when `.harness/engagement.md` has `mode: strict`), the audit enforces independence between verification agents to prevent reward hacking:
+
+- **Artifact-only delivery**: Each mode receives only the code diff and spec — no builder context, no session history, no prior agent conclusions.
+- **Cross-check independence**: `audit:code` and `audit:security` run without visibility into each other's findings. Results are combined only during synthesis (Step 4).
+- **Blind scoring**: No mode can see another mode's verdict until synthesis. This prevents anchoring bias where a clean code review inflates the security score.
+- **No self-review**: If the same agent built the code (via `/go`), a different agent instance must run audit. The builder's session ID is checked and excluded.
+
+Use `--strict` for security-sensitive projects, compliance requirements, or when the build phase had ambiguous outcomes.
 
 ---
 
@@ -54,6 +65,13 @@ git diff --name-only $(git merge-base HEAD main)
 ### Step 3: Run Checks in Parallel
 
 Launch all 3 modes with `run_in_background: true`.
+
+**`--strict` isolation protocol**: When strict mode is active, each mode agent must be launched with:
+- Only the diff output from Step 1 as input (no session context)
+- No access to other modes' intermediate or final results
+- A fresh context window containing only: spec, diff, and the mode-specific checklist
+
+This ensures each mode forms independent conclusions. Results are combined only in Step 4 synthesis.
 
 ---
 
@@ -138,9 +156,31 @@ Launch all 3 modes with `run_in_background: true`.
 
 ---
 
+### Step 3.5: Semantic Deduplication
+
+After all 3 modes complete, merge their findings and deduplicate:
+
+**Collection**: Gather all findings from code, security, and test modes into a single pool.
+
+**Root-Cause Grouping**: For each finding, identify the root cause. Findings sharing the same root cause (same file, same function, same underlying pattern) form a group.
+
+**Classification** (per group):
+
+| Classification | Meaning | Action |
+|---------------|---------|--------|
+| `NEW` | First finding for this root cause | Include in report |
+| `DUP_BETTER` | Duplicate with better evidence or higher severity | Replace original with this |
+| `DUP_SKIP` | Duplicate with weaker or equal evidence | Drop; reference the `NEW` finding |
+
+**Severity Reassessment**: The surviving finding in each group takes the highest severity across all modes. For example, if code review says `[WARN]` but security says `[CRITICAL]` for the same root cause, the deduped finding is `[CRITICAL]`.
+
+**Output**: Only deduplicated findings proceed to Step 4 synthesis. The report should note: "N findings deduplicated from M total (K groups collapsed)."
+
+---
+
 ### Step 4: Synthesize
 
-Combine all findings into a single report:
+Combine deduplicated findings into a single report:
 
 ```
 ## Audit Report
@@ -155,6 +195,10 @@ Combine all findings into a single report:
 ### Security: [PASS/WARN/FAIL]
 ### Performance: [PASS/WARN/FAIL]
 ### Tests: [X/Y passing, Z% coverage]
+
+### Deduplication
+- Total findings: M
+- Deduplicated: N (K groups collapsed)
 
 ### Spec Coverage
 - R1: ✅/❌ addressed in diff
@@ -179,6 +223,9 @@ Combine all findings into a single report:
 | "It's a small change, skip security" | Small changes introduce big vulnerabilities | Always run the security checklist |
 | "Tests are passing, that's enough" | Tests don't catch security or performance issues | Run all 3 modes |
 | "I'll fix the warnings later" | Later never comes | Fix blockers now, warnings before merge |
+| "Dedup is overkill for small audits" | Small audits can still have cross-mode overlap | Always dedup — the cost is trivial |
+| "Strict mode is overkill" | Without isolation, the builder can influence reviewers via shared context | Use `--strict` for security-sensitive or compliance-driven projects |
+| "The agents are independent enough" | Shared context creates anchoring bias — a clean code review inflates security scores | Strict mode ensures blind scoring until synthesis |
 
 ## Evidence Required
 
@@ -186,6 +233,7 @@ Combine all findings into a single report:
 - [ ] Each Requirement has a coverage verdict
 - [ ] Each AC has a test/verification verdict
 - [ ] No BLOCKER items remain on PASS
+- [ ] Deduplication applied: total vs. deduplicated count reported
 
 ## Red Flags
 
@@ -193,3 +241,4 @@ Combine all findings into a single report:
 - Approving code with failing tests
 - Ignoring performance warnings in hot paths
 - Marking audit PASS when any AC is unverified
+- Reporting raw findings without deduplication

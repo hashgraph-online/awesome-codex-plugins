@@ -77,10 +77,29 @@ planning. Only proceed directly with TDD for low-complexity work whose intent,
 owner, compatibility boundary, verification path, and slice goal / success
 evidence are already clear.
 
+## Complexity Budget
+
+Before strict TDD on non-trivial work, record the planned complexity budget so
+RED/GREEN does not silently normalize a wrong or overloaded owner.
+
+```text
+Complexity Budget:
+- Artifact class:
+- Current pressure:
+- Projected post-change pressure:
+- Planned governance:
+```
+
+Use `using-aegis/references/complexity-governance.md` for shared artifact
+classes, pressure signals, and the meaning of planned governance.
+
 ## Pre-Edit Complexity Check
 
 Before production code edits, check whether the intended source edit would add
 logic to an overloaded or wrong owner. Tiny edits can keep this to one line.
+
+Use `using-aegis/references/complexity-governance.md` for shared pressure
+signals and the meaning of `over-budget`.
 
 ```text
 Pre-Edit Complexity Check:
@@ -91,10 +110,12 @@ Pre-Edit Complexity Check:
 - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
 ```
 
-Pressure signals: 800+ line file, 80+ line block, deep nesting, mixed reasons
-to change, generic owner receiving new responsibility, owner mismatch, or new
-fallback/adapter/guard paths. If the decision is `pause for plan update`, stop
-TDD and return to `writing-plans` or `brainstorming` with the evidence.
+If the decision is `pause for plan update`, stop TDD and return to
+`writing-plans` or `brainstorming` with the evidence.
+
+If the predicted result is that this slice would push a maintained artifact
+over budget and the slice does not also govern that overrun, do not continue
+with RED/GREEN as if the task were safely scoped. Pause and update the plan.
 
 When a medium- or high-complexity task needs project records, use configured Aegis workspace support
 lazily. Prefer the installed Aegis workspace helper

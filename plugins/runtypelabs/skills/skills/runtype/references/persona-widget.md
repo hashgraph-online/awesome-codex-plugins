@@ -15,6 +15,7 @@ For current WebMCP and fullscreen layout details, prefer `persona-embed`,
 - [Config reference](#config-reference)
 - [Programmatic access](#programmatic-access)
 - [WebMCP page tools](#webmcp-page-tools)
+- [Built-in client tools](#built-in-client-tools)
 - [Theme contrast rules (critical)](#theme-contrast-rules-critical)
 - [Tool calls and reasoning bubbles](#tool-calls-and-reasoning-bubbles)
 - [Fullscreen AI-assistant layouts](#fullscreen-ai-assistant-layouts)
@@ -28,7 +29,9 @@ These are the errors most agents make. Read this section first.
 - **Global script file**: `install.global.js` — NOT `index.umd.js`.
 - **API**: `initAgentWidget()` — NOT `Persona.mount()`, `window.Persona`, `window.RuntypePersona`. These don't exist.
 - **CSS**: When using ESM/manual setup, you **must** load `widget.css`. The script installer handles this automatically.
-- **Ready event**: `persona:ready` — NOT `widget:ready` or `agentwidget:ready`.
+- **Ready event**: `persona:chat-ready`; `persona:ready` is only a deprecated alias — NOT `widget:ready` or `agentwidget:ready`.
+- **Ready callback**: `onChatReady(handle)`; `onReady` is only a deprecated alias.
+- **Controller events**: use `user:message` and `assistant:complete` — NOT `message:sent` or `message:received`.
 
 ## CDN base URL
 
@@ -39,6 +42,13 @@ https://cdn.jsdelivr.net/npm/@runtypelabs/persona@latest/dist
 ## Client token
 
 Persona uses a `clientToken`, created with `create_client_token`, for browser-side chat access. This is not a surface key. Client tokens are public, scoped to specific agents or flows, and can be constrained with origin and rate-limit settings.
+
+## Current defaults to preserve
+
+- Script-tag installs use the tiny `launcher.global.js` fast path for ordinary floating launchers and defer the full widget until first open when safe.
+- Persona sanitizes rendered message HTML with DOMPurify by default. Keep `config.sanitize` enabled unless all rendered content is trusted.
+- Shadow DOM is opt-in with `useShadowDom: true`; the default is `false` for CSS compatibility.
+- For programmatic access, prefer `onChatReady` or `persona:chat-ready`.
 
 ## Three integration options
 
@@ -122,20 +132,24 @@ initAgentWidget({
 
 ## Config reference
 
-| Property                    | Type                          | Notes                                                             |
-| --------------------------- | ----------------------------- | ----------------------------------------------------------------- |
-| `target`                    | string \| HTMLElement         | CSS selector or DOM element                                       |
-| `useShadowDom`              | boolean                       | Style isolation (default false)                                   |
-| `config.apiUrl`             | string                        | `https://api.runtype.com` (or another configured Runtype API URL) |
-| `config.clientToken`        | string                        | Browser-safe client token from `create_client_token`              |
-| `config.parserType`         | `'json'`                      | Always `'json'` for Runtype streams                               |
-| `config.postprocessMessage` | function                      | Use `markdownPostprocessor` for rich text                         |
-| `config.launcher`           | object                        | `{ enabled, title, subtitle, position }`                          |
-| `config.colorScheme`        | `'light' \| 'dark' \| 'auto'` | Theme mode                                                        |
-| `config.theme`              | `DeepPartial<PersonaTheme>`   | Light theme overrides                                             |
-| `config.darkTheme`          | `DeepPartial<PersonaTheme>`   | Dark theme overrides                                              |
-| `windowKey`                 | string                        | Stores handle on `window[windowKey]` for programmatic access      |
-| `onReady`                   | `(handle) => void`            | Callback after init (install script only)                         |
+| Property                                 | Type                          | Notes                                                             |
+| ---------------------------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| `target`                                 | string \| HTMLElement         | CSS selector or DOM element                                       |
+| `useShadowDom`                           | boolean                       | Style isolation (default false)                                   |
+| `config.apiUrl`                          | string                        | `https://api.runtype.com` (or another configured Runtype API URL) |
+| `config.clientToken`                     | string                        | Browser-safe client token from `create_client_token`              |
+| `config.parserType`                      | `'json'`                      | Always `'json'` for Runtype streams                               |
+| `config.postprocessMessage`              | function                      | Use `markdownPostprocessor` for rich text                         |
+| `config.launcher`                        | object                        | `{ enabled, title, subtitle, position }`                          |
+| `config.colorScheme`                     | `'light' \| 'dark' \| 'auto'` | Theme mode                                                        |
+| `config.theme`                           | `DeepPartial<PersonaTheme>`   | Light theme overrides                                             |
+| `config.darkTheme`                       | `DeepPartial<PersonaTheme>`   | Dark theme overrides                                              |
+| `config.sanitize`                        | `boolean \| (html) => string` | Sanitize rendered message HTML; default uses DOMPurify            |
+| `config.webmcp`                          | object                        | Widget-side WebMCP page-tool discovery/execution config           |
+| `config.features.askUserQuestion.expose` | boolean                       | Advertise built-in LOCAL `ask_user_question` via `clientTools[]`  |
+| `config.features.suggestReplies.expose`  | boolean                       | Advertise built-in LOCAL `suggest_replies` via `clientTools[]`    |
+| `windowKey`                              | string                        | Stores handle on `window[windowKey]` for programmatic access      |
+| `onChatReady`                            | `(handle) => void`            | Callback when the controller API is callable                      |
 
 ## Programmatic access
 
@@ -151,31 +165,35 @@ Three ways. Pick by context.
 ></script>
 ```
 
-**`onReady` callback (via `window.siteAgentConfig`):**
+**`onChatReady` callback (via `window.siteAgentConfig`):**
 
 ```html
 <script>
   window.siteAgentConfig = {
     clientToken: 'YOUR_CLIENT_TOKEN',
     windowKey: 'myChat',
-    onReady(handle) {
-      handle.on('message:sent', (e) => console.log('sent:', e))
+    onChatReady(handle) {
+      handle.on('user:message', (message) => console.log('sent:', message))
+      handle.on('assistant:complete', (message) => console.log('received:', message))
     },
   }
 </script>
 <script src=".../install.global.js"></script>
 ```
 
-**`persona:ready` event** (works from any script, including separately-loaded ones):
+**`persona:chat-ready` event** (works from any script, including separately-loaded ones):
 
 ```html
 <script>
-  window.addEventListener('persona:ready', (e) => {
+  window.addEventListener('persona:chat-ready', (e) => {
     const handle = e.detail
     handle.open()
   })
 </script>
 ```
+
+`onReady` and `persona:ready` still work as deprecated aliases, but do not use
+them in new snippets.
 
 ## WebMCP page tools
 
@@ -201,21 +219,34 @@ Required setup:
 
 1. Create a client token with `allowedOrigins` containing the exact embedding
    page origin.
-2. Set the chat surface `behavior.webmcp.enabled` to `true`.
-3. Add origin-scoped allow-list rules when the surface should restrict which
+2. Enable page-tool consumption in the widget config: `webmcp: { enabled: true }`.
+3. Set the chat surface `behavior.webmcp.enabled` to `true`.
+4. Add origin-scoped allow-list rules when the surface should restrict which
    page tools are available. If `allowlist` is omitted or empty while WebMCP is
    enabled, every offered WebMCP tool is admitted from every allowed origin.
+
+```ts
+initAgentWidget({
+  target: '#chat',
+  config: {
+    clientToken: 'YOUR_CLIENT_TOKEN',
+    webmcp: { enabled: true },
+  },
+})
+```
 
 ```json
 {
   "type": "chat",
-  "webmcp": {
-    "enabled": true,
-    "allowlist": [
-      { "origin": "https://store.example.com", "tools": ["search_*", "get_cart"] },
-      { "origin": "*", "tools": ["read_page"] }
-    ],
-    "requireConfirmFor": ["checkout_*"]
+  "behavior": {
+    "webmcp": {
+      "enabled": true,
+      "allowlist": [
+        { "origin": "https://store.example.com", "tools": ["search_*", "get_cart"] },
+        { "origin": "*", "tools": ["read_page"] }
+      ],
+      "requireConfirmFor": ["checkout_*"]
+    }
   }
 }
 ```
@@ -245,6 +276,9 @@ Advanced direct dispatch:
 - Customers implementing a non-Persona chat UI, native/desktop app, or server
   proxy can submit WebMCP-style local tools directly to API-key `/v1/dispatch`
   with top-level `clientTools[]`.
+- Proxies using `@runtypelabs/persona-proxy` should forward `clientTools[]` and
+  expose the matching `${apiUrl}/resume` route so WebMCP and SDK local tools can
+  complete paused executions.
 - This path requires a secret Runtype API key and must run from a trusted
   server or SDK process, never directly from an untrusted browser page.
 - Raw dispatch admits submitted `origin: "webmcp"` tools by default. Use
@@ -252,6 +286,28 @@ Advanced direct dispatch:
 - The raw dispatch path resumes via `/v1/dispatch/resume` after local-tool
   await events. It does not use `behavior.webmcp`, client-token
   `allowedOrigins`, or dashboard discovery telemetry.
+
+## Built-in client tools
+
+Persona can advertise SDK-owned LOCAL tools without any page registration. Use
+these when the assistant needs common client-side UI primitives:
+
+```ts
+config: {
+  features: {
+    askUserQuestion: { expose: true },
+    suggestReplies: { expose: true },
+  }
+}
+```
+
+- `ask_user_question` renders a blocking answer sheet over the composer, supports
+  one to eight multiple-choice questions, persists progress, and resumes the
+  agent with the selected answer(s).
+- `suggest_replies` renders follow-up chips, lets users click a suggestion as
+  their next message, and auto-resumes the paused execution.
+- Both default to `expose: false`. Leave them off if the flow already declares
+  equivalent `runtimeTools`.
 
 ## Theme contrast rules (critical)
 
@@ -391,6 +447,6 @@ When generating standalone HTML files or Claude artifacts that embed the widget:
 2. For more control, use **ESM** — and include `widget.css`.
 3. `clientToken` / `data-runtype-token` is the browser-safe client token from `create_client_token`.
 4. API URL is `https://api.runtype.com` (or environment-appropriate).
-5. Don't invent APIs. The only init function is `initAgentWidget()`. The only ready event is `persona:ready`.
+5. Don't invent APIs. The only init function is `initAgentWidget()`. The current ready event is `persona:chat-ready` (`persona:ready` is deprecated).
 6. For custom themes, call `get_persona_theme_reference` first; set explicit high-contrast component tokens.
-7. For programmatic access, use `windowKey` + the `persona:ready` listener.
+7. For programmatic access, use `windowKey` + `onChatReady` or the `persona:chat-ready` listener.

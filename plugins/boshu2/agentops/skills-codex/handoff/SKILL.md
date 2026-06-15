@@ -30,7 +30,7 @@ mkdir -p .agents/handoff
 git log --oneline -5 --format="%s" | head -1
 
 # Check current issue
-bd current 2>/dev/null | head -1
+br list --status in_progress 2>/dev/null | head -1
 
 # Check ratchet state
 ao ratchet status 2>/dev/null | head -3
@@ -59,7 +59,7 @@ ls -lt .agents/research/*.md 2>/dev/null | head -3
 ls -lt .agents/plans/*.md 2>/dev/null | head -3
 
 # Issues closed
-bd list --status closed --since "2 hours ago" 2>/dev/null | head -5
+br list --status closed --since "2 hours ago" 2>/dev/null | head -5
 ```
 
 ### Step 4: Identify Pause Point
@@ -73,7 +73,7 @@ Determine where we stopped:
 
 Check for in-progress work:
 ```bash
-bd list --status in_progress 2>/dev/null | head -5
+br list --status in_progress 2>/dev/null | head -5
 ```
 
 ### Step 5: Identify Key Files to Read
@@ -295,7 +295,7 @@ If ao CLI not available:
 
 **What happens:**
 1. Agent detects recent commits (5 commits in last 2 hours, auth-related)
-2. Agent checks in-progress work with `bd list` (issue #42 still open)
+2. Agent checks in-progress work with `br list` (issue #42 still open)
 3. Agent identifies pause point: "Completed token generation, about to start refresh logic"
 4. Agent lists key files: auth.go, token.go, research doc, plan doc
 5. Agent writes handoff document with accomplishments and pause state

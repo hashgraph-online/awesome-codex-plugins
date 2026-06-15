@@ -44,9 +44,9 @@ FIRE is the reconciliation loop that extracts progress from chaos. Like a forge 
 **Commands**:
 
 ```bash
-bd ready --parent=<epic>                    # Ready to ignite
-bd list --parent=<epic> --status=in_progress  # Currently burning
-bd list --parent=<epic> --status=closed       # Reaped
+br ready --parent=<epic>                    # Ready to ignite
+br list --parent=<epic> --status=in_progress  # Currently burning
+br list --parent=<epic> --status=closed       # Reaped
 bd blocked --parent=<epic>                    # Waiting on deps
 gt convoy list                               # Active convoys  <!-- FUTURE: gt convoy not yet implemented -->
 ```

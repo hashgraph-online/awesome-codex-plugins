@@ -67,10 +67,10 @@ in the target rig's database to be hookable.
 
 ```bash
 # Use BEADS_DIR to target the rig's beads database
-BEADS_DIR=~/gt/daedalus/mayor/rig/.beads bd create --title="Fix X" --type=bug
+BEADS_DIR=~/gt/daedalus/mayor/rig/.beads br create --title="Fix X" --type=bug
 # Creates: gt-xxxxx (daedalus prefix)
 
-BEADS_DIR=~/gt/compile/mayor/rig/.beads bd create --title="Add Y" --type=feature
+BEADS_DIR=~/gt/compile/mayor/rig/.beads br create --title="Add Y" --type=feature
 # Creates: ap-xxxxx (compile prefix)
 ```
 
@@ -86,9 +86,9 @@ gt sling ap-xxxxx compile     # Works - bead is in compile's database
 
 Creating from `~/gt` gives `hq-*` which polecats can't hook.
 
-- **WRONG:** `bd create --title="daedalus bug"` from town root
+- **WRONG:** `br create --title="daedalus bug"` from town root
   - Creates `hq-xxx` (unhookable by polecats)
-- **RIGHT:** `BEADS_DIR=~/gt/daedalus/mayor/rig/.beads bd create ...`
+- **RIGHT:** `BEADS_DIR=~/gt/daedalus/mayor/rig/.beads br create ...`
   - Creates `gt-xxx` (slingable)
 
 ### GitHub URLs
@@ -101,10 +101,10 @@ Use `git remote -v` to verify repo URLs - never assume orgs like `anthropics/`.
 
 ```bash
 # WRONG (temporal thinking: "1 before 2")
-bd dep add phase1 phase2
+br dep add phase1 phase2
 
 # RIGHT (requirement thinking: "2 needs 1")
-bd dep add phase2 phase1
+br dep add phase2 phase1
 ```
 
 **Rule:** Think "X needs Y", not "X comes before Y". Verify with `bd blocked`.

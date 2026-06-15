@@ -245,8 +245,9 @@ Schema feedback here is far more useful than waiting for create errors.
 Useful documentation topics include `platform-catalog`, `surface-types`, `flow-step-types`, `models`, `product-schema`, `types-fpo`, `types-flow-steps`, `types-entities`, `types-surface-configs`, `orthogonal-tools`, `builtin-tools`, `agent-skills`, `external-tools`, `dashboard-links`, `mock-ecommerce`, `persona-embed`, `persona-fullscreen-assistant`, and `sdk-reference`.
 
 For WebMCP page tools, read `persona-embed` and `types-surface-configs`. Configure
-`behavior.webmcp` on a `chat` surface; do not create an `mcp` surface unless you
-want to expose Runtype capabilities to external MCP clients. See
+widget `config.webmcp.enabled` and `behavior.webmcp` on a `chat` surface; do not
+create an `mcp` surface unless you want to expose Runtype capabilities to
+external MCP clients. See
 `persona-widget.md` for the full WebMCP setup and the advanced non-Persona
 direct-`/v1/dispatch` `clientTools[]` path.
 

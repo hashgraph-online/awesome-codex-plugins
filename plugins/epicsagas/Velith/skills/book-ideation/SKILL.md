@@ -23,5 +23,5 @@ Gate: ideation.md exists, 5+ competitors analyzed, user approved.
 Update the project dashboard status:
 
 ```bash
-node {PLUGIN_ROOT}/skills/book-status/scripts/scan-project.js [project-dir] --plugin-root={PLUGIN_ROOT}
+node {PLUGIN_ROOT}/velith.mjs scan [project-dir] --plugin-root={PLUGIN_ROOT}
 ```

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Mechanical Engineering Research"
-  short_description: "Research, write proposals, code, present, analyze, use AI, manage repos, and support IP."
-  default_prompt: "Research, critically review, analyze, code, write, develop proposals, present, manage Overleaf/VS Code/GitHub/git workflows, support invention disclosure or commercialization, or apply AI tools to this thermal-fluid systems question with clear logic flow, source-aware reasoning, and reproducible workflows."
+  display_name: "Thermal-Fluid Research"
+  short_description: "Add thermal-fluid rigor to AI-assisted research, CFD, experiments, writing, code, and proposals."
+  default_prompt: "Review this thermal-fluid research task for physical assumptions, regime validity, correlations, CFD or experiment credibility, uncertainty, source quality, and decision-ready next steps."

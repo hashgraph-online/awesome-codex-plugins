@@ -66,20 +66,20 @@ Skip silently if ao is unavailable or returns no results.
 
 **If beads issue ID provided** (e.g., `gt-123`):
 ```bash
-bd show <issue-id> 2>/dev/null
+br show <issue-id> 2>/dev/null
 ```
 
 **If plain description provided:** Use that as the task description.
 
 **If no argument:** Check for ready work:
 ```bash
-bd ready 2>/dev/null | head -3
+br ready 2>/dev/null | head -3
 ```
 
 ### Step 2: Claim the Issue
 
 ```bash
-bd update <issue-id> --status in_progress 2>/dev/null
+br update <issue-id> --claim 2>/dev/null
 ```
 
 ### Step 2a: Build Context Briefing
@@ -204,7 +204,7 @@ The generated test request must preserve the selected `test_levels` and BF expec
 
 **Skip if:** `--no-lifecycle` flag, GREEN mode active, issue type is chore/docs/ci, or `$test` is unavailable.
 
-**CI-safe tests:** If the function under test shells out to an external CLI (`bd`, `ao`, `gh`), do NOT test the wrapper. Instead, test the underlying function that performs the testable work (event emission, state mutation, file I/O). See the Go standards (Testing section) for examples.
+**CI-safe tests:** If the function under test shells out to an external CLI (`br`, `ao`, `gh`), do NOT test the wrapper. Instead, test the underlying function that performs the testable work (event emission, state mutation, file I/O). See the Go standards (Testing section) for examples.
 
 ### Step 4: Implement the Change
 
@@ -368,7 +368,7 @@ Before reporting success, you MUST:
 
 **Store checkpoint:**
 ```bash
-bd update <issue-id> --append-notes "CHECKPOINT: Step 5a verification passed at $(date -Iseconds)" 2>/dev/null
+br comments add <issue-id> "CHECKPOINT: Step 5a verification passed at $(date -Iseconds)" 2>/dev/null
 ```
 
 ### GREEN Mode (Test-First Implementation)
@@ -488,10 +488,10 @@ and changed files from Step 6.
 ```bash
 COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null | head -10 | tr '\n' ' ' | sed 's/ $//')
-bd close <issue-id> --reason "commit:${COMMIT_SHA} files:[${CHANGED_FILES}]" 2>/dev/null
+br close <issue-id> --reason "commit:${COMMIT_SHA} files:[${CHANGED_FILES}]" 2>/dev/null
 ```
 
-If `bd close` is unavailable, fall back to `bd update <issue-id> --status closed`.
+If `br close` is unavailable, fall back to `br update <issue-id> --status closed`.
 
 ### Step 7a: Record Implementation in Ratchet Chain
 
@@ -510,7 +510,7 @@ if command -v ao &>/dev/null; then
       --output "$COMMIT_HASH" \
       --files "$CHANGED_FILES" \
       --issue "<issue-id>" \
-      2>&1 | tee -a .agents/ratchet.log
+      2>&1 | tee -a .agents/flywheel.log
 
     if [ $? -eq 0 ]; then
       echo "Ratchet: Implementation recorded (commit: ${COMMIT_HASH:0:8})"
@@ -537,7 +537,7 @@ if command -v ao &>/dev/null; then
 fi
 ```
 
-**Fallback:** If ao is not available, the issue is still closed via bd but won't be tracked in the ratchet chain. The skill continues normally.
+**Fallback:** If ao is not available, the issue is still closed via br but won't be tracked in the ratchet chain. The skill continues normally.
 
 ### Step 7b: Post-Implementation Ratchet Record
 
@@ -588,7 +588,7 @@ Remaining: <what's left>
 
 ## Without Beads
 
-If bd CLI not available:
+If br CLI not available:
 1. Skip the claim/close status updates
 2. Use the description as the task
 3. Still commit with descriptive message
@@ -608,7 +608,7 @@ If bd CLI not available:
 3. Agent edits `middleware/auth.go` to add token validation
 4. Runs `go test ./middleware/...` — all tests pass
 5. Commits with message "Add JWT token validation middleware\n\nImplements: ag-5k2"
-6. Closes issue via `bd close ag-5k2 --reason "commit:<sha> files:[middleware/auth.go]"`
+6. Closes issue via `br close ag-5k2 --reason "commit:<sha> files:[middleware/auth.go]"`
 
 **Result:** Issue implemented, verified, committed, and closed. Ratchet recorded.
 
@@ -617,8 +617,8 @@ If bd CLI not available:
 **User says:** `$implement`
 
 **What happens:**
-1. Agent runs `bd ready` — finds `ag-3b7` (first unblocked issue)
-2. Claims issue via `bd update ag-3b7 --status in_progress`
+1. Agent runs `br ready` — finds `ag-3b7` (first unblocked issue)
+2. Claims issue via `br update ag-3b7 --claim`
 3. Implements and verifies
 4. Closes issue
 
@@ -641,12 +641,12 @@ If bd CLI not available:
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Issue not found | Issue ID doesn't exist or local state looks stale | Run `bd show <id>` to verify; use `bd vc status` only if you need Dolt state |
+| Issue not found | Issue ID doesn't exist or local state looks stale | Run `br show <id>` to verify; use `br sync --status` only if you need tracker sync state |
 | GREEN mode violation | Edited a file not related to the issue scope | Revert unrelated changes. GREEN mode restricts edits to files relevant to the issue |
 | Verification gate fails | Tests fail or build breaks after implementation | Read the verification output, fix the specific failures, re-run verification |
 | "BLOCKED" status | Contract contradicts tests or is incomplete in GREEN mode | Write BLOCKED with specific reason, do NOT modify tests |
 | Fresh verification missing | Agent claims success without running verification command | MUST run verification command fresh with full output before claiming completion |
-| Ratchet record failed | ao CLI unavailable or chain.jsonl corrupted | Implementation still closes via bd, but ratchet chain needs manual repair |
+| Ratchet record failed | ao CLI unavailable or chain.jsonl corrupted | Implementation still closes via br, but ratchet chain needs manual repair |
 
 ## See Also
 

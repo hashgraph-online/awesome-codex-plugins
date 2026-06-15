@@ -45,14 +45,28 @@ For each task:
 3. Before any non-trivial source edit, run the plan's
    `Pre-Edit Complexity Check` or create a compact one:
 
+   Use `using-aegis/references/complexity-governance.md` for shared artifact
+   classes, pressure signals, and `over-budget` handling.
+
    ```text
+   Complexity Budget:
+   - Artifact class:
+   - Target files / artifacts:
+   - Current pressure:
+   - Projected post-change pressure:
+   - Budget result: within-budget | at-risk | over-budget
+   - Planned governance:
+
    Pre-Edit Complexity Check:
    - Safer edit boundary:
    - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
    ```
 
    If the check contradicts the plan's file boundary, pause and return to plan
-   review instead of silently stuffing logic into an overloaded owner.
+   review instead of silently stuffing logic into an overloaded owner. If the
+   budget result is `over-budget` and the task does not also govern that
+   overrun, stop execution and return to plan review rather than pushing the
+   task through as if it were still atomic.
 4. Run verifications as specified
 5. Update `TodoCheckpointDraft` and `DriftCheckDraft` before marking the task completed
 6. Mark as completed

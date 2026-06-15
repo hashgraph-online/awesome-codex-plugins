@@ -192,7 +192,7 @@ description: Implements the Project entity model with hierarchical relationships
 Library/background/meta skills that are auto-loaded (not user-invoked) may describe their loading mechanism instead of user triggers:
 
 ```yaml
-description: 'Auto-loaded by $vibe, $implement based on file types.'
+description: 'Auto-loaded by $validate, $implement based on file types.'
 ```
 
 ---
@@ -311,4 +311,4 @@ Full taxonomy at `skills/SKILL-TIERS.md`.
 
 ### Standards Loading
 
-Language standards loaded JIT by `$vibe`, `$implement` — see `references/standards-index.md`.
+Language standards loaded JIT by `$validate`, `$implement` — see `references/standards-index.md`.

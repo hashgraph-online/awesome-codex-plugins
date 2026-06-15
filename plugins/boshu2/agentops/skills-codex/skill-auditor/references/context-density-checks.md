@@ -31,7 +31,7 @@ Density Rule fields before that prose is passed into a fresh context session.
 bash skills/skill-auditor/scripts/audit.sh skills/discovery
 bash skills/skill-auditor/scripts/audit.sh skills/plan
 bash skills/skill-auditor/scripts/audit.sh skills/crank
-bash skills/skill-auditor/scripts/audit.sh skills/validation
+bash skills/skill-auditor/scripts/audit.sh skills/validate
 ```
 
 The expected result is a JSON `density` object with six `fields[]` entries. The

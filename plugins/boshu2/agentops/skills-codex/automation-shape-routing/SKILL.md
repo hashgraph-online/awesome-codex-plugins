@@ -2,11 +2,11 @@
 name: automation-shape-routing
 description: "Run automation shape routing."
 ---
-# $automation-shape-routing — Orchestration vs NTM vs Skill
+# $automation-shape-routing — Orchestration vs ATM vs Skill
 
 > **The trap this kills:** "I built a lot of skills; they should become
 > orchestration scripts." Mostly false. Most orchestration-looking skills are
-> either long-lived/human-attachable (stay NTM) or hard-sequential (stay skills).
+> either long-lived/human-attachable (stay ATM) or hard-sequential (stay skills).
 > The win is the routing rule, not a migration project.
 
 ## The three shapes
@@ -14,7 +14,7 @@ description: "Run automation shape routing."
 | Shape | What it is | Mechanism |
 |---|---|---|
 | **Orchestration** | Deterministic, reproducible fan-out / pipeline / loop over sub-agents, each returning structured output | Codex orchestration — `codex exec` driving `spawn_agents` (parallel fan-out), staged pipelines, and loop-until-budget, with an `output_schema` per sub-agent. Headless, reproducible, bounded concurrency. |
-| **NTM swarm** | Long-lived, human-in-the-loop multi-agent run | `ntm` (the CLI) driven by $using-ntm — persistent tmux panes running whole $rpi/$evolve loops over a bead queue, with attach + nudge + kill/relaunch and mail/locks coordination. |
+| **ATM swarm** | Long-lived, human-in-the-loop multi-agent run | `atm` (the CLI) driven by $using-atm — persistent tmux panes running whole $rpi/$evolve loops over a bead queue, with attach + nudge + kill/relaunch and mail/locks coordination. |
 | **Plain skill** | One model reasoning through a procedure or knowledge | A single `SKILL.md`. No fan-out, or a strictly sequential edit-loop. |
 
 ## The decision rule (three axes)
@@ -26,14 +26,14 @@ Ask in order:
 2. **Must a human attach and steer mid-run?** Or does it run for *hours*, do
    open-ended *file edits*, juggle a *fluid population* (rate limits, kill/
    relaunch, prompt-cache rounds), or relay between *cross-model* panes? — if
-   **yes** → **NTM swarm**.
+   **yes** → **ATM swarm**.
 3. Otherwise — fixed DAG, sub-agents return **structured JSON** (not free-form
    edits needing review), no attach needed, you want it **reproducible + headless**
    → **Orchestration**.
 
 **One-line litmus:**
 > deterministic DAG + structured JSON + no human-attach + headless-wanted → **Orchestration**
-> long-lived + attachable + open-ended file edits / fluid population → **NTM**
+> long-lived + attachable + open-ended file edits / fluid population → **ATM**
 > no fan-out, or hard-sequential edit loop → **plain skill**
 
 ## Spike-validated nuances (2026-05-29)
@@ -42,8 +42,8 @@ A live three-legged spike (`~/dev/agentops-3cat-spike/`) measured the same task 
 all three backends. Two findings refine the rule:
 
 1. **The primary axis is control-plane vs in-session, not "parallel vs serial."**
-   **NTM is a control-plane** that *runs Claude/Codex/Gemini as panes* — it is not a
-   peer of the native runtimes, it is the supervisor tier above them. Choose NTM when
+   **ATM is a control-plane** that *runs Claude/Codex/Gemini as panes* — it is not a
+   peer of the native runtimes, it is the supervisor tier above them. Choose ATM when
    you need the control plane (attach/steer, persistence, multi-vendor); choose
    in-session native orchestration (`codex exec` + `spawn_agents`) when you don't.
 2. **Parallel buys quality/independence, NOT wall-clock — at small N.** Measured: a
@@ -55,7 +55,7 @@ all three backends. Two findings refine the rule:
    large N **and** no barrier — use a streaming pipeline (no barrier), not a
    collect-all barrier.
 
-Degradation (NTM → native → beads floor) is governed by the
+Degradation (ATM → native → beads floor) is governed by the
 `OrchestrationPort` selector; opt out entirely with `AGENTOPS_ORCHESTRATION=off` →
 beads floor, which always works.
 
@@ -67,8 +67,8 @@ beads floor, which always works.
   nothing. *Exception:* it graduates to a loop-until-budget orchestration only once
   each step returns **structured output** instead of free-form edits, and you want
   it headless/reproducible.
-- **Don't NTM-ify a clean fan-out, and don't orchestrate an attach-and-steer run.**
-  Headless orchestration runs in-process and cannot be tmux-attached; NTM is built
+- **Don't ATM-ify a clean fan-out, and don't orchestrate an attach-and-steer run.**
+  Headless orchestration runs in-process and cannot be tmux-attached; ATM is built
   for exactly the live-steering headless orchestration can't do. Picking wrong
   fights the tool the whole way.
 
@@ -78,8 +78,8 @@ beads floor, which always works.
 `council` (N judges → consensus — near-trivial port), the **planning half** of
 `rpi`, judge/refutation panels, any "fan out N analyses → triangulate" task.
 
-**→ Stay NTM** (long-lived, attachable, open-ended edits, fluid population):
-the `*-with-ntm` family (hypothesis research, cross-model review swarms, browser
+**→ Stay ATM** (long-lived, attachable, open-ended edits, fluid population):
+the `*-with-atm` family (hypothesis research, cross-model review swarms, browser
 testing), plus `swarm`/`crank` in full epic-execution mode — they touch the
 working tree and need wave-validity gating + human review.
 
@@ -109,7 +109,7 @@ decided, hand off:
 |---|---|---|
 | **plain skill** | `$skill-builder` | Scaffold a new `SKILL.md` against the unified template → then `$skill-auditor` → `$heal-skill`. |
 | **Orchestration** | `$workflow-builder` | Author a deterministic `codex exec` + `spawn_agents` orchestration with per-sub-agent `output_schema`. |
-| **NTM swarm** | `ntm` + $using-ntm | Stand up + tend an NTM swarm running AgentOps loops ($rpi/$evolve) over a bead queue. |
+| **ATM swarm** | `atm` + $using-atm | Stand up + tend an ATM swarm running AgentOps loops ($rpi/$evolve) over a bead queue. |
 
 State the verdict and the deciding axis in one line, then invoke the chosen
 builder. Do not scaffold here.

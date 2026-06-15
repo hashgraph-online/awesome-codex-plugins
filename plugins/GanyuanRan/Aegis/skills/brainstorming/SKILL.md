@@ -38,7 +38,7 @@ You MUST create a task for each of these items and complete them in order:
 1. **Explore project context** — check files, docs, recent commits, authority docs, CONTEXT.md
 2. **Choose the path and scope** — real design? diagnosis? route accordingly or decompose first
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `ImpactStatementDraft`
+4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `BaselineUsageDraft`, `ImpactStatementDraft`
 5. **Propose 2-3 approaches** — with trade-offs and your recommendation
 6. **Present design** — in sections scaled to complexity, get user approval where required
 7. **Write spec artifact** — save a Spec Brief or Design Spec under `docs/aegis/specs/` when persistent requirements are needed
@@ -58,17 +58,37 @@ You MUST create a task for each of these items and complete them in order:
 - Ask clarifying questions one at a time, prefer multiple choice
 - Separate facts, assumptions, unknowns while exploring
 
-**Working artifacts:** Keep three drafts: `TaskIntentDraft` (outcome, goal,
+**Working artifacts:** Keep four drafts: `TaskIntentDraft` (outcome, goal,
 success evidence, stop condition, non-goals, scope, risks),
-`BaselineReadSetHint` (candidate docs, authority gaps), `ImpactStatementDraft`
-(affected layers, owners, invariants, compat, non-goals). Refresh when scope
-changes.
+`BaselineReadSetHint` (candidate docs, authority gaps),
+`BaselineUsageDraft` (required refs, optionally delivered context refs,
+acknowledged-before-plan refs, cited refs, missing refs, advisory decision),
+and `ImpactStatementDraft` (affected layers, owners, invariants, compat,
+non-goals). Refresh when scope changes.
 
 **Compact output contract:** `TaskIntentDraft`, `BaselineReadSetHint`,
-`ImpactStatementDraft`, `Product Risk Lens`, `Architecture Integrity Lens`,
-`Baseline Role Alignment`, `Plan-Time Complexity Check`, `Options`, and
-`Decision Needed`. Use this compact shape before expanding into a full design
-structure.
+`BaselineUsageDraft`, `ImpactStatementDraft`, `Product Risk Lens`,
+`Architecture Integrity Lens`, `Baseline Role Alignment`,
+`Plan-Time Complexity Check`, `Options`, and `Decision Needed`. Use this
+compact shape before expanding into a full design structure.
+
+Use a compact `BaselineUsageDraft` whenever the design direction depends on
+specific baseline docs or current-authority refs:
+
+```text
+BaselineUsageDraft:
+- Required baseline refs:
+- Delivered context refs:
+- Acknowledged before plan refs:
+- Cited in design refs:
+- Missing refs:
+- Decision: continue | needs-baseline-readback | needs-verification | pause-for-user | blocked
+```
+
+`Delivered context refs` is optional host-projected bookkeeping only. It is not
+authoritative proof that a host injected or the model internally consumed a
+context payload. The artifact exists to make baseline/context attention drift
+visible before the design is recommended or approved.
 
 **Product Risk Lens:** For ambiguous product, feature, UI, workflow, or
 architecture choices, add a compact review lens, not persona roleplay:
@@ -90,16 +110,22 @@ medium/high work, inspect the likely owner files and current shape. This is an
 advisory design pressure check, not a gate and not completion authority. Do not
 force it onto tiny low-risk edits.
 
+Use `using-aegis/references/complexity-governance.md` for the shared artifact
+classes, pressure-signal interpretation, and over-budget handling.
+
 ```text
+Complexity Budget:
+- Artifact class:
+- Target files / artifacts:
+- Current pressure:
+- Projected post-change pressure:
+- Budget result: within-budget | at-risk | over-budget
+- Planned governance:
+
 Plan-Time Complexity Check:
 - Better file boundary:
 - Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
 ```
-
-Pressure signals: 800+ line source file, 80+ line block, router/manager/handler
-or generic utility receiving a new responsibility, fallback/adapter/guard
-growth, duplicate owner risk, or owner mismatch. A new file still needs a clear
-owner, contract, and retirement story.
 
 **Exploring approaches:** Propose 2-3 approaches with trade-offs and
 recommendation. Make scope boundary explicit: what's in, what's deferred, what
@@ -196,7 +222,9 @@ create accepted architecture memory from unexecuted ideas.
 
 4. Commit the design document to git.
 
-5. Include the latest `TaskIntentDraft`, `BaselineReadSetHint`, and `ImpactStatementDraft` inline or in an appendix when they materially shaped the design.
+5. Include the latest `TaskIntentDraft`, `BaselineReadSetHint`,
+   `BaselineUsageDraft`, and `ImpactStatementDraft` inline or in an appendix
+   when they materially shaped the design.
 
 6. Record explicit non-goals and compatibility boundaries so the later implementation plan does not drift.
 

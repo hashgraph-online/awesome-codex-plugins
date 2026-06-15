@@ -67,7 +67,7 @@ boundary as the objective crosses `shape_intent`, `persist_intent`,
    - default, `research`, `plan`, `pre-mortem`, `brainstorm` -> discovery
    - `implementation` or `crank` -> implementation
    - `validation`, `vibe`, or `post-mortem` -> validation
-3. If the input is a bead and `--from` is absent, resolve it with `bd show`:
+3. If the input is a bead and `--from` is absent, resolve it with `br show`:
    - epic -> implementation with that epic
    - child with parent -> implementation with the parent epic
 4. Classify complexity:
@@ -148,7 +148,7 @@ schemas and archive paths.
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `--from=<phase>` | discovery | Start at discovery, implementation, or validation |
-| `--interactive` | off | Human gates in discovery/validation |
+| `--interactive` | off | Human gates in discovery/validate |
 | `--auto` | on | Fully autonomous default |
 | `--loop --max-cycles=<n>` | off / 3 | Iterate when validation fails |
 | `--spawn-next` | off | Surface follow-up work after reporting |
@@ -181,6 +181,10 @@ interactive, and loop examples.
 | Validation FAIL | Re-crank with findings, then re-validate, up to 3 total attempts |
 | Packet shape unclear | Read [references/phase-data-contracts.md](references/phase-data-contracts.md) |
 | External executor fails | Read [references/codex-executor.md](references/codex-executor.md), run direct Codex validation, and only create follow-up work for reproducible source failures |
+
+## Related skills
+
+- $using-atm — out-of-session ATM substrate for running whole $rpi loops over a bead queue.
 
 ## Reference Documents
 

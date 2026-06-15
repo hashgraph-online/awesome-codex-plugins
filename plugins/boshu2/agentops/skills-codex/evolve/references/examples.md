@@ -9,7 +9,7 @@
 2. Agent loads the repo execution profile, reads the ordered startup reads, and caches repo validation commands plus definition_of_done before choosing work.
 3. Agent first reads `.agents/rpi/next-work.jsonl`, claims the highest-value harvested item, and runs `$rpi` on it.
 4. The cycle's `$post-mortem` harvests 2 new follow-up items; evolve immediately re-reads the queue instead of trusting the pre-cycle snapshot.
-5. With harvested work drained, evolve checks `bd ready` and lands the top unblocked bead.
+5. With harvested work drained, evolve checks `br ready` and lands the top unblocked bead.
 6. With beads drained, evolve measures GOALS.yaml, finds a directive gap, and runs `$rpi` on that goal.
 7. Once goals/directives are healthy, evolve generates testing work from thin coverage and lands the best regression-test improvement.
 8. Testing producers dry up, so evolve runs validation tightening / bug-hunt and fixes the highest-value finding.
@@ -52,7 +52,7 @@
 **What happens:**
 1. Compile warmup surfaces a stale research note about runtime smoke coverage.
 2. Evolve loads the repo execution profile first, so the startup reads, tracker wrapper, and validation bundle come from repo policy instead of a giant prompt.
-3. `bd ready` has one open docs/runtime parity bead, so evolve runs that first.
+3. `br ready` has one open docs/runtime parity bead, so evolve runs that first.
 4. That bead's `$post-mortem` harvests an implementation follow-up into `next-work.jsonl`; evolve re-reads the queue and runs it immediately.
 5. The queue empties, so evolve measures goals and fixes one directive gap via `$rpi`.
 6. All goals now pass. Evolve generates testing work from thin coverage and lands a new regression test.

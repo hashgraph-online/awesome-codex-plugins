@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: "Trigger: active multi-agent run. Manages inbox, dependency resolution, message formatting, and agent handoffs."
+description: "Trigger: active multi-agent run. Handles inbox reading, dep resolution, message formatting, handoffs. Also provides status dashboard and intervention control via internal modes."
 modes:
   - auto       # auto-triggered during active orchestration
   - status     # /status — read-only orchestration dashboard
@@ -9,18 +9,14 @@ modes:
 
 # Skill: Orchestrate
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
-
-## Process
-
-Each mode follows its own step sequence below. In auto mode: check state → read inbox → check control → check deps → execute → hand off. In status mode: check state → read agents → render dashboard. In intervene mode: check state → parse command → write directive → confirm.
+**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
 
 ## Mode: auto (default)
 
 Triggered automatically when an active multi-agent orchestration is detected.
 
 ### Step 1: Check orchestration state
-1. Run `HARNESS_DIR=$(epic path)`
+1. Run `HARNESS_DIR=$(epic-harness path)`
 2. Read `$HARNESS_DIR/orchestrator/run.json`
 3. If no active run, this skill does not apply — return
 
@@ -185,7 +181,7 @@ For `resume`, set action to "resume" and target to the agent_id.
 **Additional actions by type:**
 
 - **cancel all**: Also update `$HARNESS_DIR/orchestrator/run.json` status to "aborted"
-- **redirect**: Also append the new instruction to the target agent's `$HARNESS_DIR/orchestrator/agents/{agent_id}/inbox.jsonl` as a new line: `{"type": "redirect", "instruction": "{new_instruction}", "at": "{ISO-8601}"}`
+- **redirect**: Also append the new instruction to the target agent's `$HARNESS_DIR/orchestrator/inbox/{agent_id}.jsonl` as a new line: `{"type": "redirect", "instruction": "{new_instruction}", "at": "{ISO-8601}"}`
 - **cancel {agent_id}**: Also update the agent's status in run.json to "cancelled"
 
 ### Step 4: Confirm

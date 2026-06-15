@@ -9,7 +9,7 @@ multi-platform publishing — directly from your AI coding client.
 
 This repo is the public marketplace/catalog source for the hosted
 [MCP](https://modelcontextprotocol.io) connector that exposes the VidSeeds.ai workflow
-(**178 tools**, all prefixed `vidseeds_`). It ships the machine-readable metadata that
+(**222 tools**, all prefixed `vidseeds_`). It ships the machine-readable metadata that
 different clients expect:
 
 | Client / catalog                              | What this repo provides                                                                                      |
@@ -27,7 +27,7 @@ with a token you supply.
 - **Auth (this plugin):** Personal Access Token (`Authorization: Bearer vs_pat_…`)
 - **Auth (Claude.ai / Desktop):** the same endpoint also supports **OAuth 2.0** (PKCE + Dynamic Client Registration) — add it as a custom connector, no token needed. See the in-app guide below.
 - **ChatGPT App:** a dedicated endpoint `https://vidseeds.ai/api/mcp/chatgpt` powers the **OpenAI ChatGPT App** (Apps SDK) with rendered result widgets. Local-only tools (ffmpeg/ffprobe recipes, precision-trim, local-audio transcription) are hidden there since ChatGPT has no local shell — use this Claude Code / Codex plugin for those. ChatGPT distribution is through the ChatGPT Apps submission/directory flow, not by adding this Git repo as a custom marketplace.
-- **Server:** `vidseeds` v1.8.1 (granular regen fields + correct edit thumbnail pricing)
+- **Server:** `vidseeds` v1.9.2 (agent orientation: routing-first server instructions sized for client truncation limits, vidseeds_guide tool, workflow prompts)
 
 > **More clients & a copy-paste walkthrough:** the in-app setup guide at
 > <https://vidseeds.ai/settings/mcp-settings> covers **Claude.ai & Desktop (OAuth)**,
@@ -214,7 +214,7 @@ Per-tool parameters and seed costs come from the hosted server's `tools/list` de
 
 ## 8. What the connector can do
 
-177 tools spanning the full VidSeeds.ai creator workflow:
+222 tools spanning the full VidSeeds.ai creator workflow:
 
 | Area                     | Examples                                                                                                                    |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
@@ -232,6 +232,87 @@ Per-tool parameters and seed costs come from the hosted server's `tools/list` de
 > **Seeds:** some tools (thumbnail generation, AI intelligence, translation, …) spend
 > seeds from your VidSeeds.ai balance. Read-only tools are free. Every tool's description
 > states its cost; check `vidseeds_get_seed_balance` if unsure.
+
+---
+
+## 9. Tool catalog size management
+
+**222 tools is a lot.** When VidSeeds connects to your MCP client, the full tool
+catalog (~42K tokens) loads into the agent's context. If your agent feels slow or
+overwhelmed, you can switch to a **leaner toolset**:
+
+### 9a. Use `?toolset=core` on the MCP URL
+
+Add `?toolset=core` to reduce the registered tools from ~222 to ~65, cutting
+context cost to ~10K tokens — without losing any essential workflow:
+
+**Claude Code**:
+```bash
+claude mcp add --transport http vidseeds https://vidseeds.ai/api/mcp?toolset=core \
+  --header "Authorization: Bearer $VIDSEEDS_PAT"
+```
+
+**Cursor** (`~/.cursor/mcp.json` or `.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "vidseeds": {
+      "url": "https://vidseeds.ai/api/mcp?toolset=core",
+      "headers": {
+        "Authorization": "Bearer ${env:VIDSEEDS_PAT}"
+      }
+    }
+  }
+}
+```
+
+**Codex** (`~/.codex/config.toml` or `.codex/config.toml`):
+```toml
+[mcp_servers.vidseeds]
+url = "https://vidseeds.ai/api/mcp?toolset=core"
+bearer_token_env_var = "VIDSEEDS_PAT"
+```
+
+**Claude Desktop** — add when defining the custom MCP connector:
+```
+URL: https://vidseeds.ai/api/mcp?toolset=core
+```
+
+> ⚠️ **You can always upgrade back.** If a core-only agent needs a tool not in the
+> core set (e.g. deep intelligence, precision trim, comment management), just remove
+> `?toolset=core` from the URL and reconnect. The full catalog is always available.
+
+Tools that survive the `core` toolset: projects, metadata optimization, publishing,
+thumbnails, basic analytics, channel management, translation, connections, billing,
+and referrals. Everything else (deep intelligence, competitive research, local video
+tools, admin, autoclips, bulk edit, comments, assistant workflows) is excluded.
+
+### 9b. Make your AI default to VidSeeds tools
+
+Modern Claude clients (Claude.ai, Claude Desktop, Claude Code) **defer large tool
+catalogs behind tool search**: at session start the model sees only tool names plus a
+truncated slice of the server's instructions, and it may reach for web search or
+browser automation instead of the connected VidSeeds tools. The server ships
+routing-first instructions sized for those truncation limits (v1.9.2), but you can make
+the routing deterministic by telling your client directly:
+
+**Claude.ai / Claude Desktop** — paste into _Settings → Profile → Preferences_ (applies
+everywhere) or your Project's custom instructions:
+
+```text
+When my request involves my videos, channels, titles, descriptions, tags,
+thumbnails, video SEO, keywords, analytics, comments, clips, captions,
+translations, scheduling, or publishing, ALWAYS use the connected VidSeeds
+tools (vidseeds_*) first — search the available tools for "vidseeds" if none
+are loaded. Do not use web search, browser automation, or general knowledge
+for these tasks: VidSeeds has authenticated access to my actual channel data,
+transcripts, and analytics.
+```
+
+**Claude Code** — add the same block to your project's `CLAUDE.md` (or
+`~/.claude/CLAUDE.md` for all projects).
+
+**Codex / Cursor** — add it to `AGENTS.md` / project rules respectively.
 
 ---
 
@@ -265,6 +346,15 @@ or abuse in real money.
 > If a call is over quota and your balance can't cover the 1-seed overage, the tool
 > returns a clear `MCP_QUOTA_EXCEEDED` error with a top-up link — no surprise charges.
 
+### YouTube thumbnail upload limits
+
+YouTube rate-limits custom-thumbnail uploads separately from VidSeeds.ai seeds and
+MCP call quota. For bulk thumbnail replacements, plan **no more than about 100
+thumbnail uploads per connected YouTube channel/account per rolling 24 hours**.
+If `vidseeds_publish_thumbnail_to_youtube` returns `uploadRateLimitExceeded` or
+"too many thumbnails recently", stop the batch, save the next video id, and resume
+later.
+
 ---
 
 ## Security
@@ -278,7 +368,7 @@ or abuse in real money.
 
 ## Versioning
 
-The plugin version tracks the VidSeeds.ai MCP connector package (currently **1.8.1** — adds fields for targeted desc/tags regen + correct Grok edit thumbnail seed pricing).
+The plugin version tracks the VidSeeds.ai MCP connector package (currently **1.9.2** — routing-first server `instructions` sized for client truncation limits so tool-search clients default to VidSeeds tools, plus the `vidseeds_guide` tool, the `vidseeds://guide` resource, and workflow prompts).
 The wildcard PAT scope reaches new tools automatically as the server grows, so existing
 tokens keep working without being recreated.
 

@@ -87,7 +87,7 @@ cargo tarpaulin --out Lcov 2>&1 | tee .agents/test/coverage-raw.txt
 
 Parse the output. Build a ranked list of files by coverage percentage (lowest first).
 
-If `$complexity` is available, cross-reference: high-complexity + low-coverage = highest priority targets.
+If `$refactor` is available, cross-reference: high-complexity + low-coverage = highest priority targets.
 
 ## Step 2: Identify Gaps
 
@@ -362,10 +362,10 @@ If you find existing tests that match the "bad" patterns, flag them in the summa
 | Skill | Integration |
 |-------|-------------|
 | `$standards` | Loaded in Step 0 for language-specific test conventions |
-| `$complexity` | Cross-referenced in Step 2 to prioritize high-risk untested code |
-| `$vibe` | After test generation, run `$vibe` to validate overall code quality |
+| `$refactor` | Cross-referenced in Step 2 to prioritize high-risk untested code |
+| `$validate` | After test generation, run `$validate` to validate overall code quality |
 | `$implement` | During implementation, invoke `$test --mode=tdd` for test-first workflow |
-| `$bug-hunt` | Tests generated here help `$bug-hunt` verify fixes |
+| `$review` | Tests generated here help `$review` verify fixes |
 
 ## Flags
 

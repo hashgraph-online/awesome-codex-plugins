@@ -24,7 +24,7 @@ The ONLY valid next action when GATE_CLOSED is invoking the bootstrap skill and 
 Execute these three checks in order. Any single failure = GATE_CLOSED.
 
 ```
-1. Read $REPO_ROOT/CLAUDE.md (or AGENTS.md on Codex CLI).
+1. Read $REPO_ROOT/CLAUDE.md (or AGENTS.md on Codex CLI / Pi).
    - If the file does not exist → GATE_CLOSED (reason: no-claude-md)
    - If the file is zero-length (empty) → GATE_CLOSED (reason: no-claude-md)
 
@@ -46,7 +46,7 @@ All three pass → GATE_OPEN. Return silently. No output, no logging.
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 # Detect config file by platform
-if [[ -f "$REPO_ROOT/AGENTS.md" && "${SO_PLATFORM:-}" == "codex" ]]; then
+if [[ -f "$REPO_ROOT/AGENTS.md" && ( "${SO_PLATFORM:-}" == "codex" || "${SO_PLATFORM:-}" == "pi" ) ]]; then
   CONFIG_FILE="$REPO_ROOT/AGENTS.md"
 else
   CONFIG_FILE="$REPO_ROOT/CLAUDE.md"

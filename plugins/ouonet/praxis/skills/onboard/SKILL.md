@@ -18,18 +18,14 @@ technical specification is declarations only (no narrative), with facts only, no
 
 1. **Explore** entry points, public interfaces, key dependencies, test patterns, file structure. Read, don't guess.
 2. **Ask the user** about anything ambiguous — never invent architecture.
-3. **Write** living documentation .
+3. **Write** living documentation. `docs/tech-spec.md` uses the canonical format (field meanings: `archive` skill, "tech-spec format"):
 
 ```
-stack:       <language, runtime, frameworks, key deps>
-entry:       <where execution starts>
-contract:    <public APIs / interfaces that must not break>
-convention:  <naming, file structure, test patterns>
-invariant:   <what must always hold>
-constraint:  <limits, warnings from code or README>
+purpose / user / use-case / architecture / stack / entry /
+contract / flow / invariant / constraint / convention
 ```
 
-   If details are bulky, split into `docs/specs/` and link.
+   Omit `milestone` — onboard makes no plans. If details are bulky, split into `docs/specs/` and link.
 
 4. **Confirm** with user.
 

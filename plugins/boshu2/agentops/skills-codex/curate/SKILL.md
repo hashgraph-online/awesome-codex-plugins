@@ -20,7 +20,7 @@ description: "Run curate."
 | `--mode=retro` | Single-session learning capture | `$retro` |
 | `--mode=defrag` | Knowledge defragmentation (overnight) | `compile-session-defrag.sh` hook |
 | `--mode=watch` | In-session drift / loop detection (15-min cadence) | `research-loop-detector.sh` hook |
-| `--mode=provenance` | Decision-trace + artifact-provenance walk | `$provenance`, `$trace` |
+| `--mode=provenance` | Decision-trace + artifact-provenance walk | `$provenance`, `$recover` |
 
 **Mode-budget assertion:** 8 modes. Adding a 9th requires demoting an existing one OR refusing the addition (per Fix-F § continuous CI gate).
 
@@ -80,7 +80,7 @@ Each mode delegates to a body section in this skill (see § per-mode bodies belo
 Output is one of (priority order, per architecture knowledge-flywheel rule):
 
 1. **Skill diffs** — proposed changes to existing skill bodies, written to `.agents/skill-diffs/<date>-<skill>.diff`. Operator approves before applying. NEVER writes to `skills/` directly.
-2. **bd updates** — `bd note` or new `bd create` for surfaced issues. Direct, no approval queue.
+2. **bd updates** — `bd note` or new `br create` for surfaced issues. Direct, no approval queue.
 3. **Knowledge entries** — `.agents/research/`, `.agents/learnings/`, `~/.agents/learnings/` (rare; only when knowledge is generally reusable).
 
 ### Step 5: Append to LOG.md

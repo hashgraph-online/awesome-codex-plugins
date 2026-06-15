@@ -203,5 +203,5 @@ Repo is now AgentOps-ready. Next: $rpi "your first goal"
 - `../goals/SKILL.md` -- Fitness specification and directive management
 - `../product/SKILL.md` -- Product definition generation
 - `../doc/SKILL.md` -- README generation (`--mode=readme`) + repo docs
-- `../quickstart/SKILL.md` -- New user onboarding (lighter than bootstrap)
+- `../status/SKILL.md` -- New user onboarding (lighter than bootstrap)
 - [references/related-runbooks.md](references/related-runbooks.md) -- host-hygiene runbooks (PATH rationalization, etc.)

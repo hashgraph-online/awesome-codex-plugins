@@ -20,7 +20,7 @@ Practical patterns for using bd effectively across different scenarios.
 
 **What you see**:
 ```bash
-$ bd ready
+$ br ready
 # Returns: bd-42 "Research analytics platform expansion proposal" (in_progress)
 
 $ bd show bd-42
@@ -54,7 +54,7 @@ NEXT: Need user input on budget constraints before finalizing recommendations"
 
 ## Broad Parent Narrowing
 
-**Scenario**: `bd ready` surfaces a parent bead that is still open but now only some narrower gap remains.
+**Scenario**: `br ready` surfaces a parent bead that is still open but now only some narrower gap remains.
 
 **Pattern**:
 1. Read the parent live with `bd show <parent-id>`
@@ -65,14 +65,14 @@ NEXT: Need user input on budget constraints before finalizing recommendations"
 
 **Example**:
 ```bash
-bd ready
+br ready
 # Returns: pl-vnu.5 "Tracker workflow friction"
 
 bd show pl-vnu.5
 # Notes reveal only one concrete remaining gap: export hygiene after tracker writes
 
-bd create "Refresh tracked issues.jsonl after tracker mutations" -t task -p 1 --parent pl-vnu.5
-# or: bd dep add <child-id> --type parent-child --blocked-by pl-vnu.5
+br create "Refresh tracked issues.jsonl after tracker mutations" -t task -p 1 --parent pl-vnu.5
+# or: br dep add <child-id> --type parent-child --blocked-by pl-vnu.5
 bd update <child-id> --status in_progress
 # execute work against child
 bd close <child-id> --reason "files: .beads/issues.jsonl export guidance; validation: bd export -o .beads/issues.jsonl; parent: pl-vnu.5 still has Dolt remote handling gap"
@@ -88,8 +88,8 @@ bd update pl-vnu.5 --notes "Remaining gap is now narrowed to Dolt remote handlin
 **Scenario**: During main task, discover a problem that needs attention.
 
 **Pattern**:
-1. Create issue immediately: `bd create "Found: inventory system needs refactoring"`
-2. Link provenance: `bd dep add main-task new-issue --type discovered-from`
+1. Create issue immediately: `br create "Found: inventory system needs refactoring"`
+2. Link provenance: `br dep add main-task new-issue --type discovered-from`
 3. Assess urgency: blocker or can defer?
 4. **If blocker**:
    - `bd update main-task --status blocked`
@@ -111,7 +111,7 @@ Working on "Implement checkout flow" (checkout-1), discover payment validation s
 3. Block current work: `mcp__plugin_beads_beads__update` with `{issue_id: "checkout-1", status: "blocked", notes: "Blocked by payment-bug-2: security hole in validation"}`
 4. Start new work: `mcp__plugin_beads_beads__update` with `{issue_id: "payment-bug-2", status: "in_progress"}`
 
-(CLI: `bd create "Fix: payment validation..." -t bug -p 0` then `bd dep add` and `bd update` commands)
+(CLI: `br create "Fix: payment validation..." -t bug -p 0` then `br dep add` and `bd update` commands)
 
 ---
 
@@ -127,11 +127,11 @@ Working on "Implement checkout flow" (checkout-1), discover payment validation s
 5. **Update status**: Use `mcp__plugin_beads_beads__update` with `status:"in_progress"`
 6. **Begin work**: Create Task tools from notes field's NEXT section
 
-(CLI: `bd ready`, `bd blocked`, `bd list --status closed`, `bd show <id>`, `bd update <id> --status in_progress`)
+(CLI: `br ready`, `bd blocked`, `br list --status closed`, `bd show <id>`, `bd update <id> --status in_progress`)
 
 **Example**:
 ```bash
-$ bd ready
+$ br ready
 Ready to work on (3):
   auth-5: "Add OAuth refresh token rotation" (priority: 0)
   api-12: "Document REST API endpoints" (priority: 1)
@@ -204,7 +204,7 @@ blocked   blocked
 
 **Starting work**:
 ```bash
-bd ready  # See what's available
+br ready  # See what's available
 bd update auth-5 --status in_progress
 # Begin working
 ```
@@ -246,7 +246,7 @@ bd close auth-5 --reason "Implemented OAuth refresh with 7-day rotation. Tests p
 
 1. **Check in-progress work**:
    ```bash
-   bd list --status in_progress
+   br list --status in_progress
    ```
 
 2. **Read notes for context**:
@@ -361,10 +361,10 @@ When closing reveals new work:
 
 ```bash
 # While closing auth feature, realize performance needs work
-bd create "Optimize token lookup query" -t task -p 2
+br create "Optimize token lookup query" -t task -p 2
 
 # Link the provenance
-bd dep add auth-5 perf-99 --type discovered-from
+br dep add auth-5 perf-99 --type discovered-from
 
 # Now close original
 bd close auth-5 --reason "OAuth refresh implemented. Discovered perf optimization needed (filed perf-99)."
@@ -379,9 +379,9 @@ bd close auth-5 --reason "OAuth refresh implemented. Discovered perf optimizatio
 | Pattern | When to Use | Key Command | Preserves |
 |---------|-------------|-------------|-----------|
 | **Knowledge Work** | Long-running research, writing | `bd update --notes` | Context across sessions |
-| **Broad Parent Narrowing** | Ready work is too broad to execute safely | `bd create`, `bd update`, `bd show` | Executable next gap |
-| **Side Quest** | Discovered during other work | `bd dep add --type discovered-from` | Relationship to original |
-| **Multi-Session Resume** | Returning after time away | `bd ready`, `bd show` | Full project state |
+| **Broad Parent Narrowing** | Ready work is too broad to execute safely | `br create`, `bd update`, `bd show` | Executable next gap |
+| **Side Quest** | Discovered during other work | `br dep add --type discovered-from` | Relationship to original |
+| **Multi-Session Resume** | Returning after time away | `br ready`, `bd show` | Full project state |
 | **Status Transitions** | Tracking work state | `bd update --status` | Current state |
 | **Compaction Recovery** | History lost | Read notes field | All context in notes |
 | **Issue Closure** | Completing work | `bd close --reason` | Decisions and outcomes |

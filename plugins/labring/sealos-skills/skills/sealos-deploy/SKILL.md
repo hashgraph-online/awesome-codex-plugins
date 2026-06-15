@@ -143,6 +143,8 @@ Located in `scripts/` within this skill directory (`<SKILL_DIR>/scripts/`):
 | `ensure-image-pull-secret.mjs` | `node ensure-image-pull-secret.mjs <namespace> <secret-name> <image-ref> [deployment-name]` | Create/update app-scoped GHCR pull Secret and optionally patch an existing Deployment to reference it |
 | `gh-refresh-scopes.mjs` | `node gh-refresh-scopes.mjs write:packages` | Refresh GHCR package access in the current TTY; `write:packages` is sufficient for both push and private pull in this workflow |
 | `deploy-template.mjs` | `node deploy-template.mjs <template-path> [--dry-run] [--args-json '{"KEY":"value"}'\|--args-file <file>]` | Resolve the current region from `~/.sealos/auth.json`, build the correct Template API URL, and post a local template YAML |
+| `sealos-footprint.mjs` | `node sealos-footprint.mjs --namespace <ns> --app <app>` | Read-only inventory of Instance/App/workloads/Jobs/KubeBlocks/PVCs for deploy debug and cleanup planning |
+| `sealos-live-smoke.mjs` | `node sealos-live-smoke.mjs --url <url> [--captcha-path <path>] [--login-path <path>] [--username <user>] [--password <pass>] [--auth-path <path>]` | Read-only or credentialed HTTP smoke test for the real Sealos App entry URL |
 | `sealos-auth.mjs` | `node sealos-auth.mjs check\|login\|list\|switch` | Sealos Cloud authentication & workspace switching |
 
 All scripts output JSON. Run via Bash and parse the result.
@@ -180,6 +182,7 @@ Paths used in pipeline.md follow the pattern:
 | 5 — Template | Generate Sealos application template | — |
 | 5.5 — Configure | Guide user through app env vars and inputs | No inputs needed |
 | 6 — Deploy | Deploy template to Sealos Cloud | — |
+| 6.5 — Runtime Truth Pass | Verify the actual Sealos runtime, logs, App URL, login path, and resource footprint | User explicitly requests deploy-only output |
 
 ## Decision Flow
 
@@ -213,8 +216,11 @@ Input (GitHub URL / local path)
   │
   ▼
 [Phase 6] Deploy to Sealos Cloud ── 401 → re-auth
-  │                                  409 → instance exists
-  ▼
+│                                  409 → instance exists
+▼
+[Phase 6.5] Runtime Truth Pass ── runtime/log/login issue → debug template or runtime config
+│
+▼
 Done — app deployed ✓
 ```
 

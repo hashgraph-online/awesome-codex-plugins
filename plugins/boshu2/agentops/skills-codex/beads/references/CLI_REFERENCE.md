@@ -26,7 +26,7 @@ bd info --schema --json
 
 ```bash
 # Find ready work (no blockers)
-bd ready --json
+br ready --json
 
 # Find stale issues (not updated recently)
 bd stale --days 30 --json                    # Default: 30 days
@@ -41,30 +41,30 @@ bd stale --limit 20 --json                   # Limit results
 ```bash
 # Basic creation
 # IMPORTANT: Always quote titles and descriptions with double quotes
-bd create "Issue title" -t bug|feature|task -p 0-4 -d "Description" --json
+br create "Issue title" -t bug|feature|task -p 0-4 -d "Description" --json
 
 # Create with explicit ID (for parallel workers)
-bd create "Issue title" --id worker1-100 -p 1 --json
+br create "Issue title" --id worker1-100 -p 1 --json
 
 # Create with labels (--labels or --label work)
-bd create "Issue title" -t bug -p 1 -l bug,critical --json
-bd create "Issue title" -t bug -p 1 --label bug,critical --json
+br create "Issue title" -t bug -p 1 -l bug,critical --json
+br create "Issue title" -t bug -p 1 --label bug,critical --json
 
 # Examples with special characters (all require quoting):
-bd create "Fix: auth doesn't validate tokens" -t bug -p 1 --json
-bd create "Add support for OAuth 2.0" -d "Implement RFC 6749 (OAuth 2.0 spec)" --json
+br create "Fix: auth doesn't validate tokens" -t bug -p 1 --json
+br create "Add support for OAuth 2.0" -d "Implement RFC 6749 (OAuth 2.0 spec)" --json
 
 # Create multiple issues from markdown file
-bd create -f feature-plan.md --json
+br create -f feature-plan.md --json
 
 # Create epic with hierarchical child tasks
-bd create "Auth System" -t epic -p 1 --json         # Returns: bd-a3f8e9
-bd create "Login UI" -p 1 --json                     # Auto-assigned: bd-a3f8e9.1
-bd create "Backend validation" -p 1 --json           # Auto-assigned: bd-a3f8e9.2
-bd create "Tests" -p 1 --json                        # Auto-assigned: bd-a3f8e9.3
+br create "Auth System" -t epic -p 1 --json         # Returns: bd-a3f8e9
+br create "Login UI" -p 1 --json                     # Auto-assigned: bd-a3f8e9.1
+br create "Backend validation" -p 1 --json           # Auto-assigned: bd-a3f8e9.2
+br create "Tests" -p 1 --json                        # Auto-assigned: bd-a3f8e9.3
 
 # Create and link discovered work (one command)
-bd create "Found bug" -t bug -p 1 --deps discovered-from:<parent-id> --json
+br create "Found bug" -t bug -p 1 --deps discovered-from:<parent-id> --json
 ```
 
 ### Update Issues
@@ -98,7 +98,7 @@ bd reopen <id> [<id>...] --reason "Reopening" --json
 
 ```bash
 # Show dependency tree
-bd dep tree <id>
+br dep tree <id>
 
 # Get issue details (supports multiple IDs)
 bd show <id> [<id>...] --json
@@ -110,10 +110,10 @@ bd show <id> [<id>...] --json
 
 ```bash
 # Link discovered work (old way - two commands)
-bd dep add <discovered-id> <parent-id> --type discovered-from
+br dep add <discovered-id> <parent-id> --type discovered-from
 
 # Create and link in one command (new way - preferred)
-bd create "Issue title" -t bug -p 1 --deps discovered-from:<parent-id> --json
+br create "Issue title" -t bug -p 1 --deps discovered-from:<parent-id> --json
 ```
 
 ### Labels
@@ -132,68 +132,68 @@ bd label list-all --json
 
 ```bash
 # Filter by status, priority, type
-bd list --status open --priority 1 --json               # Status and priority
-bd list --assignee alice --json                         # By assignee
-bd list --type bug --json                               # By issue type
-bd list --id bd-123,bd-456 --json                       # Specific IDs
+br list --status open --priority 1 --json               # Status and priority
+br list --assignee alice --json                         # By assignee
+br list --type bug --json                               # By issue type
+br list --id bd-123,bd-456 --json                       # Specific IDs
 ```
 
 ### Label Filters
 
 ```bash
 # Labels (AND: must have ALL)
-bd list --label bug,critical --json
+br list --label bug,critical --json
 
 # Labels (OR: has ANY)
-bd list --label-any frontend,backend --json
+br list --label-any frontend,backend --json
 ```
 
 ### Text Search
 
 ```bash
 # Title search (substring)
-bd list --title "auth" --json
+br list --title "auth" --json
 
 # Pattern matching (case-insensitive substring)
-bd list --title-contains "auth" --json                  # Search in title
-bd list --desc-contains "implement" --json              # Search in description
-bd list --notes-contains "TODO" --json                  # Search in notes
+br list --title-contains "auth" --json                  # Search in title
+br list --desc-contains "implement" --json              # Search in description
+br list --notes-contains "TODO" --json                  # Search in notes
 ```
 
 ### Date Range Filters
 
 ```bash
 # Date range filters (YYYY-MM-DD or RFC3339)
-bd list --created-after 2024-01-01 --json               # Created after date
-bd list --created-before 2024-12-31 --json              # Created before date
-bd list --updated-after 2024-06-01 --json               # Updated after date
-bd list --updated-before 2024-12-31 --json              # Updated before date
-bd list --closed-after 2024-01-01 --json                # Closed after date
-bd list --closed-before 2024-12-31 --json               # Closed before date
+br list --created-after 2024-01-01 --json               # Created after date
+br list --created-before 2024-12-31 --json              # Created before date
+br list --updated-after 2024-06-01 --json               # Updated after date
+br list --updated-before 2024-12-31 --json              # Updated before date
+br list --closed-after 2024-01-01 --json                # Closed after date
+br list --closed-before 2024-12-31 --json               # Closed before date
 ```
 
 ### Empty/Null Checks
 
 ```bash
 # Empty/null checks
-bd list --empty-description --json                      # Issues with no description
-bd list --no-assignee --json                            # Unassigned issues
-bd list --no-labels --json                              # Issues with no labels
+br list --empty-description --json                      # Issues with no description
+br list --no-assignee --json                            # Unassigned issues
+br list --no-labels --json                              # Issues with no labels
 ```
 
 ### Priority Ranges
 
 ```bash
 # Priority ranges
-bd list --priority-min 0 --priority-max 1 --json        # P0 and P1 only
-bd list --priority-min 2 --json                         # P2 and below
+br list --priority-min 0 --priority-max 1 --json        # P0 and P1 only
+br list --priority-min 2 --json                         # P2 and below
 ```
 
 ### Combine Filters
 
 ```bash
 # Combine multiple filters
-bd list --status open --priority 1 --label-any urgent,critical --no-assignee --json
+br list --status open --priority 1 --label-any urgent,critical --no-assignee --json
 ```
 
 ## Global Flags
@@ -448,10 +448,10 @@ Always use `--json` flag for programmatic use:
 bd show bd-42 --json
 
 # List of issues
-bd ready --json
+br ready --json
 
 # Operation result
-bd create "Issue" -p 1 --json
+br create "Issue" -p 1 --json
 ```
 
 ### Human-Readable Output
@@ -459,7 +459,7 @@ bd create "Issue" -p 1 --json
 Default output without `--json`:
 
 ```bash
-bd ready
+br ready
 # bd-42  Fix authentication bug  [P1, bug, in_progress]
 # bd-43  Add user settings page  [P2, feature, open]
 ```
@@ -470,7 +470,7 @@ bd ready
 
 ```bash
 # 1. Find available work
-bd ready --json
+br ready --json
 
 # 2. Claim issue
 bd update bd-42 --status in_progress --json
@@ -487,11 +487,11 @@ bd close bd-42 --reason "Implemented and tested" --json
 # While working on bd-100, discover a bug
 
 # Old way (two commands):
-bd create "Found auth bug" -t bug -p 1 --json  # Returns bd-101
-bd dep add bd-101 bd-100 --type discovered-from
+br create "Found auth bug" -t bug -p 1 --json  # Returns bd-101
+br dep add bd-101 bd-100 --type discovered-from
 
 # New way (one command):
-bd create "Found auth bug" -t bug -p 1 --deps discovered-from:bd-100 --json
+br create "Found auth bug" -t bug -p 1 --deps discovered-from:bd-100 --json
 ```
 
 ### Batch Operations
@@ -511,10 +511,10 @@ bd label add bd-41 bd-42 bd-43 urgent --json
 
 ```bash
 # Start of session
-bd ready --json  # Find work
+br ready --json  # Find work
 
 # During session
-bd create "..." -p 1 --json
+br create "..." -p 1 --json
 bd update bd-42 --status in_progress --json
 # ... work ...
 

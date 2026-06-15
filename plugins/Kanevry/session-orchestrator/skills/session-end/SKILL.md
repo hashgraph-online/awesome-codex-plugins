@@ -14,7 +14,7 @@ description: >
 
 # Session End Skill
 
-> **Platform Note:** State files (STATE.md, wave-scope.json) live in the platform's native directory: `.claude/` (Claude Code), `.codex/` (Codex CLI), or `.cursor/` (Cursor IDE). All references to `.claude/` below should use the platform's state directory. Shared metrics live in `.orchestrator/metrics/`. See `skills/_shared/platform-tools.md`.
+> **Platform Note:** State files (STATE.md, wave-scope.json) live in the platform's native directory: `.claude/` (Claude Code), `.codex/` (Codex CLI), `.cursor/` (Cursor IDE), or `.pi/` (Pi). All references to `.claude/` below should use the platform's state directory. Shared metrics live in `.orchestrator/metrics/`. See `skills/_shared/platform-tools.md`.
 
 > **Project-instruction file:** `CLAUDE.md` and `AGENTS.md` (Codex CLI) are transparent aliases — see [skills/_shared/instruction-file-resolution.md](../_shared/instruction-file-resolution.md). All references to `CLAUDE.md` in this skill resolve via that precedence rule.
 
@@ -63,6 +63,29 @@ Read back the session plan that was agreed at the start. For EACH planned item:
 - Document WHY (blocked? de-scoped? out of time?)
 - If still relevant: ensure original issue remains `status:ready`
 - If no longer relevant: close with comment explaining why
+
+### 1.3a Optional /goal Backlog-Drain (opt-in — #636)
+
+> Advisory-only continuation anchor at the session-end backlog seam. Never auto-invokes `/goal`, never blocks the close. `/goal` is a user slash-command; the operator decides whether to drain now or carry over.
+
+**Gate conditions** — ALL must be true for this nudge to surface:
+
+1. `goal-integration.enabled: true` in Session Config (default: `false`).
+2. `session-end-backlog` is listed in `goal-integration.seams`.
+
+When any gate condition is false, skip this step silently — no surfaced suggestion, no STATE.md write, no AUQ.
+
+**What it does** — when the gate fires AND ≥1 still-relevant Not-Started (§1.3) or Partially-Done (§1.2) item exists AND the operator would rather drain the backlog now than carry it to a future session, surface ONE suggested `/goal` command as an advisory bullet. Example:
+
+```
+/goal Drain the remaining backlog items <list>; done when each item's acceptance check passes as shown by 'npm test' output in this turn AND 'npm run typecheck' prints 0 errors in this turn, or stop after 20 turns.
+```
+
+**Advisory-only contract:** this step never auto-invokes `/goal`, never blocks the close, raises no AskUserQuestion, and writes nothing to STATE.md. It is informational prose only — the operator copies the command if they want it. The deterministic **Phase 2 Quality Gate** of session-end remains the completion authority: `/goal` keeps the loop alive across turns, but `npm test` / `npm run typecheck` / `npm run lint` and their exit codes decide whether the drained work is correct.
+
+The `/goal` evaluator reads the transcript only and runs NO tools — it anchors CONTINUATION, never JUDGMENT. The suggested condition therefore references freshly-run gate output "in this turn's output" and embeds a bound ("or stop after N turns"). Cross-reference `.claude/rules/loop-and-monitor.md § LM-008` for the full `/goal` continuation-vs-judgment contract rather than restating it here.
+
+**One goal per session:** only ONE `/goal` can be active at a time. This backlog seam and the inter-wave fix-loop seam (`wave-loop.md` § /goal Continuation Anchor) cannot both hold an active goal simultaneously — the operator picks one.
 
 ### 1.4 Emergent Work
 - Tasks that were NOT in the plan but were done (fixes, discoveries)
@@ -284,6 +307,48 @@ totalFindings = projectStaleness.findings.length + narrativeStaleness.findings.l
 
 Pass the aggregated counts and mode forward to Phase 6 Final Report (Docs Health line — see Phase 6 below).
 
+## Phase 2.5: Custom Phases (#637)
+
+> Opt-in. Skip this phase entirely if `custom-phases` in `$CONFIG` is absent or `[]` (the default).
+
+Repos declare deterministic close/housekeeping phases as a **contract** (not the freeform `special:` convention): each phase runs a `command` with exit-code gating and Final-Report reporting. The block is parsed by `scripts/lib/config/custom-phases.mjs`; each record is `{ name, when, command, mode, review }` (already validated — unsafe records were dropped at parse time).
+
+#### Step 1 — Read + filter by `when`
+
+Read `custom-phases` from `$CONFIG` and the `session-type` from STATE.md frontmatter (`feature | deep | housekeeping | none`):
+
+- If `session-type === 'housekeeping'`: keep phases with `when ∈ {housekeeping, both}`.
+- Otherwise (`feature`/`deep`/any other): keep phases with `when ∈ {session-end, both}`.
+
+If no phases remain after filtering, skip to Phase 3.
+
+#### Step 2 — Run each phase in declaration order
+
+For each kept phase:
+
+- `mode === 'off'` ⇒ skip silently (do not run the command).
+- Otherwise run `command` via Bash. Capture the **exit code** and the **last ~10 lines of stdout** (these become the report summary — do NOT inline the full output).
+- If `review` is set, read that file after the command as the review step and note its path in the report.
+
+#### Step 3 — Route by `mode`
+
+- `mode === 'warn'` (default): record the result (name, exit code, summary) for the Phase 6 Final Report "Custom Phases" line. Never block the close — even on a non-zero exit.
+- `mode === 'hard'`:
+  - exit code `0` ⇒ continue; record `<name>: pass (mode=hard)`.
+  - exit code `≠ 0` ⇒ **BLOCK the close** using the same routing pattern as Phase 2.3 strict-mode. Present the phase name + captured summary and offer override:
+    - On Claude Code: AskUserQuestion with options:
+      1. "Fix and retry Phase 2.5" (Recommended) — exit close, let the user investigate.
+      2. "Override and close" — proceed, log a Deviation entry in STATE.md `## Deviations`:
+         `- [<ISO timestamp>] Phase 2.5: custom-phase '<name>' (mode=hard) exited <code>, overridden by user.`
+      3. "Abort close" — exit close without writing.
+    - On Codex CLI / Cursor IDE: same options as a numbered Markdown list.
+
+A `hard`-fail (whether overridden or not) ALWAYS appends its result line to STATE.md `## Deviations`; `warn`-mode results do not.
+
+#### Step 4 — Surface to closing report
+
+Pass each phase result `(name, mode, exitCode, summary, review?)` forward to the Phase 6 Final Report "Custom Phases" line (see Phase 6 below).
+
 ## Phase 3: Documentation Updates
 
 > **Final heartbeat (#590-3)** — at Phase 3 entry, refresh the session-lock heartbeat BEFORE the multi-minute close-out chain (vault-mirror, dialectic, durable-commit, metrics). A long-idle deep session may not have had PostToolBatch activity for >4h; without a refresh the 4h-TTL lock would lapse mid-close and appear stale to a concurrent session. Place this call BEFORE Phase 3.8 Session Lock Release (which deletes the lock — refreshing a deleted lock is a no-op). Best-effort: a failure must NOT block the close.
@@ -477,7 +542,7 @@ The proposals queue is populated mid-session by wave-executor agents calling `no
 - CLI: `scripts/memory-propose.mjs` (agents call this)
 - Hook: `hooks/pre-bash-memory-propose-audit.mjs` (audit trail)
 - Coordinator AUQ spec: `agents/memory-proposal-collector.md` (reference doc)
-- Sibling phases: 3.6.5 Auto-Dream (#502), 3.6.7 Auto-Dialectic (#506)
+- Sibling phases: 3.6.5 Auto-Dream (#502), 3.6.6 Skill-Applied Judge (#645 L3), 3.6.7 Auto-Dialectic (#506)
 - Issue: #501
 
 ### 3.6.5 Auto-Dream Dispatch (#502, F2.2)
@@ -511,6 +576,71 @@ After learnings are written (Phase 3.6), determine whether to emit a **manual-ca
 The pending-dream sidecar at `.orchestrator/pending-dream.md` is intentionally outside the vault tree — vault-mirror (Phase 3.7) must exclude it from its scope so the proposal survives the session close without being mirrored into 50-sessions/.
 
 Cross-reference: PRD F2.2 acceptance criteria; `scripts/lib/auto-dream.mjs` API (`shouldDispatchAutoDream`, `readDreamSignals`, `writePendingDream`, `readPendingDream`, `applyPendingDream`).
+
+### 3.6.6 Skill-Applied Judge (#645, L3)
+
+> **Default OFF.** Skip this phase — with NO module import and NO sidecar created — unless BOTH gates pass (evaluated in this order):
+> 1. `config['skill-evolution'].judge !== true` → skip (the `judge:` key in the top-level `skill-evolution:` block; default `false`).
+> 2. `persistence === false` in Session Config → skip.
+>
+> When skipped, log `skill-judge: disabled (skill-evolution.judge=false)` (or `persistence=false`) and return. **This is the disabled-path guarantee:** with the judge off, only L1 (`skill-invocations.jsonl`, written by the PreToolUse hook) and L2 (`scripts/lib/skill-health/join.mjs`) records exist — no judgment, no error, zero L3 code executes. Do NOT import `scripts/lib/skill-judge.mjs` on the disabled path.
+
+After learnings are written (Phase 3.6) and the auto-dream decision is made (Phase 3.6.5), and when the judge is enabled, run a **bounded, read-only LLM-judge** over this session's selected skills to emit ADVISORY per-skill applied/completed judgments to `.orchestrator/metrics/skill-judgments.jsonl`.
+
+**The #614 distinction (the whole point of L3's Design A):** unlike the 3.6.5 / 3.6.7 nudge-only paths — which cannot dispatch a live subagent because the target read-only agents (`memory-cleanup`, `dialectic-deriver`) cannot write their own sidecars — L3 performs a **LIVE read-only dispatch**. This is #614-safe because the read-only `skill-applied-judge` agent **RETURNS JSON** and the **COORDINATOR writes the sidecar**, not the agent. A read-only agent that returns judgments is allowed; a read-only agent that must write a file is the #614 trap.
+
+**Advisory-only:** the judge output is written with `advisory: true` (schema-rejected otherwise) and **NEVER feeds an auto-action gate** — not a sunset decision, not a C2 repair (`scripts/lib/skill-evolution/*`), not a promotion. Per #645 R9(b) the C2 repair gate stays deterministic; L3 is a signal for humans/dashboards only.
+
+1. Read `config['skill-evolution'].judge` (default `false`), `config['skill-evolution']['judge-budget-tokens']` (default 8000), and `persistence`. Apply the two skip gates above.
+
+2. Determine the **judged set** — only THIS session's selected skills. Read `.orchestrator/metrics/skill-invocations.jsonl` and collect the distinct `skill` values whose `session_id` matches the current session id. If the judged set is empty, `runSkillJudge` returns `status: 'empty-input'` (no dispatch) — log and continue.
+
+3. Invoke `runSkillJudge` from `scripts/lib/skill-judge.mjs`, wiring the real dispatch via the DI seam:
+
+   ```javascript
+   import { runSkillJudge } from '${PLUGIN_ROOT}/scripts/lib/skill-judge.mjs';
+   import { appendSkillJudgment } from '${PLUGIN_ROOT}/scripts/lib/skill-judgments-schema.mjs';
+   import path from 'node:path';
+
+   const budgetTokens = config['skill-evolution']['judge-budget-tokens'] ?? 8000;
+   const result = await runSkillJudge({
+     // Claude Code path: wire the real read-only haiku subagent as dispatchAgent.
+     dispatchAgent: ({ model, prompt, maxTokens }) =>
+       Agent({ subagent_type: 'skill-applied-judge', model: 'haiku', prompt, max_tokens: maxTokens }),
+     repoRoot: process.cwd(),
+     sessionId,
+     transcriptTail,                 // recent session transcript excerpt (UNTRUSTED — fenced by the lib)
+     selectedSkills,                 // distinct skills from step 2
+     model: 'haiku',
+     budget: { input: budgetTokens, output: 4000 },
+   });
+   ```
+
+   - **Claude Code path:** `dispatchAgent` wraps the real `Agent({ subagent_type: 'skill-applied-judge', model: 'haiku', … })`. The agent is `sandbox-tier: read-only` and RETURNS one fenced ```json block — it never writes files.
+   - **Codex / Cursor path:** there is no subagent type. Wire `dispatchAgent` as a coordinator-inline call (the coordinator itself reasons over the prompt and returns `{ text }`), keeping the identical `runSkillJudge` signature. Same DI seam, no harness subagent.
+
+4. On `result.status === 'ok'`: the **COORDINATOR** writes each returned judgment to the sidecar. Stamp the per-record metadata (`timestamp`, `event: 'judged'`, `session_id`, `advisory: true`, `model`, `schema_version: 1`) and append:
+
+   ```javascript
+   const judgmentsPath = path.join(process.cwd(), '.orchestrator/metrics/skill-judgments.jsonl');
+   const nowIso = new Date().toISOString();
+   for (const j of result.judgments) {
+     await appendSkillJudgment(
+       { timestamp: nowIso, event: 'judged', skill: j.skill, session_id: sessionId,
+         applied: j.applied, completed: j.completed, confidence: j.confidence,
+         advisory: true, model: 'haiku' },
+       { path: judgmentsPath },
+     );
+   }
+   ```
+
+   `appendSkillJudgment` re-validates each record; `advisory !== true` is schema-rejected, so a tampered record can never be persisted.
+
+5. On `result.status === 'empty-input'` or `'budget-exceeded'`: log the status (e.g. `skill-judge: skipped (budget-exceeded used=N budget=M)`) and continue. No sidecar write on either non-ok status.
+
+6. **Failures are non-fatal.** Any error from the dispatch or write is logged to `.orchestrator/metrics/sweep.log` and the close continues — same posture as Phase 3.6.7. The judge is advisory; a failed judgment must never block session close.
+
+Cross-reference: PRD §A L3 acceptance criteria (#645, epic #643); `scripts/lib/skill-judge.mjs` API (`runSkillJudge`, `validateModel`, `estimateInputTokens`, `checkBudget`, `buildJudgePrompt`, `parseJudgeResponse`); `scripts/lib/skill-judgments-schema.mjs` (`appendSkillJudgment`, `readSkillJudgments`, `validateSkillJudgment`); agent `agents/skill-applied-judge.md`.
 
 ### 3.6.7 Auto-Dialectic Dispatch (#506, F2.5)
 
@@ -555,6 +685,8 @@ Cross-reference: PRD F2.5 acceptance criteria (#506); `scripts/lib/auto-dialecti
 ### 3.7 Write Session Metrics
 
 Read `skills/session-end/session-metrics-write.md` for JSONL append, vault-mirror invocation, and behavior matrix.
+
+> **Token Rollup (#644):** Before emitting the JSONL record (step 2 of session-metrics-write.md), step 1a calls `rollupSessionTokens({ parentSessionId })` from `scripts/lib/session-token-rollup.mjs` and merges three optional fields onto the in-memory record: `total_token_input`, `total_token_output`, and `subagents_with_tokens` (coverage count). Null totals mean "no token data captured" — not zero cost. The rollup is non-blocking: a missing `subagents.jsonl` or all-null session still writes cleanly with null/0 values.
 
 ### 3.7a Compute and Write Recommendations (Epic #271 Phase A)
 
@@ -816,6 +948,9 @@ Present to the user:
   - Findings present (warn mode): `[N stale projects, M stale narratives] (mode=warn). See .orchestrator/metrics/vault-staleness.jsonl.`
   - Skipped (disabled or mode=off): `skipped (disabled | mode=off).`
   - Clean run: `clean (mode=<mode>).`
+- Custom Phases: [render based on Phase 2.5 result — omit the line entirely if `custom-phases` was absent/empty]
+  - Per phase: `<name>: <pass|FAIL> (exit <code>, mode=<mode>)[ — review: <path>]`
+  - None ran (all filtered out by `when`): `none applicable for session-type=<type>.`
 - Enforcement: [N violations blocked / M warnings] (or "N/A" if enforcement off)
 - Circuit breaker: [N agents hit limits, M spirals detected] (or "none")
 - Metrics written to: `.orchestrator/metrics/sessions.jsonl`
@@ -843,6 +978,7 @@ Present to the user:
 | `learning-patterns.md` | Phases 3.5a + 3.6 extraction heuristics, confidence updates, passive decay, and JSONL write procedure |
 | (inline) Phase 3.6.3 | Memory-Proposals Collection — `collectProposals` + AUQ multiSelect + `writeApproved` + `clearProposalsJsonl` |
 | (inline) Phase 3.6.5 | Auto-Dream nudge — `shouldDispatchAutoDream` + manual-cadence nudge to run /memory-cleanup --dry-run next session (no live dispatch — #614) |
+| (inline) Phase 3.6.6 | Skill-Applied Judge (#645 L3) — default OFF; when `skill-evolution.judge: true`, `runSkillJudge` does a LIVE read-only haiku dispatch returning JSON; the COORDINATOR writes advisory judgments to `.orchestrator/metrics/skill-judgments.jsonl` (#614-safe: agent returns, coordinator writes) |
 | (inline) Phase 3.6.7 | Auto-Dialectic nudge — `shouldDispatchAutoDialectic` + manual-cadence nudge to run /evolve --dialectic next session + advances `.orchestrator/dialectic-last-run` (no live dispatch — #614) |
 | `session-metrics-write.md` | Phase 3.7 JSONL append, vault-mirror invocation, and behavior matrix |
 | `phase-3-7a-recommendations.md` | Phase 3.7a full procedural body — computeV0Recommendation call, STATE.md field write, data source guarantee, error mode |

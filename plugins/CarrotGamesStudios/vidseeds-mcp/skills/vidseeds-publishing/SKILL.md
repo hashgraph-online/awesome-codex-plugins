@@ -17,7 +17,7 @@ description: Use for VidSeeds MCP publishing — platform connections, OAuth con
 
 **Settings:**
 
-- `vidseeds_update_connection_settings` — per-connection options (e.g. content language, description footer).
+- `vidseeds_update_connection_settings` — per-connection options (e.g. content language, description footer, and per-asset generation guidelines for titles/descriptions/tags/thumbnails). Read current values via `vidseeds_get_platform_connection`. Guidelines are sent to the model on every generation by default; generation tools accept `applyGuidelines: false` to ignore them for one call.
 - `vidseeds_disconnect_platform_connection` — remove a connection.
 
 ## Publish a project

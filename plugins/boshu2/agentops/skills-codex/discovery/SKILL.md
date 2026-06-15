@@ -11,7 +11,7 @@ packet for `$crank` and `$validate`.
 
 ## Strict Delegation Contract
 
-Discovery delegates to `$brainstorm` (conditional), `$design` (conditional), `$research`, `$plan`, and `$pre-mortem` as **separate skill invocations**. Strict delegation is the default.
+Discovery runs brainstorm and design as internal modes (absorbed, ag-s43tg) and delegates to `$research`, `$plan`, and `$pre-mortem` as **separate skill invocations**. Strict delegation is the default.
 
 Reject these compression moves:
 
@@ -63,7 +63,7 @@ for the boundary between Discovery and Plan:
 | Inbound port | `shape_intent` from operator goal or BDD intent |
 | Outbound port | `plan_slices` into `$plan` |
 | Driving adapter | `$discovery` skill invocation |
-| Driven adapter | `$plan` skill invocation plus bd/file persistence |
+| Driven adapter | `$plan` skill invocation plus br/file persistence |
 | Context packet | density block, artifact links, acceptance examples, non-goals, constraints |
 | Guard adapter | `$pre-mortem` verdict before packet handoff |
 
@@ -76,18 +76,41 @@ Feature: Discovery hands dense intent to planning
     And it does not inline the Plan decomposition in Discovery prose
 ```
 
+## Codex Fanout Approval Gate
+
+For open-ended or high-risk Codex discovery, insert this gate before `$plan`
+creates beads. The contract is
+[`docs/contracts/codex-fanout-approval-packet.md`](../../docs/contracts/codex-fanout-approval-packet.md).
+
+Required sequence:
+
+1. Write at least three independent `PerspectivePlan` artifacts with different
+   lenses: product/user value, architecture/gate integrity, and
+   operations/migration risk.
+2. Winnow those plans into one `SynthesisPacket` with selected plan, rejected
+   alternatives, rationale, open questions, and risks.
+3. Invoke `$codex-approval` so an idle Fable/Claude-family ATM/NTM pane reviews
+   the `SynthesisPacket` and every `PerspectivePlan` path directly.
+4. Persist an `ApprovalEdge` with the validator pane, tmux capture, normalized
+   Fable verdict artifact, verdict, required changes, and accepted risks.
+
+`PASS` permits bead creation. `WARN is not` a silent pass: update the packet and
+rerun approval, or record an explicit accepted-risk note in the `ApprovalEdge`.
+`FAIL` blocks bead creation and returns Discovery to fanout/synthesis, up to
+three approval attempts.
+
 ## Open-Ended Path (generate-winnow → operationalize → refine)
 
 > **Additive to the default flow — it does not replace the strict-delegation contract or the artifact-first DAG.** This path activates for open-ended "improve the project"-style goals (`"improve the project"`, `"what should we build next"`, `"make X more robust"`) OR when `--ideate` is passed. For a specific goal, the default flow (brainstorm-clarify → research → plan → pre-mortem) is unchanged.
 
 On the open-ended path, Discovery prepends the generate-winnow methodology before research/plan and adds two steps after planning:
 
-1. **Ideate (delegate to `$brainstorm --ideate`).** Invoke `$brainstorm` in **ideation mode** as a separate skill invocation — strict delegation still applies; do NOT inline the 30-idea generation. It returns a ranked portfolio of **15** ideas (top 5 + next 10) with how/perceive/implement notes, rubric scores, and red-team findings.
-2. **Research + Plan + Pre-mortem.** Run the normal artifact-first DAG over the selected portfolio, scoped to the winnowed ideas rather than a single goal.
-3. **Operationalize.** Turn the ranked portfolio into a comprehensive, granular set of **self-documenting `bd` beads** — tasks, subtasks, dependency structure (`bd dep add`), and **explicit test tasks** (unit + e2e with detailed logging). Each bead carries what/why/how/risks/success so the original plan markdown never needs to be consulted again. Overlap-check against existing beads (`bd list --json`) before creating — merge, don't duplicate.
-4. **Refine in plan space (4-5 passes).** Before handing the packet to `$crank`, run **4-5 refinement passes** over the bead set. Each pass: **re-read AGENTS.md** (especially after compaction), check every bead for sense and optimality, and **DO NOT OVERSIMPLIFY / DO NOT LOSE FEATURES OR FUNCTIONALITY**. Validate between passes (no dependency cycles; every leaf actionable via `bd ready`).
+1. **Ideate (delegate to `brainstorm --ideate`).** Invoke `brainstorm` in **ideation mode** as a separate skill invocation — strict delegation still applies; do NOT inline the 30-idea generation. It returns a ranked portfolio of **15** ideas (top 5 + next 10) with how/perceive/implement notes, rubric scores, and red-team findings.
+2. **Research + fanout approval + Plan + Pre-mortem.** Run research over the selected portfolio. For Codex-led open-ended/high-risk work, produce `PerspectivePlan` artifacts, a `SynthesisPacket`, and a Fable `ApprovalEdge` before `$plan` creates tracker rows. Then run the normal artifact-first DAG over the approved packet rather than a single goal.
+3. **Operationalize.** Turn the ranked portfolio into a comprehensive, granular set of **self-documenting `br` beads** — tasks, subtasks, dependency structure (`br dep add`), and **explicit test tasks** (unit + e2e with detailed logging). Each bead carries what/why/how/risks/success so the original plan markdown never needs to be consulted again. Overlap-check against existing beads (`br list --json`) before creating — merge, don't duplicate.
+4. **Refine in plan space (4-5 passes).** Before handing the packet to `$crank`, run **4-5 refinement passes** over the bead set. Each pass: **re-read AGENTS.md** (especially after compaction), check every bead for sense and optimality, and **DO NOT OVERSIMPLIFY / DO NOT LOSE FEATURES OR FUNCTIONALITY**. Validate between passes (no dependency cycles; every leaf actionable via `br ready`).
 
-> Tracking is **`bd`**, never `br`/`bv` — this is AgentOps.
+> Tracking is **`br`** with `bv` triage — this is AgentOps.
 
 ## Execution
 
@@ -102,7 +125,7 @@ and the acceptance-criteria YAML contract.
 | `--auto` | on | Fully autonomous; inverse of `--interactive`. Passed through to `$research` and `$plan`. |
 | `--interactive` | off | Human gates in research and plan. Does not affect pre-mortem. |
 | `--skip-brainstorm` | auto | Skip brainstorm when the goal is already specific. |
-| `--ideate` | auto | Force the open-ended generate-winnow path: delegate to `$brainstorm --ideate` (30→5→15), then operationalize into self-documenting `bd` beads and refine 4-5x in plan space. Auto-on for open-ended goals. |
+| `--ideate` | auto | Force the open-ended generate-winnow path: delegate to `brainstorm --ideate` (30→5→15), then operationalize into self-documenting `br` beads and refine 4-5x in plan space. Auto-on for open-ended goals. |
 | `--complexity=<level>` | auto | Force `fast`, `standard`, or `full`. |
 | `--no-budget` | off | Disable phase time budgets. |
 | `--no-scaffold` | off | Skip scaffold auto-invocation. |
