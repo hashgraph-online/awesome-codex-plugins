@@ -140,6 +140,16 @@
       "install_url": "https://raw.githubusercontent.com/hyhmrright/brooks-lint/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Casefile",
+      "url": "https://github.com/x4cc3/casefile",
+      "owner": "x4cc3",
+      "repo": "casefile",
+      "description": "Persistent security case tracking for bug bounties, CTFs, and security audits.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/x4cc3/casefile/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Claude Code for Codex",
       "url": "https://github.com/sendbird/cc-plugin-codex",
       "owner": "sendbird",
