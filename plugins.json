@@ -40,16 +40,6 @@
       "install_url": "https://raw.githubusercontent.com/yfge/agent-harness-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Agentizer",
-      "url": "https://github.com/Humiris/wwa-transform",
-      "owner": "Humiris",
-      "repo": "wwa-transform",
-      "description": "Turn any website into an AI-powered agentfront with split-pane",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/Humiris/wwa-transform/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Agent Workflow System",
       "url": "https://github.com/1139030773-cmd/agent-workflow-system",
       "owner": "1139030773-cmd",
@@ -58,6 +48,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/1139030773-cmd/agent-workflow-system/HEAD/plugins/agent-workflow-system/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agentizer",
+      "url": "https://github.com/Humiris/wwa-transform",
+      "owner": "Humiris",
+      "repo": "wwa-transform",
+      "description": "Turn any website into an AI-powered agentfront with split-pane",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Humiris/wwa-transform/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "AgentOps",
@@ -338,6 +338,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/epicsagas/llm-transpile/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "LVTD Skills",
+      "url": "https://github.com/LVTD-LLC/skills",
+      "owner": "LVTD-LLC",
+      "repo": "skills",
+      "description": "Reusable Agent Skills for Codex, Claude Code, and compatible clients, covering Django, Rust, Cookiecutter, SEO, traction, product marketing, and nonfiction publishing workflows.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/LVTD-LLC/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Personal Data Protection",

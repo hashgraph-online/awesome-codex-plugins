@@ -49,21 +49,6 @@
       "icon": "./plugins/yfge/agent-harness-skills/assets/icon.svg"
     },
     {
-      "name": "codiris-agentizer",
-      "displayName": "Agentizer",
-      "source": {
-        "source": "local",
-        "path": "./plugins/Humiris/wwa-transform"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Turn any website into an AI-powered agentfront with split-pane",
-      "icon": "./plugins/Humiris/wwa-transform/assets/logo-256.png"
-    },
-    {
       "name": "agent-workflow-system",
       "displayName": "Agent Workflow System",
       "source": {
@@ -77,6 +62,21 @@
       "category": "Development & Workflow",
       "description": "一套中文AI工作流系统：7个协作技能 + 行为规范宪法 + 会话恢复机制，模糊目标→可执行任务，全生命周期引导。Codex & Claude Code 双平台，新手友好。",
       "icon": "./plugins/1139030773-cmd/agent-workflow-system/assets/composer-icon.svg"
+    },
+    {
+      "name": "codiris-agentizer",
+      "displayName": "Agentizer",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Humiris/wwa-transform"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Turn any website into an AI-powered agentfront with split-pane",
+      "icon": "./plugins/Humiris/wwa-transform/assets/logo-256.png"
     },
     {
       "name": "agentops",
@@ -489,6 +489,21 @@
       "category": "Development & Workflow",
       "description": "Auto-compress .md, .html, and .txt files via PostToolUse hook, cutting context usage by up to 40% with zero workflow change.",
       "icon": "./plugins/epicsagas/llm-transpile/assets/icon.png"
+    },
+    {
+      "name": "lvtd-skills",
+      "displayName": "LVTD Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/LVTD-LLC/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Reusable Agent Skills for Codex, Claude Code, and compatible clients, covering Django, Rust, Cookiecutter, SEO, traction, product marketing, and nonfiction publishing workflows.",
+      "icon": "./plugins/LVTD-LLC/skills/assets/app-icon.png"
     },
     {
       "name": "personal-data-protection",
