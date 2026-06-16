@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEO Opportunity Research"
+  short_description: "Find blue-ocean SEO opportunities and competitive gaps."
+  default_prompt: "Find SEO opportunities for this product without copying competitors."

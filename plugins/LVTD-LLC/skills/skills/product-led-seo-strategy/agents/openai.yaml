@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product-Led SEO Strategy"
+  short_description: "Plan SEO around product and user value."
+  default_prompt: "Create a product-led SEO strategy for this product."

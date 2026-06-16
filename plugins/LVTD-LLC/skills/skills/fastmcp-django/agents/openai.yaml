@@ -1,0 +1,4 @@
+interface:
+  display_name: "FastMCP Django"
+  short_description: "Add MCP functionality to Django apps with FastMCP."
+  default_prompt: "Add MCP functionality to this Django app using FastMCP."
