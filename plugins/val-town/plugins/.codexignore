@@ -1,3 +1,0 @@
-# Files to exclude from Codex plugin packaging
-.DS_Store
-node_modules/

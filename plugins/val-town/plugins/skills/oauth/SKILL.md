@@ -45,7 +45,30 @@ You don't write the `/auth/*` routes yourself — the middleware adds them. Don'
 
 ## Reading the current user
 
-Call `getOAuthUserData(rawRequest)` from any route. In Hono, `rawRequest` is `c.req.raw`. It returns the session data (with `user.username` and other Val Town profile fields) if the request is authenticated, or `null` otherwise.
+Call `getOAuthUserData(rawRequest)` from any route. In Hono, `rawRequest` is `c.req.raw`. It returns the session data if the request is authenticated, or `null` otherwise.
+
+```ts
+interface SessionData {
+  user: {
+    id: string;
+    username: string | null;
+    email: string | null;
+    bio: string | null;
+    tier: "free" | "pro" | null;
+    type: "user" | "org";
+    url: string;
+    links: {
+      self: string;
+      profileImageUrl: string | null;
+    };
+  };
+  accessToken: string; // Val Town API token (act on behalf of the user)
+  refreshToken?: string;
+  idToken?: string;
+  expiresAt: number; // Unix timestamp (ms)
+  isOrgMember?: boolean; // true if user belongs to this val's org
+}
+```
 
 ```ts
 app.get("/", async (c) => {

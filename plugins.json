@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-16",
-  "total": 109,
+  "total": 111,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1078,6 +1078,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/klajdikkolaj/upwork-autopilot/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Val Town",
+      "url": "https://github.com/val-town/plugins",
+      "owner": "val-town",
+      "repo": "plugins",
+      "description": "Build and deploy serverless TypeScript on Val Town from Codex — hosted MCP server plus skills for HTTP vals, cron, SQLite, email, OAuth, and React UI.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/val-town/plugins/HEAD/plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "VidSeeds.ai",

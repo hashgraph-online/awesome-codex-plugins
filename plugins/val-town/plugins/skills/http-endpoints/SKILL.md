@@ -36,7 +36,7 @@ app.onError((err) => Promise.reject(err));
 export default app.fetch;
 ```
 
-`serveStatic` and `cors` middleware from Hono do **not** work on Val Town. Use `serveFile` / `staticHTTPServer` from `std/utils` for static files, and rely on Val Town's default CORS (see below).
+`serveStatic` and `cors` middleware from Hono do **not** work on Val Town. Use `serveFile` / `staticHTTPServer` from `std/utils` for static files, and rely on Val Town's default CORS (see below). For the full `std/utils` API (`readFile`, `serveFile`, `staticHTTPServer`, `listFiles`, `listFilesByPath`, `httpEndpoint`, `parseVal`, …), fetch `https://utilities.val.run/docs.md`.
 
 ## CORS
 

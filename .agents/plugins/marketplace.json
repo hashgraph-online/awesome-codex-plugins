@@ -1576,6 +1576,21 @@
       "description": "Controlled Upwork job search, qualification, and proposal submission sessions through a dedicated Chrome profile."
     },
     {
+      "name": "vals",
+      "displayName": "Val Town",
+      "source": {
+        "source": "local",
+        "path": "./plugins/val-town/plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Build and deploy serverless TypeScript on Val Town from Codex — hosted MCP server plus skills for HTTP vals, cron, SQLite, email, OAuth, and React UI.",
+      "icon": "./plugins/val-town/plugins/assets/icon.svg"
+    },
+    {
       "name": "vidseeds",
       "displayName": "VidSeeds.ai",
       "source": {
