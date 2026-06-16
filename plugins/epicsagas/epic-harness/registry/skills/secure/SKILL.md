@@ -1,6 +1,6 @@
 ---
 name: secure
-description: "Trigger: auth, DB, API, infra, or secrets code touched — security checklist."
+description: "Security review checklist with optional engagement scoping. Use when auth, DB, API, infra, or secrets code is touched."
 ---
 
 # Secure — Security Review
@@ -11,10 +11,36 @@ NO DEPLOYMENT WITHOUT SECURITY REVIEW OF ALL CHANGED FILES. Every code change is
 
 ## Process
 
-1. Identify security-relevant changes from the diff (auth, DB, API, infra, secrets)
-2. Run the Checklist below, marking each item as pass, fail, or N/A with reason
-3. For each failure, cite the file and line number with severity (CRITICAL/HIGH/MEDIUM)
-4. Report findings using the Evidence Required section
+### Step 0: Load Engagement Context (Optional)
+
+Check for engagement scoping:
+```bash
+cat .harness/engagement.md 2>/dev/null
+```
+
+If `.harness/engagement.md` exists:
+1. Parse the **Scope**, **Constraints**, and **Exclusions** sections
+2. Restrict security checks to in-scope components
+3. Apply rules of engagement (method, rate limits, no-exfil rules)
+4. Skip findings matching exclusion patterns
+5. Include engagement reference in report header
+
+If not found: apply full OWASP Top 10 checklist (default behavior). No scope restrictions.
+
+See `references/engagement.md` for the engagement file format.
+
+### Step 1: Identify Security-Relevant Changes
+
+Identify security-relevant changes from the diff (auth, DB, API, infra, secrets).
+
+### Step 2: Run Checklist
+
+Run the Checklist below, marking each item as pass, fail, or N/A with reason.
+
+### Step 3: Report
+
+For each failure, cite the file and line number with severity (CRITICAL/HIGH/MEDIUM).
+Report findings using the Evidence Required section.
 
 ## When to Trigger
 - Authentication or authorization code changed
@@ -61,6 +87,7 @@ See `references/security.md` for the full OWASP Top 10 checklist.
 | "We'll harden it before production" | Security bolted on later is always incomplete. | Build it secure now. Retrofitting misses edge cases. |
 | "It's an internal API, no one will abuse it" | Lateral movement attacks start from internal APIs. | Internal does not mean trusted. Validate and authorize every request. |
 | "I'll just disable CORS for development" | Dev shortcuts leak into production. | Use a proper CORS allow-list from day one. |
+| "Engagement scoping is bureaucratic overhead" | Unscoped assessments waste time on irrelevant surface area. | Define scope once, get focused results. Opt-in only. |
 
 ## Evidence Required
 
@@ -71,6 +98,7 @@ Before claiming security review is complete, show ALL applicable:
 - [ ] Parameterized queries used: show the query code (no string concat)
 - [ ] Auth checks present on new endpoints: show the middleware/guard
 - [ ] `.env` in `.gitignore`: confirmed
+- [ ] Engagement context loaded (or confirmed absent): scope applied to findings
 
 **A blank checklist is not a review. Each item needs a pass or N/A.**
 
@@ -78,3 +106,5 @@ Before claiming security review is complete, show ALL applicable:
 - Storing secrets in code or config files committed to git
 - Using `HTTP` instead of `HTTPS` for sensitive data
 - `eval()` or string-concatenated SQL anywhere
+- Skipping engagement scope when `.harness/engagement.md` is present
+- Reporting findings outside authorized scope as blockers (informational only)

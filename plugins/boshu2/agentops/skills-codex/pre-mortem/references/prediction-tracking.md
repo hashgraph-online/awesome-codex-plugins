@@ -35,7 +35,7 @@ Each finding in the pre-mortem report includes its prediction ID:
 
 ## Downstream Correlation
 
-### In $vibe (Step 3.6)
+### In $validate (Step 3.6)
 
 When a pre-mortem report exists for the current epic:
 1. Load prediction IDs from the most recent pre-mortem report

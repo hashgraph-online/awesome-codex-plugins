@@ -57,7 +57,7 @@ elif file.endswith('.rs'):
 
 ## Domain-Specific Checklists
 
-Specialized checklists for high-risk code patterns. Loaded automatically by `$vibe` and `$pre-mortem` when matching code patterns are detected:
+Specialized checklists for high-risk code patterns. Loaded automatically by `$validate` and `$pre-mortem` when matching code patterns are detected:
 
 | Checklist | Trigger Pattern | Risk Area |
 |-----------|----------------|-----------|
@@ -83,18 +83,18 @@ For comprehensive audits, skills can load extended standards from
 ## Integration
 
 Skills that use standards:
-- `$vibe` - Loads based on changed file types
+- `$validate` - Loads based on changed file types
 - `$implement` - Loads for files being modified
 - `$review` - Loads for change-quality and blast-radius checks
 - `$doc` - Loads markdown standards
-- `$bug-hunt` - Loads for root cause analysis
-- `$complexity` - Loads for refactoring recommendations
+- `$review` - Loads for root cause analysis
+- `$refactor` - Loads for refactoring recommendations
 
 ## Examples
 
 ### Vibe Loads Python Standards
 
-**User says:** `$vibe` (detects changed Python files)
+**User says:** `$validate` (detects changed Python files)
 
 **What happens:**
 1. Vibe skill checks git diff for file types

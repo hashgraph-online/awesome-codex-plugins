@@ -1,8 +1,6 @@
-# red-team
+# red-team (Codex)
 
-Persona-based adversarial validation. Probes whether docs and skills actually work when someone with constraints tries to use them. Spawns context-restricted agents that attempt real tasks, then consolidates findings via council. Triggers: "red-team", "red team", "adversarial test", "persona test", "can someone use this", "usability test", "zero-context test".
-
-## Instructions
-
-Load and follow the skill instructions from the sibling `SKILL.md` file for this skill.
-Then read local files in `references/` and `scripts/` when needed.
+This skill moved to Mount Olympus (2026-06-10). Canonical home: the
+mt-olympus repository, project skill `red-team`. Read and follow the canonical
+SKILL.md there; this generated prompt is a routing stub kept for parity
+until the catalog closer updates the registry (skill-prune Lane A).

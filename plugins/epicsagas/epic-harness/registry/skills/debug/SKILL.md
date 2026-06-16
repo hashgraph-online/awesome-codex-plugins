@@ -1,6 +1,6 @@
 ---
 name: debug
-description: "Trigger: test failure, runtime error, or unexpected behavior. Systematic root-cause isolation."
+description: "Systematic root-cause isolation for test failures, runtime errors, or unexpected behavior. Narrow hypothesis → verify → fix."
 ---
 
 # Debug — Systematic Debugging

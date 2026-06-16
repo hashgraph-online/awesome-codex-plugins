@@ -1,6 +1,6 @@
 ---
 name: evolve
-description: "Ring 3 evolution engine: analyze session observations, generate/improve evolved skills, show metrics dashboard. Subcommands: status, history, rollback, reset. Trigger: /evolve, post-session review, skill improvement."
+description: "Ring 3 evolution engine. Analyzes session observations, generates and improves evolved skills, shows metrics dashboard. Subcommands: status, history, rollback, reset. Use for post-session review and skill improvement."
 ---
 
 # /evolve — Manual Evolution Trigger

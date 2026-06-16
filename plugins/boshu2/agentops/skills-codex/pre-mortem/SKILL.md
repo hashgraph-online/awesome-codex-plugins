@@ -548,7 +548,7 @@ $pre-mortem                    ← You are here
 
 - `../council/SKILL.md` — Multi-model validation council
 - `../plan/SKILL.md` — Create implementation plans
-- `../vibe/SKILL.md` — Validate code after implementation
+- `../validate/SKILL.md` — Validate code after implementation
 
 ## Reference Documents
 

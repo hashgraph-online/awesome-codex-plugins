@@ -52,7 +52,7 @@ Work with blockers, prerequisites, or hierarchical structure.
 - Refactoring with dependencies between different code areas
 - Migration requiring sequential steps in specific order
 
-**Why bd wins**: Dependency graph shows what's blocking what. `bd ready` automatically surfaces unblocked work. No manual tracking required.
+**Why bd wins**: Dependency graph shows what's blocking what. `br ready` automatically surfaces unblocked work. No manual tracking required.
 
 #### Knowledge Work
 Tasks with fuzzy boundaries, exploration, or strategic thinking.
@@ -317,7 +317,7 @@ refactor-4: "Update payment controller to use shared validation"
 
 **Task tools role**: Could use Task tools for individual controller updates as implementing.
 
-**Why this works**: bd ensures you don't forget to update a controller. `bd ready` shows next available work. Dependencies prevent starting controller update before extraction complete.
+**Why this works**: bd ensures you don't forget to update a controller. `br ready` shows next available work. Dependencies prevent starting controller update before extraction complete.
 
 ## Common Mistakes
 
@@ -355,7 +355,7 @@ refactor-4: "Update payment controller to use shared validation"
 **What happens**:
 - Every tiny task gets an issue
 - Database cluttered with trivial items
-- Hard to find meaningful work in `bd ready`
+- Hard to find meaningful work in `br ready`
 
 **Solution**: Reserve bd for work that actually benefits from persistence. Use "2 week test" - would bd help resume after 2 weeks? If no, skip it.
 

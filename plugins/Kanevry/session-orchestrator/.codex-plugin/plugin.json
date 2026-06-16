@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "description": "Session-level orchestration for structured planning, wave execution, quality gates, and clean session close-out",
   "author": {
     "name": "Bernhard Goetzendorfer",

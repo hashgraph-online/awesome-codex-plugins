@@ -60,13 +60,18 @@ if [[ ! -x "$OCTO_PLUGIN_ROOT/scripts/orchestrate.sh" ]]; then
   )"
 fi
 if [[ -z "$OCTO_PLUGIN_ROOT" || ! -x "$OCTO_PLUGIN_ROOT/scripts/orchestrate.sh" ]]; then
-  echo "Claude Octopus plugin root not found. Reinstall the octo plugin, then retry /octo:doctor."
+  echo "Claude Octopus plugin root not found. Reinstall the octo plugin, then retry doctor diagnostics."
   exit 1
 fi
 mkdir -p "${HOME}/.claude-octopus"
-ln -sfn "$OCTO_PLUGIN_ROOT" "${HOME}/.claude-octopus/plugin" 2>/dev/null || true
+_octo_stable="${HOME}/.claude-octopus/plugin"
+if [[ ! -L "$_octo_stable" ]] || [[ "$(cd "$OCTO_PLUGIN_ROOT" 2>/dev/null && pwd -P)" != "$(cd "$_octo_stable" 2>/dev/null && pwd -P)" ]]; then
+  [[ -L "$_octo_stable" || -f "$_octo_stable" ]] && rm -f "$_octo_stable" 2>/dev/null || true
+  ln -s "$OCTO_PLUGIN_ROOT" "$_octo_stable" 2>/dev/null || true
+fi
+unset _octo_stable
 export OCTO_PLUGIN_ROOT
-cd "$OCTO_PLUGIN_ROOT" && bash scripts/orchestrate.sh doctor
+bash "$OCTO_PLUGIN_ROOT/scripts/orchestrate.sh" doctor
 ```
 
 This runs all 11 check categories and displays a formatted report.
@@ -76,17 +81,17 @@ This runs all 11 check categories and displays a formatted report.
 If the user asks about a specific area, filter:
 
 ```bash
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor providers
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor auth
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor config
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor state
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor smoke
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor hooks
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor scheduler
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor skills
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor conflicts
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor agents
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor recurrence
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor providers
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor auth
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor config
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor state
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor smoke
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor hooks
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor scheduler
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor skills
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor conflicts
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor agents
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor recurrence
 ```
 
 ### Step 3: Check & Install Dependencies
@@ -103,19 +108,19 @@ If the check reports missing deps, offer to install them:
 bash "${HOME}/.claude-octopus/plugin/scripts/install-deps.sh" install
 ```
 
-This auto-installs: Codex CLI, Gemini CLI, jq, and the statusline resolver. For plugins (claude-mem, document-skills), it prints `/plugin install` commands the user must run manually.
+This auto-installs: Codex CLI, Gemini CLI, jq, and the statusline resolver. Antigravity CLI (`agy`) setup is detected and reported with install guidance. For plugins (claude-mem, document-skills), it prints `/plugin install` commands the user must run manually.
 
 ### Step 4: Verbose or JSON Output
 
 ```bash
 # Detailed output for troubleshooting
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor --verbose
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor --verbose
 
 # Machine-readable output
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor --json
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor --json
 
 # Combine: specific category + verbose
-cd "${HOME}/.claude-octopus/plugin" && bash scripts/orchestrate.sh doctor auth --verbose
+bash "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" doctor auth --verbose
 ```
 
 ### Step 5: Interactive Remediation (MANDATORY for fixable issues)
@@ -158,7 +163,7 @@ AskUserQuestion({
 })
 ```
 
-**Missing providers (Codex/Gemini not installed):**
+**Missing optional providers:**
 ```javascript
 AskUserQuestion({
   questions: [{
@@ -168,6 +173,7 @@ AskUserQuestion({
     options: [
       {label: "Codex CLI", description: "npm install -g @openai/codex"},
       {label: "Gemini CLI", description: "brew install gemini-cli (macOS)"},
+      {label: "Antigravity CLI", description: "Install agy, then verify with agy --version && agy models"},
       {label: "Skip all", description: "Continue with available providers"}
     ]
   }]
@@ -184,7 +190,7 @@ Offer to run the login command for the expired provider.
 
 | Category | What it checks |
 |----------|---------------|
-| `providers` | Claude Code version, Codex CLI installed, Gemini CLI installed, Perplexity API key, Ollama local LLM (server + models), circuit breaker status, provider fallback history |
+| `providers` | Claude Code version, Codex CLI installed, Gemini CLI installed, Antigravity CLI installed, Perplexity API key, Ollama local LLM (server + models), circuit breaker status, provider fallback history |
 | `auth` | Authentication status for each provider |
 | `config` | Plugin version, install scope, feature flags |
 | `state` | Project state.json, stale results, workspace writable |
@@ -195,7 +201,7 @@ Offer to run the login command for the expired provider.
 | `conflicts` | Conflicting plugins detection |
 | `agents` | Agent definitions, worktree isolation, CLI registration, version compatibility |
 | `recurrence` | Failure pattern detection — flags repeated quality gate failures, source hotspots, 48h trends |
-| `deps` | Software dependencies — Node.js, jq, Codex/Gemini CLIs, RTK token compression (gain stats + hook status), statusline resolver, recommended plugins |
+| `deps` | Software dependencies — Node.js, jq, Codex, Gemini, Antigravity CLIs, RTK token compression (gain stats + hook status), statusline resolver, recommended plugins |
 
 
 ## Interpreting Results
@@ -210,6 +216,7 @@ All checks pass — no action needed.
 |-------|-----|
 | Codex CLI not found | `npm install -g @openai/codex` or install via `codex login` |
 | Gemini CLI not found | Install Gemini CLI from Google |
+| Antigravity CLI not found | Install `agy`, then verify with `agy --version` and `agy models` |
 | Perplexity not configured | `export PERPLEXITY_API_KEY="pplx-..."` (optional) |
 | Auth expired | Re-run `codex login` or `gemini login` |
 | Circuit breaker OPEN | Provider had 3+ consecutive transient failures — wait for cooldown or check provider status |
@@ -310,9 +317,12 @@ Without a `RUNTIME.md`, orchestration prompts lack project-specific details — 
 
 ## Quick Reference
 
-| User Input | Action |
-|------------|--------|
-| `/octo:doctor` | Run all 11 categories |
-| `/octo:doctor providers` | Check provider installation only |
-| `/octo:doctor auth --verbose` | Detailed auth status |
-| `/octo:doctor --json` | Machine-readable output |
+`/octo:doctor` was removed in v9.41.0 to preserve Claude Code's native `/doctor` command.
+Invoke this skill by asking Claude naturally, or run the orchestrator directly:
+
+| What to say / run | Action |
+|-------------------|--------|
+| "run Octopus doctor diagnostics" | Run all 11 categories |
+| "check Octopus providers" | Check provider installation only |
+| `bash scripts/orchestrate.sh doctor auth --verbose` | Detailed auth status |
+| `bash scripts/orchestrate.sh doctor --json` | Machine-readable output |

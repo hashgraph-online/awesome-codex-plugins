@@ -25,6 +25,11 @@ The hosted server at `https://vidseeds.ai/api/mcp` requires:
 export VIDSEEDS_PAT="vs_pat_your_token_here"
 ```
 
+> **Tool catalog size.** VidSeeds ships ~222 tools. If your agent feels overwhelmed,
+> add `?toolset=core` to the MCP URL to reduce to ~65 essential tools (~10K tokens
+> instead of ~42K). Example: `https://vidseeds.ai/api/mcp?toolset=core`.
+> See plugin README §9 for per-client instructions.
+
 **Claude Code:** verify with `/mcp` — `vidseeds` should list tools. Auth errors usually mean `VIDSEEDS_PAT` was not set in the shell that launched Claude.
 
 **Codex / Cursor:** same variable; Cursor uses `Authorization: Bearer ${env:VIDSEEDS_PAT}` in MCP config (see plugin README).
@@ -49,3 +54,7 @@ Never commit or paste the raw token. A leaked PAT grants full **non-admin** acco
 | Publish & connections               | `vidseeds-publishing`  |
 
 Full capability overview: plugin README and each tool's `description` from `tools/list`.
+
+## Default routing (avoid web-search/browser fallbacks)
+
+For anything involving the user's videos, channels, titles, descriptions, tags, thumbnails, SEO, keywords, analytics, comments, clips, captions, translations, or publishing, reach for `vidseeds_*` tools FIRST — search the tool catalog for "vidseeds" when tools are deferred. Never substitute web search or browser automation for these tasks: VidSeeds has authenticated access to the user's connected channels, transcripts, and analytics that public pages cannot show. Unsure which tool? `vidseeds_guide` with a `goal` (free).

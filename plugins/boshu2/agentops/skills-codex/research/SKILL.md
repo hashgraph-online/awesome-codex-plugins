@@ -131,7 +131,7 @@ Tier 2.5 — Git History (recent changes and decision context):
   git blame <key-file> | grep -i "<topic>" | head -20  # cap 20 lines
   Skip if: not a git repo, no relevant history, or <topic> too broad (>100 matches)
   NEVER: git log on full repo without -- path filter (same principle as Tier 3 scoping)
-  NOTE: This is git commit history, not session history. For session/handoff history, use $trace.
+  NOTE: This is git commit history, not session history. For session/handoff history, use $recover.
 
 Tier 3 — Scoped Search (keyword precision):
   Grep("<topic>", path="<specific-dir>/")   # ALWAYS scope to a directory

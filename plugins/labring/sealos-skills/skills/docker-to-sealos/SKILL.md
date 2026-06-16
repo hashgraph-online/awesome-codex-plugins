@@ -31,6 +31,7 @@ Extract from Docker Compose/docs:
 - volumes/config mounts/object storage requirements
 - ports, dependencies, service communication
 - env vars and secret usage
+- startup-time validation rules for bootstrap credentials, API keys, salts, secrets, and feature flags
 - resource limits/requests and health checks
 - if official Kubernetes installation docs/manifests are available, also extract app-runtime behavior from them (bootstrap admin fields, external endpoint/protocol assumptions, health probes, startup/init flow)
 
@@ -74,6 +75,10 @@ Apply field-level mappings from `references/conversion-mappings.md`, including:
 - MySQL/MongoDB/Redis/Kafka must use templates and secret naming from `references/database-templates.md`.
 - Add DB init Job/initContainer when application database bootstrap requires it.
 - For PostgreSQL custom databases (non-`postgres`), the init Job must wait for PostgreSQL readiness before execution and create the target database idempotently.
+- Critical application compatibility objects must be verified in live database state. Use idempotent initContainer self-healing for compatibility views, legacy tables/views, indexes, extensions, search paths, and bootstrap state that the app requires on every cold start.
+- One-shot init Jobs may create initial databases or seed state, but app startup gates must verify the final database objects directly. Treat TTL-expired Jobs as historical evidence and rely on database state for acceptance.
+- PostgreSQL bootstrap shell must use safe quoting patterns. Prefer shell-level existence checks plus simple SQL statements when possible. Use single-quoted heredocs or SQL files for psql variable interpolation, and avoid PL/pgSQL `DO $$` blocks in inline shell commands when a guard query can express the same logic.
+- Do not use `psql -c "..."` for `:'var'` variable interpolation. Use `psql -v name=value <<'SQL' ... :'name' ... SQL` or pass already-safe literal SQL.
 
 ### Step 6: Generate output files
 
@@ -115,6 +120,7 @@ If validation fails, fix template/rules/examples first.
 - App resource must use `spec.data.url`.
 - App resource `spec.displayType` must be `normal`.
 - App resource `spec.type` must be `link`.
+- App resource `spec.data.url` must be the browser entry URL that succeeds from a fresh Sealos launch. For apps with safe-path, setup-path, or entrance-path behavior, verify the configured path and root path, then choose the URL that supports login or first-run setup without hidden prior navigation.
 - Never use `spec.template` in App resource.
 - `cloud.sealos.io/app-deploy-manager` label value must equal resource `metadata.name`.
 - `metadata.labels.app` label value must equal resource `metadata.name` for managed app workloads.
@@ -148,8 +154,12 @@ If validation fails, fix template/rules/examples first.
 
 - Do not use `emptyDir`.
 - Use persistent storage patterns (`volumeClaimTemplates`) where storage is needed.
+- StatefulSet resources with `volumeClaimTemplates` must set `metadata.labels.cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}` and every `volumeClaimTemplates[].metadata.labels.cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}` so Template can track and clean PVCs.
 - PVC request must be `<= 1Gi` unless source spec explicitly requires less.
-- ConfigMap keys and volume names must follow vn naming (`scripts/path_converter.py`).
+- ConfigMap data keys must follow vn naming (`scripts/path_converter.py`), including `/`, `-`, `.`, and other special characters.
+- ConfigMaps mounted by managed Deployment/StatefulSet workloads must use `metadata.name == workload.metadata.name`.
+- ConfigMap workload volumes must use `<workload-name>-cm`, and every ConfigMap `data` key must be mounted as its own `volumeMount` with `subPath` exactly equal to that key.
+- Avoid long inline startup scripts or heredocs in `command`/`args`; place initialization/start scripts in ConfigMap files and invoke them with a short command.
 
 ### Env and secrets
 
@@ -162,6 +172,11 @@ If validation fails, fix template/rules/examples first.
 - Follow official app env var naming; do not invent prefixes.
 - When the application requires its public URL configured via a file-based config system (e.g., node-config `config/default.json`, PHP config files), create a ConfigMap containing the config file with the public URL set to `https://${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}`, and mount it to the application's config directory. The ConfigMap must follow standard naming and label conventions.
 - For PostgreSQL custom databases (non-`postgres`), include `${{ defaults.app_name }}-pg-init` Job and implement startup-safe/idempotent creation logic (readiness wait + existence check before create).
+- For application-specific database compatibility, include an initContainer or startup gate that idempotently creates or repairs required views, aliases, indexes, extensions, privileges, role search paths, and legacy compatibility objects before the business container starts.
+- Managed app main container `command`/`args` must stay close to the image's official entrypoint. Keep only official startup commands, Compose-native args, or a short exec wrapper; move file preparation, permission repair, database bootstrap, and compatibility self-healing into initContainers, Jobs, or ConfigMap scripts.
+- Shell wrappers in the main business container must `exec` the final process so signal handling remains correct.
+- Database bootstrap SQL must be safe under shell execution: prefer shell-level guard queries plus simple SQL, use single-quoted heredocs for psql variables, and avoid unguarded inline `DO $$` blocks.
+- `psql -c` must not contain `:'var'` psql variable syntax; use heredocs for SQL that needs `-v` interpolation.
 
 ### Database-specific constraints
 
@@ -218,6 +233,9 @@ For Chrome + Xvfb + Selkies with 4K max display, use at least:
 - `defaults` for generated values (`app_name`, `app_host`, random passwords/keys).
 - `inputs` only for truly user-provided operational values (email/SMTP/external API keys, etc.).
 - `inputs.description` must be in English.
+- Startup-critical `inputs[*].default` values must satisfy the application's documented startup validation. For admin/bootstrap passwords with complexity rules, do not use `''`, weak examples, or bare `${{ random(n) }}` because generated characters may not include required classes; include deterministic required classes around the random segment, for example `"AppName@${{ random(16) }}!1"`.
+- If an application exits when a required input is weak or empty, treat the input default as part of the runtime contract. Live validation must include the first boot logs and login/setup path with the generated default value.
+- For binary object storage choices, use a boolean input (for example `enable_s3_storage`) and test with `inputs.<name> === 'true'`.
 
 ## Validation Commands
 
@@ -231,6 +249,7 @@ Run all checks before final response:
 6. `python scripts/check_consistency.py --skill SKILL.md --references references --rules-file references/rules-registry.yaml --artifacts template/<app-name>/index.yaml`
 7. `python scripts/check_must_coverage.py --skill SKILL.md --mapping references/must-rules-map.yaml --rules-file references/rules-registry.yaml`
 8. (CI / one-shot) `python scripts/quality_gate.py` (requires `template/*/index.yaml` by default; set `DOCKER_TO_SEALOS_ALLOW_EMPTY_ARTIFACTS=1` only for dev/debug without artifacts)
+9. Live deploy acceptance: after `sealos-deploy` creates the app, verify the actual App URL, login/setup flow for web apps, recent logs, expected database objects, and full resource footprint before reporting success.
 
 `check_consistency.py` is registry-driven. Keep `references/rules-registry.yaml` in sync with implemented rules.
 Registry rule entries support `severity` and optional `scope.include_paths` metadata.

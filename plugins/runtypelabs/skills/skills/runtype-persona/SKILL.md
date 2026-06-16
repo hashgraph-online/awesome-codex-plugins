@@ -39,10 +39,13 @@ more embed prose to this skill.
 - ESM entry: `https://cdn.jsdelivr.net/npm/@runtypelabs/persona@latest/dist/index.js`.
 - CSS for ESM/npm usage: `@runtypelabs/persona/widget.css`.
 - Init function: `initAgentWidget()`.
-- Ready event: `persona:ready`.
+- Ready event: `persona:chat-ready`; `persona:ready` is a deprecated alias only.
+- Ready callback: `onChatReady(handle)`; `onReady` is a deprecated alias only.
+- Controller events include `user:message` and `assistant:complete`.
 
 Common wrong answers: `@runtype/persona`, `Persona.mount()`, `window.Persona`,
-`index.umd.js`, missing `widget.css`, or `widget:ready`.
+`index.umd.js`, missing `widget.css`, `widget:ready`, `message:sent`, or
+`message:received`.
 
 ## Build Pattern
 
@@ -53,6 +56,11 @@ Common wrong answers: `@runtype/persona`, `Persona.mount()`, `window.Persona`,
 5. For internal/debug widgets, expose useful traces intentionally.
 6. For custom themes, set explicit high-contrast component tokens and verify header,
    launcher, user message, primary button, tool call, and reasoning bubble contrast.
+7. Keep Persona's default HTML sanitization enabled unless all rendered content is
+   trusted.
+8. If the assistant should ask structured follow-up questions or suggest replies, set
+   `features.askUserQuestion.expose: true` or `features.suggestReplies.expose: true`
+   in the widget config instead of hand-writing duplicate local tools.
 
 ## Fullscreen Assistant Layouts
 
@@ -79,6 +87,7 @@ Good local tool examples:
 Required WebMCP setup:
 
 - Create a client token whose `allowedOrigins` includes the embedding page origin.
+- Enable page-tool consumption in the widget config with `webmcp: { enabled: true }`.
 - Set the `chat` surface `behavior.webmcp.enabled` to `true`.
 - Add origin-scoped `behavior.webmcp.allowlist` rules for page tools that should be
   callable, e.g. `{ origin: "https://store.example.com", tools: ["search_*"] }`.

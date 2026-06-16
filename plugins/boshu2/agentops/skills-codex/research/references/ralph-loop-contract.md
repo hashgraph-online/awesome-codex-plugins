@@ -38,7 +38,7 @@ Use this as the source-of-truth for Ralph alignment in AgentOps orchestration sk
 | Fresh context per loop | New workers/teams per wave in `$swarm`; fresh phase context in `ao rpi phased` |
 | Main context as scheduler | Mayor/lead orchestration in `$swarm` and `$crank` |
 | One task per pass | One issue per worker assignment in swarm/crank waves |
-| Backpressure | `$vibe`, task validation hooks, tests/lint gates, push/pre-mortem gates |
+| Backpressure | `$validate`, task validation hooks, tests/lint gates, push/pre-mortem gates |
 | Outer loop restart | Wave loop in `$crank`; phase loop in `ao rpi phased` |
 
 ## Implementation Notes

@@ -102,13 +102,13 @@ Everything else is literally s/bd/br/g
 
 | bd | br | Change Type |
 |----|-----|-------------|
-| `bd ready` | `br ready` | Name only |
-| `bd list` | `br list` | Name only |
+| `br ready` | `br ready` | Name only |
+| `br list` | `br list` | Name only |
 | `bd show <id>` | `br show <id>` | Name only |
-| `bd create` | `br create` | Name only |
+| `br create` | `br create` | Name only |
 | `bd update` | `br update` | Name only |
 | `bd close` | `br close` | Name only |
-| `bd dep add` | `br dep add` | Name only |
+| `br dep add` | `br dep add` | Name only |
 | `bd stats` | `br stats` | Name only |
 | `bd sync` | `br sync --flush-only` + git | **BEHAVIORAL** |
 
@@ -223,17 +223,17 @@ reason: br-123
 
 ```bash
 # Before → After (all identical except name)
-bd ready              → br ready
-bd list               → br list
-bd list --status=open → br list --status=open
+br ready              → br ready
+br list               → br list
+br list --status=open → br list --status=open
 bd show <id>          → br show <id>
-bd create             → br create
-bd create --title="..." --type=task --priority=2 → br create --title="..." --type=task --priority=2
+br create             → br create
+br create --title="..." --type=task --priority=2 → br create --title="..." --type=task --priority=2
 bd update <id>        → br update <id>
 bd update <id> --status=in_progress → br update <id> --status=in_progress
 bd close <id>         → br close <id>
 bd close <id> --reason="Done" → br close <id> --reason="Done"
-bd dep add            → br dep add
+br dep add            → br dep add
 bd stats              → br stats
 ```
 
@@ -259,7 +259,7 @@ git commit -m "..."   # YOU commit
 
 **Before:**
 ```markdown
-1. **Start**: Run `bd ready` to find actionable work
+1. **Start**: Run `br ready` to find actionable work
 2. **Claim**: Use `bd update <id> --status=in_progress`
 3. **Work**: Implement the task
 4. **Complete**: Use `bd close <id>`
@@ -281,7 +281,7 @@ git commit -m "..."   # YOU commit
 ```markdown
 ### Agent workflow:
 
-1. `bd ready` to find unblocked work.
+1. `br ready` to find unblocked work.
 2. Claim: `bd update <id> --status in_progress`.
 3. Implement + test.
 4. Close when done.
@@ -378,7 +378,7 @@ git status  # MUST show "up to date with origin"
 ```markdown
 1. **Pick ready work (Beads):**
    ```bash
-   bd ready --json
+   br ready --json
    ```
 
 2. **Reserve edit surface (Mail):**
@@ -429,15 +429,15 @@ Key invariants:
 
 Check ready work:
 ```bash
-bd ready --json
+br ready --json
 ```
 
 ### Essential Commands
 
 ```bash
-bd ready              # Show issues ready to work
-bd list --status=open # All open issues
-bd create --title="..." --type=task --priority=2
+br ready              # Show issues ready to work
+br list --status=open # All open issues
+br create --title="..." --type=task --priority=2
 bd update <id> --status=in_progress
 bd close <id> --reason="Completed"
 bd sync               # Commit and push changes
@@ -634,7 +634,7 @@ grep -in 'daemon\|hook\|rpc' file.md
 
 **Detection (comprehensive):**
 ```bash
-grep -E '(bd ready|bd list|bd show|bd create|bd update|bd close|bd sync|bd dep|bd stats|bd-[0-9]|\`bd )' file.md
+grep -E '(br ready|br list|bd show|br create|bd update|bd close|bd sync|br dep|bd stats|bd-[0-9]|\`bd )' file.md
 ```
 
 **Fix:** Search with ALL patterns, not just common ones.

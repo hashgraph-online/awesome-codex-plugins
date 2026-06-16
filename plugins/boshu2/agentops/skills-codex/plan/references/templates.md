@@ -431,7 +431,7 @@ $implement-wave xxx     # One wave at a time
 
 ```bash
 # Implement one at a time
-bd ready
+br ready
 $implement xxx.core
 ```
 ```

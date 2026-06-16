@@ -28,7 +28,23 @@ Write the current packet to:
     "research_path": ".agents/research/<topic>.md",
     "plan_path": ".agents/plans/<plan>.md",
     "pre_mortem_path": ".agents/council/<pre-mortem>.md",
-    "ranked_packet_path": ".agents/rpi/ranked-packet.json"
+    "ranked_packet_path": ".agents/rpi/ranked-packet.json",
+    "perspective_plan_paths": [
+      ".agents/discovery/<run-id>/perspective-product.md",
+      ".agents/discovery/<run-id>/perspective-architecture.md",
+      ".agents/discovery/<run-id>/perspective-operations.md"
+    ],
+    "synthesis_packet_path": ".agents/discovery/<run-id>/synthesis-packet.yaml",
+    "fable_approval_path": ".agents/council/<date>-fable-approval-<slug>.md",
+    "approval_edge_path": ".agents/discovery/<run-id>/approval-edge.yaml"
+  },
+  "approval_edge": {
+    "kind": "ApprovalEdge",
+    "source_packet": ".agents/discovery/<run-id>/synthesis-packet.yaml",
+    "capture_path": ".agents/council/ntm-captures/<target>_<stamp>.txt",
+    "verdict_artifact": ".agents/council/<date>-fable-approval-<slug>.md",
+    "verdict": "PASS|WARN",
+    "accepted_risks": []
   },
   "epic_id": "<epic-id or null when discovery stays file-backed>",
   "plan_path": ".agents/plans/<plan-file>.md",

@@ -907,7 +907,7 @@ interface McpTrends {
 
 interface McpComposeTweet {
   algorithmInsights: {
-    name: string;             // Signal name from PhoenixScores
+    name: string;             // Ranking signal name
     polarity: "positive" | "negative"; // Whether this signal helps or hurts ranking
     description: string;      // What this signal measures
   }[];

@@ -38,7 +38,7 @@ Treat `.beads/issues.jsonl` as an export artifact, not the canonical state sourc
 
 ### Symptom
 ```bash
-bd list
+br list
 # Error: Database out of sync with JSONL.
 
 # Current CLI repair path:
@@ -138,7 +138,7 @@ bd init --prefix=ap
 
 ### Symptom
 ```bash
-bd dep add issue-2 issue-1 --type blocks
+br dep add issue-2 issue-1 --type blocks
 # Reports: ✓ Added dependency
 bd show issue-2
 # Shows: No dependencies listed
@@ -174,9 +174,9 @@ bd doctor --check=validate --json
 
 **4. Test dependency creation:**
 ```bash
-bd create "Test A" -t task
-bd create "Test B" -t task
-bd dep add <B-id> <A-id> --type blocks
+br create "Test A" -t task
+br create "Test B" -t task
+br dep add <B-id> <A-id> --type blocks
 bd show <B-id>
 # Should show: "Depends on (1): → <A-id>"
 ```
@@ -223,7 +223,7 @@ Usually one of three things is happening:
 - `bd` is pointed at a different database than you expect
 - Local state is stale after pull/rebase or manual JSONL edits
 - Dolt working-set changes have not been inspected yet
-- You refreshed or read `.beads/issues.jsonl` instead of checking live `bd show`/`bd ready`
+- You refreshed or read `.beads/issues.jsonl` instead of checking live `bd show`/`br ready`
 
 ### Resolution
 
@@ -345,7 +345,7 @@ If you must keep work on cloud storage:
 # Don't initialize bd in cloud-synced directory
 # Use global database instead
 cd ~/Google\ Drive/project
-bd create "My task"
+br create "My task"
 # Uses ~/.beads/default.db (on local disk)
 ```
 
@@ -363,7 +363,7 @@ bd create "My task"
 ### Symptom
 ```bash
 bd init myproject
-bd create "Test" -t task
+br create "Test" -t task
 ls .beads/
 # Only shows: .gitignore, myproject.db
 # Missing: issues.jsonl
@@ -382,7 +382,7 @@ ls .beads/issues.jsonl
 # ✓ File created
 
 # Create issues normally
-bd create "Task 1" -t task
+br create "Task 1" -t task
 cat .beads/issues.jsonl
 # ✓ Shows task data
 ```
@@ -402,7 +402,7 @@ bd init myproject
 bd export -o .beads/issues.jsonl
 
 for item in "${items[@]}"; do
-    bd create "$item" -t feature
+    br create "$item" -t feature
 done
 
 # Query results
@@ -510,7 +510,7 @@ beads_add_dependency(
 
 **Equivalent CLI:**
 ```bash
-bd dep add task-2 task-1 --type blocks
+br dep add task-2 task-1 --type blocks
 # Meaning: task-2 depends on task-1
 ```
 

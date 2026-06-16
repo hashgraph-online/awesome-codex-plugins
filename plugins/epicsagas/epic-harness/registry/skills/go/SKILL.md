@@ -1,11 +1,11 @@
 ---
 name: go
-description: "Go phase. Reads approved SPEC, maps requirements to tasks, executes via TDD, integrates verifying acceptance criteria."
+description: "Go phase. Reads the approved SPEC file, maps Requirements to tasks (plan), executes via TDD (build), and integrates results verifying all Acceptance Criteria."
 ---
 
 # Go — Build It
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
 
 ## Execution Modes
 
@@ -21,7 +21,7 @@ This skill has 3 internal modes that run sequentially:
 
 Decompose the spec into an execution plan.
 
-## Process
+### Process
 
 1. **Load the spec:**
    ```bash
@@ -141,7 +141,7 @@ After all tasks complete:
 - Remaining issues: none / [list]
 ```
 
-Tell the user: **"Build complete. Run `/audit` to verify before shipping."**
+Tell the user: **"Build complete. Run `/check` to verify before shipping."**
 
 ## Skills Auto-Triggered
 

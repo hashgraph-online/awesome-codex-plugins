@@ -97,6 +97,9 @@ rules:
   - id: R040
     description: Database Cluster resources must include dbprovider visibility labels kb.io/database, sealos-db-provider-cr, and clusterdefinition.kubeblocks.io/name.
     severity: error
+  - id: R042
+    description: Managed app main containers should keep startup command/args short and move bootstrap work to initContainers, Jobs, or ConfigMap scripts.
+    severity: warning
   - id: R008
     description: App workload cloud.sealos.io/app-deploy-manager label must exist and match metadata.name.
     severity: error
@@ -112,6 +115,9 @@ rules:
   - id: R030
     description: Runtime component ConfigMaps must use one component name across metadata.name, labels.app, and cloud.sealos.io/app-deploy-manager; bootstrap-only init-copy ConfigMaps must not define either managed label.
     severity: error
+  - id: R043
+    description: ConfigMaps mounted by managed Deployment/StatefulSet workloads must share the workload name, use a <workload>-cm volume, and mount every data key through an independent volumeMount with matching subPath.
+    severity: error
   - id: R031
     description: Root-path Prefix Ingress resources must use one component name across metadata.name, cloud.sealos.io/app-deploy-manager, and backend service names; non-root or non-Prefix routes may differ.
     severity: error
@@ -126,4 +132,7 @@ rules:
     severity: error
   - id: R011
     description: All PVC storage requests must be concrete values and less than or equal to 1Gi.
+    severity: error
+  - id: R041
+    description: StatefulSet resources with volumeClaimTemplates must label the StatefulSet and every volumeClaimTemplate with cloud.sealos.io/deploy-on-sealos for Template PVC tracking.
     severity: error

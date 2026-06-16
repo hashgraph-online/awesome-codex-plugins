@@ -31,6 +31,19 @@
 <br/>
 
 <div align="center">
+
+<a href="https://doloffer.com">
+  <img src="docs/assets/doloffer-banner.png" alt="DolOffer - GPT and Claude membership recharge, official subscriptions with after-sales support" width="800"/>
+</a>
+
+<sub><b>Sponsored placement:</b> <a href="https://doloffer.com">DolOffer</a> (<a href="https://github.com/Doloffer-g/guide">GitHub project</a>) offers discounted GPT and Claude membership recharge, official subscriptions, and after-sales support. Use code <code>AI8888</code> for 10% off.</sub><br/>
+<sub><b>Disclaimer:</b> This is a paid sponsor placement. DolOffer services, pricing, availability, and support are provided by DolOffer; please review their terms before purchase.</sub>
+
+</div>
+
+<br/>
+
+<div align="center">
 <img src="docs/assets/before_after.png" alt="Before vs After Antigravity" width="800"/>
 </div>
 

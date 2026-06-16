@@ -1,11 +1,11 @@
 ---
 name: ship
-description: "Ship phase. Isolated integration test in fresh worktree, PR creation, CI monitoring, auto-fix on failure."
+description: "Ship phase. Runs isolated integration test in a fresh worktree, creates a PR with full spec + check report in the body, watches CI, and auto-fixes failures."
 ---
 
 # Ship — Ship It
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
 
 ## Process
 
@@ -16,7 +16,7 @@ Load the spec for PR content:
 ls -t $HARNESS_DIR/specs/SPEC-*.md | head -1
 ```
 
-**Gate: audit must have passed.** If no audit report exists, invoke the **audit** skill before continuing.
+**Gate: check must have passed.** If no check report exists, invoke the **check** skill before continuing.
 
 ### Step 1: Pre-ship Verification
 
@@ -27,7 +27,7 @@ Launch an agent with `isolation: "worktree"` to verify in a clean environment:
 - Run linter and formatter checks
 - Verify no uncommitted artifacts
 
-**Gate:** If isolated test fails → STOP. **"Fix with `/go`, then re-run `/audit` before shipping."**
+**Gate:** If isolated test fails → STOP. **"Fix with `/go`, then re-run `/check` before shipping."**
 
 ### Step 2: Git Hygiene
 
@@ -53,8 +53,8 @@ gh pr create --title "<goal from spec>" --body "$(cat <<'EOF'
 - AC1: ✅
 - AC2: ✅
 
-## Audit Report
-<paste full Audit Report>
+## Check Report
+<paste full Check Report>
 
 ## Test Plan
 - [ ] Unit tests pass
@@ -92,20 +92,20 @@ If CI fails, diagnose and fix automatically. Retry up to 2 times.
 | Excuse | Rebuttal | What to do instead |
 |--------|----------|-------------------|
 | "CI will catch it" | CI doesn't catch everything | Run isolated test locally first |
-| "The PR description doesn't matter" | It's the permanent record of why | Include spec + audit report |
+| "The PR description doesn't matter" | It's the permanent record of why | Include spec + check report |
 | "I'll merge without CI" | CI is a safety net | Wait for CI, fix failures |
 
 ## Evidence Required
 
 - [ ] Isolated test passed in clean worktree
-- [ ] PR created with spec + audit report in body
+- [ ] PR created with spec + check report in body
 - [ ] CI status checked (PASS, FAIL with fix, or N/A)
 - [ ] All Conventional Commits applied
 
 ## Red Flags
 
-- Shipping without a PASS audit report
+- Shipping without a PASS check report
 - PR description that says "various fixes" or "updates"
 - Force-pushing to main
 - Merging with failing CI
-- PR body missing the Audit Report section
+- PR body missing the Check Report section

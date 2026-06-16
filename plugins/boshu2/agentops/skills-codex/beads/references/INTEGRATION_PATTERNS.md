@@ -78,7 +78,7 @@ NEXT: Need user input on token expiry time (1hr vs 24hr trade-off)."
 **Session 1 - Planning**:
 ```bash
 # Create bd issue
-bd create "Implement OAuth authentication" -t feature -p 0 --design "
+br create "Implement OAuth authentication" -t feature -p 0 --design "
 JWT tokens with refresh rotation.
 See BOUNDARIES.md for bd vs Task tools decision.
 "
@@ -149,7 +149,7 @@ When design field needs detailed breakdown, reference the **writing-plans** skil
 **Pattern:**
 ```bash
 # Create issue with high-level design
-bd create "Implement OAuth token refresh" --design "
+br create "Implement OAuth token refresh" --design "
 Add JWT refresh token flow with rotation.
 See docs/plans/2025-10-23-oauth-refresh-design.md for detailed plan.
 "
@@ -254,7 +254,7 @@ TESTS: All 12 tests passing (auth, rotation, expiry, error handling)"
 **Workflow**:
 1. Create bd issue for tracking:
    ```bash
-   bd create "Q4 strategic planning document" -t task -p 0
+   br create "Q4 strategic planning document" -t task -p 0
    bd update strat-1 --status in_progress
    ```
 
@@ -284,22 +284,22 @@ TESTS: All 12 tests passing (auth, rotation, expiry, error handling)"
 **Workflow**:
 1. Create epic and subtasks:
    ```bash
-   bd create "Refactor auth system to use JWT" -t epic -p 0
-   bd create "Update login endpoint" -t task
-   bd create "Update token validation" -t task
-   bd create "Update middleware" -t task
-   bd create "Update tests" -t task
+   br create "Refactor auth system to use JWT" -t epic -p 0
+   br create "Update login endpoint" -t task
+   br create "Update token validation" -t task
+   br create "Update middleware" -t task
+   br create "Update tests" -t task
 
    # Link hierarchy
-   bd dep add auth-epic login-1 --type parent-child
-   bd dep add auth-epic validation-2 --type parent-child
-   bd dep add auth-epic middleware-3 --type parent-child
-   bd dep add auth-epic tests-4 --type parent-child
+   br dep add auth-epic login-1 --type parent-child
+   br dep add auth-epic validation-2 --type parent-child
+   br dep add auth-epic middleware-3 --type parent-child
+   br dep add auth-epic tests-4 --type parent-child
 
    # Add ordering
-   bd dep add validation-2 login-1  # validation depends on login
-   bd dep add middleware-3 validation-2  # middleware depends on validation
-   bd dep add tests-4 middleware-3  # tests depend on middleware
+   br dep add validation-2 login-1  # validation depends on login
+   br dep add middleware-3 validation-2  # middleware depends on validation
+   br dep add tests-4 middleware-3  # tests depend on middleware
    ```
 
 2. Work through subtasks in order, using Task tools for each:

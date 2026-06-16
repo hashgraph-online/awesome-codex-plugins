@@ -1,6 +1,6 @@
 # Xquik MCP Tools Reference
 
-The MCP server at `https://xquik.com/mcp` provides 2 structured API tools. The agent sends API requests through the server, which handles authentication and execution. All requests stay within the same first-party trust boundary as the REST API (`xquik.com/api/v1`).
+The MCP server at `https://xquik.com/mcp` provides 2 structured API tools. The agent sends API requests through the server, which handles authentication and execution for `xquik.com/api/v1`.
 
 ## Tools
 

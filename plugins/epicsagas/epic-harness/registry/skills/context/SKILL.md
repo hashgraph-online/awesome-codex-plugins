@@ -1,6 +1,6 @@
 ---
 name: context
-description: "Context window manager. Trigger: context >70% or large new task. Snapshots state, compacts, resumes via hook."
+description: "Context window manager. Snapshots session state, compacts conversation, and resumes via hook. Use when context exceeds 70% or a large new task begins."
 ---
 
 # Context — Context Window Management

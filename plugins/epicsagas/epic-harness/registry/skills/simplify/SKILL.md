@@ -1,6 +1,6 @@
 ---
 name: simplify
-description: "Trigger: file >200 lines, high complexity, or duplication — deep nesting, copy-paste, god functions."
+description: "Code simplification for high-complexity files. Targets deep nesting, copy-paste patterns, god functions, and files over 200 lines."
 ---
 
 # Simplify — Code Simplification

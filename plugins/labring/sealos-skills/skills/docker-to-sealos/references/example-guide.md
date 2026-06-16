@@ -1434,15 +1434,25 @@ spec:
 
 #### `Object Storage`
 
-We use object storage to provide bucket resource support. You can directly use the following code to deploy a bucket:
+Use a boolean input when object storage has only enabled and disabled states:
 
 ```yaml
+inputs:
+  enable_s3_storage:
+    description: "Enable S3 object storage"
+    type: boolean
+    default: "false"
+    required: false
+
+---
+${{ if(inputs.enable_s3_storage === 'true') }}
 apiVersion: objectstorage.sealos.io/v1
 kind: ObjectStorageBucket
 metadata:
   name: ${{ defaults.app_name }}
 spec:
   policy: private
+${{ endif() }}
 ```
 
 The policy has three types: private (private bucket, not open), publicRead (shared bucket, open for public read), and publicReadwrite (shared bucket, open for public read and write).
@@ -1503,6 +1513,8 @@ The CRD itself will be fully migrated according to the template format and field
 For all resources deployed through the template marketplace, including system resources such as `deploy`, `service` as well as custom resources such as `app`, `kb database`, etc., a unified label will be added to all of them: `cloud.sealos.io/deploy-on-sealos: $app_name`.
 
 Where `app_name` is the name of the application deployed by the user, which by default ends with a random number, such as `fastgpt-zu1n048s`.
+
+For application `StatefulSet` resources that define `spec.volumeClaimTemplates`, also set `cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}` on every `volumeClaimTemplates[].metadata.labels`. Preserve component labels such as `app` so legacy component-level PVC cleanup remains possible.
 
 ## Part 3: `Rendering Process Details`
 

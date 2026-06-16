@@ -36,7 +36,7 @@ AskUserQuestion({
 });
 ```
 
-### Codex CLI / Cursor IDE fallback (numbered Markdown list)
+### Codex CLI / Cursor IDE / Pi fallback (numbered Markdown list)
 
 ```
 Parallel-Exclusive conflict — an exclusive session is active in this repository.
@@ -79,7 +79,7 @@ AskUserQuestion({
 });
 ```
 
-### Codex CLI / Cursor IDE fallback (numbered Markdown list)
+### Codex CLI / Cursor IDE / Pi fallback (numbered Markdown list)
 
 ```
 Worktree-Promotion offer — a compatible parallel session is active in this worktree.

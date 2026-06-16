@@ -13,7 +13,7 @@ description: "Run crank."
 ```text
 Crank (lead agent)
     |
-    +-> bd ready (current wave)
+    +-> br ready (current wave)
     |
     +-> Build a wave task packet
     |
@@ -21,7 +21,7 @@ Crank (lead agent)
     |
     +-> wait_agent for all worker ids
     |
-    +-> Validate results + bd update
+    +-> Validate results + br update
     |
     +-> Loop until epic DONE
 ```
@@ -93,7 +93,7 @@ fi
 ### Step 0.5: Detect Tracking Mode
 
 ```bash
-if bd ready --json >/dev/null 2>&1 && bd list --type epic --status open --json >/dev/null 2>&1; then
+if br ready --json >/dev/null 2>&1 && br list --type epic --status open --json >/dev/null 2>&1; then
     TRACKING_MODE="beads"
 else
     TRACKING_MODE="tasklist"
@@ -161,7 +161,7 @@ log_plan_mutation() {
 
 **Beads mode:**
 - If epic ID provided: use it directly
-- If no epic ID: `bd list --type epic --status open 2>/dev/null | head -5`
+- If no epic ID: `br list --type epic --status open 2>/dev/null | head -5`
 
 **Execution-packet/file mode:**
 - If the input is `.agents/rpi/execution-packet.json`, read `objective`, `epic_id`, `tracker_mode`, `done_criteria`, and `validation_commands`
@@ -178,22 +178,22 @@ Before wave-1 commit, refuse to crank on `main`/`master`. Cut `crank/<epic-id>` 
 **Beads mode:**
 
 ```bash
-bd show <epic-id> 2>/dev/null
+br show <epic-id> 2>/dev/null
 ```
 
 **Execution-packet/file mode:**
 - Read the packet or plan file into local state for the current objective
-- Preserve the same objective across retries; do not narrow to one slice from `bd ready`
+- Preserve the same objective across retries; do not narrow to one slice from `br ready`
 
 ### Step 3: List Ready Work for the Current Wave
 
 **Beads mode:**
 
 ```bash
-bd ready 2>/dev/null
+br ready 2>/dev/null
 ```
 
-`bd ready` returns all unblocked issues - these can run in parallel.
+`br ready` returns all unblocked issues - these can run in parallel.
 
 **Execution-packet/file mode:**
 - Read remaining tasks from `.agents/rpi/execution-packet.json` or the plan file
@@ -203,8 +203,8 @@ bd ready 2>/dev/null
 
 1. Verify there are ready issues. Empty list is an error unless the epic is already complete.
 2. If 3+ issues are ready, check `.agents/council/` for pre-mortem evidence.
-3. If tracking mode is `beads` and `scripts/bd-audit.sh` exists, run the backlog audit before spawning workers.
-4. If bd-audit flags backlog hygiene issues, stop and clean them up before continuing. Use `--skip-audit` only when you intentionally want to bypass that gate.
+3. If tracking mode is `beads` and the legacy-named `scripts/bd-audit.sh` exists, run the backlog audit before spawning workers.
+4. If the backlog audit flags hygiene issues, stop and clean them up before continuing. Use `--skip-audit` only when you intentionally want to bypass that gate.
 5. For every string being modified, grep the codebase for stale cross-references.
 
 ### Step 3b: Language Standards Injection
@@ -354,8 +354,9 @@ Update beads with evidence:
 ```bash
 COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null | head -10 | tr '\n' ' ' | sed 's/ $//')
-bd close "$issue_id" --reason "commit:${COMMIT_SHA} files:[${CHANGED_FILES}]" 2>/dev/null
-bd update "$issue_id" --status blocked --append-notes "Wave $wave FAIL: $reason" 2>/dev/null
+br close "$issue_id" --reason "commit:${COMMIT_SHA} files:[${CHANGED_FILES}]" 2>/dev/null
+br update "$issue_id" --status blocked 2>/dev/null
+br comments add "$issue_id" "Wave $wave FAIL: $reason" 2>/dev/null
 ```
 
 ### Step 5.5: Wave Acceptance Check
@@ -478,16 +479,16 @@ if [[ $wave -ge 50 ]]; then
     exit 1
 fi
 
-REMAINING=$(bd ready 2>/dev/null | wc -l)
+REMAINING=$(br ready 2>/dev/null | wc -l)
 if [[ $REMAINING -eq 0 ]]; then
-    ALL_CLOSED=$(bd children "$EPIC_ID" 2>/dev/null | grep -c "CLOSED" || echo 0)
-    ALL_TOTAL=$(bd children "$EPIC_ID" 2>/dev/null | wc -l || echo 0)
+    OPEN_TOTAL=$(br list --status open 2>/dev/null | wc -l || echo 0)
+    IN_PROGRESS_TOTAL=$(br list --status in_progress 2>/dev/null | wc -l || echo 0)
 
-    if [[ $ALL_CLOSED -eq $ALL_TOTAL ]]; then
+    if [[ $((OPEN_TOTAL + IN_PROGRESS_TOTAL)) -eq 0 ]]; then
         echo "<promise>DONE</promise>"
     else
         echo "<promise>BLOCKED</promise>"
-        echo "No ready issues but $((ALL_TOTAL - ALL_CLOSED)) issues remain unclosed."
+        echo "No ready issues but $((OPEN_TOTAL + IN_PROGRESS_TOTAL)) issues remain open or in progress."
     fi
 else
     # Continue to next wave - return to Step 3
@@ -499,7 +500,7 @@ fi
 When the epic is DONE:
 
 ```bash
-$vibe validate the completed epic
+$validate validate the completed epic
 ```
 
 ### Step 8.5: Archive Shared Task Notes
@@ -518,7 +519,7 @@ fi
 
 - Max 2 retries per issue across all waves
 - On third failure: mark BLOCKED and continue with remaining issues
-- Track retries with `bd comments add "$issue_id" "retry $N: $reason"`
+- Track retries with `br comments add "$issue_id" "retry $N: $reason"`
 
 ## Failure Recovery
 
@@ -528,6 +529,10 @@ fi
 | Test failure | Identify breaking change, retry once |
 | All workers fail | `<promise>BLOCKED</promise>` with diagnostics |
 | File conflict detected | Split into sub-waves, re-run |
+
+## Related skills
+
+- $using-atm — out-of-session ATM substrate for long-running $crank waves over a bead queue.
 
 ## Reference Documents
 

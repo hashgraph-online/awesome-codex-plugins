@@ -119,6 +119,15 @@ For `ContentData`:
 - keep `contentData` as the actual body only
 - if the content is associated with memory, task, workflow, file, customer, opportunity, or agent state, create or preserve the explicit relationship instead of making a shadow copy
 
+### ThorAPI and RTK Query invariants
+
+When working inside ValkyrAI, ValorIDE, GrayMatter Light, or any ThorAPI-generated app:
+- Generated ThorAPI TypeScript RTK Query clients and generated components belong to the generated `thorapi/redux` surface. Do not hand-edit generated clients, hooks, components, interfaces, or service files.
+- If generated RTK Query behavior is wrong, fix the canonical OpenAPI/ThorAPI inputs such as `api.hbs.yaml` or the `typescript-redux-query` mustache templates, then regenerate with `./vaix generate`.
+- Custom, non-generated RTK Query slices belong under the app's `./redux` tree, normally `src/redux/services`, and must be registered in the app Redux store.
+- UI REST manipulation should use RTK Query hooks, mutations, cache invalidation, and lazy queries whenever practical so Redux remains the canonical client-side state owner.
+- Raw `fetch`/`axios` paths are only for bootstrapping, auth/session primitives, external non-ThorAPI targets, or one-off runtime probes that cannot reasonably be modeled as RTK Query.
+
 ### 4) Shared graph coordination
 
 Use SwarmOps and related graph endpoints for the agentic coordination portion of the object graph:
@@ -406,7 +415,7 @@ scripts/gm-write context "handoff state" --scope-path "$HOME/.codex/automations/
 scripts/gm-query "handoff" 5 context --scope-path "$HOME/.codex/automations/mcp-and-skill-hunter/memory.md"
 ```
 
-Tags are secondary hints only. Do not depend on tags for scoped retrieval until backend tag persistence is known healthy.
+Tags are structured retrieval hints. The api-0 MemoryEntry write path accepts normalized string tags and object-shaped GrayMatter tags with `name`/`type`; clients must not silently drop tags after a tagged write failure.
 
 ## Failure handling
 

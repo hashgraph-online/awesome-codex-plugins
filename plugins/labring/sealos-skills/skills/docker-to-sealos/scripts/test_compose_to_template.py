@@ -453,6 +453,71 @@ class ComposeToTemplateTests(unittest.TestCase):
             mount_paths = [item["mountPath"] for item in mounts]
             self.assertEqual(["/var/lib/demo"], mount_paths)
 
+    def test_generates_configmap_file_mounts_from_compose_configs(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(root / "config" / "app-config.yaml", "mode: production\n")
+            write_file(
+                compose,
+                """
+                services:
+                  app:
+                    image: ghcr.io/example/demo:1.0.0
+                    configs:
+                      - source: app_config
+                        target: /opt/demo/app-config.yaml
+                configs:
+                  app_config:
+                    file: ./config/app-config.yaml
+                """,
+            )
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("demo"),
+            )
+            docs = parse_yaml_documents(index_path)
+            kinds = [doc.get("kind") for doc in docs if isinstance(doc, dict)]
+            self.assertEqual(["Template", "ConfigMap", "Deployment", "App"], kinds)
+
+            key = "vn-optvn-demovn-appvn-configvn-yaml"
+            configmap = next(doc for doc in docs if doc.get("kind") == "ConfigMap")
+            self.assertEqual("${{ defaults.app_name }}", configmap["metadata"]["name"])
+            self.assertEqual(
+                {
+                    "app": "${{ defaults.app_name }}",
+                    "cloud.sealos.io/app-deploy-manager": "${{ defaults.app_name }}",
+                },
+                configmap["metadata"]["labels"],
+            )
+            self.assertEqual({"mode": "production"}, yaml.safe_load(configmap["data"][key]))
+
+            workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+            self.assertNotIn("volumeClaimTemplates", workload["spec"])
+            pod_spec = workload["spec"]["template"]["spec"]
+            self.assertNotIn("imagePullSecrets", pod_spec)
+            self.assertEqual(
+                [
+                    {
+                        "name": "${{ defaults.app_name }}-cm",
+                        "mountPath": "/opt/demo/app-config.yaml",
+                        "subPath": key,
+                        "readOnly": True,
+                    }
+                ],
+                pod_spec["containers"][0]["volumeMounts"],
+            )
+            self.assertEqual(
+                [
+                    {
+                        "name": "${{ defaults.app_name }}-cm",
+                        "configMap": {"name": "${{ defaults.app_name }}", "defaultMode": 493},
+                    }
+                ],
+                pod_spec["volumes"],
+            )
+
     def test_template_defaults_keep_double_brace_placeholders(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -732,12 +797,20 @@ class ComposeToTemplateTests(unittest.TestCase):
             )
             docs = parse_yaml_documents(index_path)
             workload = next(doc for doc in docs if doc.get("kind") == "StatefulSet")
+            self.assertEqual(
+                "${{ defaults.app_name }}",
+                workload["metadata"]["labels"]["cloud.sealos.io/deploy-on-sealos"],
+            )
             mounts = workload["spec"]["template"]["spec"]["containers"][0]["volumeMounts"]
             mount_paths = [item["mountPath"] for item in mounts]
             self.assertEqual(["/data"], mount_paths)
             pvcs = workload["spec"]["volumeClaimTemplates"]
             pvc_names = [item["metadata"]["name"] for item in pvcs]
             self.assertEqual(["vn-data"], pvc_names)
+            self.assertEqual(
+                "${{ defaults.app_name }}",
+                pvcs[0]["metadata"]["labels"]["cloud.sealos.io/deploy-on-sealos"],
+            )
 
     def test_rejects_latest_image_tag(self):
         with tempfile.TemporaryDirectory() as temp_dir:

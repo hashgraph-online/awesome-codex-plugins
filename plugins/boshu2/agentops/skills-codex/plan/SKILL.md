@@ -6,7 +6,7 @@ description: "Run plan."
 # $plan - Issue-Ready Decomposition
 
 > Quick ref: turn a goal or research artifact into `.agents/plans/*.md`,
-optional bd issues, dependency waves, file ownership, and validation checks.
+optional br issues, dependency waves, file ownership, and validation checks.
 
 **Execute this workflow. Do not only describe it.** Keep planning separate from
 implementation. A finished plan should let `$crank`, `$implement`, or a future
@@ -24,7 +24,7 @@ Given `$plan <goal> [--auto]`:
 | `--skip-symbol-check` | Skip symbol verification for greenfield plans |
 | `--skip-audit-gate` | Skip baseline audit gate for docs-only plans |
 
-If bd is unavailable, still write the markdown plan in `.agents/plans/`.
+If br is unavailable, still write the markdown plan in `.agents/plans/`.
 
 ## Discovery Boundary
 
@@ -36,7 +36,7 @@ vocabulary for the boundary from Discovery into Plan:
 | Inbound port | `plan_slices` from BDD intent, bead, research artifact, or execution packet |
 | Outbound ports | `persist_issue`, `verify_symbols`, `retrieve_context`, `seed_execution_packet` |
 | Driving adapter | `$plan` skill invocation |
-| Driven adapters | bd, `rg`, `.agents/findings`, `.agents/plans`, execution-packet writer |
+| Driven adapters | br, bv, `rg`, `.agents/findings`, `.agents/plans`, execution-packet writer |
 | Context packet | slice plan, file dependency matrix, acceptance criteria, test levels |
 | Guard adapter | stale-scope verification, symbol verification, wave-validity check |
 
@@ -99,8 +99,8 @@ Feature: Plan converts dense intent into executable slices
    in verification.
 10. **Write the plan.** Use `.agents/plans/YYYY-MM-DD-<goal-slug>.md` and the
    template in [references/plan-document-template.md](references/plan-document-template.md).
-11. **Create tracking tasks.** Prefer bd issues with validation blocks and
-    dependency edges. If bd is missing, leave the markdown plan as the durable
+11. **Create tracking tasks.** Prefer br issues with validation blocks and
+    dependency edges. If br is missing, leave the markdown plan as the durable
     handoff.
 12. **Approval gate.** Skip only with `--auto`; otherwise ask whether to
     proceed, revise, or return to research.
@@ -152,7 +152,7 @@ Read [references/examples.md](references/examples.md) for full examples.
 
 | Problem | Response |
 |---------|----------|
-| bd is missing | Write the markdown plan and note that issue creation was skipped |
+| br is missing | Write the markdown plan and note that issue creation was skipped |
 | Prior research is thin | Explore enough to produce file and symbol evidence |
 | Same file appears in parallel issues | Serialize or merge those issues before handoff |
 | Baseline audit is missing | Mark the plan incomplete unless `--skip-audit-gate` is justified |

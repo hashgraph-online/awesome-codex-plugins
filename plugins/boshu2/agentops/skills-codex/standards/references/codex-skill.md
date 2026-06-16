@@ -70,7 +70,7 @@ Codex orchestration uses:
 
 | Pattern | Problem | Fix |
 |---------|---------|-----|
-| `$vibe ` | Claude Skill tool, doesn't exist | Use `$vibe` invocation syntax |
+| `$validate ` | Claude Skill tool, doesn't exist | Use `$validate` invocation syntax |
 | `context.window: fork` | Claude frontmatter, ignored | Remove from Codex SKILL.md |
 | `~/.claude/skills/` | Wrong path | Use `.agents/skills/` |
 | `todo_write(...)` | Not available in Codex sessions | Use `bd` CLI or file-based tracking |

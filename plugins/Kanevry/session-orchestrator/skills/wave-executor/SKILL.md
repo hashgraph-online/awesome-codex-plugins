@@ -431,6 +431,10 @@ const result = await runQualityGateWithRetry({
   Gherkin negative path).
 - `verification-auto-fix.max-retries: 0` → equivalent to disabled.
 
+### /goal Continuation Anchor (opt-in — #636)
+
+When `goal-integration.enabled: true` with seam `inter-wave-fixloop` in Session Config, the coordinator may surface ONE advisory `/goal` command at the inter-wave fix-loop seam to anchor continuation across the auto-fix retries — see `wave-loop.md` § "##### /goal Continuation Anchor" for the gate conditions, suggested command, and the LM-008 cross-reference. The advisory never alters gate semantics: `runQualityGateWithRetry()`'s exit-code result remains the judgment, and the hard-abort + diagnostics-bundle path after `max-retries` is unchanged. Default off → zero behaviour change.
+
 ### Anti-pattern (BE-012 awareness)
 
 The fixer-agent prompt MUST include a reminder of `.claude/rules/testing.md` § "Test Quality — False-Positive Prevention"

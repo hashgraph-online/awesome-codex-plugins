@@ -197,3 +197,119 @@ AD-5.3. Apply the diagnostic: would a reader infer conscious will or resistance 
 **Severity:** Low. Secondary signal in the **Ч — Clarity** dimension (supporting **Г — Grammar**), with explicit technical-context exception. Cannot trigger non-compensatory caps alone.
 
 **Acknowledged:** proposed by @V8-Software in issue #9 (2026-04-16) with the example «Алгоритм стремится → Алгоритм становится». That example is preserved here as a *counter-example* illustrating the exception boundary, per deep-research review of mathematical and ML usage norms.
+
+
+---
+
+## AD-6. Manufactured antithesis (ложная антитеза)
+
+**Problem:** a symmetric contrastive-negation pair — «не X, а Y», «это не X, это Y», «X — это не Y. Это Z», «не про X, а про Y», «не потому что X, а потому что Y», «не там, где X, а там, где Y» — where the negated pole X was never voiced in the preceding text and is not a reader expectation the context made explicit. The pair invents a rejected pole only to throw the «true» pole Y into relief, manufacturing rhetorical tension and arguing against an opponent who never spoke. It is one of the strongest machine-generation tells in Russian prose: in measured corpora it appears far more densely in generated text than in live human writing, where the natural device is the opposite: asymmetric self-correction («вернее…», «то есть…», «не то чтобы X, но Y») that refines what was just said. AD-6 targets the manufactured symmetric replacement; the asymmetric refinement is always allowed.
+
+**Sources:**
+- Antithesis as a rhetorical figure and the cost of its hollow imitation: editorial practice, informed by Розенталь «Практическая стилистика» on противопоставление
+- Distinct from AD-4: AD-4 is a one-sided rebuttal of an unvoiced claim; AD-6 is a two-pole symmetric fork
+- Independently formulated from corpus analysis of AI-generated Russian prose
+
+**Trigger constructions:**
+
+- «не X, а Y» / «X, а не Y» — X has no antecedent within the preceding 1–2 paragraphs
+- «это не …, это …» / «X — это не Y. Это Z» — two equiweight definitions of one subject, often split by a period
+- «не про X, а про Y» / «дело не в X, а в Y» — the topic swapped through a phantom rejected topic
+- «не потому что X, а потому что Y» — a cause X that no one supposed
+- «не там, где X, а там, где Y» — a locative pseudo-antithesis with no premise
+- «не паранойя и не „всё видят“» — a pre-emptive string negating labels nobody put forward
+- a cluster of two or more such pairs within ~150 words — density is the strongest signal
+
+**Rules:**
+
+AD-6.1. Flag only when all three conditions hold (any one failing → leave): (1) **no antecedent** — X was not voiced in the preceding 1–2 paragraphs and is not an explicit reader expectation; (2) **symmetry** — X and Y form an equiweight binary of comparable rank and parallel grammar, not a narrowing; (3) **zero increment** — drop the «не X» clause and no fact is lost, Y stands whole.
+
+AD-6.2. Rewrite a flagged pair as a direct positive statement: keep Y, drop the phantom X. «X — это не Y, а Z» → «X — это Z». Do not trade one machine construction for another — removing «не X, а Y» must not introduce «но на самом деле Y» (that is AD-4). Carry the assertion with a fact, a number, an image, or rhythm.
+
+AD-6.3. If the contrast is genuinely needed, earn it: let X be voiced first as a real thesis, a citation, or a reader expectation the context made explicit (the AD-4.3 mechanism). With an antecedent in place, «а Y» is a legitimate antithesis.
+
+AD-6.4. Asymmetric self-correction is never flagged: «вернее…», «то есть…», «по сути…», «не то чтобы X, но Y». Here X is physically present in the preceding clause and the second clause narrows or qualifies the first (refinement, not replacement).
+
+AD-6.5 (quota). Headings: **0** — antithesis in a heading is the loudest tell and reads as clickbait. Sub-headings and leads: rare, and only with a real antecedent in the body (default 0). Body: **0–2** legitimate pairs per article (antecedent present, or concrete data on both poles). Manufactured pairs are always 0 regardless of the limit; self-corrections and antecedent-backed antitheses are not counted toward it.
+
+AD-6.6. Single-count with neighbours. A phantom contrast can also read as AD-4 (one-sided rebuttal) or AD-2 (parcellation when split on periods). Count one violation per fragment: AD-6 takes precedence for a symmetric two-pole fork; a one-sided «но на самом деле…» with no named counter-pole stays AD-4. Do not double-charge Structure.
+
+**Examples:**
+
+| Wrong | Correct |
+|---|---|
+| Это не баг, а фича. | Так и задумано. |
+| Это не про скорость, а про надёжность. | Это про надёжность. |
+| ИИ — это не инструмент. Это образ мышления. | ИИ меняет то, как я думаю о задаче. |
+| Дело не в модели, а в промпте. | Всё решает промпт. |
+| Не медленно, а быстро. | Отвечает за 200 мс. |
+
+**Counter-examples (do NOT flag):**
+
+| Acceptable | Reason |
+|---|---|
+| Хочу и буду. Вернее, буду, когда хочу. | Asymmetric self-correction: X is present, the second clause narrows it. |
+| Это не неуверенность — это точность мышления вслух. | The negated pole is a real reader misreading the context invites (antecedent satisfied). |
+| Выросло не на 2%, а на 40%. | Both poles carry data; deletion loses information. |
+| Не мытьём, так катаньем. | Fixed idiom. |
+| Не оферта, а приглашение делать оферты. | Legal formula where the binary is operative semantics. |
+
+**Severity:** Medium — the manufactured antithesis is the single strongest machine-generation tell in this addenda set, and density compounds fast. Primary signal in the **С — Structure** dimension (supporting **Ч — Clarity**), reflected in the С rubric anchors. A cluster of manufactured pairs materially lowers the С score; a single antecedent-backed pair does not. Still cannot, by itself, trigger a non-compensatory cap — that stays reserved for the hard dimensions and the global < 3.0 floor.
+
+**Acknowledged:** identified from corpus analysis of AI-generated Russian prose (2026-06); the contrastive-negation antithesis runs at high density in machine drafts and near-zero in human reference corpora.
+
+
+---
+
+## AD-7. Preemptive virtue qualifier (непрошенная оговорка «без воды»)
+
+**Problem:** a trailing manner-flourish that asserts the author's virtue by denying a fault the reader never raised — «без воды», «без виляния», «без лишних слов», «начистоту», «честно говоря», «прямо скажем», «не побоюсь этого слова», «и без всякой магии». The statement reassures the reader against a vice nobody suspected, so the qualifier carries no information and only performs sincerity. It is a cousin of AD-4: where AD-4 rebuts an unvoiced external claim, AD-7 denies an unvoiced fault of the author's own delivery. Virtue is shown by the writing, never announced.
+
+**Sources:**
+- Telling vs. showing, and self-praise as an empty signal: editorial practice, informed by Нора Галь «Слово живое и мёртвое» on needless self-qualification
+- Adjacent to AD-4 (unprovoked rebuttal) and AD-3 (patronizing explanation)
+- Independently formulated from corpus analysis of AI-generated Russian prose
+
+**Trigger constructions:**
+
+- «без воды» / «без виляния» / «без лишних слов» / «без обиняков» — a manner-flourish denying a vice of delivery
+- «честно говоря» / «начистоту» / «прямо скажем» / «не побоюсь этого слова» — announced sincerity
+- «и без всякой магии» / «без всяких фокусов» / «без нервов» appended to a claim about one's own product or method
+- a virtue adverb stacked on a self-statement where deleting it loses no fact
+
+**Rules:**
+
+AD-7.1. Flag a «без [vice]» or «[virtue] говоря» qualifier when it (1) characterises the author's own delivery or method, (2) denies a fault the text never raised, and (3) carries no information — deleting it loses no fact.
+
+AD-7.2. Rewrite by deleting the qualifier and letting the statement stand; the virtue is demonstrated by the writing. «Соберу мысль, без виляния» → «Соберу мысль».
+
+AD-7.3. Allow informative «без»: «кофе без сахара», «работает без интернета», «ноль vi.*-моков, без заглушек», «без регистрации» — here «без» names a real removed ingredient, dependency, or feature, not a manner.
+
+AD-7.4. Allow a genuine epistemic qualifier that carries information: «строго говоря, это аппроксимация», «по сути» when it narrows the claim (cf. AD-6.4). These calibrate meaning; they do not advertise sincerity.
+
+AD-7.5 (register). Conversational and literary registers: «честно говоря», «прямо скажем», «по правде сказать» as natural discourse markers of live speech or a character's voice — not a statement about the author's own product or method — are not flagged. The target is the *self-promotional* manner-flourish (AD-7.1, condition 1), not ordinary spoken connective tissue. When in doubt, apply AD-7.1: if the qualifier praises the author's own delivery, flag it; if it merely colours conversational tone, leave it (cf. AD-2.3, which likewise spares the literary register).
+
+AD-7.6. Single-count with neighbours. A «без [vice]» flourish can also be caught by AD-2 (parcellation / filler rhythm in Structure) — the «без воды» tail in «Расскажу последовательно, доступно, без воды» is one fragment, not two faults. Count one violation per fragment: charge it to AD-7 (**Ч — Clarity**) when the defect is the empty self-virtue, to AD-2 (**С — Structure**) when the defect is the staccato or filler rhythm. Never double-charge the same fragment across Ч and С.
+
+**Examples:**
+
+| Wrong | Correct |
+|---|---|
+| Соберу мысль, без виляния. | Соберу мысль. |
+| Отвечу честно, без воды: дедлайн сорван. | Дедлайн сорван. |
+| Скажу прямо, без обиняков: тест не проходит. | Тест не проходит. |
+| Это работает, и без всякой магии. | Это работает. |
+| Max 20× закрывает запрос начисто, без нервов. | Max 20× закрывает запрос. |
+
+**Counter-examples (do NOT flag):**
+
+| Acceptable | Reason |
+|---|---|
+| Кофе без сахара. | «без» names a real removed ingredient. |
+| Ноль vi.*-моков — без заглушек. | «без» names a real removed thing. |
+| Сервис работает без интернета. | «без» names a real capability. |
+| Строго говоря, это аппроксимация. | Epistemic qualifier carrying real information. |
+
+**Severity:** Low. Secondary signal in the **Ч — Clarity** dimension (supporting **С — Structure**). Cannot trigger non-compensatory caps alone.
+
+**Acknowledged:** identified from corpus analysis of AI-generated Russian prose (2026-06); the «без [vice]» self-virtue flourish recurs in machine drafts and reads as announced rather than demonstrated quality.

@@ -946,6 +946,7 @@ For the public app Service, endpoints must be non-empty before the Ingress can s
    - `Permission denied` on mounted paths: add `fsGroup` or a one-shot permission repair for existing PVCs.
    - App-specific migration/bootstrap errors: repair the failed bootstrap state, then rerun the init path.
 4. Only report the app as usable after the endpoint exists and an HTTP request to the public URL returns a non-5xx response.
+5. Continue to Phase 6.5 before writing deployment state or reporting success.
 
 ### 6.4 Fallback: kubectl apply (when Template API is unavailable)
 
@@ -1020,6 +1021,78 @@ KUBECONFIG=~/.sealos/kubeconfig kubectl --insecure-skip-tls-verify \
 ```
 
 App URL: `https://<app_host>.<CLOUD_DOMAIN>`
+
+### 6.5 Runtime Truth Pass
+
+Run this pass after Template API deploy or kubectl fallback deploy. The deployment is accepted only after the live application entry, logs, and first meaningful user workflow are verified.
+
+Read the app URL from the live App resource when possible:
+
+```bash
+APP_URL=$(KUBECONFIG=~/.sealos/kubeconfig kubectl --insecure-skip-tls-verify \
+  get apps.app.sealos.io/<app-name> -n "$NAMESPACE" \
+  -o jsonpath='{.spec.data.url}' 2>/dev/null)
+```
+
+If the live App resource has no URL, use the URL returned by Template API or the rendered fallback URL.
+
+Collect the runtime footprint:
+
+```bash
+node "<SKILL_DIR>/scripts/sealos-footprint.mjs" --namespace "$NAMESPACE" --app "<app-name>"
+```
+
+For every web application:
+
+```bash
+node "<SKILL_DIR>/scripts/sealos-live-smoke.mjs" --url "$APP_URL"
+```
+
+For login-gated web applications, identify the first-run, registration, or login flow from upstream docs, source code, the rendered template, or observed network/API behavior. Complete the flow and verify at least one authenticated page or API route.
+
+When credentials and API paths are known, use the helper for the repeatable HTTP portion:
+
+```bash
+node "<SKILL_DIR>/scripts/sealos-live-smoke.mjs" \
+  --url "$APP_URL" \
+  --captcha-path "/api/get_validate_code" \
+  --login-path "/api/login" \
+  --username "$ADMIN_USER" \
+  --password "$ADMIN_PASSWORD" \
+  --auth-path "/api/languages/get"
+```
+
+After the browser/API smoke, inspect recent logs again:
+
+```bash
+KUBECONFIG=~/.sealos/kubeconfig kubectl --insecure-skip-tls-verify \
+  logs -n "$NAMESPACE" pod/<pod> --all-containers --tail=300
+```
+
+Inspect the live main container startup command for managed app workloads:
+
+```bash
+KUBECONFIG=~/.sealos/kubeconfig kubectl --insecure-skip-tls-verify \
+  get pod/<pod> -n "$NAMESPACE" \
+  -o jsonpath='{range .spec.containers[*]}{.name}{" command="}{.command}{" args="}{.args}{"\n"}{end}'
+```
+
+Acceptance checklist:
+
+- Pods and initContainers are complete or ready.
+- Service endpoints are populated.
+- The actual App URL loads from a fresh session.
+- Login-gated apps complete setup/login and one authenticated action.
+- Recent logs are clear of recurring startup, migration, bootstrap, and access-control failures.
+- Main business containers keep `command`/`args` short and close to the official entrypoint; repeated file preparation, permission repair, database bootstrap, or compatibility self-healing belongs in initContainers, Jobs, or ConfigMap scripts.
+- Shell wrappers in main containers end with `exec <final-process>` so signal handling remains correct.
+- Database-backed apps have the expected live database objects, because Job completion or TTL cleanup is only historical evidence.
+
+For app-specific guidance, load:
+
+```
+<SKILL_DIR>/references/live-smoke-playbooks.md
+```
 
 ### Write state.json
 

@@ -1,6 +1,6 @@
 ---
 name: orbit
-description: "State-persisted autonomous pipeline: spec → go → audit → ship in one command. Auto-detects direct/council/interactive mode. Crash-recoverable via PIPELINE-*.json. Hands-off until PR."
+description: "State-persisted autonomous pipeline: spec → go → audit → eval → ship → evolve in one command. Auto-detects direct/council/interactive mode. Crash-recoverable via PIPELINE-*.json. Hands-off until PR."
 ---
 
 # /orbit — Complete Orbit
@@ -133,11 +133,24 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 
 ## Step 5: Verdict
 
-- **All PASS + all AC verified** → proceed to Ship
+- **All PASS + all AC verified** → proceed to Eval (if eval.yaml exists) or Ship
 - **WARN** → log, auto-proceed
 - **FAIL** → increment `audit_fail_count`:
   - `< 3`: plan fixes from action items, execute, return to Step 4
   - `≥ 3`: **PAUSE** — ask user "continue or abort?"
+
+## Step 5.5: Eval (optional — only if eval.yaml or benchmarks exist)
+
+1. Check for eval config — eval is active if ANY of these exist:
+   - `$HARNESS_DIR/eval/eval.yaml`
+   - `benchmarks/baselines/latest.json` in CWD (in-repo baseline)
+   - `benchmarks/eval_runner.py` in CWD (auto-detected benchmark)
+2. If eval is active, run `epic eval --json` via the **eval** skill
+3. **Eval PASS** → proceed to Ship
+4. **Eval FAIL (regression detected)** → increment `audit_fail_count`:
+   - `< 3`: plan fixes, execute, return to Step 4
+   - `≥ 3`: **PAUSE** — ask user "continue or abort?"
+5. If no eval config and no benchmarks detected, skip this step entirely
 
 ## Step 6: Ship
 
@@ -151,7 +164,32 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 5. **CI watch** via `gh pr checks --watch`, auto-fix failures
 6. **Exit worktree**: Return to original directory and keep the worktree
 
-## Step 7: Report
+## Step 7: Evolve
+
+Run the evolution engine to analyze this session and generate/improve skills.
+
+1. **Always run** — regardless of CI outcome:
+   ```bash
+   epic-harness reflect
+   ```
+   This triggers the Ring 3 loop: observe → analyze → seed evolved skills → update metrics.
+
+2. **If CI green** (all checks passed): additionally run
+   ```bash
+   epic-harness reflect --context --days 1
+   ```
+   and record the successful orbit pattern into memory:
+   ```bash
+   epic mem add --title "Orbit: {goal_slug} succeeded" \
+     --type pattern --importance 0.7 \
+     --body "Orbit completed. Mode: {mode}. AC: all verified. PR: {url}. Stack: {stack}."
+   ```
+
+3. Report the evolution outcome in the final summary (evolved skills generated, score trend).
+
+4. Update pipeline state: `"phase": "evolve"`, `"status": "complete"`.
+
+## Step 8: Report
 
 ```
 ## Orbit Complete
@@ -169,7 +207,13 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 | Spec | approved | 0 |
 | Go | complete | 0 |
 | Audit | PASS | {count} |
+| Eval | {PASS|SKIPPED} | 0 |
 | Ship | complete | 0 |
+| Evolve | complete | 0 |
+
+### Evolution
+- Skills evolved: {count}
+- Score trend: {improving|stable|declining}
 ```
 
 ## Red Flags
@@ -180,3 +224,4 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 - Losing audit report between phases
 - Creating branch with dirty working tree
 - Losing worktree reference between phases
+- Skipping evolve step after ship (evolve must always run, even if CI fails)

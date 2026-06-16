@@ -62,7 +62,7 @@ Type: hard (objective). Rule source: [typography.md](typography.md) (96 rules).
 
 ### Ч — Clarity (weight 0.25)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [anti-patterns.md](anti-patterns.md) (138 rules). Secondary signals (low weight): [addenda.md](addenda.md) AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception).
+Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [anti-patterns.md](anti-patterns.md) (138 rules). Secondary signals (low weight): [addenda.md](addenda.md) AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception), AD-6 (manufactured antithesis), AD-7 (preemptive virtue qualifier).
 
 | Score | Criteria |
 |---|---|
@@ -86,13 +86,13 @@ Type: hard (objective). Rule sources: [editorial-grammar.md](editorial-grammar.m
 
 ### С — Structure (weight 0.20)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (structure section), [addenda.md](addenda.md) — AD-1 (dash overuse), plus secondary signals (low weight): AD-2 (excessive parcellation), AD-4 (unprovoked rebuttal).
+Type: soft (expert). Rule sources: [info-style.md](info-style.md) (structure section), [addenda.md](addenda.md) — AD-1 (dash overuse) and AD-6 (manufactured antithesis — **Medium**: the strongest machine-generation tell, density materially lowers this dimension), plus secondary signals (low weight): AD-2 (excessive parcellation), AD-4 (unprovoked rebuttal), AD-7 (preemptive virtue qualifier).
 
 | Score | Criteria |
 |---|---|
-| 9–10 | Inverted pyramid (main point first). One paragraph = one idea. Logical transitions. Headings where needed. No monotonous dash rhythm |
-| 7–8 | Logical structure, but 1–2 overloaded paragraphs or implicit transitions |
-| 5–6 | Structure is guessable but ideas are mixed, uneven paragraphs |
+| 9–10 | Inverted pyramid (main point first). One paragraph = one idea. Logical transitions. Headings where needed. No monotonous dash rhythm. No manufactured antithesis («не X, а Y» with no antecedent) |
+| 7–8 | Logical structure, but 1–2 overloaded paragraphs or implicit transitions; at most an isolated antecedent-backed antithesis |
+| 5–6 | Structure is guessable but ideas are mixed, uneven paragraphs; manufactured antitheses recur |
 | 3–4 | No structure: stream of consciousness without paragraph breaks |
 | 1–2 | Chaotic exposition, impossible to identify the main point |
 

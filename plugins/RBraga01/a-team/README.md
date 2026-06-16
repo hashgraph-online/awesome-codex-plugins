@@ -62,10 +62,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/RBraga01/a-team/main/install
 gh repo clone RBraga01/a-team -- --depth 1
 
 # Copy the infrastructure into your project
-cp -r a-team/.claude  your-project/
-cp -r a-team/skills   your-project/
-cp -r a-team/hooks    your-project/
+cp -r a-team/.claude   your-project/
+cp -r a-team/skills    your-project/
+cp -r a-team/hooks     your-project/
 cp -r a-team/templates your-project/
+cp -r a-team/scripts   your-project/
 cp    a-team/INIT_TEMPLATE.md your-project/INIT.md
 
 # Clean up
@@ -82,10 +83,10 @@ git clone --filter=blob:none --sparse --depth 1 \
   https://github.com/RBraga01/a-team.git
 
 cd a-team
-git sparse-checkout set .claude skills hooks templates INIT_TEMPLATE.md
+git sparse-checkout set .claude skills hooks templates scripts INIT_TEMPLATE.md
 
 # Copy into your project
-cp -r .claude skills hooks templates ../your-project/
+cp -r .claude skills hooks templates scripts ../your-project/
 cp INIT_TEMPLATE.md ../your-project/INIT.md
 
 cd .. && rm -rf a-team
@@ -97,9 +98,9 @@ git clone --filter=blob:none --sparse --depth 1 `
   https://github.com/RBraga01/a-team.git
 
 cd a-team
-git sparse-checkout set .claude skills hooks templates INIT_TEMPLATE.md
+git sparse-checkout set .claude skills hooks templates scripts INIT_TEMPLATE.md
 
-Copy-Item -Recurse .claude,skills,hooks,templates ..\your-project\
+Copy-Item -Recurse .claude,skills,hooks,templates,scripts ..\your-project\
 Copy-Item INIT_TEMPLATE.md ..\your-project\INIT.md
 
 cd .. ; Remove-Item a-team -Recurse -Force
@@ -111,7 +112,7 @@ cd .. ; Remove-Item a-team -Recurse -Force
 
 1. Go to [github.com/RBraga01/a-team](https://github.com/RBraga01/a-team)
 2. Click **Code → Download ZIP**
-3. Extract and copy `.claude/`, `skills/`, `hooks/`, `templates/` into your project root
+3. Extract and copy `.claude/`, `skills/`, `hooks/`, `templates/`, `scripts/` into your project root
 4. Copy `INIT_TEMPLATE.md` as `INIT.md`
 
 ---

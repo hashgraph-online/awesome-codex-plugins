@@ -1,0 +1,12 @@
+{
+  "name": "casefile",
+  "version": "1.2.2",
+  "description": "Persistent security case tracking for Codex and pi.",
+  "license": "MIT",
+  "repository": "https://github.com/x4cc3/casefile",
+  "interface": {
+    "displayName": "Casefile",
+    "shortDescription": "Track security cases, evidence, chains, and reports.",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

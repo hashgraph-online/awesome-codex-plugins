@@ -150,6 +150,7 @@ On a typical deploy, the agent will:
 - reuse an existing image or build one when needed
 - generate a Sealos template
 - deploy and verify rollout
+- verify the actual Sealos App URL, logs, login/setup flow for web apps, and resource footprint before reporting the app as usable
 
 Later runs can switch to an in-place update flow when an existing deployment is detected.
 

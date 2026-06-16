@@ -70,10 +70,11 @@ Praxis enforces a strict documentation structure and keeps code and docs in sync
 
 ### Living Documentation
 
-**Living documentation** — describes current and future system state.
+**Living documentation** — describes the current system state and direction. Always in sync with code.
 
 - **`README.md`** — for users: what it is, who for, how to use it
 - **`docs/tech-spec.md`** — for developers/agents: current system state ([format](skills/archive/SKILL.md#tech-spec-format))
+- **`docs/specs/*.md`** — details split out of the tech-spec when it grows too bulky; referenced by path
 - **`docs/ROADMAP.md`** — direction and milestones (exists when project has ≥3 milestones or long-term direction)
 
 `docs/tech-spec.md` uses a structured declaration format:
@@ -83,7 +84,7 @@ purpose / user / use-case / architecture / stack / entry /
 contract / flow / invariant / constraint / convention / milestone
 ```
 
-Facts only — no interpretation, no plans. If details are bulky, split into `docs/specs/` and link.
+Facts only — no interpretation, no plans. If details are bulky — e.g. a complex flow (branching, async, multi-actor) that needs a diagram — split into `docs/specs/` and link; the spec keeps a one-line summary.
 
 **Project artifacts** — records and conventions. Append-only or static.
 

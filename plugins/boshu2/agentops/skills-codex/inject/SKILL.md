@@ -6,7 +6,13 @@ description: "Run inject."
 
 # Inject Skill
 
+## Install & refresh (absorbed from using-agentops, ag-s43tg)
+
+**To update installed skills:** re-run the install one-liner — `bash <(curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install.sh)`. (There is no update skill; skill refresh is an install-script concern.)
+
 **On-demand knowledge retrieval. Not run automatically at startup (since ag-8km).**
+
+> **Codex orchestration note (absorbed from using-agentops, ag-s43tg):** Codex skill orchestration default is `$skill` chaining. Chain skills as `$skill` invocations rather than shelling out to wrapper CLIs.
 
 Load relevant prior knowledge into the current session as a legacy adapter.
 Treat `$inject` as passive compatibility lookup, not as a task-planning or task-execution entrypoint.
