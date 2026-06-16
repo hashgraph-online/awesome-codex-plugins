@@ -33,9 +33,7 @@
       "Read"
     ],
     "websiteURL": "https://github.com/LVTD-LLC/skills",
-    "defaultPrompt": [
-      "Use LVTD Skills when you need reusable Agent Skills for Django, Rust, Cookiecutter, SEO, traction, product marketing, or nonfiction publishing workflows."
-    ],
+    "defaultPrompt": "Use LVTD Skills when you need reusable Agent Skills for Django, Rust, Cookiecutter, SEO, traction, product marketing, or nonfiction publishing workflows.",
     "brandColor": "#FF4057",
     "composerIcon": "./assets/app-icon.png",
     "logo": "./assets/app-icon.png",
