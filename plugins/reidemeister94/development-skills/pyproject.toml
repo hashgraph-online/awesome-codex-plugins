@@ -2,7 +2,7 @@
 line-length = 100
 
 [tool.commitizen]
-version = "0.6.0"
+version = "0.7.0"
 tag_format = "$version"
 version_files = [
     "VERSION",

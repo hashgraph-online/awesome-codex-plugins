@@ -1,7 +1,7 @@
 {
   "name": "x-twitter-scraper",
   "version": "2.4.16",
-  "description": "X (Twitter) data and automation skill for agents using Xquik REST API, MCP, webhooks, SDKs, and confirmation-gated actions.",
+  "description": "X (Twitter) scraper API skill for agents using Xquik REST API, MCP, webhooks, SDKs, usage estimates, and confirmation-gated actions.",
   "author": {
     "name": "Xquik",
     "url": "https://github.com/Xquik-dev"
@@ -26,7 +26,7 @@
   "interface": {
     "displayName": "X Twitter Scraper",
     "shortDescription": "Use Xquik for X data, MCP, and gated actions",
-    "longDescription": "Use the X Twitter Scraper skill to guide agents through Xquik REST API, MCP, webhook, SDK, extraction, monitoring, and confirmation-gated action workflows for X data and automation.",
+    "longDescription": "Use the X Twitter Scraper skill to guide agents through Xquik REST API, MCP, webhook, SDK, extraction, monitoring, usage estimate, and confirmation-gated action workflows for X data automation.",
     "developerName": "Xquik",
     "category": "Productivity",
     "composerIcon": "./assets/icon.svg",

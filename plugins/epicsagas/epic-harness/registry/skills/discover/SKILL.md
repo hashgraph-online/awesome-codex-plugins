@@ -1,6 +1,6 @@
 ---
 name: discover
-description: "Trigger: vague/unfocused request or solution-without-problem. Reframes goal before coding."
+description: "Trigger: vague/unfocused request or solution-without-problem. Also invoked via /discover command. Reframes goal before acting."
 modes:
   - auto   # auto-triggered on vague/unfocused requests
   - /discover  # explicit invocation
@@ -10,7 +10,7 @@ modes:
 
 You are starting the **Discover** phase. Your job is to help the user articulate what problem they are actually trying to solve, before jumping to solutions or specs.
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
 
 ## Iron Law
 
@@ -20,10 +20,10 @@ NO SPEC WITHOUT A PROBLEM STATEMENT. Building the wrong thing well is worse than
 
 ### Step 0: Prerequisites
 
-- Resolve harness directory: `HARNESS_DIR=$(epic path)`
+- Resolve harness directory: `HARNESS_DIR=$(epic-harness path)`
 - Read any existing context (CLAUDE.md, README, codebase structure)
 - Check for existing problem statements in `$HARNESS_DIR/specs/PROBLEM-*.md`
-- Run `epic mem recall "TOPIC_HINT"` with a hint describing the current topic area
+- Call `mem_recall` with a hint describing the current topic area
 - Check for past `decision` or `pattern` nodes related to this domain
 - If prior problem exploration exists, reference it: "We discussed something similar before..."
 - If existing PROBLEM files are found, review them — the user may be continuing prior work

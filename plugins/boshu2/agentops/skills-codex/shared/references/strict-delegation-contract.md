@@ -39,7 +39,7 @@ phases. Typical rationalizations to reject:
 - *"Nested `$<skill>` calls waste context; I'll spawn a Codex sub-agent instead."*
 - *"The implementation is validated by tests passing; skipping `/validate`."*
 - *"The plan looks good, skipping pre-mortem to save time."*
-- *"I'll just spawn 3 judges directly — it's what `/vibe` does anyway."*
+- *"I'll just spawn 3 judges directly — it's what `/validate` does anyway."*
 - *"Post-mortem is just writing a summary, I'll do it inline."*
 
 All of these are contract violations. A live compression was observed 2026-04-19 (see [`docs/learnings/orchestrator-compression-anti-pattern.md`](../../../docs/learnings/orchestrator-compression-anti-pattern.md)). The compression "worked" mechanically (strict build passed, 2-judge inline vibe PASSed) but the knowledge flywheel never turned — no forged learnings, no post-mortem artifact, no structured council verdict. Contract strength depends on actual `$<skill>` invocations, not self-certification.

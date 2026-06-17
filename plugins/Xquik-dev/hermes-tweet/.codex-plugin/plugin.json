@@ -1,0 +1,45 @@
+{
+  "name": "hermes-tweet",
+  "version": "0.1.6",
+  "description": "Native Hermes Agent X/Twitter plugin for Xquik automation with read-first workflows and approval-gated actions.",
+  "author": {
+    "name": "Xquik",
+    "url": "https://github.com/Xquik-dev"
+  },
+  "homepage": "https://github.com/Xquik-dev/hermes-tweet#readme",
+  "repository": "https://github.com/Xquik-dev/hermes-tweet",
+  "license": "MIT",
+  "keywords": [
+    "hermes-agent",
+    "hermes-plugin",
+    "xquik",
+    "twitter",
+    "x",
+    "social-media",
+    "automation",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hermes Tweet",
+    "shortDescription": "Use Hermes Agent for X/Twitter research and gated actions.",
+    "longDescription": "Hermes Tweet gives Codex a source-native install surface for the Hermes Agent X/Twitter plugin. Use it to discover tweet and user read tools, summarize public X context, and keep account-changing actions behind explicit Hermes Tweet approval gates.",
+    "developerName": "Xquik",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Xquik-dev/hermes-tweet#readme",
+    "privacyPolicyURL": "https://github.com/Xquik-dev/hermes-tweet/security/policy",
+    "termsOfServiceURL": "https://github.com/Xquik-dev/hermes-tweet/blob/master/LICENSE",
+    "defaultPrompt": [
+      "Use Hermes Tweet to research this X/Twitter topic.",
+      "Use Hermes Tweet to read public replies and summarize the thread.",
+      "Use Hermes Tweet to prepare an approval-gated X/Twitter action."
+    ],
+    "brandColor": "#111827",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

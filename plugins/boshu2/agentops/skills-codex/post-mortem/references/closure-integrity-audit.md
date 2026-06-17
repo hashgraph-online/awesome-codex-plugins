@@ -6,7 +6,7 @@ This audit catches four failure modes discovered in production:
 
 1. **Multi-wave regressions** — A later wave's worker removes code that an earlier wave added. Each wave passes tests independently, but the net result is incomplete.
 2. **Phantom closures** — Beads closed with generic/empty descriptions ("task"), no spec, no git evidence.
-3. **Orphaned children** — Child beads exist in `bd list` but aren't linked to parent in `bd show <parent>`.
+3. **Orphaned children** — Child beads exist in `br list` but aren't linked to parent in `bd show <parent>`.
 4. **Stretch goals closed without work** — Items marked "stretch" bulk-closed when epic closes, with no implementation or documented deferral rationale.
 
 For **evidence-only closures** that intentionally do not produce a code delta, require a proof artifact at `.agents/releases/evidence-only-closures/<target-id>.json` (or, for legacy artifacts, `.agents/council/evidence-only-closures/<target-id>.json`). The artifact is written with `bash skills/post-mortem/scripts/write-evidence-only-closure.sh` and gives later audits something durable to validate besides bead notes.
@@ -204,19 +204,19 @@ done
 
 ### Check 3: Orphaned Children
 
-Verify all children in `bd list` are linked to parent.
+Verify all children in `br list` are linked to parent.
 
 ```bash
 # Children from parent's perspective
 PARENT_CHILDREN=$(bd show "$EPIC_ID" 2>/dev/null | grep '↳' | grep -oP '\w+-\w+\.\d+')
 
 # Children from list (matching prefix)
-LIST_CHILDREN=$(bd list --all 2>/dev/null | grep "^. ${EPIC_ID}\." | grep -oP '\w+-\w+\.\d+')
+LIST_CHILDREN=$(br list --all 2>/dev/null | grep "^. ${EPIC_ID}\." | grep -oP '\w+-\w+\.\d+')
 
 # Find orphans (in list but not in parent)
 for child in $LIST_CHILDREN; do
   if ! echo "$PARENT_CHILDREN" | grep -q "^${child}$"; then
-    FAILURES="${FAILURES}\n- ORPHAN: $child — exists in bd list but not linked to $EPIC_ID"
+    FAILURES="${FAILURES}\n- ORPHAN: $child — exists in br list but not linked to $EPIC_ID"
   fi
 done
 ```

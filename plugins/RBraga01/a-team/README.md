@@ -2,9 +2,9 @@
   <img src="assets/ATeam_full.png" alt="A Team logo" width="200">
 </p>
 
- # A Team — A Complete Engineering Team in One Folder v1.1.0
+ # A Team — A Complete Engineering Team in One Folder v1.2.0
 
-Not a marketplace of agents you configure. A pre-configured, pre-enforced engineering team of 25 specialists — with a lead orchestrator, hard quality gates, and a Pipeline Auditor that verifies work was actually done, not just reported. Drop one folder into any project and it's operational from the first keystroke. Works on Claude Code, Codex CLI, Cursor, and OpenCode.
+Not a marketplace of agents you configure. A pre-configured, pre-enforced engineering team of 26 specialists — with a lead orchestrator, hard quality gates, and a Pipeline Auditor that verifies work was actually done, not just reported. Drop one folder into any project and it's operational from the first keystroke. Works on Claude Code, Codex CLI, Cursor, and OpenCode.
 
 > **Born from the community.** A Team was built by studying, using, and needing to personalise several excellent open-source agent projects. The architecture combines the best patterns from each into a single, portable baseline. See [Acknowledgments](#acknowledgments) for the projects that made this possible.
 
@@ -22,8 +22,8 @@ Not a marketplace of agents you configure. A pre-configured, pre-enforced engine
 
 A Team turns any AI coding assistant into a structured, self-enforcing engineering team. Instead of one general-purpose model trying to do everything, you get:
 
-- **25 specialist agents**, each with a defined scope, model tier, and tool set
-- **18 workflow skills** that gate what can happen and when
+- **26 specialist agents**, each with a defined scope, model tier, and tool set
+- **19 workflow skills** that gate what can happen and when
 - **A lead orchestrator** that manages daily task flow, dispatch, and state
 - **Hard enforcement hooks** that inject mandatory checks at session start and after every file edit
 - **A pipeline auditor** that verifies agents actually ran required checks — not just claimed they did
@@ -62,10 +62,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/RBraga01/a-team/main/install
 gh repo clone RBraga01/a-team -- --depth 1
 
 # Copy the infrastructure into your project
-cp -r a-team/.claude  your-project/
-cp -r a-team/skills   your-project/
-cp -r a-team/hooks    your-project/
+cp -r a-team/.claude   your-project/
+cp -r a-team/skills    your-project/
+cp -r a-team/hooks     your-project/
 cp -r a-team/templates your-project/
+cp -r a-team/scripts   your-project/
 cp    a-team/INIT_TEMPLATE.md your-project/INIT.md
 
 # Clean up
@@ -82,10 +83,10 @@ git clone --filter=blob:none --sparse --depth 1 \
   https://github.com/RBraga01/a-team.git
 
 cd a-team
-git sparse-checkout set .claude skills hooks templates INIT_TEMPLATE.md
+git sparse-checkout set .claude skills hooks templates scripts INIT_TEMPLATE.md
 
 # Copy into your project
-cp -r .claude skills hooks templates ../your-project/
+cp -r .claude skills hooks templates scripts ../your-project/
 cp INIT_TEMPLATE.md ../your-project/INIT.md
 
 cd .. && rm -rf a-team
@@ -97,9 +98,9 @@ git clone --filter=blob:none --sparse --depth 1 `
   https://github.com/RBraga01/a-team.git
 
 cd a-team
-git sparse-checkout set .claude skills hooks templates INIT_TEMPLATE.md
+git sparse-checkout set .claude skills hooks templates scripts INIT_TEMPLATE.md
 
-Copy-Item -Recurse .claude,skills,hooks,templates ..\your-project\
+Copy-Item -Recurse .claude,skills,hooks,templates,scripts ..\your-project\
 Copy-Item INIT_TEMPLATE.md ..\your-project\INIT.md
 
 cd .. ; Remove-Item a-team -Recurse -Force
@@ -111,7 +112,7 @@ cd .. ; Remove-Item a-team -Recurse -Force
 
 1. Go to [github.com/RBraga01/a-team](https://github.com/RBraga01/a-team)
 2. Click **Code → Download ZIP**
-3. Extract and copy `.claude/`, `skills/`, `hooks/`, `templates/` into your project root
+3. Extract and copy `.claude/`, `skills/`, `hooks/`, `templates/`, `scripts/` into your project root
 4. Copy `INIT_TEMPLATE.md` as `INIT.md`
 
 ---
@@ -179,11 +180,11 @@ A Team/
 │
 ├── .claude/
 │   ├── settings.json          ← Permissions, hooks, worktree config
-│   ├── agents/                ← 25 agent profiles (name, model, tools, instructions)
+│   ├── agents/                ← 26 agent profiles (name, model, tools, instructions)
 │   ├── commands/              ← Slash commands (/orchestrate, /plan, /quality-gate, …)
 │   └── rules/                 ← Coding and workflow standards loaded by all agents
 │
-├── skills/                    ← 18 workflow skill modules
+├── skills/                    ← 19 workflow skill modules
 │   ├── using-a-team/          ← Meta-skill: mandatory trigger map
 │   ├── verification-before-completion/
 │   ├── test-driven-development/
@@ -253,7 +254,7 @@ The `PostToolUse` hook fires after every `Write` or `Edit`, reminding: use `code
 
 ---
 
-## Agent Roster (25)
+## Agent Roster (26)
 
 ### Core Engineering
 
@@ -299,7 +300,7 @@ All language specialists run at **T2 · sonnet-4-6** (or platform equivalent).
 
 ---
 
-## Skill Library (18)
+## Skill Library (19)
 
 Skills are instruction modules that agents must consult before acting. Hard-gate skills cannot be skipped. Workflow skills define process.
 

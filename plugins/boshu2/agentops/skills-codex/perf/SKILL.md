@@ -301,16 +301,16 @@ COMPARISON: baseline vs candidate
 
 ## Edge Cases
 
-- **No benchmarks and no clear target**: Run `$complexity` first to identify hot paths, then benchmark those.
+- **No benchmarks and no clear target**: Run `$refactor` first to identify hot paths, then benchmark those.
 - **Flaky benchmarks**: Increase iteration count, pin to a single core (`GOMAXPROCS=1`), close competing processes.
 - **Cannot install profiling tools**: Fall back to `time` for wall-clock and manual instrumentation for allocation counts.
 - **Target is a CLI command**: Use `hyperfine` for wall-clock benchmarking across any language.
 
 ## See Also
 
-- [complexity](../complexity/SKILL.md) — Find high-complexity code to target
+- [refactor](../refactor/SKILL.md) — Find high-complexity code to target (absorbs complexity)
 - [standards](../standards/SKILL.md) — Language-specific optimization patterns
-- [vibe](../vibe/SKILL.md) — Validate optimized code quality
+- [validate](../validate/SKILL.md) — Validate optimized code quality (absorbs vibe)
 
 ## Reference Documents
 

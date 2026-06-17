@@ -10,7 +10,7 @@ Environment overlay for Raycast extensions. Used alongside [react.md](../pattern
 - Preferences system used for user configuration (not env vars or dotenv)
 - Navigation via `push`/`pop` (not React Router)
 - Toast notifications for async feedback
-- Proper loading states via `isLoading` prop
+- Loading states via the `isLoading` prop on List/Detail/Form — Raycast has no skeleton primitive; `isLoading` IS the platform's content-loading pattern, don't hand-roll one
 - Icons from `@raycast/api` Icon enum
 - No HTML or CSS — Raycast renders natively
 
@@ -206,4 +206,4 @@ function SearchItems() {
 | React Router | `Action.Push` / `Action.Pop` for navigation |
 | `dotenv` for config | Raycast Preferences system |
 | `console.log` for feedback | `showToast()` |
-| Custom spinners | `isLoading` prop on List/Detail/Form |
+| Custom spinners or skeletons | `isLoading` prop on List/Detail/Form |

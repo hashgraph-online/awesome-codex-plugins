@@ -45,7 +45,7 @@ When using bd for static data (terminology, glossaries, reference information):
 **bd show requires IDs, not names:**
 - `bd show term-42` works
 - `bd show "API endpoint"` doesn't work
-- Workaround: `bd list | grep -i "api endpoint"` to find ID first
+- Workaround: `br list | grep -i "api endpoint"` to find ID first
 - This is why dual format (bd + markdown) is recommended for reference data
 
 **No search by content:**

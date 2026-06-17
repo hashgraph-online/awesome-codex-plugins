@@ -19,7 +19,7 @@ jq '.[] | select(.status=="open")' .beads/issues.jsonl
 
 ```bash
 # CORRECT
-bd ready --json
+br ready --json
 bd show <id> --json
 ```
 
@@ -152,14 +152,14 @@ bd update <parent-id> --notes "Remaining gap now ..."
 
 **Why it matters**:
 - Stale parent notes create false backlog
-- `bd ready` can surface umbrella work that is already effectively done
+- `br ready` can surface umbrella work that is already effectively done
 - Autonomous loops lose trust in tracker state
 
 ---
 
 ### 6. Implementing Broad Parent Beads Directly
 
-**DON'T**: Take a broad umbrella bead from `bd ready` and implement against the vague parent wording
+**DON'T**: Take a broad umbrella bead from `br ready` and implement against the vague parent wording
 
 ```bash
 # WRONG
@@ -210,7 +210,7 @@ gt convoy list  <!-- FUTURE: gt convoy not yet implemented -->
 **DON'T**: Let merge request issues pile up
 
 ```bash
-bd list --type=merge-request
+br list --type=merge-request
 # 35 stale MR issues from months ago
 ```
 
@@ -221,15 +221,15 @@ bd list --type=merge-request
 bd close ap-mr-123 --reason "Branch merged"
 
 # Regular cleanup
-bd list --status=open --type=merge-request | while read id; do
+br list --status=open --type=merge-request | while read id; do
     # Check if branch still exists
     git branch -r | grep -q "origin/$branch" || bd close $id --reason "Branch merged/deleted"
 done
 ```
 
 **Why it matters**:
-- Stale MRs create noise in `bd list`
-- `bd ready` shows work that doesn't exist
+- Stale MRs create noise in `br list`
+- `br ready` shows work that doesn't exist
 - Database bloat from abandoned tracking issues
 
 ---
@@ -265,14 +265,14 @@ bd close ap-xyz5
 
 ```bash
 # WRONG - No context for future agents
-bd create "Fix the bug"
+br create "Fix the bug"
 ```
 
 **DO**: Include enough context for resumption
 
 ```bash
 # CORRECT - Self-contained context
-bd create "Fix authentication timeout in OAuth flow" \
+br create "Fix authentication timeout in OAuth flow" \
   --description "Users report 30s timeout during OAuth callback.
 Error in services/gateway/oauth.py:142.
 Reproduce: Login with Google SSO on slow network.
@@ -335,12 +335,12 @@ bd doctor
 
 ```bash
 # Weekly cleanup
-bd list --status=tombstone  # Review tombstones
+br list --status=tombstone  # Review tombstones
 bd doctor                   # Health check
 
 # Before major work
 bd vc status                # Check Dolt state (optional)
-bd ready                    # Verify ready queue
+br ready                    # Verify ready queue
 
 # After git pull, if local state looks stale
 bd doctor --fix --source=jsonl --yes
@@ -384,7 +384,7 @@ When using beads with Gas Town:
 ```bash
 # Mayor can't hook hq- beads to polecats
 # Create in rig database instead:
-BEADS_DIR=~/gt/ai_platform/mayor/rig/.beads bd create --title="Task" --type=task
+BEADS_DIR=~/gt/ai_platform/mayor/rig/.beads br create --title="Task" --type=task
 ```
 
 ---

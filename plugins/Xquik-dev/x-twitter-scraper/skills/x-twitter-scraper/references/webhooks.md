@@ -220,15 +220,11 @@ Check delivery status: `GET /webhooks/{id}/deliveries`.
 
 ## Local Testing
 
-Use [ngrok](https://ngrok.com) to expose a local server:
+Use a deployed HTTPS endpoint you control when testing webhook delivery. Do not install packages or proxy API keys from this skill.
 
 ```bash
-# Terminal 1: Start your webhook server
+# Start your webhook server on infrastructure you control
 node server.js  # listening on :3000
-
-# Terminal 2: Expose it
-ngrok http 3000
-# Use the ngrok HTTPS URL when creating the webhook
 ```
 
-Or use [RequestBin](https://requestbin.com) for quick inspection without running a server.
+Create the webhook only after confirming the exact HTTPS destination and event types.

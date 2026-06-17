@@ -8,7 +8,7 @@
 
 | Step | Behavior on Re-run |
 |------|--------------------|
-| Brainstorm | **Skipped** if `.agents/brainstorm/*<goal-slug>*` exists |
+| Brainstorm | **Skipped** if `.agentsbrainstorm/*<goal-slug>*` exists |
 | History search | **Always runs** — ao search is read-only |
 | Research | **Runs again** — research output appends, does not overwrite |
 | Plan | **Runs again** — creates new epic if none open, reuses if open epic matches goal |
@@ -23,7 +23,7 @@ When `$rpi --from=discovery` is invoked:
 
 ### Epic Deduplication
 
-If `bd list --type epic --status open` returns an epic matching the current goal, `$plan` reuses it rather than creating a duplicate. This prevents epic proliferation on re-runs.
+If `br list --type epic --status open` returns an epic matching the current goal, `$plan` reuses it rather than creating a duplicate. This prevents epic proliferation on re-runs.
 
 ## $validate
 

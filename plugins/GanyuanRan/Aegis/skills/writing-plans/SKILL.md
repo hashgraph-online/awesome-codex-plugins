@@ -77,10 +77,29 @@ If the input is a Spec Brief, keep the plan scoped to the pinned
 what/why/acceptance and do not expand into a formal design unless new
 architecture, contract, migration, or cross-module uncertainty appears.
 
-Compact output contract before writing the plan: `Plan Basis`, `Files`,
-`Compatibility`, `Architecture Integrity Lens`, `Plan Pressure Test`,
-`Plan-Time Complexity Check`, `Tasks`, `Risks`, and `Retirement`. Expand only
-where the approved scope, risk, or verification surface requires it.
+Compact output contract before writing the plan: `Plan Basis`,
+`BaselineUsageDraft`, `Files`, `Compatibility`, `Architecture Integrity Lens`,
+`Plan Pressure Test`, `Plan-Time Complexity Check`, `Tasks`, `Risks`, and
+`Retirement`. Expand only where the approved scope, risk, or verification
+surface requires it.
+
+Use a compact `BaselineUsageDraft` whenever the plan depends on specific
+baseline docs or current-authority refs:
+
+```text
+BaselineUsageDraft:
+- Required baseline refs:
+- Delivered context refs:
+- Acknowledged before plan refs:
+- Cited in plan refs:
+- Missing refs:
+- Decision: continue | needs-baseline-readback | needs-verification | pause-for-user | blocked
+```
+
+`Delivered context refs` is optional host-projected bookkeeping only. It is not
+authoritative proof that a host injected or the model internally consumed a
+context payload. The artifact exists to make baseline/context attention drift
+visible before and during planning.
 
 Use the `Architecture Integrity Lens` before task decomposition when an
 executable plan may still encode responsibility overlap, a wrong canonical
@@ -108,7 +127,18 @@ Use a compact `Plan-Time Complexity Check` before writing task steps when the
 plan changes maintained source files, core owners, handlers, routers, managers,
 shared utilities, adapters, or fallback paths:
 
+Use `using-aegis/references/complexity-governance.md` for the shared artifact
+classes, pressure signals, and over-budget handling rules.
+
 ```text
+Complexity Budget:
+- Artifact class:
+- Target files / artifacts:
+- Current pressure:
+- Projected post-change pressure:
+- Budget result: within-budget | at-risk | over-budget
+- Planned governance:
+
 Plan-Time Complexity Check:
 - Target files:
 - Existing size / shape signals:
@@ -118,10 +148,10 @@ Plan-Time Complexity Check:
 - Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
 ```
 
-Signals: 800+ line files, 80+ line blocks, deep nesting, mixed reasons to
-change, owner mismatch, or new branches/fallbacks/adapters. Advisory only. If
-the best answer is a new file, define its owner and contract; do not merely move
-complexity sideways.
+If the projected budget result is `over-budget`, do not write an atomic task
+that silently assumes add-in-place growth. Revise the task boundary, add
+governance work, or explicitly mark the slice as requiring follow-up before
+implementation begins.
 
 If the spec covers multiple independent subsystems, suggest breaking into
 separate plans. Before writing tasks, check: fact/assumption/unknown, baseline
@@ -170,13 +200,14 @@ Before you leave this workflow, the written plan must make these items answerabl
 
 1. **What problem or approved scope this plan is implementing**
 2. **Which baseline docs, ADRs, or requirements shaped the plan**
-3. **What files own the change**
-4. **What compatibility boundary must hold**
-5. **Whether the architecture integrity check found a higher-level owner /
+3. **Which required baseline refs were explicitly acknowledged before planning and which were actually cited in the plan**
+4. **What files own the change**
+5. **What compatibility boundary must hold**
+6. **Whether the architecture integrity check found a higher-level owner /
    contract path before task decomposition**
-6. **What plan-time complexity pressure exists and which edit boundary is safer**
-7. **What verification proves each major slice**
-8. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
+7. **What plan-time complexity pressure exists and which edit boundary is safer**
+8. **What verification proves each major slice**
+9. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
 
 ## Bite-Sized Task Granularity
 

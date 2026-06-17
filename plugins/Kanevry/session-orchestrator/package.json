@@ -1,8 +1,11 @@
 {
   "name": "session-orchestrator",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "description": "Session Orchestrator — Claude Code plugin for structured development sessions",
   "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
   "engines": {
     "node": ">=24.0.0"
   },
@@ -44,5 +47,16 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kanevry/session-orchestrator.git"
+  },
+  "pi": {
+    "extensions": [
+      "./pi/extensions/session-orchestrator.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./pi/prompts/*.md"
+    ]
   }
 }

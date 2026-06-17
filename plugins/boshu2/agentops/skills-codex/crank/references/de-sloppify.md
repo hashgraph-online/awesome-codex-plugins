@@ -57,7 +57,7 @@ The de-sloppify wave is lightweight — single worker, no parallelism needed.
 
 ### Manual Mode
 ```bash
-/vibe --quick recent   # quick check, no agents
+/validate --quick recent   # quick check, no agents
 # Review findings, then:
 # Apply cleanup manually or spawn cleanup worker
 ```

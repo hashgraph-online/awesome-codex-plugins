@@ -1,20 +1,9 @@
-# Codex Execution Profile -- cc-hooks
+# cc-hooks
 
-Configure agent runtime hooks for PreToolUse, PostToolUse, Stop, and Notification. Use when blocking commands, auto-formatting, custom permissions, or writing hooks.
+Configure Codex hooks for PreToolUse, PostToolUse, Stop, Notification. Use when blocking commands, auto-formatting, custom permissions, or writing hooks. Also: scheduling autonomous in-session flywheel ticks with Codex cron routines (absorbs cc-cron-ticks); running a Claude-native control-plane tick loop with worker and separate-validator subagents (absorbs cc-loop-driver); dispatching scoped Codex subagents with worktrees, roles, tools, memory, and evidence gates (absorbs cc-subagents); and isolating parallel Codex workers in separate git worktrees to prevent file collisions (absorbs cc-worktree-isolation).
 
-## Steps
+## Instructions
 
-1. Read `../../skills/cc-hooks/SKILL.md` and identify the exact task path, trigger, or command family that applies.
-2. Load only the source `references/*` or `scripts/*` files needed for that path.
-3. Confirm live command syntax with local `--help`, repo docs, or the source skill's evidence before running state-changing commands.
-4. Execute with Codex-native tools: local shell, `rg`, `apply_patch`, repo scripts, and AgentOps/ACFS binaries as directed by the source skill.
-5. Capture machine-checkable evidence: command, exit code, affected paths, and validation output.
-6. If the source skill is still being upgraded by the Claude lane, do not rewrite it. Report the missing source-side contract and keep this Codex wrapper intact.
+Load and follow the skill instructions from the sibling `SKILL.md` file for this skill.
+Then read local files in `references/` and `scripts/` when needed.
 
-## Guardrails
-
-- Do not use a different agent CLI as the executor from Codex.
-- Do not invent command flags. Verify with `--help` or checked-in references.
-- Do not broaden scope beyond the requested operator action.
-- Do not land source files into `~/dev/agentops`; staged generation belongs under `$HOME/acfs` until the orchestrator lands the batch.
-- Keep backstage/operator terminology out of client-facing artifacts.

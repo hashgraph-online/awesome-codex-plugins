@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.34.1
+version: 0.36.0
 description: >-
   Coordinate agents via the AMQ CLI for file-based inter-agent messaging. Use
   this skill whenever you need to send messages to another agent (codex, claude,
@@ -196,6 +196,8 @@ Add `project` and `peers` to your `.amqrc`:
 
 Both projects must register each other as peers for round-trip messaging.
 
+**Use `--project`/`--session` to route, not a raw `--root`.** A direct `--root` selects which tree to operate on; it carries no sender-origin metadata, so the recipient can't reply (a naive reply loops back into their own tree). `amq send` therefore **refuses** an explicit `--root` that crosses into a different base tree than your active session (`AM_ROOT`/`AM_BASE_ROOT`) when no `--project`/`--session`/`--from-session` is given. To message another project replyably, register the peer and use `--project` (or inline `@project`). If a send is genuinely local, set the target as your `AM_ROOT` instead of passing `--root`.
+
 ### Sending cross-project
 
 ```bash
@@ -296,7 +298,10 @@ amq list --new                                    # Peek without side effects
 amq send --to codex --subject "Review" --kind review_request --body @file.md
 amq send --to codex --priority urgent --kind question --body "Blocked on API"
 amq send --to codex --labels "bug,parser" --context '{"paths": ["src/"]}' --body "Found issue"
+echo "evidence: tests green" | amq send --to codex --subject "done" --body -   # - reads stdin
 ```
+
+**Body is fail-closed.** `--body -` (or `--body @-`, or omitting `--body`) reads stdin; a literal string or `@file` is used as-is. A send whose resolved body is empty/whitespace is **rejected** with a usage error instead of delivering a blank message — so `--body -` with nothing piped fails loudly rather than shipping an empty body. Pass `--allow-empty` only when you truly want a blank body (subject carries everything).
 
 **Send file paths, not file contents.** When attaching source code, configs, or large text for review, send the file path in the message body, not the contents inline. The receiver can open the file with their local tools. If the receiver cannot access that worktree, send a short diff instead of the full source.
 

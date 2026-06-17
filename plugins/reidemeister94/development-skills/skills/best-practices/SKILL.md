@@ -117,7 +117,6 @@ Common context variables:
 | superpowers (`~/Documents/ai/superpowers`) | Read local. Fallback: WebFetch GitHub |
 | Claude Code releases | WebFetch `https://github.com/anthropics/claude-code/releases` |
 | Official docs | WebFetch `code.claude.com/docs/en/best-practices`, `/skills`, `platform.claude.com/.../agent-skills/best-practices` |
-| claude-code-tips (`~/Documents/ai/claude-code-tips`) | Read local. Fallback: WebFetch GitHub |
 | claude-code-best-practice (`~/Documents/ai/claude-code-best-practice`) | Read local. Fallback: WebFetch GitHub |
 
 **For ALL topics**: Identify 2-3 domain-specific anchor sources to prioritize in Phase 2. These are the sources a domain expert would consult first. Don't hardcode them — derive them from the evidence profile.

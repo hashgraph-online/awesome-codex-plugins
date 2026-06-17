@@ -1,0 +1,47 @@
+{
+  "name": "agent-workflow-system",
+  "version": "1.12.1",
+  "description": "一套面向新手的 Codex 工作流系统，用于项目总控、学习引导、调试修复、漂移审计和阶段收尾。A beginner-friendly Codex workflow system with 7 collaborative skills for project management, learning, debugging, drift detection, and phase closeout. Bilingual (CN/EN).",
+  "author": {
+    "name": "Codex 工作流系统"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/1139030773-cmd/agent-workflow-system",
+  "repository": "https://github.com/1139030773-cmd/agent-workflow-system",
+  "keywords": [
+    "codex",
+    "workflow",
+    "project-management",
+    "learning",
+    "debugging",
+    "chinese"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex 工作流系统",
+    "shortDescription": "给新手用的中英双语项目、学习、调试和收尾引导系统。Bilingual workflow system for beginners.",
+    "longDescription": "一套中英双语 Codex 工作流插件，包含新手引导、项目总控、学习教练、调试修复、漂移审计和阶段收尾等技能，帮助用户从模糊想法自然进入可执行任务。A bilingual Codex workflow plugin with 7 skills: newbie guide, project master, learning coach, debug fixer, drift auditor, and phase closeout. Auto-detects language and adapts.",
+    "developerName": "Codex 工作流系统",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Planning",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "启动新手引导，把我的模糊目标变成任务。",
+      "进入总控模式，帮我管理这个项目。",
+      "做一次漂移检查，看看当前工作是否跑偏。",
+      "Start the newbie guide and help me plan my project.",
+      "Enter project master mode to manage my work.",
+      "Run a drift check on my current progress."
+    ],
+    "brandColor": "#2563EB",
+    "websiteURL": "https://github.com/1139030773-cmd/agent-workflow-system",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "composerIcon": "./assets/composer-icon.svg",
+    "logo": "./assets/app-icon.png",
+    "screenshots": []
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "a-team",
-  "version": "1.1.0",
-  "description": "A complete engineering team in one folder. 25 pre-configured specialists, 18 enforced workflow skills, a lead orchestrator, and a Pipeline Auditor — for Claude Code, Codex CLI, Cursor, and OpenCode.",
+  "version": "1.2.0",
+  "description": "A complete engineering team in one folder. 26 pre-configured specialists, 19 enforced workflow skills, a lead orchestrator, and a Pipeline Auditor — for Claude Code, Codex CLI, Cursor, and OpenCode.",
   "author": {
     "name": "RBraga01",
     "url": "https://github.com/RBraga01"

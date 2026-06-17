@@ -1,6 +1,6 @@
 {
 	"name": "codex-multi-auth",
-	"version": "2.3.0-beta.1",
+	"version": "2.3.2",
 	"description": "Codex CLI multi-account OAuth manager with account switching, health checks, runtime rotation, diagnostics, and recovery tools for @openai/codex",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -79,6 +79,7 @@
 	},
 	"scripts": {
 		"build": "tsc && node scripts/copy-oauth-success.js",
+		"generate:schema": "npm run build && node scripts/generate-config-schema.mjs",
 		"typecheck": "tsc --noEmit",
 		"typecheck:scripts": "tsc -p tsconfig.scripts.json",
 		"lint": "npm run lint:ts && npm run lint:scripts",
@@ -152,19 +153,17 @@
 		]
 	},
 	"engines": {
-		"node": ">=18.0.0"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
+		"node": ">=18.17.0"
 	},
 	"devDependencies": {
-		"@fast-check/vitest": "^0.2.4",
-		"@types/node": "^25.3.0",
+		"@types/node": "^20.19.42",
 		"@typescript-eslint/eslint-plugin": "^8.56.0",
 		"@typescript-eslint/parser": "^8.56.0",
 		"@vitest/coverage-v8": "^4.1.8",
 		"@vitest/ui": "^4.1.8",
 		"eslint": "^10.0.0",
+		"eslint-import-resolver-typescript": "^4.4.5",
+		"eslint-plugin-import-x": "^4.16.2",
 		"fast-check": "^4.5.3",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.2.7",

@@ -30,7 +30,7 @@ Describe what you need — the agent picks the right skill. Slash commands are s
 | Command | What it does |
 |---|---|
 | `/archcore:init` | First-time setup — seed stack rule, run guide, optional imports from CLAUDE.md / AGENTS.md / .cursorrules |
-| `/archcore:context [path or topic]` | Surface rules, ADRs, specs, and patterns that apply to a code area, or pick up where work left off |
+| `/archcore:context [path, topic, --git-changes]` | Surface rules, ADRs, specs, and patterns that apply to a code area (or your `--git-changes`), or pick up where work left off |
 | `/archcore:capture [topic]` | Document a module, component, or topic (picks ADR / spec / doc / guide automatically) |
 | `/archcore:decide [topic]` | Record a finalized decision (ADR, optionally codified as rule + guide or formalized as spec + plan) or open proposal (RFC) |
 | `/archcore:plan [feature]` | Plan a feature end-to-end. Default flow: idea → PRD → plan. Switch with `--track product\|feature\|sources\|iso` |

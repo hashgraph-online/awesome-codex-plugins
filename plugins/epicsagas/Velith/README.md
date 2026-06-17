@@ -9,7 +9,7 @@
   <a href="https://github.com/epicsagas/Velith/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/epicsagas/Velith?style=for-the-badge&labelColor=0d1117&color=58a6ff&logo=git&logoColor=white" /></a>
 </p>
 <p>
-  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.1.4-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
+  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.3.1-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-3fb950?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://claude.ai/code"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-plugin-bc8cff?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://github.com/openai/codex"><img alt="Codex CLI" src="https://img.shields.io/badge/Codex_CLI-plugin-10a37f?style=for-the-badge&labelColor=0d1117" /></a>
@@ -25,7 +25,7 @@
   <a href="docs/i18n/README.pt-BR.md">Português</a>
 </p>
 
-**Structure emergence, not text generation.** AI-native publishing pipeline for structured long-form creation — from blank page to publishable EPUB/PDF.
+**Build books like software.** A multi-phase pipeline that turns long-form knowledge — books, RFCs, whitepapers, design docs, technical guides — into structured artifacts, not isolated prompts. From blank page to publishable EPUB/PDF.
 
 `Phase 0: Onboarding → Phase 1: Ideation → Phase 2: Outlining → Phase 3: Drafting → Phase 4: Editing → Phase 5: Publishing`
 
@@ -35,7 +35,9 @@
 
 ## Why Velith?
 
-Writing a book with raw LLM prompts gives you disconnected chapters, inconsistent voice, and no structure. Velith treats books as **structured artifacts — not isolated prompts**. Each phase builds on persistent context to create coherent long-form work, with quality gates at every stage.
+Most AI "writing tools" are a single prompt and a blank page — they give you disconnected chapters, drifting voice, and no structure. Velith is the opposite: a **plan-then-execute pipeline** that validates before it writes, gates quality at every stage, and keeps the whole manuscript coherent end to end.
+
+You wouldn't ship code without a spec, tests, and review — so don't ship a book (or an RFC, or a whitepaper) without an outline, continuity checks, and an edit pass. Velith brings software-engineering discipline to long-form knowledge.
 
 ## Benchmark
 
@@ -57,6 +59,19 @@ What the pipeline does to unstructured input — [try it yourself →](https://h
 | ✏️ | 5-stage editing | Assessment → Developmental → Line → Copy → Proofread |
 | 🔄 | Resume anywhere | Skip completed chapters, pick up from where you left off |
 | 📦 | EPUB, PDF, MOBI, TXT, Markdown | Publish-ready files via Pandoc + Calibre |
+
+## One pipeline, many artifacts
+
+Velith ships as a book pipeline — but the same 6 phases apply to **any long-form structured knowledge**. It doesn't matter whether the artifact is a 300-page novel or a 12-page RFC; the plan-then-execute flow, quality gates, and agents are identical.
+
+| Artifact | Genre skill | Typical output |
+|----------|-------------|----------------|
+| Novel / Story | `book-fiction` | EPUB / PDF / MOBI |
+| Non-fiction book | `book-nonfiction` | EPUB / PDF |
+| RFC / Design doc | `book-technical` | Markdown / PDF |
+| Whitepaper / Research report | `book-academic` | PDF (citations) |
+| Course material / Tutorial | `book-technical` | EPUB / PDF |
+| Game scenario / Lore bible | `book-game` | Markdown / EPUB |
 
 ## Comparison
 
@@ -118,7 +133,7 @@ agy plugin install https://github.com/epicsagas/Velith
 
 Agy auto-discovers skills and agents from the repository root. No extra configuration needed.
 
-**Prerequisites:** [Agy](https://github.com/nicepkg/antigravity) installed and configured.
+**Prerequisites:** [Agy](https://antigravity.google/docs/cli-install) installed and configured.
 
 ### Cursor
 

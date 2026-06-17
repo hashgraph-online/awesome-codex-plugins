@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+.git/
+.github/
+tests/
+docs/launch/
+launch/
+launch-pack/
+promotion-drafts/
+*.draft.md
+posts.csv
+interactions.md

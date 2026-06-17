@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-08",
-  "total": 106,
+  "last_updated": "2026-06-16",
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -40,6 +40,16 @@
       "install_url": "https://raw.githubusercontent.com/yfge/agent-harness-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Agent Workflow System",
+      "url": "https://github.com/1139030773-cmd/agent-workflow-system",
+      "owner": "1139030773-cmd",
+      "repo": "agent-workflow-system",
+      "description": "一套中文AI工作流系统：7个协作技能 + 行为规范宪法 + 会话恢复机制，模糊目标→可执行任务，全生命周期引导。Codex & Claude Code 双平台，新手友好。",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/1139030773-cmd/agent-workflow-system/HEAD/plugins/agent-workflow-system/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Agentizer",
       "url": "https://github.com/Humiris/wwa-transform",
       "owner": "Humiris",
@@ -48,16 +58,6 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Humiris/wwa-transform/HEAD/.codex-plugin/plugin.json"
-    },
-    {
-      "name": "Agent Workflow System",
-      "url": "https://github.com/1139030773-cmd/agent-workflow-system",
-      "owner": "1139030773-cmd",
-      "repo": "agent-workflow-system",
-      "description": "一套中文AI工作流系统：7个协作技能 + 行为规范宪法 + 会话恢复机制。模糊目标→可执行任务，全生命周期引导。Codex & Claude Code 双平台，新手友好。",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/1139030773-cmd/agent-workflow-system/HEAD/plugins/agent-workflow-system/.codex-plugin/plugin.json"
     },
     {
       "name": "AgentOps",
@@ -117,7 +117,7 @@
       "description": "Gives coding agents the architecture, rules, and prior decisions of the repo via skills, hooks, and MCP — so new changes land where the project says they belong across Claude Code, Cursor, and Codex CLI.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/archcore-ai/plugin/HEAD/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/archcore-ai/plugin/HEAD/plugins/archcore/.codex-plugin/plugin.json"
     },
     {
       "name": "Bring Your AI Migration Auditor",
@@ -138,6 +138,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hyhmrright/brooks-lint/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Casefile",
+      "url": "https://github.com/x4cc3/casefile",
+      "owner": "x4cc3",
+      "repo": "casefile",
+      "description": "Persistent security case tracking for bug bounties, CTFs, and security audits.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/x4cc3/casefile/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Claude Code for Codex",
@@ -230,6 +240,16 @@
       "install_url": "https://raw.githubusercontent.com/Rycen7822/codex-rg-guard/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "debt-ops",
+      "url": "https://github.com/bcanfield/agentic-tech-debt",
+      "owner": "bcanfield",
+      "repo": "agentic-tech-debt",
+      "description": "Catches AI-introduced tech debt at write-time: hooks log every deferral to a registry in your repo and a review skill ranks paydown by file churn.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/bcanfield/agentic-tech-debt/HEAD/codex/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Dev Skills",
       "url": "https://github.com/Jason-chen-coder/dev-skills",
       "owner": "Jason-chen-coder",
@@ -290,6 +310,16 @@
       "install_url": "https://raw.githubusercontent.com/Dkm0315/frappe-agent/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "GCF Proxy",
+      "url": "https://github.com/blackwell-systems/gcf-codex-plugin",
+      "owner": "blackwell-systems",
+      "repo": "gcf-codex-plugin",
+      "description": "Save 71% on MCP tool call tokens by wrapping any server with GCF encoding, with session stats hook and setup skill.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/blackwell-systems/gcf-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "GrayMatter",
       "url": "https://github.com/ValkyrLabs/GrayMatter",
       "owner": "ValkyrLabs",
@@ -298,6 +328,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ValkyrLabs/GrayMatter/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Generative Media Skills",
+      "url": "https://github.com/SamurAIGPT/Generative-Media-Skills",
+      "owner": "SamurAIGPT",
+      "repo": "Generative-Media-Skills",
+      "description": "13 skills for image, video, and audio generation using 100+ models - FLUX, Midjourney v7, Veo3, Kling 3.0, Suno, and HunyuanVideo via muapi.ai.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/SamurAIGPT/Generative-Media-Skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "HOL Guard Plugin",
@@ -800,6 +840,16 @@
       "install_url": "https://raw.githubusercontent.com/zfifteen/gh-project-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Hermes Tweet",
+      "url": "https://github.com/Xquik-dev/hermes-tweet",
+      "owner": "Xquik-dev",
+      "repo": "hermes-tweet",
+      "description": "Hermes Agent X/Twitter plugin for read-first social research, monitoring, and approval-gated actions through Xquik.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Xquik-dev/hermes-tweet/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Jenkins CLI",
       "url": "https://github.com/avivsinai/jenkins-cli",
       "owner": "avivsinai",
@@ -960,14 +1010,14 @@
       "install_url": "https://raw.githubusercontent.com/tim-osterhus/codex-remotion-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "ru-text",
-      "url": "https://github.com/talkstream/ru-text",
-      "owner": "talkstream",
-      "repo": "ru-text",
-      "description": "Russian text quality — ~1,040 rules for typography, info-style, editorial, UX writing, and business correspondence.",
+      "name": "ScrapeGraph AI",
+      "url": "https://github.com/ScrapeGraphAI/just-scrape",
+      "owner": "ScrapeGraphAI",
+      "repo": "just-scrape",
+      "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/talkstream/ru-text/HEAD/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/ScrapeGraphAI/just-scrape/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Rust Reverse Engineering",
@@ -1048,6 +1098,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/klajdikkolaj/upwork-autopilot/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Val Town",
+      "url": "https://github.com/val-town/plugins",
+      "owner": "val-town",
+      "repo": "plugins",
+      "description": "Build and deploy serverless TypeScript on Val Town from Codex — hosted MCP server plus skills for HTTP vals, cron, SQLite, email, OAuth, and React UI.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/val-town/plugins/HEAD/plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "VidSeeds.ai",

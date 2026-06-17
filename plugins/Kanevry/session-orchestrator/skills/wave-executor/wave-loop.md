@@ -479,6 +479,29 @@ Per attempt:
 See `SKILL.md` § "Inter-Wave Quality-Gate (with Auto-Fix Loop — #521)" for
 the full invocation pattern.
 
+##### /goal Continuation Anchor (opt-in — #636)
+
+> Advisory-only continuation anchor at the inter-wave fix-loop seam. Never auto-invokes `/goal`, never blocks forward progress. `/goal` is a user slash-command; the operator decides whether to use it.
+
+**Gate conditions** — ALL must be true for this nudge to surface:
+
+1. `goal-integration.enabled: true` in Session Config (default: `false`).
+2. `inter-wave-fixloop` is listed in `goal-integration.seams`.
+
+When any gate condition is false, skip this step entirely — proceed to `##### STATE.md Deviation — Auto-Fix Result`.
+
+**What it does** — when the gate fires and the inter-wave Quality-Gate is failing (auto-fix retries in flight or about to begin), surface ONE suggested `/goal` command as an advisory bullet in the wave progress update. Example:
+
+```
+/goal Keep fixing Wave <N> quality-gate failures until 'npm run lint', 'npm run typecheck' and 'npm test' each print 0 failures in this turn's output, or stop after <max-retries+1> attempts.
+```
+
+**Advisory-only contract:** the `/goal` is the continuation anchor that keeps the coordinator working across turns while it iterates on the fix. The exit-code result of `runQualityGateWithRetry()` stays the judgment — `/goal` continues the loop, it never decides correctness. The hard-abort + diagnostics-bundle path (`.orchestrator/metrics/verification-failures/<ts>.json` after `max-retries`) is UNCHANGED: an active `/goal` does not extend, replace, or bypass the bounded retry ceiling. This step is informational prose only — no AskUserQuestion, no STATE.md write, no sidecar.
+
+The `/goal` evaluator reads the transcript only and runs NO tools — it anchors CONTINUATION, never JUDGMENT. The suggested condition therefore references freshly-run gate output "in this turn's output" and embeds a bound ("or stop after N attempts"). Cross-reference `.claude/rules/loop-and-monitor.md § LM-008` for the full `/goal` continuation-vs-judgment contract rather than restating it here.
+
+**One goal per session:** only ONE `/goal` can be active at a time. This inter-wave fix-loop seam and the session-end backlog seam (`skills/session-end/SKILL.md` § 1.3a) cannot both hold an active goal simultaneously — the operator picks one.
+
 ##### STATE.md Deviation — Auto-Fix Result
 
 After `runQualityGateWithRetry()` returns:
@@ -776,7 +799,7 @@ On a clean `PROCEED` no deviation is written — the sidecar alone is sufficient
 
 When the hook is skipped (gate condition false), omit the `persona_gate` field entirely — never write `triggered: false` for skipped runs, so a downstream consumer can distinguish "hook did not fire" from "hook fired but found no dissent".
 
-**Motivating example:** the `gotzendorfer-v2` W5 Buyer-Panel pattern (six buyer personas at `hard-gate-threshold` `6-of-6`, `mode: 'strict'`, `after: 'quality'`) — UI work is gate-checked against every persona before commit, abort on any dissent. See `docs/session-config-reference.md § Persona-Gate Wave (#458)` and `commands/persona-panel.md` for the standalone CLI equivalent.
+**Motivating example:** a flagship product's W5 Buyer-Panel pattern (six buyer personas at `hard-gate-threshold` `6-of-6`, `mode: 'strict'`, `after: 'quality'`) — UI work is gate-checked against every persona before commit, abort on any dissent. See `docs/session-config-reference.md § Persona-Gate Wave (#458)` and `commands/persona-panel.md` for the standalone CLI equivalent.
 
 ### 3c. Strategic Compact-Nudge (#620)
 

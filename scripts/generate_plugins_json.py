@@ -52,6 +52,9 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
+    # invoke sibling Python scripts in the same hooks/ directory at runtime.
+    "bcanfield/agentic-tech-debt": ("hooks",),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),

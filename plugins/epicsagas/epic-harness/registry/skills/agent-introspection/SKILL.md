@@ -1,6 +1,6 @@
 ---
 name: agent-introspection
-description: "Trigger: 3+ consecutive failures, circular retries, or overwhelming context. Breaks loops."
+description: "Loop-breaking self-diagnosis. Use when 3+ consecutive failures occur, circular retries persist, or context overwhelms the session."
 ---
 
 # Agent Introspection — Systematic Self-Diagnosis

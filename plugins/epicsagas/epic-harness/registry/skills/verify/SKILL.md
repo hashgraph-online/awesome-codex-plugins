@@ -1,6 +1,6 @@
 ---
 name: verify
-description: "Trigger: before marking done or /ship. Build + test + lint must all pass."
+description: "Pre-merge verification gate. Build, test, and lint must all pass before marking done or shipping."
 ---
 
 # Verify — Pre-Completion Check

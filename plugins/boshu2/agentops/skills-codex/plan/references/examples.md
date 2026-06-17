@@ -60,9 +60,9 @@ Detailed examples of `$plan` usage scenarios.
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| bd create fails | Beads not initialized in repo | Run `bd init --prefix <prefix>` first |
-| Dependencies not created | Issues created without explicit `bd dep add` calls | Verify plan output includes dependency commands. Re-run to regenerate |
+| br create fails | Beads not initialized in repo | Run `br init --prefix <prefix>` first |
+| Dependencies not created | Issues created without explicit `br dep add` calls | Verify plan output includes dependency commands. Re-run to regenerate |
 | Plan too large | Research scope was too broad, resulting in >20 issues | Narrow the goal or split into multiple epics |
 | Wave structure incorrect | False dependencies declared (logical ordering, not file conflicts) | Review dependency necessity: does blocked issue modify blocker's files? |
 | Conformance checks missing | Acceptance criteria not mechanically verifiable | Add `files_exist`, `content_check`, `tests`, or `command` checks per validation-contract.md |
-| Epic has no children | Plan created but bd commands failed silently | Check `bd list --type epic` output; re-run plan with bd CLI available |
+| Epic has no children | Plan created but br commands failed silently | Check `br list --type epic` output; re-run plan with br CLI available |

@@ -1,6 +1,6 @@
 ---
 name: deps
-description: Use when hardening npm supply chain, pinning dependency versions, adding .npmrc security flags, or setting up Renovate and audit workflows. Locks down install-time scripts, registries, version ranges, and CI checks.
+description: Use when hardening npm supply chain, pinning dependency versions, adding .npmrc security flags, or setting up Renovate. Locks down install-time scripts, registries, version ranges, and CI checks.
 allowed-tools: Read Glob Grep Write Edit Bash(pnpm:*) Bash(pnx:*) Bash(npm:*) Bash(bun:*) Bash(yarn:*) Bash(gh:*)
 model: sonnet
 effort: medium
@@ -24,9 +24,7 @@ Use the detected package manager for all commands. Replace `<pm>` in rule files 
 Before applying any hardening, scan for existing configurations:
 - `.npmrc` / `.yarnrc.yml` / `bunfig.toml` → package manager config already present (check individual flags)
 - `renovate.json` / `.renovaterc` / `.renovaterc.json` / `renovate` key in `package.json` → Renovate already configured
-- `.github/workflows/*.yml` containing `audit` → audit workflow exists
 - `.github/workflows/*.yml` containing `dependency-review` → dependency review exists
-- `.github/workflows/*.yml` containing `lockfile` → lockfile integrity check exists
 - `package.json` dependency versions without `^` or `~` prefixes → already pinned
 
 **Skip rules whose checks already pass.** Report what was skipped at the end.
@@ -41,9 +39,7 @@ Read each rule file for detailed instructions and config templates.
 | Release quarantine | MEDIUM | `rules/release-quarantine.md` |
 | Version pinning | HIGH | `rules/version-pinning.md` |
 | Renovate | MEDIUM | `rules/renovate.md` |
-| Audit workflow | HIGH | `rules/audit-workflow.md` |
 | Dependency review | HIGH | `rules/dependency-review.md` |
-| Lockfile integrity | MEDIUM | `rules/lockfile-integrity.md` |
 | Package runner | MEDIUM | `rules/package-runner.md` |
 
 ## 4. Output Summary

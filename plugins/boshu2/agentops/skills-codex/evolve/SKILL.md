@@ -20,7 +20,7 @@ dormancy stops the run.
 
 Always-on autonomous loop over `$rpi`. Work selection order:
 1. **Harvested `.agents/rpi/next-work.jsonl` work** (freshest concrete follow-up)
-2. **Open ready beads work** (`bd ready`)
+2. **Open ready beads work** (`br ready`)
 3. **Failing goals and directive gaps** (`ao goals measure`)
 4. **Testing improvements** (missing/thin coverage, missing regression tests)
 5. **Validation tightening and bug-hunt passes** (gates, audits, bug sweeps)
@@ -28,6 +28,14 @@ Always-on autonomous loop over `$rpi`. Work selection order:
 7. **Concrete feature suggestions** derived from repo purpose when no sharper work exists
 
 **Dormancy is last resort.** Empty current queues mean "run the generator layers", not "stop". Only go dormant after the queue layers and generator layers come up empty across multiple consecutive passes.
+
+**Live skill edit immune system:** if an evolve cycle edits
+`skills/<slug>/SKILL.md`, run
+`ao skills edit seal --skill <slug> --actor "${AGENT_NAME:-agent}"` before the
+cycle hands off. The seal creates the rollback commit and records the
+`Skill-Edit` trailers used by the daily digest. Critical skills listed in
+`docs/contracts/critical-skills.txt` reject unattended edits; use
+`--allow-critical` only when Bo is supervising that critical edit.
 
 ```bash
 $evolve                      # Run until kill switch, max-cycles, or real dormancy
@@ -334,7 +342,7 @@ If the cycle fails, regresses, or is interrupted before success, release the cla
 
 **Step 3.2: Open ready beads**
 
-If no harvested item is ready, check `bd ready`. Pick the highest-priority unblocked issue.
+If no harvested item is ready, check `br ready`. Pick the highest-priority unblocked issue.
 
 **Step 3.3: Failing goals and directive gaps** (skip if `--beads-only`)
 
@@ -366,7 +374,7 @@ fi
 Work generators for concrete improvement signals:
 - `$test --coverage` — find test gaps and generate candidates
 - `$refactor --sweep` — find complexity debt and refactor targets
-- `$deps audit` — check dependency health, vulnerabilities, and license compliance
+- `$security audit` — check dependency health, vulnerabilities, and license compliance
 - `$perf profile` — identify performance debt and optimization opportunities
 
 When queues and goals are empty, generate concrete testing work instead of idling:
@@ -438,7 +446,7 @@ See `references/quality-mode.md` for scoring and full details.
 **Nothing found?** HARD GATE — dormancy only when ALL sources empty (soc-5qit):
 
 ```bash
-READY_BEADS=$(bd ready --json 2>/dev/null | jq -r 'length // 0' 2>/dev/null || echo 0)
+READY_BEADS=$(br ready --json 2>/dev/null | jq -r 'length // 0' 2>/dev/null || echo 0)
 HARVESTED=$(jq -r 'select(.consumed==false) | .severity' .agents/rpi/next-work.jsonl 2>/dev/null | wc -l | tr -d ' ')
 FAILING_GOALS=$(jq -r '.goals[] | select(.result=="fail") | .id' .agents/evolve/fitness-latest.json 2>/dev/null | wc -l | tr -d ' ')
 
@@ -451,7 +459,7 @@ if [ "$GENERATOR_EMPTY_STREAK" -ge 2 ] && [ "$IDLE_STREAK" -ge 2 ]; then
 fi
 ```
 
-**Agile invariant (soc-5qit):** `bd ready ≥ 1` ⇒ loop NEVER stops. Only path to stagnation-STOP is fully empty backlog + dry generators. Context exhaustion → write non-sticky `.agents/evolve/HANDOFF`, exit turn; next fire (compacted/fresh) clears HANDOFF in Step 1 and continues.
+**Agile invariant (soc-5qit):** `br ready ≥ 1` ⇒ loop NEVER stops. Only path to stagnation-STOP is fully empty backlog + dry generators. Context exhaustion → write non-sticky `.agents/evolve/HANDOFF`, exit turn; next fire (compacted/fresh) clears HANDOFF in Step 1 and continues.
 
 If the work layers were empty but a generator pass has not been exhausted 3 times yet, persist the new generator streak in `session-state.json` and loop back to Step 1. Empty pre-cycle work sources are not a stop reason by themselves.
 
@@ -712,7 +720,7 @@ Stop reason: stagnation | circuit-breaker | max-cycles | kill-switch
 **What happens:** Evolve re-enters the full selection ladder after every `$rpi` cycle and runs producer layers instead of idling on empty queues.
 
 **User says:** `$evolve --beads-only`
-**What happens:** Evolve skips goals measurement and works through `bd ready` backlog.
+**What happens:** Evolve skips goals measurement and works through `br ready` backlog.
 
 **User says:** `$evolve --dry-run`
 **What happens:** Evolve shows what would be worked on without executing.
@@ -756,7 +764,7 @@ See `references/cycle-history.md` for advanced troubleshooting.
 - `GOALS.yaml` — Fitness goals for this repo
 - [test](../test/SKILL.md) — Test generation and coverage analysis
 - [refactor](../refactor/SKILL.md) — Safe, verified refactoring for complexity targets
-- [deps](../deps/SKILL.md) — Dependency audit, vulnerability scanning, and license compliance
+- [security](../security/SKILL.md) — Dependency audit, vulnerability scanning, and license compliance (absorbs deps)
 - [perf](../perf/SKILL.md) — Performance profiling and benchmarking
 
 ## Reference Documents

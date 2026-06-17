@@ -24,7 +24,7 @@ Refactor a specific file, function, or class. You identify what needs improving,
 $refactor --sweep <scope>
 ```
 
-Find and fix complexity hotspots across a directory, package, or entire project. Runs `$complexity` first to identify targets, then works through them in priority order (highest complexity first).
+Find and fix complexity hotspots across a directory, package, or entire project. Runs `complexity` first to identify targets, then works through them in priority order (highest complexity first).
 
 `<scope>` can be:
 - A directory path (`cli/internal/`)
@@ -90,9 +90,9 @@ Record the baseline:
 - Code duplication
 - Naming clarity
 
-**Sweep mode:** Run `$complexity` on the scope to get a ranked list of targets:
+**Sweep mode:** Run `complexity` on the scope to get a ranked list of targets:
 ```
-$complexity <scope>
+complexity <scope>
 ```
 Sort by complexity score descending. Work the worst offenders first.
 
@@ -172,7 +172,7 @@ After all transformations are complete:
 
 2. **Run complexity analysis** on changed files:
    ```
-   $complexity <changed-files>
+   complexity <changed-files>
    ```
 
 3. **Compare before/after metrics:**
@@ -414,10 +414,10 @@ explicitly excluded with `--exclude` and justified in the closeout.
 
 ## See Also
 
-- `$complexity` -- analyze code complexity metrics
+- `complexity` -- analyze code complexity metrics
 - `$standards` -- language-specific conventions
-- `$vibe` -- validate code quality post-refactor
-- `$bug-hunt` -- if refactoring uncovers bugs
+- `$validate` -- validate code quality post-refactor
+- `$review` -- if refactoring uncovers bugs
 - `$implement` -- if refactoring requires new code
 
 ## Reference Documents

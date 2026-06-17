@@ -1,6 +1,6 @@
 ---
 name: commit
-description: "CC 1.0.0 commit generator. Trigger: commit/save. Stages relevant files, infers type(scope): desc, never --no-verify."
+description: "Conventional Commits 1.0 generator. Stages relevant files, infers type(scope): description, never uses --no-verify."
 ---
 
 # Commit — Conventional Commits Generator

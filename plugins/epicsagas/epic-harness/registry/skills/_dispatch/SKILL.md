@@ -5,7 +5,7 @@ description: "Core router. Always active. Auto-invokes matching skill before eve
 
 # Skill Dispatch Engine
 
-**CRITICAL**: When accessing harness data, run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: When accessing harness data, run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
 
 You have access to the following skills. **Invoke the matching skill BEFORE responding or taking action.** Even a 1% chance of relevance means you should invoke it.
 
@@ -25,13 +25,13 @@ You have access to the following skills. **Invoke the matching skill BEFORE resp
 | User request is vague, unfocused, or presents a solution without a clear problem | **discover** |
 | User shares code for review, mentions code smells, or asks to refactor/analyze | **episteme** → `analyze_code` + `suggest_refactorings` → feed results into **go:plan** mode |
 | User invokes `/reflect`, asks about AI usage quality, "am I using AI well", "thought amplifier", or requests AI usage self-assessment | **reflect** |
-| Session start (project has psychographic node in memory) | Run `epic mem list --type psychographic` → apply 5-dimension profile to all subsequent skill dispatch |
+| Session start (project has harness-mem psychographic node) | Call `mem_query` type=psychographic → apply 5-dimension profile to all subsequent skill dispatch |
 | Orchestration run active (`$HARNESS_DIR/orchestrator/run.json` exists with status "running") | **orchestrate** |
 | Agent tool output received with inter-agent message | **orchestrate** |
 | User runs `/intervene` | **orchestrate** |
 | 요구사항 정의 필요, 스펙 없음 | **spec** |
 | 빌드/구현 시작, 스펙 승인됨 | **go** |
-| 리뷰/감사/테스트 필요 | **audit** |
+| 리뷰/감사/테스트 필요 | **check** |
 | PR 생성 / CI / 배포 준비 | **ship** |
 
 ## Alias Routing
@@ -39,8 +39,7 @@ You have access to the following skills. **Invoke the matching skill BEFORE resp
 Users can still type legacy command names. Map them:
 - `/spec` → invoke skill **spec** directly
 - `/go` → invoke skill **go** directly
-- `/audit` → invoke skill **audit** directly
-- `/check` → invoke skill **audit** directly (legacy alias)
+- `/check` → invoke skill **check** directly
 - `/ship` → invoke skill **ship** directly
 - `/discover` → invoke skill **discover** directly
 - `/intervene` → invoke skill **orchestrate** (intervene mode)
@@ -54,12 +53,12 @@ When a phase completes, prompt the user toward the next step. Do NOT auto-procee
 |----------------|-----------|----------------|
 | `/discover` problem framed | `status: framed` written | "Problem defined. Run `/spec` to turn this into a buildable specification." |
 | `/spec` saved | `status: approved` written | "Spec saved. Run `/go` to start building." |
-| `/go` report done | All tasks complete, tests green | "Build complete. Run `/audit` to verify before shipping." |
-| `/audit` report done | All PASS + all AC verified | "Audit passed. Run `/ship` to create a PR." |
-| `/audit` report done | Any FAIL or AC missing | "Fix blockers with `/go`, then re-run `/audit`." |
+| `/go` report done | All tasks complete, tests green | "Build complete. Run `/check` to verify before shipping." |
+| `/check` report done | All PASS + all AC verified | "Check passed. Run `/ship` to create a PR." |
+| `/check` report done | Any FAIL or AC missing | "Fix blockers with `/go`, then re-run `/check`." |
 | `/ship` report done | PR created, CI green | "Shipped. Loop complete." |
 | `/orbit` phase done | Pipeline `status: running` | "(orbit) Phase complete. Continuing to next phase..." |
-| `/orbit` audit FAIL × 3 | `audit_fail_count >= max_retries` | "(orbit) 3 audit failures reached. Pausing for your input." |
+| `/orbit` check FAIL × 3 | `check_fail_count >= max_retries` | "(orbit) 3 check failures reached. Pausing for your input." |
 | `/orbit` complete | PR created, CI green | "(orbit) Pipeline complete. See consolidated report above." |
 | `/intervene` executed | Control directive written | "Intervention recorded. Use /status to monitor." |
 
@@ -69,9 +68,9 @@ These transitions are informational nudges only. The user controls when each pha
 
 When `/orbit` is active (detected by: `$HARNESS_DIR/orbit/PIPELINE-*.json` exists with `status: running`):
 
-- **SUPPRESS** normal phase transition prompts ("Run `/go`", "Run `/audit`", "Run `/ship`", etc.) — orbit handles its own phase transitions internally
+- **SUPPRESS** normal phase transition prompts ("Run `/go`", "Run `/check`", "Run `/ship`", etc.) — orbit handles its own phase transitions internally
 - **Dispatch skills normally** — tdd, debug, verify, secure, perf, simplify, document, context all fire as usual within each phase
-- **episteme pre-analysis**: if episteme `suggest_refactorings` output is present in context before `/orbit` starts, pass it directly to **go:plan** as spec material — auto-detect direct mode
+- **episteme pre-analysis**: if episteme `suggest_refactorings` output is present in context before `/orbit` starts, pass it directly to **go:plan** as spec material — skip mode selection entirely and enter Direct Build
 - **After orbit completes** (`status: complete` or `status: aborted`) — resume normal dispatch behavior
 
 **Orbit Recovery on Session Resume**: When a session resumes (after context compaction or crash) and an active pipeline is detected:
@@ -79,7 +78,7 @@ When `/orbit` is active (detected by: `$HARNESS_DIR/orbit/PIPELINE-*.json` exist
 - **Do NOT re-run mode selection** — the mode was already chosen and recorded in `mode` field
 - **Do NOT re-run spec creation** — the spec file path is in `spec_file` field
 - Resume from the current `phase` as documented in the pipeline state
-- If `phase` is `auto_detect` with no `mode` set, run auto-detection logic (PRD present → council, clear request → direct, vague → council) and proceed without asking
+- If `phase` is `mode_select` with no `mode` set, then and only then prompt for mode selection
 
 The orbit command is a self-contained pipeline. Interjecting normal transition nudges during orbit would confuse the user.
 
@@ -129,11 +128,11 @@ This enables Ring 3 to analyze which skills fire most often, which are effective
 
 Before invoking any skill, **proactively recall** relevant knowledge from the memory graph:
 
-1. **At task start**: Run `epic mem recall "TASK_HINT"` with a hint describing the current task (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
-2. **On errors**: Run `epic mem recall "ERROR_CATEGORY"` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
-3. **On architectural decisions**: Run `epic mem recall "DOMAIN_AREA"` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
-4. **After resolution**: Record via `epic mem add --title "TITLE" --type resolution --body "BODY"` (auto-importance=0.8) or `--type decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
-5. **Fallback**: If `mem recall` is unavailable, use `epic mem search "KEYWORD"` (keyword FTS) or `epic mem context --project PROJ` (project-scoped smart recall).
+1. **At task start**: Call `mem_recall` with a hint describing the current task (e.g., "auth refactor", "CI pipeline fix"). This returns relevance-ranked memories combining FTS match, importance, recency, access frequency, and graph connectivity.
+2. **On errors**: Call `mem_recall` with the error category/message as hint. Past resolutions and patterns for similar errors surface automatically.
+3. **On architectural decisions**: Call `mem_recall` with the domain area. Past `decision` nodes (importance=0.9) rank highest and prevent contradictory choices.
+4. **After resolution**: Record via `mem_add` with type `resolution` (auto-importance=0.8) or `decision` (auto-importance=0.9). These high-importance nodes persist across sessions and resist decay.
+5. **Fallback**: If `mem_recall` is unavailable, use `mem_search` (keyword FTS) or `mem_context` (project-scoped smart recall).
 
 Memory scoring: recency(25%) + importance(35%) + access_freq(15%) + FTS_match(25%). Frequently accessed and important memories naturally float to the top; unused noise decays over time.
 
@@ -164,7 +163,7 @@ Check `$HARNESS_DIR/evolved/` for project-specific auto-evolved skills. These ar
 
 ## Psychographic Adaptation
 
-When user preference data is available via `epic mem list --type psychographic`, adapt dispatch behavior:
+When user preference data is available in harness-mem (psychographic nodes), adapt dispatch behavior:
 
 ### 5-Dimension Profile
 
@@ -178,7 +177,7 @@ When user preference data is available via `epic mem list --type psychographic`,
 
 ### How to use
 
-1. At session start, run `epic mem list --type psychographic` to load profile
+1. At session start, call `mem_query` with type=psychographic to load profile
 2. If no profile exists, use defaults: moderate/balanced/standard/collaborative/balanced
 3. Apply profile dimensions to skill selection and execution parameters:
 
@@ -190,45 +189,9 @@ When user preference data is available via `epic mem list --type psychographic`,
 
 ### Profile storage
 
-Store profiles using `epic mem add` with:
+Store profiles using `mem_add` with:
 - type: "psychographic"
 - title: "user-profile: {project}"
 - tags: ["psychographic", "profile", project slug]
 - body: YAML-formatted 5-dimension values
 - importance: 0.8 (high — guides all behavior)
-
-## Process
-
-1. On every user message, scan the Dispatch Rules table for matching context signals
-2. For each match, invoke the corresponding skill BEFORE responding or taking action
-3. If multiple skills match, invoke all of them (order: secure > debug > tdd > others)
-4. Log every dispatch to `$HARNESS_DIR/dispatch/dispatch_YYYYMMDD.jsonl`
-5. Check `$HARNESS_DIR/evolved/` for project-specific skills that supplement static skills
-6. Apply psychographic profile dimensions to skill selection (if profile exists)
-7. If orbit is active, suppress normal phase transition prompts — orbit manages its own phases
-
-## Anti-Rationalization
-
-| Excuse | Rebuttal | What to do instead |
-|--------|----------|-------------------|
-| "I'll invoke skills after responding" | Skills must run BEFORE action to prevent mistakes | Always dispatch first, respond second |
-| "The skill isn't relevant enough" | Even 1% relevance means invoke it | Err on the side of invoking; skills are cheap |
-| "I can skip the confusion protocol" | Wrong guesses cause hours of rework | Stop and present options on ambiguity |
-| "Evolved skills override static ones" | Static skills are authoritative | Static > evolved; evolved only supplements |
-
-## Evidence Required
-
-- [ ] Every dispatch logged to `$HARNESS_DIR/dispatch/dispatch_YYYYMMDD.jsonl`
-- [ ] Matching skill invoked before response
-- [ ] Confusion protocol triggered on high-risk ambiguity
-- [ ] Evolved skills checked at session start
-- [ ] Orbit mode override respected when pipeline is active
-
-## Red Flags
-
-- Responding without dispatching a matching skill first
-- Skipping the confusion protocol on architecture or data model decisions
-- Not logging dispatches (breaks evolution analysis)
-- Treating evolved skills as authoritative over static skills
-- Issuing phase transition prompts during an active orbit
-- Not checking psychographic profile at session start when memory CLI is active

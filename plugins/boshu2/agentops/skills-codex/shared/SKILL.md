@@ -95,7 +95,7 @@ Use capability detection at runtime, not hardcoded tool names. The same skill mu
 
 ### Skill Invocation Across Runtimes
 
-Skills that chain to other skills (e.g., `$rpi` calls `$research`, `$vibe` calls `$council`) MUST handle runtime differences:
+Skills that chain to other skills (e.g., `$rpi` calls `$research`, `$validate` calls `$council`) MUST handle runtime differences:
 
 | Runtime | Tool | Behavior | Pattern |
 |---------|------|----------|---------|

@@ -32,7 +32,6 @@ Read every file referenced in friction points. Understand current instruction, w
 Research content relevant to friction points:
 - Official Claude Code docs: https://code.claude.com/docs/en/overview
 - `@~/Documents/ai/superpowers`
-- `@~/Documents/ai/claude-code-tips`
 - `@~/Documents/ai/claude-code-best-practice`
 
 ## Step 4: Critical Evaluation — Friction Points

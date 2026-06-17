@@ -60,7 +60,7 @@ User confirmation validates the decision to proceed; the analysis stays your res
 
 - **WHY, not WHAT.** Identifiers and structure explain WHAT. Comments explain why the code looks unusual: a hidden constraint, a workaround for an upstream bug, an invariant that isn't obvious from the call sites.
 - **Delete archaeological comments.** "Changed to 400 to be consistent with X", "no longer needed here", "note: this used to be Y" — that's PR-description material and rots into noise.
-- **No multi-paragraph rationales in code.** One line in the source is the cap; if a reader needs more, link out (`see chronicle 00xx`, `see docs/...`).
+- **Scale the WHY to the flow's intricacy.** Trivial code earns no comment; an obscure or tangled flow earns a fuller WHY — a few lines spelling out the reasoning is right when the logic genuinely demands it. Cap multi-paragraph rationale: link out (`see chronicle 00xx`, `see docs/...`) past a short block.
 
 ### 9. Tests mirror production
 
@@ -829,7 +829,7 @@ Commit prefixes: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `p
 
 ### Function length
 
-70-80 lines. Beyond that, extract a helper. The extracted helper uses a normal name (no underscore prefix unless intentionally private).
+~50-60 lines (soft guide, not a hard cap). Beyond that, the function is usually doing too much — extract a well-named helper (normal name, no underscore prefix unless intentionally private). Cohesion beats line-counting.
 
 ---
 
@@ -927,5 +927,6 @@ Always `.copy()` a DataFrame before mutation. Silent caller mutation is a regres
 | `MagicMock()` without `spec=` | `MagicMock(spec=Class)` — catches renames |
 | Forgotten `dependency_overrides.clear()` | Autouse fixture clears between tests |
 | Instrumentation `instrument_fastapi(app)` in `lifespan` | Call in `create_app` AFTER middleware wiring |
+| `import` inside a function / method | All imports at module top |
 | Comment that restates the next line | Delete it |
 | Archaeological comment ("changed to X to be consistent...") | Delete; the diff is the history |

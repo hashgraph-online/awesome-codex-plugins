@@ -74,7 +74,7 @@ The rules that apply across phases live in [`shared/iron-rules.md`](shared/iron-
 - **Workflow** — `using-development-skills`, `core-dev`, `brainstorming`, `debugging`
 - **Languages** — `python-dev`, `java-dev`, `typescript-dev`, `swift-dev`, `frontend-dev` (React / Next.js / Vite / Raycast auto-detection)
 - **Testing & review** — `create-test`, `staff-review` (branch / repo / dir / file, optional `--spec` compliance check), `roast-my-code` (`--fix` optional), `eval-regression`, `ai-agent-bench`
-- **Utilities** — `commit`, `distill`, `align-docs`, `resolve-merge`, `update-precommit`, `update-reqs`, `update-reqs-dev`, `best-practices`, `claude-to-agents`
+- **Utilities** — `commit`, `changelog`, `distill`, `align-docs`, `resolve-merge`, `update-precommit`, `update-reqs`, `update-reqs-dev`, `best-practices`
 - **User-invocable** — `handoff`, `produce-feedback`, `ingest-feedback`
 
 **1 named subagent:** `staff-reviewer`. Implementation and verification run in the main thread per [`shared/phases/phase-3-implement-verify.md`](shared/phases/phase-3-implement-verify.md) — fewer context handoffs, less state to reconstruct.

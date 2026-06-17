@@ -29,6 +29,10 @@ discovery_state = {
     design_path: null,
     ranked_packet_path: null,
     research_path: null,
+    perspective_plan_paths: [],
+    synthesis_packet_path: null,
+    fable_approval_path: null,
+    approval_edge_path: null,
     plan_path: null,
     pre_mortem_path: null
   },
@@ -52,7 +56,7 @@ Run every step in order. Stop only on an explicit BLOCKED verdict.
 
 ```bash
 mkdir -p .agents/rpi
-if command -v bd >/dev/null 2>&1; then TRACKING_MODE=beads; else TRACKING_MODE=tasklist; fi
+if command -v br >/dev/null 2>&1; then TRACKING_MODE=beads; else TRACKING_MODE=tasklist; fi
 if command -v ao >/dev/null 2>&1; then AO_AVAILABLE=true; else AO_AVAILABLE=false; fi
 ```
 
@@ -64,7 +68,7 @@ Classify complexity from explicit flag first, then goal shape:
 
 ### STEP 1 - Intent Clarification
 
-If the goal is vague and `--skip-brainstorm` is not set, run `$brainstorm`
+If the goal is vague and `--skip-brainstorm` is not set, run `brainstorm`
 with the current goal.
 
 Record only `brainstorm_path` and the refined objective. Do not carry the full
@@ -76,7 +80,7 @@ recent matching brainstorm artifact exists.
 ### STEP 1.5 - Product Design Gate
 
 When `PRODUCT.md` exists and the goal is a feature/capability rather than a
-bug, docs task, chore, dependency bump, lint, or format task, run `$design`
+bug, docs task, chore, dependency bump, lint, or format task, run `design`
 with the bounded objective and quick mode.
 
 Design FAIL blocks discovery. PASS/WARN records `design_path` and one
@@ -114,10 +118,47 @@ The research artifact is the source of detail. Discovery extracts only:
 - applicable test levels
 - constraints that must affect the plan
 
+### STEP 3.5 - Codex Fanout Approval Gate
+
+Run this step for open-ended or high-risk Codex discovery before `$plan`
+creates or updates beads. The artifact shape is defined in
+[`docs/contracts/codex-fanout-approval-packet.md`](../../../docs/contracts/codex-fanout-approval-packet.md).
+
+Write at least three independent `PerspectivePlan` artifacts under
+`.agents/discovery/<run-id>/`, normally using these lenses:
+
+- product/user value
+- architecture and gate integrity
+- operations, migration, and failure recovery
+
+Then write one `SynthesisPacket` that selects or merges the winning plan,
+records rejected alternatives, and carries open questions for Fable. Invoke
+`$codex-approval` with the `SynthesisPacket` plus every `PerspectivePlan` path
+so Fable reads the artifacts directly, then persist the resulting
+`ApprovalEdge`.
+
+Gate semantics:
+
+- `PASS`: continue to `$plan`.
+- `WARN is not` a silent pass: update the `SynthesisPacket` and rerun approval,
+  or record an explicit accepted-risk note in the `ApprovalEdge` before
+  continuing.
+- `FAIL`: do not create beads; return to fanout/synthesis. After three failed
+  approval attempts, write BLOCKED and stop.
+
+Discovery records only:
+
+- `perspective_plan_paths`
+- `synthesis_packet_path`
+- `fable_approval_path`
+- `approval_edge_path`
+- one decision line explaining the selected plan
+
 ### STEP 4 - Plan Contract
 
-Run `$plan` as its own skill contract with the bounded objective and `--auto`
-when discovery is in auto mode.
+Run `$plan` as its own skill contract with the bounded objective, or the
+approved `synthesis_packet_path` when STEP 3.5 ran, and `--auto` when discovery
+is in auto mode.
 
 The plan artifact is the source of slice detail. Discovery extracts only:
 

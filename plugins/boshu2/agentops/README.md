@@ -4,11 +4,9 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/boshu2/agentops?style=social)](https://github.com/boshu2/agentops/stargazers)
 
-### The in-session operating loop + context compiler for coding agents — the part that makes them compound.
+### Autonomous code validation for coding agents
 
-Coding agents don't do their own bookkeeping. AgentOps does. It sits on top of the agent you already use (Claude Code, Codex, Cursor, OpenCode) and adds the parts an engineering team would notice missing: a record of what was tried, gates between phases, and a corpus of learnings that survives the next session. Plain markdown in `.agents/` next to your code; mix any model per phase.
-
-<sub>Built with AgentOps: this repo's own `.agents/` holds ~1,842 learnings and ~3,867 cited decisions (`bash scripts/corpus-stats.sh`). Browse it to see the corpus a real project builds. New here? Start with [what AgentOps 3.0 is](docs/3.0.md), or read the doctrine at [12factoragentops.com](https://12factoragentops.com).</sub>
+Coding agents can produce plausible code that is still wrong. AgentOps helps answer the two questions that decide whether you can trust the work: **is the code right, and is the agent output proven enough to grant more autonomy?** It sits on top of the agent you already use (Claude Code, Codex, Cursor, OpenCode) and adds the validation membrane, evidence trail, and repo-local corpus that make that judgment repeatable.
 
 </div>
 
@@ -24,7 +22,7 @@ Coding agents don't do their own bookkeeping. AgentOps does. It sits on top of t
 
 </div>
 
-Most teams run coding agents as isolated chats. Prior attempts, decisions, and fixes scatter, so the same mistakes recur and nothing leaves a reviewable trail. AgentOps breaks intent into bounded slices, gives each a failing test and a write scope, and makes every phase boundary a gate that records evidence. The agent starts loaded with prior decisions and learnings instead of cold:
+AgentOps breaks intent into bounded slices, gives each a failing test and a write scope, and makes every phase boundary a gate that records evidence. The agent starts loaded with prior decisions and learnings instead of cold:
 
 ```text
 > /council --mixed validate this PR
@@ -43,14 +41,14 @@ Recorded → .agents/council/<run-id>/verdict.md
 
 <!-- agentops:claim:AOP-CLAIM-README-FACTORY-CONTEXT -->
 
-Four layers that compound, all in local `.agents/` you can grep, diff, and review (no telemetry, no hosted control plane):
+The center is validation: prove the agent output, keep the proof, and use that record to decide how much autonomy the next run earns. The supporting layers all stay local in `.agents/` (no telemetry, no hosted control plane):
 
 | Layer | The problem | What AgentOps adds |
 |---|---|---|
-| **Bookkeeping** | agents forget what they tried and why | `.agents/` captures runs, decisions, findings, citations, verdicts, retros |
-| **Context compiler** | every session starts cold | `ao context assemble` builds phase-scoped packets; `ao lookup` retrieves decay-ranked knowledge |
-| **Validation gates** | agents ship confident garbage | `/pre-mortem`, `/vibe`, `/council` run multi-model consensus on plans and code; gates block rather than advise |
-| **Knowledge flywheel** | lessons vanish between sessions | `/forge` mines learnings, `/evolve` reconciles, the corpus compounds as a side effect of use |
+| **Validation membrane** | agent output can look correct while being wrong | tests, local gates, `/pre-mortem`, `/vibe`, `/council`, and pawl verdicts prove or reject the work |
+| **Evidence trail** | "looks good" does not survive handoff | `.agents/` captures runs, decisions, findings, citations, verdicts, retros, and closeout proof |
+| **Context compiler** | validators and implementers start cold | `ao context assemble` builds phase-scoped packets; `ao lookup` retrieves decay-ranked knowledge |
+| **Knowledge ratchet** | lessons vanish between sessions | `/forge` mines learnings, `/evolve` reconciles, and durable lessons become constraints before more autonomy is granted |
 
 The corpus is an LLM wiki of markdown. Agents read it natively and write to it as they work, so it maintains itself instead of becoming another doc you keep up by hand. Why that beats Notion or Confluence: [docs/wiki-for-agents.md](docs/wiki-for-agents.md). The full theory (context as the lifecycle, the CDLC): [docs/cdlc.md](docs/cdlc.md).
 
@@ -64,12 +62,16 @@ Pick your runtime, then type `/quickstart` in the agent.
 
 ```bash
 # Claude Code
-claude plugin marketplace add boshu2/agentops && claude plugin install agentops@agentops-marketplace
+claude plugin marketplace add boshu2/agentops
+claude plugin install agentops@agentops-marketplace
 
 # Codex CLI (macOS/Linux/WSL).  OpenCode: install-opencode.sh
 curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash
 # Codex CLI (Windows):
 irm https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.ps1 | iex
+
+# Gemini / Antigravity
+curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-agy.sh | bash
 
 # Other skills-compatible agents
 npx skills@latest add boshu2/agentops --cursor -g
@@ -83,7 +85,7 @@ brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops && brew ins
 # Or release binaries / build from source (cli/README.md).
 ```
 
-Installs hookless: skills and the `ao` CLI guide the workflow, and CI is the authoritative gate. The only hard requirement is an agent runtime and `git`; everything else degrades gracefully. Full dependency matrix: [docs/dependencies.md](docs/dependencies.md).
+Installs hookless: skills and the `ao` CLI guide the workflow, and the local cockpit gate is the release authority. GitHub Actions are an optional/manual backstop, not the routine shipping path. The only hard requirement is an agent runtime and `git`; everything else degrades gracefully. Full dependency matrix: [docs/dependencies.md](docs/dependencies.md). Day-2 install, update, backup, permission, recovery, and escalation paths are in [docs/install-day2-ops.md](docs/install-day2-ops.md).
 
 ---
 
@@ -112,7 +114,7 @@ Every skill works alone; flows compose them. Full catalog: [docs/SKILLS.md](docs
 | `/pre-mortem` | you want to pressure-test a plan before building |
 | `/rpi` | you want discovery, build, validation, and bookkeeping in one flow |
 | `/council` | you want independent judges (optionally Claude and Codex) to return one verdict |
-| `/vibe` | you want a code-quality and risk review before shipping |
+| `/validate` | you want a code-quality and risk review before shipping |
 | `/evolve` | a goal-driven improvement loop that compounds knowledge without mutating source |
 
 ---
@@ -135,7 +137,7 @@ ao metrics health         # flywheel health
 
 <!-- agentops:claim:AOP-CLAIM-README-AUTONOMOUS-FLYWHEEL -->
 
-**In session vs. out of session.** The whole loop runs in a plain session: no daemon, no scheduler, no cloud (the sovereignty floor). For always-on work, the same loop opts into a swappable substrate (an NTM tmux swarm, MCP via `ao mcp serve`, or managed-agents) that dispatches a whole `ao rpi` per ready bead. Details: [docs/3.0.md](docs/3.0.md).
+**In session vs. out of session.** The whole loop runs in a plain session: no daemon, no scheduler, no cloud (the sovereignty floor). For always-on work, the same loop opts into a swappable substrate (an NTM tmux swarm, MCP via `ao mcp serve`, or managed-agents) that dispatches a whole `ao rpi` per ready bead. Details: [docs/3.0.md](docs/3.0.md); component routing: [docs/architecture/component-map.md](docs/architecture/component-map.md).
 
 ---
 
@@ -145,7 +147,7 @@ ao metrics health         # flywheel health
 - **No hosted control plane or telemetry.** Everything lives in your repo; there's no cross-team dashboard unless you commit `.agents/`.
 - **Multi-model councils cost tokens.** Six judges per PR isn't free; running them on a substrate makes the cost predictable, not zero.
 - **The corpus needs hygiene.** `ao defrag` and `ao maturity` keep it healthy; neglected, it rots like any markdown vault.
-- **There are ~80 skills.** `/quickstart` and the [Skill Router](docs/SKILL-ROUTER.md) exist so you don't have to learn them all up front.
+- **There are many skills.** `/quickstart` and the [Skill Router](docs/SKILL-ROUTER.md) exist so you don't have to learn them all up front; current inventory is generated from `skills/**/SKILL.md`.
 
 **What if the labs ship this natively?** They will. The durable value is the `.agents/` corpus you build, not the tool that builds it: plain markdown in your repo, it carries forward to whatever ships next, stays forkable, and is Apache-2.0 with no lock-in.
 
@@ -153,6 +155,6 @@ ao metrics health         # flywheel health
 
 ## Docs & contributing
 
-[What 3.0 is](docs/3.0.md) · [docs index](docs/documentation-index.md) · [newcomer guide](docs/newcomer-guide.md) · [architecture](docs/ARCHITECTURE.md) · [FAQ](docs/FAQ.md) · built on the [12-factor doctrine](https://12factoragentops.com).
+[What 3.1 adds](docs/3.1.md) · [What 3.0 is](docs/3.0.md) · [component map](docs/architecture/component-map.md) · [docs index](docs/documentation-index.md) · [newcomer guide](docs/newcomer-guide.md) · [architecture](docs/ARCHITECTURE.md) · [FAQ](docs/FAQ.md) · built on the [12-factor doctrine](https://12factoragentops.com).
 
-Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (agents: read [AGENTS.md](AGENTS.md), track work with `bd`). License: Apache-2.0.
+Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (agents: read [AGENTS.md](AGENTS.md), track work with `br`). License: Apache-2.0.

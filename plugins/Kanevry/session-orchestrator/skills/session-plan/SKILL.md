@@ -12,7 +12,7 @@ description: >
   dependency ordering, and inter-wave checkpoints. Activated by session-start after Q&A phase completes.
 ---
 
-> **Platform Note:** Project agents live in `<state-dir>/agents/` where `<state-dir>` is `.claude/` (Claude Code), `.codex/` (Codex CLI), or `.cursor/` (Cursor IDE). On Cursor IDE, parallel agent dispatch is not available — present wave tasks as a sequential execution list instead. See `skills/_shared/platform-tools.md`.
+> **Platform Note:** Project agents live in `<state-dir>/agents/` where `<state-dir>` is `.claude/` (Claude Code), `.codex/` (Codex CLI), `.cursor/` (Cursor IDE), or `.pi/` (Pi). On Cursor IDE and Pi v1, parallel agent dispatch is not available — present wave tasks as a sequential execution list instead. See `skills/_shared/platform-tools.md`.
 
 # Session Plan Skill
 
@@ -124,7 +124,7 @@ For each agreed task/issue:
 
 Before assigning tasks to waves, discover available agents for this session:
 
-1. **Scan for project-level agents**: Glob `<state-dir>/agents/*.md` (`.claude/agents/*.md` for Claude Code, `.codex/agents/*.md` for Codex CLI, `.cursor/agents/*.md` for Cursor IDE)
+1. **Scan for project-level agents**: Glob `<state-dir>/agents/*.md` (`.claude/agents/*.md` for Claude Code, `.codex/agents/*.md` for Codex CLI, `.cursor/agents/*.md` for Cursor IDE, `.pi/agents/*.md` for Pi)
    - Read each file's YAML frontmatter: extract `name` and `description`
    - Filter out non-agent reference files (skip files with `description` containing "Reference documentation" or "NOT an executable agent")
    - Build a list of available project agents with their names and capabilities

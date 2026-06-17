@@ -77,7 +77,7 @@ Actions:
 
 ## Notes
 
-- For OWASP A06 dependency vulnerability scanning, run `$deps vuln` to complement static analysis with dependency-level checks.
+- For OWASP A06 dependency vulnerability scanning, run `deps vuln` to complement static analysis with dependency-level checks.
 - Use this as the canonical security runbook instead of ad-hoc scanner commands.
 - Keep workflow wiring aligned with this contract in:
   - `.github/workflows/validate.yml`
@@ -120,7 +120,7 @@ Actions:
 
 ## See Also
 
-- [deps](../deps/SKILL.md) — Dependency audit, vulnerability scanning, and license compliance
+- deps — Audit dependency risks and updates: vulnerability scanning and license compliance (absorbed into this skill)
 
 ## Local Resources
 

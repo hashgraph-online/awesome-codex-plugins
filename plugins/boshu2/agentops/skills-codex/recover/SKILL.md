@@ -8,7 +8,7 @@ description: "Run recover."
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
-**CLI dependencies:** gt, ao, bd — all optional. Shows what's available, skips what isn't.
+**CLI dependencies:** gt, ao, br — all optional. Shows what's available, skips what isn't.
 
 ---
 
@@ -63,13 +63,13 @@ git branch --show-current
 
 **Call 4 — Work Queue State:**
 ```bash
-if bd ready --json >/dev/null 2>&1 && bd list --type epic --status open --json >/dev/null 2>&1; then
+if br ready --json >/dev/null 2>&1 && br list --type epic --status open --json >/dev/null 2>&1; then
   echo "=== IN_PROGRESS ==="
-  bd list --status in_progress 2>/dev/null | head -3
+  br list --status in_progress 2>/dev/null | head -3
   echo "=== READY ==="
-  bd ready 2>/dev/null | head -3
+  br ready 2>/dev/null | head -3
 else
-  echo "BD_DEGRADED_OR_UNAVAILABLE"
+  echo "BR_DEGRADED_OR_UNAVAILABLE"
 fi
 ```
 
@@ -333,7 +333,7 @@ Render this with a single code block. No visual dashboard when `--json` is activ
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Shows "BD_UNAVAILABLE" or "GT_UNAVAILABLE" | CLI tools not installed or not in PATH | Install missing tools: `brew install bd` or `brew install gt`. Skill gracefully degrades by showing available state only. |
+| Shows "BR_DEGRADED_OR_UNAVAILABLE" or "GT_UNAVAILABLE" | CLI tools not installed or not in PATH | Install or expose `br` (beads_rust) or `gt`. Skill gracefully degrades by showing available state only. |
 | RPI state shows wrong phase | Stale phased-state.json not updated | Check timestamp of `.agents/rpi/phased-state.json`. If stale, it may be from a previous run. Run `$status` to verify current phase. |
 | Evolve history shows wrong cycle | Old cycle-history.jsonl entries not pruned | Tail -3 shows most recent entries. Check all entries with `tail -20 .agents/evolve/cycle-history.jsonl`. |
 | Knowledge injection fails silently | ao CLI not installed or no knowledge artifacts | Ensure ao installed: `brew install ao`. If no learnings exist, run `$validate` to seed the knowledge base. |

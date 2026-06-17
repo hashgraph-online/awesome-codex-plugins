@@ -1,13 +1,13 @@
 ---
 name: dev-spec
-description: 'Compatibility alias for dev-grill-docs spec-only mode. Use when the user explicitly says dev-spec, spec 一下, 设计文档, 帮我设计, design this, or scope this out and expects a feature intent artifact at .claude/artifacts/designs/<feature>.md. Do not maintain a separate workflow here: load dev-grill-docs and follow it with --spec-only, preserving dev-spec trigger compatibility for existing docs and downstream tools.'
+description: 'Compatibility alias for dev-grill-docs spec-only mode. Assists dev-grill-docs by running its spec-only path. Use only when the user explicitly says dev-spec, asks to preserve an old dev-spec workflow, or explicitly wants spec-only output without CONTEXT.md / ADR updates. For natural requirement-alignment requests such as 先帮我梳理需求, 帮我设计, 写个方案, spec 一下, 设计文档, design this, or scope this out, prefer dev-grill-docs. Do not maintain a separate workflow here: load dev-grill-docs and follow it with --spec-only.'
 ---
 
 # Dev Spec
 
 `dev-spec` is a compatibility alias for `dev-grill-docs --spec-only`.
 
-Use it when the user explicitly asks for `dev-spec` or uses legacy spec-trigger language. Do **not** run a separate interview protocol from this file.
+Use it when the user explicitly asks for `dev-spec`, wants old dev-spec compatibility, or explicitly asks for spec-only output without `CONTEXT.md` / ADR writes. For ordinary requirement alignment, prefer `dev-grill-docs`. Do **not** run a separate interview protocol from this file.
 
 ---
 
@@ -16,6 +16,13 @@ Use it when the user explicitly asks for `dev-spec` or uses legacy spec-trigger 
 Trigger phrases include:
 
 - `dev-spec`
+- `旧 dev-spec 流程`
+- `dev-spec --spec-only`
+- `只要 spec`
+- `spec-only`
+
+Do not capture these generic requirement-intake phrases here; route them to `dev-grill-docs`:
+
 - `spec 一下`
 - `设计文档`
 - `帮我设计`

@@ -347,7 +347,7 @@ git log --oneline --since="7 days ago" --grep="$EPIC" | while read commit; do
 done
 
 # 2. Identify friction from beads
-bd list --parent=$EPIC | while read issue; do
+br list --parent=$EPIC | while read issue; do
     status=$(bd show $issue | grep "Status:")
     comments=$(bd show $issue | grep -c "Comment:")
     retries=$(bd show $issue | grep -c "retry\|Retry")

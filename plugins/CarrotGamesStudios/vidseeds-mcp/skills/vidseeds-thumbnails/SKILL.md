@@ -26,6 +26,7 @@ description: Use for VidSeeds MCP thumbnail workflows — generate, poll jobs, e
 ## Publish thumbnail to YouTube
 
 - `vidseeds_publish_thumbnail_to_youtube` when the video is on a connected channel (see `vidseeds-publishing` for connections).
+- **Bulk YouTube limit:** YouTube rate-limits custom-thumbnail uploads separately from VidSeeds.ai seeds/MCP quota. For bulk replacements, plan **no more than about 100 thumbnail uploads per connected YouTube channel/account per rolling 24 hours**. If YouTube returns `uploadRateLimitExceeded` / "too many thumbnails recently", stop the batch, persist the next video id, and resume later.
 
 ## Thumbnail Studio (research → brief → generate)
 

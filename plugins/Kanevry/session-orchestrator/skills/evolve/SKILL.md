@@ -93,6 +93,24 @@ Extract learnings from session history.
 - Sort by `completed_at` descending (most recent first)
 - If no sessions found, abort: "No session data available. Complete at least one session before running evolve."
 
+### Step 3.1b: Read Extra Sources (#638)
+
+When `evolve.extra-sources` is configured in Session Config (default `[]` ⇒ this step is a no-op), `/evolve` consumes OUT-OF-BAND domain measurement sidecars to surface `domain-regression` learnings.
+
+**READ-ONLY contract:** `/evolve` NEVER runs the domain measurement. The measurement (e.g. an eval-learn regression harness) runs elsewhere and writes a sidecar JSON; this step only READS that sidecar's output. Never shell out to produce the sidecar from here.
+
+For each configured `extra-sources` entry `{path, kind, learning-type}`:
+
+1. **Read the sidecar** at `path` (parser-validated as repo-relative, with absolute paths and `..` escape segments dropped before this step, then resolved against the repo root). If the file is missing or unreadable, **skip with a WARN** (`evolve: extra-source not found: <path>`) — do not abort the whole run.
+2. **Schema-gate** the sidecar against the `kind`'s expected shape. For `kind: regression-flags` the schema is `{ flags: [ { metric, baseline, recent, delta } ] }`. If the parsed JSON does not match (missing `flags` array, or a flag missing a required field), **skip with a WARN** (`evolve: extra-source <path> failed regression-flags schema gate`) — never guess at a different shape.
+3. **Emit one `domain-regression` learning candidate per flag that is PERSISTENT** — i.e. the same `metric` regressed across ≥2 consecutive sessions (cross-reference prior sessions' sidecar reads or the existing learnings store for the same `subject`). A one-off flag is noise; only a persistent regression earns a candidate.
+   - `type`: `learning-type` from the entry (registered enum value `domain-regression`)
+   - `subject`: the flag's `metric`
+   - `insight`: a human-readable regression statement (e.g. "metric `<metric>` regressed: baseline <baseline> → recent <recent> (delta <delta>) persisting across ≥2 sessions")
+   - `evidence`: `baseline → recent` (the concrete data points from the sidecar)
+   - `confidence` / `expires_at`: derived via the existing confidence + decay infrastructure (Step 3.5), exactly as for the built-in learning types. `domain-regression` carries a 60-day TTL (`LEARNING_TTL_DAYS`).
+4. Candidates flow into the SAME Step 3.4 AskUserQuestion confirmation + Step 3.5 write path as the built-in learning types — there is no separate write path.
+
 ### Step 3.2: Pattern Extraction
 
 For each of the 8 learning types, apply these heuristics:
@@ -223,7 +241,7 @@ For confirmed learnings, use atomic rewrite strategy:
 4. Append new learnings with the **canonical schema_version:1 shape** — every field is required (#303):
    - `schema_version`: **1** (integer, ALWAYS — never omit)
    - `id`: UUID v4 string generated via `node -e "const {randomUUID}=require('crypto');process.stdout.write(randomUUID())"` or `uuidgen | tr '[:upper:]' '[:lower:]'`. MUST be a non-empty UUID string. **Never omit** — missing `id` causes 100% mirror-skip (#303).
-   - `type`: one of `fragile-file`, `effective-sizing`, `recurring-issue`, `scope-guidance`, `deviation-pattern`, `stagnation-class-frequency`, `hardware-pattern`, `autopilot-effectiveness`
+   - `type`: one of `fragile-file`, `effective-sizing`, `recurring-issue`, `scope-guidance`, `deviation-pattern`, `stagnation-class-frequency`, `hardware-pattern`, `autopilot-effectiveness`, `domain-regression` (#638 — only when sourced from `evolve.extra-sources`, see Step 3.1b)
    - `subject`: the pattern subject
    - `insight`: human-readable description of the pattern. **MUST be `insight`** — do NOT use `description` or `recommendation` (legacy alias keys that vault-mirror cannot read; see #303).
    - `evidence`: specific data points that support the pattern
@@ -263,6 +281,29 @@ For confirmed learnings, use atomic rewrite strategy:
    e. On success (exit 0), report: "Mirrored N learnings to `<vault-dir>/40-learnings/`."
 
 Report: "Saved N new learnings, updated M existing. Total active: K."
+
+### Step 3.6: C2 Auto-Repair Feeder (opt-in — #647)
+
+> **Default OFF (advisory-only).** With no `skill-evolution:` block in Session Config, this step surfaces repair candidates as ADVICE only — it applies nothing and opens no MR. This mirrors the opt-in precedent of `slopcheck` (#520) and `verification-auto-fix` (#521): the engine is dark unless explicitly enabled.
+
+After confirmed learnings are written (Step 3.5), the actionable subset can feed the C2 tiered auto-repair engine (Epic #643 / issue #647). This is a pointer section — the modules own the logic; do not duplicate it here.
+
+**`skill-evolution:` is a DISTINCT sibling of the pre-existing `evolve:` block.** `evolve:` (`extra-sources`) tunes learning EXTRACTION (Step 3.1b); `skill-evolution:` tunes repair AUTONOMY. They are parsed by different modules and never share keys — do not conflate them. The `skill-evolution:` block is parsed by `scripts/lib/config/skill-evolution.mjs` (`_parseSkillEvolution`) and surfaced at `$CONFIG['skill-evolution']` (wired in `scripts/lib/config.mjs`). Shape: `{ autonomy: 'off'|'advisory'|'autonomous-gated', 'evidence-floor': number, judge: boolean }`, default `autonomy: 'off'`. Do NOT add `skill-evolution:` as a column-0 key to any consolidated Session Config parity block — it is a standalone top-level block (claude-md-drift-check Check-6 enforces parity only on the `## Session Config` keys).
+
+**Candidate intake.** Pass the post-Step-3.5 learnings (and, when available, the `claude-md-drift-check` result) to `extractCandidates({ learnings, driftResult, evidenceFloor: $CONFIG['skill-evolution']['evidence-floor'], now })` from `scripts/lib/skill-evolution/candidate-intake.mjs`. It is a pure transform — only actionable, non-expired learnings whose `confidence ≥ evidence-floor` AND whose insight is prescriptive AND resolves to a repo-relative path become `RepairCandidate`s.
+
+**Gate per artifact type.** Each candidate's `target_path` is classified by `classifyTarget(target_path, { repoRoot })` from `scripts/lib/skill-evolution/blast-radius-classifier.mjs` (the heart of the design; path-traversal-safe, fail-closed):
+
+| Target type | Gate | Posture |
+|---|---|---|
+| plugin-skill (`skills/…`) | none | **always-mr** — never autonomous |
+| local-skill (`.claude/skills/…`) | none | **always-mr** — never autonomous |
+| local-config (ROOT `CLAUDE.md` / `AGENTS.md` Session Config) | config-validation | **autonomous-gated** |
+| anything else | none | always-mr (fail-closed) |
+
+Only ROOT-instruction Session Config edits are eligible for autonomous apply, and only when ALL of: `runConfigValidationGate({ repoRoot })` (`scripts/lib/skill-evolution/config-validation-gate.mjs`) is GREEN (parse-config + config-schema + claude-md-drift-check) **AND** `evidence ≥ evidence-floor` **AND** `autonomy: autonomous-gated`. Skill repairs are MR-only by construction.
+
+**Invocation contract (this foundation slice = ADVISORY surfacing).** The single orchestrator that ties intake → classify → gate → route → stamp together is `runRepairEngine({ repoRoot, config, learnings, driftResult, dryRun })` from `scripts/lib/skill-evolution/engine.mjs` — it returns `{ outcomes, summary }` and applies the full gate-per-artifact-type decision matrix internally (`autonomy: off` ⇒ every outcome is advisory-only). In the default/advisory posture, `/evolve` SURFACES candidates and their classification only — it does not apply or open MRs. Apply is gated on the config-validation gate above; MR-opening (`openRepairMr({ candidate, diff, repoRoot, dryRun })` from `scripts/lib/skill-evolution/mr-opener.mjs`) is gated on `autonomy != off`. Candidate de-dup / `processed_at` lifecycle is owned by `scripts/lib/skill-evolution/idempotency.mjs`. When `autonomy: off` (default), report the surfaced candidates as advice and stop.
 
 ---
 

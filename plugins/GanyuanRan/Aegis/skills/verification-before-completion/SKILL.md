@@ -11,7 +11,7 @@ description: Use when about to claim work is complete, fixed, passing, verified,
   3. Read: output, exit code, failures
   4. Verify: output confirms claim? → state claim WITH evidence. Doesn't? → state actual status.
 → Done when: exact command run, output confirms, residual risk stated, confidence graded.
-  Non-trivial code changes → also report Complexity Delta and Complexity Governance Suggestion.
+  Non-trivial code changes → also report Complexity Delta, Complexity Governance Suggestion, and Major Complexity Alert when triggered.
   Governance/retirement work → also close Repair Track + Retirement Track + Residual Risk.
 
 # Verification Before Completion
@@ -96,10 +96,9 @@ TDD Completion Boundary:
    - Non-goals respected:
    ```
 
-   Use `done` only when success evidence is satisfied. Use `blocked` when a
-   dependency, permission, or required fact is missing. Use `needs-verification`
-   when implementation exists but evidence is insufficient. Use
-   `scope-exceeded` when continuing would exceed the goal or non-goals.
+   Use `done` only when success evidence is satisfied; `blocked` for missing
+   dependency/permission/fact; `needs-verification` for insufficient evidence;
+   `scope-exceeded` when continuing would exceed goal or non-goals.
 7. **Long-Task**: re-read checkpoint, confirm every todo has status, no drift check unresolved.
 8. **Workspace Integrity**: if the task created or modified a target project's
    `docs/aegis/` workspace and configured Aegis workspace support is available,
@@ -125,9 +124,7 @@ TDD Completion Boundary:
    - Residual risk:
    ```
 
-   A readiness summary is advisory evidence organization only. It is not
-   authorization to commit, tag, publish, merge, or release. It cannot provide
-   completion authority.
+   Advisory only. It does not authorize commit, tag, publish, merge, or release, and it does not provide completion authority.
 10. **Natural Aegis closeout**: when Aegis skills materially shaped a
    non-trivial task, keep Aegis explicitly visible in the final completion
    closeout.
@@ -176,10 +173,15 @@ TDD Completion Boundary:
 
 12. **Complexity Delta**: for non-trivial code changes, inspect the actual
    diff before claiming completion. This is a completion-time entropy check,
-   not a universal failure gate. Skip or keep it one-line for tiny wording
-   edits, tests-only additions, generated files, vendored files, fixtures,
-   lockfiles, or purely mechanical formatting where no maintained source owner
-   gained complexity.
+   not a universal runtime gate. Skip or keep it one-line for tiny wording
+   edits, generated files, vendored files, fixture-data-only updates,
+   lockfiles, or purely mechanical formatting where no maintained artifact
+   gained complexity. Do not treat maintained test source files as a cheap
+   `tests-only` exception.
+
+   Use `using-aegis/references/complexity-governance.md` for shared artifact
+   classes, pressure-signal interpretation, and major-complexity follow-up
+   semantics.
 
    Use the project language for field labels in the final response, but keep
    the internal shape recognizable:
@@ -196,6 +198,26 @@ TDD Completion Boundary:
    - Required follow-up:
    ```
 
+   Also report completion-time closure of the planned complexity budget:
+
+   ```text
+   Complexity Closure:
+   - Budget status: within-budget | exceeded-and-governed | exceeded-unresolved
+   - Governed now:
+   - Deferred follow-up:
+   - Completion impact: complete | needs-follow-up | not-complete
+   ```
+
+   If a maintained artifact is materially oversized or crosses a major pressure
+   boundary, make the follow-up explicit:
+
+   ```text
+   Major Complexity Alert:
+   - Trigger:
+   - Why it matters:
+   - Visible follow-up:
+   ```
+
    When the delta finds meaningful pressure, add:
 
    ```text
@@ -206,46 +228,27 @@ TDD Completion Boundary:
    - Timing:
    ```
 
-   Use `none` for small owner-correct diffs, `monitor` for acceptable visible
-   growth, and stronger recommendations for 800+ line files, 80+ line blocks,
-   branch/fallback/adapter growth without retirement, or owner mismatch. The
-   suggestion is advisory; keep residual risk visible.
-
    Rules:
-   - A maintained source file over 800 lines is a review signal. If this slice
-     added logic there or pushed it across 800 lines, explain why the owner
-     boundary is still correct or report a split/refactor follow-up.
-   - A touched function, method, component, or cohesive block over roughly 80
-     lines, deeply nested logic, or mixed reasons to change is a block-level
-     complexity signal even if the file remains under 800 lines.
+   - Keep residual risk visible.
    - New fallback, adapter, compatibility, guard, or branch logic must be
      paired with retired paths or a Retirement Closure entry. Net new paths
      without deletion or a scheduled retirement trigger count as entropy
      increase.
    - If entropy increased and no stronger owner/compatibility reason exists,
      downgrade the completion claim or state the residual risk.
+   - If `Complexity Closure` is `exceeded-unresolved`, do not claim the task is
+     complete. State the task as `needs-follow-up` or `not-complete`.
 
 13. **Baseline Alignment Check**: before final response, if project
    instructions require baseline reporting or the task touched requirement,
    product, or durable architecture surfaces, include an explicit baseline
-   alignment result. This is separate from ADR Backfill: alignment states
-   whether the completed work matches current requirements and architecture
-   baselines; ADR Backfill states whether durable architecture memory needs to
-   be created, amended, superseded, or skipped. This is a method-pack signal,
-   not a runtime gate, not an authoritative `GateDecision`, and not completion
-   authority.
+   alignment result. This is separate from ADR Backfill and remains advisory
+   method-pack output only.
 
-   `Product / Requirement Baseline` covers the accepted problem, success
-   evidence, non-goals, workflow constraints, and approved requirement/spec
-   intent. `Architecture / Runtime Boundary Baseline` covers canonical owner,
-   contract, source-of-truth, dependency direction, compatibility,
-   runtime-ready/method-pack boundary, and retirement state.
-
-   Triggering surfaces include architecture, contracts, source-of-truth owner,
-   canonical owner, context/answering/runtime flow, cross-module data flow,
-   producer-to-carrier-to-consumer chains, public user-visible identity,
-   evidence model, retained fallback, adapter, compatibility path, requirement
-   acceptance, product non-goals, and project-specific baseline rules.
+   Use `docs/current/AEGIS_PROCESS_BASELINE.md` §3.0e and §16 for the canonical
+   meaning of `Product / Requirement Baseline`, `Architecture / Runtime
+   Boundary Baseline`, `Design Defect`, `Implementation Drift`, and their
+   compatibility aliases.
 
    ```text
    Baseline Alignment:
@@ -259,12 +262,6 @@ TDD Completion Boundary:
    - Evidence:
    - Residual risk:
    ```
-
-   Use `Design Defect` when the relevant requirement, design, or baseline is
-   wrong. Use `Implementation Drift` when the work deviates from a correct
-   unchanged baseline. `Architecture Defect` and `Architecture Drift` remain
-   compatibility aliases for architecture-scoped `Design Defect` and
-   architecture-scoped `Implementation Drift`.
 
    When project instructions specifically require architecture reporting or the
    completed work touched durable architecture surfaces, the architecture-scoped
@@ -291,21 +288,12 @@ TDD Completion Boundary:
 
 14. **ADR Backfill Check**: for completed medium/high work that touched durable
    architecture surfaces, run the ADR Auto Backfill check before final
-   completion claims. Use `Trigger: no` or skip the expanded block for simple
-   wording edits, ordinary README cleanup, routine release-note edits, low-risk
-   single-file changes, tests-only coverage improvements, and bug fixes that
-   only restore the existing baseline. This is a method-pack signal, not a
-   runtime gate, not an authoritative `GateDecision`, and not completion
-   authority.
+   completion claims. Advisory method-pack signal only.
 
-   Durable architecture surfaces include canonical owner, public API/schema,
-   artifact shape, behavior contract, dependency direction, source-of-truth
-   owner, host compatibility strategy, install/discovery contract,
-   method-pack/runtime-core boundary, runtime-ready artifact boundary, evidence
-   model, retained fallback, adapter, compatibility path, duplicate owner,
-   retirement schedule, accepted architecture-scoped Implementation Drift, and
-   release/distribution strategy that future contributors would otherwise
-   misread.
+   Use `docs/current/AEGIS_ADR_AUTO_BACKFILL.md` for canonical trigger
+   criteria, durable-surface interpretation, create/amend/supersede/skip
+   selection, and baseline-sync rules. When that baseline would not trigger,
+   use `Trigger: no` or skip the expanded block here.
 
    ```text
    ADR Backfill Check:
@@ -322,6 +310,12 @@ TDD Completion Boundary:
    lifecycle and Baseline Sync Closure before making the final completion
    claim. This keeps `verification-before-completion` as the completion owner
    while delegating the ADR/baseline writeback decision to the dedicated skill.
+   When that dedicated skill chooses target-project `docs/aegis/adr/` as the
+   owner surface, route file writes through `<aegis-workspace-helper> new-adr`,
+   `<aegis-workspace-helper> amend-adr`, or
+   `<aegis-workspace-helper> supersede-adr`, then run
+   `<aegis-workspace-helper> check --root <target-project-root>` before the
+   final completion claim.
 
 15. **Governance Closure**: for governance/cleanup/migration/compatibility/retirement work → final response must include. Do not skip this structure just because the implementation was small. Localize section labels and prose to the user's language; keep internal concepts in English only when they are product terms or file/path identifiers.
 

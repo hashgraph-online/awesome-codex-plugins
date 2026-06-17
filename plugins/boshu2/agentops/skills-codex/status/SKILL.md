@@ -8,7 +8,7 @@ description: "Run status."
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
-**CLI dependencies:** bd, ao, gt — all optional. Shows what's available, skips what isn't.
+**CLI dependencies:** br, ao, gt — all optional. Shows what's available, skips what isn't.
 
 ---
 
@@ -62,17 +62,17 @@ fi
 
 **Call 2 — Beads / Epic State:**
 ```bash
-if bd ready --json >/dev/null 2>&1 && bd list --type epic --status open --json >/dev/null 2>&1; then
+if br ready --json >/dev/null 2>&1 && br list --type epic --status open --json >/dev/null 2>&1; then
   echo "=== EPIC ==="
-  bd list --type epic --status open 2>/dev/null | head -5
+  br list --type epic --status open 2>/dev/null | head -5
   echo "=== IN_PROGRESS ==="
-  bd list --status in_progress 2>/dev/null | head -5
+  br list --status in_progress 2>/dev/null | head -5
   echo "=== READY ==="
-  bd ready 2>/dev/null | head -5
+  br ready 2>/dev/null | head -5
   echo "=== TOTAL ==="
-  bd list 2>/dev/null | wc -l
+  br list 2>/dev/null | wc -l
 else
-  echo "BD_DEGRADED_OR_UNAVAILABLE"
+  echo "BR_DEGRADED_OR_UNAVAILABLE"
 fi
 ```
 
@@ -154,7 +154,7 @@ ACTIVE EPIC
   In Progress: <list in-progress issues, max 3>
 
 READY TO WORK
-  <top 3 unblocked issues from bd ready>
+  <top 3 unblocked issues from br ready>
   <or "No ready issues — create work with $plan">
 
 RECENT VALIDATIONS
@@ -201,7 +201,7 @@ QUICK COMMANDS
   $implement    Execute a single issue
   $crank        Autonomous epic execution
   $validate   Full close-out and learnings
-  $vibe         Targeted code review
+  $validate         Targeted code review
 ══════════════════════════════════════════════════
 ```
 
@@ -211,7 +211,7 @@ Evaluate state top-to-bottom. Use the FIRST matching condition:
 
 | Priority | Condition | Suggestion |
 |----------|-----------|------------|
-| 1 | No ratchet chain exists | "Start with `$quickstart` or `$research` to begin a workflow" |
+| 1 | No ratchet chain exists | "Start with `quickstart` or `$research` to begin a workflow" |
 | 2 | Research done, no plan | "Run `$plan` to decompose research into actionable issues" |
 | 3 | Plan done, no pre-mortem | "Run `$pre-mortem` to validate the plan before coding" |
 | 4 | Issues in-progress | "Continue working: `$implement <issue-id>` or `$crank` for autonomous execution" |
@@ -307,7 +307,7 @@ Render this with a single code block. No visual dashboard when `--json` is activ
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Shows "BD_UNAVAILABLE" or "AO_UNAVAILABLE" | CLI tools not installed or not in PATH | Install missing tools: `brew install bd` or `brew install ao`. Skill gracefully degrades by showing available state only. |
+| Shows "BR_DEGRADED_OR_UNAVAILABLE" or "AO_UNAVAILABLE" | CLI tools not installed or not in PATH | Install or expose `br` (beads_rust) or `ao`. Skill gracefully degrades by showing available state only. |
 | Ratchet phase shows stale data | Old chain.jsonl not cleaned up | Check timestamp of `.agents/ao/chain.jsonl`. If stale, delete it or run `$validate` to complete cycle and reset state. |
 | Suggested action doesn't match intent | State-aware rules didn't capture edge case | Review priority table in Step 3. May need to refine conditions. Use `--json` to inspect raw state and debug rule matching. |
 | JSON output malformed | Parallel bash calls returned unexpected format | Check each bash call individually. Ensure jq parsing works on actual data. Validate JSON structure with `jq .` before returning to user. |

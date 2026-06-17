@@ -17,7 +17,7 @@ $heal-skill                    # Check all skills (report only)
 $heal-skill --fix              # Auto-repair all fixable issues
 $heal-skill --strict           # Check all skills, exit 1 on findings (CI mode)
 $heal-skill skills/council     # Check a specific skill
-$heal-skill --fix skills/vibe  # Fix a specific skill
+$heal-skill --fix skills/validate  # Fix a specific skill
 ```
 
 ---
@@ -132,14 +132,14 @@ One line per finding:
 
 ### Auto-fixing a specific skill
 
-**User says:** `$heal-skill --fix skills/vibe`
+**User says:** `$heal-skill --fix skills/validate`
 
 **What happens:**
-1. The heal script inspects only `skills/vibe/`, running all per-skill checks against that skill.
+1. The heal script inspects only `skills/validate/`, running all per-skill checks against that skill.
 2. For each fixable issue found (e.g., `MISSING_NAME`, `UNLINKED_REF`), the script applies the repair automatically -- adding the name from the directory, converting bare backtick references to markdown links, etc.
 3. Any `DEAD_REF` findings are reported as warnings since they require human judgment to resolve.
 
-**Result:** The `skills/vibe/SKILL.md` is repaired in place, with a summary of changes applied and any remaining warnings.
+**Result:** The `skills/validate/SKILL.md` is repaired in place, with a summary of changes applied and any remaining warnings.
 
 ## Troubleshooting
 

@@ -147,13 +147,14 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 3. **Surface**: `create_surface` of type `chat`. Configure the launcher, theme, and visible features (`showToolCalls`, `showReasoning`). If the widget must call browser-side page tools, configure `behavior.webmcp` with an origin-scoped allowlist.
 4. **Client token**: `create_client_token` — public, scoped, revocable, and usable by the browser-side widget.
 5. **Embed code**: `generate_persona_embed_code` — returns a ready-to-paste HTML snippet. **Prefer this over hand-writing the embed.**
-6. **Page tools (optional)**: If using WebMCP, the host page must register tools on `document.modelContext` before Persona initializes. Keep the client token's `allowedOrigins` aligned with the `behavior.webmcp` origins.
+6. **Page tools (optional)**: If using WebMCP, set widget `config.webmcp.enabled`, then register tools on `document.modelContext` before Persona initializes. Keep the client token's `allowedOrigins` aligned with the `behavior.webmcp` origins.
 7. **Theming**: Before generating a custom theme, call `get_persona_theme_reference` to load the design-token docs and example themes. See `persona-widget.md` for the contrast rules and theming gotchas — header tokens are easy to get wrong.
 
 **Gotchas:**
 
 - Wrong package name (`@runtype/persona` vs `@runtypelabs/persona` — the latter is correct), wrong API (`Persona.mount()` doesn't exist — use `initAgentWidget()`), wrong CSS path are common errors. The MCP-generated embed code avoids all of these.
 - For consumer-facing widgets, set `features.showToolCalls: false` and `features.showReasoning: false`. For internal debug surfaces, leave them on.
+- To let the model ask structured follow-up questions or propose reply chips, expose Persona's built-in LOCAL tools with `features.askUserQuestion.expose` and `features.suggestReplies.expose` instead of inventing custom tool UIs.
 - Do not model browser-side page actions as an `mcp` surface. Use WebMCP on the `chat` surface when the capability must run inside the user's page.
 
 ---

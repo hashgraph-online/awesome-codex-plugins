@@ -19,7 +19,7 @@ Triage (PASS_THROUGH/LIGHT/FULL) is upstream in `using-development-skills`. If y
 
 **Skip ONLY if all three hold:**
 
-- Fully reversible in < 1 hour
+- Fully reversible with low effort
 - ONE obvious approach (forced shape, not *"I think this is right"*)
 - WHY doesn't affect HOW
 

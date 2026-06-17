@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
@@ -71,6 +71,7 @@ OBJECT_STORAGE_BASE_ENV_NAMES = {
     "BACKEND_STORAGE_MINIO_EXTERNAL_ENDPOINT",
 }
 OBJECT_STORAGE_BUCKET_ENV_NAME = "S3_BUCKET"
+TEMPLATE_DEPLOY_KEY = "cloud.sealos.io/deploy-on-sealos"
 COMPOSE_REFERENCE_RE = re.compile(r"\$\{[^}]+\}")
 INVALID_NAME_RE = re.compile(r"[^a-z0-9]+")
 MODE_SUFFIXES = {"ro", "rw", "z", "Z", "cached", "delegated", "consistent"}
@@ -246,6 +247,13 @@ class MetadataOptions:
 class ServiceShape:
     ports: Tuple[int, ...]
     mount_paths: Tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ConfigMount:
+    target: str
+    key: str
+    content: str
 
 
 def db_component_resources() -> Dict[str, Dict[str, str]]:
@@ -865,6 +873,81 @@ def parse_mount_paths(service: Mapping[str, Any]) -> List[str]:
             seen.add(target)
             paths.append(target)
     return paths
+
+
+def _resolve_config_file_path(raw_path: Any, compose_dir: Path) -> Optional[Path]:
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        return None
+    path = Path(raw_path.strip())
+    if not path.is_absolute():
+        path = compose_dir / path
+    try:
+        resolved = path.resolve()
+    except OSError:
+        return None
+    return resolved if resolved.is_file() else None
+
+
+def _root_config_file_sources(compose_data: Mapping[str, Any], compose_dir: Path) -> Dict[str, Path]:
+    configs = compose_data.get("configs")
+    if not isinstance(configs, dict):
+        return {}
+    sources: Dict[str, Path] = {}
+    for name, config in configs.items():
+        if not isinstance(name, str):
+            continue
+        if isinstance(config, dict):
+            source_path = _resolve_config_file_path(config.get("file"), compose_dir)
+        elif isinstance(config, str):
+            source_path = _resolve_config_file_path(config, compose_dir)
+        else:
+            source_path = None
+        if source_path is not None:
+            sources[name] = source_path
+    return sources
+
+
+def parse_config_mounts(
+    service: Mapping[str, Any],
+    compose_data: Mapping[str, Any],
+    compose_dir: Path,
+) -> List[ConfigMount]:
+    service_configs = service.get("configs")
+    if not isinstance(service_configs, list):
+        return []
+    file_sources = _root_config_file_sources(compose_data, compose_dir)
+    mounts: List[ConfigMount] = []
+    seen_targets: Set[str] = set()
+    for item in service_configs:
+        source_name: Optional[str] = None
+        target: Optional[str] = None
+        if isinstance(item, str):
+            source_name = item
+        elif isinstance(item, dict):
+            raw_source = item.get("source") or item.get("config")
+            raw_target = item.get("target")
+            if isinstance(raw_source, str):
+                source_name = raw_source
+            if isinstance(raw_target, str) and raw_target.startswith("/"):
+                target = raw_target
+        if not source_name:
+            continue
+        source_file = file_sources.get(source_name)
+        if source_file is None:
+            continue
+        if target is None:
+            target = f"/{source_name}"
+        if not target.startswith("/") or target in seen_targets:
+            continue
+        seen_targets.add(target)
+        mounts.append(
+            ConfigMount(
+                target=target,
+                key=path_to_vn_name(target),
+                content=source_file.read_text(encoding="utf-8"),
+            )
+        )
+    return mounts
 
 
 def parse_command_args(service: Mapping[str, Any]) -> List[str]:
@@ -2079,6 +2162,7 @@ def build_workload(
     env_entries: Sequence[Dict[str, Any]],
     command_args: Sequence[str],
     mount_paths: Sequence[str],
+    config_mounts: Sequence[ConfigMount],
     probes: Mapping[str, Any],
 ) -> Dict[str, Any]:
     is_stateful = bool(mount_paths)
@@ -2109,14 +2193,27 @@ def build_workload(
             value = probes.get(key)
             if isinstance(value, dict):
                 container[key] = value
+    volume_mounts: List[Dict[str, Any]] = []
     if mount_paths:
-        container["volumeMounts"] = [
+        volume_mounts.extend(
             {
                 "name": path_to_vn_name(path),
                 "mountPath": path,
             }
             for path in mount_paths
-        ]
+        )
+    if config_mounts:
+        volume_mounts.extend(
+            {
+                "name": f"{workload_name}-cm",
+                "mountPath": mount.target,
+                "subPath": mount.key,
+                "readOnly": True,
+            }
+            for mount in config_mounts
+        )
+    if volume_mounts:
+        container["volumeMounts"] = volume_mounts
 
     spec: Dict[str, Any] = {
         "replicas": 1,
@@ -2134,6 +2231,10 @@ def build_workload(
                 "metadata": {
                     "name": path_to_vn_name(path),
                     "annotations": {"path": path, "value": "1"},
+                    "labels": {
+                        "app": workload_name,
+                        TEMPLATE_DEPLOY_KEY: "${{ defaults.app_name }}",
+                    },
                 },
                 "spec": {
                     "accessModes": ["ReadWriteOnce"],
@@ -2142,6 +2243,16 @@ def build_workload(
             }
             for path in mount_paths
         ]
+    if config_mounts:
+        template_spec.setdefault("volumes", []).append(
+            {
+                "name": f"{workload_name}-cm",
+                "configMap": {
+                    "name": workload_name,
+                    "defaultMode": 493,
+                },
+            }
+        )
 
     return {
         "apiVersion": "apps/v1",
@@ -2155,10 +2266,26 @@ def build_workload(
             },
             "labels": {
                 "cloud.sealos.io/app-deploy-manager": workload_name,
+                TEMPLATE_DEPLOY_KEY: "${{ defaults.app_name }}",
                 "app": workload_name,
             },
         },
         "spec": spec,
+    }
+
+
+def build_configmap(workload_name: str, config_mounts: Sequence[ConfigMount]) -> Dict[str, Any]:
+    return {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {
+            "name": workload_name,
+            "labels": {
+                "app": workload_name,
+                "cloud.sealos.io/app-deploy-manager": workload_name,
+            },
+        },
+        "data": {mount.key: mount.content for mount in config_mounts},
     }
 
 
@@ -2283,6 +2410,7 @@ def build_documents(
     compose_data: Mapping[str, Any],
     meta: MetadataOptions,
     kompose_shapes: Optional[Mapping[str, ServiceShape]] = None,
+    compose_path: Optional[Path] = None,
 ) -> List[Dict[str, Any]]:
     normalized_images = validate_images(compose_data)
     service_items = list(iter_services(compose_data))
@@ -2353,6 +2481,7 @@ def build_documents(
     service_docs: List[Dict[str, Any]] = []
     primary_port: Optional[int] = None
     primary_workload_name = "${{ defaults.app_name }}"
+    compose_dir = compose_path.parent if compose_path is not None else Path.cwd()
     for index, (service_name, service) in enumerate(app_services):
         workload_name = (
             primary_workload_name
@@ -2364,6 +2493,7 @@ def build_documents(
         env_entries = build_env_entries(service, db_hosts, db_services)
         command_args = parse_command_args(service)
         mount_paths = parse_mount_paths(service)
+        config_mounts = parse_config_mounts(service, compose_data, compose_dir)
         if kompose_shapes:
             shape = kompose_shapes.get(normalize_k8s_name(service_name))
             if shape is not None:
@@ -2380,8 +2510,11 @@ def build_documents(
             env_entries=env_entries,
             command_args=command_args,
             mount_paths=mount_paths,
+            config_mounts=config_mounts,
             probes=probes,
         )
+        if config_mounts:
+            workload_docs.append(build_configmap(workload_name, config_mounts))
         workload_docs.append(workload)
         service_doc = build_service(workload_name, ports)
         if service_doc is not None:
@@ -2410,7 +2543,7 @@ def convert_compose_to_template(
     app_dir = output_root / meta.app_name
     if write_files:
         meta = prepare_logo_asset(meta, app_dir, fetch_logo)
-    documents = build_documents(compose_data, meta, kompose_shapes=kompose_shapes)
+    documents = build_documents(compose_data, meta, kompose_shapes=kompose_shapes, compose_path=compose_path)
     index_path = app_dir / "index.yaml"
     rendered = render_index_yaml(documents)
     if write_files:

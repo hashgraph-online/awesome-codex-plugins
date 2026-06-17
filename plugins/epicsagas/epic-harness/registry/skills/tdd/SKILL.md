@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: "Trigger: new feature or bug fix. Enforces Red→Green→Refactor. No prod code without failing test first."
+description: "Test-Driven Development enforcer. Red→Green→Refactor cycle with no production code without a failing test first. Use for new features and bug fixes."
 ---
 
 # TDD — Test-Driven Development

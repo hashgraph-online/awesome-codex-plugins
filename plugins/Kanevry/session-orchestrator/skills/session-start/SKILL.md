@@ -579,7 +579,13 @@ Group issues by:
 
    Cross-reference: `.claude/rules/owner-persona.md` (host-wide `owner.yaml` operator identity) and `skills/vault-sync/SKILL.md` (`type: peer-card` value in the vault-frontmatter enum). Peer cards complement `owner.yaml` with per-repo behavioural identity for the operator (USER.md) and agent (AGENT.md).
 
-   All banners are non-blocking — display in the Session Overview, do not halt the session. If `bootstrap-lock-freshness.mjs` is absent (pre-#186 plugin install) or `peer-cards/staleness-banner.mjs` is absent (pre-#503 plugin install), skip silently.
+   Additionally, invoke the loop-readiness probe (`scripts/lib/loop-readiness-banner.mjs`) via `checkLoopReadiness({ repoRoot })` (synchronous — no await). The helper returns `null` (silent no-op) when `.claude/loop.md` exists in the repo, when a host-wide `~/.claude/loop.md` baseline exists, or on bad input. When a non-null result is returned (`{ severity: 'warn', message }`), render `result.message` alongside the other banners:
+   - **No loop.md anywhere**: `"⚠ loop-readiness: no .claude/loop.md (repo) and no ~/.claude/loop.md (user baseline) — bare /loop uses the generic Anthropic maintenance prompt. Copy templates/_shared/loop.md via /bootstrap or add a host-wide ~/.claude/loop.md."`
+   - **Present (repo or user baseline)**: silent (no banner).
+
+   Cross-reference: `.claude/rules/loop-and-monitor.md` (when to use `/loop` vs Monitor vs Routines) and issue #633.
+
+   All banners are non-blocking — display in the Session Overview, do not halt the session. If `bootstrap-lock-freshness.mjs` is absent (pre-#186 plugin install) or `peer-cards/staleness-banner.mjs` is absent (pre-#503 plugin install) or `loop-readiness-banner.mjs` is absent (pre-#633 plugin install), skip silently.
 
 ## Phase 4.5: Resource Health (v3.1.0)
 

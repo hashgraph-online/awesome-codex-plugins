@@ -1,6 +1,6 @@
 ---
 name: perf
-description: "Trigger: loops, DB queries, rendering, or batch ops. Catches N+1, missing indexes, unnecessary re-renders."
+description: "Performance optimizer for loops, DB queries, rendering, and batch operations. Catches N+1 queries, missing indexes, and unnecessary re-renders."
 ---
 
 # Perf — Performance Review

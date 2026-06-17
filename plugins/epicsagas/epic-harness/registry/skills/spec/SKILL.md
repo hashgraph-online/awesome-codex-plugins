@@ -1,11 +1,11 @@
 ---
 name: spec
-description: "Spec phase. Converts user requirements into numbered Requirements + Acceptance Criteria document. Suggests /team for 3+ requirements."
+description: "Spec phase. Converts user requirements into a numbered Requirements + Acceptance Criteria document saved as SPEC-{timestamp}.md. Prompts /team suggestion when 3+ requirements are detected."
 ---
 
 # Spec — Define What to Build
 
-**CRITICAL**: Run `HARNESS_DIR=$(epic path)` first. NEVER use `.harness/` in the project directory.
+**CRITICAL**: Run `HARNESS_DIR=$(epic-harness path)` first. NEVER use `.harness/` in the project directory.
 
 ## Process
 

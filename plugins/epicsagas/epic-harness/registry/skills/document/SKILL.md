@@ -1,6 +1,6 @@
 ---
 name: document
-description: "Trigger: public API, function, or module added or changed — exports, signatures, new modules."
+description: "Documentation generator for public APIs, functions, and modules. Use when exports, signatures, or new modules are added or changed."
 ---
 
 # Document — Auto-Documentation
