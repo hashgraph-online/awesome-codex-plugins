@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-16",
-  "total": 112,
+  "last_updated": "2026-06-17",
+  "total": 115,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -320,16 +320,6 @@
       "install_url": "https://raw.githubusercontent.com/blackwell-systems/gcf-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "GrayMatter",
-      "url": "https://github.com/ValkyrLabs/GrayMatter",
-      "owner": "ValkyrLabs",
-      "repo": "GrayMatter",
-      "description": "Durable memory and shared graph state for Codex and OpenClaw agents, with live ValkyrAI schema awareness.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/ValkyrLabs/GrayMatter/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Generative Media Skills",
       "url": "https://github.com/SamurAIGPT/Generative-Media-Skills",
       "owner": "SamurAIGPT",
@@ -338,6 +328,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/SamurAIGPT/Generative-Media-Skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "GrayMatter",
+      "url": "https://github.com/ValkyrLabs/GrayMatter",
+      "owner": "ValkyrLabs",
+      "repo": "GrayMatter",
+      "description": "Durable memory and shared graph state for Codex and OpenClaw agents, with live ValkyrAI schema awareness.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ValkyrLabs/GrayMatter/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "HOL Guard Plugin",
@@ -870,6 +870,36 @@
       "install_url": "https://raw.githubusercontent.com/aklofas/kicad-happy/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Kreuzberg",
+      "url": "https://github.com/kreuzberg-dev/plugins",
+      "owner": "kreuzberg-dev",
+      "repo": "plugins",
+      "description": "Local document extraction for 91+ formats with skills for CLI usage, OCR, table extraction, output formats, and a local MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/kreuzberg/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Kreuzberg Cloud",
+      "url": "https://github.com/kreuzberg-dev/plugins",
+      "owner": "kreuzberg-dev",
+      "repo": "plugins",
+      "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/kreuzberg-cloud/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Kreuzcrawl",
+      "url": "https://github.com/kreuzberg-dev/plugins",
+      "owner": "kreuzberg-dev",
+      "repo": "plugins",
+      "description": "Web crawling and scraping for Codex with skills for single-page scraping, site crawls, URL mapping, and headless browser fallback.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/kreuzcrawl/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Langfuse Observability",
       "url": "https://github.com/avivsinai/langfuse-mcp",
       "owner": "avivsinai",
@@ -1000,16 +1030,6 @@
       "install_url": "https://raw.githubusercontent.com/tim-osterhus/codex-remotion-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "ScrapeGraph AI",
-      "url": "https://github.com/ScrapeGraphAI/just-scrape",
-      "owner": "ScrapeGraphAI",
-      "repo": "just-scrape",
-      "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/ScrapeGraphAI/just-scrape/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Rust Reverse Engineering",
       "url": "https://github.com/jingjing2222/rust-reverse-engineering-skill",
       "owner": "jingjing2222",
@@ -1018,6 +1038,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jingjing2222/rust-reverse-engineering-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ScrapeGraph AI",
+      "url": "https://github.com/ScrapeGraphAI/just-scrape",
+      "owner": "ScrapeGraphAI",
+      "repo": "just-scrape",
+      "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ScrapeGraphAI/just-scrape/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "sitemd",

@@ -1,0 +1,43 @@
+{
+  "name": "kreuzberg",
+  "version": "0.1.0",
+  "description": "Local document extraction: text, tables, metadata, images from 91+ formats with optional OCR.",
+  "author": {
+    "name": "Kreuzberg, Inc.",
+    "email": "support@kreuzberg.dev",
+    "url": "https://kreuzberg.dev"
+  },
+  "homepage": "https://kreuzberg.dev",
+  "repository": "https://github.com/kreuzberg-dev/plugins",
+  "license": "MIT",
+  "keywords": [
+    "document-intelligence",
+    "extraction",
+    "ocr",
+    "pdf",
+    "tables"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Kreuzberg",
+    "shortDescription": "Local document extraction for 91+ formats",
+    "longDescription": "Extract text, tables, metadata, and images from PDFs, Office files, images, HTML, email, archives, and academic formats. Runs locally via the kreuzberg CLI and an auto-registered MCP server. Plugin ships skills covering the CLI surface, OCR backends, table extraction, and output-format selection.",
+    "developerName": "Kreuzberg, Inc.",
+    "category": "document-intelligence",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Extract text from this PDF",
+      "OCR a scanned image",
+      "List supported formats"
+    ],
+    "websiteURL": "https://kreuzberg.dev",
+    "privacyPolicyURL": "https://kreuzberg.dev/privacy",
+    "termsOfServiceURL": "https://kreuzberg.dev/terms",
+    "brandColor": "#1F6FEB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

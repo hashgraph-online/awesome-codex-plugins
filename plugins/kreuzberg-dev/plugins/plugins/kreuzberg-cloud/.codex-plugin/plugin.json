@@ -1,0 +1,44 @@
+{
+  "name": "kreuzberg-cloud",
+  "version": "0.1.0",
+  "description": "Offload document extraction to api.kreuzberg.dev — managed extraction with webhooks, presigned uploads, and usage tracking.",
+  "author": {
+    "name": "Kreuzberg, Inc.",
+    "email": "support@kreuzberg.dev",
+    "url": "https://kreuzberg.dev"
+  },
+  "homepage": "https://kreuzberg.dev",
+  "repository": "https://github.com/kreuzberg-dev/plugins",
+  "license": "MIT",
+  "keywords": [
+    "document-intelligence",
+    "extraction",
+    "cloud",
+    "api",
+    "webhooks"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Kreuzberg Cloud",
+    "shortDescription": "Managed cloud extraction with webhooks and presigned uploads",
+    "longDescription": "Offload extraction to api.kreuzberg.dev. Authenticate with a bearer API key, push large files through presigned uploads, poll job status or receive webhook callbacks, and track per-project usage against your quota. Sandbox keys are available for evaluation without signup.",
+    "developerName": "Kreuzberg, Inc.",
+    "category": "document-intelligence",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Extract this PDF in the cloud",
+      "Check my usage",
+      "Get this job's result"
+    ],
+    "websiteURL": "https://kreuzberg.dev",
+    "privacyPolicyURL": "https://kreuzberg.dev/privacy",
+    "termsOfServiceURL": "https://kreuzberg.dev/terms",
+    "brandColor": "#0EA5E9",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

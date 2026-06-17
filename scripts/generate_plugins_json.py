@@ -109,7 +109,7 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
 
         owner, repo = plugin_match.group(3), plugin_match.group(4)
         repo = repo.removesuffix(".git")
-        key = f"{owner}/{repo}"
+        key = f"{owner}/{repo}/{plugin_match.group(1)}"
         if key in seen:
             continue
         seen.add(key)
@@ -125,6 +125,16 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
                 "install_url": f"https://raw.githubusercontent.com/{owner}/{repo}/{RAW_DEFAULT_BRANCH_REF}/.codex-plugin/plugin.json",
             }
         )
+
+    repo_counts: dict[str, int] = {}
+    for plugin in plugins:
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        repo_counts[owner_repo] = repo_counts.get(owner_repo, 0) + 1
+
+    for plugin in plugins:
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        if repo_counts[owner_repo] > 1:
+            plugin["_mirror_subpath"] = "true"
 
     return plugins
 
@@ -147,11 +157,40 @@ def fetch_repo_archive(owner: str, repo: str) -> zipfile.ZipFile:
     raise last_error
 
 
-def resolve_plugin_root(names: set[str]) -> PurePosixPath:
-    for name in sorted(names):
-        if name.endswith("/.codex-plugin/plugin.json"):
-            return PurePosixPath(name).parent.parent
-    raise ValueError("Archive does not contain .codex-plugin/plugin.json")
+def normalize_match_key(value: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def find_plugin_roots(names: set[str]) -> list[PurePosixPath]:
+    return [
+        PurePosixPath(name).parent.parent
+        for name in sorted(names)
+        if name.endswith("/.codex-plugin/plugin.json")
+    ]
+
+
+def resolve_plugin_root(archive: zipfile.ZipFile, names: set[str], plugin: dict[str, str]) -> PurePosixPath:
+    roots = find_plugin_roots(names)
+    if not roots:
+        raise ValueError("Archive does not contain .codex-plugin/plugin.json")
+    if len(roots) == 1:
+        return roots[0]
+
+    expected = normalize_match_key(plugin["name"])
+    for root in roots:
+        manifest = load_manifest(archive, root)
+        interface = manifest.get("interface", {})
+        candidates = [
+            manifest.get("name"),
+            root.name,
+            plugin_root_relative_path(root).split("/")[-1],
+        ]
+        if isinstance(interface, dict):
+            candidates.extend([interface.get("displayName"), interface.get("shortDescription")])
+        if any(normalize_match_key(candidate) == expected for candidate in candidates):
+            return root
+
+    return roots[0]
 
 
 def load_manifest(archive: zipfile.ZipFile, plugin_root: PurePosixPath) -> dict[str, object]:
@@ -299,9 +338,9 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
     names = {name for name in archive.namelist() if not name.endswith("/")}
     try:
-        plugin_root = resolve_plugin_root(names)
+        plugin_root = resolve_plugin_root(archive, names, plugin)
     except ValueError:
-        raise ValueError(f"Archive for {owner_repo} does not contain .codex-plugin/plugin.json") from None
+        raise ValueError(f"Archive for {owner_repo} does not contain a matching .codex-plugin/plugin.json") from None
     manifest = load_manifest(archive, plugin_root)
     metadata_only = is_metadata_only_mirror(plugin)
     selected_paths = (
@@ -311,7 +350,11 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
     )
     mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
 
+    plugin_root_relative = plugin_root_relative_path(plugin_root)
+    use_subpath = plugin.get("_mirror_subpath") == "true"
     destination_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
+    if use_subpath and plugin_root_relative:
+        destination_root = destination_root / PurePosixPath(plugin_root_relative)
     # Clear destination to avoid stale files from previous runs (Thread 2 fix)
     if destination_root.exists():
         shutil.rmtree(destination_root)
@@ -329,7 +372,11 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         else:
             destination_path.write_bytes(archive.read(archive_name))
 
-    return mirrored_manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative_path(plugin_root)
+    marketplace_path = f"./plugins/{plugin['owner']}/{plugin['repo']}"
+    if use_subpath and plugin_root_relative:
+        marketplace_path = f"{marketplace_path}/{plugin_root_relative}"
+
+    return mirrored_manifest, marketplace_path, plugin_root_relative
 
 
 def build_marketplace_entry(
@@ -395,7 +442,10 @@ def main() -> None:
                         rel = rel[1:]
                     candidate = f"{marketplace_path}/{rel}"
                     # Verify the file exists in the mirrored plugin directory
-                    abs_path = PLUGINS_ROOT / plugin["owner"] / plugin["repo"] / rel
+                    local_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
+                    if plugin.get("_mirror_subpath") == "true" and plugin_root_relative:
+                        local_root = local_root / PurePosixPath(plugin_root_relative)
+                    abs_path = local_root / rel
                     if abs_path.exists():
                         icon_path = candidate
 
@@ -408,6 +458,10 @@ def main() -> None:
         },
         "plugins": mirrored_entries,
     }
+    public_plugins = [
+        {key: value for key, value in plugin.items() if not key.startswith("_")}
+        for plugin in plugins
+    ]
     plugins_json = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "name": "awesome-codex-plugins",
@@ -415,7 +469,7 @@ def main() -> None:
         "last_updated": datetime.date.today().isoformat(),
         "total": len(plugins),
         "categories": sorted({plugin["category"] for plugin in plugins}),
-        "plugins": plugins,
+        "plugins": public_plugins,
     }
 
     write_json(MARKETPLACE_OUTPUT, marketplace)

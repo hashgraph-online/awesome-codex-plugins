@@ -50,10 +50,20 @@ def get_changed_plugin_dirs(base_ref: str) -> list[Path]:
     changed_dirs: set[Path] = set()
     for line in output.splitlines():
         file_path = REPO_ROOT / line
-        # Walk up to find the plugins/<owner>/<repo> root
-        parts = file_path.relative_to(REPO_ROOT).parts
-        if len(parts) >= 3 and parts[0] == "plugins":
-            changed_dirs.add(REPO_ROOT / "plugins" / parts[1] / parts[2])
+        try:
+            relative = file_path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+
+        if len(relative.parts) < 3 or relative.parts[0] != "plugins":
+            continue
+
+        current = file_path if file_path.is_dir() else file_path.parent
+        while current != PLUGINS_DIR and PLUGINS_DIR in current.parents:
+            if (current / ".codex-plugin" / "plugin.json").exists():
+                changed_dirs.add(current)
+                break
+            current = current.parent
 
     return sorted(changed_dirs)
 
