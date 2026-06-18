@@ -890,6 +890,16 @@
       "install_url": "https://raw.githubusercontent.com/BlockchainHB/launchfast_codex_plugin/HEAD/plugins/launchfast/.codex-plugin/plugin.json"
     },
     {
+      "name": "Maestro: Costguard",
+      "url": "https://github.com/mbanderas/costguard",
+      "owner": "mbanderas",
+      "repo": "costguard",
+      "description": "Cost auditor for Codex that flags CI/cron and cloud-spend waste via read-only provider checks, then previews and applies surgical CI workflow fixes locally without writing to provider accounts or pushing git.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mbanderas/costguard/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Mobazha",
       "url": "https://github.com/mobazha/mobazha-skills",
       "owner": "mobazha",

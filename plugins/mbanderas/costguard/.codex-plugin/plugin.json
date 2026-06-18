@@ -1,0 +1,30 @@
+{
+  "name": "costguard",
+  "version": "0.1.0",
+  "description": "Costguard cost auditor for Codex: read-only cloud + CI spend checks, dry-run-first CI auto-fixes, and a monthly digest, driven by a bundled skill.",
+  "author": {
+    "name": "Mark Laursen",
+    "url": "https://github.com/mbanderas"
+  },
+  "homepage": "https://github.com/mbanderas/costguard#readme",
+  "repository": "https://github.com/mbanderas/costguard",
+  "license": "MIT",
+  "keywords": ["cost-optimization", "ci-minutes", "cron", "cloud-spend", "finops", "audit", "codex"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Costguard",
+    "shortDescription": "Find and quantify CI/cron and cloud-spend waste",
+    "composerIcon": "./assets/icon.png",
+    "longDescription": "Install Costguard in Codex as a plugin: a bundled skill drives the read-only cost auditor — CI/cron waste rules, GitHub/Supabase/Railway/Netlify/Neon billing checks, dry-run-first CI auto-fixes, and a monthly cost digest. Never writes to provider accounts, never pushes git, never prints secrets.",
+    "developerName": "Mark Laursen",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/mbanderas/costguard",
+    "brandColor": "#2E9E6B",
+    "defaultPrompt": [
+      "Audit web-app for CI and cron waste.",
+      "Preview costguard's CI fixes for web-app.",
+      "Show costguard provider billing checks for all workspaces."
+    ]
+  }
+}
