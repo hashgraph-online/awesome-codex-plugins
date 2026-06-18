@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-16",
-  "total": 112,
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -28,6 +28,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/GanyuanRan/Aegis/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agent Guard",
+      "url": "https://github.com/JeongJaeSoon/agent-guard",
+      "owner": "JeongJaeSoon",
+      "repo": "agent-guard",
+      "description": "Real-time secret-leak guardrails for AI coding agents (Claude Code, Codex), Git hooks, and CI.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/JeongJaeSoon/agent-guard/HEAD/plugins/agent-guard/.codex-plugin/plugin.json"
     },
     {
       "name": "Agent Harness Skills",

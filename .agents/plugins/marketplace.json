@@ -34,6 +34,21 @@
       "icon": "./plugins/GanyuanRan/Aegis/assets/aegis-small.svg"
     },
     {
+      "name": "agent-guard",
+      "displayName": "Agent Guard",
+      "source": {
+        "source": "local",
+        "path": "./plugins/JeongJaeSoon/agent-guard"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Real-time secret-leak guardrails for AI coding agents (Claude Code, Codex), Git hooks, and CI.",
+      "icon": "./plugins/JeongJaeSoon/agent-guard/assets/icon.png"
+    },
+    {
       "name": "agent-harness-skills",
       "displayName": "Agent Harness Skills",
       "source": {
