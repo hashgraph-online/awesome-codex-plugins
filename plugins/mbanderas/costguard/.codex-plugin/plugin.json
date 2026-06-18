@@ -12,7 +12,7 @@
   "keywords": ["cost-optimization", "ci-minutes", "cron", "cloud-spend", "finops", "audit", "codex"],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Costguard",
+    "displayName": "Maestro: Costguard",
     "shortDescription": "Find and quantify CI/cron and cloud-spend waste",
     "composerIcon": "./assets/icon.png",
     "longDescription": "Install Costguard in Codex as a plugin: a bundled skill drives the read-only cost auditor — CI/cron waste rules, GitHub/Supabase/Railway/Netlify/Neon billing checks, dry-run-first CI auto-fixes, and a monthly cost digest. Never writes to provider accounts, never pushes git, never prints secrets.",
