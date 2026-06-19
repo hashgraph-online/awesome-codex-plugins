@@ -1649,6 +1649,20 @@
       "category": "Tools & Integrations",
       "description": "GitHub-ready Codex plugin bundle for Yandex Direct, Wordstat, Metrika, and Roistat.",
       "icon": "./plugins/nebelov/yandex-direct-for-all/assets/icon.png"
+    },
+    {
+      "name": "pronounce",
+      "displayName": "Pronounce",
+      "source": {
+        "source": "local",
+        "path": "./plugins/anzy-renlab-ai/pronounce"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Pronounce developer jargon out loud: an MCP server (lookup/search) and skill backed by a 1,721-entry sourced dictionary with IPA, audio, and cited pronunciations for kubectl, nginx, YAML, JWT, and more."
     }
   ]
 }

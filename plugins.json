@@ -400,6 +400,16 @@
       "install_url": "https://raw.githubusercontent.com/AlexMi64/codex-project-autopilot/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Pronounce",
+      "url": "https://github.com/anzy-renlab-ai/pronounce",
+      "owner": "anzy-renlab-ai",
+      "repo": "pronounce",
+      "description": "Pronounce developer jargon out loud: an MCP server (lookup/search) and skill backed by a 1,721-entry sourced dictionary with IPA, audio, and cited pronunciations for kubectl, nginx, YAML, JWT, and more.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/anzy-renlab-ai/pronounce/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Registry Broker",
       "url": "https://github.com/hashgraph-online/registry-broker-codex-plugin",
       "owner": "hashgraph-online",

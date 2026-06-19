@@ -1,0 +1,9 @@
+{
+  "name": "pronounce",
+  "version": "2.12.0",
+  "description": "Pronounce developer jargon out loud — 1721+ sourced entries (kubectl, GIF, JSON, JWT, …). Ships the pronounce-word skill and the pronounce MCP server.",
+  "author": "anzy-renlab-ai",
+  "homepage": "https://pronounce.renlab.ai",
+  "license": "MIT",
+  "mcpServers": "./.mcp.json"
+}
