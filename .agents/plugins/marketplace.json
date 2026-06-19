@@ -506,6 +506,21 @@
       "icon": "./plugins/hashgraph-online/hol-guard-plugin/assets/icon.png"
     },
     {
+      "name": "codex-honcho",
+      "displayName": "Honcho",
+      "source": {
+        "source": "local",
+        "path": "./plugins/plastic-labs/codex-honcho"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Persistent cross-session memory for Codex powered by Honcho — lifecycle hooks capture each session and inject relevant context back at session start, so Codex remembers your preferences, projects, and decisions across restarts.",
+      "icon": "./plugins/plastic-labs/codex-honcho/assets/icon.svg"
+    },
+    {
       "name": "hotl",
       "displayName": "HOTL Plugin",
       "source": {

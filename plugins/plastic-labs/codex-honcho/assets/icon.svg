@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Codex Honcho">
+  <rect width="512" height="512" rx="112" fill="#16161D"/>
+  <g stroke="#F4F1EA" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="168" y1="148" x2="168" y2="364"/>
+    <line x1="344" y1="148" x2="344" y2="364"/>
+    <line x1="168" y1="256" x2="344" y2="256"/>
+  </g>
+  <circle cx="168" cy="148" r="34" fill="#F4F1EA"/>
+  <circle cx="344" cy="148" r="34" fill="#F4F1EA"/>
+  <circle cx="168" cy="364" r="34" fill="#E8835A"/>
+  <circle cx="344" cy="364" r="34" fill="#E8835A"/>
+  <circle cx="256" cy="256" r="40" fill="#16161D" stroke="#E8835A" stroke-width="20"/>
+</svg>
