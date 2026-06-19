@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">SEO Dungeon icon</title>
+  <desc id="desc">Gold dungeon shield with crossed swords and search lens.</desc>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <path d="M256 64 402 122v112c0 93-57 176-146 214-89-38-146-121-146-214V122L256 64Z" fill="#D4AF37"/>
+  <path d="M256 91 375 138v94c0 76-45 145-119 179-74-34-119-103-119-179v-94l119-47Z" fill="#1f2937"/>
+  <path d="M176 164 348 336" stroke="#f8fafc" stroke-width="26" stroke-linecap="round"/>
+  <path d="M336 164 164 336" stroke="#f8fafc" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="256" cy="238" r="58" fill="none" stroke="#D4AF37" stroke-width="24"/>
+  <path d="M300 282 348 330" stroke="#D4AF37" stroke-width="24" stroke-linecap="round"/>
+  <path d="M256 118 284 177h-56l28-59Z" fill="#D4AF37"/>
+</svg>

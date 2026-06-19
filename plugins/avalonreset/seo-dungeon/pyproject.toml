@@ -1,0 +1,24 @@
+[project]
+name = "seo-dungeon"
+version = "2.2.16"
+description = "Gamified SEO Dungeon skill suite with local AI CLI compatibility"
+requires-python = ">=3.10"
+license = "MIT"
+readme = "README.md"
+authors = [
+  {name = "Avalon Reset", email = "avalonreset@users.noreply.github.com"},
+  {name = "Daniel Agrici", email = "agricidaniel@gmail.com"}
+]
+keywords = ["seo", "codex", "claude-code", "gemini-cli", "schema-markup", "core-web-vitals", "ai-search", "geo"]
+
+[project.urls]
+Homepage = "https://github.com/avalonreset/seo-dungeon"
+Repository = "https://github.com/avalonreset/seo-dungeon"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
