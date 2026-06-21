@@ -31,7 +31,6 @@
     "markdown",
     "agent-workflow"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "RoadmapSmith",
     "shortDescription": "Evidence-backed roadmap workflows for AI coding agents",
