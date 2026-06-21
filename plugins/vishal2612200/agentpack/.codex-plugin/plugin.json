@@ -1,0 +1,38 @@
+{
+  "name": "agentpack",
+  "version": "0.3.29",
+  "description": "Thin Codex plugin for AgentPack ranked repo context.",
+  "author": {
+    "name": "AgentPack",
+    "url": "https://github.com/vishal2612200/agentpack"
+  },
+  "homepage": "https://github.com/vishal2612200/agentpack/blob/main/docs/codex-plugin.md",
+  "repository": "https://github.com/vishal2612200/agentpack",
+  "license": "MIT",
+  "keywords": [
+    "agentpack",
+    "codex",
+    "context",
+    "coding-agents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AgentPack",
+    "shortDescription": "Start Codex with ranked repo context.",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "AgentPack is a local context engine, not a coding agent. This plugin gives Codex lightweight commands for routing tasks, refreshing context packs, and reviewing diffs with the existing local AgentPack CLI or MCP tools.",
+    "developerName": "AgentPack",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/vishal2612200/agentpack",
+    "defaultPrompt": [
+      "@agentpack-route fix auth token expiry",
+      "@agentpack-pack fix auth token expiry",
+      "@agentpack-learn retry handling in this repo",
+      "@agentpack-review"
+    ],
+    "brandColor": "#1F6FEB"
+  }
+}
