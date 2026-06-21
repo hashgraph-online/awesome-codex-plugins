@@ -32,13 +32,13 @@ Do not loop on refresh. If refresh fails, continue from whatever local context e
 Use only local files first:
 
 ```bash
-test -f .agentpack/context.compact.md && sed -n '1,220p' .agentpack/context.compact.md
-test -f .agentpack/task.md && sed -n '1,40p' .agentpack/task.md
-test -f .agentpack/session.json && sed -n '1,120p' .agentpack/session.json
-test -f .agentpack/learning.md && sed -n '1,220p' .agentpack/learning.md
-test -f .agentpack/agent-lessons.md && sed -n '1,160p' .agentpack/agent-lessons.md
-test -f .agentpack/skills-progress.json && sed -n '1,120p' .agentpack/skills-progress.json
-test -f .agentpack/session-events.jsonl && tail -n 40 .agentpack/session-events.jsonl
+if [ -f .agentpack/context.compact.md ]; then sed -n '1,220p' .agentpack/context.compact.md; fi
+if [ -f .agentpack/task.md ]; then sed -n '1,40p' .agentpack/task.md; fi
+if [ -f .agentpack/session.json ]; then sed -n '1,120p' .agentpack/session.json; fi
+if [ -f .agentpack/learning.md ]; then sed -n '1,220p' .agentpack/learning.md; fi
+if [ -f .agentpack/agent-lessons.md ]; then sed -n '1,160p' .agentpack/agent-lessons.md; fi
+if [ -f .agentpack/skills-progress.json ]; then sed -n '1,120p' .agentpack/skills-progress.json; fi
+if [ -f .agentpack/session-events.jsonl ]; then tail -n 40 .agentpack/session-events.jsonl; fi
 ```
 
 Use `.agentpack/context.md` only when compact context lacks needed detail.
