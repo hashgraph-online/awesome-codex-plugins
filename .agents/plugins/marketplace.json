@@ -581,6 +581,21 @@
       "icon": "./plugins/AlexMi64/codex-project-autopilot/assets/autonomous-project-agent.svg"
     },
     {
+      "name": "quality-engineering-skills",
+      "displayName": "Quality Engineering Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/RBraga01/quality-engineering-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "22 structured quality engineering skills for automotive and manufacturing: ISO 9001, IATF 16949, AIAG-VDA FMEA, VDA 6.3, PPAP, APQP, SPC, MSA.",
+      "icon": "./plugins/RBraga01/quality-engineering-skills/docs/assets/qes-logo.jpg"
+    },
+    {
       "name": "registry-broker-codex-plugin",
       "displayName": "Registry Broker",
       "source": {
