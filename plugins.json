@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-16",
-  "total": 112,
+  "last_updated": "2026-06-21",
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -408,6 +408,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hashgraph-online/registry-broker-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "RoadmapSmith",
+      "url": "https://github.com/PapiScholz/roadmapsmith",
+      "owner": "PapiScholz",
+      "repo": "roadmapsmith",
+      "description": "Evidence-backed ROADMAP.md workflows for AI coding agents with validation, sync, and roadmap generation across any tech stack.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/PapiScholz/roadmapsmith/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Runtype Skills",

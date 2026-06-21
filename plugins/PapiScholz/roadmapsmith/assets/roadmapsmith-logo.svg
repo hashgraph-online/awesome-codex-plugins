@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#2B6CB0"/>
+  <!-- Road/path lines -->
+  <path d="M256 420 L256 92" stroke="#EBF4FF" stroke-width="28" stroke-linecap="round" stroke-dasharray="1 64"/>
+  <!-- Horizontal milestones -->
+  <line x1="120" y1="148" x2="392" y2="148" stroke="#90CDF4" stroke-width="16" stroke-linecap="round"/>
+  <line x1="156" y1="220" x2="356" y2="220" stroke="#90CDF4" stroke-width="16" stroke-linecap="round"/>
+  <line x1="120" y1="292" x2="392" y2="292" stroke="#90CDF4" stroke-width="16" stroke-linecap="round"/>
+  <line x1="156" y1="364" x2="356" y2="364" stroke="#90CDF4" stroke-width="16" stroke-linecap="round"/>
+  <!-- Checkmark circles -->
+  <circle cx="256" cy="148" r="24" fill="#48BB78"/>
+  <polyline points="245,148 253,156 269,140" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="256" cy="220" r="24" fill="#48BB78"/>
+  <polyline points="245,220 253,228 269,212" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="256" cy="292" r="24" fill="#ECC94B"/>
+  <line x1="256" y1="280" x2="256" y2="300" stroke="white" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="256" cy="364" r="24" fill="#4A5568"/>
+</svg>
