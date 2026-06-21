@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-16",
-  "total": 112,
+  "last_updated": "2026-06-21",
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -248,6 +248,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/bcanfield/agentic-tech-debt/HEAD/codex/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Designer Skill",
+      "url": "https://github.com/Pythoughts-labs/designer-skill",
+      "owner": "Pythoughts-labs",
+      "repo": "designer-skill",
+      "description": "Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Pythoughts-labs/designer-skill/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Dev Skills",

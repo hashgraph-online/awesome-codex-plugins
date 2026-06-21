@@ -358,6 +358,21 @@
       "icon": "./plugins/bcanfield/agentic-tech-debt/assets/icon.svg"
     },
     {
+      "name": "designer-skill",
+      "displayName": "Designer Skill",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Pythoughts-labs/designer-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config.",
+      "icon": "./plugins/Pythoughts-labs/designer-skill/assets/icon.svg"
+    },
+    {
       "name": "dev-skills",
       "displayName": "Dev Skills",
       "source": {
