@@ -596,6 +596,20 @@
       "icon": "./plugins/hashgraph-online/registry-broker-codex-plugin/assets/icon.png"
     },
     {
+      "name": "river-review",
+      "displayName": "River Review",
+      "source": {
+        "source": "local",
+        "path": "./plugins/s977043/river-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Versioned Skill Registry of code-review skills driven by a perspective-based review agent (code, security, performance, architecture, testing, adversarial) that verifies findings against the diff."
+    },
+    {
       "name": "runtype-skills",
       "displayName": "Runtype Skills",
       "source": {
