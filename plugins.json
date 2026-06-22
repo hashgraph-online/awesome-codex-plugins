@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-16",
-  "total": 112,
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -408,6 +408,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hashgraph-online/registry-broker-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "River Review",
+      "url": "https://github.com/s977043/river-review",
+      "owner": "s977043",
+      "repo": "river-review",
+      "description": "Versioned Skill Registry of code-review skills driven by a perspective-based review agent (code, security, performance, architecture, testing, adversarial) that verifies findings against the diff.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/s977043/river-review/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Runtype Skills",
