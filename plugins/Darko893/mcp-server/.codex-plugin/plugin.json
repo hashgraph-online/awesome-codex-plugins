@@ -1,0 +1,46 @@
+{
+  "name": "haunt-mcp",
+  "description": "Adds Haunt MCP web extraction: permitted public URL to clean JSON, Markdown, article fields, metadata, and usage checks.",
+  "version": "1.0.23",
+  "author": {
+    "name": "Haunt API",
+    "email": "support@hauntapi.com",
+    "url": "https://hauntapi.com"
+  },
+  "homepage": "https://hauntapi.com",
+  "repository": "https://github.com/Darko893/mcp-server",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "web-extraction",
+    "structured-data",
+    "markdown",
+    "claude",
+    "cursor",
+    "codex",
+    "opencode",
+    "ai-agent"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Haunt MCP",
+    "shortDescription": "Extract permitted public pages to JSON or Markdown from Codex.",
+    "longDescription": "Haunt gives Codex an MCP web-extraction tool for permitted public pages. Use a no-key demo first, then add HAUNT_API_KEY for live URL-to-JSON, Markdown, article, metadata, and usage tools with clear blocked-page errors.",
+    "developerName": "Haunt API",
+    "category": "Tools & Integrations",
+    "capabilities": [
+      "mcp",
+      "web-extraction",
+      "structured-data",
+      "markdown"
+    ],
+    "websiteURL": "https://hauntapi.com",
+    "privacyPolicyURL": "https://hauntapi.com/privacy",
+    "termsOfServiceURL": "https://hauntapi.com/terms",
+    "brandColor": "#39ff88",
+    "defaultPrompt": [
+      "Use Haunt to run try_demo_extract and show me the docs and signup links."
+    ]
+  }
+}

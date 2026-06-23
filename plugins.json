@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-06-16",
-  "total": 112,
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -338,6 +338,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/SamurAIGPT/Generative-Media-Skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Haunt MCP",
+      "url": "https://github.com/Darko893/mcp-server",
+      "owner": "Darko893",
+      "repo": "mcp-server",
+      "description": "Web extraction MCP for permitted public pages. Returns clean JSON, Markdown, article fields, metadata, and usage with clear blocked-page errors.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Darko893/mcp-server/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "HOL Guard Plugin",
