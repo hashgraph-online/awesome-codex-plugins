@@ -1,0 +1,27 @@
+{
+  "ledger_id": "coverage-ledger-example",
+  "task_id": "task-example",
+  "updated_by_role": "contaminated-manager-verifier",
+  "source_units": [
+    {
+      "unit_id": "unit-example-flow",
+      "coverage_state": "covered",
+      "evidence_refs": [
+        "evidence-ledger:item-001"
+      ],
+      "notes": "Example coverage entry."
+    }
+  ],
+  "behavior_spec_refs": [
+    "spec-example-flow"
+  ],
+  "coverage_status": "complete",
+  "abstract_delta_tickets": [],
+  "review_history": [
+    {
+      "reviewer_role": "contaminated-manager-verifier",
+      "status": "covered",
+      "notes": "Example only."
+    }
+  ]
+}

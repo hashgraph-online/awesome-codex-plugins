@@ -271,6 +271,21 @@
       "icon": "./plugins/nyldn/claude-octopus/assets/octopus-icon.svg"
     },
     {
+      "name": "clean-room",
+      "displayName": "Clean Room",
+      "source": {
+        "source": "local",
+        "path": "./plugins/whit3rabbit/clean-room-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Spec-first clean-room workflow for authorized source analysis, behavioral specs, role separation, and verification without replacement code.",
+      "icon": "./plugins/whit3rabbit/clean-room-skill/assets/icon.svg"
+    },
+    {
       "name": "codebase-recon",
       "displayName": "Codebase Recon",
       "source": {
@@ -461,21 +476,6 @@
       "icon": "./plugins/blackwell-systems/gcf-codex-plugin/assets/icon.svg"
     },
     {
-      "name": "graymatter",
-      "displayName": "GrayMatter",
-      "source": {
-        "source": "local",
-        "path": "./plugins/ValkyrLabs/GrayMatter"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Durable memory and shared graph state for Codex and OpenClaw agents, with live ValkyrAI schema awareness.",
-      "icon": "./plugins/ValkyrLabs/GrayMatter/assets/composer-icon.svg"
-    },
-    {
       "name": "generative-media-skills",
       "displayName": "Generative Media Skills",
       "source": {
@@ -489,6 +489,21 @@
       "category": "Development & Workflow",
       "description": "13 skills for image, video, and audio generation using 100+ models - FLUX, Midjourney v7, Veo3, Kling 3.0, Suno, and HunyuanVideo via muapi.ai.",
       "icon": "./plugins/SamurAIGPT/Generative-Media-Skills/assets/icon.svg"
+    },
+    {
+      "name": "graymatter",
+      "displayName": "GrayMatter",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ValkyrLabs/GrayMatter"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Durable memory and shared graph state for Codex and OpenClaw agents, with live ValkyrAI schema awareness.",
+      "icon": "./plugins/ValkyrLabs/GrayMatter/assets/composer-icon.svg"
     },
     {
       "name": "hol-guard-plugin",
@@ -1461,6 +1476,20 @@
       "icon": "./plugins/tim-osterhus/codex-remotion-plugin/assets/remotion-composer-icon.svg"
     },
     {
+      "name": "rust-reverse-engineering",
+      "displayName": "Rust Reverse Engineering",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jingjing2222/rust-reverse-engineering-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Reverse engineer Rust binaries and libraries: triage targets, demangle symbols, recover crate namespaces, and map panic, unwind, async, and FFI paths."
+    },
+    {
       "name": "just-scrape",
       "displayName": "ScrapeGraph AI",
       "source": {
@@ -1474,20 +1503,6 @@
       "category": "Tools & Integrations",
       "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
       "icon": "./plugins/ScrapeGraphAI/just-scrape/assets/icon.svg"
-    },
-    {
-      "name": "rust-reverse-engineering",
-      "displayName": "Rust Reverse Engineering",
-      "source": {
-        "source": "local",
-        "path": "./plugins/jingjing2222/rust-reverse-engineering-skill"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Reverse engineer Rust binaries and libraries: triage targets, demangle symbols, recover crate namespaces, and map panic, unwind, async, and FFI paths."
     },
     {
       "name": "sitemd",

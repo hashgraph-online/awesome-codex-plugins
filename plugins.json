@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-16",
-  "total": 112,
+  "last_updated": "2026-06-23",
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -190,6 +190,16 @@
       "install_url": "https://raw.githubusercontent.com/nyldn/claude-octopus/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Clean Room",
+      "url": "https://github.com/whit3rabbit/clean-room-skill",
+      "owner": "whit3rabbit",
+      "repo": "clean-room-skill",
+      "description": "Spec-first clean-room workflow for authorized source analysis, behavioral specs, role separation, and verification without replacement code.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/whit3rabbit/clean-room-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Codebase Recon",
       "url": "https://github.com/yujiachen-y/codebase-recon-skill",
       "owner": "yujiachen-y",
@@ -320,16 +330,6 @@
       "install_url": "https://raw.githubusercontent.com/blackwell-systems/gcf-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "GrayMatter",
-      "url": "https://github.com/ValkyrLabs/GrayMatter",
-      "owner": "ValkyrLabs",
-      "repo": "GrayMatter",
-      "description": "Durable memory and shared graph state for Codex and OpenClaw agents, with live ValkyrAI schema awareness.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/ValkyrLabs/GrayMatter/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Generative Media Skills",
       "url": "https://github.com/SamurAIGPT/Generative-Media-Skills",
       "owner": "SamurAIGPT",
@@ -338,6 +338,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/SamurAIGPT/Generative-Media-Skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "GrayMatter",
+      "url": "https://github.com/ValkyrLabs/GrayMatter",
+      "owner": "ValkyrLabs",
+      "repo": "GrayMatter",
+      "description": "Durable memory and shared graph state for Codex and OpenClaw agents, with live ValkyrAI schema awareness.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ValkyrLabs/GrayMatter/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "HOL Guard Plugin",
@@ -1000,16 +1010,6 @@
       "install_url": "https://raw.githubusercontent.com/tim-osterhus/codex-remotion-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "ScrapeGraph AI",
-      "url": "https://github.com/ScrapeGraphAI/just-scrape",
-      "owner": "ScrapeGraphAI",
-      "repo": "just-scrape",
-      "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/ScrapeGraphAI/just-scrape/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Rust Reverse Engineering",
       "url": "https://github.com/jingjing2222/rust-reverse-engineering-skill",
       "owner": "jingjing2222",
@@ -1018,6 +1018,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jingjing2222/rust-reverse-engineering-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ScrapeGraph AI",
+      "url": "https://github.com/ScrapeGraphAI/just-scrape",
+      "owner": "ScrapeGraphAI",
+      "repo": "just-scrape",
+      "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ScrapeGraphAI/just-scrape/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "sitemd",

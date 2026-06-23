@@ -1,0 +1,65 @@
+{
+  "name": "clean-room-skill",
+  "version": "0.6.4",
+  "description": "Spec-first clean-room workflow for authorized source analysis without replacement code.",
+  "bin": {
+    "clean-room-skill": "bin/install.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "skills",
+    "agents",
+    "hooks",
+    "templates",
+    "examples",
+    "assets",
+    "docs",
+    "!docs/research-skill-spec.md",
+    "!docs/research/archive/ARCHIVED-research-skill-spec.md",
+    "plugin.json",
+    ".codex-plugin",
+    ".claude-plugin",
+    "README.md",
+    "LICENSE",
+    "!**/__pycache__",
+    "!**/*.pyc",
+    "!**/*.pyo",
+    "!**/.DS_Store"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "keywords": [
+    "clean-room",
+    "specification",
+    "reverse-engineering",
+    "compliance",
+    "codex",
+    "claude",
+    "pi-package"
+  ],
+  "author": {
+    "name": "whit3rabbit"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/whit3rabbit/clean-room-skill",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whit3rabbit/clean-room-skill.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:install": "node --test tests/install.test.js",
+    "verify": "./bin/verify.sh"
+  },
+  "dependencies": {
+    "ink": "^7.0.3",
+    "react": "^19.2.6"
+  }
+}
