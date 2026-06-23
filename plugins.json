@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-16",
-  "total": 112,
+  "last_updated": "2026-06-23",
+  "total": 113,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -638,6 +638,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jerryfane/agentgram/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agentry Observability",
+      "url": "https://github.com/fr33dr4g0n/agentry-public",
+      "owner": "fr33dr4g0n",
+      "repo": "agentry-public",
+      "description": "Agent-native product analytics, error logging, and deploy attribution for coding agents through one HTTP API.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/fr33dr4g0n/agentry-public/HEAD/plugins/agentry/.codex-plugin/plugin.json"
     },
     {
       "name": "Aient",

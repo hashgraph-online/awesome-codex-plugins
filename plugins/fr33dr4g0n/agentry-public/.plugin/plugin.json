@@ -1,0 +1,27 @@
+{
+  "name": "agentry",
+  "version": "0.1.2",
+  "description": "Agentry skill for agent-native product analytics, error logging, and deploy attribution over the Agentry HTTP API.",
+  "author": {
+    "name": "Agentry",
+    "url": "https://agentry.sh"
+  },
+  "homepage": "https://agentry.sh",
+  "repository": "https://github.com/fr33dr4g0n/agentry-public",
+  "license": "MIT",
+  "logo": "./assets/logo.png",
+  "keywords": [
+    "agentry",
+    "observability",
+    "analytics",
+    "product-analytics",
+    "logging",
+    "error-monitoring",
+    "deploy-attribution",
+    "production-debugging",
+    "coding-agents",
+    "ai-coding-agents",
+    "agent-native"
+  ],
+  "skills": "./skills/"
+}

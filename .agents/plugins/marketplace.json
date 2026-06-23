@@ -934,6 +934,21 @@
       "icon": "./plugins/jerryfane/agentgram/assets/agentgram-logo.svg"
     },
     {
+      "name": "agentry",
+      "displayName": "Agentry Observability",
+      "source": {
+        "source": "local",
+        "path": "./plugins/fr33dr4g0n/agentry-public"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Agent-native product analytics, error logging, and deploy attribution for coding agents through one HTTP API.",
+      "icon": "./plugins/fr33dr4g0n/agentry-public/assets/icon.png"
+    },
+    {
       "name": "aient",
       "displayName": "Aient",
       "source": {
