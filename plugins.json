@@ -490,6 +490,16 @@
       "install_url": "https://raw.githubusercontent.com/hashgraph-online/registry-broker-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Reviewable HTML Workbench",
+      "url": "https://github.com/u-ichi/reviewable-html-workbench",
+      "owner": "u-ichi",
+      "repo": "reviewable-html-workbench",
+      "description": "Generate reviewable HTML documents, serve previews, collect inline review comments, and feed review outcomes back into agent workflows.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/u-ichi/reviewable-html-workbench/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "River Review",
       "url": "https://github.com/s977043/river-review",
       "owner": "s977043",
