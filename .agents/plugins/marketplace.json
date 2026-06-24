@@ -536,6 +536,21 @@
       "icon": "./plugins/epicsagas/llm-transpile/assets/icon.png"
     },
     {
+      "name": "lvtd-skills",
+      "displayName": "LVTD Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/LVTD-LLC/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Reusable Agent Skills for Codex, Claude Code, and compatible clients, covering Django, Rust, Cookiecutter, SEO, traction, product marketing, and nonfiction publishing workflows.",
+      "icon": "./plugins/LVTD-LLC/skills/assets/app-icon.png"
+    },
+    {
       "name": "personal-data-protection",
       "displayName": "Personal Data Protection",
       "source": {
