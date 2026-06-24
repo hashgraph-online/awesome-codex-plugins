@@ -491,6 +491,20 @@
       "icon": "./plugins/SamurAIGPT/Generative-Media-Skills/assets/icon.svg"
     },
     {
+      "name": "haunt-mcp",
+      "displayName": "Haunt MCP",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Darko893/mcp-server"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Web extraction MCP for permitted public pages. Returns clean JSON, Markdown, article fields, metadata, and usage with clear blocked-page errors."
+    },
+    {
       "name": "hol-guard-plugin",
       "displayName": "HOL Guard Plugin",
       "source": {
