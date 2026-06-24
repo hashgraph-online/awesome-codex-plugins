@@ -1,0 +1,48 @@
+{
+  "name": "wingman",
+  "version": "1.0.0",
+  "description": "Cross-platform AI coding plugin for project memory, contract checks, and project-map discovery.",
+  "author": {
+    "name": "keni"
+  },
+  "homepage": "https://github.com/lsshym/wingman.ai",
+  "repository": "https://github.com/lsshym/wingman.ai",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "agentic",
+    "codex",
+    "cursor",
+    "skills",
+    "workflow",
+    "memory",
+    "project-map"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Wingman",
+    "shortDescription": "Project memory, contract checks, and project-map discovery for AI coding agents",
+    "longDescription": "Wingman gives agents reusable skills for loading project memory, aligning API/type contracts, finding existing project capabilities, and cataloging durable capability knowledge.",
+    "developerName": "keni",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use Wingman to load project context before this change.",
+      "Use data-contracts to align this API response with the existing UI types before editing.",
+      "Use Wingman to find existing project capabilities before rebuilding them."
+    ],
+    "websiteURL": "https://github.com/lsshym/wingman.ai",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/icon.svg"
+    ]
+  }
+}

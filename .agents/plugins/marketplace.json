@@ -846,6 +846,21 @@
       "icon": "./plugins/villagesql/villagesql-skills/assets/icon.svg"
     },
     {
+      "name": "wingman",
+      "displayName": "Wingman",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lsshym/wingman.ai"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Cross-platform AI coding plugin for project memory, data-contract alignment, and project-map discovery across Codex, Claude Code, Cursor, and Gemini.",
+      "icon": "./plugins/lsshym/wingman.ai/assets/icon.svg"
+    },
+    {
       "name": "workflow-kit",
       "displayName": "Workflow Kit",
       "source": {

@@ -1,0 +1,10 @@
+[scanner]
+profile = "default"
+
+[rules]
+# Wingman's repository marketplace intentionally uses Codex Git-backed source
+# metadata. HOL Guard 2.0.870 only verifies repo-local marketplace sources.
+disabled = [
+  "MARKETPLACE_SOURCE_INVALID",
+  "MARKETPLACE_UNSAFE_SOURCE",
+]
