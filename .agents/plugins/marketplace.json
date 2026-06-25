@@ -227,6 +227,21 @@
       "icon": "./plugins/armoriq/armorCodex/assets/armoriq-logo.png"
     },
     {
+      "name": "bgs-modding-superpowers",
+      "displayName": "BGS Modding Superpowers",
+      "source": {
+        "source": "local",
+        "path": "./plugins/BB-84C/bgs-modding-superpowers"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agentic Bethesda Game Studio modpack curation toolkit with MCP-driven xEdit conflict audit, MO2 control plane, BA2/BSA and Papyrus tooling, and skills for setup, dev-log, and release-changelog workflows.",
+      "icon": "./plugins/BB-84C/bgs-modding-superpowers/assets/icon.svg"
+    },
+    {
       "name": "bringyour-migration-auditor",
       "displayName": "Bring Your AI Migration Auditor",
       "source": {

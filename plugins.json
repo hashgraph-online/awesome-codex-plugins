@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-24",
-  "total": 128,
+  "last_updated": "2026-06-25",
+  "total": 129,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -158,6 +158,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/armoriq/armorCodex/HEAD/plugins/armorcodex/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "BGS Modding Superpowers",
+      "url": "https://github.com/BB-84C/bgs-modding-superpowers",
+      "owner": "BB-84C",
+      "repo": "bgs-modding-superpowers",
+      "description": "Agentic Bethesda Game Studio modpack curation toolkit with MCP-driven xEdit conflict audit, MO2 control plane, BA2/BSA and Papyrus tooling, and skills for setup, dev-log, and release-changelog workflows.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/BB-84C/bgs-modding-superpowers/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Bring Your AI Migration Auditor",
