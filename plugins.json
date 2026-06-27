@@ -684,7 +684,7 @@
       "url": "https://github.com/lsshym/wingman.ai",
       "owner": "lsshym",
       "repo": "wingman.ai",
-      "description": "Cross-platform AI coding plugin for project memory, data-contract alignment, and project-map discovery across Codex, Claude Code, Cursor, and Gemini.",
+      "description": "Cross-platform AI coding-agent plugin for repo-local project memory, data-contract checks, and project-map discovery before agents edit code.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/lsshym/wingman.ai/HEAD/.codex-plugin/plugin.json"
