@@ -18,6 +18,7 @@ import io
 import json
 import re
 import shutil
+import sys
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -421,8 +422,15 @@ def write_json(path: Path, data: dict[str, object]) -> None:
 def main() -> None:
     plugins = parse_plugins(README)
     mirrored_entries: list[dict[str, object]] = []
+    skipped: list[str] = []
     for plugin in plugins:
-        manifest, marketplace_path, plugin_root_relative = mirror_plugin_bundle(plugin)
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        try:
+            manifest, marketplace_path, plugin_root_relative = mirror_plugin_bundle(plugin)
+        except Exception as e:
+            print(f"WARNING: Skipping {owner_repo} — {e}", file=sys.stderr)
+            skipped.append(owner_repo)
+            continue
         plugin["install_url"] = build_raw_manifest_url(plugin, plugin_root_relative)
 
         # Determine icon path if available and actually mirrored
@@ -451,6 +459,9 @@ def main() -> None:
 
         mirrored_entries.append(build_marketplace_entry(plugin, manifest, marketplace_path, icon_path))
 
+    # Filter out skipped plugins from public plugin list so counts stay accurate
+    ok_plugins = [p for p in plugins if f"{p['owner']}/{p['repo']}" not in skipped]
+
     marketplace = {
         "name": "awesome-codex-plugins",
         "interface": {
@@ -460,21 +471,23 @@ def main() -> None:
     }
     public_plugins = [
         {key: value for key, value in plugin.items() if not key.startswith("_")}
-        for plugin in plugins
+        for plugin in ok_plugins
     ]
     plugins_json = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "name": "awesome-codex-plugins",
         "version": "1.0.0",
         "last_updated": datetime.date.today().isoformat(),
-        "total": len(plugins),
-        "categories": sorted({plugin["category"] for plugin in plugins}),
+        "total": len(ok_plugins),
+        "categories": sorted({plugin["category"] for plugin in ok_plugins}),
         "plugins": public_plugins,
     }
 
     write_json(MARKETPLACE_OUTPUT, marketplace)
     write_json(OUTPUT, plugins_json)
-    print(f"Wrote {len(plugins)} plugins to {OUTPUT}")
+    print(f"Wrote {len(ok_plugins)} plugins to {OUTPUT}")
+    if skipped:
+        print(f"Skipped {len(skipped)} broken upstream(s): {', '.join(skipped)}", file=sys.stderr)
     print(f"Wrote curated marketplace to {MARKETPLACE_OUTPUT}")
 
 
