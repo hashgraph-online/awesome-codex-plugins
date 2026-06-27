@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Wingman",
     "shortDescription": "Project memory, contract checks, and project-map discovery for AI coding agents",
-    "longDescription": "Wingman gives agents reusable skills for loading project memory, aligning API/type contracts, finding existing project capabilities, and cataloging durable capability knowledge.",
+    "longDescription": "Wingman gives agents reusable skills for loading project memory, aligning data-boundary contracts, finding existing project capabilities, and cataloging durable capability knowledge.",
     "developerName": "keni",
     "category": "Coding",
     "capabilities": [
@@ -32,7 +32,7 @@
     ],
     "defaultPrompt": [
       "Use Wingman to load project context before this change.",
-      "Use data-contracts to align this API response with the existing UI types before editing.",
+      "Use data-contracts to align this real source payload with the receiving contract before editing.",
       "Use Wingman to find existing project capabilities before rebuilding them."
     ],
     "websiteURL": "https://github.com/lsshym/wingman.ai",

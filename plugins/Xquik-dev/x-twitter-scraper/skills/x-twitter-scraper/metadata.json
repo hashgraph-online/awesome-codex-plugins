@@ -1,8 +1,11 @@
 {
   "version": "2.4.16",
   "organization": "Xquik",
+  "homepage": "https://docs.xquik.com",
+  "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
+  "license": "MIT",
   "date": "April 2026",
-  "abstract": "Agent-ready integration guide for the Xquik X (Twitter) data platform. Read-only public data lookup is the default. Any private read, write action, monitor, webhook, metered bulk job, or event delivery requires explicit user approval with target, payload, destination, and usage estimate before an endpoint is called. The skill handles only the user-issued Xquik API key, never X passwords, 2FA codes, cookies, session tokens, recovery codes, local files, shell commands, local networks, or bridge packages. Covers OpenAPI-documented REST paths, MCP setup for multiple IDEs and AI agents, HMAC webhook verification, 23 extraction tools, tweet composition workflows, untrusted-content boundaries, and complete TypeScript type definitions.",
+  "abstract": "Agent-ready integration guide for the Xquik X Twitter scraper API, X data platform, and X API alternative. Covers tweet search, follower export, social listening, profile lookup, monitoring, webhooks, OpenAPI-documented REST paths, MCP setup for multiple IDEs and AI agents, HMAC webhook verification, 23 extraction tools, high-throughput read workflows, 33x cheaper tweet reads, tweet composition workflows, untrusted-content boundaries, and complete TypeScript type definitions. Read-only public data lookup is the default. Any private read, write action, monitor, webhook, metered bulk job, or event delivery requires explicit user approval with target, payload, destination, and usage estimate before an endpoint is called. The skill handles only the user-issued Xquik API key, never X passwords, 2FA codes, cookies, session tokens, recovery codes, local files, shell commands, local networks, or bridge packages.",
   "security": {
     "defaultMode": "read-only-public-data",
     "credentialsHandled": ["xquik-api-key"],

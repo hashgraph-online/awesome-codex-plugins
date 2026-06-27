@@ -1,14 +1,6 @@
 ---
 name: codex-approval
-description: 'Use when Codex needs Fable approval through an ATM/NTM validator pane.
-
-  Triggers:
-
-  - codex approval
-
-  - ask fable
-
-  - fable plan review'
+description: Use when Codex needs Fable approval through
 ---
 # codex-approval
 
@@ -31,14 +23,9 @@ artifact with a tmux capture.
   plan, research, diff, or packet and ask the pane to read them directly.
 - **WARN is not a silent pass.** Either update the plan to address the warning,
   or record why the warning is accepted before continuing.
-- **Reserve the ceremony for one-way doors.** Fanout + Fable approval is for
-  architecture forks, cross-agent coordination contracts, and product
-  decisions. Routine runtime/CLI feature slices take the MVP vertical-slice
-  path instead (~15 min discovery, ~90 min slice — risk-class routing rule in
-  [`discovery`](../discovery/SKILL.md)). Approval ceremony does not substitute
-  for adversarial acceptance tests — it did not catch the auth-env bypass in
-  the 2026-06-12 Codex runtime review
-  ([`docs/learnings/2026-06-12-codex-runtime-review-auth-and-scope.md`](../../docs/learnings/2026-06-12-codex-runtime-review-auth-and-scope.md)).
+- **Reserve the ceremony for one-way doors.** Routine runtime/CLI slices take
+  the MVP vertical-slice path; approval ceremony does not substitute for
+  adversarial acceptance tests.
 - **Gating approval needs a durable proof surface.** When this approval gates
   implementation, mirror the council artifact (or a compact proof packet:
   verdict, judge source, capture path, required changes) to a **tracked**
@@ -70,13 +57,6 @@ the updated packet or an explicit accepted-risk note before work proceeds.
 
 Choose a short slug and identify the exact artifacts the validator should read.
 Prefer committed or absolute paths:
-
-```bash
-REPO=/Users/bo/dev/agentops
-SLUG=codex-runtime-enhancement
-PLAN="$REPO/.agents/plans/2026-06-12-codex-runtime-enhancement.md"
-RESEARCH="$REPO/.agents/research/2026-06-12-codex-runtime-enhancement.md"
-```
 
 The request must include:
 

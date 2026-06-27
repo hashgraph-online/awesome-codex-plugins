@@ -142,7 +142,7 @@ Same one-liner everywhere. No API key. Repo-root `mcp.json` is the canonical MCP
 }
 ```
 
-**Updates:** `@latest` for newest npm; pin `@0.10.0` for teams. Plugin skill content updates separately (`/plugin update …`). Registry: `io.github.pythoughts-labs/designer-skill-mcp` (publish via `mcp-publisher` after npm release).
+**Updates:** `@latest` for newest npm; pin @0.11.0 for teams. Plugin skill content updates separately (`/plugin update …`). Registry: `io.github.pythoughts-labs/designer-skill-mcp` (publish via `mcp-publisher` after npm release).
 
 <div align="center">
 

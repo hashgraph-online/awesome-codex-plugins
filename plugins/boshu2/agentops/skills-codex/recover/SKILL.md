@@ -1,6 +1,6 @@
 ---
 name: recover
-description: "Run recover."
+description: "Recover blocked or failed work."
 ---
 # $recover — Context Recovery After Compaction
 

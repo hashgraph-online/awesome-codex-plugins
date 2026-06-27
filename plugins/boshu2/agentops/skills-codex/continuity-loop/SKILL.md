@@ -1,6 +1,6 @@
 ---
 name: continuity-loop
-description: 'Own the unattended renewal spine: renewal ticks, the two-tick stall rule, escalation for NTM panes over MCP Agent Mail. Use when wiring or tuning a loop''s continuity step.'
+description: 'Own the unattended renewal spine: renewal'
 ---
 # $continuity-loop — The Unattended Renewal Spine
 

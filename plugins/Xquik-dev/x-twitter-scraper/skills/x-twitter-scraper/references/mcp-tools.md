@@ -16,7 +16,7 @@ The MCP server at `https://xquik.com/mcp` provides 2 structured API tools. The a
 
 | Tool | Description | Usage |
 |------|-------------|------|
-| `explore` | Search the API endpoint catalog (read-only, no network calls) | Free |
+| `explore` | Search the API endpoint catalog (read-only, no network calls) | Included |
 | `xquik` | Send confirmed Xquik API requests | Varies by endpoint |
 
 ### `explore` - Search the API Spec
@@ -29,7 +29,7 @@ interface EndpointInfo {
   path: string;
   summary: string;
   category: string; // account, composition, credits, extraction, media, monitoring, support, twitter, x-accounts, x-write
-  free: boolean;
+  free: boolean; // Included usage flag from endpoint metadata
   parameters?: Array<{ name: string; in: 'query' | 'path' | 'body'; required: boolean; type: string; description: string }>;
   responseShape?: string;
 }
@@ -40,7 +40,7 @@ declare const spec: { endpoints: EndpointInfo[] };
 Examples:
 
 ```javascript
-// Find all free endpoints
+// Find all included-usage endpoints
 async () => spec.endpoints.filter(e => e.free);
 
 // Find endpoints by category

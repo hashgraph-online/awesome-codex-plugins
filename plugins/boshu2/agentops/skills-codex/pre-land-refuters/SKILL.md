@@ -1,6 +1,6 @@
 ---
 name: pre-land-refuters
-description: 'Dispatch fresh-context refuters (model-agnostic; multi-model opt-in) to attack a completion claim at the shared-trunk pawl before landing. Triggers: pre-land validation, refute.'
+description: Dispatch fresh-context refuters
 ---
 # $pre-land-refuters — unbiased dual-model validation before landing
 

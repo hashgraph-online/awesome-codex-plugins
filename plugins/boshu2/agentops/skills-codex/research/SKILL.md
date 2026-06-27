@@ -1,6 +1,6 @@
 ---
 name: research
-description: "Run research."
+description: "Investigate repo facts and prior art."
 ---
 
 # Research Skill

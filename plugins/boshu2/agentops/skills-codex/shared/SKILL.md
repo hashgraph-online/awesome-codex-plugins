@@ -1,6 +1,6 @@
 ---
 name: shared
-description: 'Shared AgentOps skill contracts. Triggers: "shared", "shared agentops skill contracts.", "shared skill".'
+description: Shared AgentOps skill contracts.
 ---
 # Shared References
 

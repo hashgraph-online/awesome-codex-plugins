@@ -1,6 +1,6 @@
 ---
 name: forge
-description: 'Mine transcripts into learnings. Triggers: "forge", "mine transcripts into learnings.", "forge skill".'
+description: Mine transcripts into learnings.
 ---
 # Forge Skill
 

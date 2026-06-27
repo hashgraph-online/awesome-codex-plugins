@@ -1,6 +1,6 @@
 ---
 name: swarm
-description: "Run swarm."
+description: "Dispatch parallel agent lanes."
 ---
 # $swarm
 

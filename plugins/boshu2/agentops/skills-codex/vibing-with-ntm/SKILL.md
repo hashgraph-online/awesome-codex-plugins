@@ -1,6 +1,6 @@
 ---
 name: vibing-with-ntm
-description: Use when tending NTM agent swarms, unsticking panes, handling rate limits, or coordinating convergence.
+description: Use when tending NTM agent swarms
 ---
 <!-- TOC: One Rule | Outcome | Grounding | Tick Loop | Liveness Truth Stack | Intervention Discipline | Decision Tree | Command Surfaces | Cadence | Review-Only Mode | Metrics | Checklist | When To Use | References | Related Skills -->
 

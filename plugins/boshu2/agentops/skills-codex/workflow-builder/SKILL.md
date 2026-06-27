@@ -1,6 +1,6 @@
 ---
 name: workflow-builder
-description: 'Scaffold a new Claude Workflow script — deterministic multi-agent orchestration. Triggers: "build a workflow", "create a workflow", "scaffold workflow", "author a workflow".'
+description: Scaffold a new Claude Workflow script —
 ---
 # Workflow Builder — scaffold a Claude Workflow script
 

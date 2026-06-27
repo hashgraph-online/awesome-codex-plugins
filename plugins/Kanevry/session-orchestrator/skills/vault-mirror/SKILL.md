@@ -156,10 +156,20 @@ Both target directories were verified by direct `ls | wc -l` measurement against
 
 The classifier (`scripts/lib/vault-relocation-rules.mjs`) reads each file's YAML frontmatter:
 
-- **Session notes** (`type: session`): derives repo from `repo:` frontmatter → first fall-through to `project/<slug>` tag → `_unsorted` fallback.
+- **Session notes** (`type: session`): derives repo from `repo:` frontmatter → `project/<slug>` tag → (optional, `--with-backfill` only) **backfill index** → `_unsorted` fallback.
 - **Learning notes** (`type: learning`): derives repo from `project:` wikilink → `source:` free-text field → `source_session:` wikilink (transitive: looks up the session's own namespace) → `_unsorted` fallback.
 
 Every derived value routes through `resolveRepoNamespace()` (the same CP1/CP6/CP10 leak-guard used by vault-mirror) so private slugs redact to `redacted-repo` and no personal home path leaks into a namespace.
+
+### `repo:` backfill (`--with-backfill`, #700)
+
+Most legacy session notes (~466 of 653 at last census) carry no `repo:` field, so they — and every learning that transitively points at them via `source_session:` — fall to `_unsorted`. `--with-backfill` infers the owning repo from an **authoritative** signal rather than a guess: the note's `id:` is joined against each sibling repo's own `.orchestrator/metrics/sessions.jsonl` `session_id`.
+
+- **HIGH** — `id` found in exactly one repo's `sessions.jsonl` → that repo. (An `id` present in >1 repo is ambiguous → `SKIP`, never a guess.)
+- **MEDIUM** — `id` not found, but the `branch+date` parsed from the id matches exactly one repo → that repo. (Colliding `branch+date` pairs → `SKIP`.)
+- **SKIP** — no unambiguous signal → stays `_unsorted` (non-destructive).
+
+The inference lives in the pure module `scripts/lib/vault-repo-backfill.mjs` (`inferRepoForSession` / `buildBackfillIndex` / `isBackfillDerivable`); the CLI builds the cross-repo `sessions.jsonl` index and threads it into both `buildSessionRepoIndex` (so backfilled sessions lift their transitive learnings) and the classify loop. Every inferred slug still passes through `resolveRepoNamespace()` — a mis-inferred private slug redacts to `redacted-repo` and is excluded from any confident move. Backfilled sessions feed `--derivable-only` exactly like `repo:`-carrying ones.
 
 Non-derivable files (`_unsorted`, `redacted-repo`, `unknown-repo`) are moved to a `_unsorted/` subfolder (or skipped entirely when `--derivable-only` is set).
 
@@ -170,6 +180,8 @@ Non-derivable files (`_unsorted`, `redacted-repo`, `unknown-repo`) are moved to 
 | Preview (default) | `--dry-run` | Read-only scan — reports `would-move` lines, writes nothing. Always run this first. |
 | Apply | `--apply` | Executes `git mv` (stages only — **no commit**). Operator reviews diff and commits separately. |
 | Confident-only apply | `--apply --derivable-only` | Like `--apply` but skips files with `confident===false` (`_unsorted`, `redacted-repo`, `unknown-repo` destinations). |
+| Backfill (opt-in) | `--with-backfill` | Infer `repo:` for repo-less session notes via the authoritative `id:` → sibling-repo `sessions.jsonl` join (HIGH/MEDIUM/SKIP). Composes with any mode; without it, output is byte-identical to before. |
+| Repos root | `--repos-root <dir>` | Parent dir holding the sibling repos whose `sessions.jsonl` the backfill scans (default: parent of `--vault-dir`; `Archiv`/dot-dirs excluded). |
 | Rollback | `--rollback <manifest>` | Reverses a prior `--apply` run using the reverse-manifest written at `<vault-dir>/.orchestrator/relocation-manifest-<ISO>.json`. |
 
 **Scope filters:** `--learnings-only` / `--sessions-only` restrict to one corpus root.
@@ -192,6 +204,10 @@ node scripts/relocate-vault-corpus.mjs --vault-dir ~/Projects/vault
 
 # Step 2: Move only confident files (skip _unsorted/redacted-repo)
 node scripts/relocate-vault-corpus.mjs --vault-dir ~/Projects/vault --apply --derivable-only
+
+# Step 2b: Lift coverage further by backfilling repo: for repo-less sessions (preview first)
+node scripts/relocate-vault-corpus.mjs --vault-dir ~/Projects/vault --with-backfill --derivable-only          # dry-run
+node scripts/relocate-vault-corpus.mjs --vault-dir ~/Projects/vault --with-backfill --derivable-only --apply  # then apply
 
 # Step 3 (optional): Roll back if something looks wrong
 node scripts/relocate-vault-corpus.mjs --rollback ~/Projects/vault/.orchestrator/relocation-manifest-<ISO>.json

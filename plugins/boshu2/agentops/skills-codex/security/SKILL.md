@@ -1,6 +1,6 @@
 ---
 name: security
-description: "Run security."
+description: "Run security review and fixes."
 ---
 # Security Skill
 
@@ -128,5 +128,4 @@ Actions:
 
 - `scripts/security-gate.sh`
 - `scripts/validate.sh`
-
 

@@ -4,15 +4,15 @@
 [![Version](https://img.shields.io/badge/version-3.10.0-blue.svg)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-10%2C000%2B-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
 
-Turn ad-hoc agent sessions into a repeatable loop with verification gates — **loop engineering** for software work. You design the loop (`research → plan → execute in waves → close`); Session Orchestrator runs it on top of your existing agent, with the guards, telemetry, and cross-session memory that keep a long agent run honest. Inter-wave reviews catch regressions before they ship; carryover issues mean nothing slips through.
+Turn ad-hoc agent sessions into a repeatable loop with verification gates — **loop engineering** for software work. You design the loop (`research → plan → execute in waves → close`); Session Orchestrator runs it on top of your existing agent, with the guards, telemetry, and cross-session memory that keep a long agent run honest. Inter-wave reviews catch regressions before they ship; carryover issues mean loose ends get tracked, not lost.
 
-Works with **Claude Code, Codex CLI, Cursor IDE, and Pi** — same skills, commands, and hooks across all four. Community plugin (MIT, **not affiliated with Anthropic**) for solo devs and small teams.
+Works with **Claude Code, Codex CLI, Cursor IDE, and Pi** — the same skills and commands across all four, with platform-adapted hooks and enforcement (see [Platform support](#platform-support)). Community plugin (MIT, community-maintained) for solo devs and small teams.
 
 ## A session in three commands
 
 ```text
 /session feature    # research + Q&A — inspect git, issues, history, then agree on scope
-/go                 # execute in 5 typed waves, with a quality gate between each
+/go                 # execute in five typed waves, with a quality gate between each
 /close              # verify every item, commit cleanly, file carryover issues for the rest
 ```
 
@@ -72,7 +72,7 @@ Everything else is opt-in. See [`docs/session-config-template.md`](docs/session-
 
 - **42 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, audits, and more
 - **22 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/test`, `/debug`, …)
-- **14 typed sub-agents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
+- **14 typed subagents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
 - **10 hook event types** enforcing scope, blocking destructive commands, gating templates-first, capturing telemetry
 - **10,000+ vitest tests** run on every commit ([telemetry methodology](docs/telemetry/telemetry-claims.md))
 
@@ -114,7 +114,7 @@ When you type `/session feature`:
 
 1. **Phase analysis runs in parallel** — git state, open issues, recent commits, SSOT freshness, resource health, and prior-session memory are all inspected, then distilled into a structured Session Overview with a recommendation, not a wall of raw data.
 2. **You agree on scope** — through a tool-rendered picker (Claude Code) or a numbered list (Codex / Cursor / Pi). The orchestrator has an opinion and tells you what it would do.
-3. **The plan is decomposed into five waves** — Discovery (read-only), Impl-Core, Impl-Polish, Quality, Finalize. Each wave has a defined purpose and a deliverable; agent counts scale by session type.
+3. **The plan is decomposed into five waves** — Discovery (read-only), Impl-Core, Impl-Polish, Quality, Finalization. Each wave has a defined purpose and a deliverable; agent counts scale by session type.
 4. **`/go` executes** — agents work in parallel within a wave. A session-reviewer audits the output between waves on eight dimensions; only findings at confidence ≥ 80 reach you.
 5. **`/close` ships it** — every planned item is verified, quality gates run full, and unfinished work becomes carryover issues. Files are staged individually, so parallel sessions can't stomp each other.
 
@@ -125,9 +125,9 @@ The system is markdown-driven config plus a thin Node runtime — skills, comman
 ## Why this design
 
 - **Five typed waves, not one big batch.** Discovery first, so implementers start with shared context. Impl-Core before Impl-Polish, so architecture lands before integrations. Quality runs a *simplification pass* on AI-generated code **before** tests are written — otherwise tests pin the AI patterns into place.
-- **Inter-wave reviews, not just end-of-session.** A session-reviewer runs between every wave with explicit confidence scoring; only findings ≥ 80 surface, filtering speculative criticism.
+- **Inter-wave reviews, not just end-of-session.** Catching regressions between waves — not only at the end — stops a bad pattern from propagating into later work; the confidence floor filters speculative criticism so only high-signal findings reach you.
 - **State persists across crashes.** `STATE.md` records wave progress and deviations; the next `/session` offers to resume from the last completed wave.
-- **Hooks enforce, not just warn.** A pre-Bash guard blocks `git reset --hard`, `rm -rf`, force-pushes, and more; pre-Edit scope enforcement blocks writes outside an agent's allowed paths — in main sessions and subagent waves alike.
+- **Hooks enforce, not just warn.** A pre-Bash guard blocks destructive shell commands, and pre-Edit scope enforcement blocks writes outside an agent's allowed paths — in main sessions and subagent waves alike (specifics in [Safety](#safety)).
 - **Cross-session learning is opt-in and inspectable.** Every session writes a record; after 5+ sessions `/evolve analyze` extracts confidence-scored patterns you can read and prune. Nothing is hidden.
 - **VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your remote and drives the full lifecycle for both.
 
@@ -142,22 +142,6 @@ Every release is additive and backward-compatible. Highlights of the v3.10.0 lin
 - **Instruction-budget guard** — a warn-only session-start banner that catches silent growth of always-on instructions before it bloats your context window.
 
 Full version history: [CHANGELOG.md](CHANGELOG.md).
-
-## Support & expectations
-
-Session Orchestrator is MIT-licensed and provided **as-is, with no SLA**. It is a community project, **not an official Anthropic product**.
-
-- Questions, ideas, show-and-tell → [GitHub Discussions](https://github.com/Kanevry/session-orchestrator/discussions)
-- Bugs and feature requests → [Issues](https://github.com/Kanevry/session-orchestrator/issues)
-
-There is no commercial support contract or guaranteed response time; maintenance is best-effort.
-
-## What this is NOT
-
-- **Not an official Anthropic product.** Not affiliated with or endorsed by Anthropic.
-- **Not a replacement** for Claude Code / Codex CLI / Cursor / Pi. It is a workflow layer that runs *on top of* your existing agent — you still need one of those installed.
-- **Not a hosted service.** Everything runs locally as plain Markdown plus a thin Node runtime — no server, account, or cloud component.
-- **No guarantee that telemetry numbers transfer to your repo.** Reported test counts and metrics describe *this* repository under its own conditions ([details](docs/telemetry/telemetry-claims.md)). Your results will vary by stack, project size, and configuration.
 
 ## Comparison
 
@@ -210,6 +194,20 @@ npm run typecheck # node --check on every .mjs file
 `.npmrc` ships with `ignore-scripts=true` (supply-chain defence), so Husky git hooks don't auto-wire on install — run `npx husky` once after cloning. `git commit` then runs gitleaks → owner-privacy scan → lint-staged → commitlint. CI re-runs everything, plus more.
 
 Contributor docs: [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [agent authoring spec](agents/AGENTS.md).
+
+## Support & scope
+
+Session Orchestrator is MIT-licensed and provided **as-is** — a community project with no SLA, no commercial support contract, and no guaranteed response time. Maintenance is best-effort.
+
+- Questions, ideas, show-and-tell → [GitHub Discussions](https://github.com/Kanevry/session-orchestrator/discussions)
+- Bugs and feature requests → [Issues](https://github.com/Kanevry/session-orchestrator/issues)
+
+What it is **not**:
+
+- **Not an official product of any agent vendor.** An independent, community-maintained project — not affiliated with, endorsed by, or sponsored by Anthropic, OpenAI, Cursor, or any agent it integrates with. (It is distributed through the Claude Code plugin marketplace, but is not an Anthropic product.)
+- **Not a replacement** for Claude Code / Codex CLI / Cursor / Pi. It is a workflow layer that runs *on top of* your existing agent — you still need one of those installed.
+- **Not a hosted service.** Runs locally — no server, account, or cloud component.
+- **No guarantee that telemetry numbers transfer to your repo.** Reported test counts and metrics describe *this* repository under its own conditions ([details](docs/telemetry/telemetry-claims.md)). Your results will vary by stack, project size, and configuration.
 
 ## Documentation
 

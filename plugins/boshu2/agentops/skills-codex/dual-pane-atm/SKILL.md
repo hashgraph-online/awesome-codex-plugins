@@ -1,6 +1,6 @@
 ---
 name: dual-pane-atm
-description: 'Repeatable mixed-model ATM duel — Opus (Claude) + Codex (+AGY) panes, or an in-session variant for a one-shot one-way-door decision. Triggers: "dual pane", "Opus and Codex together", "CEP duel/build", "two-pane ATM", "collaborative ATM", "mixed-model duel", "fan out competing theses / duel it out".'
+description: Repeatable mixed-model ATM duel — Opus
 ---
 # $dual-pane-atm — Opus + Codex collaborative ATM orchestration
 

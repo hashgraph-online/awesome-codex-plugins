@@ -1,8 +1,6 @@
 ---
 name: acfs
-description: 'Use when operating ACFS flywheel health checks, init, and agent loop tooling from ~/acfs/bin/acfs.
-
-  Triggers:'
+description: Use when operating ACFS flywheel health
 ---
 # acfs — drive the agent-flywheel substrate
 

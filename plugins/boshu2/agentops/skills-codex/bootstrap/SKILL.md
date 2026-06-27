@@ -1,6 +1,6 @@
 ---
 name: bootstrap
-description: 'Initialize AgentOps project files. Triggers: "initialize AgentOps", "bootstrap project files", "set up .agents scaffolding".'
+description: Initialize AgentOps project files.
 ---
 # $bootstrap
 

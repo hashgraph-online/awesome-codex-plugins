@@ -1,6 +1,6 @@
 {
   "name": "designer-skill",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config.",
   "repository": "https://github.com/Pythoughts-labs/designer-skill",
   "license": "MIT",

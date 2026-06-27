@@ -9,6 +9,8 @@ allowed-tools: Read, Edit, Write, Bash, Glob, Grep, AskUserQuestion
 
 Claude Code, Codex CLI, and every other agent read the same canonical context from the repo, without duplication. Convert structure where missing, capture what the session learned, then reduce every docs/agents file **and project memory** to the most critical, non-trivial **domain · infrastructure · company · project-specific** facts in the fewest words that stay clear. Everything else is noise — removed. The repo is the only context teammates share: anything load-bearing outside it is invisible to them and lost.
 
+Regardless of the project's current status, proceed with the following steps and relentlessly reduce and simplify CLAUDE.md, AGENTS.md, and the additional docs and rules until they converge to the principles and structure expressed below.
+
 ## Target architecture
 
 ```

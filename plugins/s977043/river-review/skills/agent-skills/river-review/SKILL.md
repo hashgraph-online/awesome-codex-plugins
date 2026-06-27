@@ -122,6 +122,41 @@ Finding は以下のフィールドを満たすこと。詳細条件は [VERIFIC
   Severity: <severity> / Confidence: <confidence> / Skill: <skill-id>
 ```
 
+## How to Invoke / 呼び出し方
+
+### Claude Code エージェントとして（`agents/river-review.md`）
+
+Claude Code プラグインとしてインストールされている場合、`river-review` エージェントがこのスキルを読み込んで実行する。
+エージェントは薄いラッパーであり、すべての手順・ルーティング・検証ロジックはこのスキルが SSoT となる。
+
+利用可能なツール: `Read`, `Grep`, `Glob`, `Bash`
+
+スキルのパス解決:
+
+```bash
+# Claude Code plugin 環境
+${CLAUDE_PLUGIN_ROOT}/skills/agent-skills/river-review/SKILL.md
+
+# リポジトリ内で直接実行する場合（フォールバック）
+./skills/agent-skills/river-review/SKILL.md
+```
+
+### Codex スキルとして
+
+Codex では `skills/agent-skills/` 配下のスキルとして直接利用できる。
+このスキルを読み込み、手順に従ってレビューを実行する。
+
+### CLI アクセラレータ（任意）
+
+`river` CLI が PATH 上にある場合、構造化 finding のブートストラップに使える:
+
+```bash
+river run . --reviewers auto --output json
+```
+
+JSON には `findings` / `autoSelectedRoles` / `score` が含まれる。
+CLI は必須でない。absent または失敗した場合はスキル駆動のレビューで継続すること。
+
 ## References
 
 - [ROUTING.md](./references/ROUTING.md) — 詳細なルーティングルールと優先度

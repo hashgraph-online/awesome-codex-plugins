@@ -119,7 +119,7 @@ rules:
     description: Runtime component ConfigMaps must use one component name across metadata.name, labels.app, and cloud.sealos.io/app-deploy-manager; bootstrap-only init-copy ConfigMaps must not define either managed label.
     severity: error
   - id: R043
-    description: ConfigMaps mounted by managed Deployment/StatefulSet workloads must share the workload name, use a <workload>-cm volume, and mount every data key through an independent volumeMount with matching subPath.
+    description: ConfigMaps mounted by managed Deployment/StatefulSet workloads must share the workload name, use a <workload>-cm volume, mount every data key through an independent volumeMount with matching subPath, and omit ConfigMap defaultMode unless explicitly required.
     severity: error
   - id: R044
     description: Binary optional object storage/S3 branches must be controlled by boolean inputs.
@@ -141,7 +141,4 @@ rules:
     severity: error
   - id: R011
     description: All PVC storage requests must be concrete values and less than or equal to 1Gi.
-    severity: error
-  - id: R041
-    description: StatefulSet resources with volumeClaimTemplates must label the StatefulSet and every volumeClaimTemplate with cloud.sealos.io/deploy-on-sealos for Template PVC tracking.
     severity: error

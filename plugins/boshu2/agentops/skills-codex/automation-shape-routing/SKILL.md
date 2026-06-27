@@ -1,6 +1,6 @@
 ---
 name: automation-shape-routing
-description: 'Front door for agent automation — decide the SHAPE (Workflow vs ATM vs skill), then hand off. Triggers: "build automation", "convert skills to workflows", "which shape".'
+description: Front door for agent automation — decide the
 ---
 # Automation Shape Routing — Workflow vs ATM vs Skill
 

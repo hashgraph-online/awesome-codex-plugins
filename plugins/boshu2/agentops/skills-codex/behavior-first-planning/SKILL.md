@@ -1,6 +1,6 @@
 ---
 name: behavior-first-planning
-description: 'Behavior-first planning discipline — intent → Gherkin behaviors → EXECUTED-red acceptance tests → spec → acceptance-gated bead DAG. No runnable acceptance test, no bead. Triggers: "plan behavior-first", "acceptance-first planning", "give these beads runnable done-criteria".'
+description: Behavior-first planning discipline — intent
 ---
 # Behavior-First Planning
 

@@ -11,7 +11,7 @@
 
 A specialized operational shape of `vibing-with-ntm` in which agents are pure auditors: they explore, find bugs, fix them, and cross-review each other's work. They do NOT pick beads, claim ready work, or do feature implementation.
 
-This mode generalizes the pattern originally battle-tested with Gemini 3.1 Pro (see `/code-review-gemini-swarm-with-ntm` for model-specific tuning and Flash-fallback detection) — but works equally well with `cc`, `cod`, `gmi`, or any mix.
+This mode generalizes the Gemini-swarm review pattern (see `/code-review-gemini-swarm-with-ntm` for model-specific tuning) — but works equally well with `cc`, `cod`, `gmi`, or any mix.
 
 ## When To Use Review-Only Mode
 
@@ -301,7 +301,7 @@ Never silently mix modes in one pane — always announce the switch.
 
 | Aspect | This skill (Review-Mode in vibing-with-ntm) | `/code-review-gemini-swarm-with-ntm` |
 | --- | --- | --- |
-| Agent type | Any (cc, cod, gmi, or mix) | Gemini 3.1 Pro only |
+| Agent type | Any (cc, cod, gmi, or mix) | Gemini-only |
 | Flash/fallback detection | Generic rate-limit + fallback-model detection | Exact Gemini string match ("Switched to fallback model gemini-3-flash-preview") |
 | Model lock setup | Handled by `caam` / `ntm rotate` per pool | Requires `~/.gemini/settings.json` + CLI args |
 | Integration | First-class part of vibing-with-ntm; seamless mode switch | Standalone specialist skill |

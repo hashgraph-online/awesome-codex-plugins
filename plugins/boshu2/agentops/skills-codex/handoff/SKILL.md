@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: "Run handoff."
+description: "Write compact continuation handoffs."
 ---
 # Handoff Skill
 

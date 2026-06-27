@@ -67,10 +67,10 @@ These skills are separate from the memory workflow. Use them when they fit the t
 
 ### `data-contracts`
 
-Use when connecting APIs, schemas, types, events, configs, data models, CLI inputs, or UI props.
+Use when connecting real source data to receiving code across APIs, database rows, webhooks, SDK/vendor payloads, config/env/CLI input, generated clients, forms, UI props, or AI structured output.
 
 ```text
-Use `data-contracts` to bind this API response into the existing React component.
+Use `data-contracts` to replace this mock payload with the real source contract without inventing fields.
 ```
 
 ### `project-map-find`

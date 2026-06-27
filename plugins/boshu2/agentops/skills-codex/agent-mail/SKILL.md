@@ -1,6 +1,6 @@
 ---
 name: agent-mail
-description: 'Use when coordinating agents with Agent Mail locks, inboxes, threads, and conflict-prevention handoffs. Triggers: "agent-mail", "agent mail", "use when coordinating agents with".'
+description: Use when coordinating agents with Agent Mail
 ---
 <!-- TOC: Boundary | Disciplines | When to Use What | Bootstrap | Reservations | Beads | Troubleshooting | References -->
 

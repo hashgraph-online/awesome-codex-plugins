@@ -1,6 +1,6 @@
 ---
 name: scope
-description: 'Hard-block edits outside declared frozen directories and protect paths during risky changes. Triggers: "scope", "hard-block edits outside declared frozen", "scope skill".'
+description: Hard-block edits outside declared frozen
 ---
 # $scope — Edit Scope Guard
 

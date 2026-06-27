@@ -88,6 +88,8 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 
 > **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md).
 
+epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP server are loaded directly from the plugin layout (`skills/`, `hooks.json`, `.mcp.json`). There is no `install` subcommand; each tool reads the plugin from disk.
+
 ### Claude Code (recommended)
 
 ```
@@ -95,7 +97,15 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 /plugin install epic@epicsagas
 ```
 
-Auto-installs the binary and registers all hooks in one step.
+Auto-installs the binary, skills, hooks, and the `harness-mem` MCP server in one step.
+
+### agy (Antigravity CLI)
+
+```bash
+agy plugin install .
+```
+
+Skills (27), hooks, and the `harness-mem` MCP server are auto-discovered from the plugin's `plugin.json` + `skills/` + `hooks.json` + `.mcp.json`.
 
 ### Codex CLI
 
@@ -105,10 +115,12 @@ codex plugin marketplace add epicsagas/plugins
 
 Skills and agents are available immediately — no further steps needed.
 
-### macOS / Linux
+### Binary-only (no plugin host)
 
 ```bash
-brew install epicsagas/tap/epic-harness
+brew install epicsagas/tap/epic-harness      # macOS / Linux (Homebrew)
+cargo binstall epic-harness                  # pre-built binary (Rust)
+cargo install epic-harness                   # build from source
 ```
 
 No Homebrew? Use the installer script:
@@ -118,64 +130,48 @@ curl --proto '=https' --tlsv1.2 -LsSf \
   https://github.com/epicsagas/epic-harness/releases/latest/download/install.sh | sh
 ```
 
-### Windows
+Windows:
 
 ```powershell
 irm https://github.com/epicsagas/epic-harness/releases/latest/download/install.ps1 | iex
 ```
 
-### Via Rust toolchain
-
-```bash
-cargo binstall epic-harness   # pre-built binary (fast)
-cargo install epic-harness    # build from source
-```
-
-Then run the setup wizard:
-
-```bash
-epic install               # Claude Code (default)
-epic install codex         # Codex CLI
-epic install antigravity   # Antigravity
-```
+The binary self-seeds `~/.harness/config.toml` and `HARNESS.md` on the first hook run — no setup wizard, no `install` step.
 
 > `epic-harness --version` to verify. Update with `brew upgrade epic-harness` or re-run the installer script.
 
 Prerequisites: **Git**. Source/binary installs also need the [Rust toolchain](https://rustup.rs).
 
-### `epic install` — setup wizard
-
-After installing the binary, run `epic install` (or `epic install claude`) to:
-
-1. Create `~/.harness/` directory structure
-2. Sync commands and skills to the tool's config directory
-3. Register the MCP server (harness-mem) for Claude Code
-4. Create `~/.harness/config.toml` with defaults if absent
-
-On Claude Code, `hooks/install.js` auto-runs on session start and installs the binary if missing. No manual step needed after the initial clone.
-
-### Other tools
-
-```bash
-epic install codex          # Codex CLI      → ~/.codex/ + ~/.agents/skills/
-epic install antigravity   # Antigravity    → ~/.gemini/config/plugins/epic/
-epic install cursor         # Cursor         → ~/.cursor/ (requires Cursor 1.7+)
-epic install opencode     # OpenCode    → ~/.config/opencode/
-epic install cline        # Cline       → ~/Documents/Cline/Rules/
-epic install aider        # Aider       → ~/.aider.conf.yml + ~/.aider/
-epic install              # Interactive menu
-```
-
-Integration files are **synced** from the binary: missing or outdated files are written. `AGENTS.md` is only created when absent.
-
 ### Verify
 
 ```bash
 epic --version              # Binary installed
-ls ~/.harness/              # Data directory exists
+ls ~/.harness/              # Data directory (auto-created on first session)
 ```
 
 Inside a Claude Code session: `/evolve status`
+
+> **Telemetry**: usage reporting is on by default (opt-out). Toggle with `epic-harness telemetry status|on|off`.
+
+---
+
+## Telemetry
+
+epic-harness collects **anonymous** usage telemetry by default (opt-out) to improve hook reliability and skill evolution. Events are sent to Posthog.
+
+**What we collect:** command name, duration, outcome (success/failure), failure class, and hook block/failure events — plus `product`, `product_version`, `os`, and a random `install_id` (a UUID generated on first run, stored at `~/.config/epic-harness/install-id`).
+
+**What we never collect:** source code, file contents, file paths, environment variables, secrets, or any personally-identifiable information.
+
+**Control it:**
+
+```bash
+epic-harness telemetry status   # show current consent
+epic-harness telemetry off      # disable (stops all sending immediately)
+epic-harness telemetry on       # re-enable
+```
+
+Consent is stored at `~/.config/epic-harness/telemetry-consent`. When off, no telemetry is sent.
 
 ---
 
@@ -723,13 +719,13 @@ Add this line to your `~/.zshrc` or `~/.bashrc` to make it permanent.
 <details>
 <summary>Hooks not firing in Claude Code</summary>
 
-Re-run the install to sync hooks into Claude Code settings:
+Reinstall the plugin to reload hooks:
 
-```bash
-epic install claude
+```
+/plugin install epic@epicsagas
 ```
 
-Then restart Claude Code. Hooks are written to `~/.claude/settings.json`.
+Then restart Claude Code. Hooks are loaded from the plugin's `hooks.json`.
 </details>
 
 <details>

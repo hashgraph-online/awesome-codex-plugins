@@ -1,6 +1,6 @@
 {
   "name": "pi-casefile",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "description": "Offensive security case tracker for pi and Codex — bug bounties, CTFs, security audits",
   "keywords": [
     "pi-package",

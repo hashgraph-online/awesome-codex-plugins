@@ -1,18 +1,109 @@
-# X (Twitter) Scraper API Skill For AI Agents
+# X Twitter Scraper API For Tweets, Followers, MCP
 
-An [AI agent skill](https://skills.sh) for [Xquik](https://docs.xquik.com), built for developers who need reliable X (Twitter) data workflows from coding agents. Use it to search tweets, get profile tweets, export followers, download media, monitor accounts, receive webhooks, use MCP, and prepare confirmation-gated publishing actions.
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://youtu.be/4UOSpoOoC3Y?t=367">
+        <img src="https://img.youtube.com/vi/4UOSpoOoC3Y/maxresdefault.jpg" alt="Framer shows Xquik MCP with Claude Code, Codex, Cursor, and more" width="720">
+      </a>
+      <br>
+      <strong>Featured in Framer</strong>
+      <br>
+      <sub>Watch <a href="https://youtu.be/4UOSpoOoC3Y?t=367">Connect Framer to Claude Code, Codex, Cursor, and more</a> at 6:07 to see Xquik MCP in action.</sub>
+    </td>
+  </tr>
+</table>
 
-The skill gives Claude Code, OpenAI Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, and other skills-compatible agents the exact API boundaries, endpoint choices, safety rules, and workflow steps they need for X data automation.
+[Xquik](https://docs.xquik.com) is a production Twitter/X scraper API and X API alternative for teams that need structured X data at scale: tweet search, profiles, followers, following, engagement, media, lists, communities, trends, monitors, webhooks, exports, MCP tools, SDKs, and confirmation-gated X actions.
 
-Includes 100+ REST API endpoints, 2 MCP tools, HMAC webhooks, 23 bulk extraction tools, official SDK pointers, and confirmation-gated write actions.
+This repository packages Xquik as an [AI agent skill](https://skills.sh) for Claude Code, OpenAI Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, and other skills-compatible agents. It helps agents choose the right REST endpoint, MCP tool, SDK, webhook, extraction, export, or approval-gated workflow without guessing.
 
-## Why Use This Skill
+Includes 120 documented REST operations across 100+ REST API endpoints, 2 MCP tools, HMAC webhooks, 23 bulk extraction tools, official SDK pointers, and confirmation-gated write actions.
 
-- **Find X posts faster**: search tweets, inspect replies, quotes, retweets, favoriters, trends, and article content from one skill.
-- **Understand X accounts**: fetch profile data, user tweets, likes, media, followers, following, mutuals, lists, and communities.
-- **Move from one-off calls to workflows**: run follower exports, tweet search exports, media downloads, giveaway draws, monitors, and HMAC webhooks.
-- **Keep agents inside clear boundaries**: read-only by default, API-key only, physical untrusted-content delimiters, and explicit approval for private reads, writes, persistent resources, and metered bulk jobs.
-- **Use the right integration path**: REST API, MCP, framework guides, and SDKs are all mapped for agent use.
+## Why Teams Use Xquik
+
+- **Replace fragmented Twitter scraper tools** with one X data API for reads, exports, monitors, webhooks, SDKs, MCP, and gated writes.
+- **Ship X data integrations faster** with endpoint routing for tweet search, user lookup, timelines, followers, replies, quotes, retweeters, favoriters, media, lists, communities, articles, trends, and Spaces.
+- **Build production apps, not just dataset runs** with REST APIs, typed SDKs, OpenAPI, MCP tools, cursor pagination, webhook delivery, and exports.
+- **Control large jobs before they run** with usage estimates for extractions, draws, monitors, webhooks, and other metered workflows.
+- **Keep agents safe around X content** with API-key-only auth, read-only defaults, untrusted-content delimiters, and explicit approval for private reads, writes, persistent resources, and bulk jobs.
+- **Support enterprise-scale X data pipelines** with high-throughput read limits, bulk extraction jobs, exports, event replay, and webhook automation.
+- **Win high-intent search traffic** for Twitter scraper API, X scraper, X API alternative, tweet search API, Twitter follower export, social listening API, X monitoring, and X automation.
+
+## What You Can Scrape From X Twitter
+
+| Need | Xquik Surface |
+|------|---------------|
+| Tweet search and lookup | Tweet search, exact tweet IDs, batch tweets, replies, quotes, thread context, long-form articles |
+| Tweet metadata | Text, author, timestamps, language, entities, embedded media, poll data, conversation context, parent and quoted tweet details |
+| Engagement data | Likes, replies, reposts, quotes, views, bookmarks count, favoriters, retweeters, quote tweets, and reply trees |
+| Account intelligence | User lookup, bios, verification signals, follower counts, following counts, profile metadata, timelines, replies timeline, likes, media, and mentions |
+| Audience and relationships | Followers, following, verified followers, followers you know, follow checks, list members, community members |
+| Discovery data | Hashtags, keywords, advanced search, trends, Radar topics, lists, communities, Spaces, and articles |
+| Private account-scoped data | Bookmarks, notifications, DMs, and home timeline after explicit approval |
+| Monitoring and alerts | Account monitors, keyword monitors, event replay, HMAC webhooks, delivery testing |
+| Bulk workflows | 23 extraction tools with estimates, pagination, and exports to CSV, JSON, Markdown, PDF, TXT, and XLSX |
+| Publishing workflows | Confirmation-gated tweets, replies, likes, retweets, follows, DMs, profile updates, media upload, communities |
+
+## Start From Any X Input
+
+Use profile URLs, @handles, user IDs, tweet URLs, tweet IDs, search queries, hashtags, list IDs, community IDs, Space IDs, article tweet IDs, webhook destinations, or bulk target lists. Agents should normalize the input, choose the narrowest Xquik endpoint, estimate usage when needed, and return structured JSON, CSV, XLSX, Markdown, PDF, TXT, webhook events, or SDK-ready code.
+
+## Twitter Scraper API Use Cases
+
+| Use Case | Xquik Workflow |
+|----------|----------------|
+| Social listening and sentiment analysis | Search tweets, monitor keywords, summarize bounded results, deliver events to webhooks |
+| Competitor monitoring | Track accounts, replies, quotes, engagement, follower growth, and high-performing posts |
+| Influencer and audience research | Export followers, verified followers, engagement users, lists, communities, and profile metadata |
+| Market and academic research | Build repeatable datasets from search, hashtags, timelines, threads, articles, trends, and Spaces |
+| CRM and lead enrichment | Turn handles, followers, bios, engagement users, and verified profiles into exportable datasets |
+| Campaign reporting | Collect replies, quotes, retweets, favoriters, views, bookmarks, and draw-ready participation data |
+| Product and news intelligence | Monitor accounts, topics, and Radar trends with HMAC-signed event delivery |
+| Agent and app automation | Use MCP, SDKs, REST, webhooks, and confirmation-gated writes from connected accounts |
+
+## Built For Agents And Apps
+
+| Integration Path | Use It For |
+|------------------|------------|
+| REST API | Production apps, backend jobs, dashboards, data pipelines |
+| MCP Server | Claude, Codex, ChatGPT, Cursor, Windsurf, IDE agents, autonomous endpoint selection |
+| SDKs | TypeScript, Python, Go, Ruby, Java, Kotlin, C#, PHP, CLI, Terraform clients |
+| Webhooks | Real-time alerts, monitor delivery, workflow automation, event replay |
+| Exports | Research datasets, CRM handoff, BI tools, spreadsheets, archive workflows |
+
+## Cost Control, Rate Limits, And High-Volume Workflows
+
+Xquik is built for production X data jobs where teams care about predictable usage, large result sets, and integration paths beyond a single dataset run.
+
+- **About 33x cheaper than the official X API for tweet reads**: Xquik's public comparison docs list official X API post reads at USD 0.005/resource and Xquik read units at USD 0.00015/result. For tweet search and post reads, that is roughly 33.3x cheaper. Always verify current official X API rates before procurement.
+- **Higher read throughput for supported workflows**: Xquik docs list read limits at 60 requests per second per account. Official X API rate-limit tables use per-15-minute windows for many endpoints, including recent search at 450 requests per app and 300 requests per user per 15 minutes.
+- Use `POST /extractions/estimate` before large exports so agents can show expected usage before creating work.
+- Use cursor pagination and batch endpoints for high-throughput read workflows.
+- Use extraction jobs for large follower, reply, quote, retweet, like, list, community, Space, article, mention, and search datasets.
+- Use exports when teams need CSV, JSON, Markdown, PDF, TXT, or XLSX handoff.
+- Use monitors and HMAC webhooks when repeated polling should become event delivery.
+- Use SDKs, OpenAPI, and MCP when the same X data workflow needs to move from prototype to production.
+
+## Where Xquik Is Stronger Than Scraper-Only Alternatives
+
+Most Twitter scraper listings sell one job: scrape tweets from search, profiles, or URLs. Xquik covers the full X data workflow surface for apps, agents, datasets, webhooks, exports, and connected-account actions.
+
+| Capability | Single-purpose scraper actors | Xquik |
+|------------|-------------------------------|-------|
+| Tweet search, profile timelines, and tweet URLs | Usually supported | Supported through REST, MCP, SDKs, and exports |
+| Replies, quotes, retweeters, and favoriters | Often separate modes or separate tools | Same platform, endpoint-routed, with bulk extraction paths |
+| Followers, following, verified followers, lists, and communities | Often separate actors | Same API account, same skill, same export model |
+| Real-time monitoring | Usually not the core product | Account monitors, keyword monitors, events, and HMAC webhooks |
+| Agent-native use | Often generic HTTP calls | Dedicated MCP server, endpoint discovery, skill instructions, and safety gates |
+| Product integration | Dataset download first | REST API, OpenAPI, SDKs, MCP, webhooks, and no-code guides |
+| Account actions | Usually unsupported or separate | Confirmation-gated writes from connected accounts |
+| Safety model for agents | Rarely explicit | API-key only, untrusted-content boundaries, approval gates, no local bridge commands |
+| Large workload planning | Often configured at run time | Estimate first, paginate, export, monitor, and route through SDKs or MCP |
+| Tweet-read economics | Xquik public comparison docs list official X API post reads at USD 0.005/resource | Xquik read units are listed at USD 0.00015/result, about 33x cheaper for tweet reads |
+| Rate-limit model | Often opaque or tied to platform run settings | Public Xquik docs list 60 read requests per second per account |
+
+Choose Xquik when the goal is not just "scrape tweets," but to build a durable X data product, social listening workflow, market research pipeline, CRM export, agent tool, monitoring system, or publishing assistant.
 
 ## Agent Safety And Account Boundary
 
@@ -154,13 +245,17 @@ x-twitter-scraper/
 │   └── x-twitter-scraper/
 │       ├── SKILL.md                      # Main skill (auth, usage guardrails, endpoints, patterns)
 │       ├── metadata.json                 # Version and references
+│       ├── skill-card.md                 # Trust and release review card
+│       ├── skillspector-report.md        # Latest static SkillSpector evidence
 │       └── references/
-│           ├── api-endpoints.md          # REST API endpoint reference
+│           ├── api-endpoints.md          # REST API routing index
+│           ├── api-endpoints-*.md        # Split endpoint sections for targeted agent loading
 │           ├── mcp-tools.md              # MCP tool selection rules and workflow patterns
 │           ├── mcp-setup.md              # MCP configs for 10 platforms (v2 + v1)
 │           ├── webhooks.md               # Webhook setup & verification
 │           ├── extractions.md            # 23 extraction tool types
-│           ├── types.md                  # TypeScript type definitions
+│           ├── types.md                  # TypeScript type routing index
+│           ├── types-*.md                # Split schema sections for targeted agent loading
 │           └── python-examples.md        # Python code examples
 ├── task-guides/                          # Public task guides, not installable skills
 ├── server.json                           # MCP Registry metadata

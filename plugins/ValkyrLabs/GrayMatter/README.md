@@ -5,7 +5,7 @@ GrayMatter is an installable OpenClaw skill and MCP service for:
 - **shared object-graph state**
 - **live organizational schema awareness** through the ValkyrAI `api-0` OpenAPI
 
-It lets an agent move beyond local files and isolated chat context. Once authenticated, the agent can persist durable memory, inspect the live business schema, and operate inside the organization's RBAC-scoped data environment.
+It lets an agent move beyond local files and isolated chat context. Once authenticated, GrayMatter is the agent's exclusive primary durable memory: it persists durable memory, inspects the live business schema, and operates inside the organization's RBAC-scoped data environment.
 
 ## Release surfaces
 
@@ -28,7 +28,7 @@ scripts/gm-activate
 
 `scripts/gm-activate` is the preferred first-run path. It checks for updates, signs in, stores the session in Keychain when available, validates the install, registers the agent, syncs the OpenAPI schema, and runs the readiness checks needed for normal use.
 
-Before task planning, code edits, production-affecting actions, or answers based on project history, agents must run the invariant preflight for the current workspace/product:
+Before task planning, code edits, production-affecting actions, or answers based on project history, agents must immediately run the invariant preflight for the current workspace/product:
 
 ```bash
 scripts/gm-invariant-preflight ValkyrAI signup acl thorapi aspectj
@@ -36,7 +36,11 @@ scripts/gm-invariant-preflight ValkyrAI signup acl thorapi aspectj
 
 MCP hosts that cannot shell out should call `graymatter_invariant_preflight`. Returned `decision` records tagged as invariants, security, RBAC/ACL, generated-code, AspectJ, `vaix`/`vai`, testing, or product names are binding operational rules. Missing or degraded retrieval is never permission to ignore known durable rules.
 
+The required preflight is broader than a keyword search. It must look up invariants, rules, instructions, prior session context, personalization, business truth, personal truth, and organizational truth before the agent begins work. New user-provided corrections, procedures, preferences, and invariants must be written to GrayMatter during the session and read back by ID to confirm persistence.
+
 For ValkyrAI, ValorIDE, GrayMatter Light, and ThorAPI-generated application work, agents should prefer repo launchers over direct build shortcuts: `./vaix build`, `./vaix test`, `./vaix run`, and repo-documented `./vai` flows preserve ThorAPI generation, AspectJ weaving, heap defaults, local H2/runtime flags, and end-user operational behavior. Signup, ACL/RBAC, and generated API fixes should normally be proven with `./vaix run` on localhost:8080 plus the frontend on localhost:5174 before using production only as a comparison point.
+
+For Valkyr-native agent routing, treat GrayMatter as shared memory and schema context for ValkyrAI, ValorIDE, ThorAPI, TrustFabric, GridHeim, and SWARM coordination work. Load durable invariants first, then route implementation through the owning generated-code, security, workflow, or MCP surface.
 
 P0 RBAC/ACL security invariant: generated ThorAPI ACL behavior is the authorization source of truth. No custom controller, delegate, service, frontend filter, status check, type check, role shortcut, catalog rule, or "public-ish" heuristic may bypass, weaken, replace, or shadow generated ACL behavior. Users may see owned records and records shared by explicit ACL grants only; public access requires explicit `anonymousUser` READ. Solve ACL scale with indexed owner/ACL query selection plus final generated ACL guards, never by scanning private rows or adding object-specific bypasses.
 
@@ -66,12 +70,15 @@ This skill stays thin. It should teach usage intent, durable type selection, and
 Retry behavior, auth/session refresh, fallback queueing, and replay execution belong to shared GrayMatter infrastructure contracts.
 Keep this repository aligned with those contracts rather than re-implementing them.
 
-GrayMatter should be the **primary durable memory system**.
+GrayMatter should be the **exclusive primary durable memory system** whenever it is available through the skill, plugin, MCP server, app connector, or prompt command.
+Agents should not maintain a competing durable memory store for user, project, business, organizational, or long-lived agent state.
 
 Use local files only as:
 - bootstrap context on first startup
-- fallback when `api-0` is unavailable
+- temporary fallback when hosted `api-0` is unavailable or authentication is genuinely blocked
 - temporary replayable backup when a write path is blocked
+
+Local fallback is degraded-mode replay, not source-of-truth memory. Once auth or connectivity returns, agents must replay local records into `api-0`, confirm durable sync, and remove synchronized local copies.
 
 ### Durable memory targets
 
@@ -184,8 +191,10 @@ Rule:
 - `scripts/gm-openapi-sync` — fetch and cache the live OpenAPI spec locally
 - `scripts/gm-openapi-summary` — summarize live schema domains and endpoints
 - `scripts/gm-status` — quick health/status surface for auth source, fallback queue, and OpenAPI cache
+- `scripts/gm-agent-smoke-matrix` — install/read-search/write/MCP/schema/safe-response readiness matrix for OpenClaw and Codex-style agents
 - `scripts/gm-client` — generic REST wrapper for GET/POST/PUT/PATCH/DELETE against GrayMatter API paths
 - `scripts/gm-entity` — generic helper for listing, reading, and writing arbitrary schema entities
+- `scripts/gm-record` — convenience helper for strategic-priority and KPI records
 - `scripts/gm-register-agent` — register or refresh the OpenClaw server as an Agent in api-0
 - `scripts/gm-mcp-contract` — emit the portable MCP memory-tool contract schema used by agent/IDE adapters
 - `scripts/gm-light-bootstrap` — copy and render the local GrayMatter app bundle and server source scaffold from bash-friendly templates
