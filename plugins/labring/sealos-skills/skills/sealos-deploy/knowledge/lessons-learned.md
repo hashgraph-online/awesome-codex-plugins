@@ -44,6 +44,36 @@ This document captures patterns and solutions from actual Sealos deployment expe
 
 Redis Sentinel can report readiness before the primary Redis component and the default account Secret appear. Treat final Cluster Ready/Running state, `${APP_NAME}-redis-redis-account-default`, `${APP_NAME}-redis-redis-redis.${NAMESPACE}.svc.cluster.local`, and successful application registration/login as the acceptance signal.
 
+### Root Entrypoint Handoff and Persistent Storage Permissions
+
+Images that start as root and then switch identity through `su-exec`, `gosu`, or `setpriv` can fail when a template drops all capabilities while the handoff path is still active.
+
+Syncthing showed the concrete pattern:
+
+```yaml
+detection:
+  symptoms:
+    - "chown: /var/syncthing: Operation not permitted"
+    - "su-exec: setgroups(1000): Operation not permitted"
+    - "Pod CrashLoopBackOff after persistent storage is mounted"
+
+fixes:
+  preferred:
+    - "Verify the final UID/GID and run the Pod directly as that identity"
+    - "Set runAsNonRoot, runAsUser, runAsGroup, fsGroup, fsGroupChangePolicy, and RuntimeDefault seccomp"
+    - "Use an initContainer for official offline config generation when available"
+    - "Keep the main container close to the official startup command"
+
+verification:
+  - "First boot logs are clear"
+  - "Login or setup works with deploy-time credentials"
+  - "At least one authenticated API/page works"
+  - "Random authenticated missing path returns 404"
+  - "Footprint shows expected ready/desired counts and zero restarts"
+```
+
+For Syncthing, the validated runtime used UID/GID `1000`, generated GUI config in an initContainer, authenticated with dynamic CSRF cookie/header flow, and stayed stable at `100m/128Mi` limits with `10m/12Mi` requests.
+
 ### GHCR Push Succeeds but Cluster Pull Fails (Prevents `ImagePullBackOff`)
 
 ```yaml

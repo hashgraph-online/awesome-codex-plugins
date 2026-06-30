@@ -19,7 +19,8 @@
     "automation"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "mcpServers": "./mcp_config.json",
+  "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "Epic Harness",
     "shortDescription": "Autonomous agent harness — auto-trigger skills, self-evolving engine.",

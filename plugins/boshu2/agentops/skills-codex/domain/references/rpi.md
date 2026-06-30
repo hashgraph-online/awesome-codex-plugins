@@ -12,7 +12,7 @@ The **inner tick** of the [Loop](loop.md): one Research → Plan → Implement �
 
 | Beat | What it does |
 |---|---|
-| **Research** | Compile the context this arc needs. `ao inject` produces a decay-ranked, token-budgeted slice of the corpus. |
+| **Research** | Compile the context this arc needs. `ao lookup` produces a decay-ranked, token-budgeted slice of the corpus. |
 | **Plan** | Decompose the arc into a verifiable plan; no gold-plating. |
 | **Implement** | Execute the plan in an isolated worktree, one vertical slice at a time. |
 | **Validate** | Produce a PASS/WARN/FAIL verdict; the validator is never the implementer. |

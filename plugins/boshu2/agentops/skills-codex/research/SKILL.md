@@ -121,6 +121,18 @@ Tier 1 — Code-Map (fastest, authoritative):
   Read docs/code-map/{feature}.md → get exact paths and function names
   Skip if: no docs/code-map/ directory
 
+Tier 1b — Graphify structural map (optional; the freshest queryable structure):
+  When `graphify` is installed, query the codebase STRUCTURE instead of broad grep —
+  the AST layer rebuilds in ~13s, free, no LLM (measured on a ~2,500-file Go/Python repo):
+    graphify <repo> --update              # refresh first; never query a stale graph
+    graphify explain "<symbol>"           # what a node IS + its calls/defines/connections
+    graphify path "<A>" "<B>"             # how A reaches B — across files AND languages
+    graphify query "<expanded tokens>"    # ranked neighborhood (vocab-expand REQUIRED — see recipe)
+  Use BEFORE Tier 3 grep for "what is X / where / what's connected / cross-file links".
+  Bound: maps STRUCTURE (calls/connections), not in-body logic — read the file (Tier 4) for logic.
+  Skip if: `graphify` not installed (graceful — fall through to the tiers below).
+  Recipe + the REQUIRED vocab-expansion step: references/structural-graph-navigation.md
+
 Tier 2 — Semantic Search (conceptual matches):
   mcp__smart-connections-work__lookup query="<topic>" limit=10
   Skip if: MCP not connected

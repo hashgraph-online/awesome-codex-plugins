@@ -88,7 +88,7 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 
 > **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md).
 
-epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP server are loaded directly from the plugin layout (`skills/`, `hooks.json`, `.mcp.json`). There is no `install` subcommand; each tool reads the plugin from disk.
+epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP server are loaded directly from the plugin layout (`skills/`, `hooks.json`, `mcp_config.json`). There is no `install` subcommand; each tool reads the plugin from disk.
 
 ### Claude Code (recommended)
 
@@ -99,14 +99,6 @@ epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP 
 
 Auto-installs the binary, skills, hooks, and the `harness-mem` MCP server in one step.
 
-### agy (Antigravity CLI)
-
-```bash
-agy plugin install .
-```
-
-Skills (27), hooks, and the `harness-mem` MCP server are auto-discovered from the plugin's `plugin.json` + `skills/` + `hooks.json` + `.mcp.json`.
-
 ### Codex CLI
 
 ```bash
@@ -114,6 +106,15 @@ codex plugin marketplace add epicsagas/plugins
 ```
 
 Skills and agents are available immediately — no further steps needed.
+
+### agy (Antigravity CLI)
+
+```bash
+agy plugin install https://github.com/epicsagas/epic-harness
+agy plugin enable epic
+```
+
+Skills (27), hooks, and the `harness-mem` MCP server are auto-discovered from the plugin's `plugin.json` + `skills/` + `hooks.json` + `mcp_config.json`.
 
 ### Binary-only (no plugin host)
 
@@ -494,12 +495,8 @@ All tools share the same `~/.harness/projects/{slug}/` data directory.
 | **Claude Code** | ✓ Full | ✓ 3 commands (incl. /orbit) | ✓ 26 skills | Live |
 | **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 26 | — |
 | **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 26 | — |
-| **Cursor** | ✓ Full³ | ✓ 3 commands (incl. /orbit) | ✓ via rules | Live |
-| **OpenCode** | ✓ Partial⁴ | ✓ 3 commands (incl. /orbit) | — | — |
-| **Cline** | ✓ Full⁵ | — | — | — |
-| **Aider** | —⁶ | — | — | — |
 
-¹ `codex_hooks = true` in `~/.codex/config.toml` · ² Plugin install; subagent support not yet available · ³ Cursor 1.7+ · ⁴ JS plugin · ⁵ 5 hook scripts · ⁶ Conventions only
+¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² PreInvocation/PostInvocation only — no PreToolUse (guard/polish unavailable)
 
 ---
 

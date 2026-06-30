@@ -11,12 +11,12 @@ Run a Claude loop *outside* an interactive Claude Code / Codex session — an An
 **AgentOps 3.0 is runtime-hookless.** Guardrails come from three things, never runtime hooks:
 
 1. **Skills** — `skills/<name>/SKILL.md` progressive-disclosure contracts (standards, behavioral-discipline, council, validation, trace, provenance).
-2. **The `ao` CLI** — the deterministic tool surface (`ao session bootstrap`, `ao inject`, `ao corpus inject --query`, `ao validate`, `ao goals measure`) plus the `standards` skill loaded into the agent's instructions.
+2. **The `ao` CLI** — the deterministic tool surface (`ao session bootstrap`, `ao lookup`, `ao corpus inject --query`, `ao validate`, `ao goals measure`) plus the `standards` skill loaded into the agent's instructions.
 3. **Local cockpit gate as routine authority** — the operator accepts output by landing it through `ao gate check` / installed Git pre-push / pawl proof; `.github/workflows/validate.yml` remains PR/tag/manual backstop telemetry, NOT a PreToolUse hook.
 
-So an out-of-session agent becomes AgentOps-native by: **(a)** loading AgentOps skills into the Agent definition, **(b)** exposing the `ao` CLI as a callable tool (MCP or shell-tool) so the agent can `ao session bootstrap` / `ao inject` / `ao validate` itself, and **(c)** running the same deterministic local validation/proof path on its outputs before the work is accepted. The Agent SDK's own hooks become an **optional thin adapter** for teams wanting in-loop interception — never the primary mechanism.
+So an out-of-session agent becomes AgentOps-native by: **(a)** loading AgentOps skills into the Agent definition, **(b)** exposing the `ao` CLI as a callable tool (MCP or shell-tool) so the agent can `ao session bootstrap` / `ao lookup` / `ao validate` itself, and **(c)** running the same deterministic local validation/proof path on its outputs before the work is accepted. The Agent SDK's own hooks become an **optional thin adapter** for teams wanting in-loop interception — never the primary mechanism.
 
-> **Mechanism status (planned, not yet shipped).** This skill is the **doctrine layer** and lands first; the two concrete commands it names — `ao agent bundle` (ag-jspr) and `ao mcp serve` (ag-higd) — are open, ready beads under epic ag-7s9fo, not yet in the live CLI. The `ao session bootstrap` / `ao inject` / `ao corpus inject` / `ao validate` / `ao goals measure` commands the bundled agent calls are real today. When ag-jspr and ag-higd land, remove this skill's entry from `scripts/skill-body-refs-allowlist.txt`.
+> **Mechanism status (planned, not yet shipped).** This skill is the **doctrine layer** and lands first; the two concrete commands it names — `ao agent bundle` (ag-jspr) and `ao mcp serve` (ag-higd) — are open, ready beads under epic ag-7s9fo, not yet in the live CLI. The `ao session bootstrap` / `ao lookup` / `ao corpus inject` / `ao validate` / `ao goals measure` commands the bundled agent calls are real today. When ag-jspr and ag-higd land, remove this skill's entry from `scripts/skill-body-refs-allowlist.txt`.
 
 This is an **extension of two existing skills**, not a rewrite:
 - [standards](../standards/SKILL.md) — gains an Agent-runtime profile: how the standards/behavioral-discipline checklists get loaded by a non-interactive Claude and enforced by deterministic gate surfaces rather than runtime hooks.
@@ -49,7 +49,7 @@ Stitches the selected AgentOps skills (default: `session-bootstrap`, `standards`
 
 Run a thin MCP server (`ao mcp serve`) — or a documented shell-tool spec — exposing `session_bootstrap`, `inject`, `corpus_inject`, `validate`, `goals_measure` so the hosted loop can orient and self-check. For self-hosted sandboxes (bushido), the MCP server runs **inside** the sandbox boundary with tailnet access to Dolt.
 
-**Checkpoint:** the agent can call `ao session bootstrap` + `ao inject` itself before doing work.
+**Checkpoint:** the agent can call `ao session bootstrap` + `ao lookup` itself before doing work.
 
 ### Phase 3: Gate the output through the cockpit path
 

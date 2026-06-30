@@ -1,6 +1,6 @@
 # Extract-mode routing rules
 
-Reference data for `/archcore:init` Step 8 extract mode. Used only when the user explicitly opts into `extract` for a given agent-instruction file (default is `link`).
+Reference data for `/archcore:init` agent-instruction import, extract mode (Phase B plans, Phase E creates). Used only when the user explicitly opts into `extract` for a given agent-instruction file (default is `link`).
 
 The skill's LLM does the classification; this file is the spec it follows.
 

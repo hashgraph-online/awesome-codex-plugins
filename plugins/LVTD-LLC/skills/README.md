@@ -209,17 +209,22 @@ npm run build
 
 Generated marketplace plugin IDs:
 
+- `b2b-sales`
 - `cookiecutter`
 - `customer-discovery`
 - `developer-docs`
 - `django`
 - `eighty-twenty`
+- `game-design`
+- `game-geometry`
 - `linkedin-writing`
 - `nonfiction-book-writing`
 - `router`
-- `rust`
+- `rust-core`
+- `rust-game-development`
 - `seo`
 - `traction`
+- `web-design-math`
 
 Marketplace plugins group related skills. Direct installs through the `skills`
 CLI still use the canonical skill directory names.

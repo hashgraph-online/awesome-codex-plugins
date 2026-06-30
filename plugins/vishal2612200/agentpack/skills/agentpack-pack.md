@@ -11,20 +11,14 @@ AgentPack prepares context. It does not prove correctness and does not replace c
 
 ## Steps
 
-1. Write the task:
+1. Generate fresh context for the task:
 
 ```bash
-agentpack task set "<task>"
+agentpack pack --task "<task>"
 ```
 
-2. Generate fresh context:
-
-```bash
-agentpack pack --task auto
-```
-
-3. Read `.agentpack/context.md`.
-4. Inspect selected files before editing.
-5. Use normal repo search if selected files miss obvious tests, config, routes, or callers.
+2. Read `.agentpack/context.md`.
+3. Inspect selected files before editing.
+4. Use normal repo search if selected files miss obvious tests, config, routes, or callers.
 
 If AgentPack MCP is available, prefer the pack or context MCP tool and use markdown as fallback.

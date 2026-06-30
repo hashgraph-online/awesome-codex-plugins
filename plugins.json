@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-06-28",
-  "total": 130,
+  "last_updated": "2026-06-30",
+  "total": 132,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -590,6 +590,16 @@
       "install_url": "https://raw.githubusercontent.com/f0d010c/stark/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Superloopy",
+      "url": "https://github.com/beefiker/superloopy",
+      "owner": "beefiker",
+      "repo": "superloopy",
+      "description": "Evidence-gated Codex loop harness with specialist skills, including near-pixel authorized website cloning backed by screenshots, assets, build output, and visual QA.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/beefiker/superloopy/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "tailtest",
       "url": "https://github.com/avansaber/tailtest-codex",
       "owner": "avansaber",
@@ -690,16 +700,6 @@
       "install_url": "https://raw.githubusercontent.com/villagesql/villagesql-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Waggle",
-      "url": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
-      "owner": "Abhigyan-Shekhar",
-      "repo": "Waggle-mcp",
-      "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/Abhigyan-Shekhar/Waggle-mcp/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Wingman",
       "url": "https://github.com/lsshym/wingman.ai",
       "owner": "lsshym",
@@ -708,6 +708,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/lsshym/wingman.ai/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Waggle",
+      "url": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
+      "owner": "Abhigyan-Shekhar",
+      "repo": "Waggle-mcp",
+      "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Abhigyan-Shekhar/Waggle-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Workflow Kit",
@@ -1108,6 +1118,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/varaprasadreddy9676/team-codex-plugins/HEAD/plugins/openproject/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Ophis",
+      "url": "https://github.com/ophis-fi/skills",
+      "owner": "ophis-fi",
+      "repo": "skills",
+      "description": "Onchain token swaps for Codex via the hosted Ophis MCP server, MEV-protected and gasless, built on CoW Protocol.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ophis-fi/skills/HEAD/plugins/ophis/.codex-plugin/plugin.json"
     },
     {
       "name": "OrgX",

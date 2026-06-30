@@ -7,6 +7,8 @@ description: Use when executing an implementation plan linearly with explicit hu
 
 Execute the plan task by task. Pause after every 3 tasks for human review.
 
+This remains the explicit manual-checkpoint profile. New host-native or fallback runs may enter through `governed-execution`; when they do, use its selected driver for lifecycle calls, sensitive-action decisions, budgets, receipts, and reconciliation while preserving every checkpoint in this skill.
+
 ## Workflow File Resolution
 
 Resolve which workflow file to execute:

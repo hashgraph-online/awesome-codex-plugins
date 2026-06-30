@@ -11,6 +11,7 @@
 - レビュー結果に対する人間からの返答（PR コメント / Slack / 直接対話）
 - `/review-local` などローカル self-review で気になった出力
 - `npm run eval:all` の regression / 新規 failure
+- 修正PR / follow-up PR によって、元PRレビューの見落としが判明した
 - 月次 / リリース時の振り返り（retrospective）
 
 ## 1 PR = 1 改善

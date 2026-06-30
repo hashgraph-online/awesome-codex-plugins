@@ -9,7 +9,7 @@ Local-first dashboard, Codex plugin, and companion skill for understanding where
 
 [![CI](https://github.com/douglasmonsky/codex-usage-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/douglasmonsky/codex-usage-tracker/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/codex-usage-tracking.svg)](https://pypi.org/project/codex-usage-tracking/)
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/codex-usage-tracking?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=BLUE&left_text=downloads)](https://pepy.tech/projects/codex-usage-tracking)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/codex-usage-tracking?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=RED&left_text=downloads)](https://pepy.tech/projects/codex-usage-tracking)
 ![Python 3.10-3.14](https://img.shields.io/badge/python-3.10--3.14-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -33,6 +33,8 @@ codex-usage-tracker serve-dashboard --open
 
 Use your normal Python launcher for your platform: `python3` is common on macOS/Linux, and `py` may be preferable on Windows. On macOS with Homebrew, `brew install pipx` is also fine.
 If `codex-usage-tracker` is not found after installing with pipx, open a new terminal or add the binary directory printed by `pipx ensurepath` to your `PATH`.
+
+First install? Start with the [First Five Minutes guide](docs/first-five-minutes.md) for setup, verification, empty-dashboard checks, and safe issue diagnostics.
 
 `serve-dashboard` refreshes active-session usage before opening by default. Use `--no-refresh` only when you intentionally want to inspect the cached local index.
 
@@ -274,6 +276,8 @@ This is optional. The normal shell install above is the fastest trusted path for
 - Parent-child thread relationships are only as good as the metadata Codex logs; inferred auto-review attachments are labeled as inferred.
 
 ## Roadmap
+
+The next phase is adoption hardening: better first-run setup, safer support bundles, clearer guided diagnostics, and scale/reliability checks now that more people are trying the project. See [Adoption Hardening Roadmap](docs/adoption-hardening-roadmap.md) for the branch-by-branch plan.
 
 - Keep Python runtime support validated with CI matrix coverage, package classifiers, release docs, and installed-package smoke tests.
 - Improve the `Set limits` flow with a paste/import experience for 5-hour and weekly allowance snapshots.

@@ -1,6 +1,6 @@
 [project]
 name = "agentpack-cli"
-version = "0.3.31"
+version = "0.3.34"
 description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -67,6 +67,14 @@ pythonpath = ["src"]
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.mypy]
+python_version = "3.10"
+files = [
+  "src/agentpack/core/e2e_benchmark.py",
+  "src/agentpack/core/modes.py",
+  "src/agentpack/router/models.py",
 ]
 
 [tool.coverage.run]

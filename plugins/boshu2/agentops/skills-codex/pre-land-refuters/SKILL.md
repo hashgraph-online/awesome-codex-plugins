@@ -85,6 +85,12 @@ there, just run it.
    VERDICT CONFIRMED/REFUTED + numbered findings with evidence. **In the default
    `fresh-context` mode this ONE fresh refuter satisfies the diversity floor**
    (it need not be a different model family).
+   **Tell the refuter to ESTABLISH GROUND TRUTH ITSELF** — it reads the change and
+   derives the facts. **Never seed a disputable claim** in the frozen claim or the
+   dispatch prompt: a refuter handed an assertion REFUTES *your framing* instead of
+   the change, burning rounds on a false alarm. State only mechanical, checkable
+   acceptance (counts, grep-green phrases, ledger rows); let the refuter judge
+   everything else from the diff. (Proven prompt module; mined from history.)
 3. **`multi-model` mode only — also dispatch the codex refuter** (`codex exec
    --sandbox read-only -C <repo>`): for pawls opted up to `multi-model`, add a
    second, **different-family** refuter — focus on judgment-sensitive edits: for
@@ -167,6 +173,19 @@ current head, tied to this bead+PR, opens the door (fail-closed by construction)
 
 Even fully unattended, the gate fires at every pawl and auto-redoes on REFUTED. Human
 escalation is the exception a circuit breaker trips into, not the gate.
+
+> **The maximal-adversarial-tail breaker (≥3 same-CLASS refutes).** The membrane is
+> *maximal-adversarial* — on a packaging / heuristic / string-quality / prose change it
+> can REFUTE forever, each round a genuinely **different real defect** (so it does NOT
+> look like oscillation and the repetition breaker never trips), while the change's actual
+> acceptance was met at round 1. Recognize the shape: **≥3 rounds of distinct refutes that
+> are all the same CLASS** (e.g. "another edge-case spelling", "another marginal
+> heuristic gap") on a change whose mechanical acceptance already passes → **STOP, re-scope,
+> and surface to the operator** — do not grind toward a maximal CONFIRMED. The fix is to
+> *raise the bar by class* (delete the fail-open, not patch the instance) or accept the
+> tail as out-of-scope. A documented `--no-verify` / ESCALATE override is legitimate when
+> the gate is green AND the operator says ship — but **never fabricate a CONFIRMED verdict**
+> to end the loop. (Mined: a real 3-hour serial grind on an out-of-scope heuristic tail.)
 
 > **Scope note.** This verdict is an **evidence-bound, commit-bound verdict that
 > requires real reviewer runs** (fresh-context default; multi-model opt-in) — it defends against a *sloppy agent self-stamping CONFIRMED*,

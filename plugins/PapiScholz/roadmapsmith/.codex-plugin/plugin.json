@@ -1,7 +1,7 @@
 {
   "name": "roadmapsmith",
-  "version": "0.9.37",
-  "description": "Evidence-backed ROADMAP.md workflows for AI coding agents, with canonical RoadmapSmith status and maintain surfaces plus advanced sync/generate tools and legacy compatibility aliases.",
+  "version": "0.10.2",
+  "description": "Evidence-backed ROADMAP.md workflows for AI coding agents — two commands: init and update.",
   "author": {
     "name": "PapiScholz"
   },
@@ -25,7 +25,6 @@
     "coding-agents",
     "agent-skills",
     "roadmap-generator",
-    "roadmap-sync",
     "task-validation",
     "developer-tools",
     "markdown",

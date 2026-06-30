@@ -367,7 +367,8 @@ After all workers complete:
 1. Compute `git diff` for the wave.
 2. Run project-level tests appropriate to the wave.
 3. If tests fail, identify which worker's changes broke things and requeue only that work.
-4. **CI-Policy Parity Gate (conditional).** If the wave diff touches `.github/workflows/*.yml`, run `bash scripts/validate-ci-policy-parity.sh`; on non-zero exit treat the wave verdict as **FAIL** and surface the drift report. Trigger pattern (narrow — workflow YAML only):
+4. **Orchestrator's own diff-read (mandatory anti-green-washing check).** Before counting a slice/wave as accepted, the orchestrator itself reads the actual wave diff and compares it with each closed slice's declared scope and claim. A green `<promise>DONE</promise>` plus passing evidence JSON is a claim, not proof; an out-of-scope or claim-mismatched diff sets the wave verdict to **FAIL** and surfaces the file list. See [references/wave-patterns.md](references/wave-patterns.md) "Wave Acceptance Check" Step 3.5.
+5. **CI-Policy Parity Gate (conditional).** If the wave diff touches `.github/workflows/*.yml`, run `bash scripts/validate-ci-policy-parity.sh`; on non-zero exit treat the wave verdict as **FAIL** and surface the drift report. Trigger pattern (narrow — workflow YAML only):
    ```bash
    if git diff --name-only "$WAVE_START_SHA" HEAD -- | grep -qE '^\.github/workflows/.*\.ya?ml$'; then
        bash scripts/validate-ci-policy-parity.sh || exit 1

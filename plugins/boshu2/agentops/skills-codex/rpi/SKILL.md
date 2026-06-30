@@ -105,7 +105,12 @@ Enter at the routed phase and run every phase after it.
    through phase-isolated skill transport. Pass `--test-first` or
    `--no-test-first` through. On DONE, record `ao ratchet record implement
    2>/dev/null || true` and continue. On PARTIAL or BLOCKED, retry the same
-   objective up to 3 total attempts.
+   objective up to 3 total attempts. **Before counting a slice/wave as accepted,
+   the orchestrator reads the actual diff itself** (scope + claim match) — not
+   only the `<promise>DONE</promise>` and evidence JSON. This is the orchestrator's
+   own diff-read, distinct from the delegated sub-judges; `$crank` enforces it as
+   the anti-green-washing check in Wave Acceptance
+   ([crank wave-patterns.md, Step 3.5](../crank/references/wave-patterns.md)).
 3. **Validation:** invoke `$validate <epic-id> --complexity=<level>` when an
    epic exists; otherwise invoke `$validate --complexity=<level>`, directly
    or through phase-isolated skill transport. Add `--strict-surfaces` when

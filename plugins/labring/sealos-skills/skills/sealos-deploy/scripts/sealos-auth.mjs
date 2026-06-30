@@ -22,7 +22,7 @@
  */
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import { homedir, platform } from 'os'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -235,6 +235,41 @@ function sleep (ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function browserOpenCommands (url) {
+  if (platform() === 'darwin') {
+    return [{ command: 'open', args: [url] }]
+  }
+
+  if (platform() === 'win32') {
+    return [{ command: 'cmd', args: ['/c', 'start', '', url] }]
+  }
+
+  return [
+    { command: 'xdg-open', args: [url] },
+    { command: 'gio', args: ['open', url] },
+    { command: 'sensible-browser', args: [url] }
+  ]
+}
+
+function tryOpenBrowser (url) {
+  const attempts = []
+
+  for (const { command, args } of browserOpenCommands(url)) {
+    try {
+      execFileSync(command, args, { stdio: 'ignore' })
+      return { opened: true, command, attempts }
+    } catch (error) {
+      attempts.push({
+        command,
+        status: error.status ?? null,
+        code: error.code || null
+      })
+    }
+  }
+
+  return { opened: false, attempts }
+}
+
 // ── Login (Device Grant Flow) ──────────────────────────
 
 async function login (region = DEFAULT_REGION) {
@@ -266,14 +301,21 @@ async function login (region = DEFAULT_REGION) {
   // while stdout is reserved for JSON output
   process.stderr.write('\n' + authPrompt.message + '\n\nWaiting for authorization...\n')
 
-  // Auto-open browser
+  // Auto-open browser when the host has one, then continue polling either way.
   const url = verificationUriComplete || verificationUri
-  try {
-    const cmd = platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'start' : 'xdg-open'
-    execSync(`${cmd} "${url}"`, { stdio: 'ignore' })
-    process.stderr.write('Browser opened automatically.\n')
-  } catch {
-    process.stderr.write('Could not open browser automatically. Please open the URL manually.\n')
+  const browser = tryOpenBrowser(url)
+  if (browser.opened) {
+    process.stderr.write(`Browser opened automatically with ${browser.command}.\n`)
+  } else {
+    process.stderr.write('Could not open a local browser automatically. Manual authorization is required.\n')
+    process.stderr.write(JSON.stringify({
+      action: 'manual_authorization_required',
+      verification_uri_complete: verificationUriComplete || null,
+      verification_uri: verificationUri,
+      user_code: userCode,
+      expires_in: expiresIn,
+      browser_open_attempts: browser.attempts
+    }, null, 2) + '\n')
   }
 
   // Step 2: Poll for token

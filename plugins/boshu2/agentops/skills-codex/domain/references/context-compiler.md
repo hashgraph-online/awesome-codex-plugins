@@ -12,7 +12,7 @@ The capability that turns the `.agents/` corpus into the working set a [Loop](lo
 
 | Edge | Mechanism | Effect |
 |---|---|---|
-| **In (tick start)** | `ao inject --apply-decay --max-tokens N --context ...` | A decay-ranked, token-budgeted slice of the corpus, just-in-time, not stacked |
+| **In (tick start)** | `ao lookup --query <topic>` | A decay-ranked, token-budgeted slice of the corpus, just-in-time, not stacked |
 | **Out (tick end)** | Evidence, decisions, citations, verdicts written to `.agents/` under the promotion ratchet | The exhaust of this tick becomes the seed of the next |
 | **Rebuild** | `ao compile` (Mine → Grow → Defrag → Lint) | Keeps the corpus fresh between ticks |
 
@@ -27,7 +27,7 @@ Context is the engineering artifact handed off at every loop edge, and it compou
 
 ## Bounded context
 
-**BC1 Corpus.** `ao inject` / `ao compile` / `ao maturity` are its CLI surface; the loop (BC3) consumes them.
+**BC1 Corpus.** `ao lookup` / `ao compile` / `ao maturity` are its CLI surface; the loop (BC3) consumes them.
 
 ## See also
 

@@ -51,6 +51,7 @@ Installs hookless. The only hard requirement is an agent runtime and `git`; ever
 <!-- agentops:claim:AOP-CLAIM-README-COMPETITIVE-MEMORY -->
 
 - **A validation membrane.** Tests, gates, `/pre-mortem`, `/validate`, and `/council` prove or reject the work before you trust it. No verdict, not done.
+- **A bookkeeper that outlives the session.** Work is tracked as beads, and every verdict is bound into a hash-chained provenance ledger: tamper-evident, grep-able, and portable across sessions and models. The record is the proof a change was actually checked — not a memory of one.
 - **An evidence trail that's yours.** Every run, decision, and verdict lands in `.agents/` in your repo: grep-able, diff-able, portable to whatever model wins next quarter. AgentOps adds no hosted control plane and no telemetry; the corpus lives in your repo, not on our servers. Apache-2.0.
 - **It runs on the agent you already pay for.** Claude Code, Codex, Cursor, OpenCode. Same skills, same corpus.
 
@@ -84,7 +85,7 @@ Every skill works alone; flows compose them. Full catalog: [docs/SKILLS.md](docs
 | `/rpi` | you want discovery, build, validation, and bookkeeping in one flow |
 | `/council` | you want independent judges (optionally Claude and Codex) to return one verdict |
 | `/validate` | you want a code-quality and risk review before shipping |
-| `/evolve` | a goal-driven improvement loop that compounds knowledge without mutating source |
+| `/evolve` | a goal-driven improvement loop that runs without mutating source |
 
 ## The `ao` CLI
 
@@ -107,7 +108,11 @@ The whole loop runs in a plain session. No daemon, no scheduler, no cloud. For a
 
 ## The honest version
 
-AgentOps proves the work. It doesn't write the code; your agent still does that, and the cross-checks cost tokens. The `.agents/` folder is plain markdown your agents keep up as they go. Whether all that saved history makes the next session measurably better, we're still testing. We won't claim it until the numbers say so.
+**Proven:** independent verification that records a verdict, and a durable, tamper-evident record of it. A change isn't done until something that didn't write it checks it, and that verdict is bound into the provenance ledger. No verdict, not done.
+
+**Still measuring:** whether the accumulated corpus makes the next session measurably better. We won't claim it until the numbers say so ([ADR-0004](docs/adr/ADR-0004-corpus-moat-unproven-position-on-the-system.md), [ADR-0011](docs/adr/ADR-0011-escape-corpus-compounding-unproven-structural-starvation.md)).
+
+AgentOps proves the work. It doesn't write the code; your agent still does that, and the cross-checks cost tokens. The `.agents/` folder is plain markdown your agents keep up as they go.
 
 When the labs ship their own version of this, your `.agents/` folder comes with you. It's in your repo, in plain markdown, Apache-2.0.
 

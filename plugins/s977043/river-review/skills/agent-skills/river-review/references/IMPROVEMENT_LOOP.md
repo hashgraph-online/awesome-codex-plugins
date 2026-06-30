@@ -95,7 +95,36 @@ fixture 配置先（既存運用に合わせる）:
 - レビュー結果に対する人間からの返答（PR コメント / Slack / 直接対話）
 - `/review-local` などローカル self-review の所感
 - eval 結果（`npm run eval:all`）の regression / 新規 failure
+- 修正PR / follow-up PR によって、元PRレビューの見落としが判明した
 - 月次 / リリース時の振り返り（retrospective）
+
+### Fix PR trigger / 修正PRからの学習
+
+修正PRは「元PRレビューで捕まえられなかった実害の証拠」として扱う。
+ただし、修正PRの内容をそのまま rule にしない。まず `missed_issue` feedback として記録し、root cause を分類してから fixture / routing / reference / skill 文言へ落とす。
+
+最小フロー:
+
+1. 修正PRの title / body / diff から、元PRと見落とし内容を特定する。
+2. 元PRレビューで期待される owner skill を推定する。
+3. `river feedback add` で `trigger=fix-pr`、`feedbackType=missed_issue` として記録する。
+4. `npm run feedback:apply` で happy-path fixture scaffold を作る。
+5. `npm run feedback:rules` で同種の見落としが再発していないかを見る。
+6. 反映は必ず PR レビューを通し、SKILL.md / reference / fixture の自動更新はしない。
+
+例:
+
+```bash
+npm run river -- feedback add \
+  --type missed_issue \
+  --skill rr-midstream-typescript-strict-001 \
+  --trigger fix-pr \
+  --pr 1234 \
+  --evidence "Fix PR #1234 showed that original PR #1200 missed a nullable response edge case."
+
+npm run feedback:apply
+npm run feedback:rules
+```
 
 ## Anti-patterns / 避けるべき進め方
 
@@ -103,6 +132,7 @@ fixture 配置先（既存運用に合わせる）:
 - prompt 修正だけで済ませて fixture / reference を作らない（再発する）。
 - suppression を最初の手段にする（guard fixture でカバーできるなら必ずそちらを優先）。
 - 「再発したらまた直せばよい」と先送りする（promote rule のステップが飛ぶ）。
+- 修正PRを見つけた段階で、個別事象をいきなり汎用 rule に昇格しない。
 
 ## 関連リソース
 

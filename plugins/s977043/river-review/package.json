@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.34.0",
+  "version": "1.35.1",
   "private": true,
   "workspaces": [
     "runners/node-api",
@@ -93,8 +93,8 @@
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.2.0",
     "minimatch": "^10.1.1",
-    "openai": "^6.44.0",
-    "ora": "^9.4.0",
+    "openai": "^6.45.0",
+    "ora": "^9.4.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -107,13 +107,13 @@
     "@vercel/ncc": "^0.44.0",
     "glob": "^13.0.6",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.5",
+    "lint-staged": "^17.0.8",
     "markdownlint-cli": "^0.49.0",
     "prettier": "^3.8.4",
     "prh": "^6.0.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "recharts": "^3.8.1",
+    "recharts": "^3.9.0",
     "textlint": "^15.7.1",
     "textlint-rule-preset-ja-technical-writing": "^12.0.2",
     "textlint-rule-prh": "^6.1.0"

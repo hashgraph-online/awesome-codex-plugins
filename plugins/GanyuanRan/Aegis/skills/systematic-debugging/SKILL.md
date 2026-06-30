@@ -37,7 +37,11 @@ Especially under time pressure, when "just one quick fix" seems obvious, after m
 
 For low-risk, single-owner bugs, keep the report compact: `Symptom`,
 `Reproduction`, `Root Cause`, `Change Necessity`, `Fix Boundary`, and
-`Verification`. Still collect root-cause evidence before editing. If fallback,
+`Verification`. Still collect root-cause evidence before editing. Quick bug lane must surface Change Necessity before source edits; one compact sentence is enough
+when it names the user-visible need, no-change / non-code option, why code
+change is necessary, minimum change boundary, and an explicit decision token
+such as `Decision: code-change`; minimum-boundary wording is not a substitute
+for the decision. If fallback,
 duplicate owner, consumer-side patching, contract risk, shared logic, or
 cross-module behavior appears, escalate to the full workflow.
 
@@ -171,6 +175,8 @@ cross-module behavior appears, escalate to the full workflow.
    - Minimum change boundary:
    - Decision: no-change | docs/config-only | code-change | needs-clarification
    ```
+
+   In quick bug lane, keep `Decision:` explicit even when using natural prose.
 
    If the decision is `no-change`, do not edit source code. If the decision is
    `docs/config-only`, narrow the fix to that surface and verify it. If the

@@ -36,6 +36,14 @@
 
 ---
 
+<p align="center">
+  <img src="docs/assets/agentpack-demo.gif" alt="Terminal demo: AgentPack refreshes context, routes a task to ranked files and warnings, then runs a focused test." width="840">
+</p>
+
+<p align="center">
+  <a href="docs/assets/agentpack-demo.mp4">MP4 demo</a>
+</p>
+
 You know the pattern. You ask an agent to fix one bug. It `rg`s half the repo, opens the wrong files, misses the test, then rediscovers the architecture you already had.
 
 AgentPack does the repo-orientation pass first.
@@ -80,9 +88,12 @@ agentpack init --yes
 agentpack route --task "fix auth token expiry"
 agentpack task set "fix auth token expiry"
 agentpack pack --task auto
+agentpack doctor
 ```
 
 Then give `.agentpack/context.md` to your agent, or let MCP-capable agents call AgentPack tools directly.
+Core onboarding is five commands: `init`, `route`, `pack`, `doctor`, and `benchmark`.
+Everything else is an advanced workflow or release/diagnostic helper.
 
 For one-shot use without installing:
 
@@ -98,6 +109,13 @@ npx @vishal2612200/agentpack init --yes
 npx @vishal2612200/agentpack task set "fix auth token expiry"
 npx @vishal2612200/agentpack pack --task auto
 ```
+
+## New Contributors
+
+Start with [`good first issue`](https://github.com/vishal2612200/agentpack/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22) or [`help wanted`](https://github.com/vishal2612200/agentpack/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22) issues.
+If this would be your first open-source contribution, use the smaller
+[`first-timers-only`](https://github.com/vishal2612200/agentpack/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22first-timers-only%22) queue.
+Contribution setup and review expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Quick Demo
 
@@ -117,8 +135,9 @@ agentpack task set "fix billing webhook retry handling"
 agentpack pack --task auto
 ```
 
-AgentPack writes local context under `.agentpack/`, including selected files, omitted-file receipts, freshness checks, and token stats.
+AgentPack writes local context under `.agentpack/`, including selected files, omitted-file receipts, freshness checks, token stats, and `.agentpack/citations.json` source provenance for the packed claims.
 It reuses cached file summaries and snapshot metadata so repeated packs do not start from zero.
+Run `agentpack doctor` when an agent integration, MCP setup, hook, or installed CLI path looks stale.
 
 ## What AgentPack Gives Your Agent
 
@@ -127,28 +146,43 @@ It reuses cached file summaries and snapshot metadata so repeated packs do not s
 - likely tests and commands
 - repo rules and agent instructions
 - compact context pack under budget
+- curated broad repo context for review/share/audit tasks without a separate bundle command
+- citation-backed provenance for packed claims and review artifacts
+- review preflight and staged review prompts for file-grounded PR review
+- local memory, evaluation, and runtime/performance diagnostics for repeat workflows
 - cached summaries for faster repeated orientation
 - omitted-file receipts for review
 - freshness warnings when task or git state changes
 - local benchmark data when selected context misses real changed files
 
+## What's Current In 0.3.34
+
+- MCP setup is now checked in normal install, repair, and doctor flows, with clear separation between config registration, local runtime readiness, and live host exposure.
+- Agent instructions now prefer MCP only after a readiness call proves live tools, then fall back to bounded diagnostics, CLI context refresh, and direct repo search when host tools are missing.
+- Review and deployment tasks now get stronger source-of-truth routing so PR reviews stay anchored to the target diff and deploy work prioritizes rendered config plus live platform state.
+- `agentpack pack --task "<task>"` works again as a one-command task write plus context pack path, while `--task auto` remains the default context-source mode.
+- TOON citation validation is stricter about path tokens so prose before evidence no longer turns into a bogus file path.
+- Hook reminders are deduplicated per task/session and explain MCP fallback without repeating on every prompt.
+
 ## Proof So Far
 
-AgentPack's current public benchmark checks one narrow thing: whether selected context overlaps with files actually changed in historical commits.
+AgentPack's current public benchmark checks one narrow thing: whether selected context overlaps with files actually changed in historical commits. Treat it as evidence for a ranked starting map, not proof that any agent will finish every task faster or better.
 
 Current scoped result:
 
 | Signal | Result | Developer meaning |
 |---|---:|---|
-| Public commit cases | 108 | real historical file-selection checks |
-| Average recall | 66.0% | did AgentPack include files that mattered? |
-| Token precision | 51.1% | how much of pack was useful instead of noise? |
+| Public commit cases | 107 | real historical file-selection checks |
+| Average recall | 65.7% | did AgentPack include files that mattered? |
+| Token precision | 51.4% | how much of pack was useful instead of noise? |
 | Pack p50 | 315 tokens | typical compact starting context |
 | Pack p95 | 1,137 tokens | larger but still bounded starting context |
 
-Source: [`benchmarks/results/2026-06-14-public.md`](benchmarks/results/2026-06-14-public.md). Benchmark guide: [`docs/benchmarking.md`](docs/benchmarking.md).
+Source: [`benchmarks/results/2026-06-25-public.md`](benchmarks/results/2026-06-25-public.md). Benchmark guide: [`docs/benchmarking.md`](docs/benchmarking.md).
 
-This is useful but not magic. It says AgentPack often gets meaningful files into a small pack. It does not claim every agent finishes faster or writes better code. Agent success A/B benchmarks should report task success, tool calls, token cost, and time-to-first-correct-file.
+This is useful but not magic. It says AgentPack often gets meaningful files into a small pack. It does not replace source inspection, tests, runtime evidence, or review. Agent success A/B benchmarks should report task success, tool calls, token cost, validation quality, and time-to-first-correct-file.
+
+E2E outcome proof is tracked separately in [`benchmarks/results/e2e-ab-status.md`](benchmarks/results/e2e-ab-status.md). Do not treat file-selection results as task-success or cost-savings proof.
 
 ## What We Want To Prove Next
 
@@ -231,7 +265,7 @@ Do not use AgentPack when:
 
 ## How It Works
 
-AgentPack scans repo locally, builds and reuses file summaries, indexes local skills and rules, combines filename, git, config, dependency, summary, and benchmark signals, ranks likely files for task, then renders a compact context pack.
+AgentPack scans repo locally, builds and reuses file summaries, indexes local skills and rules, combines filename, git, config, dependency, summary, memory, and benchmark signals, ranks likely files for task, then renders a compact context pack. Review/share/audit tasks also get broad module summaries and inventory receipts in the same artifact.
 
 It can expose the same workflow through CLI, markdown files, MCP tools, hooks, plugins, and CI.
 
@@ -286,13 +320,18 @@ pipx ensurepath
 
 ## Status
 
-Alpha: `0.3.25`.
+Alpha: `0.3.34`.
 
 Works, tested, and used in real sessions. Python and JavaScript/TypeScript have strongest support. APIs may change before 1.0.
 
 Platform support targets macOS, Linux, and Windows PowerShell with Git for Windows. `cmd.exe` and bare Git setups are not supported yet.
 
 Name note: PyPI package is `agentpack-cli`, npm package is `@vishal2612200/agentpack`, and command is `agentpack`. This project is unrelated to AgentPack dataset papers or other repos with the same name.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, validation, and PR expectations.
+Community behavior is covered by [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## License
 

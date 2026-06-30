@@ -44,6 +44,10 @@ must_rules:
     enforcement:
       type: rule
       target: R023
+  - must: "For public images that are verified to run as a non-root UID, managed app workloads and init Jobs should set restricted-compatible security context (`runAsNonRoot`, `runAsUser`, `runAsGroup`, `fsGroup`, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`) unless the image requires root or extra capabilities."
+    enforcement:
+      type: manual
+      note: "Requires verified image UID and runtime security-context compatibility evidence."
   - must: "App resource must use `spec.data.url`."
     enforcement:
       type: rule
@@ -180,6 +184,10 @@ must_rules:
     enforcement:
       type: rule
       target: R006
+  - must: "If a workload emits PodSecurity admission warnings and the image runs as a non-root user, add the restricted-compatible security context before reporting the template ready."
+    enforcement:
+      type: manual
+      note: "Requires live PodSecurity warning and image UID evidence."
   - must: "Do not use `emptyDir`."
     enforcement:
       type: rule
@@ -388,7 +396,7 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires semantic classification of user-supplied versus generated values."
-  - must: "When the user explicitly asks to enter application administrator credentials, declare the administrator username/password in `spec.inputs`, pass them as direct env values, and apply them through the application's documented bootstrap or initialization path. Keep database credentials on KubeBlocks secrets."
+  - must: "When application administrator credentials are user-configurable, declare both administrator username and password in `spec.inputs` as required inputs with no `default` field, pass them as direct env values, and apply them through the application's documented bootstrap or initialization path. Keep database credentials on KubeBlocks secrets."
     enforcement:
       type: manual
       note: "Requires app-specific bootstrap credential semantics and secret-classification review."

@@ -103,6 +103,18 @@
       "category": "Writing"
     },
     {
+      "name": "web-design-math",
+      "source": {
+        "source": "local",
+        "path": "./plugins/web-design-math"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
       "name": "customer-discovery",
       "source": {
         "source": "local",
@@ -155,6 +167,18 @@
       "source": {
         "source": "local",
         "path": "./plugins/b2b-sales"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "influence",
+      "source": {
+        "source": "local",
+        "path": "./plugins/influence"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -2,7 +2,7 @@
 name: inject
 description: Load relevant .agents context.
 ---
-> **DEPRECATED (removal target: v3.0.0)** — Use `ao lookup --query "topic"` for on-demand learnings retrieval and phase-scoped context packets. This skill and the `ao inject` CLI command still work as compatibility adapters, but they are not the canonical context path and are not called from default hooks or other skills.
+> **RETIRED CLI (memory-moat removal Phase 1b, age-abev)** — the ao inject CLI command was removed in Phase 1b; `cm`/`cass` + `ao lookup` own retrieval now. Use `ao lookup --query "topic"` for on-demand learnings retrieval and phase-scoped context packets. This skill survives only as a manual-retrieval / knowledge-activation adapter routed onto `ao lookup` + the `ao knowledge` family; it is not the canonical context path and is not called from default hooks or other skills.
 
 # Inject Skill
 
@@ -31,10 +31,10 @@ Load relevant prior knowledge into the current session as a legacy adapter.
 - **`session-bootstrap` → `ao session bootstrap`.** The Universal AgentOps init prompt
   for starting or onboarding a fresh agent session is the `ao session bootstrap`
   orientation report — run it first, then pull decay-ranked context on demand with
-  `ao lookup` / `ao inject`.
+  `ao lookup`.
 - **`using-agentops` → this skill** (skill dir removed; embedded CLI copy retired with
   it). Use when asked to Explain AgentOps workflows: start with `ao session bootstrap`
-  for orientation, then walk the on-demand surfaces here (`ao lookup`, `ao inject`,
+  for orientation, then walk the on-demand surfaces here (`ao lookup`,
   `ao knowledge brief`) for the workflow tour.
 
 Codex skill orchestration default is `$skill` chaining. Terminal CLI
@@ -43,34 +43,16 @@ as the execution surface.
 
 ## How It Works
 
-In the default hookless startup path, no startup injection occurs. Run `ao session bootstrap` for the standard orientation report, then prefer `ao lookup` / `ao inject` for on-demand retrieval and bounded per-phase packets. Use `$inject` or `ao inject` only for legacy compatibility.
+In the default hookless startup path, no startup injection occurs. Run `ao session bootstrap` for the standard orientation report, then pull context on demand with `ao lookup`. The `$inject` trigger is a legacy alias that routes to `ao lookup`.
 
-If you author an opt-in SessionStart hook or run a legacy hook profile, it may call:
+On-demand retrieval is `ao lookup`:
 ```bash
-# lean mode (MEMORY.md fresh): 400 tokens
-ao inject --apply-decay --format markdown --max-tokens 400 \
-  [--bead <bead-id>] [--predecessor <handoff-path>]
-
-# legacy mode: 800 tokens
-ao inject --apply-decay --format markdown --max-tokens 800 \
-  [--bead <bead-id>] [--predecessor <handoff-path>]
+ao lookup --query "<topic>" --limit 5     # top matches by relevance
+ao lookup --bead <bead-id>                # learnings from a bead's lineage
+ao lookup <artifact-id>                    # one artifact by ID
 ```
 
-This legacy path searches for relevant knowledge and prints a bounded summary.
-
-### Work-Scoped Injection
-
-When `--bead` is provided (via `HOOK_BEAD` env var from Gas Town):
-- Learnings tagged with the same bead ID get a 1.5x score boost
-- Learnings matching bead labels get a 1.2x boost
-- Untagged learnings still appear but ranked lower
-
-### Predecessor Context
-
-When `--predecessor` is provided (path to a handoff file):
-- Extracts structured context: progress, blockers, next steps
-- Injected as "Predecessor Context" section before learnings
-- Supports explicit handoffs, auto-handoffs, and pre-compact snapshots
+`ao lookup` searches the learnings / patterns / sessions corpus and returns a bounded, recency-weighted summary. (The legacy `ao inject` CLI — token-budgeted markdown injection, `--predecessor` handoff context, SessionStart-hook delivery — was retired in Phase 1b; `ao session bootstrap` + `ao lookup` cover orientation and on-demand retrieval.)
 
 ## Manual Execution
 
@@ -159,21 +141,6 @@ Knowledge relevance decays over time (~17%/week). More recent learnings are weig
 
 ## Examples
 
-### Opt-In Hook Profile Invocation (legacy only)
-
-**Hook trigger:** an externally authored or legacy `session-start.sh` may run at session start with `AGENTOPS_STARTUP_CONTEXT_MODE=lean` or `legacy`
-
-**What happens:**
-1. Hook calls `ao inject --apply-decay --format markdown --max-tokens 400` (lean) or `--max-tokens 800` (legacy)
-2. CLI searches `.agents/learnings/`, `.agents/patterns/`, `.agents/research/` for relevant artifacts
-3. CLI applies recency-weighted decay (~17%/week) to rank results
-4. CLI outputs top-ranked knowledge as markdown within token budget
-5. Agent presents injected knowledge in session context
-
-**Result:** Prior learnings, patterns, and research are available for legacy hook profiles. This is not the default AgentOps 3.0 path.
-
-**Note:** In the default hookless path, run `ao session bootstrap` and then pull context explicitly with `ao lookup` or `ao inject`.
-
 ### Manual Context Injection
 
 **User says:** `$inject authentication` or "recall knowledge about auth"
@@ -192,9 +159,9 @@ Knowledge relevance decays over time (~17%/week). More recent learnings are weig
 | Problem | Cause | Solution |
 |---------|-------|----------|
 | No knowledge injected | Empty knowledge pools or ao CLI unavailable | Run `$post-mortem` to seed pools; verify ao CLI installed |
-| Irrelevant knowledge | Topic mismatch or stale artifacts dominate | Use `--context "<topic>"` to filter; prune stale artifacts |
-| Token budget exceeded | Too many high-relevance artifacts | Reduce `--max-tokens` or increase topic specificity |
-| Decay too aggressive | Recent learnings not prioritized | Check artifact modification times; verify `--apply-decay` flag |
+| Irrelevant knowledge | Topic mismatch or stale artifacts dominate | Use `ao lookup --query "<topic>"` to filter; prune stale artifacts |
+| Too many results | Too many high-relevance artifacts | Reduce `ao lookup --limit` or increase topic specificity |
+| Decay too aggressive | Recent learnings not prioritized | Check artifact modification times (recency-weighted scoring is applied automatically) |
 
 ## Knowledge Activation (merged from `knowledge-activation`, cp-auc)
 
@@ -244,7 +211,6 @@ Consumer-facing outputs: `.agents/knowledge/book-of-beliefs.md`, `.agents/playbo
 
 ## Reference Documents
 
-- [references/inject-cli.feature](references/inject-cli.feature) — Executable spec: `ao inject` CLI command behavior (header, JSON contract, `--for` filtering), linked to cmd tests (soc-jnfgi)
 - [references/knowledge-activation.feature](references/knowledge-activation.feature) — Executable spec: consolidate evidence, distill beliefs/playbooks, compile goal-time briefing, surface gaps (soc-qk4b)
 - [references/knowledge-activation-dag.md](references/knowledge-activation-dag.md) — DAG and trust gates for evidence consolidation
 - [references/knowledge-activation-output-surfaces.md](references/knowledge-activation-output-surfaces.md) — canonical activation output surfaces and trust boundaries

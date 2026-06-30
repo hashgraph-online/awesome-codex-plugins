@@ -8,7 +8,7 @@
 >
 > **Mechanism status:** `ao agent bundle` (ag-jspr) and `ao mcp serve` (ag-higd)
 > are open, ready beads under epic ag-7s9fo — planned, not yet in the live CLI.
-> The `ao session bootstrap` / `ao inject` / `ao corpus inject` / `ao validate` /
+> The `ao session bootstrap` / `ao lookup` / `ao corpus inject` / `ao validate` /
 > `ao goals measure` commands the bundled agent calls are real today. Until the
 > two planned commands land, hand-stitch the Agent definition (below) and expose
 > `ao` as a shell-tool spec instead of an MCP server.
@@ -64,11 +64,11 @@ it can call `session_bootstrap`, `inject`, `corpus_inject`, `validate`,
   (a documented tool that shells out to `ao <verb>`), which the SDK and Managed
   Agents both accept.
 - **Self-hosted sandbox (bushido):** run the MCP server **inside** the sandbox
-  boundary with tailnet access to Dolt, so `ao inject` / `ao corpus inject` read
+  boundary with tailnet access to Dolt, so `ao lookup` / `ao corpus inject` read
   the live corpus over the tailnet (Dolt on the WSL node) without leaving the
   boundary. The sandbox's private MCP wiring is tracked under epic ag-p7ebg.
 
-**Checkpoint:** the agent can call `ao session bootstrap` + `ao inject` itself
+**Checkpoint:** the agent can call `ao session bootstrap` + `ao lookup` itself
 before doing any work.
 
 ## Phase 3 — Gate the output through the cockpit path

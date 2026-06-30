@@ -1067,8 +1067,8 @@
     {
       "name": "agent-native",
       "source_skill": "skills/agent-native",
-      "source_hash": "3381d2c074dfd912597e6970e6b209a540ce462574437b6c5c6f4b2ac7e2aa6d",
-      "generated_hash": "a354fe96de9ec0ed7f2d94ae6c81d39df40d3cd1f540735d2c84a6499a846626"
+      "source_hash": "5e60d4ffe006099bbe8da5cbf567346cf414ddb3d92c19c7bcb5c53799111e66",
+      "generated_hash": "48bf2c44234e2e3e844d1a159a90cfe5da79a03eefc8f24543df21501295dee5"
     },
     {
       "name": "agy-headless-evidence",
@@ -1223,8 +1223,8 @@
     {
       "name": "crank",
       "source_skill": "skills/crank",
-      "source_hash": "513e8194a1a1afdee8aa4b547d3452d3a5b8432bf9a8ee8d4b972f0d5058a5e7",
-      "generated_hash": "ed0d28cdf1ce3a79bd13870d1f150755eb66c0f8e576d3fdd873ca9084c727f4"
+      "source_hash": "8bd18cb2e0053796586cbb824efac7c641e54ba4b3368613c8e7397d43d33c99",
+      "generated_hash": "d7e774990add51290d0a6963dae1b8bc0fd212f8882b2e99d0b797140027453d"
     },
     {
       "name": "curate",
@@ -1277,8 +1277,8 @@
     {
       "name": "domain",
       "source_skill": "skills/domain",
-      "source_hash": "ef4a10a4be4630b2bb114990d55378b2bf666c78fe5d2654a19811c53a60bd26",
-      "generated_hash": "f1e43813f48f4c18565c40645557e985c19b703c6cb3dd9cdfdaae54af1450f7"
+      "source_hash": "c3c34f03083a4df4770f24e41faa37d16a8e936353f803ac7ca7a5399feabf25",
+      "generated_hash": "6724b7af6a0b94ace8bc6d1c613b3cf30ece82654520ab4b371aaa196117203d"
     },
     {
       "name": "dual-pane-atm",
@@ -1307,8 +1307,8 @@
     {
       "name": "evolve",
       "source_skill": "skills/evolve",
-      "source_hash": "ff8991a737d4699cd6b942b1236edd2d0f4146710f3fefcc86dcdaa27055315e",
-      "generated_hash": "1d47ea1fae1b44db4aff927c3ed2c7330029624f29f3f765a683ef7b0e2bbe2b"
+      "source_hash": "ad1e952662dd1d909bd23ccf7e48e15ec2a7a6014af14a93c77c13dea25f99bb",
+      "generated_hash": "fa5561d8ca0917e56ee50adc655229950751b1d99cf9a7093b2fff41e7adf268"
     },
     {
       "name": "flywheel",
@@ -1391,8 +1391,8 @@
     {
       "name": "inject",
       "source_skill": "skills/inject",
-      "source_hash": "ddf3780e9a5d6b99dfef0e40950af07f77d7dd41ea00245d20a05756912fdcc6",
-      "generated_hash": "027b32414340584e0b029c219a70a39e1d36d586c30b31c231d470e32c294fac"
+      "source_hash": "46005314355494526ff9d48041102e1bdf72b02000414a5e52d05325148b20ac",
+      "generated_hash": "e35fbd1ffe7196ab111598d1cc7ab7aefae3f539422c782ee78a818efcbe7402"
     },
     {
       "name": "ntm",
@@ -1463,8 +1463,8 @@
     {
       "name": "pre-land-refuters",
       "source_skill": "skills/pre-land-refuters",
-      "source_hash": "37ff6b3225b96c432e2abe824b1979267ee41d5cd2af2a38f0905a9640b7f6f3",
-      "generated_hash": "d68cae13c980829241daf4e15eee5e06e93917c9b5da8a7ed875c463f78b9cc5"
+      "source_hash": "6dc8bd41befd6d4fedc0365bda4c30f847efca6f325b16e025bd0054d414ed7f",
+      "generated_hash": "05807878c8d9972d75c5d4f6dcc6cac5ed17ecf78595ed80221b5ec954393690"
     },
     {
       "name": "pre-mortem",
@@ -1571,8 +1571,8 @@
     {
       "name": "research",
       "source_skill": "skills/research",
-      "source_hash": "ea852da501e9873a461c1e4937fdbad3ca286cc54c7f84d9ba05cddaf38ae6b1",
-      "generated_hash": "fc86aa923faec2dbffa802d7332304c6b6c41aba255f9176d23658e9a1e46a7b"
+      "source_hash": "351ef0b9c836a45e9a73700acc17d31f0bac6b00e31799d7738abe93dbfdf482",
+      "generated_hash": "e996738417274a377f9862b7ff03850b017130bb5e554a47ebecc06e8bfe31ad"
     },
     {
       "name": "reverse-engineer",
@@ -1601,8 +1601,8 @@
     {
       "name": "rpi",
       "source_skill": "skills/rpi",
-      "source_hash": "accd6f442e8b30c7b1e86d118a675585fc5865673cc90fe1d37db82169659a43",
-      "generated_hash": "310df16c8dd49d7ae75731f8ff0ddfe021031a2a25e1a01b26b9e4098b33cd9d"
+      "source_hash": "05691eddcdf1eb9b0e3c6c39ce0e631b039710ee310041a45ab91ab0d98a6b63",
+      "generated_hash": "e579c4a15db2dab6d88d501d2fe34f87e36b92173d10b4598fbcb0f92469480e"
     },
     {
       "name": "sbh",

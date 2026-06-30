@@ -22,8 +22,7 @@ AgentPack is not a coding agent. AgentPack is a local context engine that helps 
 ```bash
 agentpack status
 agentpack route --task "<task>"
-agentpack task set "<task>"
-agentpack pack --task auto
+agentpack pack --task "<task>"
 ```
 
 Prefer AgentPack MCP tools when available: route first, then fetch full context only when needed.

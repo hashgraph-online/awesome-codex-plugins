@@ -862,6 +862,21 @@
       "description": "UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code."
     },
     {
+      "name": "superloopy",
+      "displayName": "Superloopy",
+      "source": {
+        "source": "local",
+        "path": "./plugins/beefiker/superloopy"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Evidence-gated Codex loop harness with specialist skills, including near-pixel authorized website cloning backed by screenshots, assets, build output, and visual QA.",
+      "icon": "./plugins/beefiker/superloopy/web/assets/luffy.svg"
+    },
+    {
       "name": "tailtest",
       "displayName": "tailtest",
       "source": {
@@ -1008,20 +1023,6 @@
       "icon": "./plugins/villagesql/villagesql-skills/assets/icon.svg"
     },
     {
-      "name": "waggle",
-      "displayName": "Waggle",
-      "source": {
-        "source": "local",
-        "path": "./plugins/Abhigyan-Shekhar/Waggle-mcp"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions."
-    },
-    {
       "name": "wingman",
       "displayName": "Wingman",
       "source": {
@@ -1035,6 +1036,20 @@
       "category": "Development & Workflow",
       "description": "Cross-platform AI coding-agent plugin for repo-local project memory, data-contract checks, and project-map discovery before agents edit code.",
       "icon": "./plugins/lsshym/wingman.ai/assets/icon.svg"
+    },
+    {
+      "name": "waggle",
+      "displayName": "Waggle",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Abhigyan-Shekhar/Waggle-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions."
     },
     {
       "name": "workflow-kit",
@@ -1622,6 +1637,21 @@
       "category": "Tools & Integrations",
       "description": "Team collaboration via OpenProject integration.",
       "icon": "./plugins/varaprasadreddy9676/team-codex-plugins/assets/openproject-icon.svg"
+    },
+    {
+      "name": "ophis",
+      "displayName": "Ophis",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ophis-fi/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Onchain token swaps for Codex via the hosted Ophis MCP server, MEV-protected and gasless, built on CoW Protocol.",
+      "icon": "./plugins/ophis-fi/skills/assets/icon.svg"
     },
     {
       "name": "orgx-codex-plugin",

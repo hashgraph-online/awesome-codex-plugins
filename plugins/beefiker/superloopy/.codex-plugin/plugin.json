@@ -1,0 +1,49 @@
+{
+  "name": "superloopy",
+  "version": "0.5.1",
+  "description": "Lightweight loop harness with strict evidence gates.",
+  "homepage": "https://github.com/beefiker/superloopy#readme",
+  "repository": "https://github.com/beefiker/superloopy",
+  "keywords": [
+    "codex",
+    "codex-plugin",
+    "ai-agents",
+    "evidence-gates",
+    "proof-of-done"
+  ],
+  "author": {
+    "name": "beefiker"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "hooks": [
+    "./hooks/session-start.json",
+    "./hooks/user-prompt-submit.json",
+    "./hooks/pre-tool-use.json",
+    "./hooks/stop.json",
+    "./hooks/subagent-stop.json",
+    "./hooks/subagent-stop-audit.json"
+  ],
+  "interface": {
+    "displayName": "Superloopy",
+    "developerName": "beefiker",
+    "shortDescription": "Strict evidence loop harness without heavyweight ceremony",
+    "longDescription": "Superloopy provides repo-local loop state, explicit success criteria, append-only evidence ledgers, and Codex hook guardrails while keeping workflow overhead low.",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Hooks",
+      "Workflow",
+      "Context Injection"
+    ],
+    "defaultPrompt": [
+      "Use superloopy loop begin for new tasks.",
+      "After hook approval, Superloopy bootstraps the CLI wrapper and bundled custom agents on SessionStart.",
+      "Run superloopy loop guide --json before choosing the next Superloopy command.",
+      "Record Superloopy evidence for this change, using superloopy loop prove when command output is the proof."
+    ],
+    "brandColor": "#2563EB",
+    "screenshots": [],
+    "composerIcon": "./web/assets/luffy.svg",
+    "logo": "./web/assets/luffy.svg"
+  }
+}

@@ -15,6 +15,19 @@ class QualityGateArtifactTests(unittest.TestCase):
             with mock.patch.dict(os.environ, {"DOCKER_TO_SEALOS_ARTIFACTS": "template/demo/index.yaml"}, clear=False):
                 self.assertEqual("template/demo/index.yaml", quality_gate._resolve_artifact_targets(root))
 
+    def test_resolve_artifact_targets_prefers_cli_override(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            with mock.patch.dict(os.environ, {"DOCKER_TO_SEALOS_ARTIFACTS": "template/env/index.yaml"}, clear=False):
+                self.assertEqual(
+                    "template/cli/index.yaml",
+                    quality_gate._resolve_artifact_targets(root, " template/cli/index.yaml "),
+                )
+
+    def test_parse_args_accepts_artifacts(self):
+        args = quality_gate.parse_args(["--artifacts", "template/demo/index.yaml"])
+        self.assertEqual("template/demo/index.yaml", args.artifacts)
+
     def test_resolve_artifact_targets_returns_empty_when_template_missing(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

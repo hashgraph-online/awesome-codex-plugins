@@ -4,7 +4,7 @@
 
 <h1 align="center">RoadmapSmith</h1>
 
-Evidence-backed roadmap workflows for AI coding agents.
+Evidence-backed roadmap workflows for AI coding agents — two commands: `init` and `update`.
 
 ## Install
 
@@ -12,7 +12,6 @@ Evidence-backed roadmap workflows for AI coding agents.
 
 ```bash
 npm install -g roadmapsmith
-roadmapsmith setup
 ```
 
 ### Claude Code bundle
@@ -21,102 +20,127 @@ roadmapsmith setup
 npx skills add PapiScholz/roadmapsmith --skill '*' -a claude-code
 ```
 
-This installs the native Claude GUI slash bundle. It does not install the CLI.
+This installs the native Claude GUI slash commands (`/roadmap-init`, `/roadmap-update`). It does not install the CLI.
 
 ## Quick Start
 
-Empty or low-context repository:
+New repository:
 
 ```bash
-roadmapsmith zero
+roadmapsmith init --product-name "MyApp" --primary-user "solo dev" --project-root .
 ```
 
-`roadmapsmith zero` can also run without a TTY when the brief is complete in `roadmap-skill.config.json` or provided with flags such as `--primary-user`, `--problem-statement`, `--target-outcome`, and `--done-criterion`.
-
-Existing repository:
+Existing repository (import tasks from an existing file):
 
 ```bash
-roadmapsmith maintain --dry-run
-roadmapsmith maintain
+roadmapsmith init --import TODO.md --project-root .
 ```
 
-`maintain` owns only the managed `<!-- rs:managed:* -->` section. If an authored `ROADMAP.md` has task markers but no managed block, use:
+Set up host integration files only (no ROADMAP.md creation):
 
 ```bash
-roadmapsmith update --dry-run
-roadmapsmith update
+roadmapsmith init --setup-only --hosts codex,claude --project-root .
 ```
 
-To intentionally seed a managed section into an authored roadmap, use:
+Preview without writing:
 
 ```bash
-roadmapsmith generate --dry-run
-roadmapsmith generate
-```
-
-Readiness and host setup:
-
-```bash
-roadmapsmith status --json
-```
-
-Complete one task with verified evidence:
-
-```bash
-roadmapsmith update --task <stable-id> --evidence "src/file.ts, test/file.test.ts"
+roadmapsmith init --dry-run --project-root .
 ```
 
 ## Daily Flow
 
-1. Run `roadmapsmith setup` when you want the VS Code task layer and optional Claude hook template.
-2. Use `roadmapsmith zero` for empty repos.
-3. Use `roadmapsmith maintain --dry-run` before applying changes to an existing managed roadmap.
-4. Use `roadmapsmith update` when you only want inline task annotations on an authored roadmap without managed markers.
-5. Use `roadmapsmith status` as the public readiness command.
+Refresh the roadmap with evidence-backed validation:
+
+```bash
+roadmapsmith update --project-root .
+```
+
+Add a task:
+
+```bash
+roadmapsmith update --add-task "Fix login redirect bug" --project-root .
+```
+
+Record evidence for a task:
+
+```bash
+roadmapsmith update --task <stable-id> --evidence "src/auth.js passes all tests" --project-root .
+```
+
+Check northStar alignment vs. repo state:
+
+```bash
+roadmapsmith update --check-drift --project-root .
+```
+
+Run validation audit after refresh:
+
+```bash
+roadmapsmith update --audit --project-root .
+```
+
+Preview any update without writing:
+
+```bash
+roadmapsmith update --dry-run --project-root .
+```
 
 ## Command Surfaces
 
-Canonical public surfaces:
+Two commands:
 
-- `setup`
-- `zero`
-- `maintain`
-- `status`
-- `validate`
-- `update`
+- `init` — creates ROADMAP.md, AGENTS.md, and host integration files
+- `update` — refreshes ROADMAP.md with evidence-backed validation, adds tasks, records evidence, or checks drift
 
-`update` is the public family for both evidence-backed checklist refresh and verified single-task completion. Advanced surfaces such as `init`, `generate`, `generate --full-regen`, `sync`, and `sync --audit` remain available, but they are documented separately in [docs/command-surfaces.md](docs/command-surfaces.md).
+### init flags
 
-`maintain` is conservative by default: it will not seed a new managed block into a non-empty authored roadmap. `update` is the conservative annotation path for existing task lines, while `generate` is the explicit managed-section creation path.
+| Flag | Description |
+|------|-------------|
+| `--product-name <name>` | Product/project name |
+| `--primary-user <user>` | Primary user persona |
+| `--problem-statement <text>` | Problem being solved |
+| `--import <file>` | Import tasks from file (repeatable) |
+| `--hosts <codex,claude>` | Host integrations to set up (default: `codex,claude`) |
+| `--editor <name>` | Editor for host setup (default: `vscode`) |
+| `--setup-only` | Only write host files, skip ROADMAP creation |
+| `--dry-run` | Preview without writing |
+| `--project-root <path>` | Project root (default: cwd) |
 
-Compatibility-only surfaces such as `doctor`, `regenerate`, `/road <action>`, and `/roadmap-sync <action>` remain executable for existing automation but are no longer part of the primary UX.
+### update flags
+
+| Flag | Description |
+|------|-------------|
+| `--add-task <text>` | Add a new task to the managed block |
+| `--task <id>` | Task ID to target (use with `--evidence`) |
+| `--evidence <text>` | Evidence to add to `--task` |
+| `--audit` | Show validation audit after refresh |
+| `--check-drift` | Check northStar alignment vs. repo state |
+| `--strict` | Strict validation mode |
+| `--dry-run` | Preview without writing |
+| `--json` | Output in JSON format |
+| `--project-root <path>` | Project root (default: cwd) |
 
 ## Verification Model
 
-Unchecked implementation tasks do not complete from file existence, token overlap, or test-file presence alone.
+Unchecked tasks are only marked complete when evidence backs them up:
 
-Completion comes from:
+- explicit `Evidence:` lines on the task
+- code, test, or artifact files that match the task text
 
-- explicit `Evidence:`
-- typed `Verify:` metadata
-- fresh behavioral test proof when `Verify: kind=behavior` is used
-
-For independent auditing, prefer:
+For an evidence audit:
 
 ```bash
-roadmapsmith maintain
-roadmapsmith validate --strict --json
+roadmapsmith update --audit
 ```
 
-`sync --audit` remains an advanced mutating summary, not an independent audit engine.
+For strict mode (fails on any unverified checked task):
+
+```bash
+roadmapsmith update --strict --audit
+```
 
 ## Docs
 
 - [roadmap-skill/README.md](roadmap-skill/README.md): CLI and package contract
-- [docs/command-surfaces.md](docs/command-surfaces.md): canonical, advanced, and compatibility taxonomy
-- [docs/troubleshooting-host-setup.md](docs/troubleshooting-host-setup.md): host setup and runtime troubleshooting
-- [docs/use-cases/claude-code.md](docs/use-cases/claude-code.md): Claude-specific install and hook behavior
-- [docs/use-cases/codex-plugin.md](docs/use-cases/codex-plugin.md): Codex plugin install and duplicate-surface troubleshooting
-- [docs/use-cases/sync-audit-mode.md](docs/use-cases/sync-audit-mode.md): maintain, sync, audit, and strict validation semantics
 - [docs/release-readiness.md](docs/release-readiness.md): maintainer and release workflow
-- [docs/audit-remediation.md](docs/audit-remediation.md): post-0.9.33 audit findings and staged remediation roadmap

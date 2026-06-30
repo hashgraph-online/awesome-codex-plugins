@@ -1,6 +1,6 @@
 # Agent-instruction file catalog
 
-Reference data for `/archcore:init` Step 8 (agent-instruction import). Edit this file to add new agent-instruction file types as the ecosystem grows.
+Reference data for `/archcore:init` agent-instruction import — Detect Step A.4 finds candidates and sizes them; Phase B plans the import; Phase E creates it. Edit this file to add new agent-instruction file types as the ecosystem grows.
 
 ## Probe paths
 

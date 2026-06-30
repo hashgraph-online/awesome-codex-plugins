@@ -184,6 +184,34 @@ Use these defaults when the user's request is ambiguous:
   buyers remember the company when pain becomes urgent.
 - `b2b-trust-engineering`: reducing perceived buying risk with relevant proof,
   clear next steps, layered familiarity, and confirmatory sales calls.
+- `influence-audit`: auditing landing pages, emails, scripts, product UX, or
+  negotiations for pressure tactics, fake proof, fake urgency, authority misuse,
+  and ethical persuasion rewrites.
+- `ethical-persuasion-design`: designing persuasive copy, launch offers,
+  fundraising appeals, onboarding prompts, sales pages, and calls to action
+  without deception, coercion, fake scarcity, fake proof, or overstated
+  authority.
+- `reciprocity-offer-design`: designing or auditing free samples, lead magnets,
+  trial offers, concessions, referral gifts, freemium onboarding, and
+  give-first sales strategies.
+- `commitment-ladder-design`: designing or auditing onboarding, activation
+  flows, pledges, public commitments, progressive profiling, retention programs,
+  habit loops, and lowball-risk funnels.
+- `social-proof-evidence`: selecting, writing, or auditing testimonials,
+  reviews, ratings, case studies, customer logos, usage stats, waitlists,
+  rankings, and group-norm messages.
+- `trust-and-liking`: improving cold outreach, sales conversations, customer
+  discovery, community moderation, referral asks, interviews, and
+  relationship-based persuasion where rapport or similarity affects trust.
+- `authority-credibility`: presenting or auditing expertise, credentials,
+  certifications, expert quotes, advisory boards, trust badges, institutional
+  logos, titles, uniforms, or authority signals.
+- `scarcity-urgency`: designing or auditing deadlines, limited seats,
+  inventory messages, waitlists, expiring discounts, launch windows, loss
+  framing, and checkout urgency.
+- `contrast-framing`: sequencing offers, pricing tiers, proposals, negotiation
+  anchors, product demos, before-after comparisons, concession framing, and
+  reason-giving.
 - `traction-bullseye`: choosing and focusing startup traction channels.
 - `traction-channel-research`: researching comparable growth paths and channel
   options before Bullseye ranking.
@@ -227,6 +255,9 @@ Use these defaults when the user's request is ambiguous:
   commitment validation, and notes synthesis.
 - `b2b-sales`: constraint diagnosis, reach engineering, resonance audits,
   timing engines, and trust engineering for B2B sales.
+- `influence`: ethical persuasion audits, reciprocity offers, commitment
+  ladders, social proof, trust and liking, authority credibility, scarcity,
+  urgency, and contrast framing.
 - `traction`: startup traction, channel research, test planning, and
   channel-specific growth skills.
 - `cookiecutter`: `cookiecutter`

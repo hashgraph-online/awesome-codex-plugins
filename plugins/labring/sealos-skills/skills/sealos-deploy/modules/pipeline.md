@@ -754,9 +754,10 @@ Parse the generated template YAML and categorize all environment variables and i
 
 **Category B — User-required inputs:**
 - Template `inputs` with `required: true` and no sensible default
-- Template `inputs` with `required: true` and `default: ''`; the empty default means the deployer must provide the value before deploy
+- Template `inputs` with `required: true` and `default: ''` for non-administrator fields; the empty default means the deployer must provide the value before deploy
+- Administrator username/password inputs are user-required when the app supports bootstrap admin customization; both fields must be required and omit `default`
 - Env vars with empty or placeholder values that the app cannot function without
-- Common examples: admin email, external API keys (OpenAI, SMTP credentials, OAuth client ID/secret)
+- Common examples: admin username, admin password, admin email, external API keys (OpenAI, SMTP credentials, OAuth client ID/secret)
 
 **Category C — Optional with defaults:**
 - Template `inputs` with `required: false` and reasonable defaults
@@ -781,9 +782,9 @@ Configuration for <app-name>:
     - REDIS_URL: auto-composed from service credentials
 
   Requires your input:
-    1. ADMIN_EMAIL — Administrator email address (required)
-    2. OPENAI_API_KEY — OpenAI API key for AI features (required)
-    3. SMTP_HOST — SMTP server for sending emails (required if email needed)
+    1. ADMIN_USERNAME — Administrator login username (required)
+    2. ADMIN_PASSWORD — Administrator login password (required)
+    3. OPENAI_API_KEY — OpenAI API key for AI features (required)
 
   Optional (defaults shown, customize if needed):
     - LOG_LEVEL: "info"
@@ -798,6 +799,7 @@ Configuration for <app-name>:
 2. If user doesn't have a value, explain what it's used for and how to obtain it
    - Example: "OPENAI_API_KEY is needed for AI features. Get one at https://platform.openai.com/api-keys"
 3. If user wants to skip a feature-gating input (e.g., SMTP), explain which features will be unavailable and set an empty value
+4. For administrator username/password inputs, collect both values from the user and pass them to the Template API args; keep the template input definitions required with no defaults.
 
 **For optional inputs:**
 1. Show the default values
@@ -809,31 +811,23 @@ If the AI is unsure what a variable does, read the project README, `.env.example
 
 ### 5.5.4 Apply Configuration to Template
 
-Update the template's `inputs` section with user-provided values:
+Keep user-required `inputs` definitions in the template and pass user-provided values through Template API args:
 
 ```yaml
-# Before (generated)
 inputs:
-  ADMIN_EMAIL:
-    description: 'Administrator email address'
+  ADMIN_USERNAME:
+    description: 'Administrator login username'
     type: string
-    default: ''
     required: true
-
-# After (user configured)
-inputs:
-  ADMIN_EMAIL:
-    description: 'Administrator email address'
+  ADMIN_PASSWORD:
+    description: 'Administrator login password'
     type: string
-    default: 'admin@example.com'
     required: true
 ```
-
-Write the updated template back to `.sealos/template/index.yaml`.
 
 Record all user choices as `CONFIG` for use in Phase 6:
 ```
-CONFIG.args = { ADMIN_EMAIL: "admin@example.com", OPENAI_API_KEY: "sk-..." }
+CONFIG.args = { ADMIN_USERNAME: "admin", ADMIN_PASSWORD: "<secret>", OPENAI_API_KEY: "sk-..." }
 ```
 These `args` will be passed to the Template API's `args` field (Phase 6.2), which overrides or supplies `spec.inputs` in the template.
 
@@ -1078,7 +1072,7 @@ rm -f /tmp/sealos-deploy-rendered.yaml
 | Error | Fix |
 |-------|-----|
 | `unknown field "spec.xxx"` in App CR | Remove the unknown field and retry |
-| PodSecurity warnings | Warnings are non-blocking — deployment still proceeds |
+| PodSecurity warnings | Deployment may proceed; fix compatible securityContext warnings before runtime acceptance when the image runs as non-root |
 | `Forbidden` | Kubeconfig may be expired — re-run auth |
 | `already exists` | Resource exists from a previous deploy — use `kubectl apply` (idempotent) |
 
@@ -1115,6 +1109,12 @@ Collect the runtime footprint:
 node "<SKILL_DIR>/scripts/sealos-footprint.mjs" --namespace "$NAMESPACE" --app "<app-name>"
 ```
 
+Scan logs once after initial readiness:
+
+```bash
+node "<SKILL_DIR>/scripts/sealos-log-scan.mjs" --namespace "$NAMESPACE" --app "<app-name>" --since 10m --tail 300
+```
+
 For every web application:
 
 ```bash
@@ -1136,11 +1136,18 @@ node "<SKILL_DIR>/scripts/sealos-live-smoke.mjs" \
   --auth-path "/api/languages/get"
 ```
 
-After the browser/API smoke, inspect recent logs again:
+After the browser/API smoke, scan recent logs again:
 
 ```bash
-KUBECONFIG=~/.sealos/kubeconfig kubectl --insecure-skip-tls-verify \
-  logs -n "$NAMESPACE" pod/<pod> --all-containers --tail=300
+node "<SKILL_DIR>/scripts/sealos-log-scan.mjs" --namespace "$NAMESPACE" --app "<app-name>" --since 10m --tail 300
+```
+
+For web applications, request one random missing path from the real App URL and scan logs once more:
+
+```bash
+MISSING_PATH="/__sealos_missing_$(date +%s)"
+curl -k -sS -o /dev/null -w "%{http_code}\n" "$APP_URL$MISSING_PATH"
+node "<SKILL_DIR>/scripts/sealos-log-scan.mjs" --namespace "$NAMESPACE" --app "<app-name>" --since 10m --tail 300
 ```
 
 Inspect the live main container startup command for managed app workloads:
@@ -1157,6 +1164,7 @@ Acceptance checklist:
 - Service endpoints are populated.
 - The actual App URL loads from a fresh session.
 - Login-gated apps complete setup/login with deploy-time administrator credentials and one authenticated action. Passwords remain masked in all output.
+- A random missing path returns HTTP 404 and the follow-up log scan has no traceback-style `HTTPException` / `NotFound` noise.
 - SSR/browser failure text such as `Application error`, `server-side exception`, `Internal Server Error`, and `Unhandled Runtime Error` is absent from smoke responses.
 - Recent logs are clear of recurring startup, migration, bootstrap, and access-control failures.
 - Main business containers keep `command`/`args` short and close to the official entrypoint; repeated file preparation, permission repair, database bootstrap, or compatibility self-healing belongs in initContainers, Jobs, or ConfigMap scripts.

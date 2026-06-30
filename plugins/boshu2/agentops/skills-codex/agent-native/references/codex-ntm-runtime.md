@@ -55,7 +55,7 @@ Codex shells out directly, so "exposing `ao`" just means the pane can run
 over the tailnet:
 
 ```bash
-ssh bushido 'cd ~/dev/agentops && ao inject --query "<topic>"'
+ssh bushido 'cd ~/dev/agentops && ao lookup --query "<topic>"'
 ssh bushido 'cd ~/dev/agentops && ao corpus inject --query "<topic>"'
 ssh bushido 'cd ~/dev/agentops && ao validate --gate --changes <files>'
 ```
@@ -67,7 +67,7 @@ substrate; each pane dispatches its own operating-loop skill run. See
 (file locks, inboxes, handoffs) uses **agent-mail**; see the `using-atm` and
 `agent-mail` skills.
 
-**Checkpoint:** the pane can call `ao session bootstrap` + `ao inject` itself
+**Checkpoint:** the pane can call `ao session bootstrap` + `ao lookup` itself
 before doing any work.
 
 ## Phase 3 — Gate the output through the cockpit path

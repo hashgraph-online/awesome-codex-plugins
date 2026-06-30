@@ -251,7 +251,9 @@ into durable planning artifacts.
 
 ## Aegis Project Workspace
 
-Workspace creation is triggered by the plan save step. See `using-aegis/SKILL.md` Rule 3 for the hard binary rule. If the project already has docs/adr/ or architecture docs, reference them — do not duplicate authority.
+Workspace creation is triggered by the plan save step. See the workspace support
+rule in `using-aegis/SKILL.md` for the hard binary rule. If the project already
+has docs/adr/ or architecture docs, reference them — do not duplicate authority.
 
 ## File Structure
 
