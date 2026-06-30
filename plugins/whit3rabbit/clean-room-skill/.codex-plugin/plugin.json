@@ -1,6 +1,6 @@
 {
   "name": "clean-room",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Spec-first clean-room workflow for authorized source analysis without replacement code.",
   "author": {
     "name": "whit3rabbit"

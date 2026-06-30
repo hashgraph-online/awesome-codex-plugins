@@ -53,9 +53,9 @@ dev = [
   "pip>=26.1.2",
   "pip-audit>=2.10.1",
   "PyYAML>=6.0.3",
-  "pytest>=9.1.0",
+  "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "ruff>=0.15.17",
+  "ruff>=0.15.18",
   "twine>=6.2.0",
   "types-PyYAML>=6.0.12.20260518",
 ]

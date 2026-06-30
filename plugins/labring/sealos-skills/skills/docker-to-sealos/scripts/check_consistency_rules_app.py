@@ -1329,6 +1329,50 @@ def _iter_volume_mounts(template_spec: Dict[str, Any], volume_name: str) -> Iter
                 yield mount
 
 
+def _iter_configmap_default_mode_lines(doc: YamlDocument) -> Iterable[Tuple[int, str]]:
+    lines = doc.source.splitlines()
+    in_config_map = False
+    config_map_indent = -1
+
+    for offset, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        indent = len(line) - len(line.lstrip(" "))
+        if in_config_map and indent <= config_map_indent:
+            in_config_map = False
+            config_map_indent = -1
+
+        if re.match(r"^\s*configMap\s*:\s*(?:#.*)?$", line):
+            in_config_map = True
+            config_map_indent = indent
+            continue
+
+        if in_config_map and re.match(r"^\s*defaultMode\s*:", line):
+            yield doc.start_line + offset, stripped
+
+
+def _configmap_default_mode_violation(line_text: str) -> Optional[str]:
+    _, _, raw_value = line_text.partition(":")
+    value = raw_value.split("#", 1)[0].strip().strip("'\"")
+    if value.startswith("0") and value != "0":
+        return (
+            "ConfigMap volume defaultMode should be omitted; leading-zero modes can be rendered as "
+            "invalid decimal values by the Sealos template path"
+        )
+    try:
+        numeric_value = int(value, 10)
+    except ValueError:
+        return "ConfigMap volume defaultMode should be omitted unless explicitly required"
+    if numeric_value > 0o777:
+        return (
+            "ConfigMap volume defaultMode must be omitted or use a Kubernetes-valid decimal file mode "
+            "(0-511)"
+        )
+    return "ConfigMap volume defaultMode should be omitted unless explicitly required"
+
+
 def check_configmap_file_mount_contract(context: ScanContext) -> List[Violation]:
     violations: List[Violation] = []
     configmaps_by_path = _configmap_documents_by_path(context)
@@ -1353,6 +1397,12 @@ def check_configmap_file_mount_contract(context: ScanContext) -> List[Violation]
             continue
 
         local_configmaps = configmaps_by_path.get(doc.path, {})
+        for line_number, line_text in _iter_configmap_default_mode_lines(doc):
+            message = _configmap_default_mode_violation(line_text)
+            if message is None:
+                continue
+            violations.append(Violation(rule_id="R043", path=doc.path, line=line_number, message=message))
+
         for volume in _iter_configmap_volumes(template_spec):
             volume_name = str(volume.get("name")).strip()
             config_map = volume.get("configMap")

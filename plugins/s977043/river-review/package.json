@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.32.0",
+  "version": "1.34.0",
   "private": true,
   "workspaces": [
     "runners/node-api",
@@ -26,6 +26,7 @@
     "dev": "docusaurus start",
     "build": "docusaurus build",
     "serve": "docusaurus serve",
+    "assets:social": "node scripts/build-social-assets.mjs",
     "test": "node --test",
     "lint:md": "markdownlint '**/*.md' --ignore node_modules",
     "lint:text": "textlint 'pages/**/*.md'",

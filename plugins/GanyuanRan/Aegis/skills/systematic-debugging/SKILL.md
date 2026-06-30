@@ -11,7 +11,7 @@ description: Use when encountering any bug, test failure, or unexpected behavior
      L5 cross-system contract → L6 platform constraint → L7 spec gap.
      Stop when no deeper "why" remains OR terminal unactionable (T1-T4).
   2. Identify owner: compare with working code → locate canonical owner → flag duplicate owners as a finding
-  3. Before fixing, run Patch-Shape Triage and Ripple Signal Triage if the candidate fix touches shared/core/cross-module behavior, contract, source-of-truth, fallback, adapter, duplicate owner, producer+consumer, or consumer-side patching. Run Minimality Check when the candidate fix adds a new branch, fallback, owner, adapter, or compatibility path. Also run Pre-Edit Complexity Check when the candidate fix touches an overloaded owner or may worsen source complexity.
+  3. Before fixing, run Patch-Shape Triage and Ripple Signal Triage if the candidate fix touches shared/core/cross-module behavior, contract, source-of-truth, fallback, adapter, duplicate owner, producer+consumer, or consumer-side patching. Surface Change Necessity for non-trivial fixes. Run Minimality Check when the candidate fix adds a new branch, fallback, owner, adapter, or compatibility path. Also run Pre-Edit Complexity Check when the candidate fix touches an overloaded owner or may worsen source complexity.
   4. Prove: one hypothesis → minimal test → iterate. 3+ failed fixes = question architecture, do not attempt another code fix.
      After fix, if any symptom persists → differential diagnosis (Phase 4 Step 4bis).
   5. Fix: failing test → minimal code at canonical owner → verify → Reflection + architecture review → repair + retirement track
@@ -36,10 +36,10 @@ Especially under time pressure, when "just one quick fix" seems obvious, after m
 ## Quick bug lane
 
 For low-risk, single-owner bugs, keep the report compact: `Symptom`,
-`Reproduction`, `Root Cause`, `Fix Boundary`, and `Verification`. Still collect
-root-cause evidence before editing. If fallback, duplicate owner, consumer-side
-patching, contract risk, shared logic, or cross-module behavior appears,
-escalate to the full workflow.
+`Reproduction`, `Root Cause`, `Change Necessity`, `Fix Boundary`, and
+`Verification`. Still collect root-cause evidence before editing. If fallback,
+duplicate owner, consumer-side patching, contract risk, shared logic, or
+cross-module behavior appears, escalate to the full workflow.
 
 ## The Four Phases
 
@@ -156,7 +156,29 @@ escalate to the full workflow.
    persistent-state risk, compose `anti-entropy-governance` before editing. It
    decides the path; it does not grant destructive authority.
 
-8. **Pre-Edit Complexity Check**
+8. **Change Necessity**
+
+   After root cause and canonical owner are identified, but before repair code,
+   make the code-change decision visible. This is the "should code change at
+   all?" check; it is not a new artifact and does not belong in the
+   `using-aegis` hot path.
+
+   ```text
+   Change Necessity:
+   - User-visible need:
+   - No-change / non-code option:
+   - Why code change is necessary:
+   - Minimum change boundary:
+   - Decision: no-change | docs/config-only | code-change | needs-clarification
+   ```
+
+   If the decision is `no-change`, do not edit source code. If the decision is
+   `docs/config-only`, narrow the fix to that surface and verify it. If the
+   decision is `needs-clarification`, pause before repair. If the decision is
+   `code-change`, carry the minimum boundary into `Fix Boundary`,
+   `Minimality Check`, and verification.
+
+9. **Pre-Edit Complexity Check**
 
    After root cause and canonical owner are identified, check whether the fix
    adds complexity to the wrong or overloaded place:
@@ -257,10 +279,10 @@ canonical owner.
    - Address the root cause identified. ONE change at a time.
    - No "while I'm here" improvements. No bundled refactoring.
    - Prefer changing the canonical owner instead of stacking more logic into a fallback path.
-   - If Patch-Shape Triage, Ripple Signal Triage, or Pre-Edit Complexity Check
-     fired, carry its owner, downstream, contract, source-of-truth, fallback,
-     retirement, edit-boundary, and verification findings into the fix
-     boundary before editing code.
+   - If Change Necessity, Patch-Shape Triage, Ripple Signal Triage, or
+     Pre-Edit Complexity Check fired, carry its owner, downstream, contract,
+     source-of-truth, fallback, retirement, edit-boundary, minimum-boundary, and
+     verification findings into the fix boundary before editing code.
 
 3. **Verify Fix**
    - Test passes now? No other tests broken? Issue actually resolved?

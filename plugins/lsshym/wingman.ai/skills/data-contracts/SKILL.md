@@ -1,77 +1,65 @@
 ---
 name: data-contracts
-description: Use when aligning provider/consumer data contracts: APIs, webhooks, events, database rows, SDK responses, schemas, DTOs, generated clients, domain models, forms, config/env/CLI, UI props, or AI outputs. Trigger for real response wiring, mock replacement, field/schema/type mismatch, DTO mapping, enum/status drift, missing/optional fields, pagination, nested payloads, 接口对接, 字段对齐, 类型对不上. Do not use for styling, copy edits, imports, or no-boundary renames/refactors.
+description: Use when source data and receiving code may disagree on fields, shape, optionality, enum values, or business meaning. Trigger for real data wiring, mock replacement, field/schema/type mismatch, snake_case/camelCase, 接口对接, 字段对齐, 类型对不上. Do not use for styling, copy, imports, or no-boundary renames.
 ---
 
 # Data Contracts
 
-Align provider and consumer contracts without hiding semantic drift. A contract can be an API payload, database row, event, webhook, config object, SDK response, CLI input, schema, DTO, generated client type, domain model, form payload, AI structured output, or component interface.
+Use this skill when real source data must be connected to receiving code and the field names, structure, optionality, enum values, or business meaning may differ.
 
-Core principle: do not preserve a shape just because it already exists. First decide whether the consumer contract is local/temporary or stable/shared, then preserve the contract that owns the meaning. Semantic mismatch beats scope shortcuts: even local consumer contracts must not be renamed or deleted when they express a different business concept from the provider.
+Core principle: align the smallest boundary that owns the meaning. Same meaning plus local receiver usually means direct source usage. Same meaning plus stable receiver usually means one boundary translation. Different meaning or missing source data must stay visible.
 
 ## When To Use
 
 Use this when connecting one boundary to another:
 
-- API response -> UI, service, or domain model.
+- API or generated client response -> UI, service, request builder, or domain model.
 - Database row -> domain entity.
 - Event or webhook payload -> handler input.
-- SDK result -> internal app model.
+- SDK/vendor response -> internal app model.
 - Config/env/CLI input -> runtime options.
+- Form state -> request DTO or view contract.
+- AI structured output -> parser, schema, tool input, or downstream data model.
 - Legacy type -> new type.
-- Form state -> request DTO.
-- AI structured output -> tool or schema input.
-- Generated schema/client -> hand-written code.
 
 Do not use this for pure formatting, styling, copy edits, or refactors with no boundary contract.
 
+Contract alignment is not permission to redesign the receiver. Do not change UI layout, visible copy, interactions, handler behavior, config behavior, domain behavior, or unrelated code unless the contract decision requires it.
+
 ## Required Contract Checkpoint
 
-Before changing code for a non-trivial contract boundary, identify:
+Before changing code for a non-trivial boundary, identify:
 
-- **Provider**: actual supplied shape from schema, sample, fixture, migration, source code, docs, or runtime payload.
-- **Consumer**: receiving code shape, type, schema, DTO, handler, model, form, or interface.
-- **Source of truth**: which side owns the business meaning, and why.
+- **Source**: actual supplied shape from schema, sample, fixture, migration, source code, docs, or runtime payload.
+- **Receiver**: receiving code shape, type, schema, DTO, handler, model, form, config object, or interface.
+- **Owner/source of truth**: which side owns the business meaning, and why.
 - **Gap**: naming-only, semantic mismatch, missing field, structural mismatch, enum/value mismatch, optionality mismatch, or source conflict.
-- **Binding location**: parser/schema, adapter/mapper, repository boundary, domain model, request builder, event handler, component interface, or direct source use.
+- **Binding location**: direct source use, local alias, parser/schema, adapter/mapper, repository boundary, domain model, request builder, event handler, component interface, or config parser.
 - **Verification**: focused test, typecheck, schema parse, sample payload, fixture, integration check, compile step, or render path.
 
 Keep the checkpoint concise. Do not expose private chain-of-thought; report only concrete contract facts and decisions when useful.
 
-## Core Protocol
+## Decision Protocol
 
 Perform this analysis internally. Do not ask the user at each step. Ask only when semantic ownership, source of truth, or behavior-changing contract decisions cannot be resolved from code, memory, schemas, or docs.
 
-1. **Identify the provider contract**: What shape is actually provided? Use real schemas, samples, types, migrations, docs, or source code.
-2. **Identify the consumer contract**: What shape is expected by the receiving code?
-3. **Decide ownership/source of truth by scope and stability**:
-   - Local, temporary, single-page, or component-owned consumer types can usually change to match the provider only when the meaning is the same.
-   - Shared domain models, public APIs, persisted shapes, exported SDK types, and widely-used app types are stable; preserve them and convert at a boundary.
-   - Memory or domain truth wins.
-   - Explicit schema/spec wins.
-   - Existing project architecture wins.
-   - Stable internal domain models usually win over external vendor payloads.
-   - Backend/product API usually wins over display-only frontend components.
-   - If changing a type would ripple through many call sites, treat it as stable unless the user asked for that migration.
-   - If a local consumer name, function, prop, or enum expresses a business concept the provider does not expose, preserve that consumer concept and expose the missing/uncertain boundary instead of renaming it to the provider concept.
-   - If still unclear and semantics matter, ask.
-4. **Classify the gap**:
-   - Naming only: same meaning, different style (`user_name` -> `userName`).
-   - Semantic mismatch: names or values imply different meaning (`status` vs `workflowKind`). Do not resolve this by renaming, deleting, or narrowing the consumer contract to the provider concept.
-   - Missing field: consumer requires data provider does not supply.
-   - Structural mismatch: nesting, arrays, pagination, or ownership differ.
-   - Source-of-truth conflict: both sides could plausibly own meaning.
-5. **Choose the binding location**: decide where the provider shape becomes the consumer shape. Do not ask "how do I make this line compile?" Ask "where should this contract translation live?"
-   - Schema/parser for external untrusted input.
-   - Adapter/mapper/repository boundary when both sides are stable or external data must not leak inward.
-   - Domain model when business meaning must be normalized.
-   - Consumer interface when the consumer should accept the source contract directly.
-   - Direct source usage for large, read-only, display-only shapes where mapping adds noise.
-   - No new adapter when the only change is one local display field, the consumer is not shared, and the semantics are identical.
-6. **Avoid ad-hoc call-site mapping**: Do not scatter casual field renames, proxy fields, or dummy values at random call sites. Local aliasing is fine only when semantics are identical and scope is small.
-7. **Handle missing data explicitly**: Choose optionality, explicit fallback, validation error, contract change, or user confirmation. Do not invent placeholder fields just to satisfy types. If the provider lacks data for a distinct consumer concept, keep the consumer concept visible and return/throw/ask rather than replacing it with a different provider concept.
-8. **Preserve behavior**: Change only what is required to align the boundary. Do not fold unrelated refactors into contract work.
-9. **Verify**: Use the project's normal proof: tests, typecheck, schema parse, sample payload, fixture, integration check, or compile step.
+1. **Identify the source shape from real evidence**: Use schemas, samples, fixtures, migrations, source code, docs, generated types, or runtime payloads. Do not infer fields from the receiver.
+2. **Identify the receiver contract**: What code, type, schema, handler, model, form, config object, component, or downstream data model receives the source?
+3. **Decide ownership and stability**:
+   - Memory or current domain truth wins.
+   - Explicit schema/spec/docs win over guesses.
+   - Existing project architecture wins when it clearly owns the boundary.
+   - Local, temporary, single-page, display-only, or component-owned receivers are usually flexible.
+   - Shared domain models, public APIs, persisted shapes, exported SDK types, config objects used by startup, and widely used app types are stable.
+   - If changing a receiver would ripple through many call sites, treat it as stable unless the user asked for that migration.
+4. **If meanings are identical**:
+   - Local/temporary/display/single-use receiver: change the receiver to use source fields directly, or use local aliasing. Do not add an adapter just to preserve naming style such as camelCase over `snake_case`.
+   - Stable/shared/public/domain/persisted receiver: convert once at the boundary that already owns external input or cross-contract translation.
+5. **If meanings differ**: keep concepts separate. Do not rename, cast, narrow, or map by guess just to make types compile. A source `status` is not a receiver `workflowKind` unless evidence proves the same business meaning.
+6. **If source data is missing**: do not add fields to the source type, fake defaults, placeholder values, or guessed fallbacks. Use a real alternate source, explicit absence, validation failure, deliberate contract change, or user confirmation.
+7. **Choose one binding location**: direct source use, local alias, parser/schema, adapter/mapper, repository boundary, domain model, request builder, event handler, component interface, or config parser. Avoid scattered call-site mapping.
+8. **Keep the change scoped to the data boundary**: no UI redesign, handler rewrite, config behavior change, domain behavior change, or unrelated refactor unless the contract decision requires it.
+9. **Verify**: Use the project's smallest useful proof: focused test, typecheck, schema parse, sample payload, fixture, integration check, compile step, or render path.
 
 ## Example Use Rule
 
@@ -87,11 +75,11 @@ Do not write pseudocode into project files.
 
 - Both sides use different terms that may represent different business concepts.
 - The change would alter a public API, stable domain model, persisted schema, or existing behavior.
-- No memory, docs, schema, or code ownership pattern identifies the source of truth.
-- You cannot tell whether a consumer type is local/temporary or shared/stable.
-- A provider lacks data for a distinct consumer concept.
+- No memory, docs, schema, fixture, code ownership pattern, or architecture identifies the source of truth.
+- You cannot tell whether the receiver is local/temporary or shared/stable.
+- The source lacks data for a distinct receiver concept.
 - Adding an adapter layer would be an architectural decision and the project has no precedent.
 
 ## Common Mistakes
 
-Read `references/anti-patterns.md` when fixing type errors, replacing mock data, mapping API fields, handling missing data, or resolving enum/status/price/permission fields.
+Read `references/anti-patterns.md` when fixing type errors, replacing mock data, mapping source fields, handling missing data, guessing aliases, or resolving enum/status/price/permission fields.

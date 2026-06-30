@@ -58,7 +58,11 @@ Run every step in order. Stop only on an explicit BLOCKED verdict.
 
 ```bash
 mkdir -p .agents/rpi
-if command -v br >/dev/null 2>&1; then TRACKING_MODE=beads; else TRACKING_MODE=tasklist; fi
+# Tracker detection (tracker-agnostic): prefer br (beads_rust), else bd (legacy beads), else tasklist.
+# Users may run EITHER beads CLI; the operationalize step (STEP 4) and the DONE gate use whichever is active.
+if command -v br >/dev/null 2>&1; then TRACKING_MODE=beads; BEADS_CLI=br
+elif command -v bd >/dev/null 2>&1; then TRACKING_MODE=beads; BEADS_CLI=bd
+else TRACKING_MODE=tasklist; BEADS_CLI=; fi
 if command -v ao >/dev/null 2>&1; then AO_AVAILABLE=true; else AO_AVAILABLE=false; fi
 ```
 
@@ -219,12 +223,22 @@ Discovery does NOT relax this requirement; run the admission gate per
 returned bead:
 
 ```bash
-BEADS_DIR="$(ao beads dir)" br show "$BEAD_ID" | bash scripts/check-bead-scenario-coverage.sh --admission -
+# Validate the structured BODY (--json | .description), not the human `br show` render — the render also
+# includes COMMENTS, so a Gherkin block in a comment would fool a bead whose body has no `## Scenarios`.
+BEADS_DIR="$(ao beads dir)" br show "$BEAD_ID" --json 2>/dev/null \
+  | jq -r '(if type=="array" then .[0] else . end).description // ""' \
+  | bash scripts/check-bead-scenario-coverage.sh --admission -
 ```
 
 Exit 1 sends the bead back to `/plan` to be promoted before compiling the
 packet. Exit 2 is a tracker failure — stop and surface it; do not reject the
 bead.
+
+**Tracker-agnostic persistence (STEP 0 `$TRACKING_MODE`):** in `beads` mode `/plan` writes the epic + slice
+children to `br`/`bd` (the STEP 6 DONE gate verifies the epic resolves AND has ≥1 parent-child child). In
+`tasklist` mode (no `br`/`bd` on `PATH`) there is no bead DB, so `/plan` MUST persist the same operationalized
+plan — the epic + its vertical slices with their acceptance — to **`.agents/rpi/tasklist.md`**, which the DONE
+gate checks instead. Either way, an epic with no slices is not an operationalized plan.
 
 ### STEP 4.5 - Optional Scaffold
 
@@ -284,7 +298,47 @@ ao orchestrate shape 2>/dev/null || true # add --unattended for out-of-session/d
 ao ratchet record discovery 2>/dev/null || true
 ```
 
-Emit:
+**DONE gate (the load-bearing completion check — EVERY path, specific-goal included).** Before emitting
+DONE, the plan MUST be PERSISTED in the active tracker (STEP 4's output), not merely named by the packet's
+`epic_id` STRING. Verify the epic + its slice children actually resolve — tracker-agnostically (`br` or `bd`,
+or the tasklist equivalent):
+
+```bash
+EPIC_ID="$(jq -r '.epic_id // empty' .agents/rpi/execution-packet.json 2>/dev/null)"
+BD_DIR="$(ao beads dir 2>/dev/null)"
+if [ "$TRACKING_MODE" = beads ]; then
+  # $BEADS_CLI is br or bd (STEP 0). The packet MUST name an epic that RESOLVES, carries >=1 SLICE child, and
+  # EACH child must carry Gherkin acceptance — an epic alone OR an empty child is not an operationalized plan
+  # (else the bug recurs one level down). The check matches the contract: existence AND Gherkin, not just existence.
+  [ -n "$EPIC_ID" ] || { echo "discovery: packet carries no epic_id — not operationalized; run STEP 4 / /plan before DONE" >&2; exit 1; }
+  epic_json="$(BEADS_DIR="$BD_DIR" "$BEADS_CLI" show "$EPIC_ID" --json 2>/dev/null)"
+  [ -n "$epic_json" ] || { echo "discovery: epic $EPIC_ID not in the tracker ($BEADS_CLI) — operationalize before DONE" >&2; exit 1; }
+  child_ids="$(printf '%s' "$epic_json" | jq -r '(if type=="array" then .[0] else . end).dependents[]? | select(.dependency_type=="parent-child") | .id' 2>/dev/null)"
+  [ -n "$child_ids" ] || { echo "discovery: epic $EPIC_ID has NO vertical-slice children — operationalize the SLICES (STEP 4 / /plan), not just the epic, before DONE" >&2; exit 1; }
+  # Each slice's BODY must pass the canonical Gherkin admission check. Feed the STRUCTURED description field
+  # (--json | .description), NOT the human `br show` render — the render also includes COMMENTS, so a Gherkin
+  # block in a comment would fool a child with an empty body (deterministic + comment-immune).
+  for c in $child_ids; do
+    BEADS_DIR="$BD_DIR" "$BEADS_CLI" show "$c" --json 2>/dev/null \
+      | jq -r '(if type=="array" then .[0] else . end).description // ""' \
+      | bash scripts/check-bead-scenario-coverage.sh --admission - >/dev/null 2>&1 \
+      || { echo "discovery: slice $c lacks Gherkin (## Scenarios) acceptance in its BODY — promote it (STEP 4 / /plan) before DONE" >&2; exit 1; }
+  done
+else
+  # tasklist mode (no br/bd) — the DEGRADED fallback. An arbitrary markdown tracker cannot be machine-verified as
+  # robustly as a bead DB, so this is BEST-EFFORT + fail-closed (documented scope limit, not a hidden no-op):
+  # .agents/rpi/tasklist.md must EXIST and carry the structural markers (an epic, >=1 slice, and Gherkin
+  # Given/When/Then). For machine-verified completion, install br/bd.
+  { [ -s .agents/rpi/tasklist.md ] \
+      && grep -qiE 'epic' .agents/rpi/tasklist.md \
+      && grep -qiE 'slice|^[-*] |^[0-9]+\.' .agents/rpi/tasklist.md \
+      && grep -qiE 'given|when|then' .agents/rpi/tasklist.md ; } \
+    || { echo "discovery: tasklist mode — .agents/rpi/tasklist.md must carry the epic + slices + Gherkin (Given/When/Then); operationalize before DONE (or install br/bd for machine-verified completion)" >&2; exit 1; }
+fi
+```
+
+A plan packet + a passing pre-mortem with **no persisted beads is NOT DONE** — return to STEP 4 to
+operationalize (epic + vertical slices with Gherkin acceptance + deps), then re-check. Only then emit:
 
 ```text
 <promise>DONE</promise>

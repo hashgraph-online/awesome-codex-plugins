@@ -1,6 +1,6 @@
 ---
 name: red-team
-description: 'Probe docs and skills. Use when: adversarially probing a doc, skill, plan, or claim for weaknesses, gaps, or unstated assumptions before it ships.'
+description: Probe docs and skills. Use when
 ---
 # red-team — moved to Mount Olympus (2026-06-10)
 

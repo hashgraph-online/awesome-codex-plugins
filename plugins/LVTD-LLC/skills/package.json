@@ -10,6 +10,7 @@
     "build:registry": "node scripts/build-registry.mjs",
     "build:marketplaces": "node scripts/build-marketplaces.mjs",
     "check": "npm run build && npm run validate:marketplaces && node scripts/check-generated-clean.mjs .claude-plugin .agents plugins",
+    "lint:prose": "vale README.md AGENTS.md CHANGELOG.md CONTEXT.md SECURITY.md docs skills",
     "test": "npm run check",
     "validate:marketplaces": "node scripts/validate-marketplaces.mjs",
     "validate": "node scripts/validate-skills.mjs"

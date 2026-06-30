@@ -16,7 +16,7 @@
 <br />
 
 [![agents](https://img.shields.io/badge/agents-8-7c3aed?style=for-the-badge)](#setup)
-[![references](https://img.shields.io/badge/references-13-e11d48?style=for-the-badge)](#reference)
+[![references](https://img.shields.io/badge/references-15-e11d48?style=for-the-badge)](#reference)
 [![tools](https://img.shields.io/badge/MCP_tools-10-0ea5e9?style=for-the-badge)](#tools)
 [![detector](https://img.shields.io/badge/detector-44_rules-f59e0b?style=for-the-badge)](#tools)
 
@@ -45,7 +45,7 @@ npm i designer-skill-mcp
 
 ### Know
 
-13 reference files cover type, color, motion, a11y, anti-slop, and redesign loops. Your agent reads the right file before writing UI code.
+15 reference files cover type, color, motion, a11y, anti-slop, and redesign loops. Your agent reads the right file before writing UI code.
 
 </td>
 <td width="33%" valign="top" bgcolor="#faf5ff">
@@ -87,8 +87,12 @@ Add the server. Ask in plain language. The agent handles the rest.
 
 <div align="center">
 
-[![skill](https://img.shields.io/badge/design_skill-13_refs-7c3aed?style=flat-square)](skills/designer-skill/)
+[![skill](https://img.shields.io/badge/design_skill-15_refs-7c3aed?style=flat-square)](skills/designer-skill/)
 [![mcp](https://img.shields.io/badge/MCP-10_tools-0ea5e9?style=flat-square)](designer-skill-mcp/)
+
+**Built with it:** [pythinker.com](https://pythinker.com) — a live production site designed end-to-end with this skill.
+
+<a href="https://pythinker.com"><img src="docs/showcase/pythinker-designer-skill-mcp.webp" alt="pythinker.com — built with designer-skill" width="760" /></a>
 
 </div>
 
@@ -142,7 +146,7 @@ Same one-liner everywhere. No API key. Repo-root `mcp.json` is the canonical MCP
 }
 ```
 
-**Updates:** `@latest` for newest npm; pin `@0.10.0` for teams. Plugin skill content updates separately (`/plugin update …`). Registry: `io.github.pythoughts-labs/designer-skill-mcp` (publish via `mcp-publisher` after npm release).
+**Updates:** `@latest` for newest npm; pin @0.11.0 for teams. Plugin skill content updates separately (`/plugin update …`). Registry: `io.github.pythoughts-labs/designer-skill-mcp` (publish via `mcp-publisher` after npm release).
 
 <div align="center">
 
@@ -320,6 +324,7 @@ Use designer-skill to redesign this pricing page without breaking functionality.
 </thead>
 <tbody>
 <tr><td bgcolor="#fff1f2"><code>design-principles.md</code></td><td bgcolor="#f8fafc">Typography, spacing, color, layout, hierarchy (neutral baseline)</td><td align="center" bgcolor="#eff6ff"><b>core</b></td></tr>
+<tr><td bgcolor="#fdf4ff"><code>differentiation-playbook.md</code></td><td bgcolor="#f8fafc">How to be distinctive: inverse test, layout menu, one weird thing, named references</td><td align="center" bgcolor="#eff6ff"><b>core</b></td></tr>
 <tr><td bgcolor="#fff7ed"><code>aesthetic-systems.md</code></td><td bgcolor="#f8fafc">Picking a look: 5 systems with palettes, fonts, shadows</td><td align="center" bgcolor="#eff6ff"><b>core</b></td></tr>
 <tr><td bgcolor="#faf5ff"><code>motion-and-interaction.md</code></td><td bgcolor="#f8fafc">Animation timing, springs, scroll, reduced-motion</td><td align="center" bgcolor="#eff6ff"><b>core</b></td></tr>
 <tr><td bgcolor="#ecfdf5"><code>engineering-and-performance.md</code></td><td bgcolor="#f8fafc">Tokens, a11y, responsive, Core Web Vitals, real-data hardening</td><td align="center" bgcolor="#eff6ff"><b>core</b></td></tr>
@@ -332,13 +337,14 @@ Use designer-skill to redesign this pricing page without breaking functionality.
 <tr><td bgcolor="#ecfdf5"><code>project-init.md</code></td><td bgcolor="#f8fafc">Discovery interview, PRODUCT.md, DESIGN.md setup</td><td align="center" bgcolor="#fdf2f8"><b>extended</b></td></tr>
 <tr><td bgcolor="#faf5ff"><code>craft-flow.md</code></td><td bgcolor="#f8fafc">Shape-then-build pipeline with user gates</td><td align="center" bgcolor="#fdf2f8"><b>extended</b></td></tr>
 <tr><td bgcolor="#f0f9ff"><code>live-mode.md</code></td><td bgcolor="#f8fafc">Browser variant mode: element select, HMR, poll/steer/accept</td><td align="center" bgcolor="#fdf2f8"><b>extended</b></td></tr>
+<tr><td bgcolor="#fff7ed"><code>css-techniques.md</code></td><td bgcolor="#f8fafc">Modern CSS cookbook: resets, centering, selectors, logical props, container queries, <code>:has()</code>, <code>clamp()</code></td><td align="center" bgcolor="#fdf2f8"><b>extended</b></td></tr>
 </tbody>
 </table>
 
 <div align="center">
 
-[![core](https://img.shields.io/badge/core-7-0ea5e9?style=flat-square)](#reference)
-[![extended](https://img.shields.io/badge/extended-6-e11d48?style=flat-square)](#reference)
+[![core](https://img.shields.io/badge/core-8-0ea5e9?style=flat-square)](#reference)
+[![extended](https://img.shields.io/badge/extended-7-e11d48?style=flat-square)](#reference)
 
 </div>
 
@@ -409,7 +415,7 @@ Use designer-skill to redesign this pricing page without breaking functionality.
 <tbody>
 <tr><td bgcolor="#f0f9ff"><code>get_design_system</code></td><td bgcolor="#f8fafc">SKILL.md router (call first)</td></tr>
 <tr><td bgcolor="#ecfdf5"><code>load_project_context</code></td><td bgcolor="#f8fafc">Read PRODUCT.md / DESIGN.md from the project</td></tr>
-<tr><td bgcolor="#faf5ff"><code>get_reference</code></td><td bgcolor="#f8fafc">One of thirteen reference files by name</td></tr>
+<tr><td bgcolor="#faf5ff"><code>get_reference</code></td><td bgcolor="#f8fafc">One of fifteen reference files by name</td></tr>
 <tr><td bgcolor="#fff7ed"><code>list_commands</code></td><td bgcolor="#f8fafc">All design verbs with descriptions</td></tr>
 <tr><td bgcolor="#eff6ff"><code>get_command</code></td><td bgcolor="#f8fafc">Full guidance + references for a specific verb</td></tr>
 <tr><td bgcolor="#fdf4ff"><code>dispatch_intent</code></td><td bgcolor="#f8fafc">Map a request → verb(s) + files to read</td></tr>

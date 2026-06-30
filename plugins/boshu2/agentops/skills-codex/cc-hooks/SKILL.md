@@ -1,6 +1,6 @@
 ---
 name: cc-hooks
-description: 'Configure Claude Code hooks (PreToolUse, PostToolUse, Stop, Notification). Fold target for the cc-* loop, subagent, and worktree-isolation skills. Triggers: "cc-hooks", "cc hooks", "configure claude code hooks pretooluse".'
+description: Configure Claude Code hooks (PreToolUse
 ---
 # Claude Code Hooks
 

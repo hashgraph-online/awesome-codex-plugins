@@ -170,7 +170,7 @@ The MCP server (v2) at `https://xquik.com/mcp` provides 2 structured API tools:
 
 | Tool | Description | Usage |
 |------|-------------|------|
-| `explore` | Search the API endpoint catalog (read-only, no network calls) | Free |
+| `explore` | Search the API endpoint catalog (read-only, no network calls) | Included |
 | `xquik` | Send confirmed Xquik API requests | Varies by endpoint |
 
 The agent sends structured API requests through the MCP server, which handles authentication and execution for the documented REST API. Supported endpoints across the documented categories are accessible through the `xquik` tool. Private reads, writes, and persistent resources require explicit user confirmation before use. Plan and credit changes are dashboard-only.

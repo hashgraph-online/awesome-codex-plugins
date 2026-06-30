@@ -17,6 +17,12 @@ points the agent at the smallest useful set of skills.
   jobs, `fastmcp-django` for MCP servers inside Django apps, and the
   `django-test-*` skills when test suites need profiling, faster data setup,
   parallelism, or CI optimization.
+- **Developer documentation**: use `developer-docs-technical-research` before
+  writing from incomplete product facts, `developer-docs-planning` and
+  `developer-docs-drafting` for doc plans and pages, `saas-documentation` for
+  hosted-service docs and runbooks, `documentation-platform-selection` for docs
+  tooling decisions, and `docs-agile-integration` for sprint and release
+  process integration.
 - **Rust service and game work**: use `rust-api-test-harness` for black-box HTTP
   integration tests, then reach for the Rust service skills when the work
   involves SQLx/Postgres, domain boundaries, observability, security,
@@ -59,6 +65,10 @@ Skill areas:
 
 - **Django**: server-rendered UI, HTMX, Alpine.js, background jobs, MCP servers,
   and Django test-suite optimization.
+- **Developer documentation**: audience research, technical research, planning,
+  drafting, editing, code samples, visuals, SaaS docs, Agile integration,
+  platform selection, feedback triage, metrics, information architecture,
+  release, and maintenance.
 - **Rust**: HTTP API test harnesses, SQLx/Postgres persistence, domain
   boundaries, observability, security, idempotent workflows, deployment,
   ownership/borrowing, trait API design, iterators/collections, concurrency,
@@ -201,8 +211,10 @@ Generated marketplace plugin IDs:
 
 - `cookiecutter`
 - `customer-discovery`
+- `developer-docs`
 - `django`
 - `eighty-twenty`
+- `linkedin-writing`
 - `nonfiction-book-writing`
 - `router`
 - `rust`
@@ -227,6 +239,17 @@ official material from the authors, libraries, tools, or platforms below.
 
 Primary books and long-form sources:
 
+- *Docs for Developers: An Engineer's Field Guide to Technical Writing* by
+  Jared Bhatti, Zachary Sarah Corleissen, Jen Lambourne, David Nunez, and Heidi
+  Waterhouse: developer documentation audience research, planning, drafting,
+  editing, feedback, quality measurement, publishing, maintenance, and
+  information architecture.
+- *The Product Is Docs: Writing Technical Documentation in a Product Development
+  Group* by Christopher Gales and the Splunk Documentation Team: documentation
+  in product teams, Agile integration, technical research, technical
+  verification, customer feedback, support and field collaboration, SaaS
+  documentation, docs tooling, maintenance, quality metrics, and platform
+  selection.
 - *The Mom Test* by Rob Fitzpatrick: customer discovery conversations, segment
   slicing, conversation access, commitment validation, and learning notes.
 - *Write Useful Books* by Rob Fitzpatrick: useful nonfiction book planning,
@@ -245,6 +268,9 @@ Primary books and long-form sources:
   link-building strategy, linkable assets, prospecting, prospect
   qualification, outreach, broken link building, guest posts, and local
   sponsorship link building.
+- *Growth Hacking LinkedIn* by Bjorn Radde: LinkedIn post writing, content
+  ideation, comment writing, article/newsletter writing, and post
+  experimentation patterns.
 - *Zero to Production in Rust* by Luca Palmieri: Rust HTTP API testing,
   SQLx/Postgres service boundaries, deployable service patterns, security,
   observability, domain boundaries, and idempotent workflows.

@@ -1,6 +1,6 @@
 ---
 name: using-atm
-description: 'Use ATM as the out-of-session substrate: spawn Claude/Codex panes running /rpi and /evolve over a bead queue, then tend the swarm to convergence. Triggers: "use ATM as the out-of-session substrate", "spawn atm panes over a bead queue", "tend an unattended swarm".'
+description: Use ATM as the out-of-session substrate
 ---
 # Using ATM as the Out-of-Session Substrate
 

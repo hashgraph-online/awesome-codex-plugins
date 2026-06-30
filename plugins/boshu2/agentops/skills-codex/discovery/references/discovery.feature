@@ -27,6 +27,16 @@ Feature: Discovery hands dense intent to planning
     Then every bead carries an embedded ## Scenarios (Given/When/Then) block
     And Discovery sends any bead with free-text-only acceptance back to /plan before compiling the packet
 
+  # The load-bearing completion gate (age-ca5y): a plan document + a passing pre-mortem is NOT discovery-done.
+  Scenario: Discovery is not DONE until the plan is persisted in the active tracker
+    Given a specific-goal discovery run that wrote a plan markdown and passed pre-mortem
+    But the epic and its vertical slices were never persisted to the tracker
+    Then the run is NOT DONE and must operationalize the plan (epic + vertical slices, Gherkin acceptance, deps) first
+    And the DONE gate verifies the packet's epic_id RESOLVES in the active tracker — br or bd, or the tasklist fallback
+    And an epic persisted WITHOUT slice children is ALSO not DONE (the gate requires >=1 parent-child slice, not just the epic)
+    And tasklist mode is not a silent pass — it fails closed unless the persisted .agents/rpi/tasklist.md (epic + slices) exists
+    And this completion requirement applies on the default specific-goal path, not only the open-ended/--ideate path
+
   # Open-ended path — generate-winnow → operationalize → refine (ag-yw0).
   # Additive to the default flow above; strict delegation is preserved.
   # Documentation-only spec (this file is allowlisted in

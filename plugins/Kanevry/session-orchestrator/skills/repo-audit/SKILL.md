@@ -137,11 +137,14 @@ Do not mark any Clank check as `✗`. Absence of Clank is not a failure outside 
 
 ### Category 9: MCP Configuration
 
+**Scope:** Audits only the repo-local `.mcp.json` file — does NOT cover the user-machine MCPJungle gateway or globally-imported MCP servers.
+
 | Check | Method |
 |---|---|
 | `.mcp.json` exists | `ls .mcp.json 2>/dev/null` |
 | MCP servers match project type | Read `.mcp.json`, verify server list is appropriate (e.g., `shadcn` only for frontend repos, no stale servers) |
 | No stale or unused MCP entries | Cross-reference `.mcp.json` servers against project stack markers |
+| MCP server health probe (optional — requires `mcporter`) | For each server declared in repo-local `.mcp.json`: if `command -v mcporter` is present, run `mcporter list --json` and read the per-server `status` field — `ok` → ✓ pass; `auth` → ⚠ warn (remediation: `mcporter auth <server>`); `offline`/`error` → ✗ fail. If `mcporter` is absent → mark this check `skipped` with note "enable with `npm install -g mcporter`". `mcporter` is never a hard dependency; the repo audit proceeds without it. |
 
 ## Phase 4: Emit Report
 
@@ -184,7 +187,10 @@ Session Config commands: test=`<test-command>` typecheck=`<typecheck-command>` l
 ### 8. Clank Integration
 skipped — Clank not detected (.clank/ and clank.config.* absent; ecosystem: baseline not set in Session Config)
 
-...
+### 9. MCP Configuration
+- ✓ `.mcp.json` exists
+- ✓ Servers match project type
+- ⚠ MCP server health probe: `github` → ok; `shadcn` → auth (run `mcporter auth shadcn`)
 
 ## Critical Findings
 <List only ✗ items — actionable, with fix guidance>
@@ -233,6 +239,13 @@ Write to `.orchestrator/metrics/repo-audit-<unix-timestamp>.json`:
 Each `checks` array entry:
 ```json
 { "id": "config.claude-md-exists", "status": "pass|fail|warn|skipped", "detail": "human-readable result" }
+```
+
+MCP server health entries additionally include an optional `remediation` field (representative examples):
+```json
+{ "id": "mcp.server-health-github", "status": "pass", "detail": "mcporter: status=ok", "remediation": null }
+{ "id": "mcp.server-health-shadcn", "status": "warn", "detail": "mcporter: status=auth", "remediation": "mcporter auth shadcn" }
+{ "id": "mcp.server-health-probe", "status": "skipped", "detail": "mcporter not installed — enable with npm install -g mcporter", "remediation": "npm install -g mcporter" }
 ```
 
 Create `.orchestrator/metrics/` if it does not exist:

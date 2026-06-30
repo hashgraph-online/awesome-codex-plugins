@@ -1,6 +1,6 @@
 ---
 name: compile
-description: 'Compile .agents knowledge wiki. Triggers: "compile the knowledge wiki", "build the LLM wiki", "compile .agents into the wiki".'
+description: Compile .agents knowledge wiki.
 ---
 # Compile — Knowledge Compiler
 

@@ -5,14 +5,16 @@ Use these anti-patterns to catch real contract failures before patching type err
 ## Contents
 
 - [Casting Away Drift](#casting-away-drift)
-- [Adding Provider Fields That Do Not Exist](#adding-provider-fields-that-do-not-exist)
+- [Adding Source Fields That Do Not Exist](#adding-source-fields-that-do-not-exist)
 - [Fake Defaults To Satisfy Types](#fake-defaults-to-satisfy-types)
 - [Semantic Mismatch Treated As Rename](#semantic-mismatch-treated-as-rename)
+- [Guessed Multi-Field Fallbacks](#guessed-multi-field-fallbacks)
 - [Vendor Shape Leaks Into Domain Model](#vendor-shape-leaks-into-domain-model)
 - [Mapper Scattered Across Call Sites](#mapper-scattered-across-call-sites)
 - [Overbuilt Adapter For Local Naming Only](#overbuilt-adapter-for-local-naming-only)
 - [Optionality Drift Ignored](#optionality-drift-ignored)
 - [Enum Or Status Collapse](#enum-or-status-collapse)
+- [Receiver Overreach](#receiver-overreach)
 
 ## Casting Away Drift
 
@@ -23,12 +25,12 @@ return payload as unknown as Order;
 ```
 
 Why it fails:
-The provider shape is not converted into the stable consumer contract. Type assertions hide missing, renamed, or semantically different fields.
+The source shape is not converted into the stable receiver contract. Type assertions hide missing, renamed, or semantically different fields.
 
 Better:
 Convert at the API, parser, repository, or adapter boundary that already owns external input.
 
-## Adding Provider Fields That Do Not Exist
+## Adding Source Fields That Do Not Exist
 
 Bad:
 
@@ -41,10 +43,10 @@ type ApiUser = {
 ```
 
 Why it fails:
-The provider contract now claims to supply data that no schema, sample, fixture, migration, or runtime payload proves exists.
+The source contract now claims to supply data that no schema, sample, fixture, migration, or runtime payload proves exists.
 
 Better:
-Expose the missing field explicitly: make the consumer field optional, fetch it from a real alternate source, return a validation error, or ask for the product/source-of-truth decision.
+Expose the missing field explicitly: make the receiver field optional, fetch it from a real alternate source, return a validation error, or ask for the product/source-of-truth decision.
 
 ## Fake Defaults To Satisfy Types
 
@@ -55,7 +57,7 @@ return { id: row.id, name: row.name, avatarUrl: "" };
 ```
 
 Why it fails:
-An empty string, zero, placeholder enum, or fake path turns missing provider data into misleading consumer data.
+An empty string, zero, placeholder enum, or fake path turns missing source data into misleading receiver data.
 
 Better:
 Use a real documented fallback, model absence explicitly, or fail at the contract boundary with a clear error.
@@ -72,7 +74,21 @@ Why it fails:
 `status` may mean processing state while `workflowKind` may mean product category. Matching types or similar names do not prove matching business meaning.
 
 Better:
-Preserve both concepts. Find the source of the missing concept, change the consumer contract only if the meaning is identical, or stop and surface the unresolved contract gap.
+Preserve both concepts. Find the source of the missing concept, change the receiver contract only if the meaning is identical, or stop and surface the unresolved contract gap.
+
+## Guessed Multi-Field Fallbacks
+
+Bad:
+
+```ts
+const displayName = user.displayName || user.user_name || user.name;
+```
+
+Why it fails:
+This guesses multiple possible source contracts instead of identifying the real source field. It can hide API, SDK, fixture, or generated-type drift and makes later contract changes unpredictable.
+
+Better:
+Use the documented source field. Only support multiple aliases when a real version-compatibility requirement proves each variant can appear, and keep that compatibility handling in one boundary location.
 
 ## Vendor Shape Leaks Into Domain Model
 
@@ -83,7 +99,7 @@ export type Order = VendorOrder;
 ```
 
 Why it fails:
-A stable internal model becomes coupled to one external provider payload. Other consumers inherit provider-specific nesting, naming, optionality, and enum semantics by accident.
+A stable internal model becomes coupled to one external source payload. Other receivers inherit source-specific nesting, naming, optionality, and enum semantics by accident.
 
 Better:
 Keep the stable domain model stable. Translate vendor payloads at the API, repository, parser, or adapter boundary.
@@ -114,7 +130,7 @@ function toUserView(user: ApiUser): UserView {
 ```
 
 Why it may fail:
-If the consumer is a single local render function and the fields are naming-only differences, a dedicated adapter can add unnecessary architecture.
+If the receiver is a single local render function and the fields are naming-only differences, a dedicated adapter can add unnecessary architecture.
 
 Better:
 Use direct source access or local aliasing when scope is small and semantics are identical.
@@ -128,10 +144,10 @@ return payload.customer.email.toLowerCase();
 ```
 
 Why it fails:
-If the provider marks `email` as optional or runtime samples omit it, the consumer contract is stricter than the provider contract.
+If the source marks `email` as optional or runtime samples omit it, the receiver contract is stricter than the source contract.
 
 Better:
-Validate before use, make the consumer optional-aware, or enforce a boundary parse that rejects invalid payloads with a clear error.
+Validate before use, make the receiver optional-aware, or enforce a boundary parse that rejects invalid payloads with a clear error.
 
 ## Enum Or Status Collapse
 
@@ -145,4 +161,19 @@ Why it fails:
 SDK status values often differ in lifecycle, failure states, capitalization, retryability, or terminal-state meaning.
 
 Better:
-Map every known provider value intentionally, handle unknown values explicitly, and test representative values.
+Map every known source value intentionally, handle unknown values explicitly, and test representative values.
+
+## Receiver Overreach
+
+Bad:
+
+```text
+While fixing a field mismatch, the patch rewrites layout, prop names, visible text,
+handler branching, and unrelated receiver behavior.
+```
+
+Why it fails:
+Contract alignment should change the data boundary, not redesign unrelated receiver behavior.
+
+Better:
+Make the smallest change that aligns source and receiver. Leave UI, handlers, config behavior, domain behavior, and unrelated call sites unchanged unless the contract decision requires them.

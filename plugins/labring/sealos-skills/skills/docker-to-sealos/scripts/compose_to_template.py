@@ -71,7 +71,6 @@ OBJECT_STORAGE_BASE_ENV_NAMES = {
     "BACKEND_STORAGE_MINIO_EXTERNAL_ENDPOINT",
 }
 OBJECT_STORAGE_BUCKET_ENV_NAME = "S3_BUCKET"
-TEMPLATE_DEPLOY_KEY = "cloud.sealos.io/deploy-on-sealos"
 COMPOSE_REFERENCE_RE = re.compile(r"\$\{[^}]+\}")
 INVALID_NAME_RE = re.compile(r"[^a-z0-9]+")
 MODE_SUFFIXES = {"ro", "rw", "z", "Z", "cached", "delegated", "consistent"}
@@ -2231,10 +2230,6 @@ def build_workload(
                 "metadata": {
                     "name": path_to_vn_name(path),
                     "annotations": {"path": path, "value": "1"},
-                    "labels": {
-                        "app": workload_name,
-                        TEMPLATE_DEPLOY_KEY: "${{ defaults.app_name }}",
-                    },
                 },
                 "spec": {
                     "accessModes": ["ReadWriteOnce"],
@@ -2249,7 +2244,6 @@ def build_workload(
                 "name": f"{workload_name}-cm",
                 "configMap": {
                     "name": workload_name,
-                    "defaultMode": 493,
                 },
             }
         )
@@ -2266,7 +2260,6 @@ def build_workload(
             },
             "labels": {
                 "cloud.sealos.io/app-deploy-manager": workload_name,
-                TEMPLATE_DEPLOY_KEY: "${{ defaults.app_name }}",
                 "app": workload_name,
             },
         },

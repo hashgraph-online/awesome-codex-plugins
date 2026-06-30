@@ -1,6 +1,6 @@
 ---
 name: evolve
-description: "Run evolve."
+description: "Run autonomous improvement loops."
 ---
 # $evolve — Goal-Driven Compounding Loop
 
@@ -750,6 +750,12 @@ See `references/examples.md` for detailed walkthroughs.
 
 See `references/cycle-history.md` for advanced troubleshooting.
 
+## Output Specification
+
+**Format:** a per-cycle markdown summary to stdout (goals fixed, fitness delta, result); machine-readable cycle records.
+**Files:** appends `.agents/evolve/cycle-history.jsonl`; writes `.agents/evolve/fitness-latest.json` and `.agents/evolve/session-state.json`; honors control files `.agents/evolve/{STOP,DORMANT,HANDOFF}`.
+**Exit signal:** the cycle result (improved / no-change / blocked); resume a paused cycle via `$evolve --resume`.
+
 ## References
 
 - `references/cycle-history.md` — JSONL format, recovery protocol, kill switch
@@ -787,26 +793,5 @@ See `references/cycle-history.md` for advanced troubleshooting.
 - [references/postmortem-checkpoint.md](references/postmortem-checkpoint.md)
 - [references/quality-mode.md](references/quality-mode.md)
 - [references/teardown.md](references/teardown.md)
-
-## Local Resources
-
-### references/
-
-- [references/artifacts.md](references/artifacts.md)
-- [references/compounding.md](references/compounding.md)
-- [references/convergence-mechanics.md](references/convergence-mechanics.md)
-- [references/cycle-history.md](references/cycle-history.md)
-- [references/examples.md](references/examples.md)
-- [references/goals-schema.md](references/goals-schema.md)
-- [references/oscillation.md](references/oscillation.md)
-- [references/parallel-execution.md](references/parallel-execution.md)
-- [references/postmortem-checkpoint.md](references/postmortem-checkpoint.md)
-- [references/quality-mode.md](references/quality-mode.md)
-- [references/teardown.md](references/teardown.md)
-
-### scripts/
-
-- `scripts/validate.sh`
-
 
 <!-- Lifecycle integration wired: 2026-03-28. See skills/evolve/SKILL.md for canonical -->

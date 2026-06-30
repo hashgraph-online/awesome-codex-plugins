@@ -1,8 +1,6 @@
 ---
 name: codex-exec
-description: 'Use when running Codex workers or validators non-interactively through codex exec with evidence.
-
-  Triggers:'
+description: Use when running Codex workers or validators
 ---
 # codex-exec
 
@@ -131,20 +129,6 @@ A loop should branch on the process exit code, not on scraped text.
 - [ ] Result captured deterministically (`-o FILE`, `--json`, or `--output-schema`) — not scraped from terminal noise
 - [ ] Long/multi-turn work uses `resume` (not `--ephemeral`) so it can be recovered
 - [ ] Multi-account lanes dispatched via `caam exec codex <profile> --`
-
-## Examples
-
-```bash
-# Factory validator lane (read-only, schema-constrained verdict)
-codex exec -C "$REPO" -s read-only \
-  --output-schema /tmp/verdict.schema.json \
-  -o /tmp/verdict.json \
-  "Validate bead $BEAD independently. Emit {verdict, reasons}."
-
-# caam-isolated Pro lane, then continue it
-caam exec codex pro-2 -- exec -C "$REPO" -s workspace-write "Start ag-77."
-cd "$REPO" && codex exec resume --last "Fix the failing test from the prior turn."
-```
 
 ## Validator dispatch rules (learned 2026-06-10, cp-4jac/cp-801l; extended cp-hhd7 cards 6–10)
 

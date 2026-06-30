@@ -1,6 +1,6 @@
 ---
 name: domain
-description: 'Canonical vocabulary for human-AI software work. Use when naming concepts, resolving terminology disputes, or establishing shared domain language across agents and docs. Triggers: "domain", "canonical vocabulary for human-ai software", "domain skill".'
+description: Canonical vocabulary for human-AI software
 ---
 # Domain Skill — Ubiquitous Language for Human-AI Software Building
 

@@ -1,6 +1,6 @@
 [project]
 name = "agentpack-cli"
-version = "0.3.30"
+version = "0.3.31"
 description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
 readme = "README.md"
 requires-python = ">=3.10"

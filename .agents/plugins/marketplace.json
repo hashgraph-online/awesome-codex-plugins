@@ -227,6 +227,20 @@
       "icon": "./plugins/armoriq/armorCodex/assets/armoriq-logo.png"
     },
     {
+      "name": "boss",
+      "displayName": "Boss",
+      "source": {
+        "source": "local",
+        "path": "./plugins/echoVic/boss-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "BMAD pipeline plugin that orchestrates a full requirements-to-deploy workflow across nine specialist agents with an auditable runtime DAG and quality gates, for Claude Code, Codex, OpenClaw, and Antigravity."
+    },
+    {
       "name": "bringyour-migration-auditor",
       "displayName": "Bring Your AI Migration Auditor",
       "source": {
@@ -994,6 +1008,20 @@
       "icon": "./plugins/villagesql/villagesql-skills/assets/icon.svg"
     },
     {
+      "name": "waggle",
+      "displayName": "Waggle",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Abhigyan-Shekhar/Waggle-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions."
+    },
+    {
       "name": "wingman",
       "displayName": "Wingman",
       "source": {
@@ -1433,11 +1461,11 @@
       "description": "KiCad EDA skills for schematic analysis, PCB layout review, component sourcing, BOM management, and manufacturing preparation."
     },
     {
-      "name": "kreuzberg",
+      "name": "crawlberg",
       "displayName": "Kreuzberg",
       "source": {
         "source": "local",
-        "path": "./plugins/kreuzberg-dev/plugins/plugins/kreuzberg"
+        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -1445,14 +1473,14 @@
       },
       "category": "Tools & Integrations",
       "description": "Local document extraction for 91+ formats with skills for CLI usage, OCR, table extraction, output formats, and a local MCP server.",
-      "icon": "./plugins/kreuzberg-dev/plugins/plugins/kreuzberg/assets/icon.svg"
+      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
     },
     {
-      "name": "kreuzberg-cloud",
+      "name": "crawlberg",
       "displayName": "Kreuzberg Cloud",
       "source": {
         "source": "local",
-        "path": "./plugins/kreuzberg-dev/plugins/plugins/kreuzberg-cloud"
+        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -1460,14 +1488,14 @@
       },
       "category": "Tools & Integrations",
       "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
-      "icon": "./plugins/kreuzberg-dev/plugins/plugins/kreuzberg-cloud/assets/icon.svg"
+      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
     },
     {
-      "name": "kreuzcrawl",
+      "name": "crawlberg",
       "displayName": "Kreuzcrawl",
       "source": {
         "source": "local",
-        "path": "./plugins/kreuzberg-dev/plugins/plugins/kreuzcrawl"
+        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -1475,7 +1503,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Web crawling and scraping for Codex with skills for single-page scraping, site crawls, URL mapping, and headless browser fallback.",
-      "icon": "./plugins/kreuzberg-dev/plugins/plugins/kreuzcrawl/assets/icon.svg"
+      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
     },
     {
       "name": "langfuse",
@@ -1684,6 +1712,21 @@
       "icon": "./plugins/tim-osterhus/codex-remotion-plugin/assets/remotion-composer-icon.svg"
     },
     {
+      "name": "ru-text",
+      "displayName": "ru-text",
+      "source": {
+        "source": "local",
+        "path": "./plugins/talkstream/ru-text"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Russian text quality — ~1,044 rules for typography, info-style, editorial, UX writing, and business correspondence.",
+      "icon": "./plugins/talkstream/ru-text/assets/icon.png"
+    },
+    {
       "name": "rust-reverse-engineering",
       "displayName": "Rust Reverse Engineering",
       "source": {
@@ -1726,20 +1769,6 @@
       "category": "Tools & Integrations",
       "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.",
       "icon": "./plugins/avalonreset/seo-dungeon/assets/icon.svg"
-    },
-    {
-      "name": "sitemd",
-      "displayName": "sitemd",
-      "source": {
-        "source": "local",
-        "path": "./plugins/sitemd-cc/sitemd"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Build websites from Markdown via MCP — 22 tools for creating pages, generating content, validating, running SEO audits, configuring settings, and deploying static sites to Cloudflare Pages."
     },
     {
       "name": "n8n-mcp-synta-codex",

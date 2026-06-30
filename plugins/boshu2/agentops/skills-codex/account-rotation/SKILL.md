@@ -1,6 +1,6 @@
 ---
 name: account-rotation
-description: 'Switch coding-agent accounts on a usage/rate limit or to spread swarm lanes. Routes by host+agent: macOS+Claude via claude-acct; Codex/Gemini and Linux/WSL via caam. Triggers: "account-rotation", "account rotation", "switch coding-agent accounts on a".'
+description: Switch coding-agent accounts on a usage/rate
 ---
 <!-- TOC: Quick Start | Why the Route Exists | claude-acct (Mac+Claude) | caam (everything else) | Capture Discipline | Live-Session Caveat | Swarm Lanes -->
 

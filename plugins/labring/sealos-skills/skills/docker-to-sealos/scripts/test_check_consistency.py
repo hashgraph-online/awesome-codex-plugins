@@ -1949,7 +1949,6 @@ class CheckConsistencyTests(unittest.TestCase):
                         - name: demo-cm
                           configMap:
                             name: demo
-                            defaultMode: 493
                 """,
             )
 
@@ -1960,6 +1959,100 @@ class CheckConsistencyTests(unittest.TestCase):
                 additional_include_paths=["template/demo/index.yaml"],
             )
             self.assertFalse(any(item.rule_id == "R043" for item in violations))
+
+    def test_detects_configmap_defaultmode_in_managed_workload(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / "template" / "demo" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: v1
+                kind: ConfigMap
+                metadata:
+                  name: demo
+                  labels:
+                    app: demo
+                    cloud.sealos.io/app-deploy-manager: demo
+                data:
+                  vn-tmpvn-initvn-sh: |
+                    echo init
+                ---
+                apiVersion: apps/v1
+                kind: Deployment
+                metadata:
+                  name: demo
+                  annotations:
+                    originImageName: ghcr.io/example/demo:1.0.0
+                  labels:
+                    app: demo
+                    cloud.sealos.io/app-deploy-manager: demo
+                spec:
+                  replicas: 1
+                  revisionHistoryLimit: 1
+                  selector:
+                    matchLabels:
+                      app: demo
+                  template:
+                    metadata:
+                      labels:
+                        app: demo
+                    spec:
+                      automountServiceAccountToken: false
+                      imagePullSecrets:
+                        - name: demo
+                      initContainers:
+                        - name: init-demo
+                          image: alpine:3.20
+                          imagePullPolicy: IfNotPresent
+                          command:
+                            - /bin/sh
+                            - /tmp/init.sh
+                          resources:
+                            limits:
+                              cpu: 100m
+                              memory: 128Mi
+                            requests:
+                              cpu: 10m
+                              memory: 12Mi
+                          volumeMounts:
+                            - name: demo-cm
+                              mountPath: /tmp/init.sh
+                              subPath: vn-tmpvn-initvn-sh
+                      containers:
+                        - name: demo
+                          image: ghcr.io/example/demo:1.0.0
+                          imagePullPolicy: IfNotPresent
+                          resources:
+                            limits:
+                              cpu: 200m
+                              memory: 256Mi
+                            requests:
+                              cpu: 20m
+                              memory: 25Mi
+                      volumes:
+                        - name: demo-cm
+                          configMap:
+                            name: demo
+                            defaultMode: 493
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=["template/demo/index.yaml"],
+            )
+            self.assertTrue(any(item.rule_id == "R043" and "defaultMode" in item.message for item in violations))
 
     def test_detects_configmap_file_mount_contract_violations(self):
         base_artifact = """apiVersion: v1
@@ -2015,7 +2108,6 @@ __MOUNTS__
         - name: __VOLUME_NAME__
           configMap:
             name: __CONFIGMAP_NAME__
-            defaultMode: 493
 """
         cases = [
             (
@@ -3851,7 +3943,7 @@ __MOUNTS__
         )
         self.assertTrue(any(item.rule_id == "R011" for item in violations))
 
-    def test_detects_statefulset_volume_claim_template_missing_template_deploy_label(self):
+    def test_allows_statefulset_volume_claim_template_without_storage_tracking_labels(self):
         violations = self.run_checker(
             """
             ```yaml
@@ -3862,7 +3954,6 @@ __MOUNTS__
               labels:
                 app: demo
                 cloud.sealos.io/app-deploy-manager: demo
-                cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
             spec:
               revisionHistoryLimit: 1
               selector:
@@ -3881,8 +3972,6 @@ __MOUNTS__
               volumeClaimTemplates:
                 - metadata:
                     name: data
-                    labels:
-                      app: demo
                   spec:
                     resources:
                       requests:
@@ -3890,49 +3979,7 @@ __MOUNTS__
             ```
             """
         )
-        self.assertTrue(any(item.rule_id == "R041" for item in violations))
-
-    def test_allows_statefulset_volume_claim_template_template_deploy_label(self):
-        violations = self.run_checker(
-            """
-            ```yaml
-            apiVersion: apps/v1
-            kind: StatefulSet
-            metadata:
-              name: demo
-              labels:
-                app: demo
-                cloud.sealos.io/app-deploy-manager: demo
-                cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
-            spec:
-              revisionHistoryLimit: 1
-              selector:
-                matchLabels:
-                  app: demo
-              template:
-                metadata:
-                  labels:
-                    app: demo
-                spec:
-                  automountServiceAccountToken: false
-                  containers:
-                    - name: demo
-                      image: nginx:1.27.2
-                      imagePullPolicy: IfNotPresent
-              volumeClaimTemplates:
-                - metadata:
-                    name: data
-                    labels:
-                      app: demo
-                      cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
-                  spec:
-                    resources:
-                      requests:
-                        storage: 1Gi
-            ```
-            """
-        )
-        self.assertFalse(any(item.rule_id == "R041" for item in violations))
+        self.assertFalse(violations)
 
     def test_allows_declared_template_input_references(self):
         with tempfile.TemporaryDirectory() as temp_dir:

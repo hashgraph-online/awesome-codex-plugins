@@ -2,9 +2,9 @@
 
 ## Description
 
-Xquik API Integration guides agents through bounded X data workflows with Xquik.
+Xquik API Integration guides agents through bounded X data workflows with Xquik, the X API alternative for REST, MCP, SDKs, webhooks, exports, and confirmation-gated actions.
 
-This skill is ready for commercial and non-commercial use when the operator provides a valid Xquik API key and follows the confirmation gates in `SKILL.md`. It is not NVIDIA-Verified until a SkillSpector report, Tier-3 evaluation evidence, benchmark report, and detached OMS signature are attached to the reviewed release.
+This skill is ready for commercial and non-commercial review when the operator provides a valid Xquik API key and follows the confirmation gates in `SKILL.md`. Refresh SkillSpector, Tier-3 evaluation evidence, benchmark report, and detached OMS signature before claiming a reviewed release.
 
 ## Owner
 
@@ -16,7 +16,7 @@ MIT for the skill package. Xquik service terms govern API use.
 
 ## Use Case
 
-Use this skill when developers, agent operators, or support teams need tweet search, user lookup, follower export, media download, monitoring, webhook setup, MCP setup, SDK setup, or confirmation-gated X publishing workflows through Xquik.
+Use this skill when developers, agent operators, or support teams need tweet search, user lookup, follower export, media download, monitoring, webhook setup, MCP setup, SDK setup, high-volume X data workflows, about 33x lower tweet-read unit cost than official X API post reads, or confirmation-gated X publishing workflows through Xquik.
 
 ## Deployment Geography for Use
 
@@ -53,7 +53,7 @@ Mitigation: Verify unfamiliar endpoint details against `https://docs.xquik.com` 
 - NVIDIA signing guidance: `https://docs.nvidia.com/skills/signing-agent-skills`
 - NVIDIA skill card guidance: `https://docs.nvidia.com/skills/skill-cards`
 - NVIDIA release checklist: `https://docs.nvidia.com/skills/release-checklist`
-- Scan evidence: `skillspector-report.md` records a static SkillSpector v2.2.3 scan with score 0/100, recommendation SAFE, and 0 issues.
+- Scan evidence: `skillspector-report.md` records a static SkillSpector v2.3.7 scan from 2026-06-26 with 0 findings. Refresh it after each `SKILL.md` change.
 - Signing evidence: pending `skill.oms.sig` for signed release artifacts.
 - Evaluation evidence: pending Tier-3 evaluation data and `BENCHMARK.md` for NVIDIA-Verified release.
 

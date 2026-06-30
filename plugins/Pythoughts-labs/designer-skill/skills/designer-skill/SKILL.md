@@ -5,87 +5,75 @@ description: Plug-and-play MCP for UI superpowers. Use when building, designing,
 
 # designer-skill
 
-A small plug-and-play MCP that gives your agent UI superpowers: design, refactor, and ship interfaces that don't look AI-made.
+A plug-and-play MCP that gives your agent UI superpowers: design, refactor, and ship interfaces that don't look AI-made.
 
-This file is the router. The substance lives in thirteen reference files under `reference/`; read this, then open the file(s) the task needs. Do not work from memory — open the owner file and use its concrete values.
+**Foundation:** Brief by default → commit direction before code → deep refs on demand → deterministic gate before done.
 
-## MCP bootstrap (run on skill load)
+This file is the router. Substance lives in fifteen reference files under `reference/`; load them on demand via MCP — do not work from memory.
 
-When the **designer-skill** MCP server is connected, use it to fetch the latest, task-relevant design guidance before writing any UI code. Do not rely on memory or a stale copy of this skill — always pull fresh content from MCP.
+## MCP workflow (every UI task)
 
-1. **Load project context** — call `load_project_context` to read PRODUCT.md / DESIGN.md. If it returns `NO_PRODUCT_MD`, call `get_command({ verb: "setup" })` and follow the setup flow before any other UI work.
-2. **Load the router** — call `get_design_system` or fetch the `designer://skill` resource.
-3. **Route the user's request** — call `dispatch_intent` with the user's request (or your best paraphrase) to get the matching design verb(s) and which reference files to read. For a known verb, `get_command` returns the full command guidance plus its reference files.
-4. **Fetch the references** — for every file `dispatch_intent` or `get_command` recommends (and any others the preflight below requires), call `get_reference` or fetch `designer://reference/{name}`. Load 2–4 files in parallel when possible. Use the returned text as the authoritative source — not your training-data recall of these files.
-5. **Deterministic checks (check/review)** — when reviewing existing UI, call `detect_antipatterns` on the target file or directory for 44 rule-based findings (no LLM). Combine with the anti-slop checklist.
-6. **Greenfield palette** — when no committed brand colors exist, call `get_palette_seed` for an OKLCH anchor before composing the palette.
-7. **Find contemporary UI references (when the task is visually-led or net-new)** — if the user is building, redesigning, or seeking inspiration for a surface (landing page, dashboard, pricing, onboarding, component library, etc.), use available web-search MCP tools (e.g. Tavily) to find recent, high-quality real-world UI examples relevant to the surface type, register (brand vs product), industry, and aesthetic direction. Extract structure, hierarchy, spacing rhythm, and interaction patterns — do not copy layouts wholesale. Filter findings through this skill's anti-slop discipline and one-aesthetic-system rule.
-8. **Ship gate at the end** — call `anti_slop_checklist` before declaring any UI work done.
+When the **designer-skill** MCP server is connected:
 
-If MCP is unavailable, read the local `reference/` files directly using the routing map below. Run `node scripts/context.mjs` once per session for PRODUCT.md / DESIGN.md.
+1. **`get_preflight_brief`** — compact binding rules (~500 tokens). Call first.
+2. **`commit_design_direction`** — declare register, aesthetic, physical scene, layouts, type direction, anti-slop risks, inverse test. Must **PASS** before code.
+3. **`load_project_context`** — PRODUCT.md / DESIGN.md when present. If `NO_PRODUCT_MD` on greenfield, run `get_command({ verb: "setup" })`.
+4. **`dispatch_intent`** — map the user's request to verb(s) + which references to load (2–4 files, not all fifteen).
+5. **`get_reference`** — load only the files `dispatch_intent` recommends.
+6. Implement. When writing or fixing CSS, pull `get_reference({ name: "css-techniques" })` for idiomatic patterns (centering, specificity, logical properties, container queries, `:has()`, `clamp()`).
+7. **`review_and_gate`** — scan changed files; score ≥85, zero blocking slop. Do not claim done on **FAIL**.
 
-## How to use it (session preflight)
+Optional: `get_palette_seed` on greenfield (no committed brand colors); `detect_antipatterns` for ad-hoc scans; web-search MCP for contemporary UI references on visually-led net-new work (extract moves, don't copy layouts).
 
-After MCP bootstrap (when available), run this order before writing UI code:
+If MCP is unavailable, read local `reference/` files using the routing map below.
 
-0. **Check for project context files.** If `PRODUCT.md` / `DESIGN.md` exist at the project root, they are authoritative: `DESIGN.md` wins visual decisions, `PRODUCT.md` wins strategic/voice decisions, and `PRODUCT.md` anti-references beat the user's one-off prompt (they are the brand's standing position; the prompt is one moment). On greenfield work, offer to create them.
-1. **Scope the surface and register.** What is it — landing page, marketing site, dashboard, product UI, component, form? Decide the register: **brand** (design *is* the product: marketing, landing, campaign, portfolio — distinctiveness is the bar) vs **product** (design *serves* the product: app, admin, dashboard, tool — earned familiarity is the bar). Infer from concrete signals — brand: routes like `/`, `/about`, `/pricing`, `/blog/*`, hero sections, big typography, scroll-driven sections; product: `/app/*`, `/dashboard`, `/settings`, auth routes, forms, data tables, app-shell components. Pick by first match: task cue → the surface in focus → the persisted register; the project default can be overridden per task (a product can still have a brand-register landing page). Write one sentence of physical scene (who uses this, where, under what light, in what mood) and let it force light-vs-dark and tone.
-2. **Read at least one representative project file** (tokens, theme, global CSS, or a core component) before any UI code — even on net-new work, and even after loading a reference file. Learn the system that's already there; don't reinvent it.
-3. **Commit to ONE aesthetic system** from `reference/aesthetic-systems.md` (Minimalist / Brutalist / Soft / High-end-Stitch / Brand-identity). One language per surface — never mix two systems' signatures.
-4. **Run the category-reflex check** in `reference/avoid-ai-slop.md` (first-order + second-order) before committing to a palette/type direction.
-5. **Build on the neutral baseline** (`reference/design-principles.md`) + the engineering layer (`reference/engineering-and-performance.md`), add motion last (`reference/motion-and-interaction.md`).
-6. **For existing UI**, follow the audit → diagnose → redesign loop in `reference/refactor-and-redesign.md` instead of building from scratch — preserve functionality, change presentation surgically.
-7. **Verify before done** (see the ship gate below).
+## Session preflight (after MCP bootstrap)
 
-To map a specific user request ("make it pop", "it feels off", "production-ready") to the right move, read `reference/command-playbook.md` — the intent→verb dispatch table. If the request clearly matches one verb ("fix the spacing" → layout, "rewrite this error" → copy), load that verb's guidance and proceed as if it were invoked; if two verbs plausibly fit, ask once which one; with no clear match, run the general preflight above.
+0. **Project context** — PRODUCT.md / DESIGN.md are authoritative when present. DESIGN.md wins visual decisions; PRODUCT.md wins strategic/voice; anti-references beat one-off prompts.
+1. **Register** — **brand** (distinctiveness) vs **product** (earned familiarity). Write one physical-scene sentence.
+2. **One aesthetic system** — from `reference/aesthetic-systems.md`. Never mix two signatures on one surface.
+3. **Positive direction** — `reference/differentiation-playbook.md`: inverse test, layout families, named references, one weird thing (brand).
+4. **Existing UI** — audit → diagnose → redesign in `reference/refactor-and-redesign.md`; preserve functionality.
 
 ## Project context files
 
-`PRODUCT.md` and `DESIGN.md` at the project root persist design decisions across sessions — read them in preflight step 0, offer to create them on greenfield work:
+- **PRODUCT.md** — register, users, purpose, 3-word personality, anti-references, strategic principles, a11y commitments.
+- **DESIGN.md** — tokens + named visual rules. Recipe in `reference/refactor-and-redesign.md`.
 
-- **PRODUCT.md** — strategy: register (`brand`|`product`), users, product purpose, a 3-word brand personality, anti-references (named bad examples), 3-5 strategic design principles (strategic, never visual rules), accessibility commitments.
-- **DESIGN.md** — the visual system: design tokens plus named rules. The full authoring recipe lives in `reference/refactor-and-redesign.md`.
-
-## The reference files (routing map)
+## Reference routing map
 
 | Open this | When the task is about |
 |---|---|
-| `reference/design-principles.md` | Visual fundamentals — typography, spacing & rhythm, color & contrast, layout & grid, hierarchy, depth. The aesthetic-neutral baseline. |
-| `reference/aesthetic-systems.md` | Choosing or executing a specific look — the 5 opinionated design languages and when to use which. Concrete palettes, fonts, shadow tokens. |
-| `reference/motion-and-interaction.md` | What to animate, how fast, which curve; springs, micro-interactions, gestures, scroll, perceived performance, reduced-motion. |
-| `reference/engineering-and-performance.md` | Component architecture, design tokens/CSS vars, hardware acceleration, responsive/fluid, accessibility, Core Web Vitals, framework-honest output, real-data hardening. |
-| `reference/avoid-ai-slop.md` | Not looking "AI-made" — the cross-register ban-list, category-reflex checks, and the output-completeness contract. |
-| `reference/refactor-and-redesign.md` | Improving existing UI without breaking it — audit, diagnose generic patterns, the redesign loop, image/reference-to-code. |
-| `reference/command-playbook.md` | Which verb/move maps to the user's intent (build, finish, amplify, calm, motion, ship, refresh, …). |
-| `reference/interaction-design.md` | Cognitive laws (Fitts, Hick, Miller, Doherty), state machines, form design, navigation patterns, error UX, feedback loops, loading states, gestures, emotional timing. |
-| `reference/visual-critique.md` | Seven-dimension critique instrument: visual hierarchy, composition, color, typography, affordance, information density, brand consistency. |
-| `reference/design-systems.md` | Token architecture (global→semantic→component), motion system, component specs, naming conventions, theming, pattern library, color/type/spacing scales. |
-| `reference/project-init.md` | One-time project setup: discovery interview, PRODUCT.md, optional DESIGN.md, live-mode pre-config, next-command routing. |
-| `reference/craft-flow.md` | Full shape-then-build pipeline with user gates, framework detection, visual iteration loop. |
-| `reference/live-mode.md` | Interactive browser variant mode: element selection, HMR hot-swap, poll/steer/accept contract. |
+| `reference/differentiation-playbook.md` | **How to be distinctive** — inverse test, layout menu, one weird thing, named references, physical scene |
+| `reference/design-principles.md` | Visual fundamentals — typography, spacing, color, layout, hierarchy, depth (neutral baseline) |
+| `reference/aesthetic-systems.md` | Five design languages + brand-identity font procedure |
+| `reference/avoid-ai-slop.md` | **What to refuse** — ban-list, category-reflex, output-completeness, ship checklist |
+| `reference/motion-and-interaction.md` | Animation timing, springs, scroll, reduced-motion |
+| `reference/engineering-and-performance.md` | Tokens, a11y, responsive, CWV, framework-honest output |
+| `reference/refactor-and-redesign.md` | Improve existing UI without breaking it |
+| `reference/command-playbook.md` | Intent → verb dispatch |
+| `reference/interaction-design.md` | Cognitive laws, forms, navigation, errors, loading |
+| `reference/visual-critique.md` | Seven-dimension critique instrument |
+| `reference/design-systems.md` | Token architecture, component specs, theming |
+| `reference/project-init.md` | Discovery, PRODUCT.md, DESIGN.md setup |
+| `reference/craft-flow.md` | Shape-then-build pipeline with user gates |
+| `reference/live-mode.md` | Browser variant mode: HMR hot-swap |
+| `reference/css-techniques.md` | **How to write the CSS** — resets, centering, selectors/specificity, logical properties, container queries, `:has()`, `clamp()`; the cookbook for applying CSS fixes |
 
-## Precedence rule (read before treating any rule as absolute)
+## Precedence rule
 
-`reference/design-principles.md` is the **aesthetic-neutral baseline — the default lean**. When you commit to an aesthetic system, its scoped rules in `reference/aesthetic-systems.md` **override** the baseline. Examples: Inter is discouraged by default but **required** for Brutalist macro-type; pure white is discouraged by default but **is** the Minimalist canvas; blanket shadows are a cheap default but Soft **requires** diffused ambient shadows. Never treat a baseline "expensive vs cheap" verdict as law once a system is chosen — the system wins within its own surface.
+`design-principles.md` is the neutral baseline. Committing to a system in `aesthetic-systems.md` **overrides baseline** for that surface. **Existing brand identity beats both** on edits; never second-guess committed fonts, lanes, or palettes.
 
-There is a second axis: the aesthetic system beats the baseline, and **existing brand identity beats both**. Every reflex-reject list (fonts, lanes, palettes) governs *new* design choices only — on a variant or edit of a shipped surface, never second-guess the committed font, lane, or palette; identity preservation wins.
+## Cross-file ownership
 
-## Cross-file ownership (don't re-derive, read the owner)
+- Contrast, type ramp, spacing, layout → `design-principles.md`
+- Palettes, fonts, shadow tokens per system → `aesthetic-systems.md`
+- Distinctive / creative direction → `differentiation-playbook.md`
+- Bans + completeness contract → `avoid-ai-slop.md`
+- Easing, durations → `motion-and-interaction.md`
+- GPU, tokens, a11y engineering → `engineering-and-performance.md`
+- Idiomatic CSS implementation, applying CSS fixes → `css-techniques.md`
 
-Each fact has one home; cross-reference instead of duplicating.
+## Ship gate
 
-- Contrast ratios, type ramp, spacing scale, layout model → `design-principles.md`
-- Concrete palettes, fonts, shadow tokens, per-system rules → `aesthetic-systems.md`
-- Easing curves, durations, spring config → `motion-and-interaction.md`
-- GPU/hardware-accel, `will-change`, tokens, responsive, a11y engineering, CWV → `engineering-and-performance.md`
-- Cognitive laws, state machines, form/nav patterns, error UX, loading states, emotional timing → `interaction-design.md`
-- Dimensional critique scoring (7 dimensions) → `visual-critique.md`
-- Token architecture, component specs, naming conventions, theming, color/type/spacing scales → `design-systems.md`
-
-## The always-run ship gate
-
-`reference/avoid-ai-slop.md` is the gate every task passes before you declare it done:
-
-- Run its **Anti-Slop Checklist** (category-reflex, color, layout, type, eyebrows, fake content, copy, emoji, completeness, and the register-matched slop test: brand = "could a viewer say AI made that?", product = "would a user fluent in Linear/Figma/Notion trust this?").
-- The **output-completeness contract** is binding for all code generation: deliver the full file/all components/all sections. No `// rest of code`, no placeholders, no "for brevity", no skeleton when a full implementation was asked for. Partial, placeholder, or truncated output is a hard failure.
-- Verify accessibility and responsiveness against real values: text ≥4.5:1 (AA), focus-visible rings, reduced-motion alternative, no horizontal scroll, touch targets ≥44×44px, tested at 375/768/1440px.
+`review_and_gate` replaces manual checklist-only shipping. It runs the 44-rule detector, computes a slop score, and returns blocking fixes. Also verify: category-reflex pass, no truncated code output, text ≥4.5:1, focus-visible rings, reduced-motion alternative, touch targets ≥44×44px, tested at 375/768/1440px.

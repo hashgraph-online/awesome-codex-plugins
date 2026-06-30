@@ -79,9 +79,10 @@ architecture, contract, migration, or cross-module uncertainty appears.
 
 Compact output contract before writing the plan: `Plan Basis`,
 `BaselineUsageDraft`, `Requirement Ready Check`, `Files`, `Compatibility`,
-`Existence Check`, `Architecture Integrity Lens`, `Plan Pressure Test`,
-`Plan-Time Complexity Check`, `Tasks`, `Risks`, and `Retirement`. Expand only
-where the approved scope, risk, or verification surface requires it.
+`Change Necessity`, `Existence Check`, `Architecture Integrity Lens`,
+`Plan Pressure Test`, `Plan-Time Complexity Check`, `Tasks`, `Risks`, and
+`Retirement`. Expand only where the approved scope, risk, or verification
+surface requires it.
 
 Use a compact `BaselineUsageDraft` whenever the plan depends on specific
 baseline docs or current-authority refs:
@@ -119,6 +120,25 @@ If the decision is not `ready`, do not create implementation tasks. Return to
 the requirement/spec owner with the smallest missing evidence or decision. A
 task intent, conversation, or agent inference can be cited as a candidate
 source, but it is not durable requirement authority by itself.
+
+Use a compact `Change Necessity` before task decomposition when the plan would
+endorse non-trivial source edits. This is the "should code change at all?"
+check; it is not a new artifact or a `using-aegis` hot-path expansion.
+
+```text
+Change Necessity:
+- User-visible need:
+- No-change / non-code option:
+- Why code change is necessary:
+- Minimum change boundary:
+- Decision: no-change | docs/config-only | code-change | needs-clarification
+```
+
+If the decision is `no-change`, do not write code-edit tasks. If the decision
+is `docs/config-only`, narrow the plan to that surface. If the decision is
+`needs-clarification`, return to the requirement/spec owner. If the decision is
+`code-change`, carry the minimum boundary into `Files`, task steps, and
+verification.
 
 Use a compact `Existence Check` before task decomposition when a plan would add
 a new owner, skill, artifact, host adapter, fallback, compatibility path,
@@ -248,13 +268,15 @@ Before you leave this workflow, the written plan must make these items answerabl
 4. **Which required baseline refs were explicitly acknowledged before planning and which were actually cited in the plan**
 5. **What files own the change**
 6. **What compatibility boundary must hold**
-7. **Whether any new surface passed an Existence Check or was routed to an
+7. **Why a code change is necessary, or why the plan is narrowed to no-change,
+   docs/config-only, or clarification**
+8. **Whether any new surface passed an Existence Check or was routed to an
    existing owner**
-8. **Whether the architecture integrity check found a higher-level owner /
+9. **Whether the architecture integrity check found a higher-level owner /
    contract path before task decomposition**
-9. **What plan-time complexity pressure exists and which edit boundary is safer**
-10. **What verification proves each major slice**
-11. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
+10. **What plan-time complexity pressure exists and which edit boundary is safer**
+11. **What verification proves each major slice**
+12. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
 
 ## Bite-Sized Task Granularity
 
@@ -271,7 +293,7 @@ Every plan MUST start with: Goal, Architecture, Tech Stack, Baseline/Authority R
 
 ## Task Structure
 
-Each task: Files (create/modify/test paths), Why (user/business value), Impact/Compatibility, Verification (exact commands), then 5 checkbox steps: Write test → Verify RED → Minimal code → Verify GREEN → Commit. Every step must include complete code and exact commands.
+Each task: Files (create/modify/test paths), Why (user/business value), Change Necessity (why source edits are needed and the minimum boundary), Impact/Compatibility, Verification (exact commands), then 5 checkbox steps: Write test → Verify RED → Minimal code → Verify GREEN → Commit. Every step must include complete code and exact commands.
 
 For bug fixes, refactors, contract changes, or governance cleanup, add Repair
 Track (root cause, canonical owner, minimal sufficient stable repair, compat
@@ -289,13 +311,15 @@ Never write: "TBD", "TODO", "implement later", "fill in details", "Add appropria
 Check plan against spec: 1) Spec coverage — can you point to a task for each
 requirement? 2) Placeholder scan — any TBD/TODO/vague instructions? 3) Type
 consistency — do signatures match across tasks? 4) Compatibility — invariants,
-non-goals, stable interfaces marked? 5) Existence check — any new owner,
+non-goals, stable interfaces marked? 5) Change necessity — any code-edit task
+states why no-change or docs/config-only is insufficient and names the minimum
+boundary? 6) Existence check — any new owner,
 artifact, adapter, fallback, workflow step, or benchmark metric has proof and a
-reuse decision? 6) Plan-time complexity and minimality —
+reuse decision? 7) Plan-time complexity and minimality —
 lowest-entropy owner/file boundary that fixes the bug class, not just the
-smallest textual diff? 7) Architecture integrity — any higher-level owner /
-contract / source-of-truth simplification skipped? 8) Verification — exact
-commands? 9) Dual-track, decision hygiene, and ADR/baseline-sync signals
+smallest textual diff? 8) Architecture integrity — any higher-level owner /
+contract / source-of-truth simplification skipped? 9) Verification — exact
+commands? 10) Dual-track, decision hygiene, and ADR/baseline-sync signals
 preserved where needed?
 
 Fix issues inline. Re-review is not needed — just fix and move on.

@@ -1,6 +1,6 @@
 ---
 name: rpi
-description: "Run RPI."
+description: "Run discovery, crank, and validation."
 ---
 
 # $rpi - Full Lifecycle Orchestrator
@@ -184,6 +184,12 @@ Use full council gates across the lifecycle.
 
 Read [references/examples.md](references/examples.md) for resume,
 interactive, and loop examples.
+
+## Output Specification
+
+**Format:** a markdown report to stdout ([report-template](references/report-template.md)) — phase verdicts, re-plan deltas, and epic status.
+**Files:** reads/updates `.agents/rpi/execution-packet.json` (+ `runs/<id>/`) and `.agents/rpi/next-work.jsonl` (with `--spawn-next`); records `ao ratchet record` per phase.
+**Exit signal:** the per-phase verdict roll-up; `<promise>PARTIAL</promise>` from `$crank` means retry Phase 2 on the same objective.
 
 ## Troubleshooting
 

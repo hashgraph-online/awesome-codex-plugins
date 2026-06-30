@@ -22,10 +22,10 @@ relevant. Load only that skill; otherwise proceed normally.
    evidence, stop condition, and non-goals before onward routing.
 4. Classify before implementation/start/resume/compaction. Low: concise intent
    + baseline check + TDD Route + verification. Medium/high: baseline read-set + plan.
-   TDD Route: auto=strict/light/skipped; off=no automatic TDD,
+   TDD Route: auto=strict/light/skipped; off=no auto,
    verification stays. Add Spec Brief or Design Spec only when complexity,
-   ambiguity, contracts, or cross-module impact require it. Contract/shared/core
-   or cross-module changes are never low without evidence.
+   ambiguity, contracts, or cross-module impact require it. Contract/shared/core/cross-module
+   changes are never low without evidence. Source edits: owner workflow surfaces `Change Necessity`.
 5. Aegis Reason Note: say why Aegis is shaping non-trivial skill/stage work; tiny fast-path may stay implicit; structured trace only for audit/debug/release/long-task review or asked.
 6. Mark `ArchitectureReviewRequired: yes` for medium/high, architecture,
    contract, cross-module, owner, source-of-truth, fallback/adapter, or

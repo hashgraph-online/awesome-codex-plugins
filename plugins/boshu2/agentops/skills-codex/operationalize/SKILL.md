@@ -1,6 +1,6 @@
 ---
 name: operationalize
-description: Distill context (research, recon, learnings) into evidence-anchored rules routed to automation shapes. Use when a finished artifact should become skills, gates, or beads.
+description: Distill context (research, recon, learnings)
 ---
 # $operationalize — Distill + Route Bridge
 

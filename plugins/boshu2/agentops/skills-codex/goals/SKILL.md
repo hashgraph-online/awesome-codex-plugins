@@ -1,6 +1,6 @@
 ---
 name: goals
-description: "Run goals."
+description: "Maintain measurable project goals."
 ---
 # $goals — Fitness Goal Maintenance
 
@@ -338,5 +338,4 @@ The `--to-md` flag creates a GOALS.md with mission, north/anti stars sections, a
 ### scripts/
 
 - `scripts/validate.sh`
-
 

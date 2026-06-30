@@ -89,6 +89,40 @@ Use these defaults when the user's request is ambiguous:
   attribute preservation.
 - `cookiecutter`: Cookiecutter templates, Jinja rendering, hooks, options,
   generated project validation, and template cleanup.
+- `developer-docs-technical-research`: researching feature behavior, source
+  owners, SMEs, hands-on validation, contradictions, and doc-ready evidence
+  before planning or drafting technical documentation.
+- `developer-docs-audience-research`: mapping developer audiences, learning
+  objectives, user goals, prerequisites, and audience-specific docs needs.
+- `developer-docs-planning`: choosing developer documentation content types,
+  outlines, scope, source of truth, scenario plans, and launch plans.
+- `developer-docs-drafting`: drafting READMEs, getting-started docs,
+  tutorials, how-to guides, concepts, API guides, troubleshooting pages,
+  migration guides, SaaS topics, and release documentation.
+- `developer-docs-editing-review`: editing, reviewing, technically verifying,
+  and improving developer documentation drafts.
+- `code-sample-documentation`: writing and reviewing code samples in developer
+  docs, including runnable examples, snippets, comments, and API guide samples.
+- `visual-docs-diagrams`: planning or reviewing diagrams, screenshots, flows,
+  visuals, and accessibility for technical documentation.
+- `documentation-information-architecture`: auditing and reorganizing docs
+  navigation, inventories, landing pages, hierarchies, sequences, redirects,
+  and findability.
+- `documentation-platform-selection`: choosing docs platforms or authoring
+  tools, comparing docs-as-code, CMS, wiki, static-site, DITA, API reference,
+  help-center, or custom tooling, and planning migrations or pilots.
+- `docs-agile-integration`: integrating documentation with Agile planning,
+  scrum boards, definitions of done, release gates, review timing, and
+  cross-sprint docs work.
+- `saas-documentation`: planning and writing SaaS or managed-service docs,
+  responsibility boundaries, release notes, support enablement, and operations
+  runbooks.
+- `docs-release-maintenance`: publishing, maintaining, refreshing,
+  deprecating, deleting, and release-aligning developer documentation.
+- `docs-feedback-triage`: triaging docs feedback from readers, support,
+  community, field teams, analytics, and review channels.
+- `documentation-quality-metrics`: measuring developer documentation quality,
+  success signals, feedback loops, and docs health.
 - `seo-opportunity-research`: finding organic growth opportunities from
   customer demand, search behavior, communities, and competitive gaps.
 - `seo-persona-intent-mapping`: mapping personas, search intent, funnel stage,
@@ -176,6 +210,10 @@ Use these defaults when the user's request is ambiguous:
 - `game-geometry`: game geometry representation choice, spatial queries,
   transforms, vector primitives, smooth curves, SDFs, fields, mesh and voxel
   conversion.
+- `developer-docs`: developer documentation research, planning, drafting,
+  review, code samples, visuals, SaaS docs, Agile integration, platform
+  selection, feedback, metrics, information architecture, release, and
+  maintenance skills.
 - `seo`: `seo-opportunity-research`, `seo-persona-intent-mapping`,
   `product-led-seo-strategy`, `seo-roadmap-prioritization`,
   `technical-seo-triage`, `link-building-strategy`,

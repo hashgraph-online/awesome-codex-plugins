@@ -1,6 +1,6 @@
 ---
 name: perf
-description: 'Profile and optimize hotspots. Triggers: "perf", "profile and optimize hotspots.", "perf skill".'
+description: Profile and optimize hotspots.
 ---
 # Perf Skill
 

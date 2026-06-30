@@ -58,6 +58,18 @@ python scripts/aegis-update.py register \
   --reload-hint "restart CodeBuddy"
 ```
 
+Prefixed direct-child host example:
+
+```bash
+python scripts/aegis-update.py register \
+  --host copilot \
+  --sync-mode junction \
+  --discovery-shape direct-child \
+  --discovery-root <target-repo>/.github/skills \
+  --discovery-name-prefix aegis- \
+  --reload-hint "restart Copilot session or reopen the repository"
+```
+
 Plugin-managed hosts can be registered, but the updater reports that the host
 plugin manager owns the update path:
 
@@ -100,9 +112,11 @@ python scripts/aegis-update.py update --host <host> --stash --json
 Treat the update as complete only when the updater reports the selected host and
 the post-update doctor verification succeeds. For link-based discovery roots
 (`junction`, `symlink`, or `repo-only`), the updater passes `discoveryRoot`
-through to `aegis-doctor.py --discovery-root`. For copy-based hosts, it verifies
-that copied Aegis skill directories exist after the copy step, then runs doctor
-against the method-pack root.
+through to `aegis-doctor.py --discovery-root`; when a registered direct-child
+view declares `discoveryNamePrefix`, the updater also passes
+`--discovery-name-prefix`. For copy-based hosts, it verifies that copied Aegis
+skill directories exist after the copy step, then runs doctor against the
+method-pack root.
 
 When multiple registered hosts share the same `methodPackRoot`, the updater now
 reuses a single method-pack checkout update and then refreshes each host's

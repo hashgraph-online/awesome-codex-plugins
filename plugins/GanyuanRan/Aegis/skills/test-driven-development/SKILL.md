@@ -11,6 +11,7 @@ description: Use when the user explicitly requests strict or test-first TDD, or 
 → Implementing a feature or bugfix under TDD Route `strict`? → **No production code without a failing test first.**
   Gate: medium/high complexity? → route to brainstorming or writing-plans first.
   Mode: `auto` chooses strict/light/skipped by risk; `off` disables automatic TDD, not completion verification.
+  Change Necessity: before strict RED/GREEN enters production edits, confirm the slice really needs a code change.
   Cycle: RED (write test → watch it fail) → GREEN (minimal code → watch it pass) → REFACTOR (clean up → keep green)
   Regression: shared module → related tests. contract change → producer + consumer. core logic → old + new tests.
   Ripple signal hit → cover producer+consumer or real user path before claiming green.
@@ -93,6 +94,27 @@ High-complexity or ambiguous tasks also need a spec/design review before
 planning. Only proceed directly with TDD for low-complexity work whose intent,
 owner, compatibility boundary, verification path, and slice goal / success
 evidence are already clear.
+
+## Change Necessity
+
+Before strict RED/GREEN enters production code edits, make the code-change
+decision visible. This is the "should code change at all?" check; it is not a
+new artifact and does not belong in the `using-aegis` hot path.
+
+```text
+Change Necessity:
+- User-visible need:
+- No-change / non-code option:
+- Why code change is necessary:
+- Minimum change boundary:
+- Decision: no-change | docs/config-only | code-change | needs-clarification
+```
+
+If the decision is `no-change`, do not write tests or production code for a
+non-change. If the decision is `docs/config-only`, route to that narrower
+surface and verify it. If the decision is `needs-clarification`, pause before
+RED/GREEN. If the decision is `code-change`, carry the minimum boundary into
+`TDD Route`, RED, and regression scope.
 
 ## Complexity Budget
 

@@ -1,6 +1,6 @@
 ---
 name: skill-builder
-description: 'Scaffold or absorb new SKILL.md files against the unified AgentOps template. Triggers: "create a skill", "scaffold skill", "absorb external skill", "new skill".'
+description: Scaffold or absorb new SKILL.md files
 ---
 # $skill-builder — Scaffold or absorb a new SKILL.md
 

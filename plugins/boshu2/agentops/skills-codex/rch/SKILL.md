@@ -1,6 +1,6 @@
 ---
 name: rch
-description: 'Use when offloading slow builds to remote workers or recovering RCH worker, hook, SSH, sync, or disk issues. Triggers: "rch", "use when offloading slow builds", "rch skill".'
+description: Use when offloading slow builds to remote
 ---
 # RCH — Remote Compilation Helper
 

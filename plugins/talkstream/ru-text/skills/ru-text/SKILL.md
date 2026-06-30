@@ -3,7 +3,7 @@ name: ru-text
 description: >
   Use when writing, editing, or reviewing Russian-language text, or when user
   mentions ru-text. Covers typography, info-style, editorial, UX writing, business
-  correspondence. Auto-activates on Russian text output.
+  correspondence, AI-text cleanup. Auto-activates on Russian text output.
 metadata:
   openclaw:
     always: true
@@ -18,6 +18,8 @@ With gratitude to the authors whose work shaped modern Russian text standards.
 Credits and recommended reading: `references/sources.md`
 
 **Style priority**: if the user explicitly requests a specific style (casual, academic, SEO, literary, etc.), their prompt overrides these default rules where they conflict. These rules are defaults, not mandates.
+
+**Reviewing vs. rewriting**: when *checking* or proofreading existing text or a file, return the corrected version plus a list of changes — do not silently overwrite the source file. Rewrite a file in place only when the user explicitly asks.
 
 ## Always-On: Typography
 

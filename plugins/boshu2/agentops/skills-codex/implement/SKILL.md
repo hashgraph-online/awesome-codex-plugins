@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Run implement."
+description: "Implement one scoped slice."
 ---
 # Implement Skill
 

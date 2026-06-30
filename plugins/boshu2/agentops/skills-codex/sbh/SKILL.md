@@ -1,6 +1,6 @@
 ---
 name: sbh
-description: 'Disk-pressure defense for AI coding workloads. Use when: disk full, low space, ballast, cleanup, scan artifacts, emergency, sbh daemon, sbh status.'
+description: Disk-pressure defense for AI coding
 ---
 # SBH — Storage Ballast Helper
 

@@ -91,6 +91,18 @@
       "category": "Writing"
     },
     {
+      "name": "developer-docs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/developer-docs"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Writing"
+    },
+    {
       "name": "customer-discovery",
       "source": {
         "source": "local",
@@ -119,6 +131,18 @@
       "source": {
         "source": "local",
         "path": "./plugins/eighty-twenty"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "linkedin-writing",
+      "source": {
+        "source": "local",
+        "path": "./plugins/linkedin-writing"
       },
       "policy": {
         "installation": "AVAILABLE",

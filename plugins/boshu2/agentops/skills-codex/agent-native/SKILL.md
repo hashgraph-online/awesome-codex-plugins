@@ -1,6 +1,6 @@
 ---
 name: agent-native
-description: 'Make an out-of-session agent AgentOps-native with skills, the ao CLI, local cockpit proof, and CI backstop telemetry instead of runtime hooks. Triggers: "agent-native", "agent native", "make an out-of-session agent agentops-native".'
+description: Make an out-of-session agent AgentOps-native
 ---
 # $agent-native — Make Out-of-Session Agents AgentOps-Native (Hookless)
 

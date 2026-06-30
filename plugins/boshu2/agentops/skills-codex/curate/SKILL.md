@@ -1,6 +1,6 @@
 ---
 name: curate
-description: 'Mine transcripts, .agents, bd, and git for skill diffs, bd updates, or rare wiki entries. Triggers: "curate skills from sessions", "mine transcripts for skill diffs", "what should be a skill".'
+description: Mine transcripts, .agents, bd, and git for
 ---
 # $curate — Canonical Miner Skill
 

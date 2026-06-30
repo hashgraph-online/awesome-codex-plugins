@@ -1,13 +1,13 @@
-# TypeScript Contract Examples
+# TypeScript Boundary Examples
 
-These examples show executable boundary handling style. Use the shape, not the domain names.
+These examples show executable source-to-receiver boundary handling style. Use the shape, not the domain names.
 
 ## Contents
 
-- [API Payload To Domain Model With Explicit Missing Data](#api-payload-to-domain-model-with-explicit-missing-data)
+- [Source Payload To Stable Receiver With Explicit Missing Data](#source-payload-to-stable-receiver-with-explicit-missing-data)
 - [SDK Status To Internal Enum With Unknown Handling](#sdk-status-to-internal-enum-with-unknown-handling)
 
-## API Payload To Domain Model With Explicit Missing Data
+## Source Payload To Stable Receiver With Explicit Missing Data
 
 `order-contract.ts`:
 
@@ -115,12 +115,12 @@ type SdkPayment = {
   status: "requires_payment_method" | "processing" | "succeeded" | "failed" | string;
 };
 
-type PaymentState = "NeedsAction" | "Processing" | "Paid" | "Failed" | "UnknownProviderState";
+type PaymentState = "NeedsAction" | "Processing" | "Paid" | "Failed" | "UnknownSourceState";
 
 type Payment = {
   id: string;
   state: PaymentState;
-  providerState?: string;
+  sourceState?: string;
 };
 
 function mapPaymentState(status: SdkPayment["status"]): PaymentState {
@@ -134,7 +134,7 @@ function mapPaymentState(status: SdkPayment["status"]): PaymentState {
     case "failed":
       return "Failed";
     default:
-      return "UnknownProviderState";
+      return "UnknownSourceState";
   }
 }
 
@@ -144,7 +144,7 @@ export function mapSdkPayment(payment: SdkPayment): Payment {
   return {
     id: payment.id,
     state,
-    providerState: state === "UnknownProviderState" ? payment.status : undefined,
+    sourceState: state === "UnknownSourceState" ? payment.status : undefined,
   };
 }
 
@@ -152,13 +152,13 @@ function main(): void {
   assert.deepEqual(mapSdkPayment({ id: "pay_1", status: "succeeded" }), {
     id: "pay_1",
     state: "Paid",
-    providerState: undefined,
+    sourceState: undefined,
   });
 
-  assert.deepEqual(mapSdkPayment({ id: "pay_2", status: "provider_new_state" }), {
+  assert.deepEqual(mapSdkPayment({ id: "pay_2", status: "source_new_state" }), {
     id: "pay_2",
-    state: "UnknownProviderState",
-    providerState: "provider_new_state",
+    state: "UnknownSourceState",
+    sourceState: "source_new_state",
   });
 }
 

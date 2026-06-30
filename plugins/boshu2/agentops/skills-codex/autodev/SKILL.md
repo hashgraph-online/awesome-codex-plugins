@@ -1,6 +1,6 @@
 ---
 name: autodev
-description: 'Manage the PROGRAM.md/AUTODEV.md contract consumed by evolve/factory ticks. Use for loop rules, boundaries, or PROGRAM.md repair. Triggers: "manage PROGRAM.md/AUTODEV.md", "autodev loop rules", "evolve/factory tick boundaries".'
+description: Manage the PROGRAM.md/AUTODEV.md contract
 ---
 # $autodev
 

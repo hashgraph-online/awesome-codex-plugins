@@ -1,6 +1,6 @@
 ---
 name: product
-description: 'Create or refine PRODUCT.md. Triggers: "product", "create or refine product.md.", "product skill".'
+description: Create or refine PRODUCT.md.
 ---
 # $product — Interactive PRODUCT.md Generation
 

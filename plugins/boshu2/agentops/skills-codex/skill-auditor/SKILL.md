@@ -1,6 +1,6 @@
 ---
 name: skill-auditor
-description: Audit SKILL.md files against the AgentOps template and readiness checks. Use for quality reviews or template compliance.
+description: Audit SKILL.md files against the AgentOps
 ---
 # $skill-auditor — Three-pass skill quality audit
 

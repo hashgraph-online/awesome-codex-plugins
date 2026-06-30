@@ -25,10 +25,17 @@ When using Hono, export `app.fetch` (not `app`):
 
 ```ts
 import { Hono } from "npm:hono";
+import { parseVal, serveFile } from "https://esm.town/v/std/utils/index.ts";
 
 const app = new Hono();
 
 app.get("/", (c) => c.text("hello"));
+
+// Serve all frontend files, transpiled, with correct content types
+app.get("/frontend/**/*", (c) => serveFile(c.req.path));
+
+// View source redirect
+app.get("/source", (c) => c.redirect(parseVal().links.self.val));
 
 // Always add this for full stack traces on errors:
 app.onError((err) => Promise.reject(err));
@@ -36,11 +43,13 @@ app.onError((err) => Promise.reject(err));
 export default app.fetch;
 ```
 
-`serveStatic` and `cors` middleware from Hono do **not** work on Val Town. Use `serveFile` / `staticHTTPServer` from `std/utils` for static files, and rely on Val Town's default CORS (see below). For the full `std/utils` API (`readFile`, `serveFile`, `staticHTTPServer`, `listFiles`, `listFilesByPath`, `httpEndpoint`, `parseVal`, …), fetch `https://utilities.val.run/docs.md`.
+Hono's `serveStatic` does **not** work on Val Town. Use `serveFile` / `staticHTTPServer` from `std/utils` for static files. For the full `std/utils` API (`readFile`, `serveFile`, `staticHTTPServer`, `listFiles`, `listFilesByPath`, `httpEndpoint`, `parseVal`, …), fetch `https://utilities.val.run/docs.md`.
 
 ## CORS
 
-Val Town adds permissive CORS headers by default (`Access-Control-Allow-Origin: *`). If you set **any** CORS header yourself, Val Town stops adding **all** default headers — so either handle CORS completely yourself or don't touch it at all.
+Val Town adds permissive CORS headers by default (`Access-Control-Allow-Origin: *`), so in 99% of cases, you should never need to do anything with CORS. Using Hono's `cors` middleware is almost always unnecessary. 
+
+If you set **any** CORS header yourself, Val Town stops adding **all** default headers — so either handle CORS completely yourself or don't touch it at all.
 
 ## Redirects
 
@@ -67,4 +76,4 @@ For HTML responses, add this script tag to send browser errors back to val logs 
 
 ## Verifying changes
 
-After editing an HTTP val, always call `fetch_val_endpoint` to confirm it returns the expected status and body. Do not report a change as done without this step.
+After editing an HTTP val, fetch it to confirm it returns the expected HTTP response. Do not report a change as done without this step.

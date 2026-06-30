@@ -1,6 +1,6 @@
 ---
 name: ntm
-description: 'Orchestrates NTM tmux agent swarms and robot APIs. Use when spawning/sending panes, reading robot state, triaging work, locks/mail, safety, pipelines, serve, or NTM errors. Triggers: "ntm", "orchestrates ntm tmux agent swarms", "ntm skill".'
+description: Orchestrates NTM tmux agent swarms and robot
 ---
 <!-- TOC: One Rule | Outcome | Cold Start | Mandatory Loop | NTM Action Card | Surface Selection | Pattern Tiers | Anti-Patterns | Pre-Flight Checklist | Output | Operating Notes | Reference Index | Related Skills -->
 

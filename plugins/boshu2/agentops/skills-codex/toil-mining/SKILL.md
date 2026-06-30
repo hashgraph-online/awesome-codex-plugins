@@ -1,6 +1,6 @@
 ---
 name: toil-mining
-description: Mine usage history (cass, rtk, shell) for repeated toil, score frequency x pain, emit ranked candidates for automation-shape-routing. Use when rituals repeat by hand.
+description: Mine usage history (cass, rtk, shell) for
 ---
 # $toil-mining — Mine usage history for automation candidates
 

@@ -512,7 +512,7 @@ class ComposeToTemplateTests(unittest.TestCase):
                 [
                     {
                         "name": "${{ defaults.app_name }}-cm",
-                        "configMap": {"name": "${{ defaults.app_name }}", "defaultMode": 493},
+                        "configMap": {"name": "${{ defaults.app_name }}"},
                     }
                 ],
                 pod_spec["volumes"],
@@ -798,8 +798,11 @@ class ComposeToTemplateTests(unittest.TestCase):
             docs = parse_yaml_documents(index_path)
             workload = next(doc for doc in docs if doc.get("kind") == "StatefulSet")
             self.assertEqual(
-                "${{ defaults.app_name }}",
-                workload["metadata"]["labels"]["cloud.sealos.io/deploy-on-sealos"],
+                {
+                    "cloud.sealos.io/app-deploy-manager": "${{ defaults.app_name }}",
+                    "app": "${{ defaults.app_name }}",
+                },
+                workload["metadata"]["labels"],
             )
             mounts = workload["spec"]["template"]["spec"]["containers"][0]["volumeMounts"]
             mount_paths = [item["mountPath"] for item in mounts]
@@ -807,10 +810,7 @@ class ComposeToTemplateTests(unittest.TestCase):
             pvcs = workload["spec"]["volumeClaimTemplates"]
             pvc_names = [item["metadata"]["name"] for item in pvcs]
             self.assertEqual(["vn-data"], pvc_names)
-            self.assertEqual(
-                "${{ defaults.app_name }}",
-                pvcs[0]["metadata"]["labels"]["cloud.sealos.io/deploy-on-sealos"],
-            )
+            self.assertNotIn("labels", pvcs[0]["metadata"])
 
     def test_rejects_latest_image_tag(self):
         with tempfile.TemporaryDirectory() as temp_dir:

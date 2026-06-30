@@ -1,6 +1,6 @@
 ---
 name: council
-description: "Run council."
+description: "Run multi-judge consensus."
 ---
 
 # council — moved to Mount Olympus (2026-06-10)

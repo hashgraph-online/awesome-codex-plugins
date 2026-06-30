@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Run plan."
+description: "Decompose intent into slices."
 ---
 
 # $plan - Issue-Ready Decomposition

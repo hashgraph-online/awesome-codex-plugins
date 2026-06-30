@@ -9,6 +9,7 @@ Local-first dashboard, Codex plugin, and companion skill for understanding where
 
 [![CI](https://github.com/douglasmonsky/codex-usage-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/douglasmonsky/codex-usage-tracker/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/codex-usage-tracking.svg)](https://pypi.org/project/codex-usage-tracking/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/codex-usage-tracking?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=BLUE&left_text=downloads)](https://pepy.tech/projects/codex-usage-tracking)
 ![Python 3.10-3.14](https://img.shields.io/badge/python-3.10--3.14-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 

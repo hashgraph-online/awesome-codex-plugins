@@ -1,6 +1,6 @@
 ---
 name: beads-workflow
-description: 'Use when converting markdown plans into br beads with dependencies for implementation or swarm execution. Triggers: "beads-workflow", "beads workflow", "use when converting markdown plans".'
+description: Use when converting markdown plans into br
 ---
 <!-- TOC: Quick Start | Conversion Prompt | Polishing | bd → br Migration | Quality Checklist | Lifecycle Disciplines | When Beads Are Ready | Validation | References -->
 

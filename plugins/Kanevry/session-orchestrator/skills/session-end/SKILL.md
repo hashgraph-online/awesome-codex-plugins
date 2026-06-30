@@ -537,7 +537,7 @@ The proposals queue is populated mid-session by wave-executor agents calling `no
 
 #### Cross-references
 
-- PRD: `docs/prd/2026-05-21-learning-memory-modernization.md` § F2.1
+- Spec: issue #501 — memory-proposals (F2.1); no standalone PRD file
 - Modules: `scripts/lib/memory-proposals/{schema,store,collector,sink}.mjs`
 - CLI: `scripts/memory-propose.mjs` (agents call this)
 - Hook: `hooks/pre-bash-memory-propose-audit.mjs` (audit trail)
