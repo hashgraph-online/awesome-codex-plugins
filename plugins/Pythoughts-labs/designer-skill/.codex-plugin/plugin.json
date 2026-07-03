@@ -12,7 +12,7 @@
     "displayName": "Designer Skill",
     "shortDescription": "Production-grade design skill + MCP server for coding agents.",
     "longDescription": "Designer Skill gives your coding agent a production-grade visual design system with one install. It ships five opinionated design languages (Minimalist, Soft, High-end, Brutalist, Brand-identity), a full command playbook for iterative UI work, and a local MCP server that loads context, detects anti-patterns, and serves reference material — so your agent always works from a concrete visual direction, not guesswork.",
-    "composerIcon": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.webp",
     "developerName": "Pythoughts Labs",
     "category": "Development & Workflow",
     "capabilities": ["ui-design", "design-system", "mcp-server", "coding-agent"]

@@ -370,7 +370,7 @@
       },
       "category": "Development & Workflow",
       "description": "Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config.",
-      "icon": "./plugins/Pythoughts-labs/designer-skill/assets/icon.svg"
+      "icon": "./plugins/Pythoughts-labs/designer-skill/assets/icon.webp"
     },
     {
       "name": "dev-skills",
