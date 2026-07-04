@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""
+Post a "claim your plugin" comment on merged PRs that add plugins present in the
+HOL registry but not yet owner-verified.
+
+Triggers via GitHub Actions on pull_request closed (merged).
+Checks the HOL registry catalog API for matching repos, then posts a comment
+with claim instructions if the plugin hasn't been claimed yet.
+"""
+
+import json
+import os
+import re
+import sys
+import urllib.request
+import urllib.error
+
+# --- Config ---
+REGISTRY_API = os.environ.get("REGISTRY_API", "https://hol.org/registry/api/v1")
+GH_TOKEN = os.environ.get("GH_TOKEN", "")
+PR_NUMBER = os.environ.get("PR_NUMBER", "")
+PR_TITLE = os.environ.get("PR_TITLE", "")
+PR_AUTHOR = os.environ.get("PR_AUTHOR", "")
+REPO_FULL = os.environ.get("GITHUB_REPOSITORY", "")
+
+# Skip titles that aren't new plugin additions
+SKIP_PATTERNS = [
+    r"^docs?:",
+    r"^fix\b",
+    r"^ci\b",
+    r"^chore\b",
+    r"^refactor\b",
+    r"^test\b",
+    r"^build\b",
+    r"Add icon for",
+    r"Add .* icon",
+    r"Add .* marketplace icon",
+    r"For praxis, add marketplace icon",
+    r"Update .*(listing|plugin owner|description|to v|trust signals)",
+    r"Sync ",
+    r"#\d+ Fix ",
+    r"Fix install_url",
+    r"Fix Casefile README",
+    r"Canvas-Apps-Plugin-Codex - Update",
+    r"docs: reframe scanner",
+    r"docs: add PANews",
+    r"fix\(registry\)",
+    r"fix\(readme\)",
+    r"fix\(plugins\)",
+    r"feat: Make HOL Plugin Scanner",
+    r"feat: publish curated marketplace",
+    r"feat: add HOL Guard Plugin",
+    r"ci\(sync\)",
+    r"ci\(workflows\)",
+    r"Add HOL Guard scanner",
+]
+
+COMMENT_BODY = """<!-- hol-claim-notice -->
+🎉 Your plugin has been merged and is now listed in the [HOL Registry](https://hol.org/registry/plugins)!
+
+## Claim your plugin
+
+As the author, you can verify ownership of your plugin to unlock:
+
+- **Owner-verified badge** on your plugin's registry listing
+- **Trust score** visibility and analytics for your plugin
+- **Direct claim link** to share with your community
+- **Dashboard access** at [hol.org/guard/plugins](https://hol.org/guard/plugins) to track installs, trust, and engagement
+
+### How to claim
+
+1. Visit **[hol.org/guard/plugins](https://hol.org/guard/plugins)**
+2. Find your plugin and click **"Verify ownership"**
+3. Sign in with GitHub — we only request `read:user`, `user:email`, and `read:org` (no write access to your repos)
+4. We verify you own the repository, and your plugin gets the ✅ owner-verified badge
+
+The whole process takes under 30 seconds. No need to add any secrets or tokens to your repo — verification is done entirely through GitHub OAuth.
+
+If you have any questions, feel free to ask here or reach out at [support@hol.org](mailto:support@hol.org)."""
+
+MARKER = "<!-- hol-claim-notice -->"
+
+
+def api_request(url, headers=None, method="GET", data=None):
+    """Make an HTTP request and return parsed JSON."""
+    req_headers = {"Accept": "application/json"}
+    if headers:
+        req_headers.update(headers)
+    if data is not None:
+        data = json.dumps(data).encode("utf-8")
+        req_headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, headers=req_headers, method=method, data=data)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"  HTTP {e.code} from {url}: {body[:200]}", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"  Error fetching {url}: {e}", file=sys.stderr)
+        return None
+
+
+def should_skip_title(title: str) -> bool:
+    """Return True if the PR title matches a non-plugin pattern."""
+    for pattern in SKIP_PATTERNS:
+        if re.search(pattern, title, re.IGNORECASE):
+            return True
+    return False
+
+
+def fetch_registry_plugins():
+    """Fetch all plugins from the registry catalog, return set of lowercase repo full names."""
+    repos = set()
+    cursor = None
+    for _ in range(10):
+        url = f"{REGISTRY_API}/plugins/catalog?limit=50"
+        if cursor:
+            url += f"&cursor={cursor}"
+        data = api_request(url)
+        if not data or "items" not in data:
+            break
+        for plugin in data["items"]:
+            repo = plugin.get("sourceRepo") or plugin.get("repository") or ""
+            repo = repo.replace("https://github.com/", "").strip()
+            if repo:
+                repos.add(repo.lower())
+        cursor = data.get("nextCursor")
+        if not cursor:
+            break
+    return repos
+
+
+def fetch_verified_repos():
+    """Fetch owner-verified plugins from the registry, return set of lowercase repos."""
+    repos = set()
+    cursor = None
+    for _ in range(10):
+        url = f"{REGISTRY_API}/plugins/catalog?limit=50&ownerVerified=true"
+        if cursor:
+            url += f"&cursor={cursor}"
+        data = api_request(url)
+        if not data or "items" not in data:
+            break
+        for plugin in data["items"]:
+            repo = plugin.get("sourceRepo") or plugin.get("repository") or ""
+            repo = repo.replace("https://github.com/", "").strip()
+            if repo:
+                repos.add(repo.lower())
+        cursor = data.get("nextCursor")
+        if not cursor:
+            break
+    return repos
+
+
+def parse_pr_diff_for_repos():
+    """Get the PR diff and extract GitHub repo URLs from added lines."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["gh", "pr", "diff", PR_NUMBER, "--repo", REPO_FULL],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env={**os.environ, "GH_TOKEN": GH_TOKEN},
+        )
+        diff = result.stdout
+    except Exception as e:
+        print(f"  Failed to get PR diff: {e}", file=sys.stderr)
+        return set()
+
+    repos = set()
+    # Match https://github.com/owner/repo in added lines (starting with +)
+    for line in diff.split("\n"):
+        if not line.startswith("+"):
+            continue
+        matches = re.findall(r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)", line)
+        for match in matches:
+            # Skip hashgraph-online repos (our own)
+            if not match.lower().startswith("hashgraph-online/"):
+                repos.add(match.lower())
+
+    return repos
+
+
+def has_existing_claim_comment():
+    """Check if the PR already has a claim-notice comment."""
+    url = f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments"
+    headers = {"Authorization": f"token {GH_TOKEN}"}
+    comments = api_request(url, headers=headers)
+    if not isinstance(comments, list):
+        return False
+    for comment in comments:
+        body = comment.get("body", "")
+        if MARKER in body:
+            return True
+    return False
+
+
+def post_comment():
+    """Post the claim notice comment on the PR."""
+    url = f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments"
+    headers = {"Authorization": f"token {GH_TOKEN}"}
+    result = api_request(url, headers=headers, method="POST", data={"body": COMMENT_BODY})
+    return result is not None
+
+
+def main():
+    print(f"PR #{PR_NUMBER}: \"{PR_TITLE}\" by @{PR_AUTHOR}")
+
+    # 1. Skip non-plugin PRs
+    if should_skip_title(PR_TITLE):
+        print("  Skipping: non-plugin PR title pattern")
+        return 0
+
+    if PR_AUTHOR == "kantorcodes" or PR_AUTHOR == "github-actions[bot]":
+        print("  Skipping: bot/owner PR")
+        return 0
+
+    # 2. Check for existing claim comment
+    if has_existing_claim_comment():
+        print("  Skipping: claim notice already posted")
+        return 0
+
+    # 3. Parse PR diff for GitHub repo URLs
+    pr_repos = parse_pr_diff_for_repos()
+    if not pr_repos:
+        print("  Skipping: no GitHub repo URLs found in PR diff")
+        return 0
+
+    print(f"  Found repos in diff: {', '.join(pr_repos)}")
+
+    # 4. Fetch all registry plugins
+    print("  Fetching registry catalog...")
+    registry_repos = fetch_registry_plugins()
+    print(f"  Registry has {len(registry_repos)} plugins")
+
+    # 5. Check which PR repos are in the registry
+    matched = pr_repos & registry_repos
+    if not matched:
+        print("  Skipping: none of the PR repos are in the registry")
+        return 0
+
+    print(f"  Matched in registry: {', '.join(matched)}")
+
+    # 6. Check if already owner-verified
+    print("  Checking owner verification status...")
+    verified_repos = fetch_verified_repos()
+    already_verified = matched & verified_repos
+    if already_verified and len(already_verified) == len(matched):
+        print(f"  Skipping: all matched repos already owner-verified")
+        return 0
+
+    if already_verified:
+        print(f"  Some already verified: {', '.join(already_verified)}")
+
+    # 7. Post the comment
+    print("  Posting claim notice comment...")
+    if post_comment():
+        print("  ✅ Comment posted successfully")
+        return 0
+    else:
+        print("  ❌ Failed to post comment")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,33 @@
+name: Plugin Claim Notice
+
+on:
+  pull_request:
+    types:
+      - closed
+    paths:
+      - "README.md"
+      - "plugins/**"
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  post-claim-notice:
+    # Only run on merged PRs
+    if: github.event.pull_request.merged == true
+    name: Post claim instructions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Post claim notice
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REGISTRY_API: https://hol.org/registry/api/v1
+        run: python3 scripts/post-claim-notice.py
