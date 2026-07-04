@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+import subprocess
 import urllib.request
 import urllib.error
 
@@ -110,14 +111,20 @@ def should_skip_title(title: str) -> bool:
     return False
 
 
-def fetch_registry_plugins():
-    """Fetch all plugins from the registry catalog, return set of lowercase repo full names."""
+def fetch_catalog_repos(owner_verified: bool = False):
+    """Fetch repos from the registry catalog, optionally filtered by owner verification.
+
+    Returns a set of lowercase 'owner/repo' strings.
+    """
     repos = set()
     cursor = None
+    base_url = f"{REGISTRY_API}/plugins/catalog?limit=50"
+    if owner_verified:
+        base_url += "&ownerVerified=true"
+    url = base_url
     for _ in range(10):
-        url = f"{REGISTRY_API}/plugins/catalog?limit=50"
         if cursor:
-            url += f"&cursor={cursor}"
+            url = f"{base_url}&cursor={cursor}"
         data = api_request(url)
         if not data or "items" not in data:
             break
@@ -132,44 +139,37 @@ def fetch_registry_plugins():
     return repos
 
 
-def fetch_verified_repos():
-    """Fetch owner-verified plugins from the registry, return set of lowercase repos."""
-    repos = set()
-    cursor = None
-    for _ in range(10):
-        url = f"{REGISTRY_API}/plugins/catalog?limit=50&ownerVerified=true"
-        if cursor:
-            url += f"&cursor={cursor}"
-        data = api_request(url)
-        if not data or "items" not in data:
-            break
-        for plugin in data["items"]:
-            repo = plugin.get("sourceRepo") or plugin.get("repository") or ""
-            repo = repo.replace("https://github.com/", "").strip()
-            if repo:
-                repos.add(repo.lower())
-        cursor = data.get("nextCursor")
-        if not cursor:
-            break
-    return repos
+def normalize_repo_url(raw: str) -> str:
+    """Normalize a GitHub URL or 'owner/repo' string to lowercase 'owner/repo'.
+
+    Strips trailing slashes, .git suffix, and extra path segments.
+    """
+    s = raw.strip().rstrip("/")
+    if s.endswith(".git"):
+        s = s[:-4]
+    # If it's a full URL, extract owner/repo
+    match = re.match(r"https?://github\.com/([^/]+/[^/]+)", s, re.IGNORECASE)
+    if match:
+        s = match.group(1)
+    else:
+        # Handle bare 'owner/repo/extra/path' — take first two segments
+        parts = s.split("/")
+        if len(parts) >= 2:
+            s = f"{parts[0]}/{parts[1]}"
+    return s.lower()
 
 
 def parse_pr_diff_for_repos():
     """Get the PR diff and extract GitHub repo URLs from added lines."""
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["gh", "pr", "diff", PR_NUMBER, "--repo", REPO_FULL],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env={**os.environ, "GH_TOKEN": GH_TOKEN},
-        )
-        diff = result.stdout
-    except Exception as e:
-        print(f"  Failed to get PR diff: {e}", file=sys.stderr)
-        return set()
+    result = subprocess.run(
+        ["gh", "pr", "diff", PR_NUMBER, "--repo", REPO_FULL],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env={**os.environ, "GH_TOKEN": GH_TOKEN},
+        check=True,
+    )
+    diff = result.stdout
 
     repos = set()
     # Match https://github.com/owner/repo in added lines (starting with +)
@@ -178,9 +178,10 @@ def parse_pr_diff_for_repos():
             continue
         matches = re.findall(r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)", line)
         for match in matches:
+            normalized = normalize_repo_url(match)
             # Skip hashgraph-online repos (our own)
-            if not match.lower().startswith("hashgraph-online/"):
-                repos.add(match.lower())
+            if not normalized.startswith("hashgraph-online/"):
+                repos.add(normalized)
 
     return repos
 
@@ -193,7 +194,7 @@ def has_existing_claim_comment():
     if not isinstance(comments, list):
         return False
     for comment in comments:
-        body = comment.get("body", "")
+        body = comment.get("body") or ""
         if MARKER in body:
             return True
     return False
@@ -208,14 +209,26 @@ def post_comment():
 
 
 def main():
-    print(f"PR #{PR_NUMBER}: \"{PR_TITLE}\" by @{PR_AUTHOR}")
+    # Validate required environment variables
+    missing = []
+    if not GH_TOKEN:
+        missing.append("GH_TOKEN")
+    if not PR_NUMBER:
+        missing.append("PR_NUMBER")
+    if not REPO_FULL:
+        missing.append("GITHUB_REPOSITORY")
+    if missing:
+        print(f"Error: missing required environment variables: {', '.join(missing)}", file=sys.stderr)
+        return 1
+
+    print(f'PR #{PR_NUMBER}: "{PR_TITLE}" by @{PR_AUTHOR}')
 
     # 1. Skip non-plugin PRs
     if should_skip_title(PR_TITLE):
         print("  Skipping: non-plugin PR title pattern")
         return 0
 
-    if PR_AUTHOR == "kantorcodes" or PR_AUTHOR == "github-actions[bot]":
+    if PR_AUTHOR in ("kantorcodes", "github-actions[bot]"):
         print("  Skipping: bot/owner PR")
         return 0
 
@@ -225,7 +238,15 @@ def main():
         return 0
 
     # 3. Parse PR diff for GitHub repo URLs
-    pr_repos = parse_pr_diff_for_repos()
+    try:
+        pr_repos = parse_pr_diff_for_repos()
+    except subprocess.CalledProcessError as e:
+        print(f"  Failed to get PR diff (exit {e.returncode}): {e.stderr}", file=sys.stderr)
+        return 0
+    except subprocess.TimeoutExpired:
+        print("  Failed to get PR diff: timed out", file=sys.stderr)
+        return 0
+
     if not pr_repos:
         print("  Skipping: no GitHub repo URLs found in PR diff")
         return 0
@@ -234,7 +255,7 @@ def main():
 
     # 4. Fetch all registry plugins
     print("  Fetching registry catalog...")
-    registry_repos = fetch_registry_plugins()
+    registry_repos = fetch_catalog_repos(owner_verified=False)
     print(f"  Registry has {len(registry_repos)} plugins")
 
     # 5. Check which PR repos are in the registry
@@ -247,10 +268,10 @@ def main():
 
     # 6. Check if already owner-verified
     print("  Checking owner verification status...")
-    verified_repos = fetch_verified_repos()
+    verified_repos = fetch_catalog_repos(owner_verified=True)
     already_verified = matched & verified_repos
     if already_verified and len(already_verified) == len(matched):
-        print(f"  Skipping: all matched repos already owner-verified")
+        print("  Skipping: all matched repos already owner-verified")
         return 0
 
     if already_verified:
