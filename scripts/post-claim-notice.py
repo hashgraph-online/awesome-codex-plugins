@@ -56,8 +56,10 @@ SKIP_PATTERNS = [
     r"Add HOL Guard scanner",
 ]
 
-COMMENT_BODY = """<!-- hol-claim-notice -->
-🎉 Your plugin has been merged and is now listed in the [HOL Registry](https://hol.org/registry/plugins)!
+def build_comment_body(author: str) -> str:
+    """Build the claim notice comment body, tagging the PR author."""
+    return f"""<!-- hol-claim-notice -->
+🎉 Hey @{author}, your plugin has been merged and is now listed in the [HOL Registry](https://hol.org/registry/plugins)!
 
 ## Claim your plugin
 
@@ -200,11 +202,12 @@ def has_existing_claim_comment():
     return False
 
 
-def post_comment():
-    """Post the claim notice comment on the PR."""
+def post_comment(author: str):
+    """Post the claim notice comment on the PR, tagging the author."""
     url = f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments"
     headers = {"Authorization": f"token {GH_TOKEN}"}
-    result = api_request(url, headers=headers, method="POST", data={"body": COMMENT_BODY})
+    body = build_comment_body(author)
+    result = api_request(url, headers=headers, method="POST", data={"body": body})
     return result is not None
 
 
@@ -279,7 +282,7 @@ def main():
 
     # 7. Post the comment
     print("  Posting claim notice comment...")
-    if post_comment():
+    if post_comment(PR_AUTHOR):
         print("  ✅ Comment posted successfully")
         return 0
     else:
