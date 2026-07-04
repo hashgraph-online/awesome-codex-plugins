@@ -218,6 +218,8 @@ def main():
         missing.append("GH_TOKEN")
     if not PR_NUMBER:
         missing.append("PR_NUMBER")
+    if not PR_AUTHOR:
+        missing.append("PR_AUTHOR")
     if not REPO_FULL:
         missing.append("GITHUB_REPOSITORY")
     if missing:
