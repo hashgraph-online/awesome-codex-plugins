@@ -12,6 +12,20 @@ Connect AI agents and IDEs to Xquik via the Model Context Protocol. The MCP serv
 
 Use native HTTP MCP clients or OAuth connectors only. Do not proxy Xquik API keys through third-party local bridge packages, local proxy commands, or command-line adapters.
 
+## Contents
+
+- [Claude.ai (Web)](#claudeai-web)
+- [Claude Desktop](#claude-desktop)
+- [Claude Code](#claude-code)
+- [ChatGPT](#chatgpt)
+- [Codex CLI](#codex-cli)
+- [Cursor](#cursor)
+- [VS Code](#vs-code)
+- [Windsurf](#windsurf)
+- [OpenCode](#opencode)
+- [MCP Server Architecture](#mcp-server-architecture)
+- [After Setup](#after-setup)
+
 ## Claude.ai (Web)
 
 Claude.ai supports MCP connectors natively via OAuth. Add Xquik as a connector from **Settings > Feature Preview > Integrations > Add More > Xquik**. The OAuth 2.1 flow handles authentication automatically. No API key needed.
@@ -42,31 +56,31 @@ Add to `.mcp.json`:
 
 ## ChatGPT
 
-3 ways to connect ChatGPT to Xquik:
+2 ways to connect ChatGPT to Xquik:
 
-### Option 1: Custom GPT (Recommended)
-
-Create a Custom GPT and add Xquik as an Action using the OpenAPI schema at `https://xquik.com/openapi.json`. Set the API key under Authentication > API Key > Header `x-api-key`.
-
-### Option 2: Agents SDK
+### Option 1: Agents SDK
 
 Use the [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/mcp/) for programmatic access:
 
 ```python
-import os
-
 from agents.mcp import MCPServerStreamableHttp
+
+def load_secret(name: str) -> str:
+    """Read from your agent or platform secret store."""
+    raise RuntimeError(f"Configure {name} in your secret store.")
+
+api_key = load_secret("XQUIK_API_KEY")
 
 async with MCPServerStreamableHttp(
     url="https://xquik.com/mcp",
-    headers={"x-api-key": os.environ["XQUIK_API_KEY"]},
+    headers={"x-api-key": api_key},
     params={},
 ) as xquik:
     # use xquik as a tool provider
     pass
 ```
 
-### Option 3: Developer Mode
+### Option 2: Developer Mode
 
 ChatGPT Developer Mode supports MCP connectors via OAuth. Add Xquik from **Settings > Developer Mode > MCP Tools > Add**. Enter `https://xquik.com/mcp` as the endpoint. OAuth handles authentication automatically.
 
@@ -154,12 +168,12 @@ Add to `opencode.json`:
 
 The MCP server (v2) at `https://xquik.com/mcp` provides 2 structured API tools:
 
-| Tool | Description | Cost |
+| Tool | Description | Usage |
 |------|-------------|------|
-| `explore` | Search the API endpoint catalog (read-only, no network calls) | Free |
+| `explore` | Search the API endpoint catalog (read-only, no network calls) | Included |
 | `xquik` | Send confirmed Xquik API requests | Varies by endpoint |
 
-The agent sends structured API requests through the MCP server, which handles authentication and request routing within the same first-party infrastructure as the REST API. All 100+ REST API endpoints across 10 categories are accessible. Private reads, writes, and persistent resources require explicit user confirmation before use. Plan and credit changes are dashboard-only.
+The agent sends structured API requests through the MCP server, which handles authentication and execution for the documented REST API. Supported endpoints across the documented categories are accessible through the `xquik` tool. Private reads, writes, and persistent resources require explicit user confirmation before use. Plan and credit changes are dashboard-only.
 
 ## After Setup
 
@@ -167,7 +181,7 @@ The agent sends structured API requests through the MCP server, which handles au
 
 | Workflow | Steps (via `xquik` tool) |
 |----------|--------------------------|
-| Set up real-time alerts | Confirm target, event types, destination, and ongoing cost -> `POST /monitors` -> `POST /webhooks` -> `POST /webhooks/{id}/test` |
+| Set up real-time alerts | Confirm target, event types, destination, and ongoing usage -> `POST /monitors` -> `POST /webhooks` -> `POST /webhooks/{id}/test` |
 | Run a giveaway | Confirm tweet URL and rules -> `POST /draws` |
 | Bulk extraction | `POST /extractions/estimate` -> `POST /extractions` -> `GET /extractions/{id}` |
 | Compose optimized tweet | `POST /compose` (step=compose -> refine -> score) |
@@ -176,13 +190,13 @@ The agent sends structured API requests through the MCP server, which handles au
 
 Try these with your AI agent:
 
-- "Monitor @vercel for new tweets and quote tweets after I confirm the ongoing cost"
+- "Monitor @vercel for new tweets and quote tweets after I confirm the ongoing usage"
 - "How many followers does @elonmusk have?"
 - "Search for tweets mentioning xquik"
 - "What does this tweet say? https://x.com/elonmusk/status/1893456789012345678"
 - "Does @elonmusk follow @SpaceX back?"
 - "Pick 3 winners from this tweet: https://x.com/burakbayir/status/1893456789012345678"
-- "How much would it cost to extract all followers of @elonmusk?"
+- "Estimate usage for extracting all followers of @elonmusk."
 - "What's trending in the US right now?"
 - "What's trending on Hacker News today?"
 - "Help me write a tweet about launching my product"

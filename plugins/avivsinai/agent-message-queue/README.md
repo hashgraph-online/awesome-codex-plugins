@@ -112,7 +112,13 @@ amq coop exec claude -- --dangerously-skip-permissions
 amq coop exec --session feature-a codex
 ```
 
+Add `--no-gitignore` when `coop exec` should auto-initialize the project without changing `.gitignore`.
 Managed launchers can add `--require-wake` to fail instead of launching the agent when the wake watcher cannot start.
+Launchers that use an external injector can add `--wake-inject-via /absolute/path/to/injector`
+and repeated `--wake-inject-arg` values. When that invocation starts a new wake,
+the wake stores a repair target so `amq wake repair` can restart wake later
+without restarting the agent TUI. If `--require-wake` reuses an existing wake,
+that wake must already have repair metadata to be repairable.
 
 ### 3. Send & Receive
 
@@ -154,7 +160,28 @@ amq reply --id <msg_id> --kind review_response --body "LGTM with comments"
 amq doctor
 amq doctor --ops
 amq doctor --ops --json
+amq doctor --ops --fix-wake-locks
+amq wake repair --me codex
 ```
+
+Wake locks reported by `doctor --ops` can be `stale`, `unverified`, or, in JSON
+output, any current lock state. With `--fix-wake-locks`, fixed and error states
+can also appear. `stale` means AMQ proved the recorded owner is gone or is not
+the same wake process, so `--fix-wake-locks` can remove the lock after a fresh
+re-check. `unverified` means AMQ could not prove ownership either way, such as a
+legacy lock with a live PID but no process-start token, a hostname mismatch, or
+an unsupported platform. AMQ leaves `unverified` locks in place; inspect the PID
+and remove the named `.wake.lock` manually only after confirming no matching
+`amq wake` still owns that agent/root.
+
+`amq wake repair` is an explicit live-session repair path. It only runs when
+the lock is proven `stale`, the lock was created for `--inject-via`, and the
+agent has a saved `agents/<agent>/.wake.target` whose digest matches the lock's
+repair metadata. It refuses raw terminal wake targets, leftover targets from old
+locks, and `unverified` locks to avoid double-injecting into an active session
+or injecting into the wrong terminal. Repaired wake output goes to
+`agents/<agent>/.wake.repair.log`; `doctor --ops` can report whether repair is
+available, but it never starts a wake process.
 
 ## Message Kinds & Priority
 
@@ -214,6 +241,17 @@ Root resolution precedence is:
 ```text
 flags > AM_ROOT > project .amqrc > AMQ_GLOBAL_ROOT > ~/.amqrc > auto-detect
 ```
+
+For an external orchestrator or plain shell that should stay pinned to one
+session, opt in explicitly:
+
+```sh
+eval "$(amq env --session auth --me claude --export)"
+```
+
+That exports `AM_ROOT`, `AM_ME`, and, for session roots, `AM_BASE_ROOT`, and
+prints a stderr note that the terminal is pinned. Treat this as one terminal,
+one session.
 
 Auto-detect covers the default `.agent-mail` layout, including `.agent-mail/<session>` session roots without `.amqrc`. Custom root names and peer config still require `.amqrc` or explicit flags/env.
 This same chain is used by `amq env`, `amq doctor`, and the integration commands, so Symphony and Kanban-launched agents can find the correct queue even when they are not started from the project directory.
@@ -287,7 +325,7 @@ Common command groups:
 | Core messaging | `init`, `send`, `list`, `read`, `drain`, `reply`, `thread`, `watch`, `monitor`, `receipts` |
 | Collaboration | `coop init`, `coop exec`, `swarm list`, `swarm join`, `swarm tasks`, `swarm bridge` |
 | Integrations | `integration symphony init`, `integration symphony emit`, `integration kanban bridge` |
-| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
+| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `wake repair`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
 
 For the full CLI syntax, examples, and message schema, see [CLAUDE.md](CLAUDE.md).
 
@@ -337,7 +375,7 @@ Files are universal, debuggable, and work everywhere. No connection strings, no 
 Those require infrastructure. AMQ is for local inter-process communication where agents share a filesystem. No server to configure or keep running.
 
 **What about Windows?**
-The core queue works on Windows. The `amq wake` notification feature requires WSL.
+The core queue works on Windows. The `amq wake` notification feature requires WSL. `doctor --ops` can still report wake lock files on unsupported platforms, but it cannot verify live wake process identity there and will not auto-fix `unverified` locks.
 
 **Is this production-ready?**
 For local development workflows, yes. AMQ is intentionally simple—it's not trying to be a distributed message broker.

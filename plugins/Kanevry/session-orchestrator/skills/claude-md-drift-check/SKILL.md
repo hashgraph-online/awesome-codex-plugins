@@ -1,6 +1,6 @@
 ---
 name: claude-md-drift-check
-description: Use when detecting drift between CLAUDE.md (or AGENTS.md, the Codex CLI alias) / _meta narrative and live repository state. Seven checks: absolute-path resolution, 01-projects/ count claims, issue-reference freshness (closed refs in forward-looking sections), session-file existence, command-count sync (claimed "N commands" vs actual commands/*.md), session-config-parity (top-level keys diffed against docs/session-config-template.md), and vault-dir-parity (CLAUDE.md vs AGENTS.md agreement on vault-integration.vault-dir). Invoked as an opt-in session-end phase; mirrors vault-sync's lean JSON+exit-code contract.
+description: Use when detecting drift between CLAUDE.md (or AGENTS.md, the Codex CLI alias) / _meta narrative and live repository state. Nine checks: absolute-path resolution, 01-projects/ count claims, issue-reference freshness (closed refs in forward-looking sections), session-file existence, command-count sync (claimed "N commands" vs actual commands/*.md), session-config-parity (top-level keys diffed against docs/session-config-template.md), vault-dir-parity (CLAUDE.md vs AGENTS.md agreement on vault-integration.vault-dir), generated-rule-staleness (WARN-only: auto-generated rules whose learning-key is absent or expired in learnings.jsonl), and rule-scoping (paths: vs globs: frontmatter defects, cited-but-missing rule citations in CLAUDE.md/AGENTS.md/See-Also footers, zero-match globs, and foreign PascalCase glob tokens in .claude/rules/*.md). Invoked as an opt-in session-end phase; mirrors vault-sync's lean JSON+exit-code contract.
 model: haiku
 ---
 
@@ -32,6 +32,8 @@ PHASE 1 IMPLEMENTED (2026-04-19). Session-end opt-in quality gate. Upstream of `
 | 5 | `command-count` | "N commands" / "N /commands" claims in prose | compare to `ls commands/*.md \| wc -l`; skipped if no `commands/` dir |
 | 6 | `session-config-parity` | Top-level keys under `## Session Config` in `CLAUDE.md` / `AGENTS.md` | diff against `docs/session-config-template.md`; missing keys flagged as errors |
 | 7 | `vault-dir-parity` | `vault-integration.vault-dir` in BOTH `CLAUDE.md` AND `AGENTS.md` | reuse `_parseVaultIntegration`; flag when the two files disagree |
+| 8 | `generated-rule-staleness` *(WARN only)* | `.claude/rules/*.md` with `auto-generated: true` frontmatter | extract `learning-key`; WARN when the key is absent from `.orchestrator/metrics/learnings.jsonl` or its learning's `expires_at` is in the past; skipped silently when no auto-generated rules exist |
+| 9 | `rule-scoping` | `.claude/rules/*.md` frontmatter + `## See Also` footers + `.claude/rules/<name>.md` citations in `CLAUDE.md`/`AGENTS.md` | five probes: `paths:` frontmatter (error), cited-but-missing rule citations (error), zero-match `globs:` patterns (warn), foreign PascalCase glob tokens (warn), unreadable rule files (warn — surfaced instead of silently skipped); skipped silently when `.claude/rules/` is absent |
 
 Check 3 deliberately scopes to forward-looking sections. Mentions inside "Recently Closed", "Decisions", "Archive", etc. describe history and must not be flagged.
 
@@ -49,6 +51,8 @@ The parity set is **template-driven**: every column-0 YAML key under `## Session
 A local CLAUDE.md / AGENTS.md that omits any of these now fails `session-config-parity` in `mode: hard`. The bundle ships all four keys in CLAUDE.md and `docs/session-config-template.md` together (Wave 1 of the adoption plan) so the check stays green at adoption time.
 
 Check 7 (issue #600) is the **only** check that intentionally reads BOTH instruction files rather than the single alias-resolved one. The alias rule (CLAUDE.md wins ties, AGENTS.md is the Codex alias) means `resolveInstructionFile()` picks exactly one — so a repo carrying both files can silently let `AGENTS.md` drift out of sync with `CLAUDE.md`. A sibling project ran for weeks with a correct `vault-integration.vault-dir` in `CLAUDE.md` and a dead path in `AGENTS.md`. Check 7 reads `vault-integration.vault-dir` from each file (reusing the `_parseVaultIntegration` parser from `scripts/lib/config/vault-integration.mjs` — no hand-rolled YAML) and flags a `vault-dir-parity` error when the two values diverge (the error is attributed to `AGENTS.md`, the secondary alias, and names both values). The check skips gracefully when only one instruction file is present (nothing to compare), when neither file declares a `vault-integration:` block, or when explicitly disabled via `--skip-vault-dir-parity`. Two files that both omit `vault-dir` (both unset) agree and pass.
+
+Check 9 (`rule-scoping`) validates `.claude/rules/*.md` frontmatter against the `scripts/lib/rule-loader.mjs` contract, catching the class of defect where a rule silently drifts out of the activation pipeline the loader actually implements. Four probes: **(1) paths-presence** — a top-level `paths:` frontmatter key is not a key `rule-loader.mjs` recognises (it only reads `globs:`), so a rule with `paths:` silently loads ALWAYS-ON regardless of intended file scope; flagged as an error. **(2) cited-but-missing** — `(a)` `.claude/rules/<name>.md` citations inside `CLAUDE.md`/`AGENTS.md` that don't resolve to a file on disk, and `(b)` bare `<name>.md` tokens in a rule's own `## See Also` footer that don't exist as sibling rule files (tokens carrying a path separator, e.g. `../../skills/_shared/state-ownership.md`, are cross-directory references and explicitly out of scope); both flagged as errors. **(3) zero-match-globs** — a `globs:` pattern matching zero files in `git ls-files` (falls back to a manual directory walk when git is unavailable); flagged as a WARNING, not an error, because library/exemplar repos legitimately carry dead stack rules (this repo alone carries ~37 by design — Swift/Next.js/Supabase rules with no matching files in a pure-Node-ESM codebase). **(4) foreign-glob** — a glob pattern containing a PascalCase product-like token (regex `[A-Z][a-z]+[A-Z]`, e.g. `WalkAITalkieTests`) — a likely copy-paste leftover from another project's rule scope; flagged as a WARNING. Glob matching reuses the same picomatch-with-inline-fallback resolution `scripts/lib/rule-loader.mjs` uses (`parseGlobsFrontmatter` is imported directly; the picomatch resolution itself is duplicated locally since `rule-loader.mjs` does not export a public matcher function). The check is skipped silently (no `checks_run` entry, no `checks_skipped` entry) when `.claude/rules/` is absent, or explicitly via `--skip-rule-scoping`.
 
 ## Files
 
@@ -77,6 +81,8 @@ CLI flags (all optional):
 | `--skip-command-count` | off | Disable Check 5 |
 | `--skip-session-config-parity` | off | Disable Check 6 |
 | `--skip-vault-dir-parity` | off | Disable Check 7 |
+| `--skip-generated-rule-staleness` | off | Disable Check 8 |
+| `--skip-rule-scoping` | off | Disable Check 9 |
 | `--commands-dir <path>` | `<VAULT_DIR>/commands` | Override path to `commands/` directory for Check 5 |
 | `--config-template <path>` | `<VAULT_DIR>/docs/session-config-template.md` | Override path to the canonical Session Config template for Check 6 |
 
@@ -94,7 +100,7 @@ Environment:
   "resolved_path": "<absolute path to CLAUDE.md or AGENTS.md, or null>",
   "resolved_kind": "claude|agents|null",
   "files_scanned": N,
-  "checks_run": ["path-resolver", "project-count-sync", "issue-reference-freshness", "session-file-existence", "command-count", "session-config-parity", "vault-dir-parity"],
+  "checks_run": ["path-resolver", "project-count-sync", "issue-reference-freshness", "session-file-existence", "command-count", "session-config-parity", "vault-dir-parity", "generated-rule-staleness", "rule-scoping"],
   "checks_skipped": ["<name>: <reason>"],
   "errors": [
     { "check": "<name>", "file": "<relative path>", "line": N, "message": "<human>", "extracted": "<raw text>" }
@@ -126,6 +132,7 @@ drift-check:
   mode: warn          # hard | warn | off
   include-paths:
     - CLAUDE.md
+    - AGENTS.md
     - _meta/**/*.md
   check-path-resolver: true
   check-project-count-sync: true
@@ -134,6 +141,8 @@ drift-check:
   check-command-count: true
   check-session-config-parity: true
   check-vault-dir-parity: true
+  check-generated-rule-staleness: true
+  check-rule-scoping: true
 ```
 
 When `drift-check.enabled` is `false` or the block is absent, the session-end phase is a no-op.
@@ -144,7 +153,7 @@ When `drift-check.enabled` is `false` or the block is absent, the session-end ph
 
 - Trigger: after Phase 2.1 `vault-sync`, before commit prep
 - Behavior: full scan of the configured `include-paths`
-- Error handling: `mode=hard` blocks close; `mode=warn` surfaces in quality-gate report; `mode=off` skipped silently
+- Error handling: `mode=hard` exits non-zero and session-end converts errors into carryover + continue; `mode=warn` surfaces in quality-gate report; `mode=off` skipped silently
 - Rationale: drift is narrative-level; vault-sync catches frontmatter-level. The two gates are complementary.
 
 ### Future: wave-executor (not implemented)

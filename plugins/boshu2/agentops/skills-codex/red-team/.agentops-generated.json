@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/red-team",
   "layout": "modular",
-  "source_hash": "6a100fe5fc59fdd24d360730d4fb3f6944b04502e0d39cb405771da9b20270f4",
-  "generated_hash": "4ba26755ae541432c64e24f119e44499d72418f73e2d27427b1bf32229f03161"
+  "source_hash": "187038637929921fa21fa3f1e4afb293a1f93430a2d371971abaeff8c2a6f36c",
+  "generated_hash": "81c87508784c708a89901870fa361b5be0b529fc637169f169d4c4f11548cc12"
 }

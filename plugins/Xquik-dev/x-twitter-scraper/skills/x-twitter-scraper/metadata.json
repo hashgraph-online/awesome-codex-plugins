@@ -1,8 +1,34 @@
 {
   "version": "2.4.16",
   "organization": "Xquik",
+  "homepage": "https://docs.xquik.com",
+  "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
+  "license": "MIT",
   "date": "April 2026",
-  "abstract": "Integration guide for the Xquik X (Twitter) real-time data platform. Covers the REST API (100+ endpoints across tweet search, user lookup, user tweets/likes/media, favoriters, mutual followers, confirmation-gated private reads, media download, extractions, monitors, events, webhooks, trends, radar, compose, style analysis, drafts, draws, connected X account listing, confirmation-gated write actions, credit balance, and support tickets), HMAC webhook verification, MCP server setup for 10 IDEs and AI agents (2 structured API tools: explore + xquik), all 23 extraction tools, tweet composition with algorithm scoring, usage-cost estimates, and complete TypeScript type definitions. Code examples in JavaScript, Python, Go, and cURL.",
+  "abstract": "Agent-ready integration guide for the Xquik X Twitter scraper API, X data platform, and X API alternative. Covers tweet search, follower export, social listening, profile lookup, monitoring, webhooks, OpenAPI-documented REST paths, MCP setup for multiple IDEs and AI agents, HMAC webhook verification, 23 extraction tools, high-throughput read workflows, 33x cheaper tweet reads, tweet composition workflows, untrusted-content boundaries, and complete TypeScript type definitions. Read-only public data lookup is the default. Any private read, write action, monitor, webhook, metered bulk job, or event delivery requires explicit user approval with target, payload, destination, and usage estimate before an endpoint is called. The skill handles only the user-issued Xquik API key, never X passwords, 2FA codes, cookies, session tokens, recovery codes, local files, shell commands, local networks, or bridge packages.",
+  "security": {
+    "defaultMode": "read-only-public-data",
+    "credentialsHandled": ["xquik-api-key"],
+    "credentialsNeverHandled": [
+      "x-passwords",
+      "2fa-codes",
+      "cookies",
+      "session-tokens",
+      "recovery-codes"
+    ],
+    "approvalRequiredFor": [
+      "private-reads",
+      "write-actions",
+      "persistent-monitors",
+      "webhook-delivery",
+      "metered-bulk-jobs",
+      "event-delivery"
+    ],
+    "localExecution": false,
+    "localFileAccess": false,
+    "localNetworkAccess": false,
+    "untrustedContentBoundaries": true
+  },
   "references": [
     "https://docs.xquik.com",
     "https://docs.xquik.com/api-reference/overview",

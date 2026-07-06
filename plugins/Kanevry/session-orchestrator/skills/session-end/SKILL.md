@@ -14,7 +14,7 @@ description: >
 
 # Session End Skill
 
-> **Platform Note:** State files (STATE.md, wave-scope.json) live in the platform's native directory: `.claude/` (Claude Code), `.codex/` (Codex CLI), or `.cursor/` (Cursor IDE). All references to `.claude/` below should use the platform's state directory. Shared metrics live in `.orchestrator/metrics/`. See `skills/_shared/platform-tools.md`.
+> **Platform Note:** State files (STATE.md, wave-scope.json) live in the platform's native directory: `.claude/` (Claude Code), `.codex/` (Codex CLI), `.cursor/` (Cursor IDE), or `.pi/` (Pi). All references to `.claude/` below should use the platform's state directory. Shared metrics live in `.orchestrator/metrics/`. See `skills/_shared/platform-tools.md`.
 
 > **Project-instruction file:** `CLAUDE.md` and `AGENTS.md` (Codex CLI) are transparent aliases — see [skills/_shared/instruction-file-resolution.md](../_shared/instruction-file-resolution.md). All references to `CLAUDE.md` in this skill resolve via that precedence rule.
 
@@ -42,6 +42,25 @@ For session-end specifically: the preamble is DETECTION-ONLY. The lock-release p
 **Implementation reference:** `skills/_shared/parallel-aware-preamble.md § Implementation`.
 **AUQ reference:** `skills/_shared/parallel-aware-auq.md`.
 
+## Phase 0.6: Skill-Invocation Self-Report (#724, C4)
+
+> Emit an L1 skill-invocation record for `session-end` itself. The PreToolUse `Skill`-matcher hook only captures skills dispatched via the `Skill` tool — a **prose-invoked** skill like this one is invisible to it (verified gap: zero `session-end` rows in `skill-invocations.jsonl` despite many closed sessions). This self-report closes that gap so L2/L3 skill-health has a `session-end` selection signal. Best-effort, try/catch-silent — it never blocks the close.
+
+```javascript
+try {
+  const { appendSkillInvocation, DEFAULT_SKILL_INVOCATIONS_PATH } =
+    await import('${PLUGIN_ROOT}/scripts/lib/skill-invocations-schema.mjs');
+  const nodePath = await import('node:path');
+  await appendSkillInvocation(nodePath.join(process.cwd(), DEFAULT_SKILL_INVOCATIONS_PATH), {
+    timestamp: new Date().toISOString(),
+    event: 'selected',
+    skill: 'session-orchestrator:session-end',
+    session_id: sessionId ?? null,   // from session.lock `session_id`, when available
+    phase: null,
+  });
+} catch { /* self-report is advisory — never block the close */ }
+```
+
 ## Phase 1: Plan Verification
 
 Read back the session plan that was agreed at the start. For EACH planned item:
@@ -63,6 +82,29 @@ Read back the session plan that was agreed at the start. For EACH planned item:
 - Document WHY (blocked? de-scoped? out of time?)
 - If still relevant: ensure original issue remains `status:ready`
 - If no longer relevant: close with comment explaining why
+
+### 1.3a Optional /goal Backlog-Drain (opt-in — #636)
+
+> Advisory-only continuation anchor at the session-end backlog seam. Never auto-invokes `/goal`, never blocks the close. `/goal` is a user slash-command; the operator decides whether to drain now or carry over.
+
+**Gate conditions** — ALL must be true for this nudge to surface:
+
+1. `goal-integration.enabled: true` in Session Config (default: `false`).
+2. `session-end-backlog` is listed in `goal-integration.seams`.
+
+When any gate condition is false, skip this step silently — no surfaced suggestion, no STATE.md write, no AUQ.
+
+**What it does** — when the gate fires AND ≥1 still-relevant Not-Started (§1.3) or Partially-Done (§1.2) item exists AND the operator would rather drain the backlog now than carry it to a future session, surface ONE suggested `/goal` command as an advisory bullet. Example:
+
+```
+/goal Drain the remaining backlog items <list>; done when each item's acceptance check passes as shown by 'npm test' output in this turn AND 'npm run typecheck' prints 0 errors in this turn, or stop after 20 turns.
+```
+
+**Advisory-only contract:** this step never auto-invokes `/goal`, never blocks the close, raises no AskUserQuestion, and writes nothing to STATE.md. It is informational prose only — the operator copies the command if they want it. The deterministic **Phase 2 Quality Gate** of session-end remains the completion authority: `/goal` keeps the loop alive across turns, but `npm test` / `npm run typecheck` / `npm run lint` and their exit codes decide whether the drained work is correct.
+
+The `/goal` evaluator reads the transcript only and runs NO tools — it anchors CONTINUATION, never JUDGMENT. The suggested condition therefore references freshly-run gate output "in this turn's output" and embeds a bound ("or stop after N turns"). Cross-reference `.claude/rules/loop-and-monitor.md § LM-008` for the full `/goal` continuation-vs-judgment contract rather than restating it here.
+
+**One goal per session:** only ONE `/goal` can be active at a time. This backlog seam and the inter-wave fix-loop seam (`wave-loop.md` § /goal Continuation Anchor) cannot both hold an active goal simultaneously — the operator picks one.
 
 ### 1.4 Emergent Work
 - Tasks that were NOT in the plan but were done (fixes, discoveries)
@@ -272,17 +314,60 @@ totalFindings = projectStaleness.findings.length + narrativeStaleness.findings.l
 - `mode === 'warn'` (default): report findings to closing report Docs Health line. Never block close.
 - `mode === 'strict'`:
   - If `totalFindings === 0`: continue, log `Vault staleness: clean (mode=strict)`.
-  - If `totalFindings > 0`: BLOCK the close. Present the findings list and offer override:
+  - If `totalFindings > 0`: do NOT block the close. Present the findings list and surface an AskUserQuestion whose Recommended default is **warn + carryover + continue**:
     - On Claude Code: AskUserQuestion with options:
-      1. "Fix and retry Phase 2.3" (Recommended) — exit close, let user investigate
-      2. "Override and close" — proceed, log a Deviation entry in STATE.md `## Deviations`:
+      1. "Warn + carryover and close (Recommended)" — file a carryover issue (labels `carryover`, `priority:high`) titled `[Carryover] Vault staleness (strict) — <count> findings` documenting the stale projects/narratives for a follow-up session, log a Deviation entry in STATE.md `## Deviations`, then continue the close:
+         `- [<ISO timestamp>] Phase 2.3: Vault staleness strict-mode findings carried over. Findings: <count> (projects: <N>, narratives: <M>) → issue #<IID>.`
+      2. "Override and close" — proceed without a carryover issue, log a Deviation entry in STATE.md `## Deviations`:
          `- [<ISO timestamp>] Phase 2.3: Vault staleness strict-mode findings overridden by user. Findings: <count> (projects: <N>, narratives: <M>).`
-      3. "Abort close" — exit close without writing
     - On Codex CLI / Cursor IDE: same options as numbered Markdown list.
 
 #### Step 4 — Surface to closing report
 
 Pass the aggregated counts and mode forward to Phase 6 Final Report (Docs Health line — see Phase 6 below).
+
+## Phase 2.5: Custom Phases (#637)
+
+> Opt-in. Skip this phase entirely if `custom-phases` in `$CONFIG` is absent or `[]` (the default).
+
+Repos declare deterministic close/housekeeping phases as a **contract** (not the freeform `special:` convention): each phase runs a `command` with exit-code gating and Final-Report reporting. The block is parsed by `scripts/lib/config/custom-phases.mjs`; each record is `{ name, when, command, mode, review }` (already validated — unsafe records were dropped at parse time).
+
+#### Step 1 — Read + filter by `when`
+
+Read `custom-phases` from `$CONFIG` and the `session-type` from STATE.md frontmatter (`feature | deep | housekeeping | none`):
+
+- If `session-type === 'housekeeping'`: keep phases with `when ∈ {housekeeping, both}`.
+- Otherwise (`feature`/`deep`/any other): keep phases with `when ∈ {session-end, both}`.
+
+If no phases remain after filtering, skip to Phase 3.
+
+#### Step 2 — Run each phase in declaration order
+
+For each kept phase:
+
+- `mode === 'off'` ⇒ skip silently (do not run the command).
+- Otherwise run `command` via Bash. Capture the **exit code** and the **last ~10 lines of stdout** (these become the report summary — do NOT inline the full output).
+- If `review` is set, read that file after the command as the review step and note its path in the report.
+
+#### Step 3 — Route by `mode`
+
+- `mode === 'warn'` (default): record the result (name, exit code, summary) for the Phase 6 Final Report "Custom Phases" line. Never block the close — even on a non-zero exit.
+- `mode === 'hard'`:
+  - exit code `0` ⇒ continue; record `<name>: pass (mode=hard)`.
+  - exit code `≠ 0` ⇒ **BLOCK the close** using the same routing pattern as Phase 2.3 strict-mode. `mode: hard` here is an operator-declared repo contract (the repo deliberately chose `mode: hard`), so the block semantics are preserved — but the AUQ now ALSO offers a warn + carryover escape hatch. Present the phase name + captured summary and offer:
+    - On Claude Code: AskUserQuestion with options:
+      1. "Fix and retry Phase 2.5" (Recommended) — exit close, let the user investigate.
+      2. "Warn + carryover and close" — file a carryover issue (labels `carryover`, `priority:high`) titled `[Carryover] custom-phase '<name>' (mode=hard) exited <code>` capturing the phase name + captured summary for a follow-up session, log the Deviation entry, then continue the close.
+      3. "Override and close" — proceed, log a Deviation entry in STATE.md `## Deviations`:
+         `- [<ISO timestamp>] Phase 2.5: custom-phase '<name>' (mode=hard) exited <code>, overridden by user.`
+      4. "Abort close" — exit close without writing.
+    - On Codex CLI / Cursor IDE: same options as a numbered Markdown list.
+
+A `hard`-fail (whether overridden or not) ALWAYS appends its result line to STATE.md `## Deviations`; `warn`-mode results do not.
+
+#### Step 4 — Surface to closing report
+
+Pass each phase result `(name, mode, exitCode, summary, review?)` forward to the Phase 6 Final Report "Custom Phases" line (see Phase 6 below).
 
 ## Phase 3: Documentation Updates
 
@@ -337,7 +422,7 @@ Review `<state-dir>/rules/` files that are relevant to this session's work:
 
 > **Ownership Reference:** See `skills/_shared/state-ownership.md`. session-end is authorized to set `status: completed` plus the optional `updated` timestamp (#184), and — as of Phase A of Epic #271 — the 5 Recommendation fields written by Phase 3.7a. No other fields.
 
-> **Runtime Ordering Note (Epic #271 Phase A):** Phase 3.4's `status: completed` write executes LAST in Phase 3, AFTER Phase 3.7 (sessions.jsonl) and Phase 3.7a (Compute and Write Recommendations). The ordinal position here (3.4) is kept for historical compatibility; the canonical runtime order is `3.1 → 3.2 → 3.3 → 3.4a → 3.5 → 3.5a → 3.6 → 3.6.5 → 3.6.7 → 3.7 → 3.7a → 3.7b → 3.4`. Rationale: Phase 3.7a reads in-memory session metrics and writes the 5 Recommendation fields via `updateFrontmatterFields`; that write must complete BEFORE the STATE.md frontmatter is finalized with `status: completed` so the Recommendation fields are visible to the next session-start while STATE.md is still `status: active`. Crash-resilience: if `/close` aborts between 3.7a and 3.4, STATE.md carries `status: active` + Recommendations; session-start Phase 1.5 offers resume (and the banner renders). If the reverse ordering were used (status: completed first), a crash would leave `status: completed` without Recommendations — the Reader would silently no-op the banner, losing the handoff.
+> **Runtime Ordering Note (Epic #271 Phase A):** Phase 3.4's `status: completed` write executes LAST in Phase 3, AFTER Phase 3.7 (sessions.jsonl) and Phase 3.7a (Compute and Write Recommendations). The ordinal position here (3.4) is kept for historical compatibility; the canonical runtime order is `3.1 → 3.2 → 3.3 → 3.4a → 3.5 → 3.5a → 3.6 → 3.6.3 → 3.6.4 → 3.6.5 → 3.6.6 → 3.6.7 → 3.6.8 → 3.7 → 3.7a → 3.7b → 3.7c → 3.4` (3.6.3/3.6.4/3.6.6 were missing from this note pre-#724; the Tail-Diät skip-plan dispatcher now dispatches the full six-phase tail mechanically, so the note is corrected to list all six). Rationale: Phase 3.7a reads in-memory session metrics and writes the 5 Recommendation fields via `updateFrontmatterFields`; that write must complete BEFORE the STATE.md frontmatter is finalized with `status: completed` so the Recommendation fields are visible to the next session-start while STATE.md is still `status: active`. Crash-resilience: if `/close` aborts between 3.7a and 3.4, STATE.md carries `status: active` + Recommendations; session-start Phase 1.5 offers resume (and the banner renders). If the reverse ordering were used (status: completed first), a crash would leave `status: completed` without Recommendations — the Reader would silently no-op the banner, losing the handoff.
 
 > Gate: Only run if `persistence` is enabled in Session Config and `<state-dir>/STATE.md` exists.
 1. Set frontmatter `status: completed`
@@ -400,161 +485,38 @@ This cleanup is the counterpart to the session-start Phase 1.5 recovery prompt: 
 
 Read `skills/session-end/learning-patterns.md` for extraction heuristics, confidence updates, passive decay, and JSONL write procedure.
 
-### 3.6.3 Memory Proposals Collection (#501, F2.1)
+### Phase 3.6.x Tail — Mechanical Skip-Plan (#724)
 
-> Gate: Skip this phase entirely when ANY of:
-> - `persistence` is `false` in Session Config
-> - `memory.proposals.enabled` is `false` (default: `true`)
-> - `.orchestrator/metrics/proposals.jsonl` does not exist OR contains zero entries
+> The Phase 3.6.x tail (3.6.3 Memory-Proposals, 3.6.4 Expired-Sweep, 3.6.5 Auto-Dream, 3.6.6 Skill-Judge, 3.6.7 Auto-Dialectic, 3.6.8 Reconcile) is the historical close-out abort-attractor: six phases that in the overwhelming majority of sessions do nothing (no proposals queued, nothing expired, under cadence, judge off, reconcile off). Each already ships a mechanical fast-path in its own lib. This dispatcher computes — side-effect-free — WHICH of the six actually need to run, so you load ONLY the detail procedure for the `run: true` phases and emit a one-line skip report for the rest.
 
-After learnings are written (Phase 3.6) and BEFORE auto-dream dispatch (Phase 3.6.5), collect agent-proposed memory entries written during this session and present them to the operator via `AskUserQuestion` multiSelect. Approved entries flow to `learnings.jsonl` with `_provenance: agent-proposed@<wave-id>`. Rejected entries are archived to `.orchestrator/proposals.rejected.log`.
+Run the aggregator ONCE. Config gates short-circuit FIRST (no disk touch); the input-detection helpers run only when the config gate passed. It NEVER throws — a per-phase probe error fail-opens to `run: true` (run the phase rather than silently lose it):
 
-The proposals queue is populated mid-session by wave-executor agents calling `node scripts/memory-propose.mjs --type ... --subject ... --insight ... --evidence ... --confidence ...`. The CLI enforces:
-- Quota per wave (default 5, configurable via `memory.proposals.quota-per-wave`)
-- Confidence floor (default 0.5, configurable via `memory.proposals.confidence-floor`)
-- Wrong-context guard (CLI exits non-zero when STATE.md `status` is not `active`)
+```javascript
+import { planTailPhases } from '${PLUGIN_ROOT}/scripts/lib/session-end/phase-skip.mjs';
 
-#### Coordinator-direct procedure
+const { plan, skippedReport } = await planTailPhases({
+  repoRoot: process.cwd(),
+  config,        // parsed Session Config (from $CONFIG)
+  sessionId,     // session.lock `session_id` / STATE.md `session:` field (or null)
+  platform,      // 'claude' | 'codex' | 'cursor'
+});
+// plan: Array<{ phase, run, reason, inputSource }>, already in ascending phase order.
+```
 
-1. Read Session Config: `memory.proposals.enabled` (default `true`), `memory.proposals.quota-per-wave` (default 5), `memory.proposals.confidence-floor` (default 0.5), `auto-dream.min-confidence` (default 0.5 — issue #566; SECOND gate above the write-time `memory.proposals.confidence-floor`).
+Then:
 
-2. Invoke `collectProposals` from `scripts/lib/memory-proposals/collector.mjs`, passing the collect-emit confidence floor from Session Config:
-   ```javascript
-   import { collectProposals } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/collector.mjs';
-   const { queue, stats, perWaveSummaries } = await collectProposals({
-     repoRoot: process.cwd(),
-     // Issue #566: collect-emit confidence floor. Records with
-     // `record.confidence < minConfidence` are dropped from `queue` (but
-     // counted in stats). When the key is absent, defaults to 0.5 via the
-     // `_parseAutoDream` parser.
-     minConfidence: config['auto-dream']?.['min-confidence'],
-   });
-   ```
+1. **For every entry with `run: true`** — load its detail procedure from [`phase-3-6-tail.md`](./phase-3-6-tail.md) (the phase headings there match the `phase` id) and execute it exactly as written. The aggregator only DECIDES; the sub-file holds the full unabridged procedure.
+2. **For every entry with `run: false`** — do nothing for that phase; its `reason` is already captured for the report.
+3. **Execute `run: true` phases in ascending phase order** (3.6.3 → 3.6.4 → 3.6.5 → 3.6.6 → 3.6.7 → 3.6.8), matching the Phase 3.4 Runtime Ordering Note. The returned `plan` is already in that order.
+4. **Emit `skippedReport`** as a single line in the Phase 6 Final Report (under the Learnings/metrics block), e.g. `Tail-Diät: 3.6.3 skipped (proposals empty) · 3.6.5 skipped (under-threshold) · 3.6.7 RUN (2 new sessions) · …`.
 
-3. If `queue.length === 0`: log `memory-proposals: queue empty (stats: ${JSON.stringify(stats)})` and continue.
-
-4. **AUQ pagination logic**: partition the queue into FIFO batches of 4 inline:
-
-   - Empty queue → silent skip (no AUQ rendered).
-   - 1-4 items → single multiSelect call with all items as options.
-   - 5+ items → sequential multiSelect calls in batches of 4 (FIFO order; final batch may have < 4 items).
-
-   ```javascript
-   // Inlined from former scripts/lib/memory-proposals/auq-partition.mjs (PRD F2.2 #502 closed; see #558 M2).
-   const BATCH_SIZE = 4;
-   const batches = [];
-   if (Array.isArray(queue) && queue.length > 0) {
-     for (let i = 0; i < queue.length; i += BATCH_SIZE) {
-       batches.push(queue.slice(i, i + BATCH_SIZE));
-     }
-   }
-   ```
-
-   Then iterate `batches` and emit one `AskUserQuestion` per batch with `header: "Memory — Confirm Proposals (Batch N of M)"`. Option label format: `[<type-12>] | <subject-40> | conf=X.XX`. Option description: `evidence: <first 60 chars of insight>`. `multiSelect: true`.
-
-5. After all batches answered, partition the queue into `approved` (any option selected across all batches) and `rejected` (all unselected).
-
-6. Invoke `writeApproved` and `archiveRejected` from `scripts/lib/memory-proposals/sink.mjs`:
-   ```javascript
-   import { writeApproved, archiveRejected, clearProposalsJsonl } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/sink.mjs';
-   const writeResult = await writeApproved({ approved, repoRoot, sessionId });
-   const archiveResult = await archiveRejected({ rejected, repoRoot, reason: 'user-declined' });
-   await clearProposalsJsonl({ repoRoot });
-   ```
-
-7. Log outcome for Phase 6 Final Report: `memory.proposals: <queued> queued → <approved> approved, <rejected> rejected (dropped: <dropped> quota, <below_floor> below-floor)`.
-
-#### Failure modes
-
-- If `collectProposals` fails (fs error): log warning `⚠ memory-proposals: collect failed (${err}) — skipping`, do not block session close.
-- If `writeApproved` reports errors per-record: log each, but continue (per-record fault isolation per sink contract).
-- If `clearProposalsJsonl` fails: log warning; do not block. The file may be re-collected at the next session-end, idempotent.
-
-#### Cross-references
-
-- PRD: `docs/prd/2026-05-21-learning-memory-modernization.md` § F2.1
-- Modules: `scripts/lib/memory-proposals/{schema,store,collector,sink}.mjs`
-- CLI: `scripts/memory-propose.mjs` (agents call this)
-- Hook: `hooks/pre-bash-memory-propose-audit.mjs` (audit trail)
-- Coordinator AUQ spec: `agents/memory-proposal-collector.md` (reference doc)
-- Sibling phases: 3.6.5 Auto-Dream (#502), 3.6.7 Auto-Dialectic (#506)
-- Issue: #501
-
-### 3.6.5 Auto-Dream Dispatch (#502, F2.2)
-
-> Skip this phase if `memory-cleanup-threshold: 0` (kill-switch per PRD F2.2). Also skip on non-Claude-Code platforms (memory dir at `~/.claude/projects/` is Claude Code-only, mirrors Phase 3.5 gate).
-
-After learnings are written (Phase 3.6), determine whether to emit a **manual-cadence nudge** to run `/memory-cleanup --dry-run` in the next session. The decision uses MEMORY.md line count and a sessions-since-last-cleanup signal. There is no `memory-cleanup` agent in the registry, so the historical auto-dream subagent dispatch never fired (see #614) — the nudge replaces it. A manually-run `/memory-cleanup --dry-run` writes a unified-diff proposal to `.orchestrator/pending-dream.md` for the session after that to apply via `/memory-cleanup --apply-pending`.
-
-1. Read `memory-cleanup-threshold` (default 5) and `memory-cleanup-soft-limit` (default 180) from `$CONFIG`.
-2. Invoke `shouldDispatchAutoDream` from `scripts/lib/auto-dream.mjs`:
-
-   ```javascript
-   import { shouldDispatchAutoDream } from '${PLUGIN_ROOT}/scripts/lib/auto-dream.mjs';
-   import { resolveMemoryDir } from '${PLUGIN_ROOT}/scripts/lib/memory-paths.mjs';
-   const memoryDir = resolveMemoryDir();
-   const decision = await shouldDispatchAutoDream({
-     repoRoot: process.cwd(),
-     memoryDir,
-     threshold: config['memory-cleanup-threshold'] ?? 5,
-     softLimit: config['memory-cleanup-soft-limit'] ?? 180,
-   });
-   ```
-3. If `decision.trigger === false`: log `auto-dream: not triggered (${decision.reason})` and continue. Emit no nudge.
-4. If `decision.trigger === true`: **do not dispatch a subagent** — there is no `memory-cleanup` agent in `agents/`, so the historical `Agent({…})` dispatch pointed at the agent name `memory-cleanup` (a subagent type that was never built) and never fired (see #614). Instead, emit a manual-cadence nudge and continue:
-
-   `auto-dream: cadence reached (${decision.reason}) — run /memory-cleanup --dry-run manually in the next session, then apply the proposal with /memory-cleanup --apply-pending.`
-
-   The `shouldDispatchAutoDream` decision helper and `scripts/lib/auto-dream.mjs` lib stay in use: they compute the signal that drives this nudge and back the manual `/memory-cleanup` path (`writePendingDream` / `readPendingDream` / `applyPendingDream`).
-5. Record the outcome (skipped / nudge-emitted) so Phase 6 Final Report can surface a line: `auto-dream: manual /memory-cleanup --dry-run recommended (cadence reached) — apply with /memory-cleanup --apply-pending next session`.
-
-The pending-dream sidecar at `.orchestrator/pending-dream.md` is intentionally outside the vault tree — vault-mirror (Phase 3.7) must exclude it from its scope so the proposal survives the session close without being mirrored into 50-sessions/.
-
-Cross-reference: PRD F2.2 acceptance criteria; `scripts/lib/auto-dream.mjs` API (`shouldDispatchAutoDream`, `readDreamSignals`, `writePendingDream`, `readPendingDream`, `applyPendingDream`).
-
-### 3.6.7 Auto-Dialectic Dispatch (#506, F2.5)
-
-> Skip this phase if `dialectic.cadence: 0` (kill-switch per PRD F2.5 AC3). Also skip if `persistence` is `false` in Session Config.
-
-After learnings are written (Phase 3.6) and the auto-dream decision is made (Phase 3.6.5), determine whether to emit a **manual-cadence nudge** to run `/evolve --dialectic` in the next session. The decision uses sessions-since-last-dialectic counted against `.orchestrator/dialectic-last-run`. There is no `evolve` agent in the registry, and the nearest one (`dialectic-deriver`) is `sandbox-tier: read-only` and cannot write the sidecar — so the historical auto-dialectic subagent dispatch never fired (see #614). On trigger, emit the nudge and advance `.orchestrator/dialectic-last-run`; the timestamp is updated only when the nudge is emitted (not on skip), so the reminder surfaces once per cadence window rather than every session. A manually-run `/evolve --dialectic --dry-run` writes the proposed diff to `.orchestrator/dialectic-pending.md`.
-
-1. Read `dialectic.cadence` (default 5), `dialectic.model` (default haiku), `dialectic.budget-tokens` (default 8000) from `$CONFIG`.
-
-2. Invoke `shouldDispatchAutoDialectic` from `scripts/lib/auto-dialectic.mjs`:
-   ```javascript
-   import { shouldDispatchAutoDialectic } from '${PLUGIN_ROOT}/scripts/lib/auto-dialectic.mjs';
-   const decision = await shouldDispatchAutoDialectic({
-     repoRoot: process.cwd(),
-     cadence: config.dialectic?.cadence ?? 5,
-   });
-   ```
-
-3. If `decision.trigger === false`: log `auto-dialectic: not triggered (${decision.reason})` and continue. Emit no nudge. Do NOT update `.orchestrator/dialectic-last-run`.
-
-4. **AC4 precondition guard:** Even if cadence met, if `signals.sessionsSinceLast === 0 && signals.learningsSinceLast === 0`, skip with reason `no-new-input-since-last-run`. The Final Report (Phase 6) MUST include the literal string `dialectic: skipped (no new input since last run)`.
-
-5. If `decision.trigger === true`: **do not dispatch a subagent** (see #614 — no `evolve` agent exists; `dialectic-deriver` is read-only and cannot write the sidecar). Instead, emit a manual-cadence nudge and continue:
-
-   `auto-dialectic: cadence reached (${decision.reason}) — run /evolve --dialectic --dry-run manually in the next session, review .orchestrator/dialectic-pending.md, then apply with /evolve --dialectic --apply.`
-
-   The `shouldDispatchAutoDialectic` decision helper and `scripts/lib/auto-dialectic.mjs` lib stay in use: they compute the cadence signal that drives this nudge.
-
-6. When the nudge is emitted (cadence reached), update `.orchestrator/dialectic-last-run` via `writeDialecticLastRun({ repoRoot, isoTimestamp: new Date().toISOString() })` so the cadence counter advances and the nudge does not repeat every session. Atomic; failures non-fatal.
-
-7. Record outcome (skipped / nudge-emitted) for Phase 6 Final Report: `auto-dialectic: manual /evolve --dialectic --dry-run recommended (cadence reached) — apply with /evolve --dialectic --apply next session`.
-
-The `.orchestrator/dialectic-pending.md` sidecar is intentionally outside the vault tree — vault-mirror (Phase 3.7) MUST exclude it from its scope.
-
-Cross-reference: PRD F2.5 acceptance criteria (#506); `scripts/lib/auto-dialectic.mjs` API.
-
-> **Dialectic chain rationale** — design choices in the manual `/evolve --dialectic` chain (`/evolve → runDialecticDeriver → dispatchAgent → Agent`). Session-end no longer auto-dispatches this chain (see #614 — the `evolve` agent never existed); the rationale below applies when you run `/evolve --dialectic` manually:
-> - **/evolve → subagent (not direct invoke):** the manual `/evolve --dialectic` skill spawns a subagent so the dialectic pass runs in a fresh context window — keeping the deriver's input-heavy payload (top-50 learnings + last-10 sessions + 2 peer cards + steering) out of the invoking coordinator's context, and letting the deriver run as Haiku while the coordinator stays Opus.
-> - **/evolve → runDialecticDeriver (not direct dispatchAgent):** /evolve owns argument parsing, config resolution, dry-run/apply gating, error-handling, and sidecar writes; runDialecticDeriver owns the pure derivation pipeline (load → payload → budget-check → dispatch → parse → guard). Separating skill-level orchestration from deriver business logic lets unit tests exercise the deriver without standing up the full evolve skill.
-> - **runDialecticDeriver → dispatchAgent (DI boundary):** per `.claude/rules/prompt-caching.md:3`, session-orchestrator forbids direct `@anthropic-ai/sdk` imports in business logic (the harness manages caching at the platform layer). dispatchAgent is the injected boundary — the evolve skill wires the real `Agent({...})` harness call at runtime, tests pass a `vi.fn()` mock. Same DI shape as `scripts/lib/autopilot.mjs::runLoop({opts})` (cf. `scripts/dialectic-deriver.mjs:7-16,531`).
+**Full detail procedures:** [`phase-3-6-tail.md`](./phase-3-6-tail.md).
 
 ### 3.7 Write Session Metrics
 
 Read `skills/session-end/session-metrics-write.md` for JSONL append, vault-mirror invocation, and behavior matrix.
+
+> **Token Rollup (#644):** Before emitting the JSONL record (step 2 of session-metrics-write.md), step 1a calls `rollupSessionTokens({ parentSessionId })` from `scripts/lib/session-token-rollup.mjs` and merges three optional fields onto the in-memory record: `total_token_input`, `total_token_output`, and `subagents_with_tokens` (coverage count). Null totals mean "no token data captured" — not zero cost. The rollup is non-blocking: a missing `subagents.jsonl` or all-null session still writes cleanly with null/0 values.
 
 ### 3.7a Compute and Write Recommendations (Epic #271 Phase A)
 
@@ -577,6 +539,28 @@ Calls `computeV0Recommendation({completionRate, carryoverRatio, carryoverIssues}
 Wraps the already-completed Phase 3.7 + 3.7a writes with `withDurableCommit` (from `scripts/lib/autopilot/durable-telemetry.mjs`) for the two session-end-owned files: `.orchestrator/metrics/sessions.jsonl` and `<state-dir>/STATE.md`. `enabled: false` keeps local closes a no-op (`{ok: true, skipped: true}`); the flag flips `true` only in cloud Routines execution so telemetry survives ephemeral-clone reclamation. `autopilot.jsonl` is NOT in scope here — `scripts/lib/autopilot/loop.mjs` owns its commit (#490 Wave-2).
 
 **See `phase-3-7a-recommendations.md` § Phase 3.7b for the full `withDurableCommit` invocation.**
+
+### Phase 3.7c: Vault Board → Closed (#674)
+
+> Gate: Skip silently when `vault-integration.enabled` is not `true` in Session Config (the underlying helper also self-no-ops, so this is defense-in-depth, not the sole gate).
+
+> **Ordering:** Runs AFTER Phase 3.7b (durable-commit) and BEFORE Phase 3.4 (`status: completed`) and Phase 3.8 (Session Lock Release). See the Phase 3.4 Runtime Ordering Note canonical order. Running before lock-release is deliberate — the session-lock lease still exists when the board is finalized, so the board's `in-progress → closed` transition is derived against a live lock rather than a phantom one. This mirrors the #490 durableCommit ordering discipline: persist/finalize the cross-repo status while the lease is still held, then release.
+
+Transition THIS repo's live-status board row to `closed` so a cross-repo observer sees the session has ended. Invoke `mirrorBoard` from `scripts/lib/vault-status/board-writer.mjs` with an explicit `closed` status for the current repo:
+
+```javascript
+import { mirrorBoard } from 'scripts/lib/vault-status/board-writer.mjs';
+
+const boardResult = await mirrorBoard({
+  repoRoot: process.cwd(),
+  explicitStatus: 'closed',        // force THIS repo's row to `closed`
+});
+// boardResult.action ∈ { 'written', 'skipped-noop', 'skipped-handwritten', 'skipped-vault-disabled', 'dry-run' }
+```
+
+> **Note (single-repo close path):** with `repos` omitted, `mirrorBoard` builds the repo descriptor itself as `[{ repoRoot, status: explicitStatus }]` — this is the supported single-repo shape, so `explicitStatus: 'closed'` lands on THIS repo's row. (When a caller DOES pass `repos`, each element must be a `{ repoRoot, repoName?, status? }` object, NOT a bare path string — bare strings are silently skipped by `collectRows`.) The board at `<vault-dir>/01-projects/_active-sessions.md` is generator-owned: `mirrorBoard` refuses to touch any file lacking the `session-orchestrator-active-sessions@1` marker, hard-refuses `_overview.md`, and is idempotent (a re-run after the row is already `closed` returns `skipped-noop`). Rows for repos NOT in this update are preserved verbatim by the idempotent merge.
+
+**Non-blocking:** a `mirrorBoard` failure (any non-`written`/`skipped-*` outcome, thrown error, or unreachable vault) MUST NOT block the close. Log a single `WARNING: vault board → closed failed — <reason>; continuing close` line and proceed to Phase 3.4 / 3.8. The board is an observability convenience, not a close-out invariant.
 
 ## Phase 3.8: Session Lock Release (#330)
 
@@ -816,6 +800,9 @@ Present to the user:
   - Findings present (warn mode): `[N stale projects, M stale narratives] (mode=warn). See .orchestrator/metrics/vault-staleness.jsonl.`
   - Skipped (disabled or mode=off): `skipped (disabled | mode=off).`
   - Clean run: `clean (mode=<mode>).`
+- Custom Phases: [render based on Phase 2.5 result — omit the line entirely if `custom-phases` was absent/empty]
+  - Per phase: `<name>: <pass|FAIL> (exit <code>, mode=<mode>)[ — review: <path>]`
+  - None ran (all filtered out by `when`): `none applicable for session-type=<type>.`
 - Enforcement: [N violations blocked / M warnings] (or "N/A" if enforcement off)
 - Circuit breaker: [N agents hit limits, M spirals detected] (or "none")
 - Metrics written to: `.orchestrator/metrics/sessions.jsonl`
@@ -841,12 +828,12 @@ Present to the user:
 | `drift-operations.md` | Phase 2.2 drift-checker bash contract and reporting matrix |
 | `phase-3-2-docs-verification.md` | Phase 3.2 full procedural body — docs-tasks load, SESSION_START_REF, per-task loop, mode-gated report, Documentation Coverage block |
 | `learning-patterns.md` | Phases 3.5a + 3.6 extraction heuristics, confidence updates, passive decay, and JSONL write procedure |
-| (inline) Phase 3.6.3 | Memory-Proposals Collection — `collectProposals` + AUQ multiSelect + `writeApproved` + `clearProposalsJsonl` |
-| (inline) Phase 3.6.5 | Auto-Dream nudge — `shouldDispatchAutoDream` + manual-cadence nudge to run /memory-cleanup --dry-run next session (no live dispatch — #614) |
-| (inline) Phase 3.6.7 | Auto-Dialectic nudge — `shouldDispatchAutoDialectic` + manual-cadence nudge to run /evolve --dialectic next session + advances `.orchestrator/dialectic-last-run` (no live dispatch — #614) |
-| `session-metrics-write.md` | Phase 3.7 JSONL append, vault-mirror invocation, and behavior matrix |
+| `phase-3-6-tail.md` | Phase 3.6.x tail — full unabridged detail procedures for all six tail phases: 3.6.3 Memory-Proposals Collection (`collectProposals` + AUQ multiSelect + `writeApproved` + `clearProposalsJsonl`), 3.6.4 Expired-Learnings Sweep (Epic #723 B4), 3.6.5 Auto-Dream nudge (`shouldDispatchAutoDream`, #614), 3.6.6 Skill-Applied Judge (#645 L3 — `runSkillJudge`, coordinator-writes), 3.6.7 Auto-Dialectic nudge (`shouldDispatchAutoDialectic`, #614), 3.6.8 Reconciliation Rule Proposals (#696 FA3 — `runReconcile` + AUQ + `writeApprovedRules`). Loaded on demand by the SKILL.md skip-plan dispatcher (#724) — only phases with `run: true` in the `planTailPhases()` plan execute |
+| `scripts/lib/session-end/phase-skip.mjs` | Phase 3.6.x tail skip-plan aggregator (#724) — `planTailPhases({repoRoot, config, sessionId, platform})` → `{plan, skippedReport}`; side-effect-free (reconcile/sweep via dry-run — no writes), never-throws (per-phase probe error fail-opens to `run: true`); wraps the six existing signal helpers with config gates first, then input detection |
+| `session-metrics-write.md` | Phase 3.7 JSONL append, vault-mirror invocation, durable narrative mirror (`mirrorNarrative`, #675), and behavior matrix |
 | `phase-3-7a-recommendations.md` | Phase 3.7a full procedural body — computeV0Recommendation call, STATE.md field write, data source guarantee, error mode |
 | `phase-3-7a-recommendations.md` § 3.7b | Phase 3.7b full procedural body — `withDurableCommit` invocation for `sessions.jsonl` + `STATE.md` (#490 AC2), `enabled:false` local no-op, autopilot.jsonl exclusion note |
+| (inline) Phase 3.7c | Vault Board → Closed (#674) — `mirrorBoard({ explicitStatus: 'closed' })` transitions this repo's board row to `closed`; gated on `vault-integration.enabled`, generator-marked + idempotent, non-blocking, ordered after 3.7b and before 3.4/3.8 |
 | (inline) Phase 3.8 | Session Lock Release — `release()` call, silent-OK on mismatch/absent, non-fatal on fs-error, ordering note (after STATE.md writes, before Phase 4 commit staging) |
 
 ## Anti-Patterns

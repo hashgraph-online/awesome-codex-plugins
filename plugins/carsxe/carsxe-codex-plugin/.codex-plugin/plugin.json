@@ -1,0 +1,58 @@
+{
+  "name": "carsxe",
+  "version": "1.0.0",
+  "description": "CarsXE vehicle data APIs for OpenAI Codex — decode VINs, look up license plates, get market values, history, recalls, lien and theft, OBD codes, and more.",
+  "author": {
+    "name": "CarsXE",
+    "email": "devops@carsxe.com",
+    "url": "https://api.carsxe.com"
+  },
+  "homepage": "https://api.carsxe.com/docs",
+  "repository": "https://github.com/carsxe/carsxe-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "automotive",
+    "vehicle",
+    "vin",
+    "vin-decoder",
+    "plate-decoder",
+    "market-value",
+    "vehicle-history",
+    "recalls",
+    "lien",
+    "theft",
+    "obd",
+    "dtc",
+    "plate-recognition",
+    "vin-ocr",
+    "year-make-model",
+    "international-vin"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "CarsXE",
+    "shortDescription": "Decode VINs, plates, market value, history, recalls, liens, and OBD codes — the full CarsXE vehicle data suite.",
+    "longDescription": "CarsXE brings the full suite of CarsXE vehicle data APIs into OpenAI Codex as 12 auto-invoked skills. Decode any VIN for full specifications, look up vehicles from a license plate, estimate market value, pull a full vehicle history report, check open safety recalls, screen for liens and theft, decode international (non-US) VINs, extract a VIN or plate number straight from a photo, look up vehicles by Year/Make/Model, and decode OBD-II diagnostic trouble codes. Codex selects the right skill automatically from your request, or call any skill explicitly with its name. Requires a CarsXE API key (free signup at api.carsxe.com).",
+    "developerName": "CarsXE",
+    "category": "Data & Analytics",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://api.carsxe.com",
+    "privacyPolicyURL": "https://api.carsxe.com/privacy-policy",
+    "termsOfServiceURL": "https://api.carsxe.com/terms",
+    "defaultPrompt": [
+      "Decode VIN WBAFR7C57CC811956",
+      "Look up California plate 7XER187",
+      "What's the market value of VIN WBAFR7C57CC811956 with 45,000 miles?",
+      "Does VIN 1C4JJXR64PW696340 have any open recalls?",
+      "What does OBD code P0300 mean?"
+    ],
+    "brandColor": "#2563EB",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png",
+    "screenshots": [
+      "./assets/screenshot-vin-decode.png"
+    ]
+  }
+}

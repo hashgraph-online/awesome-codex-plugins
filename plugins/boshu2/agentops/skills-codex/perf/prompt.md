@@ -1,6 +1,6 @@
 # perf
 
-Performance profiling, benchmarking, regression detection, and optimization. Triggers: "perf", "performance", "benchmark", "profile", "slow", "optimize", "latency", "throughput", "memory leak", "perf regression".
+Profile and optimize hotspots. Triggers: "perf", "profile and optimize hotspots.", "perf skill".
 
 ## Instructions
 

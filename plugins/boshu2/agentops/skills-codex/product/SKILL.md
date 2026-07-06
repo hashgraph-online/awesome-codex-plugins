@@ -1,10 +1,12 @@
 ---
 name: product
-description: "Run product."
+description: Create or refine PRODUCT.md.
 ---
 # $product — Interactive PRODUCT.md Generation
 
-> **Purpose:** Guide the user through creating a `PRODUCT.md` that unlocks product-aware reviews in `$pre-mortem` and `$vibe`, including the default quick-mode inline paths.
+> **Loop position:** move 1 (shape intent) of the [operating loop](../../docs/architecture/operating-loop.md) — defines the PRODUCT.md that anchors what counts as in-scope intent before discovery shapes a capability.
+
+> **Purpose:** Guide the user through creating a `PRODUCT.md` that unlocks product-aware reviews in `$pre-mortem` and `$validate`, including the default quick-mode inline paths.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
@@ -26,7 +28,7 @@ ls PRODUCT.md 2>/dev/null
 
 **If it exists:**
 
-Ask the user directly:
+Use AskUserQuestion:
 - **Question:** "PRODUCT.md already exists. What would you like to do?"
 - **Options:**
   - "Overwrite — start fresh" → continue to Step 2
@@ -48,7 +50,7 @@ Use what you find to draft initial suggestions for each section. If no files exi
 
 ### Step 3: Interview
 
-Ask the user about each section. For each question, offer pre-populated suggestions from Step 2 where available.
+Ask the user about each section using AskUserQuestion. For each question, offer pre-populated suggestions from Step 2 where available.
 
 #### 3a: Mission
 
@@ -68,7 +70,7 @@ For each persona, gather:
 - **Goal** — what they're trying to accomplish
 - **Pain point** — what makes this hard today
 
-Ask the user for the first persona's role, then follow up conversationally for details and additional personas. Stop when the user says they're done or after 3 personas.
+Use AskUserQuestion for the first persona's role, then follow up conversationally for details and additional personas. Stop when the user says they're done or after 3 personas.
 
 #### 3c: Core Value Propositions
 
@@ -279,7 +281,7 @@ last_reviewed: YYYY-MM-DD
 This file enables product-aware reviews:
 
 - **`$pre-mortem`** — Automatically loads product context when this file exists. Default `--quick` mode includes the context inline; deeper modes add a dedicated `product` perspective alongside plan-review judges.
-- **`$vibe`** — Automatically loads developer-experience context when this file exists. Default `--quick` mode includes the context inline; deeper modes add a dedicated `developer-experience` perspective alongside code-review judges.
+- **`$validate`** — Automatically loads developer-experience context when this file exists. Default `--quick` mode includes the context inline; deeper modes add a dedicated `developer-experience` perspective alongside code-review judges.
 - **`$council --preset=product`** — Run product review on demand.
 - **`$council --preset=developer-experience`** — Run DX review on demand.
 
@@ -295,7 +297,7 @@ Tell the user:
 1. **What was created:** `PRODUCT.md` at `{path}`
 2. **What it unlocks:**
    - `$pre-mortem` will now load product context by default, including in `--quick` mode; deeper modes add a dedicated product perspective
-   - `$vibe` will now load developer-experience context by default, including in `--quick` mode; deeper modes add a dedicated DX perspective
+   - `$validate` will now load developer-experience context by default, including in `--quick` mode; deeper modes add a dedicated DX perspective
    - `$council --preset=product` and `$council --preset=developer-experience` are available on demand
 3. **Next steps:** Suggest running `$pre-mortem` on their next plan to see product perspectives in action
 
@@ -351,8 +353,6 @@ Tell the user:
 | `gh api` fails or no GitHub remote | Private repo, no auth, or non-GitHub host | Skip auto-gather gracefully. Ask user to provide metrics manually. |
 | No .agents/ directory for principles | Project doesn't use AgentOps | Skip the validated principles section entirely. Include user-stated design principles instead. |
 
-## Local Resources
+## Reference Documents
 
-### scripts/
-
-- `scripts/validate.sh`
+- [references/product.feature](references/product.feature) — Executable spec: context gather, interview-driven PRODUCT.md, product-aware council unlock, quick-mode inline (soc-qk4b)

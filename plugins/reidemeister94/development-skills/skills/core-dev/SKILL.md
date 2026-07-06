@@ -7,48 +7,22 @@ allowed-tools: Glob, Grep, Read, Bash, Skill, AskUserQuestion
 
 # Development Workflow Router
 
-Triage (PASS_THROUGH/LIGHT/FULL) is upstream in `using-development-skills`. If you're here, you're FULL. Iron Rules: `../../shared/iron-rules.md`.
+Iron Rules: `../../shared/iron-rules.md`.
 
-## 1. Active plan?
+**Active plan?** `Grep("Status: In Progress", path="docs/plans/", glob="*.md")`. Match → read the plan, resume at its listed phase (skip language detection — the plan specifies it), but still invoke the language skill for implementation rules. No match → continue.
 
-`Grep("Status: In Progress", path="docs/plans/", glob="*.md")`. Match → read the plan file, resume at the phase listed (skip language detection — plan already specifies). Still invoke the language skill for implementation rules. No match → step 2.
+**Brainstorming gate.** Default: invoke `development-skills:brainstorming` with the user's full request as args. Skip ONLY if all three hold: fully reversible with low effort; ONE obvious forced approach (not *"I think this is right"*); WHY doesn't affect HOW. User bypass (*"skip brainstorming"*, *"just code it"*, *"I already know the approach"*) → respect it; *"Fast"* is NOT a bypass.
 
-## 2. Brainstorming gate
+Don't rationalize skipping it: *"user said exactly what to do"* — WHAT ≠ HOW, multiple approaches → brainstorm; *"I already have a good approach"* — first ≠ best; *"just analysis/investigation"* — analysis IS development.
 
-**Default: invoke `development-skills:brainstorming`** with the user's full request as args.
+Specialized routes: bug fix with error / stack trace → `development-skills:debugging`; test creation / strategy / coverage → `development-skills:create-test`.
 
-**Skip ONLY if all three hold:**
+**Language.** After brainstorming returns (or a skip-decision), detect and invoke the matching skill before writing code:
 
-- Fully reversible in < 1 hour
-- ONE obvious approach (forced shape, not *"I think this is right"*)
-- WHY doesn't affect HOW
+- `next.config.*`, `app/{layout,page}.tsx`, `@raycast/api`, `vite.config.*` + react, `*.tsx` + react dep → `frontend-dev`
+- `*.py`, `requirements*.txt`, `pyproject.toml` → `python-dev`
+- `*.ts`, `tsconfig.json` (no frontend signals) → `typescript-dev`
+- `*.java`, `pom.xml`, `build.gradle`, `*.kt` → `java-dev`
+- `*.swift`, `Package.swift` → `swift-dev`
 
-**Specialized routes:**
-
-- Bug fix with error / stack trace → `development-skills:debugging`
-- Test creation / strategy / coverage analysis → `development-skills:create-test`
-
-**User bypass:** *"skip brainstorming"*, *"just code it"*, *"I already know the approach"* → respect it. *"Fast"* is NOT a bypass.
-
-### Anti-rationalization
-
-| Your thought | Reality |
-|---|---|
-| *"User said exactly what to do"* | WHAT ≠ HOW. Multiple approaches → brainstorm. |
-| *"I already have a good approach"* | First approach ≠ best. Brainstorming costs nothing. |
-| *"Just analysis / investigation"* | Analysis IS development. Brainstorm. |
-| *"User confirmed, so my analysis was correct"* | Confirmation validates the decision, not the analysis. |
-
-## 3. Language
-
-After brainstorming returns (or after a skip-decision), detect language:
-
-| Signal | Skill |
-|---|---|
-| `next.config.*`, `app/{layout,page}.tsx`, `@raycast/api`, `vite.config.*` + react, `*.tsx` + react dep | `frontend-dev` |
-| `*.py`, `requirements*.txt`, `pyproject.toml` | `python-dev` |
-| `*.ts`, `tsconfig.json` (no frontend signals) | `typescript-dev` |
-| `*.java`, `pom.xml`, `build.gradle`, `*.kt` | `java-dev` |
-| `*.swift`, `Package.swift` | `swift-dev` |
-
-Frontend signals trump pure TypeScript. Invoke the matching skill before writing any code.
+Frontend signals trump pure TypeScript.

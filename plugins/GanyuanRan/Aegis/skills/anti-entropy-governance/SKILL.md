@@ -310,6 +310,7 @@ Do not:
 ## Minimal Reporting Shape
 
 ```text
+Aegis Visibility:
 Anti-Entropy Declaration:
 Retirement Decision:
 Verification Plan:

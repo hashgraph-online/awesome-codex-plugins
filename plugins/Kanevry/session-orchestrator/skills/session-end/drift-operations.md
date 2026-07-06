@@ -6,9 +6,9 @@
 
 ### 2.2 CLAUDE.md (or AGENTS.md) Drift Check (if configured)
 
-Projects can opt-in to a narrative-drift gate at session close. This is gated on the `drift-check.enabled` config flag (default `false`) — projects without `CLAUDE.md`/`AGENTS.md` or `_meta/` narrative are unaffected. When enabled, the gate reads the `drift-check.mode`, `drift-check.include-paths`, and four `drift-check.check-*` flags and invokes the `claude-md-drift-check` validator. See `docs/session-config-reference.md` for field semantics, and `skills/claude-md-drift-check/SKILL.md` for the validator contract.
+Projects can opt-in to a narrative-drift gate at session close. This is gated on the `drift-check.enabled` config flag (default `false`) — projects without `CLAUDE.md`/`AGENTS.md` or `_meta/` narrative are unaffected. When enabled, the gate reads the `drift-check.mode`, `drift-check.include-paths`, and all `drift-check.check-*` flags and invokes the `claude-md-drift-check` validator. See `docs/session-config-reference.md` for field semantics, and `skills/claude-md-drift-check/SKILL.md` for the validator contract.
 
-The four checks are complementary to `vault-sync` (Phase 2.1): vault-sync validates frontmatter and wiki-links inside the vault tree; drift-check validates narrative claims (paths, counts, issue refs, session-file refs) in top-level repo docs.
+The checks are complementary to `vault-sync` (Phase 2.1): vault-sync validates frontmatter and wiki-links inside the vault tree; drift-check validates narrative claims, surface counts, generated-rule freshness, and rule-scoping contracts in top-level repo docs.
 
 **Gate:** Only run this subsection if `$CONFIG | jq -r '."drift-check".enabled // false'` is `true`. If `false` or missing, skip silently.
 
@@ -32,6 +32,11 @@ if [[ "$DC_ENABLED" == "true" ]]; then
   [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-project-count-sync" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-project-count)
   [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-issue-reference-freshness" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-issue-refs)
   [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-session-file-existence" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-session-files)
+  [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-command-count" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-command-count)
+  [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-session-config-parity" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-session-config-parity)
+  [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-vault-dir-parity" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-vault-dir-parity)
+  [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-generated-rule-staleness" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-generated-rule-staleness)
+  [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-rule-scoping" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-rule-scoping)
 
   # Invoke checker; capture JSON on stdout and exit code
   DC_EXIT=0
@@ -49,8 +54,8 @@ fi
 **Reporting rules:**
 
 - **`mode: off`** — checker reports `status: skipped-mode-off`; include a single line "CLAUDE.md drift: skipped (mode=off)" in the quality gate report. Never blocks.
-- **`mode: warn`** — checker always exits 0. If `.errors | length > 0`, surface the list in the report under "CLAUDE.md drift warnings (mode=warn)" with check + file:line + message for each entry. Also list any `.warnings` (e.g. `#NN` the checker could not resolve via glab). Never blocks close, but remind the user that flipping to `mode: hard` would have blocked on N items.
-- **`mode: hard`** — checker exits 1 on errors. On exit 1: BLOCK session close, surface the full error list, and instruct the user to (a) fix the drift directly in `CLAUDE.md` (or `AGENTS.md` on Codex CLI) / `_meta/`, or (b) temporarily set `mode: warn` while backfilling, or (c) disable a specific check via its `check-*` flag if it reports false positives on this codebase.
+- **`mode: warn`** — checker always exits 0. If `.errors | length > 0`, surface the list in the report under "CLAUDE.md drift warnings (mode=warn)" with check + file:line + message for each entry. Also list any `.warnings` (e.g. `#NN` the checker could not resolve via glab). Never blocks close; note that `mode: hard` would have routed the same errors through the carryover path below.
+- **`mode: hard`** — checker exits 1 on errors. On exit 1: do NOT block the close. Surface the full error list, then default to **warn + carryover + continue** (Recommended): file a carryover issue (labels `carryover`, `priority:high`) titled `[Carryover] CLAUDE.md drift (hard) — <E> errors` capturing the drift items for a follow-up session, log a Deviation entry in STATE.md `## Deviations`, then continue the close. Offer "Override and close" (continue without a carryover issue; log the Deviation) as an alternative via AskUserQuestion. The user can also (a) fix the drift directly in `CLAUDE.md` (or `AGENTS.md` on Codex CLI) / `_meta/`, or (b) temporarily set `mode: warn` while backfilling, or (c) disable a specific check via its `check-*` flag if it reports false positives on this codebase.
 - **Exit 2** (infra error — missing `node`, unreadable `VAULT_DIR`, malformed args) — treat as a skipped gate with a loud warning ("CLAUDE.md drift: infrastructure error — <reason>"). Do NOT block the session close on infra failures.
 
 **Exit-code dispatch:** The checker writes infra-error JSON to stderr (suppressed by `2>/dev/null` above), so `DC_JSON` is empty when `DC_EXIT == 2`. Always branch on `DC_EXIT` first, then `DC_STATUS`:
@@ -59,7 +64,7 @@ fi
 if [[ "$DC_EXIT" == "2" ]]; then
   # infra error — DC_JSON is empty, stderr was suppressed. Surface loud warning, do not block.
 elif [[ "$DC_STATUS" == "invalid" && "$DC_MODE" == "hard" ]]; then
-  # hard-mode block
+  # hard-mode: surface + warn + carryover + continue (no hard block — #724)
 elif [[ "$DC_STATUS" == "invalid" ]]; then
   # warn-mode report
 else
@@ -80,7 +85,7 @@ CLAUDE.md drift: ok (N files scanned, mode=<mode>)
 CLAUDE.md drift: ok (N files scanned, mode=<mode>)
 ```
 
-**Error line format** (hard mode, blocking):
+**Error line format** (hard mode, carryover):
 
 ```
 CLAUDE.md drift: INVALID (mode=hard) — E errors, W warnings across N files

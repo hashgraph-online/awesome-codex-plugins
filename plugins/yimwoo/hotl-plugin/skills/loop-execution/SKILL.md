@@ -9,6 +9,8 @@ description: Use when executing an existing HOTL workflow file — reads steps, 
 
 Execute an existing HOTL workflow file autonomously. Canonical workflows live at `docs/plans/YYYY-MM-DD-<slug>-workflow.md`, with legacy root `hotl-workflow-<slug>.md` still accepted during migration. Loop on steps with success criteria. Auto-approve low-risk gates. Always pause for high-risk gates.
 
+`governed-execution` is the preferred new router for host-native or fallback runs. This skill remains the canonical autonomous state machine and a supported explicit compatibility profile. When invoked through the router, use the selected driver for lifecycle calls and require a sufficient evidence receipt before completion.
+
 **Announce:** "Starting HOTL loop execution. Looking for workflow file..."
 
 ## Workflow File Resolution

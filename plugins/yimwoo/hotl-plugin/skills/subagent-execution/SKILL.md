@@ -9,6 +9,8 @@ description: Delegated step runner over the HOTL execution state machine — del
 
 This is a **delegation profile** over the HOTL execution state machine defined in `skills/loop-execution/SKILL.md`. It follows the same resolve → preflight → lint → execute → verify → loop → gate → summarize flow, but eligible steps are delegated to fresh subagents instead of running inline.
 
+When selected by `governed-execution`, the controller uses the chosen driver for all durable transitions and remains responsible for action gates, budgets, verification, receipts, and recovery. Native agent success is never sufficient by itself.
+
 **Core principle:** delegation is allowed; governance is not delegated.
 
 ## When to Use

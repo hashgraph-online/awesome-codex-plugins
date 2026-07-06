@@ -2,7 +2,7 @@
 name: plan
 user-invocable: false
 tags: [planning, prd, requirements, research]
-model: opus
+model: inherit
 model-preference: opus
 model-preference-codex: gpt-5.4
 model-preference-cursor: claude-opus-4-6
@@ -113,7 +113,7 @@ Wait for ALL agents to complete before proceeding. Use `run_in_background: false
 
 ### 3.2 Question Presentation
 
-Synthesize research results into 5 questions per wave. Split across 2 AskUserQuestion calls (3+2 or 4+1) to stay within the 4-question-per-call limit.
+Synthesize research results into 5 questions per wave. Split across 2 AskUserQuestion calls (3+2 or 4+1) to stay within the 4-question-per-call limit. Note: in `feature` and `new` modes, Wave 1 may present 6 questions (split 3+3) when the optional User-Story toggle question is included; the 5-question / 3+2|4+1 default stands otherwise.
 
 **Option format rules:**
 - Option 1 is ALWAYS the recommendation, marked with `(Recommended)` in the label
@@ -255,13 +255,14 @@ generation due to slopcheck failure — log + continue.
 
 Dispatch a reviewer subagent: read `prd-reviewer-prompt.md` in this skill directory for review instructions. Pass the full PRD content to the reviewer.
 
-The reviewer checks 6 criteria:
+The reviewer checks 7 criteria:
 1. **Completeness** — all sections filled, no TBD or placeholder content
 2. **Consistency** — no internal contradictions between sections
 3. **Clarity** — unambiguous enough that a developer could implement from this document alone
 4. **Scope** — focused on one project/feature, not sprawling across multiple subsystems
 5. **YAGNI** — no unrequested features or gold-plating
 6. **SMART metrics** — success criteria are Specific, Measurable, Achievable, Relevant, Time-bound
+7. **User Stories** (gated — active only when a populated ## User Stories section is present) — section present, every story in complete Als/möchte/damit form, each story links ≥1 acceptance criterion; SKIP when no User Stories section. No INVEST checks.
 
 ### 5.2 Revision Loop
 
@@ -311,7 +312,10 @@ If user requests changes, apply them, save the updated document, and re-present 
 
 ### 6.1 Derive Issue Structure
 
-Determine Epic and sub-issues based on mode:
+**If the PRD contains a populated `## User Stories` section** (story toggle was "yes"):
+- Each user story becomes exactly one issue. The issue body carries the story text (`Als/möchte/damit`) plus its linked Gherkin/EARS acceptance criteria (the story's `↳ AC:` targets). Group under an Epic named after the feature/project.
+
+**Otherwise** (no User Stories section — status quo), determine Epic and sub-issues based on mode:
 - **`/plan new`** — derive from PRD Section 4 (Solution & Scope). Each major scope item becomes a sub-issue. Group under an Epic named after the project.
 - **`/plan feature`** — derive from PRD Section 3 (Acceptance Criteria). Each Given/When/Then block becomes a sub-issue. Group under an Epic named after the feature.
 - **`/plan retro`** — derive from the improvement actions in the reflection phase. Each action becomes an issue (no Epic wrapper unless 5+ actions).

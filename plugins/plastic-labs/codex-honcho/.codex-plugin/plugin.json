@@ -1,0 +1,41 @@
+{
+  "name": "codex-honcho",
+  "version": "0.1.0",
+  "description": "Persistent, cross-session memory for OpenAI Codex, powered by Honcho from Plastic Labs. Lifecycle hooks capture each session and inject the relevant context back at session start, so Codex remembers your preferences, projects, and decisions across restarts and context resets.",
+  "author": {
+    "name": "Plastic Labs",
+    "url": "https://plasticlabs.ai"
+  },
+  "homepage": "https://honcho.dev",
+  "repository": "https://github.com/plastic-labs/codex-honcho",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "openai",
+    "honcho",
+    "memory",
+    "context",
+    "ai",
+    "llm",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Honcho",
+    "shortDescription": "Persistent cross-session memory for Codex, powered by Honcho.",
+    "longDescription": "Give Codex long-term memory that survives context resets, session restarts, and fresh conversations. Lifecycle hooks capture each session to Honcho and inject the relevant context back at session start, so Codex remembers what you are working on, your preferences, and the decisions you have made across every project. A bundled honcho-memory skill nudges Codex to recall and save actively, and the hosted Honcho MCP server (search, chat, get_context, create_conclusion) lets it query and update memory mid-task. Conversations are queued to disk instantly and uploaded in the background, so capture never blocks your turn. Install via npm (npm install -g @honcho-ai/codex-honcho && codex-honcho install).",
+    "developerName": "Plastic Labs",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://honcho.dev",
+    "composerIcon": "./assets/icon.svg",
+    "defaultPrompt": [
+      "What do you remember about me and what I'm working on?",
+      "Save this preference to memory so you remember it next session."
+    ]
+  }
+}

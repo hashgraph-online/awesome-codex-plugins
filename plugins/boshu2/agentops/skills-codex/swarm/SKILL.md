@@ -1,6 +1,6 @@
 ---
 name: swarm
-description: "Run swarm."
+description: "Dispatch parallel agent lanes."
 ---
 # $swarm
 
@@ -52,7 +52,7 @@ Fall back to serial execution within the current session.
 ### Step 1: Ensure Tasks Exist
 
 Tasks come from one of:
-- `bd ready` output
+- `br ready` output
 - An explicit task list from `$crank`
 - A user-provided description that you decompose first
 
@@ -206,6 +206,10 @@ for task in wave_tasks:
 
 This is slower but functionally identical.
 
+## Related skills
+
+- $using-atm — out-of-session ATM substrate when a swarm needs persistent panes and human attach/steer.
+
 ## Reference Documents
 
 - [references/conflict-recovery.md](references/conflict-recovery.md)
@@ -220,3 +224,5 @@ This is slower but functionally identical.
 - [references/pre-spawn-friction-gates.md](references/pre-spawn-friction-gates.md)
 - [references/scope-escape-template.md](references/scope-escape-template.md)
 - [references/worker-pre-task-checks.md](references/worker-pre-task-checks.md)
+- [references/shared-checkout-discipline.md](references/shared-checkout-discipline.md)
+- [references/worktree-isolation.md](references/worktree-isolation.md)

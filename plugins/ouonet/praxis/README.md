@@ -70,10 +70,11 @@ Praxis enforces a strict documentation structure and keeps code and docs in sync
 
 ### Living Documentation
 
-**Living documentation** — describes current and future system state.
+**Living documentation** — describes the current system state and direction. Always in sync with code.
 
 - **`README.md`** — for users: what it is, who for, how to use it
 - **`docs/tech-spec.md`** — for developers/agents: current system state ([format](skills/archive/SKILL.md#tech-spec-format))
+- **`docs/specs/*.md`** — details split out of the tech-spec when it grows too bulky; referenced by path
 - **`docs/ROADMAP.md`** — direction and milestones (exists when project has ≥3 milestones or long-term direction)
 
 `docs/tech-spec.md` uses a structured declaration format:
@@ -83,7 +84,7 @@ purpose / user / use-case / architecture / stack / entry /
 contract / flow / invariant / constraint / convention / milestone
 ```
 
-Facts only — no interpretation, no plans. If details are bulky, split into `docs/specs/` and link.
+Facts only — no interpretation, no plans. If details are bulky — e.g. a complex flow (branching, async, multi-actor) that needs a diagram — split into `docs/specs/` and link; the spec keeps a one-line summary.
 
 **Project artifacts** — records and conventions. Append-only or static.
 
@@ -128,6 +129,12 @@ claude plugins install praxis
 {
   "plugin": ["praxis@git+https://github.com/ouonet/praxis.git#<branch>"]
 }
+```
+
+**Qoder CLI CN** — clone and checkout:
+```bash
+git clone --branch <branch> https://github.com/ouonet/praxis.git ~/.qoder-cn/praxis
+ln -s ~/.qoder-cn/praxis/skills ./skills
 ```
 
 Replace `<branch>` with the branch name.
@@ -195,7 +202,7 @@ open customization of copilot -> Plugins -> Install Plugin From Source -> input 
 agy plugin install https://github.com/ouonet/praxis
 ```
 
-The plugin loads `skills/using-praxis/SKILL.md` as session context, so triage runs from the first turn.
+Antigravity imports Praxis through the Gemini-compatible plugin path, including the session-start hook.
 
 ### Gemini CLI
 
@@ -204,6 +211,21 @@ gemini extensions install https://github.com/ouonet/praxis
 ```
 
 The extension loads `skills/using-praxis/SKILL.md` as session context, so triage runs from the first turn.
+
+### Qoder CLI CN
+
+Qoder CLI CN auto-discovers skills from the project's `skills/` directory — no hooks or manual loading needed.
+
+Clone this repo and symlink (or copy) the `skills/` directory into your project:
+
+```bash
+git clone https://github.com/ouonet/praxis.git ~/.qoder-cn/praxis
+ln -s ~/.qoder-cn/praxis/skills ./skills
+```
+
+Or install as an SDK plugin by pointing to the `.qoder-plugin/` manifest in your project config.
+
+The `using-praxis` skill is auto-discovered and triggered at session start by its description.
 
 ### Manual / fallback
 
@@ -340,8 +362,8 @@ hooks/
 .claude-plugin/        # Claude Code plugin manifest
 .codex-plugin/         # Codex plugin manifest
 .copilot-plugin/       # Copilot CLI plugin manifest
+.qoder-plugin/         # Qoder CLI CN plugin manifest
 .opencode/             # OpenCode config + install doc
-plugin.json            # Antigravity CLI plugin manifest
 gemini-extension.json  # Gemini CLI extension manifest
 ```
 

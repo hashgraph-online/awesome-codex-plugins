@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superloopy Frontend"
+  short_description: "Build UI that does not look AI-generated, gated by Superloopy evidence"
+  default_prompt: "Use superloopy-frontend for any UI/visual work: enforce a DESIGN.md token gate, the anti-slop rules, and a real-browser visual-QA evidence artifact."

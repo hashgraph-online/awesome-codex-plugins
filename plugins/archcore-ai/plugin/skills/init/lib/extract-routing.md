@@ -1,6 +1,6 @@
 # Extract-mode routing rules
 
-Reference data for `/archcore:init` Step 8 extract mode. Used only when the user explicitly opts into `extract` for a given agent-instruction file (default is `link`).
+Reference data for `/archcore:init` agent-instruction import, extract mode (Phase B plans, Phase E creates). Extract is the **default** for `modular-rule` files (`.cursor/rules/*.mdc` and equivalents — see `lib/agent-files.md` file classes) and an **opt-in** for `aggregate` files (whose default is `link`).
 
 The skill's LLM does the classification; this file is the spec it follows.
 
@@ -15,6 +15,8 @@ The skill's LLM does the classification; this file is the spec it follows.
 
 3. If the source file has **no headings at all**, treat the whole body as a single block.
 
+**Modular-rule files are one rule by design.** For a `modular-rule` source (a `.cursor/rules/*.mdc`, `.github/instructions/*.md`, etc.) of **≤ 200 lines**, do NOT block-split — treat the whole body (after frontmatter strip) as a single block, yielding exactly one document. A Cursor/Copilot rule file is authored as one cohesive rule; splitting it by its Good/Bad/Rationale sub-headings would shatter one convention into fragments. Only block-split a modular-rule file when it exceeds 200 lines, first by its H2 headings. **If a resulting block itself exceeds 200 lines, recursively split it by H3 headings — or, absent H3s, into ≤ 200-line paragraph groups — so no extracted document ever exceeds the 200-line cap**, whatever the source file's heading structure. Aggregate files always block-split, under the same recursive cap.
+
 ## Per-block classification
 
 For each surviving block, pick exactly one route. If multiple routes match, the first match wins (top of list = highest priority).
@@ -28,19 +30,21 @@ Criteria (any hit — inclusive OR):
 
 Produce: one `rule` document per block.
 
-Title: derive from the heading if present; otherwise a short summary of the first imperative sentence, sentence-case, no trailing period. Examples: *"Prefer function components"*, *"API handlers live in src/api/handlers"*.
+Title: derive in priority order — (1) the source file's YAML frontmatter `description:` value, if present and non-empty (Cursor/Copilot rule files carry the rule's intent there, and it is the closest analogue to an archcore `title`); (2) the block's heading, if present; (3) a short summary of the first imperative sentence, sentence-case, no trailing period. Examples: *"Enforce App Router exclusivity"* (from frontmatter), *"Prefer function components"* (from heading), *"API handlers live in src/api/handlers"* (from sentence).
 
 Body: reproduce the block's content verbatim (modulo leading `>` pointer and preserving the existing list structure). Do not rewrite the rule — the user wrote it this way deliberately.
 
 Filename slug: derive from the title (lowercase, hyphen-separated). Prefix with `imported-` for clarity. Example: `imported-prefer-function-components`.
 
-Directory: `imports/rules/`.
+Directory: `conventions/` — imported conventions live alongside native rules so `/archcore:context` surfaces them as rules, not as buried imports; the `imported` + `source:<slug>` tags plus the pointer line carry provenance.
 
 Status: `draft` (not `accepted`) — extracted rules are heuristic-derived and the user should review before accepting.
 
 Tags: `imported`, `source:<source-slug>`. No additional tags.
 
 ### Route 2: ADR (decision)
+
+**`/archcore:init` depth gate:** in init this route fires only at **`deep`** depth (per `SKILL.md` → Depth axis: "Authored decisions → ADR: deep only" — ADR extraction is the highest-risk synthesis). At `light`/`standard` — including an opt-in `edit → extract` of an aggregate file — a block that would match Route 2 is downgraded to **Route 3 (doc)** instead; never create an `adr` outside `deep`.
 
 Criteria (any hit):
 
@@ -58,7 +62,7 @@ Body: split the extracted block content into the ADR required sections. Best-eff
 - **Alternatives Considered** — anything mentioning the rejected option (`over <Y>`, `instead of <Y>`).
 - **Consequences** — if the source has no explicit consequences, leave the section with a single-line placeholder: *"Derived from `<source-path>`; review and fill in."*
 
-Filename slug: `imported-<title-slug>`. Directory: `imports/decisions/`. Status: `draft`. Tags: `imported`, `source:<source-slug>`.
+Filename slug: `imported-<title-slug>`. Directory: `imported/`. Status: `draft`. Tags: `imported`, `source:<source-slug>`.
 
 ### Route 3: Doc (reference / overview)
 
@@ -75,7 +79,7 @@ Title: derive from the heading, or `Imported: <first-3-words-of-block>` if no he
 
 Body: pointer line + blank line + verbatim block content (modulo heading de-leveling — see below).
 
-Filename slug: `imported-<title-slug>`. Directory: `imports/docs/`. Status: `draft`. Tags: `imported`, `source:<source-slug>`.
+Filename slug: `imported-<title-slug>`. Directory: `imported/`. Status: `draft`. Tags: `imported`, `source:<source-slug>`.
 
 ## Heading de-leveling
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Bevy Procedural World Builder"
+  short_description: "Generate validated Bevy worlds"
+  default_prompt: "Use $rust-bevy-procedural-world-builder to design a reproducible generated world pipeline for this Bevy game."

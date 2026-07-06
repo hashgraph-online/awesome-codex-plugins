@@ -92,6 +92,17 @@ STATE.md is NOT safe for concurrent access. Only one session should be active pe
 
 - **Discovery grep-verification** — distributional claims in W1 outputs (e.g., "N of M callers", "100% adopt pattern X") MUST quote the executed grep + file scope + count. See [`../../.claude/rules/parallel-sessions.md`](../../.claude/rules/parallel-sessions.md) § PSA-006.
 
+## STATE.md Write-Size Guard (#739)
+
+Every STATE.md disk write routes through `writeStateMd()` (`scripts/lib/state-md/frontmatter-mutators.mjs`), the lock-guarded read-transform-write helper. Before committing a write, `writeStateMd()` runs `evaluateSizeCeiling(before, after)` and REFUSES the write (WARN to `process.stderr`, no throw by default, prior on-disk contents left intact as last-known-good) when either:
+
+- **Absolute:** `after` byte-size exceeds `DEFAULT_STATE_MD_SIZE_CEILING_BYTES` (256 KB), or
+- **Ratio:** `after` byte-size exceeds `STATE_MD_SIZE_CEILING_RATIO` (5×) the prior on-disk (`before`) size — skipped on first-writes (`before === ''`), since there is no prior size to ratio against.
+
+This is the mechanical backstop against the 6.3 MB frontmatter-balloon incident class. Callers may opt into `opts.throwOnCeiling: true` for a thrown `Error` (`.code === 'STATE_MD_SIZE_CEILING'`) instead of the default no-op-with-WARN.
+
+It is a **symptom-level backstop, not the root-cause fix** — the underlying `yaml-parser` parse/serialize asymmetry that produced the balloon remains a tracked follow-up (a stricter round-trip-verification gate was evaluated and deliberately NOT shipped, because it false-positived on legitimate operator-authored scalars containing literal quote characters). Reinforces the existing guidance: mutate STATE.md via the structured writers (`scripts/lib/state-md.mjs`, `writeStateMd()`) or literal writes — never regex over the frontmatter block, which is the class of edit that produced the original balloon.
+
 ## Worktree-Auto-Promotion (#574, Epic #568 P3.1)
 
 When a session is promoted to a sibling worktree via `enterWorktree({basePath, sessionId, branch, repoRoot})` from `scripts/lib/autopilot/worktree-pipeline.mjs`, the new worktree gets its OWN STATE.md scoped to that worktree. The original repo's STATE.md is unaffected.
@@ -144,6 +155,16 @@ isAlive = (Date.now() - Date.parse(last_heartbeat)) < ttl_hours * 3600 * 1000
 ```
 
 This replaces the v1 PID-liveness check (`process.kill(pid, 0)`) which was fundamentally broken because the recorded `pid` belongs to the ephemeral hook subprocess (dies in <1s), not the long-lived Claude coordinator process. The PostgreSQL pattern — use a heartbeat timestamp rather than PID to establish liveness — is the authoritative reference (see W1-D4 best-practices §1.5).
+
+### #744 — heartbeat is the SOLE active gate (incident + fix)
+
+Despite the v2 liveness rule above existing since Epic #583, `acquire()`'s conflict classifier (`scripts/lib/session-lock.mjs`, the `classifyExisting()` closure) and `checkStale()` still let `pidAlive`/TTL-age act as an independent veto — which let an external `/close` observe the lock's recorded `pid` (the ephemeral hook subprocess / `node -e acquire()` PID, routinely dead within <1s) as dead and misclassify a live, actively-heartbeating session as `stale-pid-dead`, hijacking it mid-wave. Fixed in #744:
+
+- `classifyExisting()` now checks `isLockLive(existing)` **first** and unconditionally returns `{ reason: 'active' }` when true — a dead recorded `pid` can never veto a fresh `last_heartbeat`.
+- Only once `isLockLive()` is false does `pidAlive` pick the stale variant: `stale-pid-dead` when `pidAlive === false` (same-host, confirmed dead), else `stale-pid-alive` — which also covers `pidAlive === null` (cross-host locks, `host !== os.hostname()`, never a confirmable dead PID, so cross-host locks can never land on `stale-pid-dead`).
+- `checkStale()` surfaces the same `isLockLive()` result as an additive `isLive` field alongside the legacy `ttlExpired`/`pidAlive` signals, so recovery-flow diagnostics can observe when the two diverge.
+
+Net: `pid` (field notes above) stays forensic-only; `last_heartbeat` freshness is the sole determinant of "is this session still active" everywhere in `session-lock.mjs`.
 
 ### Schema v1 → v2 backward-compat
 

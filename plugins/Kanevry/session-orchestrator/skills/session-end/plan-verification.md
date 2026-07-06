@@ -75,6 +75,10 @@ Compare the files the plan said would be touched against the files actually chan
 - If still relevant: ensure original issue remains `status:ready`
 - If no longer relevant: close with comment explaining why
 
+### 1.3a Optional /goal Backlog-Drain (opt-in — #636)
+
+When `goal-integration.enabled: true` with seam `session-end-backlog`, the close may surface ONE advisory `/goal` command to drain still-relevant §1.2/§1.3 items in-session instead of carrying them over. See `SKILL.md § 1.3a Optional /goal Backlog-Drain` for the full gate conditions, advisory-only contract, and the LM-008 cross-reference — the two files mirror each other; the prose lives in SKILL.md.
+
 ### 1.4 Emergent Work
 - Tasks that were NOT in the plan but were done (fixes, discoveries)
 - Document and attribute to relevant issues

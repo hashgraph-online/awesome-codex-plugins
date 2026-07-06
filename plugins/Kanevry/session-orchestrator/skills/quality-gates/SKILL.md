@@ -25,7 +25,7 @@ Quality-gate commands are resolved in this priority order:
 
 1. **`.orchestrator/policy/quality-gates.json`** — canonical policy file (preferred). Schema: `.orchestrator/policy/quality-gates.schema.json`. Bootstrap writes a package-manager-aware default; hand-edit to customize.
 2. **Session Config** `test-command` / `typecheck-command` / `lint-command` in CLAUDE.md (Claude Code / Cursor) or AGENTS.md (Codex CLI) — fallback.
-3. **Hardcoded defaults** — last resort: `pnpm test --run`, `tsgo --noEmit`, `pnpm lint`.
+3. **Hardcoded defaults** — last resort: `npm test`, `npm run typecheck`, `npm run lint`.
 
 Loader: `scripts/lib/quality-gates-policy.mjs` exports `loadQualityGatesPolicy(repoRoot)` and `resolveCommand(policy, key, fallback)`. The Node runner `scripts/run-quality-gate.mjs` performs the same resolution inline.
 
@@ -33,7 +33,7 @@ If any resolved command is set to the literal string `skip`, skip that check ent
 
 ## Scope Policy (#320)
 
-**Lint, typecheck, and test commands MUST run with the project's canonical, unscoped invocation** as resolved above (e.g., `pnpm lint`, `pnpm test --run`, `tsgo --noEmit`). The resolved command's own configuration (`eslint.config.*`, `tsconfig.json`, `vitest.config.*`, `package.json` scripts) is the single source of truth for which files are checked.
+**Lint, typecheck, and test commands MUST run with the project's canonical, unscoped invocation** as resolved above (e.g., `npm run lint`, `npm test`, `npm run typecheck`). The resolved command's own configuration (`eslint.config.*`, `tsconfig.json`, `vitest.config.*`, `package.json` scripts) is the single source of truth for which files are checked.
 
 **Domain-split scoping is FORBIDDEN.** Do NOT replace the canonical command with narrower variants such as:
 
@@ -99,7 +99,7 @@ Metrics output (for consuming skills to capture):
 
 ## Variant 3: Full Gate
 
-**Used by:** session-end (Phase 2)
+**Used by:** session-end (Phase 2); wave-executor (Quality wave — mechanically enforced via the `waveRole` parameter, #724)
 **Purpose:** Final quality gate before commit — MUST pass.
 
 Commands:
@@ -158,7 +158,7 @@ When a consuming skill needs quality checks, include this directive:
 
 > **Quality Reference:** Run [Baseline|Incremental|Full Gate|Per-File] quality checks
 > per the quality-gates skill. Read `test-command`, `typecheck-command`, and `lint-command`
-> from Session Config (defaults: `pnpm test --run`, `tsgo --noEmit`, `pnpm lint`).
+> from Session Config (defaults: `npm test`, `npm run typecheck`, `npm run lint`).
 
 Replace the bracketed variant name with the specific variant required by that phase.
 
@@ -203,7 +203,7 @@ Invalid reason codes: `no-record` | `session-ref-mismatch` | `dependency-changed
 
 **Incremental-skip condition:** `shouldSkipIncremental()` returns `skip: true` when the cache is valid AND `git diff --name-only $SESSION_START_REF..HEAD | wc -l` returns <50. Otherwise `skip: false` and Incremental runs as before. The function never throws — on any error (git failure, unreadable cache, missing dependency_hash) it fails safe by returning `skip: false`.
 
-**INVARIANT — Full Gate at session-end is NEVER skipped**, regardless of cache state. The cache only short-circuits Incremental in wave-executor. Full Gate remains the close-safety gate and always runs the complete typecheck + test + lint + debug-artifact scan. This is intentional and non-configurable.
+**INVARIANT — Full Gate at session-end AND after the Quality wave is NEVER skipped**, regardless of cache state. The cache only short-circuits Incremental in the Impl waves of wave-executor. Two consumers hold this invariant: (1) **session-end** (Phase 2) always runs the complete gate before commit; (2) the **wave-executor Quality wave** (#724 C6) — `shouldSkipIncremental({ waveRole: 'Quality' })` hard-returns `skip: false` (reason `quality-wave-full-gate-mandate`) BEFORE any cache/diff logic, so the Quality-wave Full Gate is mechanically un-skippable, not merely prose-mandated. Full Gate remains the close-safety gate and always runs the complete typecheck + test + lint + debug-artifact scan. This is intentional and non-configurable.
 
 **Implementation:** `scripts/lib/quality-gates-cache.mjs` exports `computeDependencyHash`, `saveBaselineResult`, `loadLatestBaselineResult`, `isCacheValid`, `shouldSkipIncremental`. Stdlib-only (`node:fs`, `node:path`, `node:crypto`, `node:child_process`).
 

@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/agent-native",
   "layout": "modular",
-  "source_hash": "d02f74b1520efe96f2e28aea31c3a73596dd0738aee0f65845f8d53ad4b172e4",
-  "generated_hash": "4278d76d9c0b6093157ae0f52b306c9081a0f12d35a66c34f5e56e337e876e9c"
+  "source_hash": "5e60d4ffe006099bbe8da5cbf567346cf414ddb3d92c19c7bcb5c53799111e66",
+  "generated_hash": "87f84315cf4d69ed77a5abdc64c884feef940631c52a1843316b7c87668e179f"
 }

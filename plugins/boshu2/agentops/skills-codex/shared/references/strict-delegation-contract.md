@@ -5,7 +5,7 @@
 
 ## The Contract
 
-Top-level orchestrator skills delegate to their declared sub-skills via `$<skill>` invocations — **as separate tool invocations**, one per phase/step. Each sub-skill owns its artifact, its gate, and its retry policy. Inlining the work breaks that ownership chain.
+Top-level orchestrator skills delegate to their declared sub-skills via `Skill(skill="<name>", ...)` — **as separate tool invocations**, one per phase/step. Each sub-skill owns its artifact, its gate, and its retry policy. Inlining the work breaks that ownership chain.
 
 There is no `--full` flag because strict delegation is always on.
 
@@ -20,46 +20,67 @@ For high-cost lifecycle phases, the desired runtime shape is:
    retry policy.
 2. A phase runner receives only the phase skill name, the bounded handoff
    artifact, and the minimum objective context.
-3. The runner executes the declared skill contract (`$discovery`, `$crank`, or
-   `$validate`) in an isolated phase context.
+3. The runner executes the declared skill contract (`/discovery`, `/crank`, or
+   `/validate`) in an isolated phase context.
 4. The orchestrator receives only artifact path, verdict, and next action.
 
 This is not a compression escape. It is strict delegation over an isolated
-transport. The forbidden move is replacing the skill contract with direct
-sub-agent work.
+transport. The forbidden move is replacing the skill contract with direct agent
+work.
 
 ## Anti-Pattern: Compression
 
 Do not inline phase work, compress multiple phases into one pass, substitute
-direct Codex sub-agent work for `$<skill>` invocations, or skip mandatory
-phases. Typical rationalizations to reject:
+direct `Agent()` work for a skill contract, or skip mandatory phases. Typical
+rationalizations to reject:
 
 - *"I'll compress the three phases into one pass."*
 - *"Let me do discovery inline — I already know what to do."*
-- *"Nested `$<skill>` calls waste context; I'll spawn a Codex sub-agent instead."*
+- *"Nested `Skill()` calls waste context; I'll spawn an `Agent()` instead."*
 - *"The implementation is validated by tests passing; skipping `/validate`."*
 - *"The plan looks good, skipping pre-mortem to save time."*
-- *"I'll just spawn 3 judges directly — it's what `/vibe` does anyway."*
+- *"I'll just spawn 3 judges directly — it's what `/validate` does anyway."*
 - *"Post-mortem is just writing a summary, I'll do it inline."*
 
-All of these are contract violations. A live compression was observed 2026-04-19 (see [`docs/learnings/orchestrator-compression-anti-pattern.md`](../../../docs/learnings/orchestrator-compression-anti-pattern.md)). The compression "worked" mechanically (strict build passed, 2-judge inline vibe PASSed) but the knowledge flywheel never turned — no forged learnings, no post-mortem artifact, no structured council verdict. Contract strength depends on actual `$<skill>` invocations, not self-certification.
+### Pre-Mortem Anti-Rationalization Clause
 
-## Codex sub-agents vs `$<skill>` invocations
+The following do **NOT** count as a pre-mortem and **MUST NOT** be used to skip
+the delegated `/pre-mortem` pass:
+
+1. **An inline risk or "honest risk" section the author wrote.** The author's
+   own risk assessment is autocorrelated with the plan — the same blind spots
+   that shaped the plan shape the risk section. It is not an independent check.
+2. **An earlier adversarial pass on an INPUT or premise, not THIS plan.** A
+   prior council/siege/refutation that challenged a *premise* (e.g. "is this
+   the right goal?") does not validate the *implementation plan* derived from
+   that premise. Different artifact, different failure modes.
+3. **"A related council already ran."** A council on a sibling plan, a prior
+   version of the plan, or a different artifact in the same epic does not
+   transfer. Pre-mortem is plan-specific.
+
+**Pre-mortem = DELEGATED + INDEPENDENT (author ≠ reviewer) + fresh-context on
+THIS plan.** All three conditions must hold. An inline section satisfies none;
+a prior-premise adversarial pass satisfies at most one (independent) but not
+the other two (not this plan, not delegated).
+
+All of these are contract violations. A live compression was observed 2026-04-19 (see [`docs/learnings/orchestrator-compression-anti-pattern.md`](../../../docs/learnings/orchestrator-compression-anti-pattern.md)). The compression "worked" mechanically (strict build passed, 2-judge inline vibe PASSed) but the knowledge flywheel never turned — no forged learnings, no post-mortem artifact, no structured council verdict. Contract strength depends on actual `Skill()` invocations, not self-certification.
+
+## `Agent()` vs `Skill()`
 
 These are **not interchangeable**:
 
 | Call | When to use |
 |------|-------------|
-| `$<skill> <args>` | Invoking a declared skill with its full contract. Required for phase delegation. |
-| Codex sub-agent (e.g., `explorer` role) | Spawning a sub-agent for parallel independent work **within a skill's step** (e.g., `/research` dispatching parallel explorer sub-agents is fine). |
+| `Skill(skill="<name>", ...)` | Invoking a declared skill with its full contract. Required for phase delegation. |
+| `Agent(subagent_type="...", ...)` | Spawning a sub-agent for parallel independent work **within a skill's step** (e.g., `/research` dispatching parallel Explore agents is fine). |
 | Phase runner | Runtime transport that executes one declared skill contract in an isolated context and returns only the bounded phase artifact. |
 
-If you're tempted to spawn a Codex sub-agent in place of a `$<skill>` invocation, you're compressing. Stop.
+If you're tempted to call `Agent()` in place of a `Skill()` invocation, you're compressing. Stop.
 
-If Codex lacks a native skill-fork boundary, a phase runner may use a sub-agent,
-daemon job, or process wrapper as transport. That wrapper must be thin: load
-the declared skill, execute the skill workflow, write the expected artifact,
-and return a compact result. It must not perform the phase directly.
+If a runtime lacks a native `Skill()`-fork boundary, a phase runner may use a
+subagent, daemon job, or process wrapper as transport. That wrapper must be
+thin: load the declared skill, execute the skill workflow, write the expected
+artifact, and return a compact result. It must not perform the phase directly.
 
 ## Supported Compression Escapes
 
@@ -88,16 +109,16 @@ These flags scale *gate depth* or *scope*, **never skip phases**. They are the o
 
 ## Positive Pattern: What Correct Delegation Looks Like
 
-A correct `/rpi` invocation shows three distinct `$<skill>` invocations at phase boundaries:
+A correct `/rpi` invocation shows three distinct `Skill()` tool calls at phase boundaries:
 
 ```
-$discovery <goal> --auto      # Phase 1
+Skill(skill="discovery", args="<goal> --auto")      # Phase 1
   → <promise>DONE</promise>
   → reads .agents/rpi/execution-packet.json
-$crank <packet-path> [--test-first]   # Phase 2
+Skill(skill="crank", args="<packet-path> [--test-first]")   # Phase 2
   → <promise>DONE</promise>
   → reads .agents/rpi/phase-2-summary-*.md
-$validate --complexity=<level> [--strict-surfaces]   # Phase 3
+Skill(skill="validate", args="--complexity=<level> [--strict-surfaces]")   # Phase 3
   → <promise>DONE</promise>
   → writes .agents/rpi/phase-3-summary-*.md
 ```
@@ -113,7 +134,7 @@ write the expected phase summary file.
 
 When auditing a session that claims to have run `/rpi`, check the transcript for:
 
-1. **Three delegated phase contracts** at phase boundaries (`$<skill>` directly,
+1. **Three delegated phase contracts** at phase boundaries (`Skill()` directly,
    or a phase runner whose sole job is to execute the named skill contract).
 2. **Three `<promise>DONE</promise>` markers**, each from the delegated sub-skill.
 3. **Three phase summary files** in `.agents/rpi/phase-{1,2,3}-summary-*.md`.

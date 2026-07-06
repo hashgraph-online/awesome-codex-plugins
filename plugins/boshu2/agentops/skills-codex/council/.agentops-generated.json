@@ -1,7 +1,7 @@
 {
   "generator": "manual-maintained",
   "source_skill": "skills/council",
-  "layout": "modular",
-  "source_hash": "44e4521bbcec5ac3a26421bf4459dfa21f6afc6c38bcd745a19ad9d1e2457dd8",
-  "generated_hash": "2bc6030290f7fc269ae08cbec2cf0db76a3ea80b0d8366399cfc3966eabe5e50"
+  "layout": "stub",
+  "source_hash": "fa7558435afc4911a53621ba5fafd30f2ccee54883bb20b827ae0db354426091",
+  "generated_hash": "d9399a411d9533adc2bc8285ef3ffd5ed7cc8504d2c51705aa8459468d99f079"
 }

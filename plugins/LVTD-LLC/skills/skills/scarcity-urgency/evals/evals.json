@@ -1,0 +1,19 @@
+{
+  "skill_name": "scarcity-urgency",
+  "evals": [
+    {
+      "id": 1,
+      "name": "limited-beta-copy",
+      "prompt": "Write launch copy for 50 real seats without creating panic or fake deadlines.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "checkout-urgency-audit",
+      "prompt": "Audit this checkout page for fabricated scarcity and rewrite the urgency blocks.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

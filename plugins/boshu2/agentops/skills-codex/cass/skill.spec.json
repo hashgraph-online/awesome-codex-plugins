@@ -1,0 +1,81 @@
+{
+  "name": "cass",
+  "skill_api_version": 1,
+  "form": "A",
+  "quality_score": 0.95,
+  "sections": [
+    { "id": "title",       "title": "cass Session Search",                  "type": "intro",     "priority": "required" },
+    { "id": "goldmine",    "title": "The Goldmine Principle",               "type": "overview",  "priority": "required" },
+    { "id": "discovery",   "title": "THE EXACT PROMPT — Discovery Workflow", "type": "procedure", "priority": "required" },
+    { "id": "versionpin",  "title": "Version Pinning Caveat",               "type": "constraints", "priority": "required" },
+    { "id": "bootstrap",   "title": "Two-Step Bootstrap",                   "type": "procedure", "priority": "required" },
+    { "id": "recovery",    "title": "Stuck-Index & Recovery Decision Tree", "type": "procedure", "priority": "required" },
+    { "id": "quickref",    "title": "Quick Reference",                      "type": "procedure", "priority": "required" },
+    { "id": "whentouse",   "title": "When to Use What",                     "type": "table",     "priority": "standard" },
+    { "id": "rules",       "title": "Critical Rules",                       "type": "constraints", "priority": "required" },
+    { "id": "exclusion",   "title": "Agent Harness Exclusion",              "type": "procedure", "priority": "standard" },
+    { "id": "modes",       "title": "Search Modes",                         "type": "procedure", "priority": "standard" },
+    { "id": "crossmachine","title": "Cross-Machine Search",                 "type": "procedure", "priority": "standard" },
+    { "id": "antipatterns","title": "Anti-Patterns",                        "type": "constraints", "priority": "required" },
+    { "id": "resume",      "title": "Resume a Past Session",                "type": "procedure", "priority": "standard" },
+    { "id": "jq",          "title": "jq Essentials",                        "type": "procedure", "priority": "standard" },
+    { "id": "analytics",   "title": "Token & Cost Analytics",               "type": "procedure", "priority": "standard" },
+    { "id": "cheatsheet",  "title": "Recovery Cheat Sheet",                 "type": "procedure", "priority": "standard" },
+    { "id": "refindex",    "title": "Reference Index",                      "type": "routing",   "priority": "required" }
+  ],
+  "references": [
+    { "file": "references/COMMANDS.md",            "topic": "complete cass command reference" },
+    { "file": "references/RECOVERY.md",            "topic": "stuck-index recovery and no-permission repair moves" },
+    { "file": "references/SEMANTIC_AND_HYBRID.md", "topic": "enabling semantic / hybrid search modes" },
+    { "file": "references/REMOTE_SOURCES.md",      "topic": "cross-machine corpus and configured sources" },
+    { "file": "references/ANTI_PATTERNS.md",       "topic": "search anti-patterns to avoid" },
+    { "file": "references/RESUME.md",              "topic": "resume a past session in its native harness" },
+    { "file": "references/ANALYTICS.md",           "topic": "token and cost analytics across the fleet" }
+  ],
+  "metadata": {
+    "tier": "execution",
+    "stability": "stable",
+    "dependencies": ["cass-memory", "casr"],
+    "hexagonal_role": "supporting",
+    "context_window": "inherit",
+    "practices": ["pragmatic-programmer"],
+    "external_dependencies": [
+      "cass binary (>=0.3.6 recommended; some commands require HEAD)",
+      "jq (required for parsing --json output)",
+      "GNU coreutils timeout (recommended; cass index can hang under contention)",
+      "ssh + rsync (optional; cross-machine sources)",
+      "fastembed model bundle ~90MB (optional; semantic/hybrid mode)"
+    ],
+    "triggers": [
+      "cass",
+      "what did I ask",
+      "find that prompt",
+      "session archaeology",
+      "agent history",
+      "search past sessions",
+      "mine working prompts",
+      "find prior decisions",
+      "cross-machine session search",
+      "resume a past session"
+    ],
+    "token_estimate": {
+      "minimal": 90,
+      "overview": 400,
+      "standard": 2400,
+      "full": 5200
+    }
+  },
+  "output_contract": "Search hits over past agent sessions (prompts, decisions, patterns) via `cass search`, a `cass status`/index-health report, JSON/aggregation output for parsing, or a resume command for a matched session. Index operations are wall-clock-capped so the bootstrap never blocks.",
+  "evidence": {
+    "sources": [
+      "skills/cass/SKILL.md",
+      "skills/cass/scripts/validate.sh",
+      "skills/cass/references/COMMANDS.md",
+      "skills/cass/references/RECOVERY.md",
+      "skills/cass/references/SEMANTIC_AND_HYBRID.md"
+    ]
+  },
+  "validation": {
+    "command": "bash skills/cass/scripts/validate.sh"
+  }
+}

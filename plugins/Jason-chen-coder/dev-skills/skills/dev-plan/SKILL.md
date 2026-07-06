@@ -1,6 +1,6 @@
 ---
 name: dev-plan
-description: 'Use when a spec or scoped requirement exists and the user wants a concrete implementation plan before coding. Trigger on: 出个 plan, 做个实施方案, 怎么做这件事, 给我个方案, plan this, make a plan, consensus plan, ralplan. Produces a RALPLAN-DR plan with principles, decision drivers, viable options, ADR, and Planner-Architect-Critic validation. Does not gather requirements, fix bugs, review code, or write code.'
+description: 'Use only after a spec or clearly scoped requirement exists and the user wants a concrete implementation plan before coding. Trigger on explicit implementation-planning requests such as 基于这个 spec 出 plan, 需求已经清楚了给实施方案, 技术实施方案, 出个 plan, 做个实施方案, plan this, make a plan, consensus plan, ralplan. If the user says 写个方案, 给我个方案, 怎么做这件事, 帮我设计, or the requirement is still fuzzy, route to dev-grill-docs first. Produces a RALPLAN-DR plan with principles, decision drivers, viable options, ADR, and Planner-Architect-Critic validation. Does not gather requirements, fix bugs, review code, or write code.'
 ---
 
 # Dev Plan
@@ -13,18 +13,21 @@ This skill **only plans**. It does not gather requirements (`dev-grill-docs` doe
 
 ## Trigger routing
 
-Use this skill when a spec or scoped requirement exists and the user wants a concrete implementation plan with cross-perspective validation before writing code.
+Use this skill when a spec or scoped requirement exists and the user wants a concrete implementation plan with cross-perspective validation before writing code. If the user is still asking to clarify what the requirement should be, route to `dev-grill-docs`.
 
 Trigger phrases include:
 
+- `基于这个 spec 出 plan`
+- `需求已经清楚了给实施方案`
+- `技术实施方案`
 - `出个 plan`
 - `做个实施方案`
-- `怎么做这件事`
-- `给我个方案`
 - `plan this`
 - `make a plan`
 - `consensus plan`
 - `ralplan`
+
+Ambiguous phrases such as `写个方案`, `给我个方案`, `怎么做这件事`, or `帮我设计` belong to `dev-grill-docs` unless the user says the requirement/spec is already clear and wants implementation steps.
 
 Output goes to `.claude/artifacts/plans/<feature>.md`.
 

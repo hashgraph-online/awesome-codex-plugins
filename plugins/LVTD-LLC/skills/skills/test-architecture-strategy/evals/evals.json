@@ -1,0 +1,19 @@
+{
+  "skill_name": "test-architecture-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "name": "slow-suite-strategy",
+      "prompt": "Our web app test suite takes 45 minutes and developers avoid running it locally. Give me a test architecture strategy.",
+      "expected_output": "Inventories suite layers, classifies slow feedback, proposes target shape, chooses first migration slice, and uses metrics rather than generic pyramid advice.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "mock-heavy-suite",
+      "prompt": "We have lots of unit tests with mocks but still ship integration bugs. What testing architecture should we move toward?",
+      "expected_output": "Identifies missing boundary coverage, distinguishes core from adapters, warns against mock-only confidence, and suggests integration/contract tests.",
+      "files": []
+    }
+  ]
+}

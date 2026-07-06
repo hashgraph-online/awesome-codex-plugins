@@ -26,6 +26,7 @@ Invoke any of these when appropriate:
 |---|---|
 | `hotl:brainstorming` | Before any feature work — design with HOTL contracts |
 | `hotl:writing-plans` | After design approval — produces `docs/plans/YYYY-MM-DD-<slug>-workflow.md` |
+| `hotl:governed-execution` | Preferred execution entry point — selects host driver and execution profile while preserving HOTL evidence |
 | `hotl:executing-plans` | Linear execution with human checkpoints |
 | `hotl:loop-execution` | Execute a workflow file with loops + auto-approve |
 | `hotl:subagent-execution` | Delegated step runner over the loop execution engine — delegates eligible steps to fresh subagents |

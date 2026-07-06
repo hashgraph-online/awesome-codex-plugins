@@ -1,6 +1,6 @@
 ---
 name: converter
-description: "Run converter."
+description: Convert AgentOps skill formats.
 ---
 # $converter -- Cross-Platform Skill Converter
 
@@ -10,7 +10,7 @@ Parse AgentOps skills into a universal SkillBundle format, then convert to targe
 
 ```bash
 $converter skills/council codex     # Convert council skill to Codex format
-$converter skills/vibe cursor       # Convert vibe skill to Cursor format
+$converter skills/validate cursor       # Convert vibe skill to Cursor format
 $converter --all codex              # Convert all skills to Codex
 ```
 
@@ -40,7 +40,7 @@ Transform the SkillBundle into the target platform's format:
 | `codex` | Codex SKILL.md + prompt.md | Implemented |
 | `cursor` | Cursor .mdc rule + optional mcp.json | Implemented |
 
-The Codex adapter produces a `SKILL.md` with YAML frontmatter (`name`, `description`) plus rewritten body content and a `prompt.md` (Codex prompt referencing the skill). Default mode is **modular**: reference docs, scripts, and resources are copied as files and `SKILL.md` includes a local resource index instead of inlining everything. Optional **inline** mode preserves the older behavior by appending inlined references and script code blocks. Codex output rewrites known slash-skill references (for example `$plan`) to dollar-skill syntax (`$plan`), replaces Claude-specific paths/labels (including `~/.codex/`, `$HOME/.codex/`, and `/.codex/` path variants), normalizes common mixed-runtime terms (for example `Codex sub-agents`, `codex-sub-agents`, and `Codex session/runtime`) to Codex-native phrasing, and rewrites Claude-only primitive labels to runtime-neutral wording. It preserves current flat `ao` CLI commands from the source skill rather than reintroducing deprecated namespace forms. It also deduplicates repeated "In Codex" runtime headings after rewrite while preserving section content. It preserves non-generated resource files/directories from the source skill (for example `templates/`, `assets/`, `schemas/`, `examples/`, `agents/`) and enforces passthrough parity (missing copied resources fail conversion). Descriptions are truncated to 1024 chars at a word boundary if needed.
+The Codex adapter produces a `SKILL.md` with YAML frontmatter (`name`, `description`) plus rewritten body content and a `prompt.md` (Codex prompt referencing the skill). Default mode is **modular**: reference docs, scripts, and resources are copied as files and `SKILL.md` includes a local resource index instead of inlining everything. Optional **inline** mode preserves the older behavior by appending inlined references and script code blocks. Codex output rewrites known slash-skill references (for example `$plan`) to dollar-skill syntax (`$plan`), replaces Claude-specific paths/labels (including `~/.codex/`, `$HOME/.codex/`, and `/.codex/` path variants), normalizes common mixed-runtime terms (for example `Claude Native Teams`, `claude-native-teams`, and `Claude session/runtime`) to Codex-native phrasing, and rewrites Claude-only primitive labels to runtime-neutral wording. It preserves current flat `ao` CLI commands from the source skill rather than reintroducing deprecated namespace forms. It also deduplicates repeated "In Codex" runtime headings after rewrite while preserving section content. It preserves non-generated resource files/directories from the source skill (for example `templates/`, `assets/`, `schemas/`, `examples/`, `agents/`) and enforces passthrough parity (missing copied resources fail conversion). Descriptions are truncated to 1024 chars at a word boundary if needed.
 
 The Cursor adapter produces a `<name>.mdc` rule file with YAML frontmatter (`description`, `globs`, `alwaysApply: false`) and body content. References are inlined into the body, scripts are included as code blocks. Output is budget-fitted to 100KB max -- references are omitted largest-first if the total exceeds the limit. If the skill references MCP servers, a `mcp.json` stub is also generated.
 
@@ -128,16 +128,3 @@ To add a new target platform:
 ## Reference Documents
 
 - [references/skill-bundle-schema.md](references/skill-bundle-schema.md)
-
-## Local Resources
-
-### references/
-
-- [references/skill-bundle-schema.md](references/skill-bundle-schema.md)
-
-### scripts/
-
-- `scripts/convert.sh`
-- `scripts/validate.sh`
-
-

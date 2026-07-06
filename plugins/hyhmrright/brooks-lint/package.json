@@ -1,6 +1,6 @@
 {
   "name": "brooks-lint",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "bump": "node scripts/bump-version.mjs",
@@ -8,6 +8,7 @@
     "test": "node scripts/validate-repo.test.mjs",
     "evals": "node scripts/run-evals.mjs",
     "evals:live": "node scripts/run-evals-live.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
     "history": "node scripts/history.mjs"
   },
   "devDependencies": {

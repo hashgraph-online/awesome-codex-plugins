@@ -8,7 +8,7 @@
       "name": "sealos",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/sealos"
       },
       "policy": {
         "installation": "AVAILABLE",

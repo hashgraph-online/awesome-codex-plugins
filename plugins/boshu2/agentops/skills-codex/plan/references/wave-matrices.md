@@ -37,7 +37,7 @@ After computing waves, build a **cross-wave file registry** listing every file t
 ```
 
 **If any file appears in multiple waves:**
-1. Ensure the later-wave issue explicitly declares a dependency on the earlier-wave issue that touches the same file (so `bd dep add` / `addBlockedBy` is set).
+1. Ensure the later-wave issue explicitly declares a dependency on the earlier-wave issue that touches the same file (so `br dep add` / `addBlockedBy` is set).
 2. Flag the file in the plan's `## Cross-Wave Shared Files` section so `$crank` can enforce worktree base refresh between waves.
 3. For test files shared across waves, prefer splitting test additions into the same wave as the code they test — avoid a separate "test coverage" issue that touches files already modified in an earlier wave.
 

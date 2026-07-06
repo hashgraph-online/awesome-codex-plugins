@@ -22,7 +22,7 @@ The MCP `usage_call_context` tool is disabled unless the MCP server process expl
 
 ## Localhost Dashboard Token
 
-`serve-dashboard` creates a random per-server API token and embeds it in the generated dashboard HTML for that local server session. The token is used for localhost `/api/usage` refreshes and `/api/context` requests. Treat generated active dashboard files and URLs as local-only artifacts; do not publish them or send them to someone else.
+`serve-dashboard` creates a random per-server API token and embeds it in the generated dashboard HTML for that local server session. The token is used for localhost `/api/usage` refreshes, `/api/context` requests, and runtime context-loading settings. Treat generated active dashboard files and URLs as local-only artifacts; do not publish them or send them to someone else.
 
 The dashboard server rejects non-loopback hosts and cross-origin requests. This is a local hardening measure, not a reason to expose the server on a network interface.
 

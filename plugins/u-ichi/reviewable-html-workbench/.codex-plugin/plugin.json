@@ -1,0 +1,44 @@
+{
+  "name": "reviewable-html-workbench",
+  "version": "1.17.5",
+  "description": "Generate reviewable HTML documents, serve previews, collect comments, and feed review outcomes back into agent workflows.",
+  "author": {
+    "name": "u1",
+    "email": "",
+    "url": ""
+  },
+  "homepage": "https://github.com/u-ichi/reviewable-html-workbench",
+  "repository": "https://github.com/u-ichi/reviewable-html-workbench",
+  "license": "MIT",
+  "keywords": [
+    "html",
+    "review",
+    "design-doc",
+    "agent-skill",
+    "preview"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Reviewable HTML Workbench",
+    "shortDescription": "Create reviewable HTML docs and process comments.",
+    "longDescription": "Generate visual HTML documents, start local or Tailscale preview servers, capture review comments, reply from agents, and apply feedback back into design documents.",
+    "developerName": "u1",
+    "category": "Productivity",
+    "capabilities": [
+      "Write",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Create a reviewable design doc in HTML",
+      "Process the HTML review comments and apply resolved feedback",
+      "Render this as a visual HTML report",
+      "Preview this plan as HTML",
+      "設計資料をレビュー可能なHTMLで作って",
+      "HTMLレビューコメントを確認して反映して",
+      "図示つきHTMLレポートを生成して",
+      "planをグラフィカルに確認したい",
+      "この計画をHTMLでプレビューして"
+    ],
+    "brandColor": "#2563EB"
+  }
+}

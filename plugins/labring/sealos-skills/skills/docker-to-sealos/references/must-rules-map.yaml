@@ -44,6 +44,10 @@ must_rules:
     enforcement:
       type: rule
       target: R023
+  - must: "For public images that are verified to run as a non-root UID, managed app workloads and init Jobs should set restricted-compatible security context (`runAsNonRoot`, `runAsUser`, `runAsGroup`, `fsGroup`, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`) unless the image requires root or extra capabilities."
+    enforcement:
+      type: manual
+      note: "Requires verified image UID and runtime security-context compatibility evidence."
   - must: "App resource must use `spec.data.url`."
     enforcement:
       type: rule
@@ -56,6 +60,14 @@ must_rules:
     enforcement:
       type: rule
       target: R033
+  - must: "App resource `spec.data.url` must be the browser entry URL that succeeds from a fresh Sealos launch. For apps with safe-path, setup-path, or entrance-path behavior, verify the configured path and root path, then choose the URL that supports login or first-run setup without hidden prior navigation."
+    enforcement:
+      type: manual
+      note: "Requires live Sealos App URL smoke from a fresh browser/session."
+  - must: "SSR/Next.js/React server apps must not use a path that renders a server-side exception as the App URL or HTTP probe. Treat visible `Application error`, `server-side exception`, `Internal Server Error`, or `Unhandled Runtime Error` text as a failed entry path even if the HTTP status is 2xx/3xx."
+    enforcement:
+      type: manual
+      note: "Requires HTTP body/runtime smoke inspection, covered by sealos-live-smoke failure signals."
   - must: "Never use `spec.template` in App resource."
     enforcement:
       type: rule
@@ -80,6 +92,26 @@ must_rules:
     enforcement:
       type: rule
       target: R030
+  - must: "ConfigMap data keys must follow vn naming (`scripts/path_converter.py`), including `/`, `-`, `.`, and other special characters."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "ConfigMaps mounted by managed Deployment/StatefulSet workloads must use `metadata.name == workload.metadata.name`."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "ConfigMap workload volumes must use `<workload-name>-cm`, and every ConfigMap `data` key must be mounted as its own `volumeMount` with `subPath` exactly equal to that key."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "Omit ConfigMap volume `defaultMode` unless the application explicitly needs a non-default mode. ConfigMap scripts invoked through `/bin/sh /path/script` do not need executable bits."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "Avoid long inline startup scripts or heredocs in `command`/`args`; place initialization/start scripts in ConfigMap files and invoke them with a short command."
+    enforcement:
+      type: manual
+      note: "Requires semantic length/intent review of startup command content."
   - must: "Application `Service` resources must use the same component name across `metadata.name`, `metadata.labels.app`, `metadata.labels.cloud.sealos.io/app-deploy-manager`, and `spec.selector.app`."
     enforcement:
       type: rule
@@ -112,6 +144,14 @@ must_rules:
     enforcement:
       type: manual
       note: "Conflict resolution depends on semantic comparison plus platform/security guardrails."
+  - must: "When official compose/docs provide a multi-component runtime bundle, template artifacts must preserve runtime-required components, public entry routes, critical env vars, and image versions from the same official release/compose source."
+    enforcement:
+      type: rule
+      target: R046
+  - must: "Templates using official multi-component runtime evidence must provide a separate `RuntimeBundleEvidence` YAML file during validation, while final Sealos Template artifacts stay free of runtime-bundle validator metadata."
+    enforcement:
+      type: rule
+      target: R046
   - must: "Do not use `:latest`."
     enforcement:
       type: rule
@@ -144,6 +184,10 @@ must_rules:
     enforcement:
       type: rule
       target: R006
+  - must: "If a workload emits PodSecurity admission warnings and the image runs as a non-root user, add the restricted-compatible security context before reporting the template ready."
+    enforcement:
+      type: manual
+      note: "Requires live PodSecurity warning and image UID evidence."
   - must: "Do not use `emptyDir`."
     enforcement:
       type: rule
@@ -152,19 +196,23 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires intent-level storage-need inference for each service."
+  - must: "StatefulSet resources with `volumeClaimTemplates` must keep standard workload labels such as `app` and `cloud.sealos.io/app-deploy-manager`, and omit only `cloud.sealos.io/deploy-on-sealos` from both StatefulSet `metadata.labels` and `volumeClaimTemplates[].metadata.labels`."
+    enforcement:
+      type: manual
+      note: "Generation behavior is covered by compose_to_template regression tests; static validation allows legacy labels in existing artifacts."
+  - must: "`volumeClaimTemplates[].metadata` should include `name` and `annotations`."
+    enforcement:
+      type: manual
+      note: "Generation behavior is covered by compose_to_template regression tests."
   - must: "PVC request must be `<= 1Gi` unless source spec explicitly requires less."
     enforcement:
       type: rule
       target: R011
-  - must: "ConfigMap keys and volume names must follow vn naming (`scripts/path_converter.py`)."
-    enforcement:
-      type: manual
-      note: "Needs deterministic vn-name mapping checks against path semantics."
   - must: "Non-database sensitive values/inputs use direct `env[].value`."
     enforcement:
       type: manual
       note: "Sensitive-value classification requires semantic analysis of env names and source intent."
-  - must: "Business containers must source database connection fields (`endpoint`, `host`, `port`, `username`, `password`) from approved Kubeblocks database secrets via `env[].valueFrom.secretKeyRef`; exception: Redis `host`/`port` may use Sealos Redis Service FQDN and `6379` when the Redis secret only exposes credentials, and MongoDB connection URLs may use the Sealos MongoDB Service FQDN plus `27017` when the MongoDB secret exposes credentials only."
+  - must: "Business containers must source database connection fields (`endpoint`, `host`, `port`, `username`, `password`) from approved Kubeblocks database secrets via `env[].valueFrom.secretKeyRef`; exception: Redis `host`/`port` may use Sealos Redis Service FQDN and `6379` when the Redis secret only exposes credentials, and MongoDB `host`/`port` or connection URLs may use the Sealos MongoDB Service FQDN plus `27017` when the MongoDB secret exposes credentials only."
     enforcement:
       type: rule
       target: R017
@@ -188,6 +236,10 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires per-application canonical env dictionary from upstream docs."
+  - must: "For split frontend/API/gateway apps, keep public browser URLs and internal service URLs separate. Frontend/browser callback variables use `https://${{ defaults.<host> }}.${{ SEALOS_CLOUD_DOMAIN }}`; backend-to-backend variables use `http://<service>.$(SEALOS_NAMESPACE).svc.cluster.local:<port>` or the fully rendered Service FQDN."
+    enforcement:
+      type: manual
+      note: "Requires app-specific URL topology review across frontend, API, gateway, and worker env vars."
   - must: "When the application requires its public URL configured via a file-based config system (e.g., node-config `config/default.json`, PHP config files), create a ConfigMap containing the config file with the public URL set to `https://${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}`, and mount it to the application's config directory. The ConfigMap must follow standard naming and label conventions."
     enforcement:
       type: manual
@@ -196,6 +248,26 @@ must_rules:
     enforcement:
       type: rule
       target: R027
+  - must: "For application-specific database compatibility, include an initContainer or startup gate that idempotently creates or repairs required views, aliases, indexes, extensions, privileges, role search paths, and legacy compatibility objects before the business container starts."
+    enforcement:
+      type: manual
+      note: "Requires app-specific runtime/database semantic review and live DB-state verification."
+  - must: "Managed app main container `command`/`args` must stay close to the image's official entrypoint. Keep only official startup commands, Compose-native args, or a short exec wrapper; move file preparation, permission repair, database bootstrap, and compatibility self-healing into initContainers, Jobs, or ConfigMap scripts."
+    enforcement:
+      type: rule
+      target: R042
+  - must: "Shell wrappers in the main business container must `exec` the final process so signal handling remains correct."
+    enforcement:
+      type: rule
+      target: R042
+  - must: "Database bootstrap SQL must be safe under shell execution: prefer shell-level guard queries plus simple SQL, use single-quoted heredocs for psql variables, and avoid unguarded inline `DO $$` blocks."
+    enforcement:
+      type: manual
+      note: "Requires review of init Job/initContainer shell scripts and SQL quoting."
+  - must: "`psql -c` must not contain `:'var'` psql variable syntax; use heredocs for SQL that needs `-v` interpolation."
+    enforcement:
+      type: manual
+      note: "Requires psql command-form review."
   - must: "Database services must use KubeBlocks `Cluster` resources, not application `Deployment` or `StatefulSet` workloads. `StatefulSet` is allowed for stateful application components only, never for PostgreSQL/MySQL/MongoDB/Redis/Kafka database services."
     enforcement:
       type: rule
@@ -216,7 +288,7 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires label presence checks scoped to PostgreSQL RBAC resources."
-  - must: "Every KubeBlocks database `Cluster` must include `kb.io/database`, `sealos-db-provider-cr`, and `clusterdefinition.kubeblocks.io/name` labels; `sealos-db-provider-cr` must equal `metadata.name`."
+  - must: "Every KubeBlocks database `Cluster` must include `kb.io/database`, `sealos-db-provider-cr`, and `clusterdefinition.kubeblocks.io/name` labels; `sealos-db-provider-cr` must equal `metadata.name` so dbprovider can list and classify the database. Related Pods, Services, and OpsRequests should carry `app.kubernetes.io/instance=<database name>` for detail views."
     enforcement:
       type: rule
       target: R040
@@ -324,7 +396,27 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires semantic classification of user-supplied versus generated values."
+  - must: "When application administrator credentials are user-configurable, declare both administrator username and password in `spec.inputs` as required inputs with no `default` field, pass them as direct env values, and apply them through the application's documented bootstrap or initialization path. Keep database credentials on KubeBlocks secrets."
+    enforcement:
+      type: manual
+      note: "Requires app-specific bootstrap credential semantics and secret-classification review."
+  - must: "Every `${{ inputs.<name> }}` reference in a template artifact must have a matching `spec.inputs.<name>` declaration in the same Template CR."
+    enforcement:
+      type: rule
+      target: R045
   - must: "`inputs.description` must be in English."
     enforcement:
       type: manual
       note: "Requires language detection over input description fields in generated templates."
+  - must: "Startup-critical `inputs[*].default` values must satisfy the application's documented startup validation. For admin/bootstrap passwords with complexity rules, do not use `''`, weak examples, or bare `${{ random(n) }}` because generated characters may not include required classes; include deterministic required classes around the random segment, for example `\"AppName@${{ random(16) }}!1\"`."
+    enforcement:
+      type: manual
+      note: "Requires app-specific startup validation evidence for generated defaults."
+  - must: "If an application exits when a required input is weak or empty, treat the input default as part of the runtime contract. Live validation must include the first boot logs and login/setup path with the generated default value."
+    enforcement:
+      type: manual
+      note: "Requires runtime first-boot validation evidence."
+  - must: "For binary object storage choices, use a boolean input (for example `enable_s3_storage`) and test with `inputs.<name> === 'true'`."
+    enforcement:
+      type: rule
+      target: R044

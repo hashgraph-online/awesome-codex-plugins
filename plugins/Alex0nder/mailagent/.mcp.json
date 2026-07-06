@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mailagent": {
+      "command": "bash",
+      "args": ["scripts/run-mailagent-mcp.sh"],
+      "env": {
+        "MAILAGENT_API_URL": "https://api.webmailagent.com"
+      }
+    }
+  }
+}

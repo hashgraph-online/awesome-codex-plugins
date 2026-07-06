@@ -1,6 +1,6 @@
 ---
 name: evolve
-description: "Run evolve."
+description: "Run autonomous improvement loops."
 ---
 # $evolve — Goal-Driven Compounding Loop
 
@@ -8,38 +8,44 @@ description: "Run evolve."
 
 **Codex orchestration default:** keep the skill name `$evolve`. In Codex,
 run the loop by chaining Codex skills: `$evolve` selects work and invokes
-complete `$rpi --auto` cycles. Treat retired CLI wrappers as terminal
-wrapper commands for humans or non-skill runtimes, not as the Codex skill
-default.
+complete `$rpi --auto` cycles. Each cycle's post-mortem checkpoint is a
+**re-plan point, not just stop/continue** — it may re-scope, reorder, drop, or
+add to the *remaining* queue/goal (`$rpi`'s
+[Agile Re-Plan Loop](../rpi/references/agile-replan-loop.md) one altitude up:
+agile across cycles, not a fixed backlog). Treat retired CLI wrappers as terminal
+commands for humans/non-skill runtimes, not the Codex default. Substrates dispatch
+the whole `$evolve` loop as one unit through NTM, Agent Mail, or `ao agent`; former
+RPI CLI wrappers are retired under ADR-0009.
 
-**Operator cadence:** post-mortem finished work, analyze the current repo state,
-select or create the next highest-value work item, let `$rpi` handle research,
-planning, pre-mortem, implementation, and validation, then harvest follow-ups
-and repeat until a kill switch, max-cycle cap, regression breaker, or real
-dormancy stops the run.
+**Operator cadence:** post-mortem finished work, analyze repo state, select/create
+the next highest-value item, let `$rpi` handle research → planning → pre-mortem →
+implementation → validation, then harvest follow-ups and repeat until a kill
+switch, max-cycle cap, regression breaker, or real dormancy stops the run.
 
 Always-on autonomous loop over `$rpi`. Work selection order:
 1. **Harvested `.agents/rpi/next-work.jsonl` work** (freshest concrete follow-up)
-2. **Open ready beads work** (`bd ready`)
+2. **Open ready beads work** (`br ready`)
 3. **Failing goals and directive gaps** (`ao goals measure`)
 4. **Testing improvements** (missing/thin coverage, missing regression tests)
 5. **Validation tightening and bug-hunt passes** (gates, audits, bug sweeps)
 6. **Complexity / TODO / FIXME / drift / dead code / stale docs / stale research mining**
 7. **Concrete feature suggestions** derived from repo purpose when no sharper work exists
 
-**Dormancy is last resort.** Empty current queues mean "run the generator layers", not "stop". Only go dormant after the queue layers and generator layers come up empty across multiple consecutive passes.
+**Dormancy is last resort.** Empty queues mean "run the generator layers", not "stop". Go dormant only after queue and generator layers come up empty across multiple consecutive passes.
+
+**Live skill edit immune system:** if a cycle edits `skills/<slug>/SKILL.md`, run
+`ao skills edit seal --skill <slug> --actor "${AGENT_NAME:-agent}"` before handoff
+— the seal creates the rollback commit and records the `Skill-Edit` trailers for
+the daily digest. Critical skills in `docs/contracts/critical-skills.txt` reject
+unattended edits; use `--allow-critical` only when Bo supervises.
 
 ```bash
 $evolve                      # Run until kill switch, max-cycles, or real dormancy
 $evolve --max-cycles=5       # Cap at 5 cycles
 $evolve --dry-run            # Show what would be worked on, don't execute
-$evolve --beads-only         # Skip goals measurement, work beads backlog only
-$evolve --quality            # Quality-first mode: prioritize post-mortem findings
-$evolve --quality --max-cycles=10  # Quality mode with cycle cap
-$evolve --compile             # Mine → Defrag warmup before first cycle
-$evolve --compile --max-cycles=5  # Warm knowledge base then run 5 cycles
-$evolve --test-first         # Default strict-quality $rpi execution path
-$evolve --no-test-first      # Explicit opt-out from test-first mode
+$evolve --quality            # Quality-first: prioritize post-mortem findings
+$evolve --compile            # Mine → Defrag warmup before first cycle
+# All flags in the Flags table below; they compose (e.g. --quality --max-cycles=10).
 ```
 
 ## Delineation vs $dream
@@ -49,7 +55,7 @@ $evolve --no-test-first      # Explicit opt-out from test-first mode
 | `$dream` | nightly, private local | **No** | **Yes (heavy)** | **Yes (convergence)** | wall-clock + plateau |
 | `$evolve` | daytime, operator-driven | Yes (via `$rpi`) | Yes (light) | Yes | cycle cap |
 
-Dream owns the knowledge compounding layer; `$evolve` owns the code compounding layer. Both share fitness-measurement substrate via `corpus.Compute` / `ao goals measure`. Run Dream overnight, then start each day with `$evolve` against the freshly-compounded corpus with a clean fitness baseline.
+Dream owns knowledge compounding; `$evolve` owns code compounding. Both share fitness substrate (`corpus.Compute` / `ao goals measure`). Dream runs overnight; `$evolve` starts the day on the fresh corpus.
 
 ## Flags
 
@@ -63,6 +69,39 @@ Dream owns the knowledge compounding layer; `$evolve` owns the code compounding 
 | `--compile` | off | Run `ao mine` + `ao defrag` warmup before cycle 1 |
 | `--test-first` | on | Pass strict-quality defaults through to `$rpi` |
 | `--no-test-first` | off | Explicitly disable test-first passthrough to `$rpi` |
+
+## Managing the PROGRAM.md / AUTODEV.md contract (absorbed from $autodev)
+
+$evolve also fires for the folded-in use-cases of the retired `$autodev` skill:
+"manage PROGRAM.md/AUTODEV.md", "autodev loop rules", "evolve/factory tick
+boundaries", PROGRAM.md repair. The contract is the config/intent layer the
+loop reads each cycle — NOT a loop itself. The **ao autodev CLI (legacy-tagged `ao` builds) outlives the
+retired skill** (contract spec: `docs/contracts/autodev-program.md`). Step 0
+consumes a valid contract; this section is the create/validate/repair surface.
+In Codex, `$autodev` hands work to `$evolve` or `$rpi` as skill invocations.
+
+Detect (`PROGRAM.md` takes precedence; `AUTODEV.md` is the compatibility alias),
+validate before use, init only when setup was requested:
+
+```bash
+if [ -f PROGRAM.md ]; then PROGRAM_PATH=PROGRAM.md
+elif [ -f AUTODEV.md ]; then PROGRAM_PATH=AUTODEV.md
+else PROGRAM_PATH=; fi
+ao autodev validate --json ${PROGRAM_PATH:+--file "$PROGRAM_PATH"}
+ao autodev init "<objective>"   # no contract + setup requested; infer objective from repo context
+```
+
+On validation failure, patch the missing required sections — `Objective`,
+`Mutable Scope`, `Immutable Scope`, `Experiment Unit`, `Validation Commands`,
+`Decision Policy`, `Escalation Rules`, `Stop Conditions` — then rerun the
+validate command. Prefer narrow mutable scope and concrete validation commands;
+work crossing immutable scope becomes a bead, never a silently widened contract.
+
+Routing: define/repair the repo-local autonomous policy → this section +
+ao autodev; run the repeated improvement loop → `$evolve`; run one bounded
+lifecycle → a single `$rpi` turn. Executable specs (canonical):
+`skills/evolve/references/autodev.feature`,
+`skills/evolve/references/autodev-cli.feature`.
 
 ## Execution Steps
 
@@ -334,7 +373,7 @@ If the cycle fails, regresses, or is interrupted before success, release the cla
 
 **Step 3.2: Open ready beads**
 
-If no harvested item is ready, check `bd ready`. Pick the highest-priority unblocked issue.
+If no harvested item is ready, check `br ready`. Pick the highest-priority unblocked issue.
 
 **Step 3.3: Failing goals and directive gaps** (skip if `--beads-only`)
 
@@ -366,7 +405,7 @@ fi
 Work generators for concrete improvement signals:
 - `$test --coverage` — find test gaps and generate candidates
 - `$refactor --sweep` — find complexity debt and refactor targets
-- `$deps audit` — check dependency health, vulnerabilities, and license compliance
+- `$security audit` — check dependency health, vulnerabilities, and license compliance
 - `$perf profile` — identify performance debt and optimization opportunities
 
 When queues and goals are empty, generate concrete testing work instead of idling:
@@ -438,7 +477,7 @@ See `references/quality-mode.md` for scoring and full details.
 **Nothing found?** HARD GATE — dormancy only when ALL sources empty (soc-5qit):
 
 ```bash
-READY_BEADS=$(bd ready --json 2>/dev/null | jq -r 'length // 0' 2>/dev/null || echo 0)
+READY_BEADS=$(BEADS_DIR="$(ao beads dir)" br ready --json 2>/dev/null | jq -r 'length // 0' 2>/dev/null || echo 0)
 HARVESTED=$(jq -r 'select(.consumed==false) | .severity' .agents/rpi/next-work.jsonl 2>/dev/null | wc -l | tr -d ' ')
 FAILING_GOALS=$(jq -r '.goals[] | select(.result=="fail") | .id' .agents/evolve/fitness-latest.json 2>/dev/null | wc -l | tr -d ' ')
 
@@ -451,7 +490,7 @@ if [ "$GENERATOR_EMPTY_STREAK" -ge 2 ] && [ "$IDLE_STREAK" -ge 2 ]; then
 fi
 ```
 
-**Agile invariant (soc-5qit):** `bd ready ≥ 1` ⇒ loop NEVER stops. Only path to stagnation-STOP is fully empty backlog + dry generators. Context exhaustion → write non-sticky `.agents/evolve/HANDOFF`, exit turn; next fire (compacted/fresh) clears HANDOFF in Step 1 and continues.
+**Agile invariant (soc-5qit):** `br ready ≥ 1` ⇒ loop NEVER stops. Only path to stagnation-STOP is fully empty backlog + dry generators. Context exhaustion → write non-sticky `.agents/evolve/HANDOFF`, exit turn; next fire (compacted/fresh) clears HANDOFF in Step 1 and continues.
 
 If the work layers were empty but a generator pass has not been exhausted 3 times yet, persist the new generator streak in `session-state.json` and loop back to Step 1. Empty pre-cycle work sources are not a stop reason by themselves.
 
@@ -631,12 +670,11 @@ ao loop converged --green-streak "$STREAK" --unconsumed-high-medium "$HM" --fitn
 # emits {converged, ci_green_streak, unconsumed_high_medium, fitness_baseline_captured, reasons}
 ```
 
-Branch on `.converged` instead of hand-parsing `.agents/evolve/session-convergence.json`.
-When `converged` is true (default criteria: CI green streak ≥ 3, unconsumed
-HIGH+MEDIUM ≤ 1, fitness baseline captured), break the loop and run Teardown.
-When a cycle edits an evolve `SKILL.md`, record the falsifiable claim through
-`ao loop hypothesis append` (read it back with `ao loop hypothesis list`).
-See `references/convergence-mechanics.md` for all four compounding mechanisms.
+Branch on `.converged` (not hand-parsed JSON). When true (default: CI green streak
+≥ 3, unconsumed HIGH+MEDIUM ≤ 1, fitness baseline captured), break the loop and run
+Teardown. When a cycle edits an evolve `SKILL.md`, record the falsifiable claim via
+`ao loop hypothesis append` (read back with `... list`).
+See `references/convergence-mechanics.md`.
 
 **Mandatory checkpoint #6 — session-PR threshold (NOT terminal, gates next cycle):** at `session_pr_count >= 5` (soc-waxr default), invoke `$post-mortem --deep`, wait for verdict file. PASS → continue. WARN → continue with caveat in next cycle's `notes`. FAIL or non-convergence → write STOP citing the verdict path. Agent MUST NOT self-grade or self-write STOP. Full procedure: `references/postmortem-checkpoint.md` (soc-n75z).
 
@@ -708,22 +746,10 @@ Stop reason: stagnation | circuit-breaker | max-cycles | kill-switch
 
 ## Examples
 
-**User says:** `$evolve --max-cycles=5`
-**What happens:** Evolve re-enters the full selection ladder after every `$rpi` cycle and runs producer layers instead of idling on empty queues.
-
-**User says:** `$evolve --beads-only`
-**What happens:** Evolve skips goals measurement and works through `bd ready` backlog.
-
-**User says:** `$evolve --dry-run`
-**What happens:** Evolve shows what would be worked on without executing.
-
-**User says:** `$evolve --compile`
-**What happens:** Evolve runs `ao mine` + `ao defrag` at session start to surface fresh signal (orphaned research, code hotspots, oscillating goals) before the first evolve cycle. Use before a long autonomous run or after a burst of development activity.
-
-**User says:** `$evolve`
-**What happens:** See `references/examples.md` for a worked overnight flow that moves through beads -> harvested work -> goals -> testing -> bug hunt -> feature suggestion before dormancy is considered.
-
-See `references/examples.md` for detailed walkthroughs.
+Per-flag behavior is in the Flags table and the invocation block above. Bare
+`$evolve` runs the overnight flow beads → harvested → goals → testing → bug hunt
+→ feature suggestion before dormancy. See `references/examples.md` for detailed
+walkthroughs.
 
 ## Troubleshooting
 
@@ -734,65 +760,38 @@ See `references/examples.md` for detailed walkthroughs.
 | `ao goals measure` hangs | Use `--timeout 30 --total-timeout 75` or `--beads-only` to skip |
 | Regression gate reverts | Review reverted changes, narrow scope, re-run; claimed work items must be released back to available state |
 
-See `references/cycle-history.md` for advanced troubleshooting.
+See `references/cycle-history.md` for troubleshooting.
+
+## Output Specification
+
+**Format:** a per-cycle markdown summary to stdout (goals fixed, fitness delta, result); machine-readable cycle records.
+**Files:** appends `.agents/evolve/cycle-history.jsonl`; writes `.agents/evolve/fitness-latest.json` and `.agents/evolve/session-state.json`; honors control files `.agents/evolve/{STOP,DORMANT,HANDOFF}`.
+**Exit signal:** the cycle result (improved / no-change / blocked); resume a paused cycle via `$evolve --resume`.
 
 ## References
 
-- `references/cycle-history.md` — JSONL format, recovery protocol, kill switch
-- `references/compounding.md` — Knowledge flywheel and work harvesting
-- `references/goals-schema.md` — GOALS.yaml format and continuous metrics
-- `references/parallel-execution.md` — Parallel $swarm architecture
-- `references/teardown.md` — Trajectory computation and session summary
-- `references/examples.md` — Detailed usage examples
-- `references/artifacts.md` — Generated files registry
-- `references/oscillation.md` — Oscillation detection and quarantine
-- `references/quality-mode.md` — Quality-first mode: scoring, priority cascade, artifacts
+- [cycle-history](references/cycle-history.md) — JSONL format, recovery, kill switch
+- [compounding](references/compounding.md) — Flywheel and work harvesting
+- [goals-schema](references/goals-schema.md) — GOALS.yaml format and metrics
+- [parallel-execution](references/parallel-execution.md) — Parallel $swarm architecture
+- [teardown](references/teardown.md) — Trajectory + session summary
+- [examples](references/examples.md) — Examples
+- [artifacts](references/artifacts.md) — Generated files registry
+- [oscillation](references/oscillation.md) — Detection and quarantine
+- [quality-mode](references/quality-mode.md) — Scoring, cascade, artifacts
+- [convergence-mechanics](references/convergence-mechanics.md) — Convergence semantics
+- [postmortem-checkpoint](references/postmortem-checkpoint.md) — Checkpoint procedure
+- [autonomous-execution](references/autonomous-execution.md) — Loop cadence; handoff re-arms
 
 ## See Also
 
-- `skills/rpi/SKILL.md` — Full lifecycle orchestrator (called per cycle)
-- `skills/crank/SKILL.md` — Epic execution (called for beads epics)
-- `docs/contracts/autodev-program.md` — Repo-local operational contract for bounded autonomous development
-- `GOALS.yaml` — Fitness goals for this repo
-- [test](../test/SKILL.md) — Test generation and coverage analysis
-- [refactor](../refactor/SKILL.md) — Safe, verified refactoring for complexity targets
-- [deps](../deps/SKILL.md) — Dependency audit, vulnerability scanning, and license compliance
+- `skills/rpi/SKILL.md` — Full lifecycle orchestrator, called per cycle
+- `skills/crank/SKILL.md` — Epic execution for beads epics
+- `docs/contracts/autodev-program.md` — Bounded autonomous development contract
+- `GOALS.yaml` — Fitness goals
+- [test](../test/SKILL.md) — Test generation
+- [refactor](../refactor/SKILL.md) — Safe, verified refactoring
+- [security](../security/SKILL.md) — Dependency audit + vuln scanning (absorbs deps)
 - [perf](../perf/SKILL.md) — Performance profiling and benchmarking
-
-## Reference Documents
-
-- [references/artifacts.md](references/artifacts.md)
-- [references/compounding.md](references/compounding.md)
-- [references/convergence-mechanics.md](references/convergence-mechanics.md)
-- [references/domain-evolution-bootstrap.md](references/domain-evolution-bootstrap.md)
-- [references/cycle-history.md](references/cycle-history.md)
-- [references/examples.md](references/examples.md)
-- [references/goals-schema.md](references/goals-schema.md)
-- [references/oscillation.md](references/oscillation.md)
-- [references/parallel-execution.md](references/parallel-execution.md)
-- [references/postmortem-checkpoint.md](references/postmortem-checkpoint.md)
-- [references/quality-mode.md](references/quality-mode.md)
-- [references/teardown.md](references/teardown.md)
-
-## Local Resources
-
-### references/
-
-- [references/artifacts.md](references/artifacts.md)
-- [references/compounding.md](references/compounding.md)
-- [references/convergence-mechanics.md](references/convergence-mechanics.md)
-- [references/cycle-history.md](references/cycle-history.md)
-- [references/examples.md](references/examples.md)
-- [references/goals-schema.md](references/goals-schema.md)
-- [references/oscillation.md](references/oscillation.md)
-- [references/parallel-execution.md](references/parallel-execution.md)
-- [references/postmortem-checkpoint.md](references/postmortem-checkpoint.md)
-- [references/quality-mode.md](references/quality-mode.md)
-- [references/teardown.md](references/teardown.md)
-
-### scripts/
-
-- `scripts/validate.sh`
-
 
 <!-- Lifecycle integration wired: 2026-03-28. See skills/evolve/SKILL.md for canonical -->

@@ -6,6 +6,14 @@
 
 **Always estimate first:** `POST /extractions/estimate` with the same body to preview `creditsRequired`, `creditsAvailable`, and whether the job is allowed.
 
+## Contents
+
+- [Tool Types](#tool-types)
+- [Response](#response)
+- [Retrieving Results](#retrieving-results)
+- [Exporting Results](#exporting-results)
+- [Estimating Usage](#estimating-usage)
+
 ## Tool Types
 
 ### Tweet-Based (require `targetTweetId`)
@@ -206,7 +214,7 @@ Formats: `csv`, `json`, `md`, `md-document`, `pdf`, `txt`, `xlsx`. 100,000 row l
 
 Exports include enrichment columns not present in the API response.
 
-## Estimating Cost
+## Estimating Usage
 
 ```
 POST /extractions/estimate

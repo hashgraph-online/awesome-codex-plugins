@@ -225,7 +225,7 @@ npx skills add Jason-chen-coder/dev-skills --global --force
 ```text
 用 dev-auto 看看下一步该做什么
 用 dev-grill-docs 帮我梳理这个需求: ...
-用 dev-spec 帮我梳理这个需求: ...   # 兼容入口,等价于 dev-grill-docs --spec-only
+用 dev-spec --spec-only 生成旧流程 spec: ...   # 兼容入口,优先用 dev-grill-docs
 用 dev-plan 基于这个 spec 出实施方案
 用 dev-fix 排查这个 bug: ...
 用 dev-code-review 看下这次修改,准备 commit

@@ -1,6 +1,6 @@
 ---
 name: perf
-description: "Run perf."
+description: Profile and optimize hotspots.
 ---
 # Perf Skill
 
@@ -197,6 +197,8 @@ For each finding, state:
 
 **Critical rule: ONE optimization at a time.**
 
+For high-effort optimization work, load [references/optimization-proof-loop.md](references/optimization-proof-loop.md) before changing code. It defines the proof contract for isomorphic rewrites, benchmark deltas, and keep/revert decisions.
+
 For each optimization:
 
 1. **Describe** the change before making it
@@ -205,8 +207,6 @@ For each optimization:
 4. **Compare** results against baseline using `benchstat` (Go) or manual diff
 5. **Keep or revert** — only keep changes that measurably improve metrics
 6. **Commit** with message format: `perf(<scope>): <description> (+X% throughput)` or `perf(<scope>): <description> (-X% latency)`
-
-For high-effort optimization work, load [references/optimization-proof-loop.md](references/optimization-proof-loop.md) before changing code. It defines the proof contract for isomorphic rewrites, benchmark deltas, and keep/revert decisions.
 
 ### Acceptance Criteria
 
@@ -301,18 +301,20 @@ COMPARISON: baseline vs candidate
 
 ## Edge Cases
 
-- **No benchmarks and no clear target**: Run `$complexity` first to identify hot paths, then benchmark those.
+- **No benchmarks and no clear target**: Run `$refactor` first to identify hot paths, then benchmark those.
 - **Flaky benchmarks**: Increase iteration count, pin to a single core (`GOMAXPROCS=1`), close competing processes.
 - **Cannot install profiling tools**: Fall back to `time` for wall-clock and manual instrumentation for allocation counts.
 - **Target is a CLI command**: Use `hyperfine` for wall-clock benchmarking across any language.
 
 ## See Also
 
-- [complexity](../complexity/SKILL.md) — Find high-complexity code to target
+- [refactor](../refactor/SKILL.md) — Find high-complexity code to target (absorbs complexity)
 - [standards](../standards/SKILL.md) — Language-specific optimization patterns
-- [vibe](../vibe/SKILL.md) — Validate optimized code quality
+- [validate](../validate/SKILL.md) — Validate optimized code quality (absorbs vibe)
 
 ## Reference Documents
+
+- [references/perf.feature](references/perf.feature) — Executable spec: profile hotspots with metrics, bench, compare-regression, optimize (soc-qk4b)
 
 - [references/profiling-playbook.md](references/profiling-playbook.md)
 - [references/system-pressure-triage.md](references/system-pressure-triage.md)

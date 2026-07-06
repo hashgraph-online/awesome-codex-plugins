@@ -7,7 +7,7 @@ After an ADR is created, `/archcore:decide` offers two continuation cascades. Bo
 After Step 3 (ADR creation), evaluate the decision content:
 
 - **Standard cascade** (rule + guide) — the decision describes enforceable behavior, naming convention, coding pattern, or anything that should bind future code. Signal phrases: "we should always", "developers must", "the team should", "going forward all X must Y".
-- **Architecture cascade** (spec + plan) — the decision describes a technical contract or component that needs formal specification before implementation. Signal phrases: "the X system will provide", "the contract is", "the interface exposes", "implementation comes next".
+- **Architecture cascade** (spec + plan) — the decision establishes or changes a boundary contract (API, interface, schema, protocol) that other code depends on. A spec may capture the contract of existing code or specify one to build. Signal phrases: "the X system will provide", "the contract is", "the interface exposes", "the API will be".
 
 If neither signal is present, do not offer continuations. The ADR alone is a valid endpoint.
 
@@ -19,7 +19,7 @@ Offer: "Want to codify this into a team standard? I can create a rule (mandatory
 
 ### Rule
 
-- Read `skills/_shared/precision-rules.md` if not already loaded in this session.
+- Read `skills/_shared/precision-rules.md` once before composing.
 - Ask via `AskUserQuestion`: "What are the mandatory behaviors (MUST / MUST NOT statements)? How will each be verified — test, lint, CI signal, or manual review?"
 - Compose rule content covering:
   - **Rule** — imperative directives (MUST / MUST NOT)
@@ -47,15 +47,13 @@ Offer: "Want to formalize this as a technical contract and plan? I can create a 
 
 ### Spec
 
-- Read `skills/_shared/precision-rules.md` if not already loaded.
-- Ask via `AskUserQuestion`: "What is the contract surface? What are the key constraints and invariants? How is error behavior defined?"
-- Compose spec content covering:
-  - **Purpose**
-  - **Scope** and **Authority**
-  - **Subject**
-  - **Contract Surface** (interfaces, types, signatures)
-  - **Normative Behavior** (MUST / SHOULD / MAY)
-  - **Constraints** and **Invariants**
+- Read `skills/_shared/precision-rules.md` and `skills/_shared/spec-contract.md` once before composing — the contract defines what a spec is (the contract of a depended-on boundary) and what does not belong in one.
+- Ask via `AskUserQuestion`: "What is the contract surface (the boundary other code depends on)? What are the key constraints and invariants? How is error behavior defined?"
+- Compose the mandatory sections defined in `spec-contract.md`:
+  - **Purpose & Scope** — the boundary this spec governs, its external consumers, and what it excludes
+  - **Contract Surface** (interfaces, types, signatures) — referenced by `@path`, not reproduced
+  - **Normative Behavior** (MUST / SHOULD / MAY), each numbered
+  - **Constraints & Invariants**
   - **Error Handling**
   - **Conformance** — what makes an implementation conformant
 - Avoid forbidden lexicon.

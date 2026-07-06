@@ -1,6 +1,6 @@
 ---
 name: push
-description: "Run push."
+description: "Validate, commit, and push."
 ---
 # Push Skill
 

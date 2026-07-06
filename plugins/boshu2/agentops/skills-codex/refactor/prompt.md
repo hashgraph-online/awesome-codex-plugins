@@ -1,6 +1,6 @@
 # refactor
 
-Safe, verified refactoring with regression testing at each step. Identify targets, plan transformation, execute incrementally. Triggers: "refactor", "restructure", "extract", "rename", "move", "simplify", "reduce complexity", "clean up", "decompose".
+Execute safe refactors. Triggers: "refactor", "execute safe refactors.", "refactor skill".
 
 ## Instructions
 

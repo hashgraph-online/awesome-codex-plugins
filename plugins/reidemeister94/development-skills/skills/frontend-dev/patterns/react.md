@@ -264,6 +264,31 @@ Loading messages: gerund form, no trailing `"..."`, no "in progress" — `"Savin
 
 ---
 
+## Async content loading
+
+The other axis from *Async user feedback* above. That section is for operations the user triggers (mutations) — they get a toast. **This** section is for a region you populate from an async fetch (page/route load, tab content, a list or grid that isn't there yet). A fetched region renders a **layout-mirroring skeleton** — never an empty container, never a bare spinner.
+
+```tsx
+// state: AsyncState<User[]> — discriminated union on `status` (see typescript.md)
+function UserList() {
+  const state = useUsers();
+
+  // idle + loading show the skeleton — it mirrors the eventual layout
+  if (state.status === "idle" || state.status === "loading") return <UserListSkeleton />;
+  if (state.status === "error") return <ErrorState error={state.error} />;
+  if (state.data.length === 0) return <EmptyState />; // narrowed to "success" here
+  return <ul>{state.data.map((u) => <UserRow key={u.id} user={u} />)}</ul>;
+}
+```
+
+Why a skeleton, not a spinner: it shows *structure* before data arrives, so the eye lands where the content will be and there's no layout shift when it fills in. A spinner says only "something is happening"; an empty container reads as broken.
+
+A spinner is the right call only for a genuinely **indeterminate** wait, **unknown-layout** content, or a **tiny inline** case — not as the default for a region whose shape you already know.
+
+For the skeleton's visual rules — mirror the layout, `animate-pulse` on the root only, vary placeholder widths — follow the `visual-design-principles` skill (design-skills plugin). Don't restate them here.
+
+---
+
 ## Demand-loaded patterns
 
 Two adjacent pattern files are loaded on detection, not by default — keeps `react.md` lean for projects that don't use these stacks:
@@ -323,6 +348,7 @@ describe("useCounter", () => {
 | Share state across tree | React Context or external store |
 | URL-based state | URLSearchParams |
 | User-triggered async feedback | Loading-toast idiom — never local `isLoading` |
+| Async content/data load | Layout-mirroring skeleton (see `visual-design-principles` for visuals) |
 | Test component | @testing-library/react with `render`, `screen` |
 | Test hook | `renderHook` from @testing-library/react |
 
@@ -337,5 +363,6 @@ describe("useCounter", () => {
 | Premature `useMemo`/`useCallback` | Profile first, optimize when measured |
 | Prop drilling through 3+ levels | Context or composition pattern |
 | Local `isLoading` + spinner for user-triggered async | Loading-toast idiom |
+| Empty container or bare spinner while content loads | Layout-mirroring skeleton |
 
 See also: [typescript.md](typescript.md) for TypeScript-specific anti-patterns (`any`, `@ts-ignore`, etc.). Styling and Radix/shadcn anti-patterns live in [styling.md](styling.md) and [shadcn.md](shadcn.md) respectively (demand-loaded).

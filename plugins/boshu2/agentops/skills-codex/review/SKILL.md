@@ -1,15 +1,20 @@
 ---
 name: review
-description: "Run review."
+description: Review diffs for risk, find mocks, scan for
 ---
-
 # Review Skill
+
+## Absorbed skills (ag-s43tg)
+
+- **bug-hunt** — Investigate bugs and root causes.
+- **codebase-audit** — Domain-parameterized codebase audits (security, UX, perf, API, copy, CLI) + report modes (archaeology, architecture/briefing, patterns, risk); use when auditing or onboarding.
+- **ubs** — Reviewing code with UBS for bugs, security issues, AI-generated quality, or pre-commit checks.
 
 > **Quick Ref:** `$review <PR>` reviews a PR, `$review --diff` reviews local changes, `$review --agent <path>` reviews agent output with extra scrutiny.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
-This skill is for reviewing OTHER people's or agents' changes. For validating your own code quality, use `$vibe` instead.
+This skill is for reviewing OTHER people's or agents' changes. For validating your own code quality, use `$validate` instead.
 
 ---
 
@@ -127,6 +132,8 @@ If intent is unclear, flag it: "PR description does not explain the purpose of t
 
 Review every changed file against the SCORED checklist. For each category, actively look for problems. Do not skim -- read each changed line.
 
+For audit-style reviews, generated-code suspicion, mock leakage, or external-review-tool findings, load [references/audit-and-mock-sweeps.md](references/audit-and-mock-sweeps.md) before writing final findings.
+
 #### S -- Security
 
 - [ ] No hardcoded secrets, API keys, tokens, or passwords
@@ -136,8 +143,7 @@ Review every changed file against the SCORED checklist. For each category, activ
 - [ ] Sensitive data not logged or exposed in error messages
 - [ ] Dependencies: no known-vulnerable versions added
 - [ ] File operations: path traversal prevention, safe temp file handling
-
-For audit-style reviews, generated-code suspicion, mock leakage, or external-review-tool findings, load [references/audit-and-mock-sweeps.md](references/audit-and-mock-sweeps.md) before writing final findings.
+- [ ] **Guard failure semantics declared + visible:** every guard, validator, or gate states fail-open vs fail-closed in a comment, and a fail-open emits a VISIBLE marker (log/warn/exit note) — never fails silently. A guard that silently fails open is a control bypass. (This is the exact class the cross-family pawl keeps re-finding by hand; catch it here instead.)
 
 #### C -- Correctness
 
@@ -303,15 +309,37 @@ Merge council findings into the review document under a "## Council Findings" se
 
 | Skill | Relationship |
 |-------|-------------|
-| `$vibe` | Self-review (your own code). `$review` is for others' code. |
+| `$validate` | Self-review (your own code). `$review` is for others' code. |
 | `$council` | Optional second opinion via `--deep` flag. |
 | `$standards` | Auto-loaded for language-specific rules. |
-| `$bug-hunt` | `$review` does a structured pass; `$bug-hunt` does deep investigation of suspected bugs. |
+| `bug-hunt` | `$review` does a structured pass; `bug-hunt` does deep investigation of suspected bugs. |
 | `$validate --mode=pr` | PR-specific validation (isolation, scope creep). Complementary to `$review`. |
 
 ---
 
+## Absorbed Skills (skill-prune phase 2 fold-ins)
+
+This skill is the fold target for three retired skills. Their use-cases route here:
+
+- **bug-hunt** — investigate bugs and root causes. Use `$review --bugs` for the
+  scanner pass ([references/BUG_SCANNER.md](references/BUG_SCANNER.md)); for deep
+  investigation of a suspected bug, run the scanner findings through an
+  evidence-first root-cause loop (reproduce → isolate → fix → verify).
+- **codebase-audit** — Domain-parameterized codebase audits (security, UX, perf,
+  API, copy, CLI) + report modes (archaeology, architecture/briefing, patterns,
+  risk). Use when auditing or onboarding: `$review --audit <domain>` and
+  `$review --deep-scan` ([references/DOMAIN_AUDIT.md](references/DOMAIN_AUDIT.md),
+  [references/DEEP_SCAN.md](references/DEEP_SCAN.md)).
+- **ubs** — use when reviewing code with UBS for bugs, security issues,
+  AI-generated quality, or pre-commit checks. If the `ubs` scanner binary is on
+  PATH, run it over the diff and triage its findings into the SCORED pass
+  (see [references/audit-and-mock-sweeps.md](references/audit-and-mock-sweeps.md)).
+
+---
+
 ## Reference Documents
+
+- [references/review.feature](references/review.feature) — Executable spec: risk-ranked diff review, mock/stub detection, bug scan, result.json (soc-qk4b)
 
 - [references/MOCK_FINDER.md](references/MOCK_FINDER.md) — Find stubs, mocks, placeholders, TODOs
 - [references/BUG_SCANNER.md](references/BUG_SCANNER.md) — Bug scanner: null derefs, leaks, security
@@ -320,9 +348,9 @@ Merge council findings into the review document under a "## Council Findings" se
 
 ## See Also
 
-- [vibe](../vibe/SKILL.md) — Self-review and code quality validation
+- [validate](../validate/SKILL.md) — Self-review and code quality validation (absorbs vibe)
 - [council](../council/SKILL.md) — Multi-model consensus council
 - [standards](../standards/SKILL.md) — Language-specific coding conventions
-- [bug-hunt](../bug-hunt/SKILL.md) — Deep bug investigation
+- bug-hunt — Deep bug investigation (absorbed into this skill)
 - [validate --mode=pr](../validate/SKILL.md) — PR scope and isolation checks
 - [references/audit-and-mock-sweeps.md](references/audit-and-mock-sweeps.md)

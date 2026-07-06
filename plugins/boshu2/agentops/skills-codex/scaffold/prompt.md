@@ -1,6 +1,6 @@
 # scaffold
 
-Project scaffolding, component generation, and boilerplate setup. Triggers: "scaffold", "new project", "init project", "bootstrap", "create project", "generate component", "setup project", "starter", "boilerplate".
+Create project, component, or boilerplate scaffolds. Use when starting a new project, module, or component, generating boilerplate, or stamping a repeatable file structure. Triggers: "scaffold", "create project component or boilerplate".
 
 ## Instructions
 

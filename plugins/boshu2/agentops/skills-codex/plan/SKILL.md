@@ -1,12 +1,12 @@
 ---
 name: plan
-description: "Run plan."
+description: "Decompose intent into slices."
 ---
 
 # $plan - Issue-Ready Decomposition
 
 > Quick ref: turn a goal or research artifact into `.agents/plans/*.md`,
-optional bd issues, dependency waves, file ownership, and validation checks.
+optional br issues, dependency waves, file ownership, and validation checks.
 
 **Execute this workflow. Do not only describe it.** Keep planning separate from
 implementation. A finished plan should let `$crank`, `$implement`, or a future
@@ -24,7 +24,7 @@ Given `$plan <goal> [--auto]`:
 | `--skip-symbol-check` | Skip symbol verification for greenfield plans |
 | `--skip-audit-gate` | Skip baseline audit gate for docs-only plans |
 
-If bd is unavailable, still write the markdown plan in `.agents/plans/`.
+If br is unavailable, still write the markdown plan in `.agents/plans/`.
 
 ## Discovery Boundary
 
@@ -36,7 +36,7 @@ vocabulary for the boundary from Discovery into Plan:
 | Inbound port | `plan_slices` from BDD intent, bead, research artifact, or execution packet |
 | Outbound ports | `persist_issue`, `verify_symbols`, `retrieve_context`, `seed_execution_packet` |
 | Driving adapter | `$plan` skill invocation |
-| Driven adapters | bd, `rg`, `.agents/findings`, `.agents/plans`, execution-packet writer |
+| Driven adapters | br, bv, `rg`, `.agents/findings`, `.agents/plans`, execution-packet writer |
 | Context packet | slice plan, file dependency matrix, acceptance criteria, test levels |
 | Guard adapter | stale-scope verification, symbol verification, wave-validity check |
 
@@ -75,6 +75,15 @@ Feature: Plan converts dense intent into executable slices
 6. **Baseline audit.** Mechanically count the current state before making
    quantitative claims: files, sections, LOC, tests, fixtures, schemas, and
    any SKILL.md files near size limits. Record commands and results.
+   Inventory facts are symbols too (2026-07-02, showcase kernel R10): any
+   count, file list, or "X is empty/absent" claim gets the same verification,
+   and consumers re-verify at the moment of use (`ls`/`jq`/`grep` cost
+   seconds) — three of nine duel round-1 findings were plan facts stale
+   within the hour they were written. Search the skill/CLI corpus for each
+   major capability before scoping it as new: `ms search "<capability>"` (fast
+   path when available — `command -v ms`, or the `mcp__ms__search` tool is
+   attached; else grep `skills/**/SKILL.md` + `docs/SKILLS.md`); existing-skill
+   or `ao` command hits become **reuse** notes, not new beads.
 7. **Choose detail level.** Minimal for 1-2 simple issues, Standard for 3-6
    issues, Deep for 7+ issues, broad refactors, or `--deep`.
 8. **Decompose into issues.** Each issue needs title, file ownership,
@@ -99,8 +108,8 @@ Feature: Plan converts dense intent into executable slices
    in verification.
 10. **Write the plan.** Use `.agents/plans/YYYY-MM-DD-<goal-slug>.md` and the
    template in [references/plan-document-template.md](references/plan-document-template.md).
-11. **Create tracking tasks.** Prefer bd issues with validation blocks and
-    dependency edges. If bd is missing, leave the markdown plan as the durable
+11. **Create tracking tasks.** Prefer br issues with validation blocks and
+    dependency edges. If br is missing, leave the markdown plan as the durable
     handoff.
 12. **Approval gate.** Skip only with `--auto`; otherwise ask whether to
     proceed, revise, or return to research.
@@ -152,7 +161,7 @@ Read [references/examples.md](references/examples.md) for full examples.
 
 | Problem | Response |
 |---------|----------|
-| bd is missing | Write the markdown plan and note that issue creation was skipped |
+| br is missing | Write the markdown plan and note that issue creation was skipped |
 | Prior research is thin | Explore enough to produce file and symbol evidence |
 | Same file appears in parallel issues | Serialize or merge those issues before handoff |
 | Baseline audit is missing | Mark the plan incomplete unless `--skip-audit-gate` is justified |

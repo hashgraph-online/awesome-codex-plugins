@@ -14,7 +14,7 @@ Source of truth: `tests/skills/lint-skills.sh:65-77` (case statement). The PreTo
 |---|---|
 | `library`, `meta` | 250 |
 | `background` | 300 |
-| `execution` | 800 |
+| `execution`, `experimental` | 800 |
 | `judgment`, `product`, `session`, `knowledge`, `contribute`, `cross-vendor`, `orchestration` | 1050 |
 
 ## Why per-tier instead of global

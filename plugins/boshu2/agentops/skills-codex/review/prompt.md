@@ -1,6 +1,6 @@
 # review
 
-Review incoming PRs, agent-generated changes, or diffs. Structured review with security, correctness, performance, and maintainability checks. Triggers: "review", "review PR", "review changes", "code review", "review this PR", "review agent output", "check this diff".
+Review diffs for risk, find mocks, scan for bugs, audit codebases. Fold target for bug-hunt, codebase-audit, and ubs. Triggers: "review", "review diffs for risk find", "review skill".
 
 ## Instructions
 

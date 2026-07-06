@@ -1,0 +1,38 @@
+{
+  "name": "matlab-simulink-tools",
+  "version": "0.1.4",
+  "description": "Codex plugin for MATLAB MCP Server and Simulink modeling, simulation, baseline testing, and profiler analysis workflows.",
+  "author": {
+    "name": "summer521521",
+    "url": "https://github.com/summer521521"
+  },
+  "homepage": "https://github.com/summer521521/MATLAB_Simulink_plugin",
+  "repository": "https://github.com/summer521521/MATLAB_Simulink_plugin",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "mcp",
+    "matlab",
+    "simulink"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "MATLAB Simulink Tools",
+    "shortDescription": "Use MATLAB MCP Server with Simulink skills.",
+    "composerIcon": "./assets/icon.svg",
+    "longDescription": "Packages a local MATLAB MCP Server launcher with Simulink skills for model interaction, simulation, baseline tests, and profiler analysis.",
+    "developerName": "summer521521",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Inspect the open Simulink model.",
+      "Run this model with SimulationInput.",
+      "Analyze Simulink profiler results."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

@@ -1,16 +1,35 @@
 ---
 name: eval-outcomes
-description: "Run eval outcomes."
+description: Grade agent or model output against Outcomes
 ---
+# eval-outcomes — moved to Mount Olympus (2026-06-10)
 
-# $eval-outcomes — Outcomes as a Projection of the Locked Eval Substrate (Codex Native)
+## Holdout scenario management (absorbed from scenario, ag-s43tg)
 
-> **Quick Ref:** Grade an agent's output via Outcomes (or any model) without forking the bar. `ao eval outcomes compile` projects a locked Task into a holdout-safe rubric (refuses to leak `target`/`ground_truth` — Managed Agents are not ZDR); grade it; `ao eval outcomes ingest` writes the score back as the one council verdict record. Outcomes is a projection, never an alternate authority.
+Author and manage holdout scenarios with the `ao` CLI: `ao eval scenario add "<title>"`
+creates a scenario in `.agents/holdout/` (ID `s-YYYY-MM-DD-NNN`, acceptance
+vectors, 0.8 default satisfaction threshold); `ao eval scenario validate` checks the
+holdout set's schema and link graph. Linked scenarios feed directive fitness via
+`ao goals scenarios` (see the `$goals` skill and `docs/adr/ADR-0003`).
 
-## Codex path
+## Absorbed skills (ag-s43tg)
 
-Codex has no Managed Agents loop. Call the same `ao eval outcomes compile <input.json>` to get a holdout-safe rubric, grade it locally (Inspect AI over the dev split, or the bushido llama.cpp Qwen grader over tailnet), then `ao eval outcomes ingest <score.json> --json`. Net: Codex never touches the cloud Outcomes API but produces a byte-identical verdict record.
+- **scenario** — Manage holdout scenarios; author and manage holdout scenarios with measurable acceptance vectors and satisfaction scoring in `.agents/holdout/` for behavioral validation.
 
-## Instructions
+This skill encodes independent-verdict machinery and now lives with the outer
+gate product. Canonical: `~/dev/mt-olympus/.codex/skills/eval-outcomes/SKILL.md` —
+read and follow that file. This stub preserves fleet routing until the
+using-agentops catalog closer updates the registry (skill-prune Lane A,
+evidence/skill-prune-recon.md).
 
-Load and follow the skill instructions from the sibling `SKILL.md` — OR read `skills/eval-outcomes/SKILL.md` in the host repo for the canonical specification. Then apply the three-phase Workflow (compile → grade → ingest), honoring the Critical Constraints (never send holdout `target`/`ground_truth`/PII; carry `judge_content_hash`; register a global Dolt burn for holdout grades).
+## Folded-In Trigger Surface (scenario)
+
+eval-outcomes is the fold target for the retired standalone `scenario` skill
+(skill-prune phase 2). Fire this skill for its use-cases:
+
+- **Scenario — Manage holdout scenarios.** Author and manage holdout scenarios
+  for behavioral validation: scenarios define **what** the system should do in
+  narrative form, with measurable acceptance vectors and satisfaction scoring.
+  They live in `.agents/holdout/*.json` so implementing agents cannot see them
+  during development. When asked to author, manage, or score holdout scenarios,
+  fire this skill.

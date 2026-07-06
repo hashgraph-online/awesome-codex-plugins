@@ -1,8 +1,8 @@
 # domain
 
-Shared vocabulary for human-AI software building — the ubiquitous-language corpus referenced by other skills, plans, commit messages, and bd issues. Tracer-bullet shape: 6 structural primitives (Entry, Index, Citation, Primitive, Slice, Anti-Pattern) plus a test entry (Tracer Bullet) that uses only the 6 primitives.
+Canonical vocabulary for human-AI software work. Use when naming concepts, resolving terminology disputes, or establishing shared domain language across agents and docs. Triggers: "domain", "canonical vocabulary for human-ai software", "domain skill".
 
 ## Instructions
 
 Load and follow the skill instructions from the sibling `SKILL.md` file for this skill.
-Then read local files in `references/` when needed.
+Then read local files in `references/` and `scripts/` when needed.

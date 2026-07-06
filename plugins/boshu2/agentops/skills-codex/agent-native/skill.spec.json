@@ -1,0 +1,55 @@
+{
+  "name": "agent-native",
+  "skill_api_version": 1,
+  "form": "A",
+  "quality_score": 0.9,
+  "sections": [
+    { "id": "title",        "title": "Make Out-of-Session Agents AgentOps-Native", "type": "intro",       "priority": "required" },
+    { "id": "overview",     "title": "Overview",                                   "type": "overview",    "priority": "required" },
+    { "id": "constraints",  "title": "⚠️ Critical Constraints",                    "type": "constraints", "priority": "required" },
+    { "id": "workflow",     "title": "Workflow",                                   "type": "procedure",   "priority": "required" },
+    { "id": "output",       "title": "Output Specification",                       "type": "contract",    "priority": "required" },
+    { "id": "rubric",       "title": "Quality Rubric",                             "type": "rubric",      "priority": "required" },
+    { "id": "examples",     "title": "Examples",                                   "type": "examples",    "priority": "standard" },
+    { "id": "troubleshoot", "title": "Troubleshooting",                            "type": "table",       "priority": "standard" },
+    { "id": "seealso",      "title": "See Also",                                   "type": "routing",     "priority": "required" }
+  ],
+  "references": [
+    { "file": "references/managed-agents-runtime.md", "topic": "Claude path: Anthropic Managed Agents + Agent SDK + self-hosted sandbox runtime recipe" },
+    { "file": "references/codex-ntm-runtime.md",      "topic": "Codex/NTM path: tmux pane swarms + agent-mail + direct ao shell calls" },
+    { "file": "references/sdk-hook-adapter.md",       "topic": "optional TypeScript + Python PreToolUse/Stop adapter samples (wired into no runtime by default)" }
+  ],
+  "metadata": {
+    "tier": "meta",
+    "stability": "experimental",
+    "dependencies": ["standards", "converter"],
+    "hexagonal_role": "supporting",
+    "context_window": "fork",
+    "triggers": [
+      "agent native",
+      "managed agent",
+      "agent sdk loop",
+      "out-of-session agent",
+      "hookless agentops",
+      "ao agent bundle",
+      "ao mcp serve",
+      "make a cloud agent agentops-native",
+      "CI as the gate not hooks",
+      "port hooks to a new runtime"
+    ],
+    "token_estimate": {
+      "minimal": 90,
+      "overview": 400,
+      "standard": 1900,
+      "full": 3600
+    }
+  },
+  "output_contract": "An AgentOps-native Agent definition (skills + ao tool surface) graded by the same local cockpit/pawl proof path as interactive work, with agent-output-validate.yml as PR/tag/manual backstop telemetry. Materializes a JSON Agent definition at agent-def.json (model + stitched-skill instructions + skills array + ao MCP descriptor, no holdout values) and a runtime profile at docs/contracts/agent-runtime-profile.md; the output is accepted only after the local gate of record passes. Guardrails come from skills + the ao CLI + deterministic gates, never runtime hooks (AgentOps 3.0 is runtime-hookless).",
+  "evidence": {
+    "sources": [
+      "skills/agent-native/SKILL.md (verified: ao agent bundle, ao mcp serve, ao session bootstrap/inject/corpus inject/validate/goals measure surface)",
+      "Mechanism status: ao agent bundle (ag-jspr) + ao mcp serve (ag-higd) are open beads under epic ag-7s9fo, not yet shipped; bootstrap/inject/validate/goals-measure are live today",
+      "Managed Agents API managed-agents-2026-04-01 beta header; NOT ZDR (no holdout/PII in Agent definitions)"
+    ]
+  }
+}

@@ -28,19 +28,21 @@ Given `$ARGUMENTS` and conversation context, classify what the user needs:
 
 | Signal | Route | Documents |
 |---|---|---|
-| User describes a **component contract** or interface | → `spec` | Single spec |
+| User describes a **boundary other code depends on** (API, interface, schema, or protocol) | → `spec` | Single spec |
 | User describes **reference material** (registry, glossary, lookup) | → `doc` | Single doc |
 | User describes **how-to instructions** or procedures | → `guide` | Single guide |
-| User describes a **module comprehensively** ("document everything about X") | → `adr` + `spec` + `guide` | Multiple docs with relations |
+| User describes a **module comprehensively** ("document everything about X") | → `adr` + `guide` (+ `spec` only if the module is a boundary other code depends on) | Multiple docs with relations |
 | Ambiguous | → ask one question | "Is this primarily a decision, a technical contract, reference material, or instructions?" |
 
-Default: if still unclear after one question, create an `adr` (the most common documentation need).
+Default: if still unclear after one question, create an `adr` (the most common documentation need) — unless the subject is a boundary other code depends on, in which case create a `spec`.
 
 ## Execution
 
 ### Step 1: Check existing
 
 `mcp__archcore__list_documents` — scan for existing documents on this topic. Prevent duplicates.
+
+If a match is a global document (`global: true` / `read_only: true` / `source_kind: "global"`), load `skills/_shared/globals.md`: it is read-only org-wide context, not editable here. Create the local document (a refinement/override) and do not modify it or call `add_relation` referencing the global. Absent any global match, proceed as usual.
 
 ### Step 2: Route
 
@@ -56,8 +58,9 @@ For each document determined by routing:
 - `mcp__archcore__create_document(type="adr")`
 
 **If spec:**
-- Ask: "What is the contract surface? What are the key constraints?"
-- Compose content covering Purpose, Scope, Subject, Contract Surface, Normative Behavior, Constraints.
+- Read `skills/_shared/precision-rules.md` and `skills/_shared/spec-contract.md` once before composing — the contract defines what a spec is (the contract of a depended-on boundary) and what does not belong in one.
+- Ask: "What is the contract surface (the boundary other code depends on)? What are the key constraints and invariants?"
+- Compose the mandatory sections defined in `spec-contract.md`: Purpose & Scope, Contract Surface, Normative Behavior, Constraints & Invariants, Error Handling, Conformance.
 - `mcp__archcore__create_document(type="spec")`
 
 **If doc:**

@@ -12,6 +12,6 @@ jobs:
       - name: HOL Plugin Linter
         uses: hashgraph-online/ai-plugin-scanner-action@v1
         with:
-          plugin_dir: "."
+          plugin_dir: "plugins/x4cc3/casefile"
           mode: lint
           fail_on_severity: high

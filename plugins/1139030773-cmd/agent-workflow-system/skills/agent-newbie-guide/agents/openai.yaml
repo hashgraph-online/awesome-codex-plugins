@@ -1,0 +1,3 @@
+display_name: Codex 新手引导
+short_description: 把模糊想法一步步变成可执行任务。
+default_prompt: 启动新手引导。我有一个模糊目标，请你一步一步问我，并把它变成可执行任务。

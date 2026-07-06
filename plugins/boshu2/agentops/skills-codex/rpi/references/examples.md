@@ -6,7 +6,7 @@
 
 1. `$discovery "add user authentication"` — brainstorm, research, plan, pre-mortem -> epic `ag-5k2`
 2. `$crank ag-5k2` — implement all issues
-3. `$validate ag-5k2` — vibe, post-mortem, forge
+3. `$validate ag-5k2` — vibe, post-mortem, curate --mode=forge
 
 ## Resume from Implementation
 

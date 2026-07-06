@@ -1,0 +1,51 @@
+{
+  "name": "agentry",
+  "version": "0.1.2",
+  "description": "Agentry skill for agent-native analytics, error logging, and deploy attribution over the Agentry HTTP API.",
+  "author": {
+    "name": "Agentry",
+    "url": "https://agentry.sh"
+  },
+  "homepage": "https://agentry.sh",
+  "repository": "https://github.com/fr33dr4g0n/agentry-public",
+  "license": "MIT",
+  "keywords": [
+    "agentry",
+    "observability",
+    "analytics",
+    "product-analytics",
+    "logging",
+    "error-monitoring",
+    "deploy-attribution",
+    "production-debugging",
+    "coding-agents",
+    "ai-coding-agents",
+    "agent-native"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agentry Observability",
+    "developerName": "Agentry",
+    "shortDescription": "Analytics, error logging, and deploy attribution for coding agents",
+    "longDescription": "Agentry gives AI coding agents one HTTP API for product analytics, error logging, and deploy attribution. Use it when an agent needs to install telemetry, verify signal coverage, debug production cases, answer product analytics questions, or connect regressions to deploys from live data.",
+    "category": "Data & Analytics",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://agentry.sh",
+    "privacyPolicyURL": "https://agentry.sh/privacy",
+    "termsOfServiceURL": "https://agentry.sh/terms",
+    "defaultPrompt": [
+      "Install Agentry in this repo",
+      "What broke in production?",
+      "Where are users dropping off?"
+    ],
+    "brandColor": "#111827",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/screenshot-home.png"
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/agy-native",
   "layout": "modular",
-  "source_hash": "7ebdb7677b145f744babdec6451233d751b9fabe864eb91955d83b86e429fa78",
-  "generated_hash": "191740cb1747708f350a619f3595e720aa25e7f393ae741dd3e248b6325ae411"
+  "source_hash": "bead8a82c2c2dceb651eeaec1d0e2e5e07c9168a6e5a6e1a02a0788a0c0bab39",
+  "generated_hash": "5b8d3b9759768fabb072736fa5b12a19265e898a0bc9cfe7310faffbee2f8887"
 }

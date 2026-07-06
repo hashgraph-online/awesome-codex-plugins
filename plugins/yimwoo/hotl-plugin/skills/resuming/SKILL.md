@@ -9,6 +9,8 @@ description: Resume an interrupted workflow run with verify-first strategy — l
 
 Resume a previously interrupted workflow run. HOTL persists execution state in a sidecar file (`.hotl/state/<run-id>.json`). On resume, it uses a verify-first strategy to determine whether the interrupted step already succeeded before continuing.
 
+For governed native runs, call `hotl-rt reconcile <run-id>` (or the selected driver's equivalent) before resuming. Treat its result as a read-only recommendation and retain this skill's verify-first rules; never infer completion from a host session status.
+
 **Announce:** "Looking for interrupted HOTL runs..."
 
 ## Sidecar State

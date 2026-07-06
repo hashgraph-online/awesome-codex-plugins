@@ -83,7 +83,7 @@ Gate logic:
      $crank <epic-id> --context 'Vibe FAIL: <key issues>\nStructured findings:\nFINDING: X | FIX: Y | REF: Z' --test-first   # default strict-quality path
      $crank <epic-id> --context 'Vibe FAIL: <key issues>\nStructured findings:\nFINDING: X | FIX: Y | REF: Z'                 # only when --no-test-first opted out
      ```
-  4. Re-invoke `$vibe` on the new changes
+  4. Re-invoke `$validate` on the new changes
   5. If still FAIL after 3 total attempts, stop with message:
      "Vibe failed 3 times. Last report: <path>. Manual intervention needed."
 

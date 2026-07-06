@@ -1,7 +1,7 @@
 # Scoring: text quality assessment (0–10)
 
 Analytic rubric for evaluating Russian text quality across 5 dimensions.
-Context-aware LLM evaluation based on ~1 044 rules from 16 sources.
+Context-aware LLM evaluation against ~1 044 independently formulated rules (informed by 16 published sources; see sources.md).
 
 ## Table of Contents
 
@@ -42,7 +42,7 @@ The only way to raise the score is to write better.
 - Readability formulas are unreliable: different formulas diverge by 2–3 grade levels on the same text (Zhou, Jeong, Green 2017). Texts revised for formula scores showed worse reader comprehension (Duffy & Kabance; Olsen & Johnson). 7 reasons to avoid readability formulas (UXmatters 2019).
 - LLM-Rubric (ACL 2024): RMSE < 0.5; inter-rater reliability for Structure exceeded human judges (QWK 0.584 vs 0.541).
 - Hybrid penalty + bonus + non-compensatory floors: best architecture per analysis of sports judging (gymnastics, figure skating) and academic essay scoring systems.
-- Goodhart's Law: «when a measure becomes a target, it ceases to be a good measure.» Five orthogonal dimensions are the primary defense.
+- Goodhart's Law — once a measure becomes the target, it stops working as a good measure (cf. Goodhart; Strathern's formulation). Five orthogonal dimensions are the primary defense.
 
 ---
 
@@ -62,7 +62,7 @@ Type: hard (objective). Rule source: [typography.md](typography.md) (96 rules).
 
 ### Ч — Clarity (weight 0.25)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [anti-patterns.md](anti-patterns.md) (138 rules). Secondary signals (low weight): [addenda.md](addenda.md) AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception).
+Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [anti-patterns.md](anti-patterns.md) (138 rules). Secondary signals (low weight): [addenda.md](addenda.md) AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception), AD-6 (manufactured antithesis), AD-7 (preemptive virtue qualifier), AD-8 (assistant-register meta-commentary).
 
 | Score | Criteria |
 |---|---|
@@ -86,13 +86,13 @@ Type: hard (objective). Rule sources: [editorial-grammar.md](editorial-grammar.m
 
 ### С — Structure (weight 0.20)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (structure section), [addenda.md](addenda.md) — AD-1 (dash overuse), plus secondary signals (low weight): AD-2 (excessive parcellation), AD-4 (unprovoked rebuttal).
+Type: soft (expert). Rule sources: [info-style.md](info-style.md) (structure section), [addenda.md](addenda.md) — AD-1 (dash overuse) and AD-6 (manufactured antithesis — **Medium**: the strongest machine-generation tell. A cluster of two or more manufactured pairs within ~150 words lands this dimension in the 5–6 band or lower; a single antecedent-backed pair does not move it), plus secondary signals (low weight): AD-2 (excessive parcellation), AD-4 (unprovoked rebuttal), AD-7 (preemptive virtue qualifier), AD-9 (hollow opener).
 
 | Score | Criteria |
 |---|---|
-| 9–10 | Inverted pyramid (main point first). One paragraph = one idea. Logical transitions. Headings where needed. No monotonous dash rhythm |
-| 7–8 | Logical structure, but 1–2 overloaded paragraphs or implicit transitions |
-| 5–6 | Structure is guessable but ideas are mixed, uneven paragraphs |
+| 9–10 | Inverted pyramid (main point first). One paragraph = one idea. Logical transitions. Headings where needed. No monotonous dash rhythm. No manufactured antithesis («не X, а Y» / «не просто X, а Y» with no antecedent). No hollow openers |
+| 7–8 | Logical structure, but 1–2 overloaded paragraphs or implicit transitions; at most an isolated antecedent-backed antithesis |
+| 5–6 | Structure is guessable but ideas are mixed, uneven paragraphs; a cluster of manufactured antitheses (two or more within ~150 words) recurs — this band or lower |
 | 3–4 | No structure: stream of consciousness without paragraph breaks |
 | 1–2 | Chaotic exposition, impossible to identify the main point |
 

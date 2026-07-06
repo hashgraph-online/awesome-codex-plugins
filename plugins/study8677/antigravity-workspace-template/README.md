@@ -31,6 +31,27 @@
 <br/>
 
 <div align="center">
+
+<p><strong>🚀 实测推荐:</strong> <a href="https://teamorouter.com/?i=e188641773">TeamoRouter</a> —— 非广告，我自己在 Codex、Claude Code 等 AI 编程工具里高强度使用：一个 API Key 接入 Claude、GPT-5.5 等，模型价格方便调整，价格优惠，并没有掺水的情况。接入指南见 <a href="https://github.com/xixiaoyao/openrouter-api-key">openrouter-api-key</a>。</p>
+
+</div>
+
+<br/>
+
+<div align="center">
+
+<a href="https://doloffer.com">
+  <img src="docs/assets/doloffer-banner.png" alt="DolOffer - GPT and Claude membership recharge, official subscriptions with after-sales support" width="800"/>
+</a>
+
+<sub><b>Sponsored placement:</b> <a href="https://doloffer.com">DolOffer</a> (<a href="https://github.com/Doloffer-g/guide">GitHub project</a>) offers discounted GPT and Claude membership recharge, official subscriptions, and after-sales support. Use code <code>AI8888</code> for 10% off.</sub><br/>
+<sub><b>Disclaimer:</b> This is a paid sponsor placement. DolOffer services, pricing, availability, and support are provided by DolOffer; please review their terms before purchase.</sub>
+
+</div>
+
+<br/>
+
+<div align="center">
 <img src="docs/assets/before_after.png" alt="Before vs After Antigravity" width="800"/>
 </div>
 
@@ -497,6 +518,20 @@ Ideas are contributions too! Open an [issue](https://github.com/study8677/antigr
       <sub><b>Major Contributor</b> · Creative suggestions · Project administrator · Project ideation & feedback</sub>
     </td>
     <td align="center" width="20%">
+      <a href="https://github.com/h13181278389">
+        <img src="https://github.com/h13181278389.png" width="80" /><br/>
+        <b>h13181278389</b>
+      </a><br/>
+      <sub><b>Core Contributor</b> · Thank you for your support, feedback, and contributions to Antigravity</sub>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/flyw1015">
+        <img src="https://github.com/flyw1015.png" width="80" /><br/>
+        <b>flyw1015</b>
+      </a><br/>
+      <sub><b>Core Contributor</b> · Thank you for your support, feedback, and contributions to Antigravity</sub>
+    </td>
+    <td align="center" width="20%">
       <a href="https://github.com/devalexanderdaza">
         <img src="https://github.com/devalexanderdaza.png" width="80" /><br/>
         <b>Alexander Daza</b>
@@ -510,6 +545,8 @@ Ideas are contributions too! Open an [issue](https://github.com/study8677/antigr
       </a><br/>
       <sub>First CLI prototype · 753-line refactor · DummyClient extraction · Quick-start docs</sub>
     </td>
+  </tr>
+  <tr>
     <td align="center" width="20%">
       <a href="https://github.com/Subham-KRLX">
         <img src="https://github.com/Subham-KRLX.png" width="80" /><br/>
@@ -524,8 +561,6 @@ Ideas are contributions too! Open an [issue](https://github.com/study8677/antigr
       </a><br/>
       <sub>Memory context window fix · MCP shutdown graceful handling (#28)</sub>
     </td>
-  </tr>
-  <tr>
     <td align="center" width="20%">
       <a href="https://github.com/goodmorning10">
         <img src="https://github.com/goodmorning10.png" width="80" /><br/>
@@ -547,6 +582,8 @@ Ideas are contributions too! Open an [issue](https://github.com/study8677/antigr
       </a><br/>
       <sub>Skill packaging & KG retrieval enhancements · Multi-language README sync (#30)</sub>
     </td>
+  </tr>
+  <tr>
     <td align="center" width="20%">
       <a href="https://github.com/SunkenCost">
         <img src="https://github.com/SunkenCost.png" width="80" /><br/>

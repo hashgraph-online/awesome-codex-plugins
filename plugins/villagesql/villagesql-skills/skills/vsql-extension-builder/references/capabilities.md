@@ -69,3 +69,22 @@ the first time, and record results in `.claude/tracking/limitations.md`.
   result type via `DESCRIBE`. If it shows INT rather than DOUBLE, document
   the `CAST(col AS DOUBLE)` or `col * 1.0` workaround, record the limitation,
   and link [villagesql-server#608](https://github.com/villagesql/villagesql-server/issues/608).
+
+- **STRING return size and charset.** VDF STRING results are subject to two
+  current behaviors that affect any function returning text:
+  1. **256-byte cap.** The SDK truncates STRING returns to the server's
+     `max_str_len` (currently 256 bytes). Test with a function that builds
+     a string longer than 256 bytes and check whether the result is
+     silently truncated. If the extension needs to return larger payloads
+     (e.g. a JSON array of many values), design around the cap — chunked
+     enumeration, prefix-filtered queries, or splitting across multiple
+     calls. Track villagesql-server
+     [#641](https://github.com/villagesql/villagesql-server/issues/641)
+     and [#343](https://github.com/villagesql/villagesql-server/issues/343).
+  2. **Binary charset.** STRING results are tagged `binary`, so MySQL
+     JSON functions (`JSON_EXTRACT`, `JSON_TABLE`, etc.) reject them
+     without an explicit `CONVERT(... USING utf8mb4)`. Test by piping a
+     result through a JSON function and document the `CONVERT` step in
+     the README if users will consume the output as JSON. Track
+     villagesql-server
+     [#612](https://github.com/villagesql/villagesql-server/issues/612).

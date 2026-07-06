@@ -25,7 +25,7 @@ compounding context.
 
 3. Select one domain and one vertical slice from the domain evolution docs.
 4. Use `$skill-builder` and `$skill-auditor` for skill changes. Use
-   `skills-codex/skill-auditor/scripts/score_agentops_skill.py` to choose the
+   `skills/heal-skill/scripts/score_agentops_skill.py` to choose the
    smallest score-improving patch.
 5. Keep CLI and hook changes behind typed ports or existing validation scripts.
 6. Run focused validation before selecting the next slice.

@@ -1,0 +1,56 @@
+schema_version: "2.0"
+name: cross-agent-pr-review
+description: Parallel PR review with Claude + Codex, then Gemini synthesizes
+version: "1.0.0"
+
+vars:
+  target_pr:
+    description: PR number to review
+    required: true
+    type: number
+  reviewers:
+    default: ["cc", "cod"]
+    type: array
+
+settings:
+  timeout: 30m
+  on_error: fail
+  notify_on_error: true
+  notify_channels: [desktop]
+
+steps:
+  - id: fetch
+    name: Fetch PR metadata
+    agent: claude
+    pane: 1
+    prompt: "Fetch and summarize PR ${vars.target_pr} — list changed files, diff size, test status."
+    wait: completion
+    timeout: 5m
+    output_var: fetch_summary
+    output_parse:
+      type: json
+
+  - id: review-parallel
+    depends_on: [fetch]
+    parallel:
+      - id: review-cc
+        agent: claude
+        prompt: "Review PR ${vars.target_pr} focusing on correctness and edge cases. Context: ${steps.fetch.output}"
+      - id: review-cod
+        agent: codex
+        prompt: "Review PR ${vars.target_pr} focusing on architecture and API surface. Context: ${steps.fetch.output}"
+    on_error: continue
+
+  - id: synthesize
+    depends_on: [review-parallel]
+    agent: gemini
+    route: least-loaded
+    prompt: |
+      Synthesize a unified review from two perspectives:
+      Claude: ${steps.review-cc.output}
+      Codex:  ${steps.review-cod.output}
+      Output: must-fix, should-fix, nits — each with file:line references.
+    on_error: retry
+    retry_count: 2
+    retry_delay: 30s
+    retry_backoff: exponential

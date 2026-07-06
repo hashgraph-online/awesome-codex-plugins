@@ -49,7 +49,7 @@ The pattern: chaos + filter + ratchet = directional progress from undirected ene
 
 Escape velocity condition: `signal_rate x retrieval_rate > decay_rate` (informally: you learn faster than you forget). Goals should verify:
 - Signal generation (extract, forge, retro produce learnings)
-- Retrieval (inject loads learnings into sessions)
+- Retrieval (ao lookup loads learnings into sessions)
 - Decay resistance (learnings are persisted, not just in-memory)
 
 ## Weight Guidelines
@@ -180,7 +180,7 @@ Product gates verify product health alongside code health. Suggest gates based o
 | Infrastructure | Gate ID | Check | Weight |
 |---------------|---------|-------|--------|
 | `.agents/learnings/` + flywheel CLI | `flywheel-compounding` | `ao flywheel status --json \| jq -e '.escape_velocity_compounding == true'` | 8 |
-| `skills/quickstart/` | `quickstart-under-5min` | `bash scripts/check-quickstart-timing.sh` | 5 |
+| `skills/status/` | `quickstart-under-5min` | `bash scripts/check-quickstart-timing.sh` | 5 |
 | `docs/comparisons/` | `competitive-freshness` | `bash scripts/check-competitive-freshness.sh` | 3 |
 | `PRODUCT.md` with Known Gaps | `product-gaps-tracked` | `grep -c '|' PRODUCT.md \| test $(cat) -gt 0` | 3 |
 | `ao flywheel status` works | `flywheel-promotion-rate` | `ao flywheel status --json \| jq -e '.promotion_rate > 0.05'` | 4 |

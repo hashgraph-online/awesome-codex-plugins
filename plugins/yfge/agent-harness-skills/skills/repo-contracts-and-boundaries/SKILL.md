@@ -13,7 +13,7 @@ This skill freezes new violations first and then supports gradual baseline reduc
 
 ## When To Use
 
-- The user mentions architecture boundaries, directory ownership, choke points, allowlists, baselines, or contracts.
+- The user asks to define, protect, audit, or encode architecture boundaries, directory ownership, choke points, allowlists, baselines, or contracts.
 - The repository has layering rules, but agents still add bypass calls or wrong dependencies.
 - You need to distinguish diff checks from full audit checks.
 

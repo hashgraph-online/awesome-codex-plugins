@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ethical Persuasion"
+  short_description: "Design honest persuasion"
+  default_prompt: "Use $ethical-persuasion-design to improve this persuasion task ethically."

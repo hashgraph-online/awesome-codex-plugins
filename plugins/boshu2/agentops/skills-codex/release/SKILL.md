@@ -1,6 +1,6 @@
 ---
 name: release
-description: "Run release."
+description: "Run release readiness validation."
 ---
 # Release Skill
 
@@ -38,7 +38,7 @@ $release                       # suggest version from commit analysis
 | Mode | Invocation | Behavior |
 |---|---|---|
 | **Full Release** | `$release [version]` | Pre-flight → changelog → release notes → version bump → user review → write → release commit → tag → push guidance → exact-SHA CI verification. |
-| **Check** | `$release --check` | Pre-flight checks only; reports GO/NO-GO. Composable with `$vibe`. No writes. |
+| **Check** | `$release --check` | Pre-flight checks only; reports GO/NO-GO. Composable with `$validate`. No writes. |
 | **Changelog Only** | `$release X.Y.Z --changelog-only` | Updates `CHANGELOG.md` only — no version bumps, no commit, no tag. |
 
 ---
@@ -142,7 +142,7 @@ See `references/release-workflow-detail.md` for the full troubleshooting matrix.
 
 ## See Also
 
-- [deps](../deps/SKILL.md) — Dependency audit and vulnerability scanning
+- [security](../security/SKILL.md) — Dependency audit and vulnerability scanning (absorbs deps)
 
 When wiring or auditing the CI workflow that backs `--check` mode (or the tag-triggered release pipeline that consumes the curated notes), pull the relevant patterns from `references/gh-actions-ci-patterns.md` (general CI) or `references/gh-actions-release-automation.md` (tag-triggered, draft flow, asset upload). When generating the curated release-notes file or auditing CHANGELOG.md drift, treat the changelog as an orientation layer and use `references/changelog-as-research-artifact.md` for the structured-section, breaking-change-callout, and notes-vs-changelog rules.
 

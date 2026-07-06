@@ -1,0 +1,4 @@
+interface:
+  display_name: "Contrast Framing"
+  short_description: "Frame comparisons cleanly"
+  default_prompt: "Use $contrast-framing to improve this persuasion task ethically."

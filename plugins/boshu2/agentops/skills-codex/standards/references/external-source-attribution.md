@@ -17,7 +17,7 @@ Use when the skill is **primarily derived from a single external source**.
   - ✅ `See \`LICENSE.md\` in this skill directory for attribution.`
   - ❌ `See [LICENSE.md](LICENSE.md) for attribution.`
 - The relative-link form breaks `mkdocs --strict` because mkdocs flattens skill directories during build (`skills/<name>/SKILL.md` → `skills/<name>.md`), so the sibling-file link `[LICENSE.md](LICENSE.md)` resolves to `skills/LICENSE.md` which does not exist.
-- Example: `skills/system-tuning/LICENSE.md`.
+- Example path: `skills/<name>/LICENSE.md` (the former `system-tuning` skill used this pattern before its 2026-06 retirement).
 
 ## Pattern B — Per-reference footer
 
@@ -43,7 +43,8 @@ Use when the skill's `references/*.md` files draw from **two or more external so
 - **Pattern-only, no verbatim text.** Do not copy >5 consecutive words from the external source.
 - **Attribute the canonical pattern title** when one exists (e.g., "Asuper-style sync" → cite Asupersync corpus).
 - **Do not use relative markdown links to root-level co-located files in `SKILL.md`** — `references/` subdir works (`[name](references/name.md)`), but root-level files (`LICENSE.md`, `notes.md`) do not. mkdocs `--strict` will fail the build.
+- **Apply a clean-room policy for any external-corpus-derived work.** Allowed observations are counts, paths, filenames, metadata, package shape, validation outcomes, CLI behavior, and derived categories. Do not copy external prose, prompts, examples, references, scripts, templates, or role text.
 
 ## Cross-references
 
-- Example skill using Pattern A: `skills/system-tuning/`.
+- Pattern A example: any skill carrying a single-source `LICENSE.md` at its root (see the path rule above).

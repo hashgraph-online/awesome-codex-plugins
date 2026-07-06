@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENTGUARDS_URL=\"${AGENTGUARDS_URL:-https://prod.agentguards.co}\" python3 \"${PLUGIN_ROOT}/scripts/agentguards_codex_hook.py\" UserPromptSubmit",
+            "statusMessage": "Checking prompt with AgentGuards"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENTGUARDS_URL=\"${AGENTGUARDS_URL:-https://prod.agentguards.co}\" python3 \"${PLUGIN_ROOT}/scripts/agentguards_codex_hook.py\" PreToolUse",
+            "statusMessage": "Authorizing command with AgentGuards"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENTGUARDS_URL=\"${AGENTGUARDS_URL:-https://prod.agentguards.co}\" python3 \"${PLUGIN_ROOT}/scripts/agentguards_codex_hook.py\" PostToolUse"
+          }
+        ]
+      }
+    ]
+  }
+}
