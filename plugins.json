@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-07-05",
-  "total": 150,
+  "last_updated": "2026-07-06",
+  "total": 151,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1408,6 +1408,20 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Synta-ai/n8n-mcp-codex-plugin-synta/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Taisly Agent Kit",
+      "url": "https://github.com/taisly/agent",
+      "owner": "taisly",
+      "repo": "agent",
+      "description": "Publish short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook from Codex through Taisly.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/taisly/agent/HEAD/.codex-plugin/plugin.json",
+      "platform": "codex",
+      "ecosystems": [
+        "codex"
+      ]
     },
     {
       "name": "Task Scheduler",
