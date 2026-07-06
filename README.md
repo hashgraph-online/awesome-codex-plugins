@@ -135,6 +135,7 @@ Each plugin entry includes a `source.path` pointing at a mirrored bundle under `
 
 Third-party plugins built by the community. [PRs welcome](#contributing)!
 
+- [PlayPokiGame](https://playpokigame.com) - Curated Poki-style mini games online — racing, shooting, casual, and puzzle titles. Fast loading, clean UI, play free...
 ### Development & Workflow
 
 <!-- pinned -->
