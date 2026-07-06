@@ -2068,6 +2068,21 @@
       "icon": "./plugins/Synta-ai/n8n-mcp-codex-plugin-synta/assets/icon.png"
     },
     {
+      "name": "Taisly Agent Kit",
+      "displayName": "Taisly Agent Kit",
+      "description": "Publish short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook from Codex through Taisly.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "platform": "codex",
+      "ecosystems": [
+        "codex"
+      ],
+      "owner": "taisly",
+      "repo": "agent",
+      "url": "https://github.com/taisly/agent",
+      "install_url": "https://raw.githubusercontent.com/taisly/agent/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "task-scheduler",
       "displayName": "Task Scheduler",
       "source": {
