@@ -2083,6 +2083,21 @@
       "icon": "./plugins/avalonreset/seo-dungeon/assets/icon.svg"
     },
     {
+      "name": "shots",
+      "displayName": "Shots",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hitSlop/shots"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
+      "icon": "./plugins/hitSlop/shots/assets/icon.png"
+    },
+    {
       "name": "n8n-mcp-synta-codex",
       "displayName": "Synta MCP",
       "source": {

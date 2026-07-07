@@ -17,7 +17,27 @@ description: "Show AgentOps project status."
 ```bash
 $status              # Full dashboard
 $status --json       # Machine-readable JSON output
+$status --recover    # Post-compaction recovery mode (absorbed $recover)
 ```
+
+---
+
+## Post-compaction recovery mode (absorbed `$recover`, 2026-07-07)
+
+Fires for the retired `$recover` skill's triggers — "recover", "recover session
+context", post-compaction re-orientation. Same gather as the dashboard plus the
+continuation surfaces, in this order:
+
+1. Run the full dashboard gather (Step 1 below).
+2. Read the newest `.agents/handoff/*.md` (the write-side counterpart — see the
+   handoff skill) and `.agents/rpi/execution-packet.json` if present.
+3. Re-read `AGENTS.md` before resuming any claimed bead (two-correction rule
+   applies after compaction).
+4. Report: what was in flight, the exact next action, and any claimed-but-unfinished
+   beads (`BEADS_DIR="$(ao beads dir)" br list --status in_progress`).
+
+The old skill's deep-recovery walkthrough survives at
+`references/recovery-playbook.md` (mirrored from the source skill).
 
 ---
 
@@ -201,8 +221,8 @@ QUICK COMMANDS
   $pre-mortem   Validate plan before coding
   $implement    Execute a single issue
   $crank        Autonomous epic execution
-  $validate   Full close-out and learnings
-  $validate         Targeted code review
+  $post-mortem  Full close-out and learnings
+  $validate     Targeted code review
 ══════════════════════════════════════════════════
 ```
 

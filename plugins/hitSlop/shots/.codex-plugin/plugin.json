@@ -1,0 +1,63 @@
+{
+  "name": "shots",
+  "version": "0.1.0",
+  "description": "Ship App Store screenshots from Codex or another coding agent. Hosted MCP tools generate screenshots, icons, localization, and ASO copy from app context.",
+  "author": {
+    "name": "hitSlop",
+    "email": "security@hitslop.com",
+    "url": "https://hitslop.com"
+  },
+  "homepage": "https://shots.run",
+  "repository": "https://github.com/hitSlop/shots",
+  "license": "MIT",
+  "keywords": [
+    "screenshots",
+    "app-store",
+    "app-icon",
+    "aso",
+    "marketing",
+    "image-generation",
+    "localization",
+    "screenshot-generator",
+    "ios",
+    "android",
+    "app-store-optimization",
+    "mcp",
+    "codex-plugin",
+    "keyword-research",
+    "screenshot-localization",
+    "app-store-screenshot-audit",
+    "app-store-inspiration",
+    "inspiration-gallery"
+  ],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "scripts": "./scripts/",
+  "interface": {
+    "displayName": "Shots",
+    "shortDescription": "Agent-native App Store screenshot and creative generator",
+    "longDescription": "Ship App Store screenshots in minutes from inside Codex or another coding agent. Shots reads your app repo, uploaded screenshots, App Store URL, saved Studio context, and public inspiration, then generates, revises, translates, and reviews screenshots for iPhone, iPad, Android, and Apple Watch. Includes app icon moodboards, final icon candidates, ASO listing copy, keyword ideas, and hosted Shots Studio sync.",
+    "developerName": "hitSlop",
+    "category": "Design",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write",
+      "Research"
+    ],
+    "websiteURL": "https://shots.run",
+    "privacyPolicyURL": "https://shots.run/privacy",
+    "termsOfServiceURL": "https://shots.run/terms",
+    "defaultPrompt": [
+      "Generate App Store screenshots for my app",
+      "Generate an app icon for my app",
+      "Translate my App Store screenshots into Spanish"
+    ],
+    "brandColor": "#0F969C",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/demo.png"
+    ]
+  }
+}

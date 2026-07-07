@@ -4,13 +4,6 @@ description: Configure Claude Code hooks (PreToolUse
 ---
 # Claude Code Hooks
 
-## Absorbed skills (ag-s43tg)
-
-- **cc-cron-ticks** — Scheduling autonomous in-session flywheel ticks with Claude Code cron routines.
-- **cc-loop-driver** — Running a Claude-native control-plane tick loop with worker and separate-validator subagents.
-- **cc-subagents** — Dispatching scoped Claude Code subagents with worktrees, roles, tools, memory, and evidence gates.
-- **cc-worktree-isolation** — Isolating parallel Claude Code workers in separate git worktrees to prevent file collisions.
-
 Shell commands that fire at specific points in Claude Code's lifecycle.
 
 <!-- TOC: Quick Start | Events | Blocking | Writing Hooks | Anti-Patterns | References -->

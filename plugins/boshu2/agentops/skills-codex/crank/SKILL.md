@@ -471,6 +471,17 @@ done
 git commit -m "feat(<scope>): wave $wave - $COMPLETED_COUNT issues completed"
 ```
 
+### Step 6.5: Land to main (direct-main + pawl)
+
+THIS repo lands by **direct push to main** — PR-per-bead is retired (external-repo variant below). Land each bead from its own worktree:
+
+1. **Gate:** `ao gate check --fast --scope head` — the local cockpit gate (also the pre-push hook; run it manually to fail fast).
+2. **Review:** `REVIEWER=agy bash scripts/pawl-review.sh <bead> --scope head --author-family codex` — the cross-family refuter against the commit. Codex-runtime authors need BOTH halves: `--author-family codex` (default is `claude`; omitting it silently permits a same-family codex bind) AND a non-codex `REVIEWER` (the default reviewer IS codex, which the declared family then excludes — without the override the script exits 2). **CONFIRMED (exit 0) writes the commit-bound verdict the pre-push gate requires; no CONFIRMED verdict ⇒ the bead does NOT land** (no verdict = not done). **REFUTED (exit 3) -> AUTO-REDO** the named defects and re-gate; escalate to a human only on a circuit-breaker trip (max-attempts / time / cost / oscillation), door stays closed.
+3. **Land:** `bash scripts/pawl-land.sh <bead>` — fetch + rebase onto `origin/main`, restamp the verdict onto the post-rebase feat, single-shot push.
+4. **Close on landed-only:** `br close` a child bead ONLY after its commit is an ancestor of `origin/main` (`git fetch origin main && git merge-base --is-ancestor <feat-sha> origin/main`), never on a log line or batch `br --json` query. Never close a parent epic before EVERY child is landed (`scripts/check-epic-children-closed.sh <epic>`).
+
+**External-repo variant (PR flow).** When targeting an external repo where you cannot push `main`, the land half becomes a PR: prepare it with `$pr-prep`, then reconcile with `scripts/reconcile-pr.sh <pr> <bead> [--epic <epic>]` (verifies the CONFIRMED pawl verdict via `scripts/pawl-verdict.sh check`, merges `gh pr merge --squash --admin`, closes on confirmed `MERGED`). External targets only — never for landing AgentOps' own beads.
+
 ### Step 7: Loop or Complete
 
 ```bash

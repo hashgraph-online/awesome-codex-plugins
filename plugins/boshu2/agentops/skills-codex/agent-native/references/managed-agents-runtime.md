@@ -95,7 +95,7 @@ never is.
 - **Managed Agents are NOT ZDR.** Anything in the Agent definition or an MCP tool
   response leaves the boundary permanently. Never bundle holdout
   `target`/`ground_truth`/PII. Holdout-touching grading uses
-  [`../../eval-outcomes/SKILL.md`](../../eval-outcomes/SKILL.md), which runs on a
+  [`../../validate/SKILL.md`](../../validate/SKILL.md), which runs on a
   ZDR-safe surface.
 - **No skill fork.** The hosted loop loads the same `skills/` files as
   interactive sessions; a divergent guardrail set drifts and defeats the corpus

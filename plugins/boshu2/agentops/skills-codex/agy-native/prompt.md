@@ -1,6 +1,6 @@
 # agy-native
 
-Drive AgentOps in AGY: loop, plugins, memory, evidence, scoped worktrees.
+Drive AgentOps in AGY: loop, plugins, memory, evidence, --add-dir scoping.
 Triggers: agy, antigravity, agy plugin, AGY evidence.
 
 ## Instructions

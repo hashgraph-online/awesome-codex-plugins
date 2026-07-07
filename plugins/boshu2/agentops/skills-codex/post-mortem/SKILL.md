@@ -488,6 +488,16 @@ This must be the LAST action in Phase 4.
 
 **Phases 3-6 (Maintenance):** Read `references/maintenance-phases.md` for backlog processing, activation, retirement, and harvesting phases. Load when `--process-only` flag is set or when running full post-mortem.
 
+### Absorbed mining surface (`$curate`, 2026-07-07)
+
+The retired curate/compile/flywheel skill trio's user surface lives here: post-mortem's
+extract → process → activate steps ARE the mining half (curate declared itself their
+superset; the audit executed the collapse — docs/audits/skills-audit-2026-07-06.md §3.2).
+Fires for their triggers — "curate skills from sessions", "mine transcripts", "compile
+the knowledge wiki", "check flywheel health". The mechanical corpus surfaces stay on the
+CLI, not skills: `ao compile` (wiki build), `ao flywheel status` (health), `ao lookup`
+(retrieval). Deep session-history mining beyond this session's arc → the `cass` skill.
+
 ### Close the ms outcome loop (optional)
 
 If `ms` is installed (`command -v ms`), grade each skill whose guidance this session **actually used** (genuinely consulted, not merely trigger-matched): `ms outcome <skill> --success` (helped) or `ms outcome <skill> --failure` (misled/didn't apply) — only real consultations, an honest empty set beats a padded one. Skip silently if `ms` is not present.

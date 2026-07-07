@@ -32,7 +32,7 @@ structural primitives without operator consent.
 2. Load only the entries relevant to the current work. Do not preload the
    whole corpus — that defeats the JIT purpose.
 3. When applying an entry, cite it: include the entry slug in your output, plan,
-   commit message, or `bd` issue body so future sessions can trace the
+   commit message, or `br` issue body so future sessions can trace the
    reasoning.
 4. When you find a concept missing or misnamed, add a draft entry under
    `references/` and update `INDEX.md`. Promotion from `draft` to `canonical`
@@ -70,7 +70,7 @@ Loop family (the operating loop — "one loop body, two drivers, one inner tick,
 - [`references/evolve.md`](references/evolve.md) — Evolve: the in-session driver (AgentOps-shipped, zero-dependency)
 - [`references/factory.md`](references/factory.md) — Factory: the out-of-session driver (substrate-owned; AgentOps deleted its daemon)
 - [`references/rpi.md`](references/rpi.md) — RPI: the inner tick, one research-plan-implement-validate cycle over one bead
-- [`references/autodev.md`](references/autodev.md) — Autodev: the config/intent layer the loop reads each tick (NOT a loop)
+- [`references/autodev.md`](references/autodev.md) — Autodev: the config/intent layer the loop reads each tick (NOT a loop; the standalone /autodev skill is retired — contract management is absorbed into [`$evolve`](../evolve/SKILL.md), the CLI surface stays ao autodev, shipped in legacy-tagged `ao` builds)
 - [`references/context-compiler.md`](references/context-compiler.md) — Context-Compiler: turns the corpus into the working set and absorbs the tick's exhaust
 
 Verification membrane:

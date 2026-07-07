@@ -209,12 +209,16 @@ Use route and pack when you want deeper inspection:
 ```bash
 agentpack route --task "fix billing webhook retry handling"
 agentpack pack --task auto
+agentpack dashboard
 ```
 
 `route` returns likely files, why-selected and why-not-selected notes, tests,
 rules, commands, warnings, and matching skills without writing source files.
 `pack` renders selected files, omitted-file receipts, freshness checks, token
 stats, and citation provenance for packed claims.
+`dashboard` opens the local context cockpit: selected and omitted files, task
+map risk, likely tests, memory influence, observer signals, and next actions in
+one inspectable view backed by `dashboard-data.json` and `dashboard-graph.json`.
 AgentPack reuses cached file summaries and snapshot metadata so repeated packs do not start from zero.
 Run `agentpack doctor` when an agent integration, MCP setup, hook, or installed CLI path looks stale.
 Inspect advisory memory with `agentpack memory --timeline`; prune local history
@@ -229,6 +233,7 @@ with `agentpack memory --prune`.
 | Token control | budgeted packs, token contracts, delta-context guidance, cached summaries, and retrieval IDs |
 | Review and proof | citation-backed review artifacts, review preflight, benchmark misses, and local validation guidance |
 | Advisory memory | task-start maps, node refs, episodic/procedural links, timeline/staleness checks, and observer signals below source/test evidence |
+| Context cockpit | local React/Vite view of task graph, risk/tests, memory influence, replay, raw snapshot, and graph contracts |
 
 ## Current Focus
 

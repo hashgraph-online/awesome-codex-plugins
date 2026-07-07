@@ -19,12 +19,12 @@ Before non-trivial work, query memory instead of guessing:
 Use the Honcho MCP tools:
 
 - `search` — semantic lookup over past messages
-- `get_context` / `get_representation` — the current model of the user
+- `get_peer_context` / `get_representation` — the current model of the user
 - `chat` — ask a natural-language question about the user ("what's their testing style?")
 
 ## When to save memory
 
-After you learn something durable, persist it with `create_conclusion`:
+After you learn something durable, persist it with `create_conclusions`:
 
 - A decision with rationale ("chose SQLite over Postgres — embedded, zero-setup")
 - A stable preference ("prefers small, focused PRs")

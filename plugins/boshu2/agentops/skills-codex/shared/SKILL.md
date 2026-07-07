@@ -28,10 +28,10 @@ All skills that reference external CLIs MUST degrade gracefully when those CLIs 
 
 ```bash
 # Before using any external CLI, check availability
-if command -v bd &>/dev/null; then
-  # Full behavior with bd
+if command -v br &>/dev/null; then
+  # Full behavior with br
 else
-  echo "Note: bd CLI not installed. Using plain text tracking."
+  echo "Note: br CLI not installed. Using plain text tracking."
   # Fallback: use TaskList, plain markdown, or skip
 fi
 ```
@@ -40,7 +40,7 @@ fi
 
 | Capability | When Missing | Fallback Behavior |
 |------------|-------------|-------------------|
-| `bd` | Issue tracking unavailable | Use TaskList for tracking. Note "install bd for persistent issue tracking" |
+| `br` | Issue tracking unavailable | Use TaskList for tracking. Note "install br for persistent issue tracking" |
 | `ao` | Knowledge flywheel unavailable | Write learnings to `.agents/learnings/` directly. Skip flywheel metrics |
 | out-of-session substrate (`ntm` / `ao agent`) | Always-on orchestration unavailable | Run the loop in-session (`$rpi`, `$evolve`). A substrate (an NTM tmux swarm or managed-agents via `ao agent`) only adds always-on dispatch of whole operating-loop or `$evolve` skill runs — see [agent-native](../agent-native/SKILL.md) and [docs/3.0.md](https://github.com/boshu2/agentops/blob/main/docs/3.0.md) |
 | `gt` | Workspace management unavailable | Work in current directory. Skip convoy/sling operations |
@@ -84,7 +84,7 @@ Use capability detection at runtime, not hardcoded tool names. The same skill mu
 
 **Selection policy (NTM > runtime-native > beads floor):**
 
-Global opt-out first: if `AGENTOPS_ORCHESTRATION=off` is set, skip all spawn backends and degrade to the **beads floor** (single-agent inline / `--quick`; workers' work is tracked through `bd`). This mirrors the `AGENTOPS_HOOKS_DISABLED=1` convention. Otherwise, select in this order:
+Global opt-out first: if `AGENTOPS_ORCHESTRATION=off` is set, skip all spawn backends and degrade to the **beads floor** (single-agent inline / `--quick`; workers' work is tracked through `br`). This mirrors the `AGENTOPS_HOOKS_DISABLED=1` convention. Otherwise, select in this order:
 
 1. **NTM (top tier).** If `ntm` is on PATH, capability-probe it with `ntm --robot-capabilities`. When the probe confirms multi-agent primitives, use **NTM** as the primary backend.
 2. **Runtime-native.** If NTM is unavailable: in a Claude session with `TeamCreate`/`SendMessage`, use **Claude Native Teams**; in a Codex session with `spawn_agent`, use **Codex sub-agents**. If both are technically available, pick the backend native to the current runtime unless the user explicitly requests mixed/cross-vendor execution. Only use background tasks when neither native backend is available.

@@ -220,7 +220,7 @@ nudge-storms that kill healthy lanes):
 1. **Tick N:** no forward-progress evidence → mark the lane `suspect`. No action.
 2. **Tick N+1:** still no evidence → mark it `stalled`. Now intervene, in
    order: one nudge → if the next tick shows no recovery, relaunch the lane
-   (route it through [`$recover`](../recover/SKILL.md)) and re-dispatch → if
+   (route it through [`$recover`](../status/SKILL.md)) and re-dispatch → if
    the relaunched lane stalls again on the same work item, escalate.
 3. Any forward-progress evidence at any point resets the lane to `active`.
    Healthy lanes are left alone — interruptions reset agent context, so the

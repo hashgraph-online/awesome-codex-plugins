@@ -792,6 +792,6 @@ See `references/cycle-history.md` for troubleshooting.
 - [test](../test/SKILL.md) — Test generation
 - [refactor](../refactor/SKILL.md) — Safe, verified refactoring
 - [security](../security/SKILL.md) — Dependency audit + vuln scanning (absorbs deps)
-- [perf](../perf/SKILL.md) — Performance profiling and benchmarking
+- [perf](../validate/SKILL.md) — Performance profiling and benchmarking
 
 <!-- Lifecycle integration wired: 2026-03-28. See skills/evolve/SKILL.md for canonical -->

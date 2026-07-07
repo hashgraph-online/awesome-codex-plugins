@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "Codex Honcho",
     "shortDescription": "Persistent cross-session memory for Codex, powered by Honcho.",
-    "longDescription": "Give Codex long-term memory that survives context resets, session restarts, and fresh conversations. Lifecycle hooks capture each session to Honcho and inject the relevant context back at session start, so Codex remembers what you are working on, your preferences, and the decisions you have made across every project. A bundled honcho-memory skill nudges Codex to recall and save actively, and the hosted Honcho MCP server (search, chat, get_context, create_conclusion) lets it query and update memory mid-task. Conversations are queued to disk instantly and uploaded in the background, so capture never blocks your turn. Install via npm (npm install -g @honcho-ai/codex-honcho && codex-honcho install).",
+    "longDescription": "Give Codex long-term memory that survives context resets, session restarts, and fresh conversations. Lifecycle hooks capture each session to Honcho and inject the relevant context back at session start, so Codex remembers what you are working on, your preferences, and the decisions you have made across every project. A bundled honcho-memory skill nudges Codex to recall and save actively, and the hosted Honcho MCP server (search, chat, get_peer_context, create_conclusions) lets it query and update memory mid-task. Conversations are queued to disk instantly and uploaded in the background, so capture never blocks your turn. Install via npm (npm install -g @honcho-ai/codex-honcho && codex-honcho install).",
     "developerName": "Plastic Labs",
     "category": "Productivity",
     "capabilities": [
