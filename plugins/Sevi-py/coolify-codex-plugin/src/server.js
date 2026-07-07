@@ -276,15 +276,7 @@ const handlers = {
 
   async coolify_health() {
     const cfg = config({ requireToken: false });
-    let health;
-    try {
-      health = await coolifyFetch("/health", { requireToken: false });
-    } catch (error) {
-      if (error.status !== 404) {
-        throw error;
-      }
-      health = await coolifyFetch("/api/health", { requireToken: false, apiBase: cfg.rootBase });
-    }
+    const health = await coolifyHealthCheck(cfg);
     let version = null;
     if (cfg.token) {
       try {
@@ -549,6 +541,30 @@ async function coolifyFetch(path, { method = "GET", query, body, requireToken = 
     throw error;
   }
   return { status: response.status, data };
+}
+
+async function coolifyHealthCheck(cfg) {
+  const checks = [
+    { endpoint: "/health", options: { requireToken: false } },
+    { endpoint: "/health", options: { requireToken: false, apiBase: cfg.rootBase } },
+    { endpoint: "/api/health", options: { requireToken: false, apiBase: cfg.rootBase } }
+  ];
+  let fallbackError;
+  for (const check of checks) {
+    try {
+      const result = await coolifyFetch(check.endpoint, check.options);
+      return {
+        endpoint: buildUrl(check.options.apiBase || cfg.apiBase, check.endpoint).toString(),
+        ...result
+      };
+    } catch (error) {
+      if (![401, 404].includes(error.status)) {
+        throw error;
+      }
+      fallbackError = error;
+    }
+  }
+  throw fallbackError;
 }
 
 let setupSession = null;

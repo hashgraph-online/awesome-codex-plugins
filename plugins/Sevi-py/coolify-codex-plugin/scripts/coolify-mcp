@@ -4,15 +4,22 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
 PLUGIN_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd -P)
 
+node_is_compatible() {
+  "$1" -e 'const major = Number(process.versions.node.split(".")[0]); process.exit(major >= 20 ? 0 : 1);' >/dev/null 2>&1
+}
+
 find_node() {
-  if [ "${NODE:-}" ] && [ -x "${NODE:-}" ]; then
+  if [ "${NODE:-}" ] && [ -x "${NODE:-}" ] && node_is_compatible "$NODE"; then
     printf '%s\n' "$NODE"
     return 0
   fi
 
   if command -v node >/dev/null 2>&1; then
-    command -v node
-    return 0
+    candidate=$(command -v node)
+    if node_is_compatible "$candidate"; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
   fi
 
   for candidate in \
@@ -22,7 +29,7 @@ find_node() {
     "$HOME/.nvm/current/bin/node" \
     "$HOME/.volta/bin/node" \
     "$HOME/.asdf/shims/node"; do
-    if [ -x "$candidate" ]; then
+    if [ -x "$candidate" ] && node_is_compatible "$candidate"; then
       printf '%s\n' "$candidate"
       return 0
     fi
@@ -30,7 +37,7 @@ find_node() {
 
   if [ -x /bin/zsh ]; then
     candidate=$(/bin/zsh -lc 'command -v node' 2>/dev/null || true)
-    if [ "$candidate" ] && [ -x "$candidate" ]; then
+    if [ "$candidate" ] && [ -x "$candidate" ] && node_is_compatible "$candidate"; then
       printf '%s\n' "$candidate"
       return 0
     fi
