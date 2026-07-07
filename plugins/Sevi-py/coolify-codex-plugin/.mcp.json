@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "coolify": {
+      "command": "./scripts/coolify-mcp",
+      "args": [],
+      "cwd": ".",
+      "startup_timeout_sec": 30
+    }
+  }
+}

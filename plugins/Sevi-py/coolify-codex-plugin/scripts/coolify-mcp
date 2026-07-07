@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
+PLUGIN_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd -P)
+
+find_node() {
+  if [ "${NODE:-}" ] && [ -x "${NODE:-}" ]; then
+    printf '%s\n' "$NODE"
+    return 0
+  fi
+
+  if command -v node >/dev/null 2>&1; then
+    command -v node
+    return 0
+  fi
+
+  for candidate in \
+    /opt/homebrew/bin/node \
+    /usr/local/bin/node \
+    /usr/bin/node \
+    "$HOME/.nvm/current/bin/node" \
+    "$HOME/.volta/bin/node" \
+    "$HOME/.asdf/shims/node"; do
+    if [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  if [ -x /bin/zsh ]; then
+    candidate=$(/bin/zsh -lc 'command -v node' 2>/dev/null || true)
+    if [ "$candidate" ] && [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+NODE_BIN=$(find_node) || {
+  printf '%s\n' "Coolify MCP server could not find Node.js 20 or newer. Install Node.js or set NODE to the node binary path." >&2
+  exit 127
+}
+
+exec "$NODE_BIN" "$PLUGIN_DIR/src/server.js"
