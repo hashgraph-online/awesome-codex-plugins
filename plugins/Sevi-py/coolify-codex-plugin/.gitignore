@@ -1,9 +1,0 @@
-node_modules/
-.DS_Store
-.env
-.env.*
-!.env.example
-.hol-plugin-scanner-dist/
-coverage/
-dist/
-*.log

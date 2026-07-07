@@ -1050,16 +1050,6 @@
       "install_url": "https://raw.githubusercontent.com/Rothschildiuk/context-pack/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Coolify",
-      "url": "https://github.com/Sevi-py/coolify-codex-plugin",
-      "owner": "Sevi-py",
-      "repo": "coolify-codex-plugin",
-      "description": "Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/Sevi-py/coolify-codex-plugin/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Data Product Builder for dbt",
       "url": "https://github.com/entropy-data/dataproduct-builder-dbt",
       "owner": "entropy-data",
