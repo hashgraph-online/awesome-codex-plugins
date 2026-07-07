@@ -1552,7 +1552,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.",
-      "icon": "./plugins/Sevi-py/coolify-codex-plugin/assets/icon.png"
+      "icon": "./plugins/Sevi-py/coolify-codex-plugin/assets/icon.svg"
     },
     {
       "name": "dataproduct-builder-dbt",

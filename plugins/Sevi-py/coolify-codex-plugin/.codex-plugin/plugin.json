@@ -37,8 +37,8 @@
       "Create or update Coolify environment variables safely."
     ],
     "brandColor": "#8B5CF6",
-    "composerIcon": "./assets/icon.png",
-    "logo": "./assets/icon.png",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
     "screenshots": [
       "./assets/screenshot.svg"
     ]

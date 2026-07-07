@@ -291,6 +291,8 @@ function runWindowsCredentialScript(script, payload, options = {}) {
 
 function windowsCredentialScript(body) {
   return `$ErrorActionPreference = "Stop"
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;

@@ -396,33 +396,32 @@ const handlers = {
       coolifyFetch("/applications")
     ]);
     const applications = extractCollection(applicationsResult.data);
-    const histories = [];
-
-    for (const application of applications) {
+    const histories = await Promise.all(applications.map(async (application) => {
       const uuid = resourceUuid(application);
       if (!uuid) {
-        continue;
+        return null;
       }
       const endpoint = `/deployments/applications/${encodeURIComponent(uuid)}`;
       try {
         const history = await coolifyFetch(endpoint, { query });
         const deploymentCount = collectionCount(history.data);
         if (deploymentCount || args.includeEmptyApplications) {
-          histories.push({
+          return {
             application: applicationSummary(application),
             endpoint,
             deploymentCount,
             data: stripDeploymentLogs(history.data, { includeLogs })
-          });
+          };
         }
+        return null;
       } catch (error) {
-        histories.push({
+        return {
           application: applicationSummary(application),
           endpoint,
           error: summarizeError(error)
-        });
+        };
       }
-    }
+    })).then((results) => results.filter(Boolean));
 
     return toolText({
       scope: "all-applications",
@@ -787,6 +786,9 @@ function openUrl(url) {
 }
 
 function sendSetupPage(response, status, html) {
+  if (response.destroyed || response.writableEnded) {
+    return;
+  }
   response.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-store",
