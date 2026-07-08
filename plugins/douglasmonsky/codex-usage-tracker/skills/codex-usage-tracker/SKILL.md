@@ -35,6 +35,9 @@ When the user wants ideas, suggest concrete aggregate investigations:
 - Show me where caching failed.
 - Which threads are draining the most?
 - What changed recently?
+- Check whether weekly allowance behavior changed.
+- Explain why the 5-hour counter looks noisy.
+- Build strict-privacy allowance evidence I can share.
 - Find expensive calls worth opening in the investigator.
 - Check whether model or effort choice is wasting tokens.
 - Build a strict-privacy summary I can share.
@@ -61,6 +64,9 @@ Phrase the final answer as "what happened, why it likely matters, what to try ne
 - Use `usage_summary` for high-level totals by date, model, effort, cwd, thread, or session.
 - Use `usage_query` for stable JSON rows filtered by date, project, model, effort, thread, pricing status, token minimums, or Codex credit minimums.
 - Use `usage_status` for dashboard/index freshness, active/scoped/total row counts, latest refresh timestamp, and observed allowance windows.
+- Use `usage_allowance_history` normalized observed allowance snapshots when user needs rows behind weekly or 5-hour movement.
+- Use `usage_allowance_diagnostics` for evidence-graded allowance-change questions; weekly is primary, five-hour is noisy rolling-window context.
+- Use `usage_allowance_export` for strict-privacy local allowance evidence bundles intended for manual sharing.
 - Use `usage_calls` for the same aggregate Calls table rows as the React dashboard, including pagination, filters, derived pricing status, and credit confidence.
 - Use `usage_call_detail` for the aggregate Call Investigator payload for one `record_id`. Use `usage_call_context` only for explicit raw-context requests.
 - Use `usage_threads` for the same aggregate Threads table rows as the dashboard.
@@ -69,6 +75,7 @@ Phrase the final answer as "what happened, why it likely matters, what to try ne
 - Use `usage_recommendations` when the user asks what to inspect next or wants ranked action items by aggregate severity.
 - Use `usage_summary` presets `today`, `last-7-days`, `by-model`, `by-cwd`, `by-thread`, and `expensive` for common requests.
 - Use `usage_pricing_coverage` when the user asks whether costs are fully priced or which models use estimated or missing pricing.
+- Use `usage_source_coverage` when the user asks whether parser/source provenance coverage is healthy or whether the local index is ready for deeper investigation.
 - Use `session_usage` for per-call and per-turn detail for one session.
 - Use `usage_call_context` for one selected model call when the user asks to load actual logged context on demand.
 - Use `most_expensive_usage_calls` to identify high-token calls and aggregate efficiency signals.
@@ -79,3 +86,4 @@ Phrase the final answer as "what happened, why it likely matters, what to try ne
 - Use `init_usage_pricing_config` only when the user wants a manual local pricing template or override file.
 - Codex credit estimates are aggregate-only and use bundled or locally configured Codex rate-card values. Direct model matches are exact; aliases and inferred labels are marked estimated.
 - Use `init_usage_allowance_config` only when the user wants a local allowance template for manually copied 5-hour or weekly remaining usage from Codex Usage or `/status`.
+- Use allowance diagnostics for questions about limit drops, weekly allowance changes, 5-hour counter weirdness, or throttling. Prefer weekly evidence, read the `nonparametric-v1` statistical evidence fields, and explain `research_readiness.ready_for_public_claim` separately from local evidence grades.

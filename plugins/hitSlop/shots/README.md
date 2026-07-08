@@ -9,7 +9,14 @@
 
 Shots is a hosted MCP server and plugin that lets Codex, Claude Code, Cursor, OpenCode, VS Code, Windsurf, Devin, Zed, Gemini CLI, Amp, and other coding agents ship App Store screenshots in minutes from inside the app repo. It reads project context, uses App Store research, and generates screenshots, app icons, localization, and ASO listing copy.
 
-**[shots.run](https://shots.run)**
+**Start free: 3 free screenshots, no card required — [shots.run](https://shots.run)**
+
+## Quick start
+
+1. Install the plugin for your agent (see [Install](#install) below).
+2. Sign in when prompted — first use opens a browser window for OAuth.
+3. Run `/shots` and ask: "Generate App Store screenshots for my app".
+4. Review, revise, and download the results in [Shots Studio](https://shots.run).
 
 ## Demo
 
@@ -134,7 +141,7 @@ All generation happens on the Shots server. The plugin is mostly configuration a
 | Starter | $19     | $190   | 60/mo              | 3    |
 | Growth  | $59     | $590   | 240/mo             | 10   |
 
-**Cost model:** Each new screenshot uses 3 generation credits. Revisions and translations use 1 credit each. App icons use 3 credits. Icon moodboards use 5 credits. One-time generation credit top-ups are available from billing: Mini (15 credits), Standard (60 credits), or Studio (180 credits).
+**Cost model:** Each new screenshot uses 3 generation credits. Revisions use 2 credits. Translations use 1 credit per screenshot per locale. App icons use 3 credits. Icon moodboards use 5 credits. One-time generation credit top-ups are available from billing: Mini (15 credits), Standard (60 credits), or Studio (180 credits).
 
 See [shots.run/pricing](https://shots.run/pricing) for full details.
 

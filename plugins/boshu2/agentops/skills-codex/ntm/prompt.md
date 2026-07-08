@@ -1,6 +1,6 @@
 # ntm
 
-Orchestrates NTM tmux agent swarms and robot APIs. Use when spawning/sending panes, reading robot state, triaging work, locks/mail, safety, pipelines, serve, or NTM errors. Triggers: "ntm", "orchestrates ntm tmux agent swarms", "ntm skill".
+Orchestrate NTM tmux agent swarms and robot APIs — spawn/send panes, read robot state, triage, locks/mail, safety, pipelines. Single owner of swarm-tending doctrine. Triggers: "ntm", "orchestrates ntm tmux agent swarms", "ntm skill".
 
 ## Instructions
 

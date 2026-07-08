@@ -24,7 +24,7 @@
   <a href="https://hol.org/registry/plugins/agentpack%2Fagentpack"><img alt="HOL trust score" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dagentpack%252Fagentpack%26metric%3Dtrust%26style%3Dflat"></a>
   <a href="https://hol.org/registry/plugins/agentpack%2Fagentpack"><img alt="HOL security score" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dagentpack%252Fagentpack%26metric%3Dsecurity%26style%3Dflat"></a>
   <a href="https://github.com/vishal2612200/agentpack/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/vishal2612200/agentpack/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+  <a href="https://www.gnu.org/licenses/agpl-3.0.en.html"><img alt="License: AGPL v3" src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg"></a>
 </p>
 
 <p align="center">
@@ -403,4 +403,4 @@ Community behavior is covered by [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT
+GNU Affero General Public License v3.0

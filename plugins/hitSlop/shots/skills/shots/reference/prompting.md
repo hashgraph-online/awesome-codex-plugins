@@ -2,7 +2,12 @@
 
 Send a complete plain-text prompt to `generate_screenshot` in the `prompt`
 field. Use markdown-style sections when they help, but do not force a template.
-The server appends dimensions, platform constraints, and reference metadata.
+The server appends only a short manifest describing the attached reference
+images and their order; everything else in the final image prompt comes from
+your `prompt` field. The image API already renders at the exact platform
+dimensions, so do not state pixel sizes — but your prompt must carry the
+creative constraints itself: keep text comfortably inside safe margins, no
+fake store chrome or badges, and no invented ratings, claims, or proof.
 
 Each `generate_screenshot` call creates one App Store screenshot. Write the
 prompt as a creative brief for the image model, not as structured data.
@@ -480,6 +485,8 @@ quote not supplied by the user.
 ## Visual Defaults
 
 - One promise per panel.
+- Keep all readable text comfortably inside safe margins, away from canvas
+  edges.
 - Device should not stretch to fill the canvas.
 - Use real UI as the proof, not generic decorative UI.
 - Backgrounds should support the promise without overpowering the subject.

@@ -679,11 +679,14 @@ Group issues by:
 
    Cross-reference: `.claude/rules/owner-persona.md` (host-wide `owner.yaml` operator identity) and `skills/vault-sync/SKILL.md` (`type: peer-card` value in the vault-frontmatter enum). Peer cards complement `owner.yaml` with per-repo behavioural identity for the operator (USER.md) and agent (AGENT.md).
 
-   Additionally, invoke the loop-readiness probe (`scripts/lib/loop-readiness-banner.mjs`) via `checkLoopReadiness({ repoRoot })` (synchronous — no await). The helper returns `null` (silent no-op) when `.claude/loop.md` exists in the repo, when a host-wide `~/.claude/loop.md` baseline exists, or on bad input. When a non-null result is returned (`{ severity: 'warn', message }`), render `result.message` alongside the other banners:
-   - **No loop.md anywhere**: `"⚠ loop-readiness: no .claude/loop.md (repo) and no ~/.claude/loop.md (user baseline) — bare /loop uses the generic Anthropic maintenance prompt. Copy templates/_shared/loop.md via /bootstrap or add a host-wide ~/.claude/loop.md."`
-   - **Present (repo or user baseline)**: silent (no banner).
+   Additionally, invoke the loop-readiness probe (`scripts/lib/loop-readiness-banner.mjs`) via `checkLoopReadiness({ repoRoot })` (synchronous — no await; `env` defaults to `process.env`). The helper combines up to three independent silent-failure detections into a single null-or-warn result — never an array, never multiple banners:
+   - **No loop.md anywhere**: neither `.claude/loop.md` (repo) nor `~/.claude/loop.md` (user baseline) exists — bare `/loop` falls back to Anthropic's generic maintenance prompt.
+   - **`CLAUDE_CODE_DISABLE_CRON` set** (non-empty value): the cron scheduler backing `/loop` is disabled outright — fires independently of whether a loop.md file exists, so a healthy loop.md does NOT mask this finding.
+   - **loop.md > 25,000 bytes**: checked independently for the repo file and the user file — Anthropic silently truncates the loaded body past this size, so an oversized file's tail is never read even though the file "exists".
 
-   Cross-reference: `.claude/rules/loop-and-monitor.md` (when to use `/loop` vs Monitor vs Routines) and issue #633.
+   The helper returns `null` (silent no-op) only when NONE of the three conditions above are true, or on bad input. When any subset of the three findings applies, a single non-null result is returned (`{ severity: 'warn', message, repoLoopMd, userLoopMd, disableCron?, oversize? }`) whose `message` names every active finding (e.g. "no loop.md" + "DISABLE_CRON set" can co-occur in one combined message) — render `result.message` alongside the other banners. So "**Present (repo or user baseline)**: silent" from the original #633 contract now additionally requires no `CLAUDE_CODE_DISABLE_CRON` and no oversized file — a present-but-disabled-or-truncated loop.md still produces a banner.
+
+   Cross-reference: `.claude/rules/loop-and-monitor.md` (when to use `/loop` vs Monitor vs Routines) and issues #633 (original no-loop.md detection) / #767 (DISABLE_CRON + 25KB truncation detection).
 
    Additionally, invoke the instruction-budget probe (`scripts/lib/instruction-budget-guard.mjs`) via `checkInstructionBudget({ repoRoot })`. The helper returns `null` (silent no-op) when the always-on directive count is at or under the configured ceiling, or on any read failure. When a non-null result is returned (`{ severity: 'warn', message }`), render `result.message` alongside the other banners. Non-blocking. Cross-reference: `docs/audit/2026-06-20-instruction-budget-audit.md` and issue #687.
 

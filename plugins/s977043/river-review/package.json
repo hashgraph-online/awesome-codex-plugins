@@ -97,6 +97,7 @@
     "minimatch": "^10.1.1",
     "openai": "^6.45.0",
     "ora": "^9.4.1",
+    "yaml": "^2.9.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

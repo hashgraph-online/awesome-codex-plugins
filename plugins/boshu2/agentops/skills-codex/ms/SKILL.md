@@ -1,6 +1,6 @@
 ---
 name: ms
-description: meta_skill (ms) — skill-search/load engine
+description: meta_skill (ms) — the skill-search/load
 ---
 <!-- TOC: Core Insight | Quick Start | Consume (MCP) | Write/Admin (CLI) | Footguns | Concurrency | References -->
 

@@ -94,8 +94,11 @@ Feature: Plan converts dense intent into executable slices
    acceptance is invalid (AGENTS.md); promote any free text to scenarios before
    creating the bead. The `## Scenarios` block is the behavior layer and sits
    above the `acceptance_criteria` YAML (the machine-checkable layer); they are
-   complementary, never substitutes. One scenario per distinct Given/When/Then
-   behavior. Non-trivial plans and bead bodies should include the `hexagon:`
+   complementary, never substitutes. Scenario granularity (one per distinct
+   Given/When/Then behavior) and the intent → Gherkin → executed-red → bead-DAG
+   contract are owned by `$behavior-first-planning`; this step states only the
+   plan-specific mechanics, not a restatement of the discipline.
+   Non-trivial plans and bead bodies should include the `hexagon:`
    boundary block: inbound port, bounded context, adapters, context packet, and
    done state.
 9. **Compute waves.** Group independent issues by dependency. Serialize or

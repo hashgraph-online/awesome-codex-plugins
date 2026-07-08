@@ -14,11 +14,11 @@ Local-first dashboard, Codex plugin, and companion skill for understanding where
 
 > **Unofficial project:** Codex Usage Tracker is an independent open-source project. It is not made by, affiliated with, endorsed by, sponsored by, or supported by OpenAI. OpenAI and Codex are trademarks of OpenAI; this project only reads local log files from your machine.
 
-Codex Usage Tracker reads the JSONL logs already written by Codex, indexes aggregate usage counters into SQLite, and gives you a dashboard, CLI, and MCP tools for investigating real usage patterns. It keeps prompts, assistant messages, tool output, pasted secrets, and raw transcript content out of SQLite, CSV exports, and generated dashboard HTML.
+Codex Usage Tracker reads the JSONL logs already written by Codex, indexes aggregate usage counters plus local content/tool/command/file-event evidence into SQLite, and gives you a dashboard, CLI, and MCP tools for investigating real usage patterns. The content index stays on your machine; CSV exports, generated dashboard HTML, support bundles, and shareable reports omit indexed content by default. Use `refresh --aggregate-only` or `rebuild-index --aggregate-only` when you want the older aggregate-only SQLite posture.
 
 Built for developers using Codex locally who want to know which threads, models, subagents, and long chats are driving usage without uploading logs anywhere. The public PyPI package is [`codex-usage-tracking`](https://pypi.org/project/codex-usage-tracking/), and it installs the `codex-usage-tracker` command.
 
-After install, you get a localhost dashboard, a local SQLite aggregate index, CLI reports, MCP tools, and a companion Codex skill for asking questions like "what drove my usage this week?"
+After install, you get a localhost dashboard, a local SQLite usage index, CLI reports, MCP tools, and a companion Codex skill for asking questions like "what drove my usage this week?"
 
 ## Quick Install
 
@@ -45,13 +45,13 @@ Source install for development or branch testing:
 pipx install "git+https://github.com/douglasmonsky/codex-usage-tracker.git"
 ```
 
-`setup` installs or refreshes the local Codex plugin wrapper, initializes local config templates when needed, refreshes the aggregate index, runs `codex-usage-tracker doctor`, and tells you whether Codex needs a restart for plugin discovery.
+`setup` installs or refreshes the local Codex plugin wrapper, initializes local config templates when needed, refreshes the local usage index, runs `codex-usage-tracker doctor`, and tells you whether Codex needs a restart for plugin discovery.
 
 Want Codex to do it for you? Paste: `Install codex-usage-tracking with pipx, run codex-usage-tracker setup, and open the Codex Usage Tracker dashboard.`
 
 ## Talk To Your Usage Data
 
-The dashboard shows the evidence; the companion plugin and skills make it conversational. After `setup` and a Codex restart, ask Codex to refresh the local aggregate index, call MCP tools, and explain what is driving usage without exposing prompts or tool output.
+The dashboard shows the evidence; the companion plugin and skills make it conversational. After `setup` and a Codex restart, ask Codex to refresh the local usage index, call MCP tools, and explain what is driving usage. Shareable reports stay aggregate-first and omit indexed content unless an explicit local content tool/export is added for that purpose.
 
 Good starter prompts:
 
@@ -63,7 +63,7 @@ Compare model and effort usage, then suggest safer defaults.
 Open the dashboard and filter Calls to the rows behind your recommendation.
 ```
 
-The companion skill treats waste discovery as diagnosis plus remediation: it can point to Calls, Threads, Call Investigator, Diagnostics Notebook, Headroom when available, or a custom local command/skill/report preset Codex can build to stop repeating the same waste pattern.
+The companion skill treats waste discovery as diagnosis plus remediation: it can point to Calls, Threads, Call Investigator, Diagnostics Notebook, Allowance Intelligence, Headroom when available, or a custom local command/skill/report preset Codex can build to stop repeating the same waste pattern.
 
 Example conversation docs:
 
@@ -262,6 +262,7 @@ Full model: [Privacy Guide](docs/privacy.md).
 - [Dashboard Guide](docs/dashboard-guide.md)
 - [CLI Reference](docs/cli-reference.md)
 - [Pricing, Credits, And Allowance](docs/pricing-and-credits.md)
+- [Allowance Intelligence](docs/allowance-intelligence.md)
 - [MCP And Codex Skills](docs/mcp.md)
 - [Privacy Guide](docs/privacy.md)
 - [Architecture](docs/architecture.md)

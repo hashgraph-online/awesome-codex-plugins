@@ -51,6 +51,11 @@ Do not build external stall-detection or notification infra.
   cross-host dolt complex. Two-store rule: **bd/dolt is the city's substrate
   store; `br` remains the AgentOps repo tracker.** Never track agentops repo
   work in the city store or vice versa.
+- **The one-way seam across the two stores:**
+  `scripts/gc-outcomes-report.sh <city>` (agentops repo) — a READ-ONLY rollup
+  of closed work (outcomes, commits, source refs) + open work, fail-closed on
+  every unreadable/unparseable read. Paste relevant lines into a br bead note;
+  it is deliberately NOT a sync.
 
 ## Binary discipline (fork-built gc)
 
@@ -58,18 +63,22 @@ Do not build external stall-detection or notification infra.
   `auto_restart_on_drift` (default true) restarts the supervisor when the
   on-disk binary drifts from the running one.
 - **Verify the running binary carries local patches** after any rebuild.
-  Today's checks are indirect: `git -C <fork> describe` (e.g. `edge-1-g<sha>`
-  = 1 patch past the `edge` tag) tells you what the *tree* carries; `bin/gc`
-  mtime newer than the patch commit tells you the *binary* was rebuilt after
-  it; the behavioral probe (sling a trivial quest; builder spawns in
-  ~10–15 s, no CPU peg) tells you the patch is *live*. A stale binary
-  silently reintroduces the reconciler livelock — when in doubt, rebuild,
-  restart, probe. (A doctor check that asserts patch-carry directly is the
-  planned durable fix — bead age-gc-adoption-u0he.10.)
-- Fork policy: read-only managed fork, **upstream-first** — local patches stay
-  on one thin branch (`agentops-patches`-style: main + N patches), each also
-  preserved as a `.patch` in the AgentOps repo
-  (`docs/audits/gc-mvp-*/patches/`). Do not accumulate a private fork.
+  `make build` stamps the source commit into the binary via ldflags
+  (`main.commit=<sha>`), so provenance is direct: compare that stamp against
+  `git -C <fork> rev-parse HEAD`. `bin/gc` mtime newer than the patch commit
+  tells you the *binary* was rebuilt after it; the behavioral probe (sling a
+  trivial quest; builder spawns in ~10–15 s, no CPU peg) tells you the patch
+  is *live*. A stale binary silently reintroduces the reconciler livelock —
+  when in doubt, rebuild, restart, probe. (A doctor check that asserts the
+  commit-stamp automatically is bead age-gc-adoption-u0he.10.)
+- Fork policy (**changed 2026-07-06**): `~/dev/gascity` is Bo's **owned fork**
+  `boshu2/gascity` — `origin`=boshu2 (push), `upstream`=gastownhall. Owned
+  `patch(...)` commits ride fork `main`; sync via `make
+  fork-status/preview/sync` (never hand-rebase main); contract in the repo's
+  `FORK.md`; divergence facts in FORKS-MAP F-4. **Upstream-first still
+  holds** for generic correctness fixes — PR them to gastownhall and drop the
+  owned patch when merged. `.patch` files in `docs/audits/gc-mvp-*/patches/`
+  are belt-and-suspenders records; the fork is primary.
 
 ## Config knobs that matter (from gc's reference docs)
 

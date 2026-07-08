@@ -4,12 +4,12 @@ version = "0.3.39"
 description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "AGPL-3.0-only"}
 keywords = ["ai-coding-agents", "coding-agent", "ai-agent", "claude-code", "developer-tools", "repo-analysis", "repo-context", "context-engine", "mcp-context-engine", "context-router", "context-packing", "prompt-context", "task-focused-context", "reduce-token-usage", "local-first", "repo-map", "mcp", "ci", "codex", "cursor", "windsurf", "antigravity", "ai", "llm", "context", "packing"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",

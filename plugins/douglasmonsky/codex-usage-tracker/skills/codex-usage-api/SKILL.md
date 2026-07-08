@@ -5,15 +5,19 @@ description: Use when the user wants to discuss, investigate, compare, or explai
 
 # Codex Usage API Companion
 
-Use this companion skill as a conversational analyst for Codex Usage Tracker data. Prefer aggregate-only MCP JSON payloads, answer from evidence, and keep the user-facing output crisp instead of narrating tool discovery or local file spelunking.
+Use this companion skill as a conversational analyst for Codex Usage Tracker data. Prefer aggregate MCP JSON payloads first, answer from evidence, and keep the user-facing output crisp instead of narrating tool discovery or local file spelunking.
 
 ## Privacy Boundary
 
-Normal usage answers must use aggregate-only API data. Do not expose prompts, assistant messages, tool output, pasted secrets, or raw transcript snippets.
+Normal usage answers should start from aggregate API data. Do not expose prompts, assistant messages, tool output, pasted secrets, or raw transcript snippets.
 
 When the user plans to share JSON, CSV, dashboards, screenshots, or support bundles, prefer `privacy_mode="strict"` MCP calls or the CLI global option `--privacy-mode strict` before the subcommand. Configured project aliases are explicit display opt-ins.
 
-The only exception is `usage_call_context`, which reads one selected record's local source JSONL on demand. Use it only when the user explicitly asks to inspect actual logged context. State that returned text is local, redacted, size-limited, and not persisted by the tracker.
+Use `usage_investigation_walk(question=...)` first when user asks for broad local waste discovery; it ranks normalized pattern branches and recommends next tools. Use local pattern scans (`usage_repetition_scan`, `usage_command_loop_scan`, `usage_file_churn_scan`, `usage_context_bloat_scan`) when user asks for recurring waste, command loops, repeated file churn, or context bloat. Use `usage_repeated_file_rediscovery(...)` when user asks which files are rediscovered or reread repeatedly; it ranks safe path hashes/basenames without full paths. Use `usage_shell_churn(...)` when the user asks about repeated shell probing, command loops, failing retries, or repeated sed/rg/git/nl/test/package commands. Use `usage_content_search` only when user asks local content exploration, pattern hunting, diagnostics need indexed snippets; its payload can include local transcript snippets is not default shareable report.
+
+Use `usage_large_low_output_calls(...)` when the user asks for obvious token-waste candidates, cold resumes, cache misses, stale high-context continuations, or large calls that produced little output.
+
+Use `usage_call_context` only when the user explicitly asks to inspect actual logged context for one selected record. State that returned text is local, redacted or size-limited when applicable, and not included in default shareable outputs.
 
 ## First Steps
 
@@ -31,11 +35,17 @@ The only exception is `usage_call_context`, which reads one selected record's lo
    - `usage_summary(..., response_format="json")`
    - `session_usage(..., response_format="json")`
    - `most_expensive_usage_calls(..., response_format="json")`
-   - `usage_recommendations(..., response_format="json")`
-   - `usage_pricing_coverage(..., response_format="json")`
-   - `usage_query(...)`
+- `usage_recommendations(..., response_format="json")`
+- `usage_pricing_coverage(..., response_format="json")`
+- `usage_source_coverage(..., response_format="json")`
+- `usage_content_search(...)` only for explicit local content-index exploration
+- `usage_thread_trace(...)` only for explicit local content-index thread/session timelines
+- `usage_allowance_diagnostics(..., privacy_mode="strict")`
+ - `usage_allowance_history(..., privacy_mode="strict")`
+ - `usage_allowance_export(...)`
+ - `usage_query(...)`
 7. Check the top-level `schema` field before interpreting structured output. Known schema ids are documented in `docs/cli-json-schemas.md`.
-8. If MCP tools are unavailable, fall back to CLI equivalents: `refresh --json`, `summary --json`, `query`, `session --json`, `expensive --json`, `recommendations --json`, and `pricing-coverage --json`.
+8. If MCP tools are unavailable, fall back to CLI equivalents: `refresh --json`, `summary --json`, `query`, `session --json`, `expensive --json`, `recommendations --json`, `pricing-coverage --json`, and `source-coverage --json`.
 9. If `codex-usage-tracker` is missing but you are inside the source checkout, use `PYTHONPATH=src .venv/bin/python -m codex_usage_tracker.cli <command>`. Do not use `PYTHONPATH=src` outside that checkout.
 
 ## Routing Questions To API Calls
@@ -43,6 +53,8 @@ The only exception is `usage_call_context`, which reads one selected record's lo
 - "What used most?" Use `usage_summary(group_by="thread", response_format="json")` for thread totals, then `most_expensive_usage_calls(response_format="json")` for supporting calls.
 - "Which project/thread/model is driving usage?" Use `usage_summary` grouped by `project`, `thread`, or `model`.
 - "Show/filter the calls table" Use `usage_calls(...)` with `limit`, `offset`, `search`, `since`, `model`, `effort`, `thread`, `pricing_status`, or `credit_confidence`. Report `row_count`, `total_matched_rows`, and `has_more`.
+- "Search my local usage content for X" Use `usage_content_search(query="X", limit=20)` and state snippets are local indexed content, not public-safe aggregate export.
+- "Trace this thread/session" Use `usage_thread_trace(thread=...)`, `usage_thread_trace(session_id=...)`, or seed with `usage_thread_trace(record_id=...)`; state fragments are local indexed content.
 - "Open/investigate this call" Use `usage_call_detail(record_id=...)` for the aggregate call investigator payload. Use `usage_call_context` only if the user explicitly asks for raw local context.
 - "Show threads" Use `usage_threads(...)`, sorted by token impact by default.
 - "Give me dashboard report evidence" Use `usage_report_pack(...)` for report cards and compact evidence rows. Use `usage_dashboard_recommendations(...)` when the user specifically wants the dashboard recommendation payload.
@@ -51,6 +63,7 @@ The only exception is `usage_call_context`, which reads one selected record's lo
 - "Why did usage spike?" Use `usage_recommendations(response_format="json")` for ranked causes, then `usage_query` or `usage_calls` with focused filters for supporting rows.
 - "What is unpriced or estimated?" Use `usage_pricing_coverage(response_format="json")` and `usage_query(pricing_status="unpriced")` or `usage_query(credit_confidence="estimated")`.
 - "How does this affect my allowance?" Use rows from `usage_query` or `usage_calls` and summarize `usage_credits`, `usage_credit_confidence`, and allowance annotations. Explain that remaining allowance is only as accurate as the user's local allowance config.
+- "Did my allowance change?", "Are limits lower?", "Am I being throttled?", or "Why is weekly usage weird?" Use `usage_allowance_diagnostics(window_kind="weekly", privacy_mode="strict")`. Read `change_candidates[].statistical_evidence` and `summary.research_readiness` before answering. Separate local evidence from public claims, and preserve caveats about outside usage and unofficial inference.
 - "What happened in this session?" Use `session_usage(session_id=..., response_format="json")`.
 - "What should I inspect next?" Use `usage_report_pack(...)` or `usage_recommendations(response_format="json")`, then explain the primary recommendation, secondary signals, and row scope.
 
@@ -58,7 +71,13 @@ The only exception is `usage_call_context`, which reads one selected record's lo
 
 When the user asks what they can look into, offer a short menu of concrete aggregate-only investigations rather than a generic list.
 
+- "Did my Codex allowance or limit change?" Use `usage_allowance_diagnostics(window_kind="weekly", privacy_mode="strict")`. Lead with `primary_evidence_grade`, candidate change count, weekly observation count, and caveat local logs are not OpenAI official ledger.
+- "Why does the 5-hour counter look weird?" Use `usage_allowance_diagnostics(window_kind="five_hour", privacy_mode="strict")` and explain rolling-window noise before claiming allowance changes.
+- "Can I share allowance evidence?" Use `usage_allowance_export(...)`. Do not use raw context, CSV, or non-strict reports for public sharing unless user explicitly wants local-only detail. For local content-pattern evidence, use `usage_local_evidence_export(...)` instead of raw context or content search.
+- "Compare observed usage movement against estimated credits." Use `usage_allowance_diagnostics(privacy_mode="strict")`, then `usage_allowance_history(...)` only when user needs normalized rows.
+
 - "Look through my usage for token waste." Use `usage_report_pack(...)`, then `usage_calls(sort="tokens", direction="desc", limit=10)` and call out high-token calls, low cache ratios, high context-window percent, expensive estimates, or repeated same-thread spikes.
+- "Look through turns for recurring waste patterns." Start with aggregate `usage_report_pack(...)` and `usage_calls(...)`; use `usage_content_search(...)` only if the user wants transcript-level local pattern evidence.
 - "Find calls where context got bloated." Use `usage_calls(...)` sorted by tokens or filtered to recent rows, then rank by `context_window_percent`, `input_tokens`, and low `cache_ratio`.
 - "Show me where caching failed." Use `usage_calls(...)` and `usage_report_pack(...)`; prioritize rows with high `input_tokens`, low `cached_input_tokens`, or low `cache_ratio`.
 - "Which threads are draining the most?" Use `usage_threads(limit=10)` and `usage_summary(group_by="thread", response_format="json")`; include total tokens, estimated cost or credits, and whether archived rows are excluded.
@@ -84,5 +103,6 @@ Structure recommendations as `Evidence`, `Likely waste pattern`, `Next action`, 
 - Use at most one short progress update such as "Refreshing aggregate usage, then ranking threads."
 - Name data scope, time window, project, thread, model, row count, and whether rows are truncated or paginated.
 - Separate exact facts from estimates. Call out `pricing_estimated`, missing `pricing_model`, `usage_credit_confidence`, and missing allowance windows.
+- For allowance-change answers, separate weekly evidence from 5-hour counter behavior. Name the evidence grade and say when outside usage could explain movement.
 - Include the next useful investigation when the answer depends on unclear pricing, stale allowance values, or a broad time window.
 - Keep explanations tied to aggregate fields. Do not guess conversation content.

@@ -85,7 +85,7 @@ When tasks come from bd and `scripts/bd-cluster.sh` exists, run `scripts/bd-clus
 
 ### Step 2: Pre-Spawn Conflict Check
 
-**Pre-Spawn Friction Gates:** Before spawning workers, execute all 5 friction gates (base sync, file manifest, dependency graph, misalignment breaker, wave cap). See `references/pre-spawn-friction-gates.md`.
+**Pre-Spawn Friction Gates:** Before spawning workers, execute all 5 friction gates (base sync, file manifest, dependency graph, misalignment breaker, wave cap). See `references/pre-spawn-friction-gates.md`. The wave-validity rows themselves are owned by `$crank` (its wave-start hard gate + `../crank/references/parallel-wave-isolation.md`) — swarm cites them, never restates.
 
 ```text
 wave_tasks = [tasks with status=pending and no blockers]

@@ -8,6 +8,8 @@ description: Behavior-first planning discipline — intent
 
 **YOU MUST EXECUTE THIS DISCIPLINE. Do not just describe it.**
 
+> **Contract ownership (single owner, age-skills-audit-fable-l6ic.8).** This skill **owns** the intent → Gherkin → EXECUTED-red → acceptance-gated bead-DAG contract. [`$discovery`](../discovery/SKILL.md), [`$plan`](../plan/SKILL.md) (its Gherkin Scenarios Contract), and the `bdd-foundry` workflow **cite** this skill rather than restating the discipline.
+
 ## Why this exists — the 3/10 problem
 
 Spec-first planning ships beads with no done-criteria: a title, a paragraph of "why", and nothing a machine can run to decide it is finished. The implementer then invents the bar, and "done" becomes a self-grade. **Behavior-first planning inverts the order:** define the behavior as an executable test *before* the design, so every bead is born with a runnable contract. The rule is absolute — **no runnable acceptance test, no bead.**

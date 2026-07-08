@@ -1,6 +1,6 @@
 ---
 name: beads-bv
-description: Graph-aware task triage with bv and br. Use
+description: Graph-aware task triage with bv and br —
 ---
 # beads-bv — Graph-Aware Triage
 

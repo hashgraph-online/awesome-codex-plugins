@@ -1,6 +1,6 @@
 ---
 name: domain
-description: Canonical vocabulary for human-AI software
+description: Ubiquitous language for human-AI software
 ---
 # Domain Skill — Ubiquitous Language for Human-AI Software Building
 

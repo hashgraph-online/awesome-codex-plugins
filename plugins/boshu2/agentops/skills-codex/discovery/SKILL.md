@@ -17,8 +17,7 @@ The CLI records startup once per thread and skips duplicates automatically.
 
 ## Absorbed skills (ag-s43tg)
 
-- **brainstorm** — Separate goals from implementation; clarify goals and explore the problem space before planning.
-- **design** — Validate product fit before discovery; use when framing a problem, checking product/market fit, or pressure-testing user value before writing a discovery packet or any code.
+brainstorm (goal-vs-implementation clarification) + design (product-fit pressure test) — trigger detail in the Folded-In section below.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
@@ -36,8 +35,9 @@ skills (skill-prune phase 2). Fire `$discovery` for their use-cases:
 
 - **Brainstorm — Separate goals from implementation.** Clarify goals before
   planning: separate WHAT from HOW, explore the problem space before committing
-  to a solution, and capture Given/When/Then acceptance examples. Open-ended
-  ideation (generate-winnow, `--ideate`) is the [Open-Ended Path](#open-ended-path-generate-winnow--operationalize--refine) below.
+  to a solution, and capture Given/When/Then acceptance examples. The full
+  intent → Gherkin → executed-red → bead-DAG contract is owned by
+  [`behavior-first-planning`](../behavior-first-planning/SKILL.md) — cite it when the beads must carry runnable done-criteria. Open-ended ideation (generate-winnow, `--ideate`) is the [Open-Ended Path](#open-ended-path-generate-winnow--operationalize--refine) below.
 - **Design — Validate product fit before discovery.** Use when framing a
   problem, checking product/market fit, or pressure-testing user value before
   writing a discovery packet or any code. The product-validation gate

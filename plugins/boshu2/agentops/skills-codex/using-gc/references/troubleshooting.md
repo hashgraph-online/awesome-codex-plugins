@@ -127,6 +127,36 @@ spend redo attempts on it; it's a contract bug, not a build bug.
 absent) and production paths don't emit `session.quarantined`. Known upstream
 gaps — never gate on these surfaces.
 
+## 11. Check "never runs" — no verdict files, workflow stuck after build
+
+**Symptom:** the build attempt closes but no `membrane/<quest>/` round files
+appear and nothing advances; `gc events` shows nothing (the check path emits
+ZERO events).
+
+**Diagnose:** read the ralph gate bead's `gc.attempt_log` metadata (the bead
+with `gc.kind=ralph` sharing the build step's title). An entry with
+`action=error reason=chdir …` = the check's working dir didn't resolve.
+
+**Fix:** the formula must pin `"gc.work_dir" = "."` in the step metadata
+(membrane-quest ships this since 2026-07-06); a stale formula hash on an
+old sling won't have it — re-sling. For deeper tracing set
+`GC_WORKFLOW_TRACE=<file>` in the SUPERVISOR env (the check runs in the
+supervisor process; workspace env does not reach it).
+
+## 12. agy/gemini reviewer lane dead (auth outage) — rounds DEGRADE forever
+
+**Symptom:** every round DEGRADES with `awaiting_reviewers_no_lane_output`
+or the gemini lane never writes its JSON; `agy` CLI says "authentication
+failed or timed out".
+
+**Fix (keep 2 families):** switch LANE2 to the pack's claude-family failover:
+`[workspace.env] MEMBRANE_LANE2_TARGET = "agentops-membrane.opus-verifier"` +
+`MEMBRANE_LANE2_FAMILY = "claude"`, add its `[[named_session]]`, bounce the
+supervisor. Note a long-lived agy PANE may still deliver verdicts even when
+the CLI auth is dead — check before switching. Restore agy when re-authed.
+**Attempt budget warning:** every failed round consumes an attempt
+(max_attempts=5) — don't let a dead lane burn the budget before switching.
+
 ## Escalation order when nothing above matches
 
 1. `gc doctor --json` — a failing check usually names the subsystem.
@@ -134,5 +164,7 @@ gaps — never gate on these surfaces.
 3. `gc session logs <session>` for the wedged lane.
 4. Supervisor: `ps aux | grep 'gc supervise'`, the launchd unit's plist
    (match by its GC_HOME string), `gc service restart` as the deliberate move.
-5. If it smells like an engine bug: minimal repro, then a `.patch` on the
-   fork's thin patch branch + upstream issue — never a divergent private fork.
+5. If it smells like an engine bug: minimal repro, then a `patch(...)` commit
+   on the OWNED fork's `main` (`boshu2/gascity` — FORK.md contract, fork-sync
+   discipline) + an upstream-first PR/issue for anything generic. The fork is
+   pushable since 2026-07-06; the old thin-patch-branch posture is retired.
