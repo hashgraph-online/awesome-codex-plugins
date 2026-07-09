@@ -12,10 +12,13 @@
 // CLI:  node visual-diff.mjs <reference.png> <actual.png> [--json] [--tolerance N]
 
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { deflateSync, inflateSync } from "node:zlib";
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const GRID_SIZE = 8;
+const MAX_PIXELS = 25_000_000;
+const MAX_INFLATED_BYTES = 128 * 1024 * 1024;
 
 const CRC_TABLE = (() => {
   const table = new Int32Array(256);
@@ -77,9 +80,17 @@ export function decodePng(buffer) {
   if (interlace !== 0) throw new Error("Interlaced PNG is unsupported.");
   const channels = CHANNELS_BY_COLOR_TYPE[colorType];
   if (channels === undefined) throw new Error(`Unsupported PNG color type ${colorType}.`);
+  if (width <= 0 || height <= 0) throw new Error("PNG dimensions must be positive.");
+  const pixelsCount = width * height;
+  const inflatedBytes = height * (width * channels + 1);
+  if (!Number.isSafeInteger(pixelsCount) || pixelsCount > MAX_PIXELS || inflatedBytes > MAX_INFLATED_BYTES) {
+    throw new Error(`PNG dimensions exceed safe decode limits (${width}x${height}).`);
+  }
 
   const raw = inflateSync(Buffer.concat(idat));
   const stride = width * channels;
+  if (raw.length < inflatedBytes) throw new Error("PNG image data is truncated.");
+  if (raw.length > MAX_INFLATED_BYTES) throw new Error("PNG image data exceeds safe decode limits.");
   const pixels = Buffer.alloc(height * stride);
   let prevRow = Buffer.alloc(stride);
   let src = 0;
@@ -221,7 +232,10 @@ function main(argv) {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL (not `file://${argv[1]}`): on Windows argv[1] is `C:\...` while
+// import.meta.url is `file:///C:/...`, so the string compare never matched and the
+// gate silently exited 0 — a passing evidence artifact for an unchecked render.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     main(process.argv.slice(2));
   } catch (error) {

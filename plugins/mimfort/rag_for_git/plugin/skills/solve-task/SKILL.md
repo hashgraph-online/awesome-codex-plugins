@@ -37,9 +37,11 @@ brief to `superpowers:brainstorming` (which leads to writing-plans → subagent-
       what is missing and the command to fix it. **Fail-open** — never abort; continue on the
       stale/unknown index.
    3. **Warm the task corpus.** Call
-      `sync_board(board=<task_board.project or null>, board_type=<task_board.type or null>, limit=null, purge_orphaned=false)` —
-      `task_board.type` и `task_board.project` берутся из `<root>/.review.yml` (прочитай здесь,
-      до вызова `sync_board`; при отсутствии файла или блока `task_board` — используй `null`).
+      `sync_board(board=<task_board.project or null>, board_type=<task_board.type or null>,
+      status_field=<task_board.status_field or null>, limit=null, purge_orphaned=false)` —
+      `task_board.type`, `task_board.project` и `task_board.status_field` берутся из
+      `<root>/.review.yml` (прочитай здесь, до вызова `sync_board`; при отсутствии файла или
+      блока `task_board` — используй `null`).
       Скоупированный прогрев корпуса своего проекта (PRI-170); пустой project → весь корпус.
       Incremental (timestamp watermark), cheap when the corpus is warm. Board not configured or
       `status=error` → print the `TASK_BOARD_*` hint and continue board-less.
@@ -70,6 +72,33 @@ brief to `superpowers:brainstorming` (which leads to writing-plans → subagent-
    is configured once in the reviewer deploy (`TASK_BOARD_*` env). If a board is resolved, its tools
    are `mcp__<task_board.mcp>__*`. No block anywhere (`get_board_config()` → `null`), or the board MCP
    is not connected → board-less mode (continue without it).
+
+1.5. **Choose the brief model (cross-CLI).** Building the brief (Steps 2–4: gather + distill) is a
+   light reasoning task over session-less retrieval tools — a top-tier model is overkill and burns
+   tokens. **If auto permission mode is active, silently choose the mid tier (Sonnet-class)** and
+   continue without asking the user. Otherwise, **Ask the user which model tier to use for building the brief**, phrasing the choice by **tier (cheap / mid / premium)** — not by concrete model names — so it works across CLIs (Claude Code, Codex, Gemini, Cursor, …). **Recommend a mid tier (Sonnet-class) as the default** (do not recommend Fable — a coarse tier is fine but the brief still needs sound judgment). Talk to the user in Russian. Remember the choice for this run. Fail-open: no answer, a decline, or inability to detect auto mode → use the default tier (or, on Path B below, the session model inline). Never block.
+
+**Brief-building unit (Steps 2–4) runs on the chosen model.** Steps 2–4 (identify → gather → distill
+→ persist) are non-interactive; run them on the model chosen in Step 1.5:
+- **Path A — per-subagent model override available:** **dispatch a subagent on the chosen model** to
+  execute Steps 2–4, giving it the reviewer session-less tools (`get_task`, `search_codebase`,
+  `get_subsystem_summaries`, `get_task_context`, `search_tasks`, the graph tools, `get_pr_diff`) plus
+  the harness `Read`/`Bash`/`Glob`/`Write` (to persist the brief). The subagent returns the brief file
+  path and a short summary (kept / dropped).
+- **Path B — per-subagent model override unavailable** (some CLIs): build the brief **inline** on the
+  session model, or offer the escape-hatch «switch model / run it yourself» in the spirit of the
+  preflight «Прогрею сам» option (Step 0.4). Note in the report that the brief was built inline.
+- **Existing-artifacts warn** (Step 4, user-facing «warn, don't block»): the **orchestrator** runs
+  that scan-and-warn **before dispatch** (a subagent must not prompt the user). It derives the task
+  KEY itself — the same `$ARGUMENTS`-vs-`key_pattern` regex match Step 2 opens with (no `get_task`
+  needed) — so the KEY-based artifact globs run pre-dispatch. When Steps 2–4 run in a subagent, the
+  Step 4 warn is thus **orchestrator-only**; only the idempotency overwrite-glob stays inside the
+  subagent's persist.
+- After the unit returns, the orchestrator **appends a marker line to the brief**:
+  `Собран на: <tier/модель>, режим: subagent | inline` — records which model built the brief. The
+  `brief_cost` token block is best-effort and may miss subagent sidechain tokens (documented limitation).
+- Fail-open: an error or empty return from the subagent → the orchestrator finishes the brief inline
+  on the session model. Model choice must never break the pipeline.
 
 2. **Identify the task.**
    - If `$ARGUMENTS` matches the board's `key_pattern`:

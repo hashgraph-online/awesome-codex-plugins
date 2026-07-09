@@ -3,7 +3,7 @@
 Clean-room distillation of the broadly accepted SKILL.md best practices
 (Anthropic Agent Skills guidance and the wider community consensus), restated in
 AgentOps's own words and cross-walked to what AgentOps tooling *actually*
-enforces. This is the doctrine layer behind `skill-builder`, `skill-auditor`,
+enforces. This is the doctrine layer behind `skill-builder`, the heal-skill deep audit,
 and `heal-skill` — read it before authoring or absorbing a skill.
 
 This file contains only AgentOps-owned summaries and rules. It does not copy any
@@ -49,7 +49,7 @@ Write descriptions that are:
 - **Specific.** Name the artifact and the domain, not "helps with skills".
 - **Trigger-bearing.** Include the phrases a user or agent would actually say.
 
-`skill-auditor` accepts a trigger in any of three forms; satisfy at least one:
+The deep audit (`heal-skill/scripts/audit.sh`) accepts a trigger in any of three forms; satisfy at least one:
 
 - **Block scalar** — `description: |` with `**Use when:**` / `**Triggers:**`
   lines inside the folded value.
@@ -65,7 +65,7 @@ python3 skills/skill-builder/scripts/scan_descriptions.py skills --strict   # ex
 python3 skills/skill-builder/scripts/scan_descriptions.py skills --json     # robot mode
 ```
 
-The scanner applies the exact detection logic of `skill-auditor/scripts/audit.sh`,
+The scanner applies the exact detection logic of `heal-skill/scripts/audit.sh`,
 so its verdict never contradicts the per-skill auditor; it adds the prioritized
 remediation list and a suggested `Triggers:` stub the auditor does not provide.
 
@@ -83,7 +83,7 @@ skills consistent with the existing corpus rather than introducing gerunds.
   (`SKILL.md -> a.md -> b.md`); the runtime may partial-read a deep file.
 - Reference files over ~100 lines should open with a short table of contents.
 - A SKILL.md over ~250 lines must externalize the overflow into `references/`.
-  `skill-auditor` warns (`references-modularization`) above 400 lines with no
+  the deep audit warns (`references-modularization`) above 400 lines with no
   `references/` directory.
 - Distinguish **execute** from **read** when pointing at a script: "Run
   `python scripts/x.py`" versus "See `scripts/x.py` for the algorithm".

@@ -32,6 +32,14 @@
 
 <div align="center">
 
+<p><strong>🚀 实测推荐:</strong> <a href="https://teamorouter.com/?i=e188641773">TeamoRouter</a> —— 非广告，我自己在 Codex、Claude Code 等 AI 编程工具里高强度使用：一个 API Key 接入 Claude、GPT-5.5 等，模型价格方便调整，价格优惠，并没有掺水的情况。接入指南见 <a href="https://github.com/xixiaoyao/openrouter-api-key">openrouter-api-key</a>。</p>
+
+</div>
+
+<br/>
+
+<div align="center">
+
 <a href="https://doloffer.com">
   <img src="docs/assets/doloffer-banner.png" alt="DolOffer - GPT and Claude membership recharge, official subscriptions with after-sales support" width="800"/>
 </a>

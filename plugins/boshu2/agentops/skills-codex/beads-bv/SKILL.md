@@ -1,6 +1,6 @@
 ---
 name: beads-bv
-description: Graph-aware task triage with bv and br. Use
+description: Graph-aware task triage with bv and br —
 ---
 # beads-bv — Graph-Aware Triage
 
@@ -70,12 +70,12 @@ bv --robot-triage     # CORRECT — JSON output for agents
 bv --robot-triage | jq '.recommendations[0]'
 
 # 2. Claim it
-br update bd-123 --status in_progress
+BEADS_DIR="$(ao beads dir)" br update ag-123 --status in_progress
 
 # 3. Do the work...
 
 # 4. Done
-br close bd-123 --reason "Implemented in abc123"
+BEADS_DIR="$(ao beads dir)" br close ag-123 --reason "Implemented in abc123"
 
 # 5. Next
 bv --robot-triage
@@ -122,12 +122,12 @@ bv --robot-alerts --severity=critical        # Filter alerts
 ## br Essentials
 
 ```bash
-br ready --json                              # What's unblocked?
-br create "Title" -d "desc"                  # New issue
-br update bd-123 --status in_progress        # Working on this
-br close bd-123 --reason "Done"              # Done
-br dep add bd-123 bd-456                      # Add dependency
-br dep remove bd-123 bd-456                   # Break cycle
+BEADS_DIR="$(ao beads dir)" br ready --json                  # What's unblocked?
+BEADS_DIR="$(ao beads dir)" br create "Title" -d "desc"      # New issue
+BEADS_DIR="$(ao beads dir)" br update ag-123 --status in_progress   # Working on this
+BEADS_DIR="$(ao beads dir)" br close ag-123 --reason "Done"  # Done
+BEADS_DIR="$(ao beads dir)" br dep add ag-123 ag-456         # Add dependency
+BEADS_DIR="$(ao beads dir)" br dep remove ag-123 ag-456      # Break cycle
 ```
 
 ---
@@ -148,7 +148,7 @@ br dep remove bd-123 bd-456                   # Break cycle
 
 ```bash
 # Tools working?
-bv --robot-triage >/dev/null && br list >/dev/null && echo "OK"
+bv --robot-triage >/dev/null && BEADS_DIR="$(ao beads dir)" br list >/dev/null && echo "OK"
 
 # Graph healthy?
 bv --robot-insights | jq '{cycles: .Cycles, density: .density}'

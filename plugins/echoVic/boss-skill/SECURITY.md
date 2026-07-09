@@ -46,4 +46,38 @@ Of particular interest are:
 - Path traversal or unintended file writes outside the `.boss/` workspace.
 - Leakage of secrets or credentials through logs or generated artifacts.
 
+## Security-Sensitive Capabilities
+
+Boss is intentionally packaged with a minimal marketplace manifest. The Codex
+manifest declares the bundled skills only; MCP servers, app manifests, and asset
+references should be added only when the corresponding files exist and are
+reviewed. Codex hook installation is handled by `boss-skill install`, not by the
+plugin marketplace manifest.
+
+The npm package intentionally excludes local development agent settings such as
+`.claude/settings.json` and `.claude/settings.local.json`. Publishable plugin
+metadata lives under `.claude-plugin/`, `.codex-plugin/`, and
+`.agents/plugins/marketplace.json`.
+
+Release provenance lives in `.agents/plugins/provenance.json`. It records the
+repository HTTPS URL, immutable source commit SHA, publisher attribution, and
+SHA-256 digests for plugin manifests and security-sensitive components. Run
+`npm run provenance:verify` before publishing to confirm the references still
+match the bundled files.
+
+Publisher verification is completed on external registries. For the HOL
+registry, the repository owner should claim the plugin with GitHub OAuth at
+`https://hol.org/guard/plugins`.
+
+Review these surfaces before installing or publishing:
+
+- `boss-skill install` can copy the Boss skill bundle into agent configuration
+  directories and merge Boss-managed entries into `~/.codex/hooks.json`.
+- Hook entries call `boss hooks run ...`, which dispatches scripts under
+  `scripts/hooks/`.
+- Runtime plugins in `.boss/plugins/<name>/plugin.json` may register gate or
+  reporter hooks. Treat project-local plugins as executable extension points.
+- Use `BOSS_HOOK_PROFILE=minimal` or `BOSS_DISABLED_HOOKS=<ids>` to reduce hook
+  behavior in sensitive environments.
+
 Thank you for helping keep the project and its users safe.

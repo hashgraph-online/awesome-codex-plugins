@@ -316,7 +316,7 @@ is unchanged — the verdict gate only governs HOW the loop is entered (auto vs.
 ## Telemetry
 
 One record per `/autopilot` invocation, written to `.orchestrator/metrics/autopilot.jsonl`
-via atomic tmp + rename. See `docs/prd/2026-04-25-autopilot-loop.md` § Output for the
+via atomic tmp + rename. See "Autopilot Loop" (#277; archived in the private Meta-Vault) § Output for the
 full schema.
 
 Each iteration's `sessions.jsonl` entry gets an additional optional field
@@ -394,7 +394,7 @@ Controls whether `autopilot --multi-story` creates a per-story git worktree befo
 
 ## References
 
-- PRD: `docs/prd/2026-04-25-autopilot-loop.md`
+- PRD: "Autopilot Loop" (#277; archived in the private Meta-Vault)
 - Implementation (Phase C-1 + C-1.b): `scripts/lib/autopilot.mjs` — exports `runLoop`, `parseFlags`, `writeAutopilotJsonl`, `KILL_SWITCHES`, `FLAG_BOUNDS`, `SCHEMA_VERSION`, `DEFAULT_PEER_ABORT_THRESHOLD`, `DEFAULT_JSONL_PATH`, `DEFAULT_CARRYOVER_THRESHOLD`
 - Tests (Phase C-1 + C-1.b): `tests/lib/autopilot.test.mjs`
 - Command file: `commands/autopilot.md`
@@ -406,8 +406,8 @@ Controls whether `autopilot --multi-story` creates a per-story git worktree befo
 - Pre-loop verdict gate (#682): `scripts/lib/autonomy/suitability.mjs` (`computeSuitabilityVerdict`) · `scripts/lib/config/dispatcher-autonomy.mjs` (`resolveDispatcherAutonomy`) · `scripts/lib/autopilot/recent-runs.mjs` (`readRecentAutopilotRuns`) · `skills/dispatcher/SKILL.md § Phase 1.5`
 - Epic: [#271 v3.2 Autopilot — Autonomous Session Orchestration](https://github.com/Kanevry/session-orchestrator/issues/271)
 - Issues: [#277 Phase C scaffold](https://github.com/Kanevry/session-orchestrator/issues/277), [#295 Phase C-1 runtime](https://github.com/Kanevry/session-orchestrator/issues/295), [#300 Phase C-1.b follow-up](https://github.com/Kanevry/session-orchestrator/issues/300)
-- Phase A PRD: `docs/prd/2026-04-24-state-md-recommendations-contract.md`
-- Phase B PRD: `docs/prd/2026-04-25-mode-selector.md`
+- Phase A PRD: "STATE.md Recommendations Contract" (#271; archived in the private Meta-Vault)
+- Phase B PRD: "Mode Selector" (#276; archived in the private Meta-Vault)
 
 ## Open Questions (Phase C-1 to resolve)
 

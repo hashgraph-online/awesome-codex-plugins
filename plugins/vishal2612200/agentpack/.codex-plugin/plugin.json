@@ -1,6 +1,6 @@
 {
   "name": "agentpack",
-  "version": "0.3.34",
+  "version": "0.3.39",
   "description": "Thin Codex plugin for AgentPack ranked repo context.",
   "author": {
     "name": "AgentPack",
@@ -19,8 +19,8 @@
   "interface": {
     "displayName": "AgentPack",
     "shortDescription": "Start Codex with ranked repo context.",
-    "composerIcon": "./assets/icon.svg",
-    "logo": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
     "screenshots": [
       "./assets/route-demo.svg"
     ],

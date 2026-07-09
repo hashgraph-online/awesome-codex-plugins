@@ -10,7 +10,7 @@ check "SKILL.md has YAML frontmatter" "head -1 '$SKILL_DIR/SKILL.md' | grep -q '
 check "SKILL.md has name: implement" "grep -q '^name: implement' '$SKILL_DIR/SKILL.md'"
 check "references/ directory exists" "[ -d '$SKILL_DIR/references' ]"
 check "references/ has at least 2 files" "[ \$(ls '$SKILL_DIR/references/' | wc -l) -ge 2 ]"
-check "SKILL.md mentions bd for issue tracking" "grep -q 'bd ' '$SKILL_DIR/SKILL.md'"
+check "SKILL.md mentions br for issue tracking" "grep -q 'br ' '$SKILL_DIR/SKILL.md'"
 check "SKILL.md mentions beads" "grep -qi 'beads' '$SKILL_DIR/SKILL.md'"
 check "SKILL.md mentions \$validate for closeout" "grep -q '[$]validate' '$SKILL_DIR/SKILL.md'"
 check "SKILL.md mentions Explore agent" "grep -qi 'explore' '$SKILL_DIR/SKILL.md'"

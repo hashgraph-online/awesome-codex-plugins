@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dev Image to Code"
+  short_description: "Turn UI screenshots into verified code"
+  default_prompt: "Use $dev-image-to-code to build code from this UI image and design size."

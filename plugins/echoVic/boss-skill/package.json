@@ -1,10 +1,11 @@
 {
   "name": "@blade-ai/boss-skill",
-  "version": "3.9.7",
+  "version": "3.10.1",
   "description": "BMAD Harness Engineer — pluggable pipeline skill for coding agents. Compatible with Claude Code, OpenClaw, Codex & Antigravity. Auto-detect install.",
   "author": {
     "name": "echoVic",
-    "email": "137844255@qq.com"
+    "email": "137844255@qq.com",
+    "url": "https://github.com/echoVic"
   },
   "license": "MIT",
   "homepage": "https://github.com/echoVic/boss-skill",
@@ -34,12 +35,14 @@
     "automation"
   ],
   "files": [
+    "assets/",
+    "boss-skill-promo.png",
     "packages/boss-cli/dist/",
     "packages/boss-cli/assets/",
     "packages/boss-cli/src/runtime/schema/",
     "skill/",
     "scripts/",
-    ".claude/",
+    ".agents/",
     ".claude-plugin/",
     ".codex-plugin/",
     "DESIGN.md"
@@ -63,6 +66,8 @@
     "evals": "bash test/evals/run-evals.sh",
     "evals:release": "bash test/evals/run-evals.sh --release",
     "test:watch": "vitest",
+    "provenance:generate": "node scripts/provenance.js generate",
+    "provenance:verify": "node scripts/provenance.js verify",
     "release": "node scripts/release.js",
     "prepublishOnly": "npm run build && node packages/boss-cli/dist/bin/boss.js --version"
   },

@@ -208,6 +208,10 @@ must_rules:
     enforcement:
       type: rule
       target: R011
+  - must: "When object storage is required and Sealos can satisfy it, create `ObjectStorageBucket` and inject Sealos object-storage secrets; managed Sealos toggles such as `use_sealos_objectstorage` may control the `ObjectStorageBucket` branch; external S3/object-storage credential inputs require `metadata.annotations.docker-to-sealos.external-object-storage-source` evidence, and must not coexist with `ObjectStorageBucket`."
+    enforcement:
+      type: rule
+      target: R047
   - must: "Non-database sensitive values/inputs use direct `env[].value`."
     enforcement:
       type: manual
@@ -248,6 +252,10 @@ must_rules:
     enforcement:
       type: rule
       target: R027
+  - must: "Database client images may be used in app `initContainers` and init/migration/bootstrap Jobs for readiness and bootstrap gates."
+    enforcement:
+      type: rule
+      target: R039
   - must: "For application-specific database compatibility, include an initContainer or startup gate that idempotently creates or repairs required views, aliases, indexes, extensions, privileges, role search paths, and legacy compatibility objects before the business container starts."
     enforcement:
       type: manual

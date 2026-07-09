@@ -1,6 +1,6 @@
 {
   "name": "armorcodex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ArmorIQ intent-based security enforcement for Codex: Bash command guardrails with intent verification, optional CSRG cryptographic proofs, and audit logging. Codex hooks currently fire for Bash, apply_patch, and MCP tool calls; non-Bash file/web activity may need supplemental controls. See CODEX_HARNESS_LIMITATIONS.md.",
   "author": {
     "name": "ArmorIQ",
@@ -27,7 +27,10 @@
     "longDescription": "ArmorIQ intent-based security enforcement for OpenAI Codex. Treat as a strong Bash guardrail and audit layer, not a complete boundary for every Codex capability. Codex hooks currently emit Bash, apply_patch, and MCP tool calls. ArmorCodex provides plan registration through MCP, intent-plan matching, permission gating, and post-run audit on those tools. Non-Bash activity (file edits, web search, app connectors) is gated where Codex emits hook events.",
     "developerName": "ArmorIQ",
     "category": "Security",
-    "capabilities": ["MCP", "Hooks"],
+    "capabilities": [
+      "MCP",
+      "Hooks"
+    ],
     "websiteURL": "https://armoriq.ai",
     "privacyPolicyURL": "https://armoriq.ai/privacy-policy",
     "termsOfServiceURL": "https://armoriq.ai/terms-of-service",

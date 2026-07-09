@@ -5,164 +5,141 @@ description: "Use when the user explicitly asks to clean, compact, prune, trim, 
 
 # Wingman Memory Clean
 
-## Core Rule
+Clean Wingman memory only when the user explicitly asks. Preserve the ownership model while reducing default-read noise and conflicts.
 
-Clean Wingman memory only when the user explicitly asks. Optimize for future token cost, current-rule accuracy, and safe promotion of long-lived knowledge out of hot context:
+## Ownership Model
 
-- Keep default-read memory focused: `brief.md`, `context.md`.
-- Keep current rules non-conflicting: `brief.md`, relevant `domains/`.
-- Promote durable knowledge from `context.md` into `domains/`, `brief.md`, or `history/` before compacting old logs.
-- Leave cold history event bodies alone unless the user explicitly asks about history cleanup.
-- Delete logs only after a separate manual confirmation.
+```text
+brief.md / domains/ = current projection, current binding truth bodies
+history/events/     = event log, historical event bodies
+history indexes     = projection indexes for historical lookup
+context.md          = hot cache, active work state and short pointers
+```
 
-Do not clean memory just because it exists, is old, or history is large. This is not routine sync, full-memory rewriting, or automatic deletion.
+Cleanups should move memory toward one owning body per durable item:
+
+- current rule body lives in `brief.md` or `domains/`;
+- historical event body lives in `history/events/`;
+- historical lookup entry lives in projection indexes;
+- hot state or short pointer lives in `context.md`.
 
 ## Repository Gate
 
-1. Check whether `.wingman/memory/` exists.
-2. Check whether `.wingman/memory/brief.md` and `.wingman/memory/context.md` both exist.
-3. If missing, stop and report the repository memory state.
-4. When helpful, inspect file size or line count only as diagnostics before reading large files. Size alone is not a cleanup trigger.
-5. Read `brief.md` and `context.md` first.
-6. Read domain or history files only when the requested cleanup scope points to them.
+1. Check `.wingman/memory/`.
+2. Check `.wingman/memory/brief.md` and `.wingman/memory/context.md`.
+3. If core files are missing, stop and report repository memory state.
+4. Read `brief.md` and `context.md` first.
+5. Read domain or history files only when the requested cleanup scope points to them.
 
 Never scan all memory files by default.
 
-## Optional Resources
-
-- Run `scripts/memory-stats.sh` when heading layout, file size, or candidate discovery is unclear. The script is read-only and does not replace semantic judgment.
-- Read `examples/lossless-compaction.md` only when compacting current rules, ADRs, domain truths, or evidence-bearing logs.
-- Read `examples/deletion-proposals.md` only when preparing a deletion proposal.
-
-Do not read examples or run scripts by default. If the script cannot run in the current environment, fall back to file-size or line-count checks and read headings manually.
-
 ## Scope Selection
 
-Use the smallest scope that matches the user's request:
+Use the smallest scope that matches the request:
 
 | Scope | Read | Use When |
 | --- | --- | --- |
-| `context` | `context.md` | Recent logs are duplicated, stale, noisy, pointer candidates, or no longer hot. |
-| `promotion` | `context.md`, `brief.md`, relevant domains/history projections | Context contains long-lived knowledge that should become current truth or history. |
-| `brief` | `brief.md` | ADRs, registry, memory settings, or global rules are bloated, stale, or conflicting. |
-| `domain` | One relevant domain file | A current rule changed, conflicts, or was duplicated. |
-| `domain-split` | `brief.md`, one broad domain file | A domain file mixes unrelated subdomains and should become a folder domain. |
-| `history-index` | Relevant history projection only | History indexes are bloated or copy event bodies. |
-| `history-topic-index` | Relevant history projections and event metadata | History exists but feature lookup needs topic projections. |
-| `delete-proposal` | Target files only | The user asks to delete logs or remove noise. |
+| `context` | `context.md`, relevant current truth/history if linked | Context contains stale hot state, verbose old logs, or duplicate bodies. |
+| `current-truth` | `brief.md`, relevant domains | Current rules are duplicated, stale, conflicting, missing identity, or missing relations. |
+| `history-index` | relevant projections | History projections are bloated, missing useful routing, or copying event bodies. |
+| `history-event` | named event bodies only | User explicitly asks to inspect or edit specific history events. |
+| `migration` | target old context logs plus needed destinations | Old context logs need conversion into current truth, history, or pointers. |
+| `delete-proposal` | target files only | User asks to delete logs or remove noise. |
 
-If unclear, choose `context` unless the user mentioned rules, domains, ADRs, or history.
+If unclear, choose `context` unless the user mentions current rules, domains, Project Decisions, or history.
 
-## Cleanup Candidate Check
+## Candidate Types
 
 Clean only when at least one concrete candidate exists:
 
-- **Promotion candidate**: `context.md` contains durable rules, API contracts, field meanings, state flow, permissions, money rules, routing rules, product or business invariants, or recurring debugging conclusions that should become current truth or history.
-- **Pointer candidate**: content in `context.md` is already represented by `brief.md`, `domains/`, or `history/events/` and can be compacted to a precise pointer.
-- **Duplicate or correction candidate**: logs repeat the same task, or an older log was corrected by a later log.
-- **Default-read noise candidate**: completed, low-reuse process logs obscure current work, pending work, or high-signal context.
-- **Current-rule conflict**: two rules are marked current, or a replaced rule is not marked `superseded` or `deprecated`.
-- **History-topic candidate**: history events exist but feature-time lookup needs `history/topics/<topic>.md`.
-- The user explicitly identifies content to clean.
+- `COMPACT_TO_POINTER`: context has details already owned by current truth or history.
+- `PROMOTE_CURRENT_TRUTH`: context contains a durable rule future agents must obey.
+- `PROMOTE_HISTORY`: context contains a durable change narrative or reasoning event.
+- `PROMOTE_BOTH`: context contains both current rule and historical explanation.
+- `SUPERSEDE`: an old current rule was replaced and should become `superseded` or `deprecated`.
+- `REPAIR_RELATION`: same-subject entries need `updates`, `extends`, or conflict resolution.
+- `REPAIR_INDEX`: history projection should be link-only or needs a domain/topic route.
+- `DELETE_CANDIDATE`: duplicate, obsolete, sensitive, or safely represented elsewhere.
+- `NO_ACTION`: cleanup cost or ambiguity exceeds benefit.
 
-Do not clean solely because `context.md`, `brief.md`, or any other memory file exceeds a fixed line count. File size and line count are diagnostics only. If a file is long but has no safe promotion, compaction, pointer, deletion, conflict, or topic-index candidate, write nothing and explain that no worthwhile cleanup candidate was found.
+File size and line count are diagnostics only. They are not cleanup triggers by themselves.
 
 ## Retention Review
 
-Before classifying a candidate, judge what would be lost if it were compacted or removed:
+Before changing a candidate, decide what would be lost:
 
-| Signal | Ask | Cleanup Implication |
-| --- | --- | --- |
-| Authority | Is it current truth, an accepted ADR, hot context, or history? | Current truth and accepted ADRs require exact preservation or explicit supersession. |
-| Currentness | Is it still valid, partially replaced, or fully replaced? | Replaced current rules become `SUPERSEDE`, not deletion. |
-| Evidence value | Is it the only source explaining a rule, decision, bug, or invariant? | If yes, keep the evidence or preserve a precise pointer before compacting. |
-| Future relevance | Is a future task likely to need this fact, constraint, failure mode, or file pointer? | High relevance favors `KEEP` or lossless `COMPACT`. |
-| Token cost | Does the text spend many default-read tokens on repeated wording or process detail? | High cost supports compaction only after core meaning is protected. |
-| Sensitivity risk | Does it contain secrets, credentials, private data, or unsafe content? | Treat as `DELETE_CANDIDATE` or redaction candidate, still gated by confirmation when deleting. |
+- Is it current truth, hot state, or history?
+- Is it still valid, replaced, or obsolete?
+- Is it the only evidence explaining a current rule?
+- Is a future task likely to need the rule, reason, failure mode, or pointer?
+- Can the same meaning be recovered from a current truth ID or history event link?
 
-If the review is ambiguous, prefer `NO_ACTION` or a deletion proposal over irreversible cleanup.
+If uncertain, prefer `NO_ACTION` or a deletion proposal over irreversible cleanup.
 
-## Classification
+## Valid Actions
 
-Classify before changing anything:
+### Compact Context
 
-| Label | Meaning | Action |
-| --- | --- | --- |
-| `KEEP_HOT` | Still needed as active task, pending work, unresolved issue, or recent high-signal context. | Preserve in context. |
-| `PROMOTE_DOMAIN` | Long-lived current truth belongs in a domain file or project ADR. | Write current truth with evidence, then compact context to a pointer when safe. |
-| `PROMOTE_HISTORY` | Event has trace value but is not current truth. | Write history event and projections, then compact context to a pointer when safe. |
-| `PROMOTE_BOTH` | Current truth and historical source event are both needed. | Write current truth first, write history event/projections, then compact context to a pointer. |
-| `COMPACT_TO_POINTER` | Useful details are already preserved in current truth or history. | Replace verbose context with a precise pointer. |
-| `SUPERSEDE` | Old current rule replaced by a newer rule. | Mark `superseded` or `deprecated`; do not delete. |
-| `DELETE_CANDIDATE` | Duplicate, corrected, noisy, sensitive, or safely represented elsewhere. | Propose deletion; wait for confirmation. |
-| `NO_ACTION` | Cleanup cost or ambiguity exceeds benefit. | Leave unchanged. |
+Replace verbose context with a short pointer only after the durable meaning is preserved elsewhere.
 
-For A -> B requirement changes: make B the only `current` rule, mark A as `superseded` or `deprecated`, do not delete old history just because the decision changed, and do not summarize A and B into a vague combined rule.
+Valid pointer shape:
 
-## Deletion Hard Gate
+```md
+- <one-line state>; current truth: `<id/path or None>`; event: `<path or None>`; next: <immediate action/blocker or None>.
+```
 
-Never delete without explicit user confirmation after showing a proposal. Never delete:
+Preserve pending tasks, active blockers, and unresolved current work.
+
+### Promote Current Truth
+
+Write durable rules to `brief.md` or relevant `domains/` when future agents must obey them. Include stable `ID`, `Subject`, `Status`, `Rule`, `Applies When`, `Evidence`, `Confidence`, `Relation`, `Since`, and `History`.
+
+### Promote History
+
+Write historical events under `history/events/YYYY/MM/` when the old context contains durable rule evolution, old-to-new meaning, important correction, migration, incident, regression fix, or user-requested historical memory. Update only needed projections.
+
+### Repair Current Rules
+
+For A -> B requirement changes, make B the only `current` rule for overlapping scope, mark A as `superseded` or `deprecated`, and link with `updates <old-id>`.
+
+If both rules remain valid, link with `extends`. If they conflict and evidence does not settle the winner, stop and ask.
+
+### Repair History Projections
+
+Projection indexes should contain short summaries and links only. Remove copied event bodies from indexes only when the event body remains linked.
+
+### Delete
+
+Never delete without explicit user confirmation after showing a proposal with exact IDs, paths, reasons, preserved locations, and risks.
+
+Do not delete:
 
 - pending tasks;
 - current work;
 - unresolved bugs;
-- accepted ADRs;
+- current Project Decisions;
 - current domain truths;
 - user-protected notes;
 - the only evidence explaining a current rule;
-- history event bodies, unless the user explicitly asked to delete those specific history records.
+- history event bodies, unless the user explicitly asked to delete those specific records.
 
-Logs may be deletion candidates only when they are:
+## Optional Resources
 
-- duplicate logs with no unique useful content;
-- typo-only, formatting-only, rename-only, or trivial local-change logs;
-- failed attempts with no reusable lesson;
-- same-task logs corrected by a later entry;
-- obsolete context already preserved in `brief.md`, `domains/`, or `history/`;
-- sensitive or unsafe content that should not remain in memory.
+- Run `scripts/memory-stats.sh` when heading layout, file size, or candidate discovery is unclear. The script is read-only.
+- Read `examples/lossless-compaction.md` when compaction safety is unclear.
+- Read `examples/deletion-proposals.md` when preparing a deletion proposal.
 
-## Manual Deletion Confirmation
-
-Before deletion, present exact proposal IDs with path, reason, preserved location, and risk. Read `examples/deletion-proposals.md` when preparing the proposal.
-
-Valid confirmation must name exact current proposal IDs. Vague delegation, silence, or approval of compaction is not deletion approval. If the proposal changes, ask again.
-
-## Compaction Rules
-
-- `context.md`: preserve pending tasks, current work, recent high-signal logs, and useful facts. Prefer short pointers to domain truth or history events. Do not turn uncertain logs into durable rules.
-- `brief.md`: preserve Memory Settings, current ADR meaning, and Domain Registry routing. Remove repeated explanations only when behavior remains clear.
-- Domain files: keep current truths explicit, mark replaced rules `superseded` or `deprecated`, and do not merge semantically different rules.
-- History indexes: keep projections as links. Remove copied event bodies only if the body remains linked. Do not rewrite event bodies unless explicitly requested.
-- Promotion cleanup: when evidence is clear, write durable rules to `domains/` or ADRs to `brief.md`; write historical events under `history/events/YYYY/MM/` and update `history/domains/`, `history/topics/`, `history/months/`, and `history/index.md`; then compact context to a pointer.
-- Topic indexes: when history exists but feature lookup is weak, create or update `history/topics/<topic>.md` using stable, generic topic names.
-
-Compaction must be lossless for decision-critical meaning. A compacted entry must still preserve, when present:
-
-- the exact current rule, canonical field, contract, invariant, or status transition;
-- why the rule exists or the evidence pointer that explains it;
-- where it applies and any important exceptions;
-- current status: `current | superseded | deprecated`;
-- replacement or supersession links;
-- pending action, owner, blocker, or next step;
-- source file, domain, history event, or date pointer needed to recover detail.
-
-Do not replace a specific rule with a vague summary. Read `examples/lossless-compaction.md` when the safe compacted shape is unclear.
+Do not read examples or run scripts by default.
 
 ## Workflow
 
 1. Apply Repository Gate.
-2. Select the smallest cleanup scope and read only files needed for it.
-3. Run Cleanup Candidate Check.
-4. Run Retention Review for each candidate.
+2. Select the smallest cleanup scope.
+3. Identify concrete candidates.
+4. Run Retention Review.
 5. Classify candidates.
-6. Apply safe, evidence-backed `PROMOTE_DOMAIN`, `PROMOTE_HISTORY`, `PROMOTE_BOTH`, `COMPACT_TO_POINTER`, and `SUPERSEDE` changes when meaning is preserved.
-7. For `DELETE_CANDIDATE`, present a deletion proposal and wait.
-8. Delete only explicitly confirmed IDs.
-9. Report files read, files changed, promotions, pointer compactions, superseded rules, topic indexes, proposed deletions, and confirmed deletions.
-10. If nothing changed, report the blocking reason or that no worthwhile cleanup candidate was found.
+6. Apply safe `COMPACT_TO_POINTER`, `PROMOTE_CURRENT_TRUTH`, `PROMOTE_HISTORY`, `PROMOTE_BOTH`, `SUPERSEDE`, `REPAIR_RELATION`, and `REPAIR_INDEX` changes.
+7. For `DELETE_CANDIDATE`, present a proposal and wait for explicit confirmation.
+8. Report files read, files changed, compactions, promotions, superseded rules, repaired indexes, and proposed or confirmed deletions.
 
-## Completion Rule
-
-Do not say memory was cleaned if no file changed.
-
-If only a deletion proposal was produced, say cleanup is pending confirmation.
+Do not say memory was cleaned if no file changed. If only a deletion proposal was produced, say cleanup is pending confirmation.

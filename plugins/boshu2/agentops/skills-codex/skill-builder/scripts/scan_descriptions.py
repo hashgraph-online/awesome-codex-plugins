@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Corpus-wide skill description trigger scanner.
 
-The per-skill `skill-auditor` runs `description-has-triggers` / `trigger-clarity`
+The per-skill deep audit (heal-skill audit mode) runs `description-has-triggers` / `trigger-clarity`
 as WARN checks, so a missing trigger phrase never blocks a merge and the gap
 accumulates silently across the corpus. This scanner is the corpus-wide
 companion: it walks every `skills/*/SKILL.md`, applies the *same* three-form
-trigger detection as `skill-auditor/scripts/audit.sh`, scores each description,
+trigger detection as `heal-skill/scripts/audit.sh`, scores each description,
 and emits a prioritized remediation list with a suggested `Triggers:` stub for
 each skill that lacks one.
 
@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Phrases that count as an explicit trigger marker, mirroring the regex in
-# skill-auditor/scripts/audit.sh (Form b). Keep these in sync with the auditor.
+# heal-skill/scripts/audit.sh (Form b). Keep these in sync with the auditor.
 TRIGGER_MARKERS = (
     "**Use when:",
     "**Triggers:",
@@ -323,7 +323,7 @@ def detect_trigger(text: str, frontmatter: str) -> list[str]:
 
 
 def score_trigger(description: str) -> int:
-    """Score 0-3, mirroring skill-auditor/scripts/score_agentops_skill.py."""
+    """Score 0-3, mirroring heal-skill/scripts/score_agentops_skill.py."""
     signals = sum(
         marker.lower().strip("*").rstrip(":") in description.lower()
         for marker in ("Use when", "Triggers", "Perfect for")

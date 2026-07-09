@@ -74,12 +74,18 @@ Extract the `reconcile` block from `$CONFIG`:
 RULE_EXPIRY_DAYS=$(echo "$CONFIG" | jq -r '.reconcile["rule-expiry-days"] // empty')
 CONFIDENCE_FLOOR=$(echo "$CONFIG" | jq -r '.reconcile["confidence-floor"] // 0.5')
 RECONCILE_MODE=$(echo "$CONFIG"   | jq -r '.reconcile.mode // "warn"')
+MIN_RULE_DAYS=$(echo "$CONFIG"    | jq -r '.reconcile["min-rule-days"] // 7')
+MIN_INSIGHT_CHARS=$(echo "$CONFIG" | jq -r '.reconcile["min-insight-chars"] // 24')
 ```
 
 When `RULE_EXPIRY_DAYS` is empty, pass `ruleExpiryDays: undefined` to `runReconcile` so the engine uses its per-type TTL. Defaults when the `reconcile` block is absent or a field is missing:
 - `rule-expiry-days`: empty → per-type TTL (`deriveExpiresAt`, default 60d). Preserves FA2 behaviour; matches the `null` resolver default.
 - `confidence-floor`: 0.5
 - `mode`: warn (enum `off` | `warn`)
+- `min-rule-days`: 7 — floor window (days) applied to a proposed rule's `expires-at` so a
+  near-dead or already-elapsed natural expiry never produces a born-dead rule (issue #741.1).
+- `min-insight-chars`: 24 — opt-in minimum insight length gating the eligibility
+  placeholder-insight check (issue #741.2).
 
 Note: `reconcile.enabled` is intentionally NOT checked — this on-demand command always runs.
 
@@ -111,6 +117,8 @@ import { runReconcile } from '$PLUGIN_ROOT/scripts/lib/reconcile/engine.mjs';
 const { proposals, rejected, summary, error } = await runReconcile({
   repoRoot,             // absolute path from git rev-parse --show-toplevel
   ruleExpiryDays: RULE_EXPIRY_DAYS,   // empty → undefined → engine per-type TTL
+  minRuleDays: MIN_RULE_DAYS,         // default 7 — floors a near-dead expires-at
+  minInsightChars: MIN_INSIGHT_CHARS, // default 24 — opt-in placeholder-insight length gate
   now: new Date(),
   dryRun: DRY_RUN,     // true → engine touches no disk (no idempotency sidecar write)
 });
@@ -299,8 +307,9 @@ If `written === 0` and `approved.length === 0`:
   silently swallow failures.
 - **ALWAYS** present proposals in batches of ≤4 via AUQ multiSelect — mirrors session-end
   3.6.3 / 3.6.8 and keeps the operator prompt readable.
-- **ALWAYS** honour `confidence-floor` and `rule-expiry-days` from Session Config `reconcile`
-  block — the engine reads these, but the skill must pass them explicitly.
+- **ALWAYS** honour `confidence-floor`, `rule-expiry-days`, `min-rule-days`, and
+  `min-insight-chars` from Session Config `reconcile` block — the engine reads these, but
+  the skill must pass them explicitly.
 
 ## Anti-Patterns
 

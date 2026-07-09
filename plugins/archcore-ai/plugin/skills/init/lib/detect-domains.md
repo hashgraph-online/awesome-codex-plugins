@@ -88,3 +88,9 @@ These tags enable `/archcore:context` to scope queries to a specific domain.
 | `title` | `Top-level domain map` |
 | `status` | `accepted` |
 | `tags` | `['top-level-map', 'architecture']` + `domain:<slug>` per selected domain |
+
+The domain table lists **every detected domain**, never only the ones selected in
+the Step A.0 dialog or the ones that got a data-model doc (`detect-data-model.md`
+now seeds a data-model per schema-bearing domain, independent of selection) — a
+domain without a schema or without a hotspot spec still gets its row here, so it
+stays visible instead of silently disappearing from the seed.

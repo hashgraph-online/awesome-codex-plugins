@@ -27,7 +27,7 @@
   "interface": {
     "displayName": "Ophis",
     "shortDescription": "Onchain swaps via the hosted Ophis MCP server: MEV-protected, gasless, keyless.",
-    "longDescription": "Ophis gives a Codex agent onchain token swaps across 11 EVM chains through the hosted Ophis MCP server (12 tools) plus the ophis-swap workflow skill. Swaps are MEV-protected, gasless for the trader, keyless, and non-custodial: the server builds an unsigned order, the agent signs it, and the receiver is pinned to the signer. Built on CoW Protocol. This is Ophis the DEX (ophis.fi), not njayp/ophis, an unrelated Go MCP library.",
+    "longDescription": "Ophis gives a Codex agent onchain token swaps across 12 EVM chains through the hosted Ophis MCP server (12 tools) plus the ophis-swap workflow skill. Swaps are MEV-protected, gasless for the trader, keyless, and non-custodial: the server builds an unsigned order, the agent signs it, and the receiver is pinned to the signer. Built on CoW Protocol. This is Ophis the DEX (ophis.fi), not njayp/ophis, an unrelated Go MCP library.",
     "developerName": "Ophis",
     "category": "Tools & Integrations",
     "websiteURL": "https://ophis.fi",

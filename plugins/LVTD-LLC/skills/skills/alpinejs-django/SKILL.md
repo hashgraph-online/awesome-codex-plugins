@@ -1,6 +1,6 @@
 ---
 name: alpinejs-django
-description: Use when adding, changing, or debugging Alpine.js behavior in this Django SaaS Starter project, especially in Django templates that may also use HTMX partial updates.
+description: Use when adding, changing, or debugging Alpine.js behavior in Django-rendered templates, especially when Alpine.js coexists with HTMX partial updates.
 license: MIT
 compatibility: Codex, Claude Code, and other Agent Skills-compatible clients.
 metadata:
@@ -18,26 +18,26 @@ preview interactions, and client-only toggles. Use Django views/forms/models as
 the source of truth for durable state. Use HTMX when the server needs to return
 fresh HTML.
 
-## Project setup
+## Setup checks
 
-- Alpine is installed from npm and copied by `scripts/copy-vendor-assets.mjs`
-  to `frontend/static/vendors/js/alpine.min.js`.
-- `base_app.html` and `base_landing.html` load HTMX first, Alpine second, and
-  `frontend/static/js/app.js` third.
-- The loaded Alpine file is the self-starting CDN build. Do not call
-  `Alpine.start()` from `frontend/src/js/app.js`.
+- Identify how the project loads Alpine. Prefer the existing static asset or
+  bundling pipeline as the source of truth.
+- Find the base template, layout, or bundled entrypoint that loads HTMX,
+  Alpine, and app JavaScript. Preserve the current ordering unless changing
+  initialization deliberately.
+- Determine whether the loaded Alpine file is self-starting or module-based. Do
+  not call `Alpine.start()` when the project already loads a self-starting
+  Alpine build. If using a module build, register components and start Alpine
+  from the owning entrypoint.
 - Simple Alpine behavior should usually live inline in the Django template with
   `x-data`.
 - If a reusable component or store is worth extracting, register it before
-  Alpine starts. With the current script order, `frontend/src/js/app.js` runs too
-  late for reliable `document.addEventListener("alpine:init", ...)`
-  registration unless the script order is changed.
-- When reusable Alpine registration is needed, add a dedicated classic script
-  such as `frontend/src/js/alpine-components.js`, register components/stores
-  inside `document.addEventListener("alpine:init", ...)`, and include the copied
-  `frontend/static/js/alpine-components.js` before `vendors/js/alpine.min.js` in
-  both base templates. Keep `app.js` after Alpine, keep the self-starting Alpine
-  build, and still do not call `Alpine.start()` manually.
+  Alpine starts. Check the existing script order before relying on
+  `document.addEventListener("alpine:init", ...)` from an app-wide script.
+- When reusable Alpine registration is needed, add or reuse a script or
+  entrypoint that runs before Alpine starts. Register components and stores
+  inside `document.addEventListener("alpine:init", ...)`, include the file
+  through the project's normal asset path, and avoid double-starting Alpine.
 
 ## Ownership rules
 
@@ -45,8 +45,8 @@ fresh HTML.
   HTML.
 - HTMX owns server round trips and DOM swaps.
 - Alpine owns ephemeral state already present in the browser.
-- Plain modules in `frontend/src/js/` own shared DOM behavior that is not
-  naturally scoped to one Alpine component.
+- Plain JavaScript modules or bundled entrypoints own shared DOM behavior that
+  is not naturally scoped to one Alpine component.
 - Do not duplicate the same behavior in Alpine and a plain JS module.
 
 ## Template patterns
@@ -86,8 +86,8 @@ Prefer Alpine directives over manual DOM manipulation:
 - `$dispatch` for browser events between Alpine components or from Alpine to
   HTMX triggers.
 
-Use `x-cloak` for anything hidden by default. The base templates already include
-the required `[x-cloak] { display: none !important; }` CSS.
+Use `x-cloak` for anything hidden by default. Ensure the base CSS includes the
+required `[x-cloak] { display: none !important; }` rule.
 
 ## Django data
 
@@ -197,6 +197,7 @@ explicit:
 - For template-only Alpine changes, run the Django template or view tests that
   cover the page, plus `npm run lint` if JavaScript modules changed.
 - For HTMX interactions, test the full page and the partial response path.
-- For generated projects, run `npm run build` before relying on static output.
+- If the project has a frontend build step, run it before relying on static
+  output.
 - Manually verify stateful controls in light and dark mode when changing visible
   UI behavior.

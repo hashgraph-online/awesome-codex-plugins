@@ -1,6 +1,6 @@
 ---
 name: django-q2
-description: "Use when adding, changing, testing, or debugging Django Q2 background tasks, scheduled jobs, qcluster workers, Redis broker configuration, or ORM broker fallback in this generated Django SaaS app."
+description: "Use when adding, changing, testing, or debugging Django Q2 background tasks, scheduled jobs, qcluster workers, Redis broker configuration, or ORM broker fallback in Django projects."
 license: MIT
 compatibility: Codex, Claude Code, and other Agent Skills-compatible clients.
 metadata:
@@ -15,19 +15,21 @@ metadata:
 Use this before touching task enqueueing, schedules, worker deployment,
 `Q_CLUSTER`, or code imported by Django Q2 workers.
 
-## Project Defaults
+## Configuration Checks
 
 - The dependency is `django-q2`; the Python import path is `django_q`.
 - `django_q` is in `INSTALLED_APPS`; its migrations provide task result,
   schedule, and broker models.
-- `Q_CLUSTER` lives in the generated Django settings module and uses Redis
-  through `REDIS_URL` by default.
-- The worker process is `uv run --no-sync python manage.py qcluster`; the local
-  `workers` Docker Compose service and deployment `APP_PROCESS_TYPE=worker`
-  path use that command.
-- Redis also backs the default Django cache. If you remove Redis as the broker,
-  review cache, health check, Docker, deployment, and documentation references
-  separately.
+- Find `Q_CLUSTER` in the project's settings module before changing task,
+  worker, or broker behavior.
+- Confirm the configured broker. Redis is common, often through an environment
+  variable such as `REDIS_URL`; the ORM broker is useful for low-throughput or
+  Redis-free deployments.
+- Confirm the project's worker command. The base command is
+  `python manage.py qcluster`, but projects may wrap it with `uv`, Poetry,
+  Docker Compose, process managers, or platform-specific worker declarations.
+- If Redis is removed as the broker, review any Redis-dependent cache, health
+  check, Docker, deployment, and documentation references separately.
 
 ## Mental Model
 
@@ -41,8 +43,8 @@ Use this before touching task enqueueing, schedules, worker deployment,
 
 ## Adding Tasks
 
-1. Put the task function in the app that owns the behavior, usually
-   `apps/core/tasks.py` for shared product work.
+1. Put the task function in the app that owns the behavior, usually a
+   `tasks.py` module or another importable module already used by the project.
 2. Keep the function importable at module import time. Do not rely on request
    objects, local closures, or process-local state.
 3. Pass durable identifiers such as primary keys, not model instances, open
@@ -53,7 +55,6 @@ Use this before touching task enqueueing, schedules, worker deployment,
    `transaction.on_commit(...)`.
 
 ```python
-# apps/core/tasks.py
 def send_welcome_email(user_id: int) -> None:
     from django.contrib.auth import get_user_model
 
@@ -66,7 +67,7 @@ from django.db import transaction
 from django_q.tasks import async_task
 
 transaction.on_commit(
-    lambda: async_task("apps.core.tasks.send_welcome_email", user.pk)
+    lambda: async_task("myapp.tasks.send_welcome_email", user.pk)
 )
 ```
 
@@ -74,7 +75,7 @@ Use `q_options` when Django Q2 options would collide with task kwargs:
 
 ```python
 async_task(
-    "apps.core.tasks.rebuild_report",
+    "myapp.tasks.rebuild_report",
     report_id,
     q_options={"timeout": 300, "group": "reports"},
 )
@@ -101,8 +102,8 @@ Schedule.objects.get_or_create(
 
 Use `Schedule.objects.get_or_create(name=..., defaults={...})` when seeding
 schedules so repeated setup does not duplicate jobs. Cron schedules require the
-optional `croniter` dependency; do not use `Schedule.CRON` unless the generated
-project includes it.
+optional `croniter` dependency; do not use `Schedule.CRON` unless the project
+includes it.
 
 Missed schedules catch up by default. Set `Q_CLUSTER["catch_up"] = False` when
 a job should run once after downtime instead of replaying every missed interval.
@@ -111,7 +112,7 @@ a job should run once after downtime instead of replaying every missed interval.
 
 ### Redis Broker
 
-This template should normally use Redis:
+Use Redis when the project already depends on it for workers or deployment:
 
 ```python
 Q_CLUSTER = {
@@ -122,11 +123,11 @@ Q_CLUSTER = {
 }
 ```
 
-Redis is fast and matches local Docker, deployment workers, and the default
-cache configuration. The default Redis broker does not support delivery
-receipts. If a worker host dies catastrophically while executing a task, the
-in-flight package can be lost; if task code raises, Django Q2 records a
-failure. Use idempotent task design, explicit retries in task code where
+Redis is fast and usually fits projects that already run Redis for cache,
+Docker, or deployment workers. The default Redis broker does not support
+delivery receipts. If a worker host dies catastrophically while executing a
+task, the in-flight package can be lost; if task code raises, Django Q2 records
+a failure. Use idempotent task design, explicit retries in task code where
 needed, and monitoring for failures.
 
 ### ORM Broker
@@ -163,12 +164,12 @@ When switching to ORM:
 
 - Test task business logic by calling the function directly.
 - Test enqueueing with synchronous mode:
-  - per call: `async_task("apps.core.tasks.fn", arg, sync=True)`
+  - per call: `async_task("myapp.tasks.fn", arg, sync=True)`
   - per test: override `Q_CLUSTER["sync"] = True`
 - For worker/broker integration, run
-  `uv run --no-sync python manage.py qcluster` in a separate process and wait
-  for `result(task_id, 200)` or a similar bounded wait; do not rely on
-  arbitrary sleeps.
+  the project's `qcluster` command in a separate process and wait for
+  `result(task_id, 200)` or a similar bounded wait; do not rely on arbitrary
+  sleeps.
 - Use `pytest.mark.django_db(transaction=True)` when a real worker process must
   observe committed database rows.
 

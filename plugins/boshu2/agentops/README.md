@@ -123,6 +123,6 @@ When the labs ship their own version of this, your `.agents/` folder comes with 
 
 ---
 
-[What 3.0 is](docs/3.0.md) · [vs hosted code review](docs/comparisons/vs-hosted-code-review.md) · [docs index](docs/documentation-index.md) · [newcomer guide](docs/newcomer-guide.md) · [architecture](docs/ARCHITECTURE.md) · [FAQ](docs/FAQ.md) · built on the [12-factor doctrine](https://12factoragentops.com).
+[What 3.0 is](docs/3.0.md) · [vs hosted code review](docs/comparisons/vs-hosted-code-review.md) · [docs index](docs/documentation-index.md) · [newcomer guide](docs/newcomer-guide.md) · [architecture](docs/ARCHITECTURE.md) · [FAQ](docs/FAQ.md) · [upgrading / removed commands](docs/MIGRATION.md) · built on the [12-factor doctrine](https://12factoragentops.com).
 
 Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (agents: read [AGENTS.md](AGENTS.md), track work with `br`). License: Apache-2.0.

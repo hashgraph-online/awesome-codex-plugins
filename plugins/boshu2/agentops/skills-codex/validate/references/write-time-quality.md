@@ -41,7 +41,7 @@ Agent edits file.go
 ### What to Warn (Non-Blocking)
 - **Lint violations**: Show inline, let agent fix
 - **Debug logging**: Flag `fmt.Println`, `console.log`, `print(` in non-test files
-- **TODO comments**: Flag, suggest `br create` instead
+- **TODO comments**: Flag, suggest `ao beads exec create` instead
 
 ### What to Block (Exit 2)
 - **Linter config edits**: `.golangci.yml`, `.eslintrc`, `ruff.toml`, `pyproject.toml` lint sections

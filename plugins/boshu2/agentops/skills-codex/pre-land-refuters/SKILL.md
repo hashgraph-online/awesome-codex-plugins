@@ -229,7 +229,7 @@ parallel → fix findings forward → land → re-sweep pins.
 
 - [validate](../validate/SKILL.md) — verdict contract the panel reports in
 - [codex-exec](../codex-exec/SKILL.md) — the codex refuter lane, and the inverse direction (Codex asks Fable; the codex-approval bridge is folded into codex-exec)
-- [red-team](../red-team/SKILL.md) — adversarial probing of docs/plans (pre-work); this skill is pre-land
+- [red-team](../validate/SKILL.md) — adversarial probing of docs/plans (pre-work); this skill is pre-land
 - [rpi](../rpi/SKILL.md) — invokes this panel at the merge-to-main pawl **regardless of complexity** (rpi:154); complexity scales the panel's DEPTH (full council vs 2-judge minimum), never exempts the gate
 - [pre-mortem](../pre-mortem/SKILL.md) — plan-time twin (move 4); this skill is the landing twin (move 6 exit)
 - [post-mortem](../post-mortem/SKILL.md) — consumes the council artifact as landing evidence (move 7)

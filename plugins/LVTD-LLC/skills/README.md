@@ -17,6 +17,12 @@ points the agent at the smallest useful set of skills.
   jobs, `fastmcp-django` for MCP servers inside Django apps, and the
   `django-test-*` skills when test suites need profiling, faster data setup,
   parallelism, or CI optimization.
+- **Framework-neutral htmx work**: use `htmx-foundations` for architecture and
+  first workflows, `htmx-endpoint-design` for request/fragment contracts,
+  `htmx-recipes` for common interaction patterns, `htmx-security` for XSS,
+  CSP, CSRF, and sanitization, `htmx-realtime` for polling/SSE/WebSockets,
+  `htmx-interactivity` for Alpine.js or `_hyperscript` coordination, and
+  `htmx-js-api` for imperative htmx integrations.
 - **Developer documentation**: use `developer-docs-technical-research` before
   writing from incomplete product facts, `developer-docs-planning` and
   `developer-docs-drafting` for doc plans and pages, `saas-documentation` for
@@ -65,6 +71,9 @@ Skill areas:
 
 - **Django**: server-rendered UI, HTMX, Alpine.js, background jobs, MCP servers,
   and Django test-suite optimization.
+- **htmx**: foundations, endpoint contracts, common interaction recipes,
+  local interactivity coordination, JavaScript API integration, realtime
+  transports, and security hardening for server-driven web apps.
 - **Developer documentation**: audience research, technical research, planning,
   drafting, editing, code samples, visuals, SaaS docs, Agile integration,
   platform selection, feedback triage, metrics, information architecture,

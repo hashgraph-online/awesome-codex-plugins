@@ -8,8 +8,6 @@ description: Produce PASS/WARN/FAIL verdicts for
 
 > **Role:** validator. Input = artifact (plan, spec, code, PR, fitness gate). Output = `verdict.v1` (PASS / WARN / FAIL with rationale + findings).
 
-> **Status (2026-05-08):** introduced ADDITIVE in Phase 1 (m6v5.D.1 / soc-78s2v). Existing validators (councilvibe/pre-mortem/red-team/review/eval-outcomes plus retired pr-validate and validation lanes) stayed until Phase 2 shim conversion (m6v5.D.2). Fix-C smoke (`soc-wb2aa`) gates Phase 2.
-
 `$validate` is a driving adapter for the `validate_acceptance` port in the
 [Intent-to-Loop Hexagon](../../docs/architecture/intent-to-loop-hexagon.md).
 When the artifact contains a `hexagon:` block, preserve the bounded context,
@@ -18,26 +16,26 @@ When the artifact claims DONE/closed/green, apply the
 [Completion-Claim Kernel](../shared/validation-contract.md#completion-claim-kernel)
 before returning PASS.
 
-**A verdict is re-plan evidence, not just a retry trigger.** Under `$rpi`, a
-FAIL/WARN (and its findings) surfaces UP to the orchestrator's
-[Agile Re-Plan Loop](../rpi/SKILL.md#agile-re-plan-loop-the-anti-waterfall-rule):
-the *remaining* waves may be refactored, inserted, dropped, or reordered in
-response — not only the failed objective re-cranked. Under `--auto` that pivot is
-autonomous. Looping a failed objective forever without asking whether the plan
-should change is the waterfall anti-pattern.
+**A verdict is re-plan evidence, not just a retry trigger.** A FAIL/WARN (and its
+findings) surfaces UP to the [operating loop](../../docs/architecture/operating-loop.md):
+the *remaining* moves may be refactored, inserted, dropped, or reordered in response
+— not only the failed objective re-run. `$rpi` is one turn's executor over that loop,
+not an autonomous `--auto` re-planner (the old rpi CLI command surface was removed in f61c5f0e7 — historical).
+Looping a failed objective forever without asking whether the plan should change is
+the waterfall anti-pattern.
 
 ## Modes (≤8 per Fix-F mode-flag budget)
 
-| Mode | Purpose | Replaces (post-Phase 2) |
+| Mode | Purpose | Replaces / absorbs |
 |---|---|---|
 | (default) | 2-judge multi-judge consensus on any artifact | `$council` default |
 | `--quick` | Inline single-agent structured review | `$council --quick` |
 | `--deep` | 4-judge thorough review | `$council --deep` |
 | `--mixed` | Cross-vendor (Claude + Codex), N×2 judges | `$council --mixed` |
-| `--debate` | Adversarial 2-round refinement | `$council --debate`, `$red-team` |
-| `--mode=post-impl` | Code-readiness pipeline (complexity → bug-hunt → council) | `vibe` |
-| `--mode=pre-impl [--target=X]` | Plan/spec validation; target ∈ {scenario,fitness,ratchet,scope,skill,health} | `$pre-mortem`, `$eval-outcomes`, `$goals measure`, `$flywheel`, `$scope`, `$skill-auditor`, `ao doctor` |
-| `--mode=pr` | PR-shape verdict (diff review + acceptance check) | `$review` |
+| `--debate` | Adversarial 2-round refinement | `$council --debate`; `/red-team` (absorbed 2026-07-07) |
+| `--mode=post-impl` | Code-readiness pipeline (complexity → bug-hunt → council) | `vibe` (absorbed) |
+| `--mode=pre-impl [--target=X]` | Plan/spec validation; target ∈ {scenario,fitness,ratchet,scope,skill,health} | `$pre-mortem`, `$goals measure`, `$scope`, `$heal-skill` (deep audit), `ao doctor`; `/eval-outcomes` + `/flywheel` (absorbed 2026-07-07) |
+| `--mode=pr` | PR-shape verdict (diff review + acceptance check) | `/review` (absorbed 2026-07-07) |
 
 **Mode-budget assertion:** 8 modes. Adding a 9th requires demoting an existing one OR refusing the addition (per Fix-F § continuous CI gate).
 
@@ -57,7 +55,7 @@ here so no capability is lost:
   self-grade that is stamped as *waived, not independently validated*. Apply the
   [Completion-Claim Kernel](../shared/validation-contract.md#completion-claim-kernel)
   before accepting any DONE/closed/green claim. For epic-scope close-out this mode may
-  delegate to `vibe`, `$post-mortem`, and `$forge` rather than inlining them.
+  delegate to `vibe`, `$post-mortem`, and `/curate --mode=forge` rather than inlining them.
 - **`--mode=pr` (was the pr-validate lane) — submission-readiness checks.** In addition to the
   diff/acceptance verdict, run, in order: (1) **upstream alignment FIRST** (BLOCKING —
   `git rev-list --count HEAD..origin/main`; fail if many commits behind or merge would
@@ -122,9 +120,20 @@ For `--mode=pre-impl`, also load:
 
 For `--mode=post-impl`, run pre-checks:
 - complexity audit (radon for python, gocyclo for go)
-- bug-hunt sweep (skill-body convention; no `$review` skill needed)
+- bug-hunt sweep (skill-body convention; no `/review` skill needed)
 
 For `--mode=pr`, fetch the PR diff (`gh pr diff <id>` or path).
+
+> **LIVE-PATH — where this judge orchestration is operative, and where the pawl is.**
+> Steps 3–7 (spawn backend → run judges → write the `.agents/council/` verdict) are the live path
+> for **PRE-work and non-merge validation**: plans, specs, artifacts, fitness gates, mid-arc
+> completion checks, and the `--mode=pre-impl` / `post-impl` / `pr` verdicts. **At the merge-to-main
+> door this orchestration is NOT the operative machinery** — that door is driven by the pawl scripts:
+> `scripts/pawl-review.sh` runs the cross-family refuter and, on CONFIRMED, `scripts/pawl-verdict.sh`
+> writes the commit-bound verdict the pre-push gate enforces (see [`$push`](../push/SKILL.md) and
+> [`pre-land-refuters`](../pre-land-refuters/SKILL.md)). Use this skill to validate the WORK; use the
+> pawl to certify the LANDING — they compose, not compete. The judge machinery below is retained for
+> that pre-work / non-merge scope, not deleted.
 
 ### Step 3: Determine spawn backend
 
@@ -231,11 +240,11 @@ For `--mode=pre-impl` reusable findings: append to `.agents/findings/registry.js
 | `--target` | What gets graded | Replaces |
 |---|---|---|
 | (default) | Plan/spec for an upcoming `$implement` | `$pre-mortem` |
-| scenario | Holdout scenario gate | `$eval-outcomes` |
+| scenario | Holdout scenario gate | `/eval-outcomes` |
 | fitness | GOALS.md fitness gates | `$goals measure`, `ao goals measure` |
-| ratchet | Brownian Ratchet checkpoint | `$flywheel`, `ao ratchet status` |
+| ratchet | Brownian Ratchet checkpoint | `/flywheel`, `ao ratchet status` |
 | scope | Frozen-dirs declaration | `$scope` |
-| skill | SKILL.md hygiene + audit | `$skill-auditor`, `$heal-skill` (audit half) |
+| skill | SKILL.md hygiene + audit | `$heal-skill` (heal.sh hygiene + audit.sh deep audit) |
 | health | Repo health probe | `ao doctor` |
 
 Each target has its own inline check rubric until Phase 2 extraction.
@@ -288,6 +297,16 @@ evidence.
 Before dispatching a validator, register intent on the bead graph (update status,
 assign actor). **Two parallel validators on the same bead produce a dedup incident,
 not a cross-family quorum.** Check for an existing actor before spawning.
+
+### Judge lanes carry an explicit write-scope clamp (2026-07-02, showcase kernel R2)
+
+Every judge brief states, verbatim: **"READ-ONLY except writing your single verdict
+file at `<path>`. Do NOT commit, push, or run tracker/infra ops (git push, br/bd,
+dolt)."** The clamp is role-scoped, not model-scoped — crank workers legitimately
+hold broad write scopes; judges re-measure, they never mutate. Proven live: an
+unclamped codex acceptance judge pushed the feature branch unprompted and attempted
+`bd dolt push` twice mid-judgment. A judge that mutates while judging can corrupt
+the artifact under judgment or preempt the pawl.
 
 ### Judges re-measure; they do not read (card 8)
 

@@ -73,7 +73,7 @@ has a one-line justification naming both factors.
 Write the ranked candidate list (see Output Specification), each with a
 suggested next step. Hand the list to `$automation-shape-routing` for the
 shape decision; durable candidates worth tracking become bead candidates via
-`$beads-workflow`. The miner stops there.
+`$beads-br`. The miner stops there.
 
 ## Modes
 
@@ -136,7 +136,7 @@ keepers as bead candidates.
 
 - [automation-shape-routing](../automation-shape-routing/SKILL.md) — downstream consumer; decides the shape of each candidate
 - [cass](../cass/SKILL.md) — the session-archaeology source
-- [beads-workflow](../beads-workflow/SKILL.md) — lands accepted candidates on the tracker
+- [beads-br](../beads-br/SKILL.md) — lands accepted candidates on the tracker
 
 ## Reference Documents
 

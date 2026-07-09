@@ -13,7 +13,7 @@ ao codex ensure-start 2>/dev/null || true
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
-**CLI dependencies:** ao (knowledge injection — optional). If ao is unavailable, skip prior knowledge search and proceed with direct codebase exploration.
+**CLI dependencies:** ao (knowledge retrieval via `ao lookup` — optional). If ao is unavailable, skip prior knowledge search and proceed with direct codebase exploration.
 
 ## Flags
 
@@ -32,7 +32,7 @@ mkdir -p .agents/research
 
 ### Step 2: Check Prior Art
 
-**First, search and inject existing knowledge (if ao available):**
+**First, retrieve existing knowledge with `ao lookup` (if ao available):**
 
 ```bash
 # Pull relevant prior knowledge for this topic
@@ -380,3 +380,4 @@ For onboarding-style research ("what does this do?", new repo orientation), foll
 - [../shared/references/ralph-loop-contract.md](../shared/references/ralph-loop-contract.md)
 - [references/codebase-archaeology.md](references/codebase-archaeology.md) — Systematic codebase exploration for onboarding
 - [references/software-research.md](references/software-research.md) — Research tools via source code, GitHub, and web
+- [references/structural-graph-navigation.md](references/structural-graph-navigation.md) — graphify Tier 1b recipe + the REQUIRED vocab-expansion step

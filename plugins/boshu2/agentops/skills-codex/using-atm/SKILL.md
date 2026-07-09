@@ -81,45 +81,14 @@ prefer re-cutting the write-set to a sole-writer surface over a shared lease.)
    agent with the AgentOps skills installed, so `rpi`, `evolve`, `$validate`,
    etc. resolve in-pane.
 3. **The bead queue is the work source.** A lead (operator or a lead pane) runs
-   `br ready`, picks the next bead, and dispatches it to a free worker pane.
+   `ao beads exec ready`, picks the next bead, and dispatches it to a free worker pane.
 4. **Green CI is the merge gate.** Each worker drives its bead to a green PR from
    a per-bead worktree (orchestrator-merge model); the operator stays *on* the
    loop (intent + stop), not *in* it (per-PR approval).
 
-### Fresh Claude/Codex Peer Duels
+### Fresh Claude/Codex peer duels
 
-When the operator asks for "a fresh Claude and Codex", "fresh peer models", a
-"duel", or a cross-family opinion, the default substrate is **ATM panes**, not
-headless one-shot CLIs. Spawn exactly the requested model families, give both
-the same bounded prompt, verify engagement, collect pane output, and kill the
-temporary session when done. Do **not** use `claude -p` / `claude --print` for
-this shape; use an interactive Claude pane. Use headless `codex exec` only when
-the operator explicitly asks for headless execution or there is no pane/TUI
-requirement.
-
-Minimal bounded pattern:
-
-```bash
-atm spawn agentops --label navi-duel --no-user --cc=1:opus --cod=1:gpt-5.5 \
-  --no-cass-context --ready-timeout=2m --json
-
-# Claude pane: direct prompt is fine.
-atm send agentops--navi-duel --pane=1 --file prompt.md \
-  --no-cass-check --force-non-interactive --json
-
-# Codex pane: use the goal lifecycle and prove engagement.
-atm codex preflight --session agentops--navi-duel --pane 2 --json
-atm send agentops--navi-duel --pane=2 --codex-goal --file prompt.md \
-  --no-cass-check --force-non-interactive --json
-atm codex wait-goal-engaged --session agentops--navi-duel --pane 2 --json
-
-# After collecting outputs, do not leave idle duel panes around.
-atm kill agentops--navi-duel --json
-```
-
-If the requested model alias resolves to a nearby available runtime (for
-example `opus` resolving to the installed Opus build), report the actual pane
-model in the closeout instead of silently claiming the requested alias.
+A cross-family duel ("a fresh Claude and Codex") runs on **ATM panes**, not headless CLIs (never `claude -p`). Bounded spawn → send (codex via `--codex-goal`) → prove-engaged → collect → `atm kill` recipe: [`references/pane-mechanics.md`](references/pane-mechanics.md).
 
 ## Quick start
 
@@ -157,134 +126,26 @@ Scheduled cadence (e.g. a nightly `evolve` pass) is driven by host-OS timing (a
 systemd user timer or cron) that runs `atm send … "$evolve --auto"`, or by a
 managed-agent driver — **not** an AgentOps daemon.
 
-## Tending the swarm (operator loop)
+## Tending, continuity, and observing — doctrine owned by `ntm`
 
-Run one tick at a time; take the first action whose trigger fires:
+Tending doctrine (nudge/restart/stop/converged, meter-LIES, two-tick) is owned by the ntm skill — see [`../ntm/SKILL.md`](../ntm/SKILL.md); the extracts here are ATM-specific deltas only.
 
-- **A peer says `ACTION NEEDED`, `Hey! Listen!`, `merge gate`,
-  `unblock-condition`, or asks for a verdict/dry-run before merge/close** →
-  interrupt broad watching and answer that gate first. Run the named verifier,
-  then surface the result in a channel the peer can read. If Agent Mail reads are
-  degraded, use a bead note, PR comment, or raw tmux relay with `C-m` plus
-  capture evidence. A mail send alone is not proof the peer was answered.
-- **A pane is rate-limited or auth-expired** → rotate the account / relaunch the
-  pane, then re-send its in-flight bead. Do not let a dead pane look idle.
-- **A pane is wedged** (no output, not at a prompt) → nudge it once; if still
-  wedged, kill + relaunch and re-dispatch its bead.
-- **A pane is context-saturated** (forgetting earlier instructions, repeating
-  itself) → have it write a handoff, then relaunch fresh and re-dispatch.
-- **A worker finished its bead** (PR merged, bead closed) → dispatch the next
-  `br ready` bead to it.
-- **Many review beads open, few closing** → flip the swarm to review-only and
-  drain the backlog before taking new feature work.
-- **Otherwise** → observe; do not nudge a healthy working pane.
+- [`references/tending-loop.md`](references/tending-loop.md) — operator loop (renewal tick, first-trigger-wins action ladder), convergence/shutdown, and the single-writer / merged-before-close close discipline (gate cp-hxp6).
+- [`references/continuity-and-meter.md`](references/continuity-and-meter.md) — renewal-tick + two-tick stall rule (`.agents/continuity/state.json`) and **the meter LIES**: the `atm codex preflight` / `wait-goal-engaged`, `atm save`, `ps` CPU% read paths that beat the frozen context-% / `atm activity` signals.
 
-> **The wedged-vs-working judgment depends entirely on reading the pane CORRECTLY — see below. The `atm` meter lies.**
+## Raw tmux key injection (last resort)
 
-## Observing lanes (the meter LIES)
-
-Hard-won 2026-06-15: an operator nearly **respawned healthy working lanes** because
-the status signals were misread. Discipline:
-
-1. **`atm status` context-% and `atm activity` are UNRELIABLE for codex panes.** They
-   freeze around ~4K/256K and show `WAITING`/`available` while the codex lane is
-   actively, correctly working. **Never conclude a lane is wedged from the meter or
-   `atm activity` alone** — that's how you kill a working lane.
-2. **To actually SEE pane content: `atm save <session>`** → writes per-pane dumps to
-   `./outputs/<session>_<pane>_<timestamp>.txt`; read those. (`atm copy <session>
-   [--cod|--cc|--all]` copies to clipboard.) **Caveat — codex TUI panes:** `atm save`
-   dumps a codex pane as raw ANSI; stripping escapes can leave it **EMPTY**. For codex
-   state, read `atm codex palette-state --json` / `atm codex preflight --json`
-   (classified, ANSI-immune) instead of the raw dump — `atm save` is reliable for Claude
-   panes. For the swarm-wide view use `atm get-all-session-text` / `gast` (cross-pane
-   markdown table with error detection) and `atm grep 'error\|rate.limit' <session>` for
-   fast triage. (`gast`/`grep`/`atm codex palette-state` ARE the read paths — there is no
-   `atm capture`/`atm read`.)
-3. **Confirm a lane by its ARTIFACTS, not the meter:** a real lane claims its bead
-   (`br` assignee), creates a worktree/branch, opens a PR, or writes its output
-   file. Check those (`git ls-remote --heads origin 'task/*'`, `gh pr list`, the
-   expected path) as ground truth.
-4. **Diagnose BEFORE you respawn.** `atm respawn` kills + restarts panes — run
-   `atm save` and read the dump first; only respawn after the dump confirms a genuine
-   wedge (an error, a login/trust prompt, an empty/frozen transcript), not a frozen meter.
-5. **Dispatch caveat + worker-model routing.** `atm send --pane=N "prompt"` reliably
-   delivers DIRECT prompts. **Addressing:** `--pane N` is the tmux PANE index (1 = user,
-   workers 2+); `--agent N` is the agent ORDINAL — they differ by the user-pane offset
-   (`--pane=2` == `--agent=1` in a default `--user` session). Prefer `--agent` for worker
-   addressing so the offset can't bite you, or `--panes=2,3` for explicit multi-target.
-   **Model routing:** free-form/exploratory loop work → Claude panes (engage reliably on a
-   plain `atm send`). Codex panes need the goal lifecycle — drive them with
-   `atm send --codex-goal --pane N --file packet.txt` (the supported `/goal` path), NOT a
-   bare slash-command send. If a codex lane won't engage, suspect the boot race / goal-flow,
-   not "codex is unreliable" — verify with `atm codex preflight` (item 6) before switching
-   models. ALWAYS verify the lane engaged (artifacts / `atm codex wait-goal-engaged`),
-   never assume the send took.
-6. **Gate the first dispatch on `atm codex` readiness — the boot race (Hard-won 2026-06-15).**
-   `atm spawn` returns BEFORE the pane's agent has booted to its input box. A `send` in
-   the first few seconds lands on a not-yet-ready TUI and is **silently dropped** — the
-   lane looks "spawned" but never engages. For codex panes this is solved deterministically:
-   the `atm codex` group is purpose-built for it.
-   - **Before the first dispatch**, gate on `atm codex preflight --session <s> --pane <n> --json`
-     — it classifies readiness (`codex-live` / `goal-in-progress` / `usage-limit` /
-     `replace-goal-dialog` / `stale-scrollback`) and tells you `proceed` / `wait` / `respawn`.
-     Send only on `codex-live` (or `goal-completed`).
-   - **After dispatch**, confirm engagement with `atm codex wait-goal-engaged <s> --pane <n> --json`
-     — a bounded poll that exits **non-zero** on `unconfirmed` / `dialog_stuck` /
-     `respawn_required`, so a missed send fails loudly instead of looking idle.
-   This is the deterministic ground truth (the navigator pattern); the meter is the
-   stochastic surface. **Fallback (Claude panes, or codex if the group is unavailable):**
-   confirm a clean ready prompt (`tmux capture-pane -p -t <sess>.<pane>` → the `❯`/input
-   box, no `>_ OpenAI Codex (v…)` splash) before sending. A wedge from sending-too-early is
-   **operator error, not a tool defect** — fix the dispatch (gate + verify), do NOT pivot
-   worker models to escape it.
-7. **Verify the FIRST lane engaged before fanning out to the rest.** Dispatch lane 1,
-   confirm it engaged (`atm codex wait-goal-engaged`, OR an artifact appearing, OR CPU burn —
-   see 8), THEN send lanes 2..N. Sending all N blind means discovering all N missed at
-   once; one confirmed lane is your proof the dispatch path works before you commit the
-   fleet to it.
-8. **`ps` CPU% is the honest fallback wedge signal when the tooling can't reach it.**
-   `ps aux | grep '[c]odex'` (or `[c]laude`) → a pane's agent process at **0.0% CPU with
-   no growing artifact** is genuinely idle, not "working invisibly." CPU burn + growing
-   token counts = real work even when `atm activity` and the TUI capture look frozen. The
-   meter lies and the TUI capture can be stale; CPU does not. Use it (and the deterministic
-   windshield — `atm codex preflight`, `gh pr list`, `git ls-remote`, the output file) to
-   break ties before respawning — prefer the `atm codex` classifier first, CPU% as the
-   cheap tie-breaker.
-
-7. **AGY lanes + Agent Mail observability gaps (tri-vendor).** `atm activity` may list only Claude + Codex and **omit AGY**; `atm mapping --session=…` may be **empty when Agent Mail is down** even when panes are healthy. Do not treat either signal as spawn failure or wedged AGY. Prefer spawn `--json` `panes[]` or `tmux list-panes` for pane numbers; use tmux capture on the AGY pane for liveness. Full tri-vendor dispatch + verify is folded into this skill (the former dual-pane-atm duel).
-
-## Raw tmux Key Injection (Last Resort)
-
-Prefer `atm send`, `atm codex ...`, or NTM robot send surfaces for dispatch. Use
-raw `tmux send-keys` only for direct TUI/menu control, emergency pane relay, or
-when the robot surface cannot express the action.
-
-When you do use raw tmux, **submit with `C-m` and verify it landed**. Do not rely
-on a trailing literal `Enter` token in automation; in live pane relay it can
-leave text sitting in the input buffer. The safe pattern is:
-
-```bash
-tmux send-keys -t <target-pane> -- "<message>"
-tmux send-keys -t <target-pane> C-m
-tmux capture-pane -pt <target-pane> -S -30
-```
-
-The capture must show that the input line cleared and the pane started reacting
-(thinking/working indicator, echoed command output, or new prompt movement). If
-the message is still visibly parked in the input box, send another `C-m` and
-capture again. Codex-family TUIs may need two or three `C-m` submits after a
-large paste; never fire-and-forget a raw tmux relay.
-
-For gate/unblock replies, a capture that only shows text sitting in the input
-box is not delivery. The answer must be visible as accepted pane input/output or
-recorded in a durable artifact the peer can inspect (bead note or PR comment).
+Fall back to raw `tmux send-keys` only when `atm send` / `atm codex …` can't express the action; submit with `C-m`, verify from `capture-pane` that the line cleared, never fire-and-forget. Pattern: [`references/pane-mechanics.md`](references/pane-mechanics.md).
 
 ## Coordination (the Agent Mail leg)
 
 ATM panes coordinate through the other substrate legs, not bespoke glue:
 
-- **Beads (`br`)** is the shared work queue and the source of truth for state —
-  `br ready` to pick, `br update --claim` to claim, `br close` when merged.
+- **Beads** is the shared work queue and the source of truth for state —
+  `ao beads exec ready` to pick, `ao beads exec update <id> --claim` to claim,
+  `ao beads exec close <id>` when merged. (`ao beads exec` resolves the tracker —
+  bd or br — and its ledger for you; no manual `BEADS_DIR`, and it works from
+  linked worktrees that don't carry `_beads`.)
 - **Agent Mail (`am`)** (its own daemon at `127.0.0.1:8765` — the `am` CLI,
   **not** an `ao` subcommand) carries cross-pane **messages** and
   **file reservations** — the swarm's defense against two panes editing the same
@@ -299,27 +160,9 @@ ATM panes coordinate through the other substrate legs, not bespoke glue:
 - **Worktree-per-bead** is mandatory: no pane edits the shared checkout. See
   [../swarm/references/shared-checkout-discipline.md](../swarm/references/shared-checkout-discipline.md).
 
-## Convergence + shutdown
+## Convergence, shutdown + close discipline
 
-The swarm is done when: `br ready` is empty, no pane has an in-flight bead, and
-the last few CI runs are green. Confirm with `atm activity` (all panes idle) and
-`br ready` (empty) before tearing down with `atm kill <session>`. Don't shut down
-on a transient quiet patch — a rate-limited pane also looks idle.
-
-## Single-writer + merged-before-close (cards 17–18, cp-4gj6; POLICY → gate cp-hxp6)
-
-For assurance-close contexts, the gate cp-hxp6 enforces: a bead is durable only
-when its branch is **merged to trunk** and the commit is visible on the canonical
-store. A pane that closes a bead before merging puts protection OFF — the split-brain
-incident of 2026-06-09 was caused by an unmerged trio. The fix is not behavioral:
-the gate enforces it structurally.
-
-**Read canonical, not shared main.** Every reader of bead/verdict state must target
-the canonical store (the bead's worktree branch or the trunk after merge). `main`
-in a shared checkout is stale relative to in-flight worktree branches. A reader that
-declares "stuck" or "closed" based on a stale `main` read is reporting on phantom
-state. Verify bead state on the bead's branch or via `br show` against the live
-server; do not declare convergence from a stale checkout.
+Terminal-state conditions and the **single-writer / merged-before-close** durability policy (gate cp-hxp6; read canonical, never a stale shared `main`) live in [`references/tending-loop.md`](references/tending-loop.md).
 
 ## Anti-patterns
 
@@ -332,7 +175,7 @@ server; do not declare convergence from a stale checkout.
   managed-agents driver (`ao agent`) or a plain in-session run are equally valid
   legs. Choose via [`$automation-shape-routing`](../automation-shape-routing/SKILL.md).
 - ❌ **Closing a bead before the branch is merged.** Closed-but-unmerged is
-  protection-off. Require merge confirmation before `br close`.
+  protection-off. Require merge confirmation before `ao beads exec close`.
 - ❌ **Reading state from a stale shared `main`.** Read canonical from the bead's
   worktree branch or after merge; stale reads are the other half of the split-brain.
 

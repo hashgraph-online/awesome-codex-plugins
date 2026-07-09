@@ -322,20 +322,25 @@ Three deep learning-inspired techniques adapted from [SkillOpt](https://arxiv.or
 
 Underperforming evolved skills receive targeted tuning guidance appended after `<!-- auto-tuned -->` delimiter. Original content is never modified. 3 consecutive declining sessions → auto-rollback tuning, history cleared.
 
-### Skill Effectiveness
+### Skill Effectiveness (Holdout A/B)
 
-Every evolved skill tracked with A/B attribution:
+Every evolved skill is measured against a genuine counterfactual: each day an
+under-evaluation skill is deterministically rotated into the **active** arm
+(injected into context at session start) or the **holdout** arm (withheld).
+"With" averages active-arm sessions, "Without" averages holdout-arm sessions —
+not a derived guess from pre-creation history.
 
 ```
-/evolve history → Skill Effectiveness
+/evolve history → Skill Effectiveness (illustrative)
 
-| Skill              | With | Without | Delta |
-|--------------------|------|---------|-------|
-| evo-ts-care        | 0.87 | 0.72    | +15%  |
-| evo-bash-discipline| 0.65 | 0.68    | -3%   |
+| Skill              | With | Without | Holdout n | Delta |
+|--------------------|------|---------|-----------|-------|
+| evo-ts-care        | 0.87 | 0.72    | 4         | +15%  |
+| evo-bash-discipline| 0.65 | 0.68    | 3         | -3%   |
 ```
 
-Positive delta = effective. Negative = consider removing via `/evolve rollback`.
+Positive delta = effective. Negative delta with ≥3 active and ≥2 holdout
+sessions → auto-evicted. Manual removal: `/evolve rollback`.
 
 ### Cold-Start Presets
 

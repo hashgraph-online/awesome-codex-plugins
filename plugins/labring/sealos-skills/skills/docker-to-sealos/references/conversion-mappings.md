@@ -838,6 +838,8 @@ spec:
 
 When docs offer local file storage and S3-compatible object storage as a binary choice, model the S3 branch with a boolean input. Use `type: boolean` and conditionals that test `inputs.<name> === 'true'`; do not model the binary local/S3 choice as a `choice` input.
 
+When an app needs S3-compatible storage, prefer Sealos `ObjectStorageBucket` and inject the managed object-storage secrets into the app. Preserve managed Sealos toggles such as `use_sealos_objectstorage` when they control an optional `ObjectStorageBucket` branch. Expose external S3/object-storage credential inputs only when source docs or the user require an externally managed bucket, and record that evidence in `metadata.annotations.docker-to-sealos.external-object-storage-source`. Do not combine external S3 credential inputs with a managed `ObjectStorageBucket`.
+
 ### Docker Compose (Using Minio)
 ```yaml
 services:
@@ -918,6 +920,7 @@ metadata:
 
 ### Database Services
 - Docker postgres/mysql/mongo/redis → Kubeblocks Cluster + ServiceAccount + Role + RoleBinding
+- Kubernetes Deployment/StatefulSet/DaemonSet/Service resources that run or expose database servers map to Kubeblocks resources, while app initContainers and init/migration/bootstrap Jobs may use database client images for readiness and bootstrap gates.
 
 ### Persistent Storage
 - Docker volumes → StatefulSet + volumeClaimTemplates

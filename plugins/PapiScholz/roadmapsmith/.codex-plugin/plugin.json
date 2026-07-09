@@ -1,6 +1,6 @@
 {
   "name": "roadmapsmith",
-  "version": "0.10.2",
+  "version": "0.11.2",
   "description": "Evidence-backed ROADMAP.md workflows for AI coding agents — two commands: init and update.",
   "author": {
     "name": "PapiScholz"

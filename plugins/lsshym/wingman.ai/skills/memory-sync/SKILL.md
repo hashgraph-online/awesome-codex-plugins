@@ -1,167 +1,161 @@
 ---
 name: memory-sync
-description: Use when progress, decisions, business logic, API contracts, state flow, field mappings, or durable project knowledge should be recorded in Wingman memory.
+description: Use when Wingman memory is already known enabled in the current repository and progress, decisions, business logic, API contracts, state flow, field mappings, or durable project knowledge should be recorded, or when the user explicitly asks to sync Wingman memory.
 ---
 
 # Wingman Memory Sync
 
-## Core Rule
+`memory-sync` writes the smallest useful memory update after meaningful work. It chooses the owning body for each memory item before writing.
 
-`memory-sync` writes the smallest useful memory update after meaningful work, while promoting durable knowledge out of hot context when future agents would otherwise re-read old logs or re-debug the same issue.
+## Storage Roles
 
-- Current truth that future agents must obey belongs in `brief.md` or `domains/`.
-- `history/` is trace context only; it is not current truth.
-- Small isolated changes may write nothing.
+```text
+brief.md / domains/ = current projection, current binding truth bodies
+history/events/     = event log, historical event bodies
+history indexes     = projection indexes for historical lookup
+context.md          = hot cache, active work state and short pointers
+```
+
+Authority order:
+
+```text
+brief.md current Project Decisions
+> domains/ current truths
+> context.md hot working state
+> history/ past events and evidence
+```
+
+Current truth says what future agents must obey now. History explains what changed and why. Context carries only active work state and short pointers.
 
 ## Gate
 
 Apply these gates before reading or writing memory:
 
-1. If the user says "skip update", "不更新", "跳过记录", "这个不用记忆", "局部改动不记录", or equivalent, stop without reading or writing memory.
-2. If `.wingman/memory/` is missing, ordinary completion must not invoke `memory-sync`. If sync was explicitly requested, report that repository memory is disabled and `memory-setup` is the explicit enable path.
-3. If `.wingman/memory/` exists but `.wingman/memory/brief.md` or `.wingman/memory/context.md` is missing, stop before writing, report the missing core entry files, and suggest `memory-setup` repair. Do not repair from `memory-sync`.
+1. If the user opts out of memory for this work, stop without reading or writing memory.
+2. If `.wingman/memory/` is missing, ordinary completion does not use `memory-sync`. If sync was explicitly requested, report that repository memory is disabled and `memory-setup` is the explicit enable path.
+3. If `.wingman/memory/` exists but `.wingman/memory/brief.md` or `.wingman/memory/context.md` is missing, stop before writing, report the missing core entry files, and suggest `memory-setup`. Do not repair from `memory-sync`.
 4. Continue only when both `brief.md` and `context.md` exist.
 
-Before reporting meaningful coding, documentation, configuration, product, or operational work as complete in a repository where memory is enabled, run this skill's thresholds. If the work passes a write threshold and memory has not been synced, sync memory before saying done, fixed, completed, or 已完成, unless the user explicitly opted out.
+Before reporting meaningful coding, documentation, configuration, product, or operational work as complete in a repository where memory is enabled, run the routing checks below. If a write route qualifies, sync memory before saying the work is done unless the user opted out.
 
-## Promotion Check
+## Ownership Routing
 
-Before writing a context log, check whether the new fact or existing same-feature context logs should be promoted to current truth or history.
+Classify each memory item into one of these routes:
 
-Prefer promotion when any of these are true:
+| Route | Owner | Qualifies When |
+| --- | --- | --- |
+| `IGNORE` | none | The change has no reusable future value. |
+| `CURRENT_TRUTH` | `brief.md` or `domains/` | Future agents must obey the rule, contract, field meaning, state flow, policy, invariant, or recurring debugging conclusion. |
+| `HISTORY_EVENT` | `history/events/` | The change explains durable rule evolution, old-to-new meaning, important correction, migration, incident, important regression fix, or user-requested historical memory. |
+| `CONTEXT_POINTER` | `context.md` | Active unfinished work, pending follow-up, blocker, debugging state, or an immediate continuation pointer is needed. |
 
-- The fact defines a stable API path, request body, response field, field meaning, schema, payload, state mapping, enum, route rule, permission rule, payment rule, money rule, quota rule, or lifecycle rule.
-- The user corrected a business meaning, field meaning, or workflow interpretation.
-- The work fixed a recurring debugging conclusion or a mistake future agents are likely to repeat.
-- The behavior crosses files, modules, pages, APIs, or domains.
-- The same feature, workflow, or domain already has multiple context logs and those logs now contain long-lived knowledge.
-- Future agents would need the fact to avoid re-reading old logs, re-debugging, or choosing a semantically wrong field.
+Use `IGNORE` for typo-only edits, formatting-only edits, rename-only cleanup, isolated visual tweaks, obvious local implementation details, and failed attempts with no reusable lesson.
 
-Promotion does not mean every promoted fact needs history. Current truth explains what is binding now; history explains important source events.
+A task may write more than one route, but each route needs its own reason. When current truth and history are both written, current truth owns the binding rule and history owns the change narrative.
 
-## Routing
+## Single Owner Body
 
-Route each fact to the destination matching its job:
+Each durable memory item has one owning body:
 
-| Route             | Destination  | Use When                                                                                                                                                   |
-| ----------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **IGNORE**        | none         | Too small or too local to remember.                                                                                                                        |
-| **CONTEXT_LOG**   | `context.md` | Recent progress, changed files, debugging state, partial work, unresolved follow-ups, or near-term context.                                                |
-| **DOMAIN_TRUTH**  | `domains/`   | Stable one-domain business rules, API contract, canonical field, state flow, permission rule, money rule, routing rule, or recurring debugging conclusion. |
-| **PROJECT_ADR**   | `brief.md`   | Global or cross-domain architecture decision, repository convention, project-wide agent behavior, or policy.                                               |
-| **HISTORY_EVENT** | `history/`   | Past event with lasting trace value beyond hot context.                                                                                                    |
+- current binding rule body: `brief.md` or `domains/`;
+- historical event body: `history/events/`;
+- historical lookup entry: `history/index.md`, `history/domains/`, `history/topics/`, or `history/months/`;
+- hot working state or pointer: `context.md`.
 
-A task may route to more than one destination, but each destination must have a concrete reason. Do not write memory just because this skill was invoked.
+Short summaries and pointers are valid. Full duplicated rule bodies, event narratives, evidence, reasoning, or debugging paths are not valid.
 
-## Thresholds
-
-**IGNORE** for typo-only edits, rename-only cleanup, formatting, small copy edits, isolated visual or style tweaks with no behavior/state/data/contract/business impact, behavior-preserving movement or extraction, and one-off failed attempts with no reusable lesson.
-
-**CONTEXT_LOG** when the work may matter in the next few sessions: meaningful progress, changed files and what each one now does, partial work, pending follow-ups, debugging state, recent conclusions, or non-trivial implementation details that are not durable rules.
-
-**DOMAIN_TRUTH** or **PROJECT_ADR** when future agents must obey the result or would otherwise need old logs to avoid re-debugging: stable field meaning, API path/body/response contract, schema, event, config, data model, state or enum mapping, permission, routing, money, quota, lifecycle, product or business invariant, cross-file behavior contract, recurring debugging conclusion with a clear trigger, repository-wide convention, or architecture decision.
-
-**HISTORY_EVENT** defaults to no for small local changes. It defaults to yes when a non-trivial **DOMAIN_TRUTH** or **PROJECT_ADR** was written for a feature milestone, contract decision, field decision, state-flow correction, recurring debugging conclusion, migration, incident, important bug or regression fix, or user-requested historical memory, unless the event has no trace value beyond the current rule.
-
-## Value Funnel
-
-Before writing memory, classify the change by future value:
-
-- **Record** when it changes behavior, contracts, data meaning, workflow, architecture, shared implementation, or a durable debugging conclusion.
-- **Skip** when it is local, obvious from the diff, purely mechanical, or has no reusable lesson.
-- **Promote** to `domains/` or `brief.md` when it becomes a rule future work must follow.
-
-Every recorded entry must explain why the change was needed and what future mistake it prevents.
-
-## Workflow
+## Write Flow
 
 1. Apply the Gate.
-2. Run Promotion Check before deciding to write a context log.
-3. Route facts using the Thresholds.
-4. If every fact is **IGNORE**, write nothing and say which threshold blocked the update.
-5. For **DOMAIN_TRUTH** or **PROJECT_ADR**, pass the Evidence Gate before writing current truth.
-6. Write current truth before history when both are needed.
-7. Decide **HISTORY_EVENT** after current truth routing. Write history when the History threshold passes.
-8. Write **CONTEXT_LOG** only for hot context. When current truth or history already carries the durable detail, write a short pointer instead of repeating the full event.
-9. Report changed memory files, projection indexes, or the threshold that blocked writing.
+2. Route each memory item with Ownership Routing.
+3. If every item is `IGNORE`, write nothing and report the threshold that blocked writing.
+4. Write `CURRENT_TRUTH` before `HISTORY_EVENT` when both are needed.
+5. Write `HISTORY_EVENT` only when the event has durable trace value beyond the current rule.
+6. Write `CONTEXT_POINTER` only for hot state or immediate continuation.
+7. Update history projections only for new or changed history events.
+8. Report changed memory files or the route that blocked writing.
 
-Current truth comes before history. If a future agent must follow a rule, write it to `brief.md` or `domains/` before writing any history event about it. Do not write history just because `context.md` was updated. Do not create a history event just to fill a `History` backlink. Do not promote guessed thresholds, temporary constants, local workarounds, or one-off implementation details into current rules.
+## Current Truth
 
-## Write Rules
+Write current truth when future agents must obey the result or would otherwise need old logs to avoid a semantic mistake.
 
-### Context Log
+Use `brief.md` for project-wide decisions: global conventions, cross-domain rules, architecture choices, repository policies, memory policy, and project-wide agent behavior.
 
-Open `.wingman/memory/context.md`. Find the recent log section, commonly `## Recent Logs`, `## Current Sprint Logs`, or `## 短期活跃日志 (CURRENT SPRINT LOGS)`.
+Use `domains/` for one-domain rules: business rules, API contracts, canonical fields, field meanings, state flow, enum mapping, permissions, routing, money, quotas, lifecycle, product invariants, operational procedures, or recurring debugging conclusions.
 
-- Prepend the new log directly below the section heading.
-- Update pending tasks only when the task changes pending work.
-- If this update corrects a same-day, same-feature, or same-bug log that is now wrong, remove only that obsolete log and keep the corrected truth.
-- Do not merge, rewrite, reorder, or delete unrelated history.
-- Before using the default context log shape, read `references/templates.md`.
-- If **DOMAIN_TRUTH**, **PROJECT_ADR**, or **HISTORY_EVENT** was written for the same fact, use the Context Pointer Template from `references/templates.md` instead of duplicating durable detail in `context.md`.
+Before writing current truth:
 
-Before writing a log, internally verify that:
+1. Read `brief.md`.
+2. Use the Domain Registry to choose `brief.md` or a domain file.
+3. Inspect same-subject current entries when practical.
+4. Verify evidence from user direction, existing memory, docs, schema, tests, accepted specs, or intentional implementation behavior.
+5. If two current entries conflict and no `updates` or `extends` relation resolves them, stop and ask which rule is valid.
 
-- The implementation used canonical memory fields and did not substitute proxy or heuristic fields for semantic fields.
-- The implementation reused an existing component/helper/pattern when the repository already had one.
-- Any tiny but high-impact local behavior has an inline invariant comment when code alone would invite accidental cleanup.
-- The context log includes the reason for the change and the mistake it prevents.
+Use stable identity:
 
-If this proof fails, report the conflict or missing invariant instead of claiming completion.
+- `ID`: `mem:<domain>:<subject-slug>`.
+- `Subject`: stable dotted subject such as `order.status.meaning`.
+- `Status`: `current | superseded | deprecated | candidate`.
+- `Relation`: `updates <id> | extends <id> | derived_from <id-or-path> | None`.
+- `Confidence`: `confirmed | implementation-backed | inferred`.
 
-Inline invariant comments are for local constraints, not full change history. Use them only when a tiny or odd-looking line would be easy to "simplify" but changing it would alter behavior, data meaning, contract, security, money, routing, permissions, or state flow:
+Only `Status: current` entries are binding. Inferred entries start as `candidate` unless confirmed by user, spec, schema, test, or intentional implementation contract.
 
-`// @invariant: <constraint>; <why changing it breaks semantics>.`
+When replacing a rule, mark the old entry `superseded` or `deprecated` and point to the replacement. When extending a compatible rule, keep both current and link with `extends`.
 
-### Reason Gate
+Read `references/templates.md` before using the default current truth template.
 
-Do not write a context log that only says what changed. Include the reason in one sentence:
+## History Event
 
-`Changed X because Y; prevents Z.`
+Write history when a completed change has durable trace value beyond hot context, especially when:
 
-If the reason is trivial, meaningless, or obvious from the diff, prefer `IGNORE` unless the task is hot context for the next session.
+- a current truth was added, changed, deprecated, or superseded and the reason matters;
+- a rule, field meaning, workflow interpretation, data contract, or agent behavior changed;
+- the event explains why a current rule exists;
+- a recurring confusion, debugging path, or wrong interpretation was resolved;
+- a migration, incident, important regression fix, or user-requested historical record needs later lookup.
 
-### Current Truth
+History is not mandatory for every current truth. Skip history when the reason is obvious from the current rule or the change is trivial.
 
-Before writing **DOMAIN_TRUTH** or **PROJECT_ADR**, verify at least one evidence source:
+When writing history:
 
-- The user explicitly stated the rule or decision.
-- Existing Wingman memory already implies the rule.
-- Product docs, API docs, schema, tests, or accepted specs confirm it.
-- The implementation intentionally changed a stable contract or business behavior, not just an incidental implementation detail.
+1. Read `references/history-events.md`.
+2. Write one event body under `.wingman/memory/history/events/YYYY/MM/YYYY-MM-DD-<event-slug>.md`.
+3. Update only the needed projections: `history/index.md`, `history/domains/<domain>.md`, `history/topics/<topic>.md`, and `history/months/YYYY-MM.md`.
+4. Link `Promoted Truths` to current truth IDs or use `None`.
+5. Keep projection indexes short and link-only.
 
-If evidence is weak and the proposed durable rule would constrain future work, ask the user before writing durable memory.
+Use generic topic names such as `order-status`, `checkout-flow`, `payment-selection`, `upload-retry`, or `quota-display`.
 
-Write current truth with these rules:
+## Context Pointer
 
-- Read `.wingman/memory/brief.md` and use the Domain Registry to route the rule.
-- Route one-domain rules to `.wingman/memory/domains/<domain>.md` or that domain folder's focused topic file.
-- Route global or cross-domain rules to the architecture decisions section in `brief.md`.
-- Create new domain files only for stable business, technical, product, or operational domains. Do not create one domain file per small feature.
-- Write new durable truth to the best existing location. If the target already mixes unrelated knowledge clusters, prefer the most specific existing domain or topic file instead of adding another broad entry.
-- Write durable rules under `## Current Truths` for English memory or `## 当前业务真理` for Chinese memory.
-- Update the Domain Registry when creating, renaming, deprecating, or superseding a domain route. New registry rows use `Domain | Read When | Current File | History Domain Index | History Topics | Aliases | Related Domains | Status`.
-- When creating a new domain, choose `.wingman/memory/domains/<domain>.md` for a small domain or `.wingman/memory/domains/<domain>/index.md` plus focused topic files for a large domain.
-- Use stable, generic topic names for domain subfiles and history topics. Avoid customer names, project code names, and one-off business labels.
-- When replacing a rule, decision, or domain route, mark the old current entry as `superseded` or `deprecated` and point to the replacement. Do not leave conflicting current truths alive.
+Write `context.md` only for active working state:
 
-Before using the default durable truth shape, read `references/templates.md` when the existing memory file has no stronger local format. `History` is optional; write `None` when there is no specific history event. Do not invent a history event just to fill the field. For **PROJECT_ADR**, use ADR lifecycle status values: `proposed | accepted | deprecated | superseded`.
+- unfinished work;
+- pending follow-up;
+- blocker or debugging state needed in the next few sessions;
+- immediate continuation pointer to a current truth or history event.
 
-### History Event
+If current truth or history owns the durable detail, context receives only a short pointer. If no hot follow-up exists, write no context entry.
 
-Run this section only when **HISTORY_EVENT** passes the threshold.
+Use the `## Short Pointers` section when present. If an older memory file lacks that section, add it near current work rather than creating a new log section.
 
-- Read `references/history-events.md` before writing history.
-- Write one event body under `.wingman/memory/history/events/YYYY/MM/YYYY-MM-DD-<event-slug>.md`.
-- Update `.wingman/memory/history/index.md`, `.wingman/memory/history/domains/<domain>.md`, `.wingman/memory/history/topics/<topic>.md`, and `.wingman/memory/history/months/YYYY-MM.md`.
-- Choose topics from the task's feature, workflow, or problem cluster. Use generic names such as `checkout-flow`, `payment-selection`, `order-status`, `product-detail`, `upload-retry`, or `quota-display`.
-- Include `Promoted Truths` links when `brief.md` or `domains/` was updated. Use `None` when no current truth was promoted.
-- Do not copy full event bodies into projection indexes.
-- Do not treat projection indexes as current rules.
-- Projection indexes can be rebuilt from events; do not rewrite event bodies just because an index changes.
+Read `references/templates.md` before using the default context pointer shape.
+
+## Domain Registry
+
+Update the Domain Registry only when creating, renaming, deprecating, or superseding a domain route.
+
+Registry rows use:
+
+```md
+| Domain | Read When | Current File | History Domain Index | History Topics | Aliases | Related Domains | Status |
+```
+
+`History Domain Index` and `History Topics` are routing hints for historical lookup. They do not make history current truth.
 
 ## Language And Completion
 
-Memory language: `brief.md` setting when not `auto`; otherwise existing memory language, then user's language, then English. Keep code symbols, paths, API names, config names, and field names unchanged.
+Memory language follows `brief.md` Memory Settings when set; otherwise follow existing memory language, then the user's language, then English. Keep code symbols, paths, API names, config names, and field names unchanged.
 
-Finish by reporting changed memory files, including context, domain truth, history event bodies, and projection indexes. If no history event was written, name the threshold or reason that blocked history. If nothing was written, name the blocking gate or threshold.
+Finish by reporting changed memory files. If nothing was written, name the blocking gate or route.

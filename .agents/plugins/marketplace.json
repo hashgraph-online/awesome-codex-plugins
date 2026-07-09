@@ -120,7 +120,7 @@
       },
       "category": "Development & Workflow",
       "description": "Ranks repo context for Codex with likely files, skill recommendations, agent rules, commands, warnings, and compact task-focused packs before editing.",
-      "icon": "./plugins/vishal2612200/agentpack/assets/icon.svg"
+      "icon": "./plugins/vishal2612200/agentpack/assets/icon.png"
     },
     {
       "name": "agentry",
@@ -151,6 +151,21 @@
       "category": "Development & Workflow",
       "description": "Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.",
       "icon": "./plugins/AgiFlow/ai-plugin/assets/icon.png"
+    },
+    {
+      "name": "aiboarding",
+      "displayName": "AIBoarding",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gustavo-meilus/aiboarding"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Generate, maintain, compress, and audit standard AI-agent onboarding files with AGENTS.md, CLAUDE.md, drift tracking, and lifecycle hooks.",
+      "icon": "./plugins/gustavo-meilus/aiboarding/assets/aiboarding-icon.svg"
     },
     {
       "name": "alcove",
@@ -227,20 +242,6 @@
       "icon": "./plugins/armoriq/armorCodex/assets/armoriq-logo.png"
     },
     {
-      "name": "bgs-modding-superpowers",
-      "displayName": "BGS Modding Superpowers",
-      "source": {
-        "source": "local",
-        "path": "./plugins/BB-84C/bgs-modding-superpowers"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Agentic Bethesda Game Studio modpack curation toolkit with MCP-driven xEdit conflict audit, MO2 control plane, BA2/BSA and Papyrus tooling, and skills for setup, dev-log, and release-changelog workflows."
-    },
-    {
       "name": "babok_analyst",
       "displayName": "BABOK Analyst",
       "source": {
@@ -256,6 +257,20 @@
       "icon": "./plugins/GSkuza/BABOK_ANALYST/assets/icon.svg"
     },
     {
+      "name": "bgs-modding-superpowers",
+      "displayName": "BGS Modding Superpowers",
+      "source": {
+        "source": "local",
+        "path": "./plugins/BB-84C/bgs-modding-superpowers"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agentic Bethesda Game Studio modpack curation toolkit with MCP-driven xEdit conflict audit, MO2 control plane, BA2/BSA and Papyrus tooling, and skills for setup, dev-log, and release-changelog workflows."
+    },
+    {
       "name": "boss",
       "displayName": "Boss",
       "source": {
@@ -267,7 +282,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "BMAD pipeline plugin that orchestrates a full requirements-to-deploy workflow across nine specialist agents with an auditable runtime DAG and quality gates, for Claude Code, Codex, OpenClaw, and Antigravity."
+      "description": "BMAD pipeline plugin that orchestrates a full requirements-to-deploy workflow across nine specialist agents with an auditable runtime DAG and quality gates, for Claude Code, Codex, OpenClaw, and Antigravity.",
+      "icon": "./plugins/echoVic/boss-skill/assets/boss-composer-icon.svg"
     },
     {
       "name": "bringyour-migration-auditor",
@@ -359,7 +375,7 @@
       "icon": "./plugins/alirezarezvani/claude-skills/assets/icon.png"
     },
     {
-      "name": "claude-octopus",
+      "name": "octo",
       "displayName": "Claude Octopus",
       "source": {
         "source": "local",
@@ -713,6 +729,35 @@
       "icon": "./plugins/LVTD-LLC/skills/assets/app-icon.png"
     },
     {
+      "name": "maestro",
+      "displayName": "Maestro",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mbanderas/maestro"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Opt-in local multi-CLI fusion engine and orchestration doctrine that fans a prompt across model CLIs, then judges and synthesizes one grounded answer.",
+      "icon": "./plugins/mbanderas/maestro/assets/icon.png"
+    },
+    {
+      "name": "memoire",
+      "displayName": "memi",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sarveshsea/memi"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin."
+    },
+    {
       "name": "personal-data-protection",
       "displayName": "Personal Data Protection",
       "source": {
@@ -906,6 +951,21 @@
       "icon": "./plugins/Habib0x0/spec-driven-plugin/assets/spec-driven-icon.svg"
     },
     {
+      "name": "spellbook-skills",
+      "displayName": "Spellbook Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yyykf/spellbook-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Practical Claude Code and Codex skills for worktrees, PR/MR automation, review cleanup, YApi lookup, and Java DDD guidance.",
+      "icon": "./plugins/yyykf/spellbook-skills/assets/icon.svg"
+    },
+    {
       "name": "staff-engineer-mode",
       "displayName": "Staff Engineer Mode",
       "source": {
@@ -946,8 +1006,22 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Evidence-gated Codex loop harness with specialist skills, including near-pixel authorized website cloning backed by screenshots, assets, build output, and visual QA.",
-      "icon": "./plugins/beefiker/superloopy/web/assets/luffy.svg"
+      "description": "Evidence-gated Codex loop harness with specialist skills, including near-pixel authorized website cloning backed by screenshots, assets, build output, and visual QA."
+    },
+    {
+      "name": "superpipelines",
+      "displayName": "Superpipelines",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gustavo-meilus/superpipelines"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Design and run write/review-isolated multi-agent AI pipelines across Codex, Claude Code, OpenCode, Cursor, Windsurf, and Cline.",
+      "icon": "./plugins/gustavo-meilus/superpipelines/assets/superpowers-small.svg"
     },
     {
       "name": "tailtest",
@@ -1023,6 +1097,21 @@
       "description": "Read-only meta-skill that scans your MCP servers, skills, plugins, and CLI tools, then suggests up to three ranked approaches (Methodical / Fast / Deep) with a copy-paste Quick Action table."
     },
     {
+      "name": "tree-ring-memory",
+      "displayName": "Tree Ring Memory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TerminallyLazy/tree-ring-memory-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Local-first memory lifecycle guidance for Codex agents with recall, evidence-backed lessons, privacy-safe memory capture, audit, consolidation, and explicit forgetting.",
+      "icon": "./plugins/TerminallyLazy/tree-ring-memory-codex-plugin/assets/icon.svg"
+    },
+    {
       "name": "unity-agent-workflows",
       "displayName": "Unity Agent Workflows",
       "source": {
@@ -1096,6 +1185,20 @@
       "icon": "./plugins/villagesql/villagesql-skills/assets/icon.svg"
     },
     {
+      "name": "waggle",
+      "displayName": "Waggle",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Abhigyan-Shekhar/Waggle-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions."
+    },
+    {
       "name": "wingman",
       "displayName": "Wingman",
       "source": {
@@ -1109,20 +1212,6 @@
       "category": "Development & Workflow",
       "description": "Cross-platform AI coding-agent plugin for repo-local project memory, data-contract checks, and project-map discovery before agents edit code.",
       "icon": "./plugins/lsshym/wingman.ai/assets/icon.svg"
-    },
-    {
-      "name": "waggle",
-      "displayName": "Waggle",
-      "source": {
-        "source": "local",
-        "path": "./plugins/Abhigyan-Shekhar/Waggle-mcp"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Persistent graph-backed conversational memory for Codex that recalls project decisions, constraints, preferences, and outcomes across sessions."
     },
     {
       "name": "workflow-kit",
@@ -1211,6 +1300,21 @@
       "category": "Tools & Integrations",
       "description": "Send explicit Telegram messages from Codex and local AI agents through a Telegram bot token and chat id.",
       "icon": "./plugins/jerryfane/agentgram/assets/agentgram-logo.svg"
+    },
+    {
+      "name": "agentguards-codex",
+      "displayName": "AgentGuards",
+      "source": {
+        "source": "local",
+        "path": "./plugins/alelaguard/agentguards-plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "LLM security guardrails for Codex with enforcing hooks and MCP tools: jailbreak and prompt-injection detection, web-content scanning, data-exfiltration blocking, and destructive-command authorization.",
+      "icon": "./plugins/alelaguard/agentguards-plugins/assets/logo.png"
     },
     {
       "name": "aient",
@@ -1330,6 +1434,21 @@
       "description": "Build and edit Microsoft Power Apps Canvas Apps using natural language and Canvas Authoring MCP server."
     },
     {
+      "name": "carsxe",
+      "displayName": "CarsXE",
+      "source": {
+        "source": "local",
+        "path": "./plugins/carsxe/carsxe-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Decode VINs, license plates, market value, vehicle history, recalls, liens, OBD codes, and more via the CarsXE API.",
+      "icon": "./plugins/carsxe/carsxe-codex-plugin/assets/logo.png"
+    },
+    {
       "name": "chrome-devtools",
       "displayName": "Chrome DevTools",
       "source": {
@@ -1419,21 +1538,6 @@
       "icon": "./plugins/douglasmonsky/codex-usage-tracker/assets/icon.svg"
     },
     {
-      "name": "context-pack",
-      "displayName": "Context Pack",
-      "source": {
-        "source": "local",
-        "path": "./plugins/Rothschildiuk/context-pack"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Generate compact first-pass repository briefings for coding agents before deeper exploration.",
-      "icon": "./plugins/Rothschildiuk/context-pack/skills/context-pack/assets/context-pack-small.svg"
-    },
-    {
       "name": "contam-tools",
       "displayName": "CONTAM Tools",
       "source": {
@@ -1449,6 +1553,36 @@
       "icon": "./plugins/summer521521/CONTAM_plugin/assets/icon.svg"
     },
     {
+      "name": "context-pack",
+      "displayName": "Context Pack",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Rothschildiuk/context-pack"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Generate compact first-pass repository briefings for coding agents before deeper exploration.",
+      "icon": "./plugins/Rothschildiuk/context-pack/skills/context-pack/assets/context-pack-small.svg"
+    },
+    {
+      "name": "coolify",
+      "displayName": "Coolify",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Sevi-py/coolify-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.",
+      "icon": "./plugins/Sevi-py/coolify-codex-plugin/assets/icon.png"
+    },
+    {
       "name": "dataproduct-builder-dbt",
       "displayName": "Data Product Builder for dbt",
       "source": {
@@ -1461,6 +1595,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions."
+    },
+    {
+      "name": "digital-marketing-pro",
+      "displayName": "Digital Marketing Pro",
+      "source": {
+        "source": "local",
+        "path": "./plugins/indranilbanerjee/digital-marketing-pro"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Open-source AI marketing plugin for agencies — 154 skills, 25 specialist agents, 12-Part Strategy Flow, AEO/GEO, GSC AI Performance Report, Google Ads API v24, EU AI Act Article 50 / C2PA compliance.",
+      "icon": "./plugins/indranilbanerjee/digital-marketing-pro/assets/icon.svg"
     },
     {
       "name": "dodopayments",
@@ -1654,6 +1803,21 @@
       "icon": "./plugins/BlockchainHB/launchfast_codex_plugin/assets/icon.png"
     },
     {
+      "name": "linkedin-skills",
+      "displayName": "LinkedIn Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sergebulaev/linkedin-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Codex-ready LinkedIn marketing bundle with a native .codex-plugin manifest and 10 skills: post writing with 16 tested hook formulas, AI-tell humanizer, pre-publish audit, comment and reply drafting, hook extraction, content planning, profile optimization, engager analytics, and thread monitoring; also works in Claude Code.",
+      "icon": "./plugins/sergebulaev/linkedin-skills/assets/icon.svg"
+    },
+    {
       "name": "costguard",
       "displayName": "Maestro: Costguard",
       "source": {
@@ -1830,19 +1994,18 @@
       "icon": "./plugins/jbaehova/pdf-monster/assets/pdf-monster.svg"
     },
     {
-      "name": "pronounce",
-      "displayName": "Pronounce",
+      "name": "plori",
+      "displayName": "plori",
       "source": {
         "source": "local",
-        "path": "./plugins/anzy-renlab-ai/pronounce"
+        "path": "./plugins/plori-ai/codex-plugin"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Pronounce developer jargon out loud: an MCP server (lookup/search) and skill backed by a 1,721-entry sourced dictionary with IPA, audio, and cited pronunciations for kubectl, nginx, YAML, JWT, and more.",
-      "icon": "./plugins/anzy-renlab-ai/pronounce/assets/icon.svg"
+      "description": "Create and drive plori cloud agents (each an AI agent on its own cloud computer) over plori's remote MCP server, with OAuth auto-discovery."
     },
     {
       "name": "prompt-to-asset",
@@ -1857,6 +2020,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Route image-generation prompts to 30+ models (DALL-E, Stable Diffusion, Flux, Midjourney, and more) through a single MCP interface. Install: `npm install -g prompt-to-asset`."
+    },
+    {
+      "name": "pronounce",
+      "displayName": "Pronounce",
+      "source": {
+        "source": "local",
+        "path": "./plugins/anzy-renlab-ai/pronounce"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Pronounce developer jargon out loud: an MCP server (lookup/search) and skill backed by a 1,721-entry sourced dictionary with IPA, audio, and cited pronunciations for kubectl, nginx, YAML, JWT, and more.",
+      "icon": "./plugins/anzy-renlab-ai/pronounce/assets/icon.svg"
     },
     {
       "name": "remotion",
@@ -1933,6 +2111,21 @@
       "icon": "./plugins/avalonreset/seo-dungeon/assets/icon.svg"
     },
     {
+      "name": "shots",
+      "displayName": "Shots",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hitSlop/shots"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
+      "icon": "./plugins/hitSlop/shots/assets/icon.png"
+    },
+    {
       "name": "n8n-mcp-synta-codex",
       "displayName": "Synta MCP",
       "source": {
@@ -1946,6 +2139,20 @@
       "category": "Tools & Integrations",
       "description": "Build, edit, validate, and self-heal n8n workflows with Synta MCP tools and Codex-ready workflow guidance.",
       "icon": "./plugins/Synta-ai/n8n-mcp-codex-plugin-synta/assets/icon.png"
+    },
+    {
+      "name": "taisly-agent-kit",
+      "displayName": "Taisly Agent Kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/taisly/agent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Publish short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook from Codex with the Taisly MCP server and bundled social media posting skill."
     },
     {
       "name": "task-scheduler",
@@ -2048,6 +2255,20 @@
       "category": "Tools & Integrations",
       "description": "Hosted MCP connector for pre-upload video SEO, metadata optimization, AI thumbnails, and multi-platform publishing with workflow skills for Codex agents.",
       "icon": "./plugins/CarrotGamesStudios/vidseeds-mcp/assets/icon.png"
+    },
+    {
+      "name": "wakewire",
+      "displayName": "WakeWire",
+      "source": {
+        "source": "local",
+        "path": "./plugins/glenncalleja/wakewire"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Push events from GitHub, Gmail, Slack, and any signed webhook (Linear, Sentry, ClickUp) straight into your Codex threads as new turns — event-driven triggers instead of polling, with HMAC verification, deduplication, and a durable delivery queue."
     },
     {
       "name": "x-twitter-scraper",

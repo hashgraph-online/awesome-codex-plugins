@@ -1,6 +1,6 @@
 {
   "name": "babok_analyst",
-  "version": "2.2.7",
+  "version": "2.2.8",
   "description": "BABOK v3 business analysis agent with 16 MCP tools, 9 stage resources, and human-in-the-loop approval gates.",
   "author": {
     "name": "Grzegorz Skuza",

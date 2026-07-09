@@ -112,6 +112,7 @@ amq coop exec claude -- --dangerously-skip-permissions
 amq coop exec --session feature-a codex
 ```
 
+Add `--no-gitignore` when `coop exec` should auto-initialize the project without changing `.gitignore`.
 Managed launchers can add `--require-wake` to fail instead of launching the agent when the wake watcher cannot start.
 Launchers that use an external injector can add `--wake-inject-via /absolute/path/to/injector`
 and repeated `--wake-inject-arg` values. When that invocation starts a new wake,

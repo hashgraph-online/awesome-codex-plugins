@@ -1,8 +1,8 @@
 # Lossless Compaction Examples
 
-Use these examples only when `SKILL.md` says compaction candidates include current rules, ADRs, domain truths, or evidence-bearing logs.
+Use these examples only when `SKILL.md` says compaction safety is unclear.
 
-## Current Rule
+## Current Truth
 
 Bad compaction:
 
@@ -10,13 +10,21 @@ Bad compaction:
 - upload has scan status rules.
 ```
 
-Why bad: loses the canonical field, forbidden fallback, evidence, and applicability.
+Why bad: loses the canonical field, forbidden fallback, applicability, status, relation, and evidence.
 
-Lossless compaction:
+Lossless current truth:
 
 ```markdown
-- `upload`: `scan_status` is the canonical scan field; do not fall back to `file_status`.
-  Evidence: 2026-05-10 upload contract review. Applies when rendering scan UI, callback results, or file detail processing state.
+- **ID**: `mem:upload:scan-status-field`
+- **Subject**: `upload.scan.status-field`
+- **Status**: `current`
+- **Rule**: `scan_status` is the canonical scan field; do not fall back to `file_status`.
+- **Applies When**: Rendering scan UI, callback results, or file detail processing state.
+- **Evidence**: 2026-05-10 upload contract review.
+- **Confidence**: `confirmed`
+- **Relation**: `None`
+- **Since**: 2026-05-10
+- **History**: `history/events/2026/05/2026-05-10-upload-scan-status-contract.md`
 ```
 
 ## Superseded Rule
@@ -28,15 +36,23 @@ Before:
 - Upload UI must render absence when `scan_status` is missing; `file_status` is not a scan proxy.
 ```
 
-Lossless compaction:
+Lossless current truth repair:
 
 ```markdown
-- Upload UI must render absence when `scan_status` is missing; `file_status` is not a scan proxy.
-  Status: current. Supersedes: old fallback rule from 2026-05-04.
-- Old fallback rule: superseded by the current `scan_status` canonical-field rule.
+- **ID**: `mem:upload:scan-status-field`
+- **Subject**: `upload.scan.status-field`
+- **Status**: `current`
+- **Rule**: Upload UI must render absence when `scan_status` is missing; `file_status` is not a scan proxy.
+- **Relation**: `updates mem:upload:scan-status-file-status-fallback`
+
+- **ID**: `mem:upload:scan-status-file-status-fallback`
+- **Subject**: `upload.scan.status-field`
+- **Status**: `superseded`
+- **Rule**: Old fallback rule from 2026-05-04.
+- **Relation**: `None`
 ```
 
-## Evidence-Bearing Context Log
+## Context Body To Pointer
 
 Before:
 
@@ -46,15 +62,25 @@ Before:
 - Follow-up: remove stale fixture comments later.
 ```
 
-Lossless compaction:
+Preserve durable meaning first:
 
 ```markdown
-### 2026-05-18 Upload status fix
-- Confirmed `scan_status` is the scan-specific field; `file_status` fixture usage was stale. Updated `src/upload/ScanBadge.tsx` and tests.
-- Follow-up: remove stale fixture comments.
+domains/upload.md
+= current truth body for `mem:upload:scan-status-field`
+
+history/events/2026/05/2026-05-18-upload-status-fix.md
+= event body explaining stale fixture usage and the ready badge correction
 ```
 
-## ADR
+Then compact context:
+
+```markdown
+- Remove stale upload fixture comments; current truth: `mem:upload:scan-status-field`; event: `history/events/2026/05/2026-05-18-upload-status-fix.md`; next: update fixture comments.
+```
+
+If there is no active follow-up, remove the context entry after durable meaning is preserved.
+
+## Project Decision
 
 Bad compaction:
 
@@ -62,13 +88,21 @@ Bad compaction:
 - Use upload worker.
 ```
 
-Lossless compaction:
+Lossless current truth:
 
 ```markdown
-- ADR: upload processing stays in the worker boundary to avoid UI-thread retries and preserve resumable-upload queue semantics.
-  Status: accepted. Applies to chunk retry, pause/resume, and queue persistence.
+- **ID**: `mem:project:upload-worker-boundary`
+- **Subject**: `upload.worker.boundary`
+- **Status**: `current`
+- **Rule**: Upload processing stays in the worker boundary to avoid UI-thread retries and preserve resumable-upload queue semantics.
+- **Applies When**: Chunk retry, pause/resume, and queue persistence.
+- **Evidence**: implementation contract
+- **Confidence**: `implementation-backed`
+- **Relation**: `None`
+- **Since**: 2026-05-18
+- **History**: `None`
 ```
 
 ## Rule
 
-If the compacted text cannot answer "what exactly must future agents do, why, when, and where is the evidence?", it is too lossy.
+If the compacted result cannot answer "what owns the body, what exactly is true, why, when it applies, and where evidence lives?", it is too lossy.

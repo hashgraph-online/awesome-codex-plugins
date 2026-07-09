@@ -45,6 +45,10 @@ OPTIONAL_PLUGIN_FILES = (
     "yarn.lock",
     ".codexignore",
     ".agents/plugins/marketplace.json",
+    "SKILL.md",
+    ".github/dependabot.yml",
+    "codex.mcp.json",
+    ".mcp.json",
   )
 METADATA_ONLY_MIRROR_REPOS = {
     # EOC's repo-root Codex plugin references a large skills/commands catalog.

@@ -57,6 +57,10 @@ dev = [
 neo4j = [
   "neo4j>=5.20.0",
 ]
+code-analysis = [
+  "tree-sitter>=0.21.0",
+  "tree-sitter-language-pack>=0.2.0",
+]
 rlm-ipython = [
   "dill>=0.3.7",
   "ipykernel>=6.0.0",

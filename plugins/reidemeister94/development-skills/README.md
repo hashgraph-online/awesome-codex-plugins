@@ -70,7 +70,7 @@ The principles enforced across every phase live in [`shared/iron-rules.md`](shar
 
 ## What's included
 
-**26 skills**, activated automatically by task or invoked with `/name`:
+**24 skills**, activated automatically by task or invoked with `/name`:
 
 - **Workflow** — `core-dev`, `brainstorming`, `debugging`, `create-test`
 - **Languages** — `python-dev`, `typescript-dev`, `java-dev`, `swift-dev`, `frontend-dev`

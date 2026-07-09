@@ -80,6 +80,7 @@ Apply field-level mappings from `references/conversion-mappings.md`, including:
 - MySQL/MongoDB/Redis/Kafka must use templates and secret naming from `references/database-templates.md`.
 - Add DB init Job/initContainer when application database bootstrap requires it.
 - For PostgreSQL custom databases (non-`postgres`), the init Job must wait for PostgreSQL readiness before execution and create the target database idempotently.
+- Database client images may be used in app `initContainers` and init/migration/bootstrap Jobs for readiness and bootstrap gates.
 - Critical application compatibility objects must be verified in live database state. Use idempotent initContainer self-healing for compatibility views, legacy tables/views, indexes, extensions, search paths, and bootstrap state that the app requires on every cold start.
 - One-shot init Jobs may create initial databases or seed state, but app startup gates must verify the final database objects directly. Treat TTL-expired Jobs as historical evidence and rely on database state for acceptance.
 - Worker, gateway, and background services that depend on app migrations must wait for the required tables, migration markers, or app-specific readiness objects, not only for the database port.
@@ -175,6 +176,7 @@ For login-gated web applications, live validation must prove the real credential
 - ConfigMap workload volumes must use `<workload-name>-cm`, and every ConfigMap `data` key must be mounted as its own `volumeMount` with `subPath` exactly equal to that key.
 - Omit ConfigMap volume `defaultMode` unless the application explicitly needs a non-default mode. ConfigMap scripts invoked through `/bin/sh /path/script` do not need executable bits.
 - Avoid long inline startup scripts or heredocs in `command`/`args`; place initialization/start scripts in ConfigMap files and invoke them with a short command.
+- When object storage is required and Sealos can satisfy it, create `ObjectStorageBucket` and inject Sealos object-storage secrets; managed Sealos toggles such as `use_sealos_objectstorage` may control the `ObjectStorageBucket` branch; external S3/object-storage credential inputs require `metadata.annotations.docker-to-sealos.external-object-storage-source` evidence, and must not coexist with `ObjectStorageBucket`.
 
 ### Env and secrets
 
@@ -197,6 +199,7 @@ For login-gated web applications, live validation must prove the real credential
 ### Database-specific constraints
 
 - Database services must use KubeBlocks `Cluster` resources, not application `Deployment` or `StatefulSet` workloads. `StatefulSet` is allowed for stateful application components only, never for PostgreSQL/MySQL/MongoDB/Redis/Kafka database services.
+- Database client images may be used in app `initContainers` and init/migration/bootstrap Jobs for readiness and bootstrap gates.
 - PostgreSQL version: `postgresql-16.4.0`.
 - PostgreSQL API: `apps.kubeblocks.io/v1alpha1`.
 - PostgreSQL RBAC unified naming: `${{ defaults.app_name }}-pg`.

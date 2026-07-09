@@ -99,7 +99,7 @@ agy --print --add-dir "$REPO" \
   "Validate bead <id> against its evidence artifact ONLY. You did not author it. \
    Emit PASS/WARN/FAIL to brain as a userFacing verdict. Do not edit code."
 ```
-On a split or false-FAIL, spawn a third **tie-break** subagent. Close the bead (`br close <id>`) **only** on PASS.
+On a split or false-FAIL, spawn a third **tie-break** subagent. Close the bead (`ao beads exec close <id>`) **only** on PASS.
 **Checkpoint:** verdict artifact persisted by a *different* context than the author; bead closed only if PASS.
 
 ### Phase 5: Persist + tick the loop

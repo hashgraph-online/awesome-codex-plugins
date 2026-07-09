@@ -103,14 +103,18 @@ The `verify` field supports 4 types. A scalar string is shorthand for `type: she
 
 ## Execution State Persistence
 
-All state persistence is handled by the `hotl-rt` shared runtime (`runtime/hotl-rt`). This executor calls `hotl-rt` for all state transitions:
+All state persistence is handled by the `hotl-rt` shared runtime (`runtime/hotl-rt`). This executor calls `hotl-rt` for all state transitions and keeps the claimed controller token in `HOTL_OWNER_TOKEN`:
 
-- `hotl-rt init <workflow-file> --executor-mode executing-plans ...` — at run start
+- `hotl-rt init <workflow-file> --require-owner --executor-mode executing-plans ...` — at run start
+- `hotl-rt owner claim ...` and renewable `hotl-rt owner heartbeat ...` — controller coordination
 - `hotl-rt step N start --run-id <run-id>` — before each step
 - `hotl-rt step N verify --run-id <run-id>` — after each step's action
 - `hotl-rt step N retry --run-id <run-id>` / `hotl-rt step N block --reason "..." --run-id <run-id>` — on failure
 - `hotl-rt gate N approved|rejected --run-id <run-id>` — at gate steps
-- `hotl-rt finalize --json --run-id <run-id>` — at run completion
+- `hotl-rt action request|decide|begin|complete|reconcile ...` — sensitive authorization and effect evidence
+- `hotl-rt budget check --run-id <run-id>` — before another costly or long action when telemetry is relevant
+- `hotl-rt finalize --json --run-id <run-id>` — after all execution evidence is complete; successful runs become `ready_to_finish`
+- `hotl-rt finish <disposition> --run-id <run-id>` — after the user selects the explicit disposition; successful runs then become `completed`
 
 The runtime owns `.hotl/state/<run-id>.json` and `.hotl/reports/<run-id>.md`. Agents do not manage these files directly. Runtime calls happen before the corresponding chat or progress UI update.
 
@@ -120,12 +124,19 @@ To resume an interrupted executing-plans run, use the host tool's native resume 
 - **Codex:** ask me to use `$hotl:resuming` on the workflow file
 - **Claude Code:** `/hotl:resume <workflow-file>`
 
+### Long-running controller and effect rules
+
+- Immediately after init, run `hotl-rt owner claim --owner <stable-controller-id> --lease-seconds <bounded-lease> --run-id <run-id>`, parse its one-time token without displaying it, export it as `HOTL_OWNER_TOKEN`, and heartbeat before and after long actions and at batch boundaries. Every later mutation inherits the token.
+- If control must move, use explicit `owner handoff`, `owner release`, or reviewed `owner takeover`. Age alone is never takeover authority.
+- Host goals, automations, background sessions, handoffs, and hooks provide scheduling and liveness only. HOTL state, verification, ownership, and receipts remain authoritative.
+- For each sensitive effect, use `action request` with a stable idempotency key, human `action decide`, then `action begin` before the external operation and `action complete` with evidence afterward. If the outcome is interrupted or uncertain, inspect the target and use `action reconcile`; do not replay it blindly.
+
 ## Process
 
 1. Resolve and read the workflow (see above)
 2. Run Branch/Worktree Preflight (see above), capture its JSON result, and change into `execution_root`
-3. Run `hotl-rt init <workflow-file> --executor-mode executing-plans --repo-root <repo-root> --execution-root <execution-root> --source-workflow-path <source-workflow-path> --source-branch <source-branch|null> --source-head <source-head|null> --worktree-path <worktree-path|null> --branch <branch>` to initialize state and report
-4. Capture the run id from stdout, then pass `--run-id <run-id>` (or set `HOTL_RUN_ID=<run-id>`) on every later runtime/helper call for this run
+3. Run `hotl-rt init <workflow-file> --require-owner --executor-mode executing-plans --repo-root <repo-root> --execution-root <execution-root> --source-workflow-path <source-workflow-path> --source-branch <source-branch|null> --source-head <source-head|null> --worktree-path <worktree-path|null> --branch <branch>` to initialize state and report
+4. Capture the run id, claim ownership, retain the raw token only as `HOTL_OWNER_TOKEN`, and pass `--run-id <run-id>` (or set `HOTL_RUN_ID=<run-id>`) on every later runtime/helper call for this run
 5. Execute tasks in order, 3 at a time:
    - `hotl-rt step N start --run-id <run-id>` before each step
    - Execute the action
@@ -135,7 +146,8 @@ To resume an interrupted executing-plans run, use the host tool's native resume 
    - On gate: `hotl-rt gate N approved|rejected --run-id <run-id>`
 6. After each batch: run review checkpoint (see below), then show what was done, ask "Continue to next batch?"
 7. On failure: stop and report — never silently skip a failed step
-8. When complete: run final review checkpoint (see below), invoke `hotl:verification-before-completion`, then `hotl-rt finalize --json --run-id <run-id>`, render the final summary via `scripts/render-execution-summary.sh`, and if git isolation was used (or the user asks what to do next) invoke `hotl:finishing-a-development-branch` with the same `run_id`
+8. When execution evidence is complete: run final review checkpoint (see below), invoke `hotl:verification-before-completion`, then `hotl-rt finalize --json --run-id <run-id>`. Treat `ready_to_finish` as awaiting disposition, render the verified-step summary, and invoke `hotl:finishing-a-development-branch` with the same `run_id` and owner token.
+9. After explicit finish moves a successful run to `completed`, release ownership, require a sufficient receipt, and only then claim completion.
 
 ## Review Checkpoints
 

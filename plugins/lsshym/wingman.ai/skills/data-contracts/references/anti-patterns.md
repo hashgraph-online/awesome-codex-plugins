@@ -1,11 +1,11 @@
 # Contract Alignment Anti-patterns
 
-Use these anti-patterns to catch real contract failures before patching type errors or mapping fields.
+Use these anti-patterns to catch real contract failures before patching type errors, replacing mocks, mapping fields, or filling missing data. If one matches, fix the boundary decision instead of hiding the mismatch.
 
 ## Contents
 
 - [Casting Away Drift](#casting-away-drift)
-- [Adding Source Fields That Do Not Exist](#adding-source-fields-that-do-not-exist)
+- [Claiming Source Fields That Do Not Exist](#claiming-source-fields-that-do-not-exist)
 - [Fake Defaults To Satisfy Types](#fake-defaults-to-satisfy-types)
 - [Semantic Mismatch Treated As Rename](#semantic-mismatch-treated-as-rename)
 - [Guessed Multi-Field Fallbacks](#guessed-multi-field-fallbacks)
@@ -18,21 +18,21 @@ Use these anti-patterns to catch real contract failures before patching type err
 
 ## Casting Away Drift
 
-Bad:
+Bad smell:
 
 ```ts
 return payload as unknown as Order;
 ```
 
 Why it fails:
-The source shape is not converted into the stable receiver contract. Type assertions hide missing, renamed, or semantically different fields.
+The source shape was not converted into the receiver contract. Assertions hide missing, renamed, optional, or semantically different fields.
 
-Better:
-Convert at the API, parser, repository, or adapter boundary that already owns external input.
+Do instead:
+Convert or validate at the API, parser, repository, adapter, request builder, or event boundary that already owns external input.
 
-## Adding Source Fields That Do Not Exist
+## Claiming Source Fields That Do Not Exist
 
-Bad:
+Bad smell:
 
 ```ts
 type ApiUser = {
@@ -43,70 +43,70 @@ type ApiUser = {
 ```
 
 Why it fails:
-The source contract now claims to supply data that no schema, sample, fixture, migration, or runtime payload proves exists.
+The source type now claims data exists even though no schema, fixture, generated type, migration, sample, or runtime payload proves it.
 
-Better:
-Expose the missing field explicitly: make the receiver field optional, fetch it from a real alternate source, return a validation error, or ask for the product/source-of-truth decision.
+Do instead:
+Keep source types faithful to evidence. Make the receiver optional-aware, fetch the field from a real alternate source, fail validation, or ask for the source-of-truth decision.
 
 ## Fake Defaults To Satisfy Types
 
-Bad:
+Bad smell:
 
 ```ts
 return { id: row.id, name: row.name, avatarUrl: "" };
 ```
 
 Why it fails:
-An empty string, zero, placeholder enum, or fake path turns missing source data into misleading receiver data.
+Empty strings, zeroes, placeholder paths, or catch-all enum values turn missing data into misleading data.
 
-Better:
-Use a real documented fallback, model absence explicitly, or fail at the contract boundary with a clear error.
+Do instead:
+Use only documented fallbacks. Otherwise represent absence explicitly or fail at the boundary with a clear error.
 
 ## Semantic Mismatch Treated As Rename
 
-Bad:
+Bad smell:
 
 ```ts
 const workflowKind = job.status;
 ```
 
 Why it fails:
-`status` may mean processing state while `workflowKind` may mean product category. Matching types or similar names do not prove matching business meaning.
+Similar names or compatible primitive types do not prove the same business meaning. A source `status` may be lifecycle state while a receiver `workflowKind` may be product category.
 
-Better:
-Preserve both concepts. Find the source of the missing concept, change the receiver contract only if the meaning is identical, or stop and surface the unresolved contract gap.
+Do instead:
+Preserve distinct concepts. Find the real source field, change the receiver only when meanings are proven identical, or surface the unresolved contract gap.
 
 ## Guessed Multi-Field Fallbacks
 
-Bad:
+Bad smell:
 
 ```ts
 const displayName = user.displayName || user.user_name || user.name;
 ```
 
 Why it fails:
-This guesses multiple possible source contracts instead of identifying the real source field. It can hide API, SDK, fixture, or generated-type drift and makes later contract changes unpredictable.
+Alias chains guess at multiple possible contracts and can hide API, SDK, fixture, or generated-type drift.
 
-Better:
-Use the documented source field. Only support multiple aliases when a real version-compatibility requirement proves each variant can appear, and keep that compatibility handling in one boundary location.
+Do instead:
+Use the documented source field. Support multiple aliases only for proven version compatibility, and keep that compatibility handling in one boundary location.
 
 ## Vendor Shape Leaks Into Domain Model
 
-Bad:
+Bad smell:
 
 ```ts
 export type Order = VendorOrder;
 ```
 
 Why it fails:
-A stable internal model becomes coupled to one external source payload. Other receivers inherit source-specific nesting, naming, optionality, and enum semantics by accident.
+A stable internal model becomes coupled to one external source's nesting, naming, optionality, enum values, and release cadence.
 
-Better:
-Keep the stable domain model stable. Translate vendor payloads at the API, repository, parser, or adapter boundary.
+Do instead:
+Keep the domain model stable. Translate vendor payloads at the project-owned parser, repository, adapter, or SDK boundary.
 
 ## Mapper Scattered Across Call Sites
 
-Bad:
+Bad smell:
 
 ```ts
 renderOrder({ id: api.order_id, totalCents: api.amount.value });
@@ -114,14 +114,14 @@ saveOrder({ id: api.order_id, totalCents: api.amount.value });
 ```
 
 Why it fails:
-The same boundary translation is repeated in multiple places, making future contract changes inconsistent.
+The same translation repeats in multiple receivers, so later contract changes become inconsistent.
 
-Better:
-Put the translation in one binding location that matches the project architecture.
+Do instead:
+Put the translation in one binding location that matches the local architecture.
 
 ## Overbuilt Adapter For Local Naming Only
 
-Bad:
+Bad smell:
 
 ```ts
 function toUserView(user: ApiUser): UserView {
@@ -129,43 +129,43 @@ function toUserView(user: ApiUser): UserView {
 }
 ```
 
-Why it may fail:
-If the receiver is a single local render function and the fields are naming-only differences, a dedicated adapter can add unnecessary architecture.
+Why it fails:
+If the receiver is a single local render path and meanings are identical, a mapper exists only to preserve naming style.
 
-Better:
-Use direct source access or local aliasing when scope is small and semantics are identical.
+Do instead:
+Use direct source fields or local aliases for local, temporary, display-only receivers.
 
 ## Optionality Drift Ignored
 
-Bad:
+Bad smell:
 
 ```ts
 return payload.customer.email.toLowerCase();
 ```
 
 Why it fails:
-If the source marks `email` as optional or runtime samples omit it, the receiver contract is stricter than the source contract.
+The receiver assumes a stricter field than the source can guarantee. Optional fields, nullable fields, and absent nested objects must be handled as contract facts.
 
-Better:
-Validate before use, make the receiver optional-aware, or enforce a boundary parse that rejects invalid payloads with a clear error.
+Do instead:
+Validate before use, make the receiver optional-aware, or parse and reject invalid payloads at the boundary.
 
 ## Enum Or Status Collapse
 
-Bad:
+Bad smell:
 
 ```ts
 const status: InternalStatus = sdk.status as InternalStatus;
 ```
 
 Why it fails:
-SDK status values often differ in lifecycle, failure states, capitalization, retryability, or terminal-state meaning.
+Source statuses can differ in lifecycle, terminal states, retryability, capitalization, or future unknown values.
 
-Better:
-Map every known source value intentionally, handle unknown values explicitly, and test representative values.
+Do instead:
+Map each known source value intentionally, handle unknowns explicitly, and test representative source states.
 
 ## Receiver Overreach
 
-Bad:
+Bad smell:
 
 ```text
 While fixing a field mismatch, the patch rewrites layout, prop names, visible text,
@@ -175,5 +175,5 @@ handler branching, and unrelated receiver behavior.
 Why it fails:
 Contract alignment should change the data boundary, not redesign unrelated receiver behavior.
 
-Better:
-Make the smallest change that aligns source and receiver. Leave UI, handlers, config behavior, domain behavior, and unrelated call sites unchanged unless the contract decision requires them.
+Do instead:
+Make the smallest change that aligns source and receiver. Leave unrelated UI, handler, config, domain, and call-site behavior unchanged unless the contract decision requires it.

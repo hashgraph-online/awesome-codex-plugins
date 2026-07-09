@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.39.0
+version: 0.41.0
 description: >-
   Coordinate agents via the AMQ CLI for file-based inter-agent messaging. Use
   this skill whenever you need to send messages to another agent (codex, claude,
@@ -92,6 +92,8 @@ amq coop exec codex -- --dangerously-bypass-approvals-and-sandbox  # Terminal 2
 ```
 
 Without `--session` or `--root`, `coop exec` defaults to `--session collab`.
+
+Add `--no-gitignore` when `coop exec` should auto-initialize the project without changing `.gitignore`.
 
 ## Statusline (Claude Code)
 

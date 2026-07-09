@@ -52,6 +52,12 @@ canonical-owner selection, patch-shape triage, or verification discipline
 changed the repair path. Use a natural stage transition when moving from
 diagnosis to repair and from repair to verification.
 
+This debugging report is a diagnosis/repair surface, not a separate completion
+receipt. Before claiming the bug is fixed, pass root cause, avoided misfix,
+fix boundary, verification, complexity, and residual risk to
+`verification-before-completion` so the user-facing closeout uses the unified
+Aegis impact/safety receipt.
+
 ## The Four Phases
 
 ### Phase 1: Root Cause Investigation
@@ -226,6 +232,12 @@ diagnosis to repair and from repair to verification.
    - Owner fit:
    - Safer edit boundary:
    - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+
+   Pre-Edit Owner-Fit Decision:
+   - Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
+   - Owner fit:
+   - Safer edit boundary:
+   - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
    ```
 
    If the safer boundary changes the implementation shape, pause and update the
@@ -235,6 +247,13 @@ diagnosis to repair and from repair to verification.
    the slice cannot govern that growth immediately, do not present the repair as
    a completed fix boundary. Escalate with a plan update or a visible follow-up
    requirement.
+
+   When the target edit file is over-budget or mixed-purpose, classify edit
+   intent before source edits. `new-responsibility` must not be added in place
+   by default. `wiring-only`, `move-out / extract-first`, and
+   `local-fix-without-new-responsibility` may proceed only when they do not add
+   a new responsibility and the verification boundary is clear. `emergency /
+   compatibility patch` requires residual risk and a retirement trigger.
 
 ### Phase 2: Pattern Analysis
 

@@ -16,6 +16,16 @@ $bootstrap
 
 That is it. One command. Every step below is idempotent — existing artifacts are never overwritten.
 
+## Absorbed triggers (routed here from retired skills)
+
+- **`session-bootstrap` / session-start context** — run `ao session bootstrap` for the
+  universal orientation report, then `ao lookup --query "<topic>"` for decay-ranked
+  prior context. (Previously routed via the retired `/inject`.)
+- **`using-agentops` / workflow tour** — read
+  [docs/architecture/operating-loop.md](../../docs/architecture/operating-loop.md)
+  (the primary navigation). There is no update skill — to refresh installed skills, re-run the install one-liner:
+  `bash <(curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install.sh)`.
+
 ## External Tools
 
 - **ao** (optional) — AgentOps CLI. Required only for optional hook activation (Step 6). Bootstrap skips hooks gracefully when missing.
@@ -136,9 +146,9 @@ This directory contains accumulated knowledge from agent sessions.
 ## Usage
 
 Knowledge is automatically managed by the AgentOps flywheel:
-- `$inject` surfaces relevant prior knowledge at session start
+- `ao lookup` surfaces relevant prior knowledge on demand
 - `$post-mortem` extracts and processes new learnings
-- `$compile` runs maintenance (mine, grow, defrag)
+- `/compile` runs maintenance (mine, grow, defrag)
 ```
 
 If `HAS_AGENTS` is true and `--force` is not set: skip. Report ".agents/ exists -- skipped."
@@ -194,7 +204,7 @@ Bootstrap complete.
 | Hooks         | optional / activated / skipped / failed |
 | br            | present / recommended (not installed) |
 
-Repo is now AgentOps-ready. Next: $rpi "your first goal"
+Repo is now AgentOps-ready. Next: run the operating loop — $rpi "your first goal"
 ```
 
 ## Examples

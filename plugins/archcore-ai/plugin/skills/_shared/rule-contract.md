@@ -14,8 +14,8 @@ matching file is told the binding constraint *before* writing, and so push-mode 
 (`check-code-alignment`) can surface it against the changed paths. One primary constraint
 per rule document. Distinguished from:
 
-- a `spec` — the contract of one depended-on boundary (an interface/schema), not a
-  cross-cutting practice;
+- a `spec` — the normative behavior of one subject others rely on (an interface/schema
+  boundary, or a feature/subsystem), not a cross-cutting practice;
 - an `adr` — records *why* a choice was made; a rule states *what is now binding*.
 
 A rule that cannot be checked, or that only restates a language/linter default, is not

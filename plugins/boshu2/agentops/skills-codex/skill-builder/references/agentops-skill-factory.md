@@ -3,7 +3,7 @@
 This reference captures the local Codex `agentops-skill-factory` prototype as a
 repo workflow. The goal is not to ship the local prototype verbatim; the goal is
 to fold its proven behavior into the existing `skill-builder` and
-`skill-auditor` pair.
+heal-skill deep-audit pair.
 
 ## Clean-room Inputs
 
@@ -25,7 +25,7 @@ only.
 2. Score the target skill:
 
    ```bash
-   python3 skills/skill-auditor/scripts/score_agentops_skill.py skills/<name> --markdown
+   python3 skills/heal-skill/scripts/score_agentops_skill.py skills/<name> --markdown
    ```
 
 3. Pick the smallest score-improving patch, usually one of:
@@ -34,7 +34,7 @@ only.
    - add a focused validation script;
    - add an output contract or explicit quality rubric;
    - tighten trigger language in frontmatter and body.
-4. Re-run `skill-auditor`, `heal-skill --check --strict`, and any target-specific
+4. Re-run the heal-skill deep audit (`audit.sh`), `heal-skill --check --strict`, and any target-specific
    validation by exit code, not by grepping output text.
 5. Mirror behavior into `skills-codex/<name>/` or
    `skills-codex-overrides/<name>/` when the Codex runtime needs different
@@ -61,9 +61,9 @@ AgentOps artifacts:
 
 - source skill changes under `skills/`;
 - Codex runtime changes under `skills-codex/` or `skills-codex-overrides/`;
-- reusable scoring/audit scripts under `skills/skill-auditor/scripts/`;
+- reusable scoring/audit scripts under `skills/heal-skill/scripts/`;
 - clean-room standards under `docs/reference/` and `skills/standards/`.
 
 Avoid adding a duplicate top-level skill when an existing AgentOps skill already
-owns the domain. Extend `skill-builder`, `skill-auditor`, `rpi`, or `evolve`
+owns the domain. Extend `skill-builder`, `heal-skill`, `rpi`, or `evolve`
 instead.

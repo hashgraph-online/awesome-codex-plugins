@@ -3412,6 +3412,224 @@ __MOUNTS__
         )
         self.assertFalse(any(item.rule_id == "R007" for item in violations))
 
+    def test_detects_external_s3_inputs_with_object_storage_bucket(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / "template" / "demo" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: app.sealos.io/v1
+                kind: Template
+                metadata:
+                  name: demo
+                spec:
+                  title: Demo
+                  url: https://example.com
+                  gitRepo: https://github.com/example/demo
+                  author: example
+                  description: demo
+                  icon: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/logo.png
+                  templateType: inline
+                  locale: en
+                  readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README.md
+                  i18n:
+                    zh:
+                      description: demo
+                      readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README_zh.md
+                  categories:
+                    - tool
+                  inputs:
+                    external_s3_endpoint:
+                      description: External S3 endpoint
+                ---
+                apiVersion: objectstorage.sealos.io/v1
+                kind: ObjectStorageBucket
+                metadata:
+                  name: ${{ defaults.app_name }}
+                spec:
+                  policy: private
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=["template/demo/index.yaml"],
+            )
+            self.assertTrue(any(item.rule_id == "R047" for item in violations))
+
+    def test_detects_external_s3_inputs_without_source_annotation(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / "template" / "demo" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: app.sealos.io/v1
+                kind: Template
+                metadata:
+                  name: demo
+                spec:
+                  title: Demo
+                  url: https://example.com
+                  gitRepo: https://github.com/example/demo
+                  author: example
+                  description: demo
+                  icon: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/logo.png
+                  templateType: inline
+                  locale: en
+                  readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README.md
+                  i18n:
+                    zh:
+                      description: demo
+                      readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README_zh.md
+                  categories:
+                    - tool
+                  inputs:
+                    s3_access_key_id:
+                      description: S3 access key
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=["template/demo/index.yaml"],
+            )
+            self.assertTrue(any(item.rule_id == "R047" for item in violations))
+
+    def test_allows_external_s3_inputs_with_source_annotation(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / "template" / "demo" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: app.sealos.io/v1
+                kind: Template
+                metadata:
+                  name: demo
+                  annotations:
+                    docker-to-sealos.external-object-storage-source: official chart requires managed S3
+                spec:
+                  title: Demo
+                  url: https://example.com
+                  gitRepo: https://github.com/example/demo
+                  author: example
+                  description: demo
+                  icon: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/logo.png
+                  templateType: inline
+                  locale: en
+                  readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README.md
+                  i18n:
+                    zh:
+                      description: demo
+                      readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README_zh.md
+                  categories:
+                    - tool
+                  inputs:
+                    external_s3_endpoint:
+                      description: External S3 endpoint
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=["template/demo/index.yaml"],
+            )
+            self.assertFalse(any(item.rule_id == "R047" for item in violations))
+
+    def test_allows_sealos_objectstorage_toggle_with_object_storage_bucket(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / "template" / "demo" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: app.sealos.io/v1
+                kind: Template
+                metadata:
+                  name: demo
+                spec:
+                  title: Demo
+                  url: https://example.com
+                  gitRepo: https://github.com/example/demo
+                  author: example
+                  description: demo
+                  icon: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/logo.png
+                  templateType: inline
+                  locale: en
+                  readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README.md
+                  i18n:
+                    zh:
+                      description: demo
+                      readme: https://raw.githubusercontent.com/labring-actions/templates/kb-0.9/template/demo/README_zh.md
+                  categories:
+                    - tool
+                  inputs:
+                    use_sealos_objectstorage:
+                      description: Use Sealos Object Storage
+                      type: boolean
+                      default: 'false'
+                      required: false
+                ---
+                ${{ if(inputs.use_sealos_objectstorage === 'true') }}
+                apiVersion: objectstorage.sealos.io/v1
+                kind: ObjectStorageBucket
+                metadata:
+                  name: ${{ defaults.app_name }}
+                spec:
+                  policy: private
+                ---
+                ${{ endif() }}
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=["template/demo/index.yaml"],
+            )
+            self.assertFalse(any(item.rule_id == "R047" for item in violations))
+
     def test_allows_registry_pull_secret_via_image_pull_secrets(self):
         violations = self.run_checker(
             """
@@ -4681,6 +4899,124 @@ __MOUNTS__
                         resources:
                           requests:
                             storage: 1Gi
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=["template/demo/index.yaml"],
+            )
+            self.assertFalse(any(item.rule_id == "R039" for item in violations))
+
+    def test_allows_database_client_image_in_app_init_container_artifact(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / "template" / "demo" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: apps/v1
+                kind: StatefulSet
+                metadata:
+                  name: demo
+                  labels:
+                    app: demo
+                    cloud.sealos.io/app-deploy-manager: demo
+                  annotations:
+                    originImageName: ghcr.io/example/demo:v1.0.0
+                spec:
+                  revisionHistoryLimit: 1
+                  template:
+                    spec:
+                      automountServiceAccountToken: false
+                      imagePullSecrets:
+                        - name: ${{ defaults.app_name }}
+                      initContainers:
+                        - name: wait-for-postgres
+                          image: postgres:16-alpine
+                          imagePullPolicy: IfNotPresent
+                          command: ["sh", "-c", "until pg_isready -h $(PG_HOST); do sleep 2; done"]
+                          resources:
+                            limits:
+                              cpu: 100m
+                              memory: 128Mi
+                            requests:
+                              cpu: 10m
+                              memory: 12Mi
+                      containers:
+                        - name: demo
+                          image: ghcr.io/example/demo:v1.0.0
+                          imagePullPolicy: IfNotPresent
+                          resources:
+                            limits:
+                              cpu: 200m
+                              memory: 256Mi
+                            requests:
+                              cpu: 20m
+                              memory: 25Mi
+                  volumeClaimTemplates:
+                    - metadata:
+                        name: data
+                      spec:
+                        resources:
+                          requests:
+                            storage: 1Gi
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=["template/demo/index.yaml"],
+            )
+            self.assertFalse(any(item.rule_id == "R039" for item in violations))
+
+    def test_allows_database_client_init_job_in_artifact(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            refs_file = refs_dir / "sample.md"
+            rules_file = refs_dir / "rules-registry.yaml"
+            artifact_file = root / "template" / "demo" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_file, "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                artifact_file,
+                """
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  name: demo-pg-init
+                spec:
+                  template:
+                    spec:
+                      restartPolicy: OnFailure
+                      containers:
+                        - name: pg-init
+                          image: postgres:16-alpine
+                          imagePullPolicy: IfNotPresent
+                          command: ["sh", "-c", "pg_isready -h $(PG_HOST) && psql -c 'select 1'"]
+                          resources:
+                            limits:
+                              cpu: 100m
+                              memory: 128Mi
+                            requests:
+                              cpu: 10m
+                              memory: 12Mi
                 """,
             )
 

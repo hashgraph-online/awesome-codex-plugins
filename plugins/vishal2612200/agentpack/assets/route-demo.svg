@@ -1,1 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="430" aria-labelledby="title desc" role="img" viewBox="0 0 920 430"><title id="title">AgentPack route demo</title><desc id="desc">Terminal snapshot showing AgentPack routing an auth token expiry task to relevant files and tests.</desc><rect width="920" height="430" fill="#111827" rx="10"/><rect width="920" height="38" x="0" y="0" fill="#1f2937" rx="10"/><circle cx="22" cy="19" r="6" fill="#ef4444"/><circle cx="43" cy="19" r="6" fill="#f59e0b"/><circle cx="64" cy="19" r="6" fill="#22c55e"/><text x="88" y="24" fill="#d1d5db" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="13">agentpack route --task &quot;fix auth token expiry&quot;</text><g font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="16"><text x="28" y="72" fill="#9ca3af">$ agentpack route --task &quot;fix auth token expiry&quot;</text><text x="28" y="112" fill="#60a5fa">Task:</text><text x="28" y="138" fill="#e5e7eb">fix auth token expiry</text><text x="28" y="184" fill="#60a5fa">Relevant files:</text><text x="48" y="214" fill="#e5e7eb">- tests/test_auth.py</text><text x="48" y="242" fill="#e5e7eb">- src/app/auth.py</text><text x="48" y="270" fill="#e5e7eb">- src/app/users.py</text><text x="28" y="318" fill="#60a5fa">Suggested commands:</text><text x="48" y="348" fill="#e5e7eb">- pytest tests/test_auth.py -q</text><text x="28" y="392" fill="#34d399">Local. Read-only. No cloud indexing.</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" aria-labelledby="title desc" role="img" viewBox="0 0 920 520">
+  <title id="title">AgentPack route, skills, review, learn, and memory demo</title>
+  <desc id="desc">Terminal snapshot showing AgentPack routing a task, recommending skills, checking review output, recording learning, and inspecting advisory memory timeline rows.</desc>
+  <rect width="920" height="520" fill="#0f172a" rx="10"/>
+  <rect width="920" height="38" fill="#172033" rx="10"/>
+  <circle cx="22" cy="19" r="6" fill="#ef4444"/>
+  <circle cx="43" cy="19" r="6" fill="#f59e0b"/>
+  <circle cx="64" cy="19" r="6" fill="#22c55e"/>
+  <text x="88" y="24" fill="#d1d5db" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="13">agentpack route + skills + review + learn + memory</text>
+  <g font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="16">
+    <text x="28" y="72" fill="#94a3b8">$ agentpack route --task &quot;fix billing webhook retry&quot;</text>
+    <text x="28" y="108" fill="#60a5fa">Selected context:</text>
+    <text x="48" y="136" fill="#e5e7eb">- src/billing/webhooks.py  (why: retry ordering)</text>
+    <text x="48" y="164" fill="#e5e7eb">- tests/test_webhook_retries.py  (why: proves fix)</text>
+    <text x="28" y="204" fill="#60a5fa">Skill recommendations: review, debugging, test strategy</text>
+    <text x="28" y="232" fill="#fbbf24">Warning: verify idempotency before trusting the map</text>
+    <text x="28" y="270" fill="#94a3b8">$ agentpack review --check --dry-run-post</text>
+    <text x="48" y="298" fill="#34d399">review preflight: payload checked, no live post</text>
+    <text x="28" y="336" fill="#94a3b8">$ agentpack learn &quot;retry ordering + idempotency&quot;</text>
+    <text x="48" y="364" fill="#34d399">lesson saved: .agentpack/agent-lessons.md</text>
+    <text x="28" y="402" fill="#94a3b8">$ agentpack memory --timeline --limit 3</text>
+    <text x="28" y="432" fill="#60a5fa">task_start 1.00 | episode 0.95 | edge 0.90</text>
+    <text x="28" y="480" fill="#34d399">Advisory signals. Live source, tests, and PR review stay authority.</text>
+  </g>
+</svg>

@@ -90,14 +90,18 @@ python scripts/aegis-doctor.py activation-mode explicit
 Restart the host after changing activation mode. Details and host caveats live
 in [docs/current/AEGIS_ACTIVATION_MODE.md](docs/current/AEGIS_ACTIVATION_MODE.md).
 
-TDD mode defaults to `auto`: Aegis chooses strict TDD only when risk warrants,
-uses light verification for tiny edits, and skips TDD where it does not fit. To
-disable automatic TDD routing without disabling completion verification:
+TDD mode defaults to `off`: Aegis does not automatically require TDD, and
+completion verification still applies. To enable automatic TDD routing when you
+want Aegis to choose strict, light, or skipped by task risk:
 
 ```bash
 cd <aegis-method-pack-root>
-python scripts/aegis-doctor.py tdd-mode off
+python scripts/aegis-doctor.py tdd-mode auto
 ```
+
+You can also request strict TDD directly in a query with explicit markers such
+as `TDD Route: strict`, `strict TDD`, `test-first`, or
+`RED / GREEN / REFACTOR`.
 
 Details live in [docs/current/AEGIS_TDD_MODE.md](docs/current/AEGIS_TDD_MODE.md).
 
@@ -108,7 +112,7 @@ Aegis keeps a multi-host, plugin-installable distribution goal.
 | Host group | Current status | Start here |
 | --- | --- | --- |
 | `Codex`, `OpenCode` | Fresh evidence exists for the current method-pack scope | [Codex](docs/README.codex.md), [OpenCode](docs/README.opencode.md) |
-| `Claude Code`, `CodeBuddy`, `DeepSeek-TUI`, `Trae`, `GitHub Copilot`, `Qoder`, `ZCode` | Install guides exist; release-level fresh host smoke is still pending | [Claude Code](docs/README.claude-code.md), [CodeBuddy](docs/README.codebuddy.md), [DeepSeek-TUI](docs/README.deepseek-tui.md), [Trae](docs/README.trae.md), [GitHub Copilot](docs/README.copilot.md), [Qoder](docs/README.qoder.md), [ZCode](docs/README.zcode.md) |
+| `Claude Code`, `CodeBuddy`, `DeepSeek-TUI`, `Trae`, `GitHub Copilot`, `Qoder`, `Kimi Code CLI`, `ZCode` | Install guides exist; release-level fresh host smoke is still pending | [Claude Code](docs/README.claude-code.md), [CodeBuddy](docs/README.codebuddy.md), [DeepSeek-TUI](docs/README.deepseek-tui.md), [Trae](docs/README.trae.md), [GitHub Copilot](docs/README.copilot.md), [Qoder](docs/README.qoder.md), [Kimi Code CLI](docs/README.kimi-code.md), [ZCode](docs/README.zcode.md) |
 | `CC GUI (JetBrains IDEA)` | Structural IDE plugin layer support for Claude Code / OpenAI-GPT provider paths; release-level fresh host smoke is still pending | [CC GUI](docs/README.cc-gui.md) |
 | `Antigravity CLI`, `Antigravity IDE`, `Antigravity App` | `Antigravity CLI` is the current active closeout target; `IDE/App` remain structural targets and release-level fresh host smoke is still pending | [Antigravity](docs/README.antigravity.md) |
 | `Pi CLI`, `OpenClaw`, `Hermes Agent` | Structural Agent Skills / `SKILL.md` skill-host adaptations; release-level fresh host smoke is still pending | [Pi CLI](docs/README.pi.md), [OpenClaw](docs/README.openclaw.md), [Hermes Agent](docs/README.hermes-agent.md) |

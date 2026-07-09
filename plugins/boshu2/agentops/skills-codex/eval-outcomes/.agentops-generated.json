@@ -1,7 +1,0 @@
-{
-  "generator": "codex-sync",
-  "source_skill": "skills/eval-outcomes",
-  "layout": "modular",
-  "source_hash": "80aa0ce9cd42ee0b7d6fb880cbf7224b8c34869c973c933a284cfd88c467b411",
-  "generated_hash": "767b467183040969b58b8ed170dd87b25bb4c5cbc478f12087478e529b4af775"
-}

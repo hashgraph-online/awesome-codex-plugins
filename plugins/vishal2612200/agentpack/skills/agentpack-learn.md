@@ -33,7 +33,7 @@ Use only local files first:
 
 ```bash
 if [ -f .agentpack/context.compact.md ]; then sed -n '1,220p' .agentpack/context.compact.md; fi
-if [ -f .agentpack/task.md ]; then sed -n '1,40p' .agentpack/task.md; fi
+agentpack task show || true
 if [ -f .agentpack/session.json ]; then sed -n '1,120p' .agentpack/session.json; fi
 if [ -f .agentpack/learning.md ]; then sed -n '1,220p' .agentpack/learning.md; fi
 if [ -f .agentpack/agent-lessons.md ]; then sed -n '1,160p' .agentpack/agent-lessons.md; fi

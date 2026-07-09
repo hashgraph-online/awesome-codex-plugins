@@ -1,15 +1,15 @@
 [project]
 name = "agentpack-cli"
-version = "0.3.34"
+version = "0.3.39"
 description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "AGPL-3.0-only"}
 keywords = ["ai-coding-agents", "coding-agent", "ai-agent", "claude-code", "developer-tools", "repo-analysis", "repo-context", "context-engine", "mcp-context-engine", "context-router", "context-packing", "prompt-context", "task-focused-context", "reduce-token-usage", "local-first", "repo-map", "mcp", "ci", "codex", "cursor", "windsurf", "antigravity", "ai", "llm", "context", "packing"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -75,7 +75,15 @@ files = [
   "src/agentpack/core/e2e_benchmark.py",
   "src/agentpack/core/modes.py",
   "src/agentpack/router/models.py",
+  "src/agentpack/analysis/",
 ]
+
+# tomllib is stdlib only on Python 3.11+; on 3.10 the code falls back to the
+# third-party ``tomli`` shim. Neither is resolvable at the configured
+# python_version, so treat the optional TOML backends as untyped imports.
+[[tool.mypy.overrides]]
+module = ["tomllib", "tomli"]
+ignore_missing_imports = true
 
 [tool.coverage.run]
 source = [

@@ -19,7 +19,7 @@ Source research: `.agents/research/2026-05-07-rpi-lifecycle-sharpening.md` §Obj
 | 9 | Agent fungibility + filesystem results | `PRODUCT.md` operational principle #5, `skills/agent-fungibility-philosophy/SKILL.md` | rpi, crank, swarm |
 | 10 | Chaos + filter + ratchet (Brownian) | `docs/brownian-ratchet.md` | rpi, evolve |
 | 11 | Structured handoffs over freeform | `skills/rpi/SKILL.md` (execution-packet contract) | rpi, discovery, validation |
-| 12 | Knowledge flywheel closure | `docs/context-lifecycle.md` Gap 3 | rpi, post-mortem, forge |
+| 12 | Knowledge flywheel closure | `docs/context-lifecycle.md` Gap 3 | rpi, post-mortem, curate (forge mode) |
 | 13 | Information flows + rules + self-organization (Meadows) | `PRODUCT.md` design principle #1 | rpi (top-of-skill framing) |
 | 14 | DevOps Three Ways (flow, feedback, learning) | `docs/the-science.md`, `PRODUCT.md` design principle #2 | rpi (top-of-skill framing) |
 

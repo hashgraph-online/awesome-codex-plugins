@@ -117,10 +117,13 @@ calibredb list --with-library "http://hostname:8080/#library_id" --username <use
 
 From docs: use special `#-` library id to list server libraries.
 
-Security note: `--password` is passed as a process argument and may be visible
-to other users on shared machines via process-listing tools. Prefer local or
-trusted hosts for authenticated Content server commands, and redact credentials
-from shell history, logs, and task transcripts.
+Security note: a literal `--password <pass>` value is passed as a process
+argument and may be visible to other users on shared machines via
+process-listing tools. Prefer `--password '<stdin>'` with the password piped
+from a password manager, or `--password '<f:/path/to/file>'` with a `0600`
+credential file stored outside the repository. Prefer local or trusted hosts
+for authenticated Content server commands, and redact credentials from shell
+history, logs, and task transcripts.
 
 ## Reference files
 

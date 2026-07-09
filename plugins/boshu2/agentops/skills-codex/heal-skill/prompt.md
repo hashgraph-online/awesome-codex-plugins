@@ -1,6 +1,6 @@
 # heal-skill
 
-Repair skill hygiene. Triggers: "heal-skill", "heal skill", "repair skill hygiene.".
+Repair skill hygiene and deep-audit SKILL.md quality (absorbed skill-auditor). Triggers: "heal-skill", "heal skill", "repair skill hygiene", "skill-auditor", "audit skill", "skill audit".
 
 ## Instructions
 

@@ -88,7 +88,7 @@ interactive work.
   override pipeline drifts the guardrail surface.
 - **Holdout stays off the swarm.** The same ZDR discipline applies: no
   `target`/`ground_truth`/PII in pane instructions or `ao` tool responses.
-  Holdout grading uses [`../../eval-outcomes/SKILL.md`](../../eval-outcomes/SKILL.md).
+  Holdout grading uses [`../../validate/SKILL.md`](../../validate/SKILL.md).
 - **The cockpit proof path is the gate.** Codex has no in-loop adapter; acceptance
   relies on the same deterministic local gate and remote backstop telemetry as
   other runtimes.

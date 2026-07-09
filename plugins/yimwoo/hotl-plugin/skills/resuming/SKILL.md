@@ -21,7 +21,7 @@ Execution state is persisted at `.hotl/state/<run-id>.json`. This is the **autho
 
 ```json
 {
-  "run_id": "<slug>-<YYYYMMDDTHHMMSSZ>",
+  "run_id": "<slug>-<YYYYMMDDTHHMMSSZ>-<12-hex-nonce>",
   "workflow_path": "/abs/path/to/execution-root/docs/plans/YYYY-MM-DD-<slug>-workflow.md",
   "source_workflow_path": "/abs/path/to/original/workflow.md",
   "workflow_slug": "<slug>",
@@ -33,7 +33,9 @@ Execution state is persisted at `.hotl/state/<run-id>.json`. This is the **autho
   "executor_mode": "loop | executing-plans | subagent",
   "started_at": "<ISO 8601>",
   "last_update": "<ISO 8601>",
-  "status": "running | paused | blocked | completed | abandoned",
+  "status": "running | paused | blocked | ready_to_finish | completed | abandoned",
+  "ownership_required": true,
+  "controller": {"status": "active", "owner_id": "<stable-controller-id>", "lease_expires_epoch": 0},
   "current_step": 3,
   "total_steps": 8,
   "steps": [
@@ -46,14 +48,15 @@ Execution state is persisted at `.hotl/state/<run-id>.json`. This is the **autho
 
 ### Run ID Format
 
-`<slug>-<YYYYMMDDTHHMMSSZ>` (e.g., `add-auth-20260320T212315Z`). Derived from the semantic workflow slug and UTC execution start time, not from the date prefix in canonical workflow filenames.
+`<slug>-<YYYYMMDDTHHMMSSZ>-<12-hex-nonce>` (e.g., `add-auth-20260320T212315Z-a1b2c3d4e5f6`). The semantic workflow slug and UTC start time keep the identifier readable; operating-system entropy keeps simultaneous runs unique across independent execution roots. Legacy timestamp-only run IDs remain readable.
 
 ### Status Values
 
 - `running` — execution is in progress (or was interrupted)
 - `paused` — stopped at a `gate: human` or a `verify: human-review` checkpoint awaiting approval
 - `blocked` — stopped due to verify failure at max_iterations
-- `completed` — all steps passed, verification done
+- `ready_to_finish` — all required execution evidence passed; explicit finish disposition is still pending
+- `completed` — execution evidence passed and finish disposition was recorded
 - `abandoned` — user explicitly abandoned the run
 
 ## Run Resolution
@@ -82,26 +85,35 @@ This is required for default isolated-worktree execution. In that mode, `.hotl/s
 
 If `hotl-locate-run.sh` is unavailable, manually scan the same locations. Do not run normal Branch/Worktree Preflight until after you have ruled out an interrupted run; preflight will reject an existing execution worktree and can incorrectly look like a start-from-scratch path.
 
-## Stale Run Detection
+## Controller Ownership Resolution
 
-`status: running` is ambiguous after a crash — the owning session may still be alive.
+`status: running` and `last_update` age are not ownership signals. Age alone never authorizes takeover.
 
-- If `last_update` is **older than 10 minutes** and `status: running` → treat as resumable (owning session is likely dead)
-- If `last_update` is **within 10 minutes** and `status: running` → warn: "This run was updated recently. Another session may still own it. Resume anyway?" Wait for user confirmation.
-- On resume, update `last_update` immediately to claim ownership.
+1. Run `hotl-rt owner status --run-id <run-id>` before any mutation.
+2. If ownership is `legacy-unclaimed` or `released`, run `owner claim --owner <stable-controller-id> --lease-seconds <bounded-lease> --run-id <run-id>`. Parse the returned one-time token without displaying it and export it as `HOTL_OWNER_TOKEN`.
+3. If the lease is `stale`, run `owner takeover --owner <stable-controller-id> --reason <auditable-recovery-reason> --lease-seconds <bounded-lease> --run-id <run-id>` and retain the new token.
+4. If another controller lease is active, do not mutate. Obtain an explicit `owner handoff` from that controller, or pause for human review before a forced `owner takeover --force` with a recorded reason.
+5. Once owned, run `owner heartbeat` before and after long verification/action work and at safe transitions. Use explicit `owner release` when stopping or after a completed finish.
+
+Never put `HOTL_OWNER_TOKEN` in chat, delegated prompts, reports, or committed files. Every resumed mutation must inherit it.
 
 ## Resume Flow (Verify-First)
 
 ```
 1. Load sidecar state for the resolved run
 2. Change into `execution_root` from the sidecar before invoking runtime/helpers
-3. Check for existing report at report_path from the sidecar
+3. Resolve and claim/take over controller ownership using the rules above, then export `HOTL_OWNER_TOKEN`
+4. Check for existing report at report_path from the sidecar
    - If report exists: surface its path to the user and continue appending to it
-   - If report is missing: create a new report from sidecar state
-4. Repair workflow checkboxes from sidecar if drift is detected
+   - If the report is missing or its summary has drifted from state: let the runtime deterministically reconstruct the summary from authoritative sidecar state
+5. Run `hotl-rt reconcile <run-id>` and inspect sensitive effects before step recovery:
+   - If any effect is `in_progress` or `uncertain`, inspect the external target and use `action reconcile` with evidence. Never replay `action begin` merely because the host session disappeared.
+   - If an approved effect is `not_started`, continue through the normal `action begin` → operation → `action complete` lifecycle with its existing idempotency key.
+6. If status is `ready_to_finish`, do not rerun steps or finalize. Go directly to `hotl:finishing-a-development-branch`, record the explicit finish disposition, release ownership, and require a sufficient receipt.
+7. Repair workflow checkboxes from sidecar if drift is detected
    (crash may have interrupted between sidecar write and checkbox update)
-5. Find the current unfinished step (first step without status: `done`; `in_progress`, `pending`, `failed`, and `blocked` are unfinished)
-6. Check verify type for that step:
+8. Find the current unfinished step (first step without status: `done`; `in_progress`, `pending`, `failed`, and `blocked` are unfinished)
+9. Run `owner heartbeat`, then check verify type for that step:
 
    a. Machine-runnable verify (type: shell or type: artifact):
       → Run verify first
@@ -116,9 +128,9 @@ If `hotl-locate-run.sh` is unavailable, manually scan the same locations. Do not
       → Pause and ask: "Step N was in progress when the session ended.
         Re-run the step, or skip after manual inspection?"
 
-7. Continue normal execution from the resumed point, using the original `run_id` for every `hotl-rt step/gate/finalize` call
-8. If the resumed run reaches completion, keep using that same `run_id` when invoking `hotl:finishing-a-development-branch`
-9. Use the original executor mode (loop, executing-plans, or subagent)
+10. Continue normal execution from the resumed point, using the original `run_id` and `HOTL_OWNER_TOKEN` for every owner/step/gate/action/budget/finalize/finish mutation
+11. If the resumed run reaches `ready_to_finish`, keep using that same `run_id` when invoking `hotl:finishing-a-development-branch`; `completed` is valid only after finish disposition
+12. Use the original executor mode (loop, executing-plans, or subagent)
 ```
 
 ## Checkpoint Drift Repair

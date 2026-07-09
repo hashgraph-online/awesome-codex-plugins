@@ -70,6 +70,19 @@ python scripts/aegis-update.py register \
   --reload-hint "restart Copilot session or reopen the repository"
 ```
 
+Kimi Code CLI direct-child host example:
+
+```bash
+python scripts/aegis-update.py register \
+  --host kimi-code \
+  --sync-mode junction \
+  --reload-hint "restart Kimi Code CLI"
+```
+
+When `--discovery-root` is omitted for `kimi`, `kimi-code`, or
+`kimi-code-cli`, the updater uses `$KIMI_CODE_HOME/skills` or, when
+`KIMI_CODE_HOME` is unset, `~/.kimi-code/skills`.
+
 Plugin-managed hosts can be registered, but the updater reports that the host
 plugin manager owns the update path:
 

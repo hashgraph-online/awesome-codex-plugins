@@ -76,7 +76,7 @@ The bundled `honcho-memory` skill already nudges Codex to recall and save active
 You have persistent memory via Honcho. Context about me is loaded at the start
 of every session — trust it and act on it; don't ask me what you already know.
 Use the Honcho MCP tools (`search`, `chat`) to recall more mid-task, and
-`create_conclusion` to save new preferences, decisions, and patterns as you learn them.
+`create_conclusions` to save new preferences, decisions, and patterns as you learn them.
 ```
 
 ## MCP Tools
@@ -87,12 +87,12 @@ Once installed, Codex can call these Honcho tools directly:
 | --------------------- | --------------------------------------------------- |
 | `search`              | Semantic search across your session messages        |
 | `chat`                | Ask Honcho a natural-language question about you     |
-| `get_context`         | Fetch the current model of you (representation + card) |
+| `get_peer_context`    | Fetch the current model of you (representation + peer card) |
 | `get_representation`  | Lightweight representation string                   |
-| `create_conclusion`   | Save a durable insight to memory                     |
+| `create_conclusions`  | Save durable insights to memory                      |
 | `list_conclusions`    | List saved conclusions                              |
+| `query_conclusions`   | Semantic search across derived conclusions          |
 | `delete_conclusion`   | Remove a conclusion by ID                           |
-| `get_config` / `set_config` | View or change configuration                  |
 
 ## Commands
 

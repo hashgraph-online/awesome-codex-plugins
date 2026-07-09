@@ -69,9 +69,9 @@ BABOK_ANALYST/
 |   |-- package.json                      # npm package configuration
 |   |-- README.md                         # CLI Quick Start Guide
 |
-|-- babok-mcp/                            # MCP Server (v2.0)
+|-- babok-mcp/                            # MCP Server (v2.2.x)
 |   |-- bin/babok-mcp.js                  # Entry point (npx babok-mcp)
-|   |-- src/server.js                     # MCP server — 16 tools + 9 resources
+|   |-- src/server.js                     # MCP server — 19 tools + 9 resources
 |   |-- src/lib/project.js                # Project ID & path resolution
 |   |-- src/lib/journal.js                # Journal CRUD + stage transitions
 |   |-- src/test/smoke.js                 # 10-assertion smoke test suite
@@ -305,7 +305,7 @@ See [`docs/agent-portability.md`](docs/agent-portability.md) for the full adapte
 
 ---
 
-### Quick Start (non-technical users) — NEW in v2.0.1
+### Quick Start (non-technical users)
 
 **Windows:**
 ```bat
@@ -649,11 +649,11 @@ When multiple analysts work on the **same project directory** (e.g. on a shared 
 
 ---
 
-## MCP Server — `babok-mcp` (v2.0)
+## MCP Server — `babok-mcp` (v2.2.x)
 
 > **The biggest differentiator.** Claude and other MCP-compatible AI assistants can now manage your BABOK project lifecycle _without leaving the chat interface_.
 
-The `babok-mcp` package is a [Model Context Protocol](https://modelcontextprotocol.io) server that exposes **16 tools** and 9 resources to any compatible AI client.
+The `babok-mcp` package is a [Model Context Protocol](https://modelcontextprotocol.io) server that exposes **19 tools** and 9 resources to any compatible AI client.
 
 ### Setup (Plugin install — recommended)
 
@@ -700,7 +700,10 @@ Restart Claude Desktop — a 🔧 tool icon confirms the server is connected.
 | `babok_new_project` | Create a new project, get ID |
 | `babok_list_projects` | List all projects with stage + status |
 | `babok_get_stage` | Full stage context: prompt + journal + existing deliverable |
+| `babok_get_stage_template` | Load stage template skeleton (with optional modules) |
 | `babok_approve_stage` | Approve stage, advance to next |
+| `babok_submit_for_review` | Submit deliverable snapshot for human review (Two-Key key 1) |
+| `babok_open_revision` | Re-open an approved stage for edits |
 | `babok_get_deliverable` | Read a completed stage MD file |
 | `babok_save_deliverable` | Persist AI-generated content to project dir |
 | `babok_search` | Full-text search across all project files |
@@ -1039,22 +1042,26 @@ The agent is designed in compliance with GDPR, BABOK Code of Conduct, and ISO 27
 
 ---
 
-## Test Suite — NEW in v2.1.0
+## Test Suite
 
-The repository ships **73 automated tests** (native `node:test` runner, ESM) covering the full CLI stack:
+The repository currently runs **106 automated tests** (native `node:test` runner, ESM) covering CLI workflow, templates, Two-Key gate, plugin manifests, hooks, and uninstall flow:
 
 | File | Tests | What It Covers |
 |------|-------|----------------|
 | `tests/unit/project.test.js` | 15 | Project ID generation, path resolution |
 | `tests/unit/journal.test.js` | 16 | Journal CRUD, stage transitions |
+| `tests/unit/two-key-gate.test.js` | 7 | Two-Key attestation guard and SHA checks |
 | `tests/unit/scoring.test.js` | 14 | Quality scorer rubric logic |
 | `tests/unit/validation.test.js` | 18 | Cross-stage validation rules |
+| `tests/unit/templates.test.js` | 13 | Stage template manifest and rubric alignment |
 | `tests/integration/cli-workflow.test.js` | 10 | End-to-end CLI workflow steps |
+| `tests/plugin-manifest.test.cjs` | 12 | Marketplace/plugin manifest integrity |
+| `tests/hooks.test.cjs` | 1 | Lifecycle hook wiring checks |
+| `tests/uninstall.test.cjs` | 1 | External state uninstall behavior |
 
 Run the tests:
 
 ```bash
-cd cli
 npm test
 ```
 

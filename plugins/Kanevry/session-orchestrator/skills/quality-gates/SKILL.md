@@ -99,7 +99,7 @@ Metrics output (for consuming skills to capture):
 
 ## Variant 3: Full Gate
 
-**Used by:** session-end (Phase 2)
+**Used by:** session-end (Phase 2); wave-executor (Quality wave — mechanically enforced via the `waveRole` parameter, #724)
 **Purpose:** Final quality gate before commit — MUST pass.
 
 Commands:
@@ -203,7 +203,7 @@ Invalid reason codes: `no-record` | `session-ref-mismatch` | `dependency-changed
 
 **Incremental-skip condition:** `shouldSkipIncremental()` returns `skip: true` when the cache is valid AND `git diff --name-only $SESSION_START_REF..HEAD | wc -l` returns <50. Otherwise `skip: false` and Incremental runs as before. The function never throws — on any error (git failure, unreadable cache, missing dependency_hash) it fails safe by returning `skip: false`.
 
-**INVARIANT — Full Gate at session-end is NEVER skipped**, regardless of cache state. The cache only short-circuits Incremental in wave-executor. Full Gate remains the close-safety gate and always runs the complete typecheck + test + lint + debug-artifact scan. This is intentional and non-configurable.
+**INVARIANT — Full Gate at session-end AND after the Quality wave is NEVER skipped**, regardless of cache state. The cache only short-circuits Incremental in the Impl waves of wave-executor. Two consumers hold this invariant: (1) **session-end** (Phase 2) always runs the complete gate before commit; (2) the **wave-executor Quality wave** (#724 C6) — `shouldSkipIncremental({ waveRole: 'Quality' })` hard-returns `skip: false` (reason `quality-wave-full-gate-mandate`) BEFORE any cache/diff logic, so the Quality-wave Full Gate is mechanically un-skippable, not merely prose-mandated. Full Gate remains the close-safety gate and always runs the complete typecheck + test + lint + debug-artifact scan. This is intentional and non-configurable.
 
 **Implementation:** `scripts/lib/quality-gates-cache.mjs` exports `computeDependencyHash`, `saveBaselineResult`, `loadLatestBaselineResult`, `isCacheValid`, `shouldSkipIncremental`. Stdlib-only (`node:fs`, `node:path`, `node:crypto`, `node:child_process`).
 

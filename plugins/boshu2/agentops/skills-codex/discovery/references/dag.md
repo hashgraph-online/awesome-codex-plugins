@@ -156,11 +156,19 @@ is already satisfied.
 
 Generate, then duel:
 
-1. Write at least three independent `PerspectivePlan` artifacts under
+1. Write independent `PerspectivePlan` artifacts under
    `.agents/discovery/<run-id>/`, normally using these lenses:
    - product/user value
    - architecture and gate integrity
    - operations, migration, and failure recovery
+   **Lens count scales with risk class (2026-07-02, showcase kernel R3):** reserve
+   the full three-lens fan-out for genuine architecture forks and one-way doors.
+   For content/marketing-class epics, run operations (always load-bearing — file
+   ownership, waves, cut order) plus at most one domain lens, folding the rest
+   into the synthesis directly (measured: product + gate-integrity lenses
+   overlapped the research synthesis ~40% on a content epic, ~343k tokens for the
+   trio). The DUEL below never scales down — two distinct families at the pawl is
+   the floor regardless of lens count.
    Then write one `SynthesisPacket` that selects or merges the winning plan,
    records rejected alternatives, and carries open questions.
 2. Run the cross-family DUEL over the `SynthesisPacket`: two judge panes from
@@ -223,10 +231,11 @@ Discovery does NOT relax this requirement; run the admission gate per
 returned bead:
 
 ```bash
-# Validate the structured BODY (--json | .description), not the human `br show` render — the render also
+# Validate the structured BODY (--json | .description), not the human `ao beads exec show` render — the render also
 # includes COMMENTS, so a Gherkin block in a comment would fool a bead whose body has no `## Scenarios`.
-BEADS_DIR="$(ao beads dir)" br show "$BEAD_ID" --json 2>/dev/null \
-  | jq -r '(if type=="array" then .[0] else . end).description // ""' \
+# `ao beads exec show --json` emits the canonical shape (a JSON array) for either tracker (age-f07z).
+ao beads exec show "$BEAD_ID" --json 2>/dev/null \
+  | jq -r '.[0].description // ""' \
   | bash scripts/check-bead-scenario-coverage.sh --admission -
 ```
 

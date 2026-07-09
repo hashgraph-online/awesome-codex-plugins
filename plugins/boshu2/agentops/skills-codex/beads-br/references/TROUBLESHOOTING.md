@@ -59,6 +59,18 @@ BEADS_DIR="$(ao beads dir)" br config set sync.branch beads-sync
 
 Always use a dedicated sync branch that you never check out directly.
 
+### Check Sync Branch Configuration
+
+```bash
+BEADS_DIR="$(ao beads dir)" br config get sync.branch  # Should NOT be your current branch
+git branch                                             # Verify sync branch exists
+git ls-remote --heads origin beads-sync                # Verify on remote
+```
+
+`br sync --flush-only` exports to JSONL only (no git operations); bare
+`br sync` (without `--flush-only`/`--import-only`) is an anti-pattern here —
+git is always your job.
+
 ### Sync Issues After Git Merge
 
 ```bash
@@ -71,6 +83,18 @@ BEADS_DIR="$(ao beads dir)" br sync --import-only
 # 3. If database seems stale:
 BEADS_DIR="$(ao beads dir)" br doctor
 ```
+
+---
+
+## Common Problems
+
+| Problem | Diagnosis | Fix |
+|:--------|:----------|:----|
+| Worktree errors | `br config get sync.branch` returns current branch | Create dedicated sync branch (above) |
+| Sync branch missing on remote | `git ls-remote --heads origin beads-sync` empty | `git push -u origin beads-sync` |
+| br not found | `which br` returns nothing | Install beads_rust, add to PATH |
+| Cycles in graph | `br dep cycles` not empty | Review dependencies, remove cycle |
+| bv shows nothing | No beads created | Run `br list` to verify |
 
 ---
 

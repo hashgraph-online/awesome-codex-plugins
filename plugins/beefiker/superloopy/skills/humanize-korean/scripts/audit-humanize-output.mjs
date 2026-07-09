@@ -51,44 +51,79 @@ if (!args.source || !args.final || !args.report) {
   fail("Usage: audit-humanize-output.mjs --source SOURCE --final FINAL --report REPORT");
 }
 
-const source = await readFile(args.source, "utf8");
-const final = await readFile(args.final, "utf8");
-const sourceRatio = koreanRatio(source);
-const finalRatio = koreanRatio(final);
-if (sourceRatio < 0.2) fail("Korean source text required");
-
-const protectedTokens = collectProtectedTokens(source);
-const missing = [...protectedTokens].filter((token) => !final.includes(token));
-const before = countPatterns(source);
-const after = countPatterns(final);
-const changeRate = levenshtein(source, final) / Math.max(source.length, 1);
-const problems = [];
-if (missing.length > 0) problems.push("Protected tokens changed");
-if (finalRatio < 0.2) problems.push("Final text is not Korean enough");
-if (changeRate > 0.5) problems.push("Change rate exceeds 50%");
-if (requiredS1Count(before) > 0 && requiredS1Count(after) >= requiredS1Count(before)) {
-  problems.push("S1 AI-tell count not reduced");
+let report;
+try {
+  report = await audit(args);
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  await writeFailureReport(args.report, message);
+  fail(message);
 }
 
-const warnings = changeRate > 0.3 && changeRate <= 0.5 ? ["Change rate exceeds 30%"] : [];
-const report = {
-  ok: problems.length === 0,
-  grade: grade({ after, changeRate, missing, problems }),
-  sourceChars: source.length,
-  finalChars: final.length,
-  changeRate: Number(changeRate.toFixed(4)),
-  koreanRatio: {
-    source: Number(sourceRatio.toFixed(4)),
-    final: Number(finalRatio.toFixed(4))
-  },
-  protectedTokens: { total: protectedTokens.size, missing },
-  patterns: { before, after },
-  warnings,
-  problems
-};
-
 await writeFile(args.report, `${JSON.stringify(report, null, 2)}\n`);
-if (!report.ok) fail(problems.join("; "));
+if (!report.ok) fail(report.problems.join("; "));
+
+async function audit(args) {
+  const source = await readInputFile("source", args.source);
+  const final = await readInputFile("final", args.final);
+  const sourceRatio = koreanRatio(source);
+  const finalRatio = koreanRatio(final);
+  const protectedTokens = collectProtectedTokens(source);
+  const missing = [...protectedTokens].filter((token) => !final.includes(token));
+  const before = countPatterns(source);
+  const after = countPatterns(final);
+  const changeRate = levenshtein(source, final) / Math.max(source.length, 1);
+  const problems = [];
+  if (sourceRatio < 0.2) problems.push("Korean source text required");
+  if (missing.length > 0) problems.push("Protected tokens changed");
+  if (finalRatio < 0.2) problems.push("Final text is not Korean enough");
+  if (changeRate > 0.5) problems.push("Change rate exceeds 50%");
+  if (requiredS1Count(before) > 0 && requiredS1Count(after) >= requiredS1Count(before)) {
+    problems.push("S1 AI-tell count not reduced");
+  }
+
+  const warnings = changeRate > 0.3 && changeRate <= 0.5 ? ["Change rate exceeds 30%"] : [];
+  return {
+    ok: problems.length === 0,
+    grade: grade({ after, changeRate, missing, problems }),
+    sourceChars: source.length,
+    finalChars: final.length,
+    changeRate: Number(changeRate.toFixed(4)),
+    koreanRatio: {
+      source: Number(sourceRatio.toFixed(4)),
+      final: Number(finalRatio.toFixed(4))
+    },
+    protectedTokens: { total: protectedTokens.size, missing },
+    patterns: { before, after },
+    warnings,
+    problems
+  };
+}
+
+async function readInputFile(label, path) {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    const reason = error instanceof Error && "code" in error ? error.code : error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to read ${label} file: ${path} (${reason})`);
+  }
+}
+
+async function writeFailureReport(path, message) {
+  const report = {
+    ok: false,
+    grade: "D",
+    sourceChars: 0,
+    finalChars: 0,
+    changeRate: 0,
+    koreanRatio: { source: 0, final: 0 },
+    protectedTokens: { total: 0, missing: [] },
+    patterns: { before: {}, after: {} },
+    warnings: [],
+    problems: [message]
+  };
+  await writeFile(path, `${JSON.stringify(report, null, 2)}\n`);
+}
 
 function parseArgs(values) {
   const parsed = {};

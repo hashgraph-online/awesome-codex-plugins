@@ -1,6 +1,6 @@
 {
   "name": "armorcodex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ArmorIQ intent-based security enforcement for Codex: Bash command guardrails with intent verification, optional CSRG cryptographic proofs, and audit logging. Codex hooks currently fire for Bash, apply_patch, and MCP tool calls; non-Bash file/web activity may need supplemental controls. See CODEX_HARNESS_LIMITATIONS.md.",
   "author": {
     "name": "ArmorIQ",
@@ -32,15 +32,15 @@
       "Hooks"
     ],
     "websiteURL": "https://armoriq.ai",
-    "privacyPolicyURL": "https://armoriq.ai/privacy",
-    "termsOfServiceURL": "https://armoriq.ai/terms",
+    "privacyPolicyURL": "https://armoriq.ai/privacy-policy",
+    "termsOfServiceURL": "https://armoriq.ai/terms-of-service",
     "brandColor": "#00E5CC",
     "composerIcon": "./assets/armoriq-logo.png",
     "logo": "./assets/armoriq-logo.png",
     "defaultPrompt": [
-      "Register an intent plan, then run my Bash commands.",
-      "Show the current ArmorCodex security policies.",
-      "Block Bash commands that contain curl or wget."
+      "Show me what security rules are protecting this project.",
+      "Block any commands that fetch URLs or exfiltrate data.",
+      "Walk me through your plan before running anything."
     ]
   },
   "userConfig": {

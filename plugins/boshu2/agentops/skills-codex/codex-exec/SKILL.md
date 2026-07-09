@@ -9,8 +9,7 @@ Drive headless Codex worker and validator agents with `codex exec` on the ChatGP
 ## ⚠️ Critical Constraints
 
 - **Never API-bill a worker.** Do NOT set `OPENAI_API_KEY` in a worker's env, and do NOT use `codex login --with-api-key`. **Why:** that flips Codex from flat-rate sub billing to per-token API billing — the Codex twin of the banned `claude -p`. A factory cycle on API keys silently burns real money. (Mirror of the "never `claude -p` for workers" rule.)
-  - WRONG: `OPENAI_API_KEY=sk-... codex exec -C "$REPO" "<task>"`
-  - CORRECT: `codex login status  # Logged in using ChatGPT` then `codex exec -C "$REPO" -s workspace-write "<task>"`
+  - WRONG: `OPENAI_API_KEY=sk-... codex exec -C "$REPO" "<task>"` · CORRECT: `codex login status  # Logged in using ChatGPT` then `codex exec -C "$REPO" -s workspace-write "<task>"`
 - **Confirm the sub before dispatch.** Run `codex login status` and require `Logged in using ChatGPT`. **Why:** a worker that "runs fine" on a leaked API token bills per token; the check is the only thing standing between a green run and a surprise invoice.
 - **Pipe the prompt (or close stdin) in any non-TTY lane — else codex HANGS.** A positional-arg `codex exec "<prompt>"` run with non-TTY stdin (background, `&`, ATM/NTM pane, cron, piped, inherited-pipe) still **reads stdin** — it prints `Reading additional input from stdin...` and blocks **forever** when that stdin never reaches EOF (the classic idle open pipe). **Why:** codex appends piped stdin as a `<stdin>` block even when a positional prompt is present, so an open idle stdin is an unterminated read. For unattended/background/factory lanes the safe DEFAULT is to **pipe the prompt** — `printf '%s' "$P" | codex exec … -` (or `cat prompt.txt | codex exec … -`) — or **close stdin** — `codex exec "<prompt>" </dev/null`. The bare positional form is fine only for an interactive TTY.
 - **Pick the sandbox deliberately.** `-s read-only` for offline validators, `-s workspace-write` for workers that must edit, `-s danger-full-access` only inside an already-sandboxed host. **Why:** `codex exec` runs model-generated shell commands; the sandbox is the blast radius.
@@ -135,10 +134,13 @@ A loop should branch on the process exit code, not on scraped text.
 - **Network-touching validators need `-s danger-full-access`.** A codex VALIDATOR that must read a Dolt-mode bd ledger, run `git fetch`, or reach any network MUST be dispatched with `-s danger-full-access`. `-s workspace-write` blocks network (`connect: operation not permitted`) and blocks FETCH_HEAD writes. A fail-closed FAIL caused purely by sandbox denial is an **infrastructure artifact, not a verdict**: fix the dispatch and re-run the judge. NEVER hand-verify the missing item yourself and upgrade the verdict — that breaks judge independence (author ≠ judge).
 - **Set TMPDIR inside the workspace for any run that commits.** The sandbox blocks git temp-object writes to `/var/folders`; export `TMPDIR` to a path inside the workspace (e.g. `TMPDIR="$REPO/.tmp"`) before any codex run that needs `git commit` to succeed.
 - **Verdict file contract.** Bare `VERDICT: PASS|FAIL` as the first line, then a blank line, then a bare `COMMANDS RUN:` line, then the commands + output verbatim. No `##` headings or parentheticals on those lines — the gate parses them anchored. Fail closed on anything unverifiable.
+- **Write-scope clamp — mandatory in every judge brief (2026-07-02, showcase kernel R2).** State it verbatim: "READ-ONLY except writing your single verdict file at `<path>`. Do NOT commit, push, or run tracker/infra ops (git push, br/bd, dolt)." Role-scoped, not model-scoped — workers hold write scopes, judges never do. An unclamped codex judge has pushed a feature branch and attempted `bd dolt push` twice mid-judgment; a judge that mutates while judging can corrupt the artifact under judgment or preempt the pawl. Note the clamp is prompt-level discipline layered ON TOP of the sandbox: a network-touching judge dispatched with `-s danger-full-access` has nothing mechanical stopping a push.
 - **Judge prompt pattern — publish the output contract from the prompt (card 10, cp-b2by).** A stated verdict spec drifts; the output shape must be derived from the prompt the judge reads. Minimal judge prompt:
 
   ```
   You are an INDEPENDENT VALIDATOR. Author != judge.
+  READ-ONLY except writing your single verdict file at <path>.
+  Do NOT commit, push, or run tracker/infra ops (git push, br/bd, dolt).
   BEAD: <id> — <title>
   ACCEPTANCE: <verbatim acceptance text>
   Re-run the cited commands on the actual artifacts. Do not read the evidence and agree.
@@ -206,5 +208,4 @@ receipts, image-health). Full packet:
 - `ntm` — Claude worker panes (the Claude-side lane; never `claude -p`)
 - `using-atm` — driving codex as an ATM **TUI pane** (keystroke / `--codex-goal` flow, `atm codex` readiness gates) vs this skill's **headless** `codex exec` (stdin/positional). Different dispatch mechanics, same auth/sub rules — conflating them is how "positional arg → background hang" and "send → wedged TUI pane" co-occur.
 - `account-rotation` — host-routed account switching; on Codex/Gemini and Linux/WSL lanes the swap tool is `caam` (isolated multi-account profiles for the 4-lane flywheel: Claude Max ×2 + Codex Pro + Gemini)
-- `dcg` — destructive-command guard that can enforce the never-API-bill rule
-- Memory: "Never claude -p for workers 2026-06-06" — the Claude-side twin of this skill's core rule
+- `dcg` — destructive-command guard that can enforce the never-API-bill rule · Memory "Never claude -p for workers 2026-06-06" — the Claude-side twin of this skill's core rule

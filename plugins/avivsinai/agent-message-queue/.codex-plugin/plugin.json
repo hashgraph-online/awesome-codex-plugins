@@ -1,6 +1,6 @@
 {
   "name": "amq-cli",
-  "version": "0.39.0",
+  "version": "0.41.0",
   "description": "Agent Message Queue - file-based inter-agent messaging with co-op mode, cross-project federation, and orchestrator integrations",
   "author": {
     "name": "Aviv Sinai",

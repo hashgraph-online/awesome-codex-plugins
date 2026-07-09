@@ -86,7 +86,7 @@ Useful, runtime-agnostic patterns lifted into our authoring doctrine:
 - **`yaml-validator` → tiered, ordered validation.** Validate in a fixed order
   (syntax → structure → identifiers → field-quality) and grade findings by
   level: **ERROR** (won't work — must fix), **WARNING** (quality risk — should
-  fix), **INFO** (recommended). This is the same tiering our skill-auditor uses;
+  fix), **INFO** (recommended). This is the same tiering our heal-skill deep audit uses;
   prefer ordered + level-graded checks over a flat pass/fail.
 - **`template-optimizer` → information-density discipline.** Flag > 5 fields per
   entity/relation for review; prioritize **Essential → Important → Optional** and

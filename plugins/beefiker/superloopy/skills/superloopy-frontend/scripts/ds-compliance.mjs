@@ -9,6 +9,7 @@
 // Uses only node:fs. Exports parse/scan for tests.
 
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const HEX = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/g;
 const SPACING_PROP = /\b(padding|margin|gap|inset|top|right|bottom|left|row-gap|column-gap)\b[^:;{}]*:\s*([^;{}]+)/gi;
@@ -82,7 +83,10 @@ function main(argv) {
   process.exit(result.ok ? 0 : 1);
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL (not `file://${argv[1]}`): on Windows argv[1] is `C:\...` while
+// import.meta.url is `file:///C:/...`, so the string compare never matched and the
+// gate silently exited 0 — a passing evidence artifact for an unchecked UI.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     main(process.argv.slice(2));
   } catch (error) {

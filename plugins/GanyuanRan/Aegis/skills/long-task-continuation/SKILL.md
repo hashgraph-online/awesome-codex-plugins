@@ -56,6 +56,13 @@ Maintain artifacts under `docs/aegis/work/YYYY-MM-DD-<slug>/`:
 
 For medium+ complexity tasks only. Low-complexity tasks skip work/.
 
+`Execution Readiness View` may be included inline in `10-intent.md` or the
+active checkpoint when the workstream is medium/high, subagent-driven,
+handoff-prone, long-running, architecture / contract sensitive, or
+compatibility / retirement sensitive. It is a human-readable rendering of
+existing drafts and the parent plan, not a new JSON artifact type and not
+completion authority.
+
 Planless Slice Lane:
 
 - Use this lane when a parent plan or parent spec already owns the long-task
@@ -76,7 +83,8 @@ Planless Slice Lane:
 - Slice Card `Goal` anchors slice-level completeness only.
 - It does not by itself grant whole-task completion.
 - Final completion still requires `verification-before-completion` Goal Closure
-  against the parent plan/spec and any active goal frame.
+  against the parent plan/spec and any active goal frame, rendered through the
+  unified Aegis impact/safety receipt unless audit detail is requested.
 
 - Do not create new plan/spec files for micro-slices that stay inside the
   parent plan, existing compatibility boundary, and known verification path.
@@ -149,15 +157,29 @@ Before long-task execution:
    - cited in plan refs
    - missing refs
 5. Create or update the todo map.
-6. Create the first checkpoint:
+6. If the parent plan or workstream needs an execution handoff, render or link
+   an `Execution Readiness View`:
+   - intent lock
+   - scope fence
+   - baseline lock
+   - owner / contract constraints
+   - compatibility boundary
+   - retirement boundary
+   - task batches
+   - test obligations
+   - review gates
+   - drift / rewind rules
+   - evidence required before completion
+   - advisory boundary
+7. Create the first checkpoint:
    - current todo
    - active slice
    - completed todos
    - evidence refs
    - blocked-on items
    - next step
-7. If baseline refs are missing, pause in `needs-baseline-readback`.
-8. If the workspace helper is available, use `aegis-workspace.py new-work` to
+8. If baseline refs are missing, pause in `needs-baseline-readback`.
+9. If the workspace helper is available, use `aegis-workspace.py new-work` to
    create/index the first `docs/aegis/work/` files and run `check --root
    <target-project-root>` before continuing.
 
@@ -170,6 +192,7 @@ Before each work slice, restate:
 3. intended edits
 4. explicit non-edits
 5. verification command or manual check
+6. `Execution Readiness View` alignment when one exists
 
 For micro-slices under an existing parent plan, use the Planless Slice Lane and
 state the Slice Card instead of opening a new planning/specification artifact.
@@ -196,8 +219,13 @@ When resuming:
 2. Read latest resume hint if present.
 3. Re-read original task intent.
 4. Re-read required baseline refs.
-5. Compare current worktree state with checkpoint claims.
-6. If checkpoint, baseline, and worktree disagree, pause and ask for direction.
+5. Re-read the `Execution Readiness View` if present.
+6. Compare current worktree state with checkpoint claims.
+7. Compare the active slice against the view's intent lock, scope fence,
+   baseline lock, compatibility boundary, retirement boundary, test
+   obligations, and review gates.
+8. If checkpoint, baseline, view, and worktree disagree, pause and ask for
+   direction or return to planning.
 
 Never resume from memory alone.
 
@@ -211,6 +239,9 @@ Answer these after each slice:
 - Did any new owner, fallback, adapter, or branch appear?
 - Is the retirement track still explicit?
 - Did the evidence bundle grow enough to support the next claim?
+- If an `Execution Readiness View` exists, does the active slice still match
+  its intent lock, scope fence, baseline lock, compatibility boundary,
+  retirement boundary, test obligations, and review gates?
 
 Allowed decisions:
 
@@ -255,6 +286,8 @@ Use this shape for long-task updates:
   discipline is shaping the next step
 - `TodoCheckpointDraft`: current todo, completed todos, active slice, next step
 - `BaselineUsageDraft`: required refs, acknowledged refs, cited refs, missing refs, decision
+- `Execution Readiness View`: present | absent | refreshed | stale, and the
+  alignment signal when present
 - `Evidence`: commands, files, logs, or manual checks
 - `DriftCheckDraft`: scope, compatibility, retirement, decision
 - `Risk / Unknown`: unresolved blockers or missing evidence

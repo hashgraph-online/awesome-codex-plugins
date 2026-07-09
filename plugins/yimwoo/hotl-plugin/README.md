@@ -180,6 +180,17 @@ native execution is explicitly enabled with `HOTL_CODEX_NATIVE=1`,
 approval policy always remain authoritative. See [Host-Native Drivers](docs/host-native-drivers.md)
 and the [migration guide](docs/migration-host-native.md).
 
+Current Codex goals, automations, hooks, and thread handoff and Claude Code
+goal/loop continuation, background subagents, and agent view can keep work
+moving, but HOTL treats host continuation as scheduling and liveness only.
+Driver-managed runs claim a renewable controller, enforce ordered bounded loops
+and budgets in the runtime, and reconcile external effects from durable state.
+Preview and experimental host features remain opt-in.
+
+Successful `finalize` produces `ready_to_finish`, not completion. Only an
+explicit `finish` disposition moves the run to `completed`; a completion claim
+also requires a state-derived sufficient receipt.
+
 The portable execution boundary also provides:
 
 - Normalized workflow contracts and state-derived, redacted completion receipts:
@@ -268,7 +279,7 @@ There is no `/hotl:*` command syntax in Codex. Instead, describe the task in nat
 | Category | Skills | What they do |
 | --- | --- | --- |
 | Design & Planning | `brainstorming`, `writing-plans`, `document-review` | Clarify requirements, define contracts, write design docs, and create executable workflows |
-| Execution | `governed-execution`, `loop-execution`, `executing-plans`, `subagent-execution`, `resuming`, `dispatch-agents` | Route governed workflows to native or fallback drivers with verification, retries, persistence, and delegation |
+| Execution | `governed-execution`, `loop-execution`, `executing-plans`, `subagent-execution`, `resuming`, `dispatch-agents` | Route governed workflows with renewable ownership, runtime-enforced retries/budgets, effect reconciliation, persistence, and delegation |
 | Finish | `finishing-a-development-branch` | Close the execution lifecycle intentionally: merge back, publish for review, keep, or discard the execution checkout |
 | Quality & Review | `pr-reviewing`, `code-review`, `requesting-code-review`, `receiving-code-review`, `verification-before-completion` | Review changes and require evidence before completion. Both `code-review` and `pr-reviewing` reference shared [review checklists](docs/checklists/) for SOLID/architecture, security, performance/boundary conditions, and removal/simplification heuristics. |
 | Dev Practices | `tdd`, `systematic-debugging`, `skill-authoring` | Apply test-first development, structured debugging, and disciplined skill/prompt authoring workflows |

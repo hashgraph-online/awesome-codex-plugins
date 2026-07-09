@@ -425,21 +425,10 @@ for skill_dir in "${TARGETS[@]}"; do
 
 done
 
-# Check 10: Catalog completeness (global, not per-skill)
-if [[ -f "$SKILLS_ROOT/using-agentops/SKILL.md" ]]; then
-  for skill_check in "$SKILLS_ROOT"/*/SKILL.md; do
-    [[ -f "$skill_check" ]] || continue
-    check_dir="$(dirname "$skill_check")"
-    check_name="$(basename "$check_dir")"
-    # Skip internal/non-invocable skills
-    if grep -q 'user-invocable: false' "$skill_check" 2>/dev/null; then continue; fi
-    if grep -q 'internal: true' "$skill_check" 2>/dev/null; then continue; fi
-    # Check if skill appears in catalog
-    if ! grep -q "$check_name" "$SKILLS_ROOT/using-agentops/SKILL.md" 2>/dev/null; then
-      report "CATALOG_MISSING" "$SKILLS_ROOT/using-agentops" "$check_name is user-invocable but missing from catalog"
-    fi
-  done
-fi
+# Check 10 (CATALOG_MISSING) was removed: it only ran when
+# skills/using-agentops/SKILL.md existed, and that skill no longer exists, so
+# the check was permanently dead. Catalog completeness is gated by Check 12
+# (MISSING_DISPOSITION) against docs/contracts/skill-dispositions.yaml.
 
 # Check 11: skill_api_version presence (global, not per-skill)
 for skill_check in "$SKILLS_ROOT"/*/SKILL.md; do

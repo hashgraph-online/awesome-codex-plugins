@@ -4,19 +4,21 @@ description: Scaffold or absorb new SKILL.md files
 ---
 # $skill-builder — Scaffold or absorb a new SKILL.md
 
-Materializes a new skill against the unified template at `references/skill-template.md` (extracted from anthropics/financial-services). Runs `skill-auditor` on the new skill as a self-check before declaring success.
+Materializes a new skill against the unified template at `references/skill-template.md` (extracted from anthropics/financial-services). Runs the heal-skill deep audit on the new skill as a self-check before declaring success.
 
 > **If unsure whether the work should be a skill, a Workflow, or an NTM swarm, run `$automation-shape-routing` first** — it is the front door that decides the shape and hands off to the right builder.
 
+> **Before creating, search for an existing owner.** `ms search` the proposed skill's trigger phrases (fast path when available — `command -v ms`, or the `mcp__ms__search` tool is attached; else grep `skills/**/SKILL.md` + `docs/SKILLS.md`). A strong hit means **extend that skill, don't create a new one** — this is one item of the fuller skill-admission checklist (bead age-7d3r).
+
 ## ⚠️ Critical Constraints
 
-- **Template is canonical.** All four modes produce SKILL.md files conforming to `references/skill-template.md`. Do not invent ad-hoc structures. **Why:** `skill-auditor` validates against this template; drift creates auditor false-fails.
-- **Self-audit is mandatory.** After every successful build, the build script invokes `$skill-auditor` against the new skill directory. A FAIL verdict aborts the build. **Why:** PR-002 (external validation gate) — the builder must not declare its own work complete.
+- **Template is canonical.** All four modes produce SKILL.md files conforming to `references/skill-template.md`. Do not invent ad-hoc structures. **Why:** the heal-skill deep audit validates against this template; drift creates audit false-fails.
+- **Self-audit is mandatory.** After every successful build, the build script invokes the heal-skill deep audit (`audit.sh` in `skills/heal-skill/`) against the new skill directory. A FAIL verdict aborts the build. **Why:** PR-002 (external validation gate) — the builder must not declare its own work complete.
 - **Codex parity is day-1, not later.** `from-scratch`, `from-template`, and `absorb-external` modes must produce both `skills/<name>/SKILL.md` AND `skills-codex/<name>/SKILL.md` + `skills-codex/<name>/prompt.md`. **Why:** finding `2026-05-03-codex-skill-shape-is-dual-file` — codex SKILL.md uses slim frontmatter (no `skill_api_version`); prompt.md is mandatory; `audit-codex-parity.sh` is a content scanner that won't catch frontmatter drift.
 - **Editing an EXISTING skill also needs a manual twin mirror.** When you change `skills/<name>/references/*.md` or `SKILL.md`, manually mirror the content into `skills-codex/<name>/` (runtime-native), THEN run `scripts/regen-codex-hashes.sh --only <name>`. `make regen-all` only refreshes the twin's *hash record*, not its prose — a green `✓ codex hashes` over a stale twin looks handled but isn't. Verify with a content diff (`grep -c <new-token>` on both copies), not the hash exit code. **Why:** finding `2026-06-16-codex-twin-content-not-auto-mirrored` (age-aqu/age-yxl) — regen made the marker self-consistent with a stale twin (0-vs-2 token divergence) and nothing complained. The parity gate now blocks an un-mirrored `references/**` edit, but the mirror is still a manual step.
 - **250-line ceiling on new SKILL.md.** Use `references/` for overflow. **Why:** finding `f-2026-05-01-025` — every Skill() invocation reloads 5-15KB; multi-lifecycle sessions compound to 150-200KB+ pure scaffolding.
 - **Clean-room factory inputs only.** When using lessons learned from external corpora, read [references/agentops-skill-factory.md](references/agentops-skill-factory.md) and use only AgentOps-owned summaries, scripts, and rubrics. **Why:** productization must improve structure without copying protected third-party skill content.
-- **Real gate means exit code.** Validate with `heal-skill --check --strict <skill-dir>` and `skill-auditor`; never infer green from grep/regex output. **Why:** regex presence checks created false-greens during the 2026-06 scale build.
+- **Real gate means exit code.** Validate with `heal-skill --check --strict <skill-dir>` and the heal-skill deep audit (`audit.sh`); never infer green from grep/regex output. **Why:** regex presence checks created false-greens during the 2026-06 scale build.
 - **One skill directory = one writer.** Bulk builds fan out only when each worker owns a distinct new `skills/<name>/` plus `skills-codex/<name>/`; edits to existing skill dirs run in a later serial wave. **Why:** concurrent writers deleted untracked work and flipped HEAD mid-task.
 - **Trust repository state, not subagent reports.** Before declaring success, inspect `git status`, generated hashes, final files, and gate exit codes. **Why:** sandbox-overlay and stale self-reports can claim work that never persisted.
 - **Clean-room includes names.** Do not reuse exact third-party skill names; mint AgentOps-owned names before source skills, Codex mirrors, or wrappers are keyed. **Why:** provenance/IP safety applies to labels as well as prose and scripts.
@@ -62,17 +64,17 @@ For `absorb-external`, the external SKILL.md's content (Constraints / Workflow /
 
 ### Phase 4: Self-audit
 
-The build script tail invokes `$skill-auditor` on `skills/<new-name>`. WARN is acceptable for v1 skills (e.g., `experimental` stability). FAIL aborts.
+The build script tail invokes the heal-skill deep audit on `skills/<new-name>`. WARN is acceptable for v1 skills (e.g., `experimental` stability). FAIL aborts.
 
 **Checkpoint:** `audit_pass=true` in build report.
 
 ### Phase 5: Factory score overlay
 
 For AgentOps skill upgrades, use the productization score as a patch selector,
-not as a replacement for `skill-auditor`:
+not as a replacement for the deep audit:
 
 ```bash
-python3 skills/skill-auditor/scripts/score_agentops_skill.py skills/<name> --markdown
+python3 skills/heal-skill/scripts/score_agentops_skill.py skills/<name> --markdown
 ```
 
 Choose the smallest patch that improves the score while preserving the
@@ -109,7 +111,7 @@ skills-codex/<name>/
 
 ## Quality Rubric
 
-- [ ] All four modes produce skills that pass `skill-auditor` PASS or WARN (not FAIL)
+- [ ] All four modes produce skills that pass the heal-skill deep audit with PASS or WARN (not FAIL)
 - [ ] `heal-skill --check --strict` exits 0 for every generated source and Codex skill directory
 - [ ] Codex parity files exist and pass slim-frontmatter check
 - [ ] Batch authoring has one writer per skill directory and validates persisted git state
@@ -126,7 +128,7 @@ skills-codex/<name>/
 $skill-builder from-scratch hello-world
 # → interactive prompt: tier? deps? primary deliverable?
 # → writes skills/hello-world/SKILL.md + skills-codex/hello-world/{SKILL.md,prompt.md}
-# → runs $skill-auditor on the new skill
+# → runs the heal-skill deep audit on the new skill
 ```
 
 **Clone structure from an existing skill:**
@@ -164,18 +166,17 @@ python3 skills/skill-builder/scripts/scan_descriptions.py skills          # reme
 python3 skills/skill-builder/scripts/scan_descriptions.py skills --strict # exit 1 on any miss
 ```
 
-The scanner mirrors `skill-auditor`'s three-form trigger detection and adds a
+The scanner mirrors the deep audit's three-form trigger detection and adds a
 suggested `Triggers:` stub per offender. See
 [references/skill-authoring-standard.md](references/skill-authoring-standard.md)
 for the full authoring doctrine and the best-practice-to-enforcement crosswalk.
 
 ## See Also
 
-- [skill-auditor](../skill-auditor/SKILL.md) — companion audit gate, invoked by build self-check
-- [heal-skill](../heal-skill/SKILL.md) — structural hygiene (Pass 1 of skill-auditor wraps heal.sh)
+- [heal-skill](../heal-skill/SKILL.md) — structural hygiene (heal.sh) + companion deep-audit gate (audit.sh), invoked by build self-check
 - [converter](../converter/SKILL.md) — produces codex parity artifacts
 - [scaffold](../scaffold/SKILL.md) — scaffolds projects/components/CI (NOT skills)
-- [forge](../forge/SKILL.md) — mines transcripts into learnings (different layer)
+- [curate](../post-mortem/SKILL.md) — `--mode=forge` mines transcripts into learnings (different layer)
 
 ## References
 

@@ -2,7 +2,16 @@
   "name": "codex-usage-tracker-dashboard-smoke",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "frontend/dashboard"
+  ],
   "scripts": {
+    "dashboard:dev": "npm --workspace frontend/dashboard run dev",
+    "dashboard:build": "npm --workspace frontend/dashboard run build",
+    "dashboard:typecheck": "npm --workspace frontend/dashboard run typecheck",
+    "dashboard:test": "npm --workspace frontend/dashboard run test",
+    "dashboard:lint": "npm --workspace frontend/dashboard run lint",
+    "dashboard:smoke": "REACT_DASHBOARD_WEB_SERVER=1 DASHBOARD_BASE_URL=http://127.0.0.1:5173 playwright test tests/playwright/dashboard-react.spec.mjs",
     "smoke:dashboard:diagnostics": "playwright test tests/playwright/dashboard-diagnostics.spec.mjs"
   },
   "devDependencies": {

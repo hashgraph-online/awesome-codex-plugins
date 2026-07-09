@@ -1,6 +1,6 @@
 {
   "name": "agentops",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "The operational layer for coding agents. Bookkeeping, validation, and flows that compound knowledge between sessions.",
   "skills": "./skills-codex",
   "interface": {

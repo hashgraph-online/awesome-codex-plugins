@@ -1,6 +1,6 @@
 ---
 name: ophis-swap
-description: Use when the user wants to swap, trade, buy, sell, or convert tokens onchain, get a best-execution swap quote, compare a swap against DEX aggregators, or read wallet balances, token prices, gas, or fee-rebate tiers. Drives Ophis, an intent-based DEX (a CoW Protocol deployment) that is MEV-protected, gasless for the trader, and keyless. Supports Ethereum, Optimism, Base, Arbitrum, Polygon, BNB, Gnosis, Avalanche, Plasma, Ink, and Linea.
+description: Use when the user wants to swap, trade, buy, sell, or convert tokens onchain, get a best-execution swap quote, compare a swap against DEX aggregators, or read wallet balances, token prices, gas, or fee-rebate tiers. Drives Ophis, an intent-based DEX (a CoW Protocol deployment) that is MEV-protected, gasless for the trader, and keyless. Supports Ethereum, Optimism, Base, Arbitrum, Polygon, BNB, Gnosis, Unichain, Avalanche, Plasma, Ink, and Linea.
 ---
 
 # Ophis Swap
@@ -92,7 +92,7 @@ submit_order(chainId=8453, order=order, signature="0x...", from="<your wallet>",
 Ophis applies a small volume fee, shown as `partnerFee` (currently 5 bps), and shares a rebate back through its referrer program. The order's `feeAmount` is always 0; the volume fee is the only charge. The rebate is tiered by 30-day USD volume: it starts at the bronze tier (about 20,000 USD of 30-day volume, 10 percent) and rises through silver, gold, palladium, and platinum (1,000,000 USD, 50 percent); below the bronze threshold a wallet earns 0 percent. Pass a `referrerCode` in `build_order` to attribute volume to your code, and check a wallet's current tier and rate with `lookup_tier`.
 
 ## Supported chains
-Trading is live on Ethereum (1), Optimism (10), BNB Chain (56), Gnosis (100), Polygon (137), Base (8453), Arbitrum (42161), Avalanche (43114), Plasma (9745), Ink (57073), and Linea (59144). Some chains have settlement deployed but no live orderbook yet. Always treat `list_chains` as the authoritative live set, since it splits `tradeable` from `paused` at runtime. The read tools (`get_balances`, `get_portfolio`, `get_gas`, `get_token_chart`) cover the subset of chains that have a keyless public RPC.
+Trading is live on Ethereum (1), Optimism (10), BNB Chain (56), Gnosis (100), Unichain (130), Polygon (137), Base (8453), Arbitrum (42161), Avalanche (43114), Plasma (9745), Ink (57073), and Linea (59144). Some chains have settlement deployed but no live orderbook yet. Always treat `list_chains` as the authoritative live set, since it splits `tradeable` from `paused` at runtime. The read tools (`get_balances`, `get_portfolio`, `get_gas`, `get_token_chart`) cover the subset of chains that have a keyless public RPC.
 
 ## Order lifetime
 Orders are signed with a validity window (`validForSeconds`, default 1200 seconds, that is 20 minutes; minimum 60). A submitted order is a live, fillable commitment at the signed limit price for that whole window, so keep the window short for a market-style intent. Orders default to fill-or-kill (`partiallyFillable` is false), which is the safer default. There is no cancel tool, so a submitted order stands until it fills or expires.

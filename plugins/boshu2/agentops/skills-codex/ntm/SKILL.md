@@ -1,10 +1,10 @@
 ---
 name: ntm
-description: Orchestrates NTM tmux agent swarms and robot
+description: Orchestrate NTM tmux agent swarms and robot
 ---
 <!-- TOC: One Rule | Outcome | Cold Start | Mandatory Loop | NTM Action Card | Surface Selection | Pattern Tiers | Anti-Patterns | Pre-Flight Checklist | Output | Operating Notes | Reference Index | Related Skills -->
 
-> **Scope:** this skill is AgentOps **operating doctrine** for NTM. The binary is self-describing — for command syntax, flags, schemas, and examples use `ntm --robot-docs=quickstart|commands|examples|exit-codes`, `ntm --robot-capabilities`, `ntm --robot-schema=all`, or `ntm --help`. Never trust this file (or any notes) over the live contract. For tending loops, marching orders, unstick ladders, and swarm cadence, use the companion `vibing-with-ntm` skill.
+> **Scope:** this skill is AgentOps **operating doctrine** for NTM. The binary is self-describing — for command syntax, flags, schemas, and examples use `ntm --robot-docs=quickstart|commands|examples|exit-codes`, `ntm --robot-capabilities`, `ntm --robot-schema=all`, or `ntm --help`. Never trust this file (or any notes) over the live contract. For tending loops, marching orders, unstick ladders, and swarm cadence, use the companion `using-atm` skill (the former `vibing-with-ntm` tending doctrine is folded into `$ntm`).
 
 > **`atm` is the same binary.** `atm` (Bo's fork/alias, `~/.local/bin/atm`) is byte-identical to `ntm` — same `--help`, same `--robot-*` surface, same flags, same exit codes. Every `ntm …` form documented here and in the references applies verbatim to `atm …`, and vice-versa. Use them interchangeably; the companion out-of-session substrate skill is literally named `using-atm`. When `--robot-capabilities` matters, query whichever binary you invoked — they resolve to the same contract.
 
@@ -31,7 +31,7 @@ If the snapshot or attention feed disagrees with what the command said happened,
 | Situation | Start here |
 |---|---|
 | You need NTM doctrine, then exact syntax via `--robot-docs` / references | This skill |
-| You are tending an already-running swarm and deciding whether to nudge, restart, stand down, or dispatch marching orders | `$vibing-with-ntm` |
+| You are tending an already-running swarm and deciding whether to nudge, restart, stand down, or dispatch marching orders | `$using-atm` (tending loop) |
 | You are running a Brenner-style hypothesis investigation or incident RCA through NTM panes | `brennerbot-with-ntm` |
 | You only need Beads or BV mechanics | `$beads-br` or `$beads-bv` |
 
@@ -49,6 +49,10 @@ For any state-changing action, verify the live contract with `ntm --robot-capabi
   require artifact-backed findings (paths + line refs, not impressions), and treat a worker that
   emits conclusions without evidence as not-done — re-dispatch with the bounded-input contract
   restated.
+
+## Tending doctrine (single owner)
+
+**`ntm` owns the swarm-tending doctrine** (age-skills-audit-fable-l6ic.8): the nudge → restart → stop → converged recovery ladder (the `Surface Selection` recovery order, `Pattern Tiers`, and the Anti-Patterns table incl. the OC-047 boot-race and never-kill-before-a-liveness-proof), the liveness truth stack (`Pre-Flight Checklist`), the **meter-LIES** reading discipline, and the **two-tick** stall rule — trip-wire detail in [references/TROUBLESHOOTING.md](references/TROUBLESHOOTING.md). The companion `using-atm` skill is the **substrate runner** (spawn + dispatch) and holds only **ATM-specific deltas** — its [`tending-loop.md`](../using-atm/references/tending-loop.md) and [`continuity-and-meter.md`](../using-atm/references/continuity-and-meter.md) are the ATM-runner view, not a second source of truth.
 
 ## The Loop (Mandatory)
 
@@ -121,7 +125,7 @@ Escalate only with the action card filled; each tier raises the proof bar:
 | Retry degraded mail/CASS forever | Burns the session | record degraded source, use fallback, continue |
 | Infer abandoned beads from silence | NTM deliberately does not implement `bead_orphaned` | explicit status/mail/reservation evidence |
 | Trust a fresh `spawn --cod` pane blind (bare shell) | Some builds leave a **bare zsh**; prompts execute as shell text | verify with `--robot-tail`; relaunch the CLI, or fall back to `codex exec -C <worktree>` per lane |
-| Fire a separate `send` right after a bare `spawn` (boot race) | `spawn` returns **before** the agent boots to its input box; the first send is silently dropped → pane is never-engaged (CLI alive, 0.0% CPU) | wait for input-ready first: `--assign` / `--init-prompt` / `--robot-wait=ready`; if already dropped, **re-dispatch, don't restart** (vibing OC-047) |
+| Fire a separate `send` right after a bare `spawn` (boot race) | `spawn` returns **before** the agent boots to its input box; the first send is silently dropped → pane is never-engaged (CLI alive, 0.0% CPU) | wait for input-ready first: `--assign` / `--init-prompt` / `--robot-wait=ready`; if already dropped, **re-dispatch, don't restart** (OC-047) |
 
 ## Pre-Flight Checklist
 
@@ -185,7 +189,7 @@ Drop-in examples live under `assets/`:
 
 ## Related Skills
 
-- **`vibing-with-ntm`** — the companion **operator / orchestration** skill: tending loops, marching-orders prompts, autonomous unstick recipes, steady-state cadence. Use it whenever the question is "how do I run the swarm well?" rather than "what does NTM do?"
+- **`using-atm`** — the companion **operator / substrate** skill: spawn + dispatch, the swarm tending loop, continuity renewal ticks. Use it whenever the question is "how do I run the swarm well?" rather than "what does NTM do?" (The former `vibing-with-ntm` tending doctrine is folded into `$ntm`.)
 - `agent-mail` for inboxes, contact handshakes, and file reservations
 - `br` for bead state changes and syncing
 - `bv` for graph-aware task prioritization

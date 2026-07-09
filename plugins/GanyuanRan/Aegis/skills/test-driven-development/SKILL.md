@@ -10,7 +10,7 @@ description: Use when the user explicitly requests strict or test-first TDD, or 
   Hand control back to `using-aegis`, `systematic-debugging`, `writing-plans`, or the fast path with verification.
 → Implementing a feature or bugfix under TDD Route `strict`? → **No production code without a failing test first.**
   Gate: medium/high complexity? → route to brainstorming or writing-plans first.
-  Mode: `auto` chooses strict/light/skipped by risk; `off` disables automatic TDD, not completion verification.
+  Mode: default `off` disables automatic TDD, not completion verification; `auto` chooses strict/light/skipped by risk.
   Change Necessity: before strict RED/GREEN enters production edits, confirm the slice really needs a code change.
   Cycle: RED (write test → watch it fail) → GREEN (minimal code → watch it pass) → REFACTOR (clean up → keep green)
   Regression: shared module → related tests. contract change → producer + consumer. core logic → old + new tests.
@@ -27,9 +27,9 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 If you didn't watch the test fail, you don't know if it tests the right thing.
 
-TDD Mode has two values: `auto` and `off`. `auto` lets Aegis choose a
-`TDD Route`; `off` disables automatic TDD routing but never disables
-`verification-before-completion`.
+TDD Mode has two values: `off` and `auto`. The default `off` mode disables
+automatic TDD routing but never disables `verification-before-completion`.
+`auto` lets Aegis choose a `TDD Route` by task risk.
 
 On native-direct-skill hosts, automatic entry must stay anchored to literal
 conversation markers such as `TDD Route: strict`, `strict TDD`, `test-first`,
@@ -164,6 +164,12 @@ Pre-Edit Complexity Check:
 - Owner fit:
 - Safer edit boundary:
 - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+
+Pre-Edit Owner-Fit Decision:
+- Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
+- Owner fit:
+- Safer edit boundary:
+- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
 ```
 
 If the decision is `pause for plan update`, stop TDD and return to
@@ -172,6 +178,13 @@ If the decision is `pause for plan update`, stop TDD and return to
 If the predicted result is that this slice would push a maintained artifact
 over budget and the slice does not also govern that overrun, do not continue
 with RED/GREEN as if the task were safely scoped. Pause and update the plan.
+
+When the target edit file is over-budget or mixed-purpose, classify edit intent
+before production source edits. `new-responsibility` must not be added in place
+by default. `wiring-only`, `move-out / extract-first`, and
+`local-fix-without-new-responsibility` may proceed only when they do not add a
+new responsibility and the verification boundary is clear. `emergency /
+compatibility patch` requires residual risk and a retirement trigger.
 
 When a medium- or high-complexity task needs project records, use configured Aegis workspace support
 lazily. Prefer the installed Aegis workspace helper

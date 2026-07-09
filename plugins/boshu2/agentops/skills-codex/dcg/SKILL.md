@@ -1,6 +1,6 @@
 ---
 name: dcg
-description: Handle blocked destructive commands. Use
+description: Handle blocked destructive commands and
 ---
 <!-- TOC: Core Insight | THE EXACT WORKFLOW | Quick Reference | Safe Alternatives | What Gets Blocked | Anti-Patterns | Configuration | References -->
 

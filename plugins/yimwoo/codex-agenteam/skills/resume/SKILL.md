@@ -110,7 +110,18 @@ Show the user a resume summary:
 
 Offer three options:
 
-- **Re-dispatch**: Re-launch the stage with fresh subagents.
+- **Resume persisted attempt (preferred):** Inspect the interrupted stage's
+  latest `attempts[]` record. If it has a `thread_id`, continue through the
+  runtime harness:
+  ```bash
+  python3 <runtime>/agenteam_rt.py run --run-id <run_id>
+  ```
+  The runner issues `codex exec resume <thread_id> -`, preserves the attempt
+  chain, and continues the stored retry budget. Do not launch a second agent
+  while the recorded PID is live.
+
+- **Re-dispatch:** Use only when no resumable `thread_id` exists and prior
+  side effects have been verified. A fresh redispatch requires explicit approval.
   ```bash
   python3 <runtime>/agenteam_rt.py transition --run-id <run_id> \
     --stage <stage> --to dispatched
@@ -120,13 +131,16 @@ Offer three options:
   ```
   Then launch subagents and continue the pipeline from this stage.
 
-- **Rollback**: Reset to the stage's baseline (if available).
+- **Preserve and replay:** Query the stage baseline without changing the
+  checkout:
   ```bash
   python3 <runtime>/agenteam_rt.py stage-baseline --run-id <run_id> \
     --stage <stage> --action rollback
   ```
-  If `allowed` is true: execute `git reset --hard <baseline>`.
-  Then offer re-dispatch or stop as a second choice.
+  If `allowed` is true, save the current diff to
+  `.agenteam/runs/<run_id>/<stage>/resume-recovery.patch`. Offer to create a
+  new clean branch/worktree from the baseline and replay there. Never discard
+  or rewrite the current dirty checkout automatically.
   If `allowed` is false: tell user rollback is not available in this
   isolation mode.
 
@@ -145,6 +159,10 @@ standalone pipeline flow from `skills/run/SKILL.md` step 6.
 The remaining stages are listed in the resume plan's `remaining_stages`
 array. Process each one in order through the standard dispatch → verify
 → gate → handoff flow.
+
+During continuation, report `thread_id`, last heartbeat, heartbeat age, wall
+and idle budget remaining, attempt/retry counts, and stop reason. Runtime state
+is the source of truth; chat messages are not checkpoints.
 
 ## Headless Policy
 

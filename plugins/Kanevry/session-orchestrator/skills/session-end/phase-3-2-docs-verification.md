@@ -91,34 +91,31 @@ Read `docs-orchestrator.mode` from Session Config (default: `warn`).
 - Append a subsection to the Phase 6 Final Report (see below).
 - `/close` proceeds regardless of gap count.
 
-**`mode: strict`** (blocking on any gap):
+**`mode: strict`** (surfaces an AUQ on any gap; default = warn + carryover + continue — never hard-blocks):
 - If ALL tasks are `ok` or `partial`: proceed — append report, continue close.
 - If ANY task is `gap`:
   - **Claude Code:** use `AskUserQuestion` with these options (mark Recommended):
     ```
     Phase 3.2 found documentation gaps. How would you like to proceed?
-    1. Address gaps and retry Phase 3.2 (Recommended)
+    1. Warn + carryover and close (Recommended)
     2. Override — close session with gaps (deviations logged)
-    3. Abort close
     ```
   - **Codex CLI / Cursor fallback:** render a numbered Markdown list:
     ```markdown
     ## Phase 3.2: Documentation Gaps Detected (mode=strict)
 
     Choose one:
-    1. **Address gaps and retry Phase 3.2** *(Recommended)*
+    1. **Warn + carryover and close** *(Recommended)*
     2. Override — close session with gaps (deviations will be logged)
-    3. Abort close
 
     Gap tasks: <list task IDs and target-patterns>
     ```
-  - On "Address and retry": pause close, allow user to dispatch docs-writer manually or fix docs directly, then re-run Phase 3.2 from Step 3.
+  - On "Warn + carryover and close": file a carryover issue (labels `carryover`, `priority:high`) titled `[Carryover] Documentation gaps (strict) — <gap-count> tasks` listing the gap task IDs + target-patterns for a follow-up session, log the deviation (below), then append the report and continue the close.
   - On "Override": log a deviation in the `## Deviations` section of STATE.md:
     ```
     - [Phase 3.2] docs-orchestrator strict-mode gaps overridden by user. Tasks: <ids>. Timestamp: <ISO 8601>.
     ```
     Then append the report and proceed with close.
-  - On "Abort": stop `/close` entirely. User must re-invoke.
 
 **`mode: off`:** This path is not reached because the Phase gate at the top of 3.2 exits early for `mode: off`. Documented here for completeness.
 

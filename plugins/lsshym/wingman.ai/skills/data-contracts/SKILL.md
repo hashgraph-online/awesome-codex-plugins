@@ -63,9 +63,9 @@ Perform this analysis internally. Do not ask the user at each step. Ask only whe
 
 ## Example Use Rule
 
-If implementation examples are needed, read `references/examples.md`, then one matching language example.
+If concrete code shape is needed after the checkpoint, read `references/examples.md`, then at most one matching language example.
 
-Examples demonstrate executable boundary handling style: imports, validation, errors, tests, main functions, and run commands.
+Examples demonstrate boundary handling style: source shape, receiver shape, validation, explicit errors, and a focused verification.
 
 Do not copy example domains, field names, enum values, architecture, or language into the project unless they match the existing code. Always follow the project's actual language, libraries, and patterns.
 

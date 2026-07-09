@@ -67,7 +67,7 @@ OHLCV price history from the keyless GeckoTerminal market API.
 ## Chains with a public RPC (for balances, portfolio, gas, charts)
 1 Ethereum, 10 Optimism, 56 BNB Chain, 100 Gnosis, 137 Polygon, 8453 Base, 42161 Arbitrum, 43114 Avalanche, 57073 Ink, 59144 Linea.
 
-Trading (quote, build, submit) additionally covers Plasma (9745), which has no keyless public RPC, so the read tools above do not cover it. Treat `list_chains` as the authoritative live set of tradeable chains.
+Trading (quote, build, submit) additionally covers Plasma (9745) and Unichain (130). Plasma has no keyless public RPC, so the read tools above do not cover it. Treat `list_chains` as the authoritative live set of tradeable chains.
 
 ## HTTP fallback (no MCP)
 - `POST https://swap.ophis.fi/api/intent` with `{ "text": "..." }` returns the same parse as `parse_intent`.

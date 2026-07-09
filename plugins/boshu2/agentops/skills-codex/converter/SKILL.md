@@ -10,7 +10,7 @@ Parse AgentOps skills into a universal SkillBundle format, then convert to targe
 
 ```bash
 $converter skills/council codex     # Convert council skill to Codex format
-$converter skills/validate cursor       # Convert vibe skill to Cursor format
+$converter skills/validate cursor       # Convert validate skill to Cursor format
 $converter --all codex              # Convert all skills to Codex
 ```
 

@@ -16,7 +16,7 @@ Run a Claude loop *outside* an interactive Claude Code / Codex session — an An
 
 So an out-of-session agent becomes AgentOps-native by: **(a)** loading AgentOps skills into the Agent definition, **(b)** exposing the `ao` CLI as a callable tool (MCP or shell-tool) so the agent can `ao session bootstrap` / `ao lookup` / `ao validate` itself, and **(c)** running the same deterministic local validation/proof path on its outputs before the work is accepted. The Agent SDK's own hooks become an **optional thin adapter** for teams wanting in-loop interception — never the primary mechanism.
 
-> **Mechanism status (planned, not yet shipped).** This skill is the **doctrine layer** and lands first; the two concrete commands it names — `ao agent bundle` (ag-jspr) and `ao mcp serve` (ag-higd) — are open, ready beads under epic ag-7s9fo, not yet in the live CLI. The `ao session bootstrap` / `ao lookup` / `ao corpus inject` / `ao validate` / `ao goals measure` commands the bundled agent calls are real today. When ag-jspr and ag-higd land, remove this skill's entry from `scripts/skill-body-refs-allowlist.txt`.
+> **Mechanism status (live).** The two concrete commands this skill names — `ao agent bundle` and `ao mcp serve` — are live cobra commands in the `ao` CLI, alongside the `ao session bootstrap` / `ao lookup` / `ao corpus inject` / `ao validate` / `ao goals measure` commands the bundled agent calls.
 
 This is an **extension of two existing skills**, not a rewrite:
 - [standards](../standards/SKILL.md) — gains an Agent-runtime profile: how the standards/behavioral-discipline checklists get loaded by a non-interactive Claude and enforced by deterministic gate surfaces rather than runtime hooks.
@@ -30,7 +30,7 @@ This is an **extension of two existing skills**, not a rewrite:
 
 - **This is a reframe of the retired "port hooks" idea, NOT a hook revival.** **Why:** hooks are runtime-coupled and fork the guardrail surface; skills + `ao` + CI are the portable 3.0 waist that works in any runtime.
 - **Single source of truth — no skill fork.** The cloud/SDK agent loads the *same* `skills/` files an interactive session uses. **Why:** a forked guardrail set drifts and defeats the corpus moat.
-- **Managed Agents are NOT ZDR.** Never bundle holdout `target`/`ground_truth`/PII into an Agent definition or its MCP tool responses. **Why:** anything sent to the cloud agent leaves the boundary permanently. For holdout-touching work see [eval-outcomes](../eval-outcomes/SKILL.md).
+- **Managed Agents are NOT ZDR.** Never bundle holdout `target`/`ground_truth`/PII into an Agent definition or its MCP tool responses. **Why:** anything sent to the cloud agent leaves the boundary permanently. For holdout-touching work see [eval-outcomes](../validate/SKILL.md).
 - **The deterministic gate is the boundary, not the adapter.** The optional SDK hook adapter is convenience, never the enforcement boundary. **Why:** a bypassed in-loop hook must not mean unvalidated work lands; the local cockpit/pre-push/pawl path is the routine authority and CI is PR/tag/manual backstop telemetry.
 
 ## Workflow
@@ -95,6 +95,6 @@ ao mcp serve &   # exposes session_bootstrap/inject/validate/goals_measure as MC
 - [references/codex-ntm-runtime.md](references/codex-ntm-runtime.md) — Codex/NTM runtime recipe (tmux pane swarms + agent-mail + direct `ao`)
 - [standards](../standards/SKILL.md) — the checklists the agent loads and deterministic gates enforce
 - [converter](../converter/SKILL.md) — keeps the bundle dual-runtime (skills ↔ skills-codex)
-- [eval-outcomes](../eval-outcomes/SKILL.md) — holdout-safe grading for cloud/out-of-session agents
+- [eval-outcomes](../validate/SKILL.md) — holdout-safe grading for cloud/out-of-session agents
 - [swarm](../swarm/SKILL.md) — the in-session/NTM multi-agent backends that dispatch whole `$rpi` skill loops (`ao agent bundle` produces the definition a managed-agents substrate runs)
-- [skill-auditor](../skill-auditor/SKILL.md) — audit this skill before declaring stable
+- [heal-skill](../heal-skill/SKILL.md) — deep audit (audit.sh) this skill before declaring stable

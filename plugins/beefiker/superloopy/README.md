@@ -50,6 +50,7 @@ Superloopy keeps the command layer small. Skills carry the specialist workflow: 
 | `superloopy-clone` | You ask for `loopy clone`, authorized website cloning, rebuilding, migration, or pixel-focused page recovery. | Browser captures, page topology, design tokens, asset inventory, implementation notes, build output, and visual QA evidence. |
 | `superloopy-frontend` | You build, style, or redesign any UI/page/component, or ask to make something look designed (auto-activates on visual work). | A DESIGN.md token contract, an anti-slop pre-flight result, and a real-browser visual-QA evidence artifact. |
 | `humanize-korean` | Use when Korean users ask to remove AI tone, fix 번역투, or make Korean text sound human without changing facts. | Writes `final.md`, `summary.md`, and `audit.json`; in Superloopy loops it records evidence under `.superloopy/evidence/humanize-korean/`. |
+| `superloopy-slides` | You ask for slides, a presentation, a deck, or a PPT/PPTX-to-web conversion. | A zero-dependency single-file HTML deck on a fixed 16:9 stage, three style previews to pick from, and a rendered-screenshot visual-QA artifact under `.superloopy/evidence/slides/`. |
 
 The loop skill is the default guardrail. `loopy` starts or resumes the evidence loop; `loopy team` escalates to crew mode. `loopywork`, `lpy`, and `$lpy` only inject starter guidance. Research and clone are opt-in specialist modes, and both still finish by recording Superloopy evidence instead of trusting a status sentence. The frontend skill auto-activates on visual work and injects a short guidance-only steer; set `SUPERLOOPY_FRONTEND_STEER=off` to silence it.
 
@@ -101,6 +102,8 @@ When Superpowers is installed (on Codex or Claude Code), Superloopy notices and 
 ## Install
 
 Superloopy installs on both **Codex** and **Claude Code** from one repo. The core (loop state, evidence gates, doctor) is host-agnostic; each host gets its own thin plugin manifest, hook wiring, and agent format.
+
+For agent-driven installs such as `install https://github.com/beefiker/superloopy`, use [installation.md](installation.md). It is written as a host-selection and verification checklist for Codex and Claude Code agents.
 
 ### Codex
 
@@ -196,6 +199,7 @@ Restart Codex after uninstalling. Optional local bootstrap cleanup: plugin remov
 
 ```
 rm -f ~/.local/bin/superloopy
+Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
 rm -f ~/.codex/agents/franky.toml ~/.codex/agents/zoro.toml ~/.codex/agents/usopp.toml ~/.codex/agents/jinbe.toml ~/.codex/agents/robin.toml ~/.codex/agents/nami.toml
 ```
 

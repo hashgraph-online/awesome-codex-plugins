@@ -6,14 +6,16 @@
 #   build.sh absorb-external <skill-name> --from <path-to-external-SKILL.md>
 #   build.sh from-pattern   # alpha: passthrough to ao flywheel close-loop
 #
-# Always runs skill-auditor on the new skill as a self-check before declaring success.
+# Always runs the heal-skill deep audit (absorbed from /skill-auditor) on the new skill as a self-check before declaring success.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# SKILL_BUILDER_REPO_ROOT overrides root discovery for fixture-driven tests
+# (see init.sh — same contract, mirrors HEAL_REPO_ROOT in heal.sh).
+REPO_ROOT="${SKILL_BUILDER_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 INIT_SH="$SCRIPT_DIR/init.sh"
-AUDITOR_SH="$REPO_ROOT/skills/skill-auditor/scripts/audit.sh"
+AUDITOR_SH="$REPO_ROOT/skills/heal-skill/scripts/audit.sh"
 
 usage() {
   cat <<EOF
@@ -137,5 +139,5 @@ else
   # An unaudited build cannot claim a pass: record false rather than leaving the
   # null placeholder (which would be schema-invalid and read as "audited").
   patch_audit_pass false
-  echo "[skill-builder] WARN: skill-auditor not found at $AUDITOR_SH; skipping self-audit (audit_pass=false)" >&2
+  echo "[skill-builder] WARN: heal-skill audit script not found at $AUDITOR_SH; skipping self-audit (audit_pass=false)" >&2
 fi

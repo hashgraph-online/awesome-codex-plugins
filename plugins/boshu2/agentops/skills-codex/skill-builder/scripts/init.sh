@@ -10,7 +10,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# SKILL_BUILDER_REPO_ROOT overrides root discovery for fixture-driven tests
+# (tests/integration/test_skill_builder.bats scaffolds into a scratch repo copy
+# so no in-repo surface — skills/, the dispositions ledger, the codex catalog —
+# is ever mutated by a test run). Mirrors HEAL_REPO_ROOT in heal.sh. Production
+# derives the root from the script location.
+REPO_ROOT="${SKILL_BUILDER_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 TEMPLATE_REF="$REPO_ROOT/skills/skill-builder/references/skill-template.md"
 
 [[ -f "$TEMPLATE_REF" ]] || { echo "init.sh: missing $TEMPLATE_REF" >&2; exit 1; }
@@ -154,7 +159,7 @@ output_contract: "TODO: path to schema or output description"
 
 ## See Also
 
-- [skill-auditor](../skill-auditor/SKILL.md) — audit this skill before declaring stable
+- [heal-skill](../heal-skill/SKILL.md) — deep audit (audit.sh) this skill before declaring stable
 EOF
 
 # --- Mode-specific content injection -------------------------------------
@@ -176,7 +181,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"
-exec bash "$REPO_ROOT/skills/skill-auditor/scripts/audit.sh" "$SKILL_DIR"
+exec bash "$REPO_ROOT/skills/heal-skill/scripts/audit.sh" "$SKILL_DIR"
 EOF
 chmod +x "$NEW_DIR/scripts/validate.sh"
 chmod +x "$NEW_DIR" 2>/dev/null || true

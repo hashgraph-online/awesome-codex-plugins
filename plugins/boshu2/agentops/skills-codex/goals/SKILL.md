@@ -4,7 +4,7 @@ description: "Maintain measurable project goals."
 ---
 # $goals — Fitness Goal Maintenance
 
-> Maintain GOALS.yaml and GOALS.md fitness specifications. Use `ao goals` CLI for all operations.
+> Maintain GOALS.md (canonical, v4) fitness specifications; GOALS.yaml is legacy, surviving only for migration via `ao goals migrate`. Use `ao goals` CLI for all operations.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 

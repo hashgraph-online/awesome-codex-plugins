@@ -129,6 +129,23 @@ OBJECT_STORAGE_BRANCH_MARKER_RE = re.compile(
     r"aws_secret_access_key|storage_s3|s3-compatible|bucket|bucket_name|minio)\b",
     re.IGNORECASE,
 )
+EXTERNAL_OBJECT_STORAGE_SOURCE_ANNOTATION = "docker-to-sealos.external-object-storage-source"
+EXTERNAL_OBJECT_STORAGE_INPUT_RE = re.compile(
+    r"(?:^|_)(?:EXTERNAL_S3|EXTERNAL_MINIO|EXTERNAL_OBJECT_STORAGE|USE_EXTERNAL_S3|"
+    r"USE_EXTERNAL_MINIO|USE_EXTERNAL_OBJECT_STORAGE)(?:$|_)|"
+    r"(?:^|_)(?:S3|MINIO|OBJECT_STORAGE)(?:_.*)?_(?:ACCESS_KEY|ACCESS_KEY_ID|SECRET|SECRET_KEY|"
+    r"SECRET_ACCESS_KEY|ENDPOINT|BUCKET|REGION)(?:$|_)",
+    re.IGNORECASE,
+)
+MANAGED_OBJECT_STORAGE_TOGGLE_NAMES = {
+    "ENABLE_OBJECT_STORAGE",
+    "ENABLE_S3_STORAGE",
+    "ENABLE_SEALOS_OBJECT_STORAGE",
+    "ENABLE_SEALOS_OBJECTSTORAGE",
+    "USE_OBJECT_STORAGE",
+    "USE_SEALOS_OBJECT_STORAGE",
+    "USE_SEALOS_OBJECTSTORAGE",
+}
 TEMPLATE_IF_RE = re.compile(r"\$\{\{\s*if\s*\((.*?)\)\s*\}\}")
 TEMPLATE_ENDIF_RE = re.compile(r"\$\{\{\s*endif\(\)\s*\}\}")
 TEMPLATE_INPUT_REF_RE = re.compile(r"\binputs\.([A-Za-z_][A-Za-z0-9_]*)\b")
@@ -1753,6 +1770,37 @@ def _is_database_client_job(doc) -> bool:
     return any(_contains_any_database_token(name, DATABASE_CLIENT_JOB_TOKENS) for name in names)
 
 
+def _workload_template_spec(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    kind = data.get("kind")
+    spec = data.get("spec")
+    if not isinstance(spec, dict):
+        return None
+
+    if kind in {"Deployment", "StatefulSet", "DaemonSet", "Job"}:
+        template = spec.get("template")
+        template_spec = template.get("spec") if isinstance(template, dict) else None
+        return template_spec if isinstance(template_spec, dict) else None
+
+    if kind == "CronJob":
+        job_template = spec.get("jobTemplate")
+        job_spec = job_template.get("spec") if isinstance(job_template, dict) else None
+        template = job_spec.get("template") if isinstance(job_spec, dict) else None
+        template_spec = template.get("spec") if isinstance(template, dict) else None
+        return template_spec if isinstance(template_spec, dict) else None
+
+    return None
+
+
+def _iter_main_workload_containers(data: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    template_spec = _workload_template_spec(data)
+    containers = template_spec.get("containers") if isinstance(template_spec, dict) else None
+    if not isinstance(containers, list):
+        return
+    for container in containers:
+        if isinstance(container, dict):
+            yield container
+
+
 def _is_database_like_workload(doc) -> bool:
     if not isinstance(doc.data, dict):
         return False
@@ -1761,7 +1809,7 @@ def _is_database_like_workload(doc) -> bool:
     if _is_database_client_job(doc):
         return False
 
-    for container in iter_containers(doc.data):
+    for container in _iter_main_workload_containers(doc.data):
         image = container.get("image")
         if isinstance(image, str) and _is_database_image(image):
             return True
@@ -2075,6 +2123,79 @@ def check_optional_object_storage_uses_boolean_input(context: ScanContext) -> Li
                         ),
                     )
                 )
+
+    return violations
+
+
+def _normalize_template_input_name(value: str) -> str:
+    return re.sub(r"[^A-Z0-9]+", "_", value.upper()).strip("_")
+
+
+def _external_object_storage_input_names(doc: YamlDocument) -> List[str]:
+    spec = doc.data.get("spec") if isinstance(doc.data, dict) else None
+    inputs = spec.get("inputs") if isinstance(spec, dict) else None
+    if not isinstance(inputs, dict):
+        return []
+
+    names: List[str] = []
+    for key in inputs.keys():
+        if not isinstance(key, str):
+            continue
+        normalized = _normalize_template_input_name(key)
+        if normalized in MANAGED_OBJECT_STORAGE_TOGGLE_NAMES:
+            continue
+        if EXTERNAL_OBJECT_STORAGE_INPUT_RE.search(normalized):
+            names.append(key)
+    return names
+
+
+def _external_object_storage_source(doc: YamlDocument) -> str:
+    annotations = _metadata_annotations(doc.data) if isinstance(doc.data, dict) else {}
+    value = annotations.get(EXTERNAL_OBJECT_STORAGE_SOURCE_ANNOTATION)
+    return value.strip() if isinstance(value, str) else ""
+
+
+def check_external_object_storage_inputs(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    object_storage_paths = {
+        doc.path
+        for doc in context.yaml_documents
+        if not doc.skip_checks and isinstance(doc.data, dict) and doc.data.get("kind") == "ObjectStorageBucket"
+    }
+
+    for doc in _iter_template_artifact_documents(context):
+        input_names = _external_object_storage_input_names(doc)
+        if not input_names:
+            continue
+
+        if doc.path in object_storage_paths:
+            add_doc_violation(
+                violations,
+                rule_id="R047",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(input_names[0])}\s*:",
+                default_pattern=r"^\s*inputs\s*:",
+                message=(
+                    "templates with managed ObjectStorageBucket resources must not expose external "
+                    "S3/object-storage credential inputs"
+                ),
+            )
+            continue
+
+        if _external_object_storage_source(doc):
+            continue
+
+        add_doc_violation(
+            violations,
+            rule_id="R047",
+            doc=doc,
+            pattern=rf"^\s*{re.escape(input_names[0])}\s*:",
+            default_pattern=r"^\s*inputs\s*:",
+            message=(
+                f"external S3/object-storage inputs require metadata.annotations."
+                f"{EXTERNAL_OBJECT_STORAGE_SOURCE_ANNOTATION} with source or user-request evidence"
+            ),
+        )
 
     return violations
 
@@ -2822,6 +2943,7 @@ APP_RULES: Dict[str, Rule] = {
     "R043": Rule("R043", check_configmap_file_mount_contract),
     "R044": Rule("R044", check_optional_object_storage_uses_boolean_input),
     "R045": Rule("R045", check_template_input_references_declared),
+    "R047": Rule("R047", check_external_object_storage_inputs),
     "R031": Rule("R031", check_ingress_name_matches_backends),
     "R026": Rule("R026", check_http_ingress_annotations),
     "R027": Rule("R027", check_postgres_custom_db_init_job),

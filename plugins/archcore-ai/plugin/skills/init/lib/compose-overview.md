@@ -57,15 +57,29 @@ type + what it covers** — area/type/topic words ONLY, never a filename or path
 | entry-point inventory | Entry points | doc | HTTP / CLI / worker / cron surfaces |
 | public-surface doc | Public surface | doc | routes / exports / commands / skills |
 | top-level map (large) | Domains | doc | domain boundaries & sizes |
-| data-model doc | Data model | doc | entities & relations |
+| data-model doc (repo-wide, or one row per per-domain doc in large mode) | Data model[: `<domain>`] | doc | entities & relations |
 | integrations doc | Integrations | doc | external services |
 | config/env doc | Configuration | doc | env-var names & purpose |
-| each hotspot spec | Hotspot: `<module>` | spec | `<module>` contract |
+| each hotspot spec (a decomposed flagship's sub-specs each get their own row) | Hotspot: `<module>`[ (`<sub-surface>`)] | spec | `<module>`[ `<sub-surface>`] contract |
+| each cross-cutting rule | `<concern>` | rule | cross-cutting convention |
 | each imported rule | `<imported topic>` | rule | imported convention |
 
 Emit only rows whose artifact is in the seed. Order: facts (stack, run guide),
 structure (entry points, domains), data (data-model, integrations, config), then
-hotspots, then imports.
+hotspots, then cross-cutting rules, then imports.
+
+**Row-collapse (keeps Part 1+2+3 ≤ 150 lines on any repo size).** Large-mode's
+per-domain-scaled spec cap (`detect-hotspots.md` "Top-N by mode") and its
+every-schema-domain data-model breadth (`detect-data-model.md`) can each produce
+dozens of rows on a big repo — the old flat caps could not. For ANY artifact category
+that would emit **more than 10 rows** in one confirmed seed (hotspot specs at large
+`standard`/`deep`, per-domain data-models when many domains carry a schema, or a
+large batch of imported modular-rule docs): list the first 10 by rank/name
+(deterministic — highest-ranked hotspot first, alphabetical for data-models/imports),
+then collapse the remainder into ONE summary row: `<Category>: +<N> more` — same
+`Type`, `Covers` = `<N> additional <unit>`. This is the same "index, not directory"
+discipline Part 3 already applies to its register, extended to Part 2 so a 24-domain
+`deep` run cannot itself blow the cap it exists to guard.
 
 ## Part 3 — hotspot register (ranked but not specced)
 
@@ -100,7 +114,8 @@ the user knows exactly what to `/archcore:capture` next.
 - Type `doc`, `directory='architecture'`, `filename='architecture-overview'`,
   `title='Architecture overview'`, `status='accepted'`,
   `tags=['architecture-overview', 'architecture']`.
-- **OUTPUT cap: ≤ 150 lines** (realistically 30–50: one fact line + the index).
+- **OUTPUT cap: ≤ 150 lines** (realistically 30–50 on small/medium; up to ~90 on a
+  large `deep` run with the row-collapse rule above applied — never uncapped).
 - `SKILL.md` wires the create:
   `mcp__archcore__create_document(type='doc', filename='architecture-overview', directory='architecture', title='Architecture overview', status='accepted', tags=['architecture-overview', 'architecture'], content=<body>)`.
 
@@ -119,6 +134,7 @@ the user knows exactly what to `/archcore:capture` next.
 | Integrations | doc | external services |
 | Configuration | doc | env-var names & purpose |
 | Hotspot: <module> | spec | <module> contract |
+| <concern> | rule | cross-cutting convention |
 
 Ranked hotspots not yet specced (run /archcore:capture to document):
 - <area>: <module> — <signal> → /archcore:capture <path>
@@ -140,6 +156,7 @@ SKILL wires elsewhere).
 | each hotspot spec | related | entry-points doc | entry-points present (medium / large) |
 | each hotspot spec | related | public-surface doc | public-surface present |
 | imported rule doc | related | project-stack rule | import yielded a `rule` |
+| a decomposed flagship's sub-specs | related | each other (pairwise) | flagship split into ≥ 2 sub-specs (`detect-hotspots.md` "Flagship specs") |
 | each hotspot spec | related | the convention rule(s) it must honor + sibling specs in its tree | **`deep` depth only** (enriched relations) |
 
 Skip any row whose endpoints were not both created. Roll forward on individual

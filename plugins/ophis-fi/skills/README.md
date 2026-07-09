@@ -38,7 +38,7 @@ Then ask the agent to swap, and it will use the Ophis tools. For example: "swap 
 
 ## Supported chains
 
-Ethereum, Optimism, BNB Chain, Gnosis, Polygon, Base, Arbitrum, Avalanche, Plasma, Ink, and Linea. Some chains are settlement-deployed but not yet live for trading; `list_chains` reports the authoritative live set.
+Ethereum, Optimism, BNB Chain, Gnosis, Unichain, Polygon, Base, Arbitrum, Avalanche, Plasma, Ink, and Linea. Some chains are settlement-deployed but not yet live for trading; `list_chains` reports the authoritative live set.
 
 ## Links
 

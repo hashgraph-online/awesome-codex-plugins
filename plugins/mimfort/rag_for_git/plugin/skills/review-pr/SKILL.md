@@ -97,9 +97,11 @@ blocks.
      `submit_findings` with category `requirements`.
    - blast-radius: dispatch one subagent with `references/blast-radius-prompt.md`, the diffs of
      all units (path + patch), each unit's `commentable_right`/`commentable_left` (the line numbers
-     where inline comments are allowed), the PR `title`/`body`, the repo/pr identifiers (so it can
-     call the reviewer MCP tools, including `get_impact`), and the target output language. It
-     submits findings via `submit_findings` with category `correctness`.
+     where inline comments are allowed), the PR `title`/`body`, the repo/pr identifiers, and the
+     target output language. It runs two checks — changed signatures breaking callers (via
+     `get_impact`) and interface expansion (a changed `Protocol`/ABC whose implementations must all
+     be updated, via `get_related_symbols`/`search_code`) — and submits findings via
+     `submit_findings` with category `correctness`.
    Give the performance/maintainability subagents: the diffs of all units (path + patch), the
    repo/pr identifiers so they can call the reviewer MCP tools, and the target output language.
    They must submit findings via `submit_findings` (category `performance` / `maintainability`).
@@ -116,8 +118,10 @@ blocks.
    requested but unavailable (no key, board MCP not connected, task not found), say so briefly.
    Mention files that were not analyzed: failed subagents and `skipped_paths`
    from the prepare payload. Call `publish_review(repo, pr, summary, dry_run, task_key)`
-   where `task_key` is the canonical `TaskBrief.key` if a task was read (else omit / null). When
-   published, this links the PR to the task in the graph for future reviews. Report to the user:
+   where `task_key` is the canonical `TaskBrief.key` if a task was read (else omit / null). If the
+   CLI provides model/usage/cost metadata, pass them via the optional keyword arguments `model`,
+   `usage`, and `total_cost` to `publish_review`. When published, this links the PR to the task in
+   the graph for future reviews. Report to the user:
    posted/dry-run, inline count, and the report counters
    (dropped_by_gate/deduped/invalid/already_posted/moved_to_summary/capped/verify_rejected), run_id.
 

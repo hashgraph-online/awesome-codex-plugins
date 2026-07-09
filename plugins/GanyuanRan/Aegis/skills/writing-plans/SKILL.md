@@ -80,9 +80,9 @@ architecture, contract, migration, or cross-module uncertainty appears.
 Compact output contract before writing the plan: `Aegis Visibility`, `Plan Basis`,
 `BaselineUsageDraft`, `Requirement Ready Check`, `Files`, `Compatibility`,
 `Change Necessity`, `Existence Check`, `Architecture Integrity Lens`,
-`Plan Pressure Test`, `Plan-Time Complexity Check`, `Tasks`, `Risks`, and
-`Retirement`. Expand only where the approved scope, risk, or verification
-surface requires it.
+`Plan Pressure Test`, `Plan-Time Complexity Check`,
+`Execution Readiness View`, `Tasks`, `Risks`, and `Retirement`. Expand only
+where the approved scope, risk, or verification surface requires it.
 
 `Aegis Visibility` for this workflow states which owner, contract, retirement,
 compatibility, or verification pressure makes planning useful before execution.
@@ -198,6 +198,37 @@ The pressure test is not an approval gate and should not redesign an approved
 spec without cause. It exists to catch owner / contract / retirement risk,
 missing verification, and tasks that are too vague to execute safely.
 
+Render an `Execution Readiness View` before handing a medium/high,
+subagent-driven, handoff-prone, long-running, architecture, contract,
+compatibility, or retirement-sensitive plan to execution. This view is a
+human-readable projection of existing runtime-ready drafts and plan content. It
+is not a new JSON artifact type, approval gate, authoritative `GateDecision`,
+`PolicySnapshot`, or completion authority.
+The view must expose Intent Lock, Scope Fence, and Baseline Lock before any
+task batch is handed to execution.
+
+```text
+Execution Readiness View:
+- Intent Lock:
+- Scope Fence:
+- Baseline Lock:
+- Approved Behavior:
+- Owner / Contract Constraints:
+- Compatibility Boundary:
+- Retirement Boundary:
+- Task Batches:
+- Test Obligations:
+- Review Gates:
+- Drift / Rewind Rules:
+- Evidence Required Before Completion:
+- Advisory Boundary: method-pack execution guidance only; not GateDecision, PolicySnapshot, or completion authority
+```
+
+Use existing inputs for the view: `TaskIntentDraft`, `BaselineUsageDraft`,
+`ImpactStatementDraft`, `GateInputPack`, the plan's task batches,
+compatibility / retirement sections, and verification commands. Skip the view
+for tiny fast-path tasks unless the user asks for an execution handoff readback.
+
 Use a compact `Plan-Time Complexity Check` before writing task steps when the
 plan changes maintained source files, core owners, handlers, routers, managers,
 shared utilities, adapters, or fallback paths:
@@ -291,8 +322,11 @@ Before you leave this workflow, the written plan must make these items answerabl
 9. **Whether the architecture integrity check found a higher-level owner /
    contract path before task decomposition**
 10. **What plan-time complexity pressure exists and which edit boundary is safer**
-11. **What verification proves each major slice**
-12. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
+11. **Whether an `Execution Readiness View` is needed for this handoff, and if
+   needed, which intent, scope, baseline, compatibility, retirement, testing,
+   review, and drift boundaries it renders**
+12. **What verification proves each major slice**
+13. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
 
 ## Bite-Sized Task Granularity
 
@@ -342,7 +376,8 @@ Fix issues inline. Re-review is not needed — just fix and move on.
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After saving the plan, render the `Execution Readiness View` when the handoff
+criteria above apply. Then offer execution choice:
 
 **"Plan complete and saved to `docs/aegis/plans/<filename>.md`. Two execution options:**
 
@@ -363,5 +398,7 @@ After saving the plan, offer execution choice:
 ## Planning Boundaries
 
 - A plan can define implementation slices, verification, rollback surface, and retirement expectations
+- `Execution Readiness View` can make implementation start conditions,
+  verification obligations, and drift / rewind rules visible before execution
 - A plan cannot grant authoritative completion
 - A plan should prepare runtime-ready execution, not pretend to be runtime authority

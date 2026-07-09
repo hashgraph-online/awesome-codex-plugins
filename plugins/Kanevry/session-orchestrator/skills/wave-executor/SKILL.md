@@ -268,7 +268,7 @@ Wave-executor agents may propose memory entries (learnings) mid-session via the 
 During this wave, you may propose a learning to the session's memory via the CLI:
 
   SO_WAVE_AGENT=1 node scripts/memory-propose.mjs \
-      --type <one of: workflow-pattern|anti-pattern|recurring-issue|fragile-file|effective-sizing|proven-pattern|mode-selector-accuracy|hardware-pattern|autopilot-effectiveness|domain-regression> \
+      --type <one of: workflow-pattern|anti-pattern|recurring-issue|fragile-file|effective-sizing|proven-pattern|mode-selector-accuracy|hardware-pattern|autopilot-effectiveness|domain-regression|convention|architecture-pattern|design-pattern> \
       --subject "one-line title (max 100 chars, no newlines)" \
       --insight "your discovery paragraph (max 2000 chars)" \
       --evidence "concrete proof: code citation / log excerpt / commit ref (max 5000 chars)" \
@@ -398,6 +398,8 @@ in Session Config, the gate uses `runQualityGateWithRetry()` from
 `scripts/lib/quality-gate.mjs` which dispatches up to `max-retries` (default 2)
 fixer-agent dispatches on failure.
 
+**Quality-wave Full-Gate mandate (#724 C6):** the inter-wave gate following the **Quality wave** is ALWAYS the Full Gate (typecheck + test + lint) — never the cached Incremental short-circuit. The wave-executor threads the wave's `waveRole` into `shouldSkipIncremental` (see `wave-loop.md § Baseline cache check`); when `waveRole === 'Quality'` the cache is bypassed mechanically, so a valid cache or a narrow diff cannot downgrade the Quality-wave close-safety gate. See `skills/quality-gates/SKILL.md § Variant 3: Full Gate` — its dual consumers are session-end (Phase 2) and the Quality wave, and its Baseline-Cache invariant records that both are un-skippable.
+
 ### Invocation
 
 ```javascript
@@ -464,11 +466,11 @@ An opt-in bounded-concurrency cursor-based pull loop that replaces the default P
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `worker-pool.enabled` | boolean | `false` | When `false` (default), the existing single-message parallel Agent() dispatch is used (backward-compatible). When `true`, `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` is used instead. |
+| `worker-pool.enabled` | boolean | `false` | When `false` (default), the small-batch Agent() dispatch is used (3–4 calls per message, cumulative up to `agents-per-wave`; large single-message fan-outs of >4 are forbidden — see `wave-loop.md § Dispatch Agents`, conf 1.0 silent-drop evidence). When `true`, `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` is used instead. |
 | `worker-pool.max-parallel` | integer | value of `agents-per-wave` | Maximum concurrent workers in the pool. Falls back to `agents-per-wave` when unset. Useful for capping concurrency below `agents-per-wave` on memory-constrained hosts. |
 | `worker-pool.drain-timeout-ms` | integer | `10000` (10 s) | When an abort signal fires mid-run (e.g., a MAX_HOURS kill-switch), workers are sent SIGTERM via their per-worker AbortController and the pool waits at most this many milliseconds before returning partial results. |
 
-**Backward compatibility:** `worker-pool.enabled` defaults to `false`. All existing sessions that omit the `worker-pool` block behave identically to before — full Promise.all() fan-out, all agents start simultaneously. No migration required.
+**Backward compatibility:** `worker-pool.enabled` defaults to `false`. Sessions that omit the `worker-pool` block use the default small-batch Agent() dispatch (3–4 calls per message, waiting for each batch's tool-results before the next batch — never a large single-message fan-out). No migration required.
 
 **When to enable:** use `worker-pool.enabled: true` when `agents-per-wave` is high (≥ 8) and the host is memory-constrained, or when you want to observe incremental agent completion rather than waiting for all agents to finish before inter-wave checks begin.
 

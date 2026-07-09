@@ -39,7 +39,9 @@ Parse from `$ARGUMENTS` (all optional):
    - `.review.yml` not found or has no `task_board` block → call `get_board_config()`
      and read `task_board.type` from the deploy default.
    - Still not resolved → use `board_type=null` (syncs all configured boards).
-   Similarly extract `task_board.project` → `board` (or `--board` override).
+   Similarly extract `task_board.project` → `board` (or `--board` override), and
+   `task_board.status_field` → `status_field` (YouTrack status field name; default `State`
+   server-side when null).
 
 2. **Call the tool once.** Map the parsed arguments to a single call:
 
@@ -47,6 +49,7 @@ Parse from `$ARGUMENTS` (all optional):
    sync_board(
        board_type=<type from step 1 or null>,
        board=<--board or task_board.project or null>,
+       status_field=<task_board.status_field or null>,
        limit=<--limit or null>,
        purge_orphaned=<True if --purge-orphaned else False>,
        keep_with_prs=<False if --no-keep-with-prs else True>,

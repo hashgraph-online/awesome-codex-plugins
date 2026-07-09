@@ -43,6 +43,11 @@ You wouldn't ship code without a spec, tests, and review — so don't ship a boo
 
 What the pipeline does to unstructured input — [try it yourself →](https://huggingface.co/spaces/epicsaga/Velith)
 
+> **Note:** the live demo and the numbers below are produced by the HF Space's
+> **open-source NLP heuristics** (no LLM calls) — they illustrate the kind of
+> transformation each phase targets, not measured output of a full LLM run.
+> End-to-end LLM-produced books live in the author's vault.
+
 | Metric | Raw Input | After Velith Pipeline |
 |--------|-----------|----------------------|
 | Structure score | 2–4 / 10 | 6–9 / 10 |

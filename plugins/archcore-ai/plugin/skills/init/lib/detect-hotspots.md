@@ -94,32 +94,83 @@ all), skip the hotspot step and surface in the closing message:
 
 ## Top-N by mode
 
-Day-one init caps the number of **full specs repo-wide** — decoupled from the
-domain count (the old "3 per selected domain" made 4 domains cost 12 specs). The cap
-= the scale baseline modulated by the `--depth` axis (`SKILL.md` → Depth axis):
+Day-one init caps the number of **full specs**. For `small`/`medium`/the `--domain`
+re-run the cap is a flat scale baseline. For `large`, the cap **scales with the
+selected-domain count** — a large repo's spec budget must track how many domains the
+day-one dialog is actually focused on, not stay flat whether 1 or 24 domains are in
+play (a flat cap is what produced a 773-module, 24-domain repo with specs for 3
+modules and data-models for 4 domains — see `magic-first-day-init.adr`):
 
-| Scale (baseline = `standard`) | `light` (default) | `standard` | `deep` |
+| Scale | `light` (opt-down) | `standard` (default) | `deep` (opt-up) |
 |---|---|---|---|
-| small | 3 | 3 | 6 |
-| medium | 3 | 5 | 10 |
-| large | 3 | 8 | 16 |
-| `--domain=<slug>` re-run | 3 | 3 | 6 |
+| small | 3 | 4 | 6 |
+| medium | 4 | 6 | 10 |
+| large | 2 per selected domain — min 6, cap 12 | 3 per selected domain — min 10, cap 24 | 4 per selected domain — min 14, cap 40 |
+| `--domain=<slug>` re-run | 3 | 5 | 8 |
 
-`light` takes the top 3 at any scale (the cheap floor); `standard` is the scale
-baseline; `deep` is up to 2× baseline. Rank the whole candidate pool once; the top-N
-become `spec` documents. **The cap is a ceiling, never a quota** — if the combined
-pool (primary + fallback) has fewer than the cap, list all and stop; never pad to hit
-the number (so a sparse repo at `deep` yields the same as `light`). The remaining
-ranked hotspots are NOT dropped — they are recorded in the architecture-overview
-register (`compose-overview.md` Part 3) as `→ /archcore:capture` rows, so the full map
-of load-bearing modules is visible at ~0 token cost while only the top-N pay for
-synthesis.
+**Large-mode formula:** `cap = clamp(rate(depth) × selected_domain_count, min(depth),
+max(depth))`, where `rate` = 2 / 3 / 4 for light / standard / deep and `(min, max)` =
+`(6,12)` / `(10,24)` / `(14,40)`. On `skip` (Step A.0, no domains selected),
+`selected_domain_count` = 0 and the formula collapses to the flat `min(depth)` — large
+mode is never below 6 / 10 / 14 even with no domain focus. **Every selected domain
+gets a floor of ≥ 1 spec** (so no domain the user said they're working in ends up
+with zero specs); the remaining slots up to the computed cap fill by **repo-wide**
+rank across ALL domains, selected or not — an unselected domain's hotspot can still
+place if it outranks a selected domain's weaker ones. This intentionally reverses the
+prior flat-cap design (a flat 3 at `light`, 8 at `standard`, 16 at `deep` regardless
+of domain count), which made a 24-domain monolith cost the same spec budget as a
+3-domain one and left most domains with zero specs and zero data-models. The one-time
+init pass on a big legacy repo is exactly when spending the extra tokens is justified.
+
+`standard` and `deep` raise both the per-domain rate and the min/max band over
+`light` — they are the same formula at a higher tier, not independent numbers. Rank
+the whole candidate pool once (repo-wide, all domains); the top-N by the formula above
+become `spec` documents, subject to the per-domain floor. **The cap is a ceiling,
+never a quota** — if the combined pool (primary + fallback) has fewer candidates than
+the computed cap, list all and stop; never pad to hit the number (so a sparse repo at
+`deep` yields the same as `light`). The remaining ranked hotspots are NOT dropped —
+they are recorded in the architecture-overview register (`compose-overview.md` Part 3)
+as `→ /archcore:capture` rows, so the full map of load-bearing modules is visible at
+~0 token cost while only the top-N pay for synthesis.
 
 `/archcore:init`'s Detect phase (`SKILL.md` Step A.3) always collects signal data up
-to the **`deep`-depth ceiling** — the rightmost column above — regardless of the
-active depth, so a later `depth:` toggle in the preview (Phase C/D) can select any
-column without re-reading source. Only *synthesis* (which of the collected
+to the **`deep`-depth ceiling** regardless of the active depth, so a later `depth:`
+toggle in the preview (Phase C/D) can select any column without re-reading source. For
+`small`/`medium` that ceiling is the flat deep number (6 / 10 above); for `large` it
+is the formula's deep-column result for the domains actually selected in Step A.0
+(`clamp(4 × selected_domain_count, 14, 40)`), computed once the domain dialog
+resolves and before Phase A.3 runs. Only *synthesis* (which of the collected
 candidates get a full spec body) is gated by the active depth.
+
+## Flagship specs (size/churn-gated: raised cap or decomposition)
+
+A hotspot module that clears EITHER `LOC > 3000` OR falls in the **top quartile of
+churn** among the ranked candidate pool (its `commits_last_90_days` score, from the
+git-activity bonus below, ranks in the top 25% of candidates that have git history)
+is a **flagship** candidate. `SKILL.md` Phase E gives it one of two treatments, chosen
+by whether its contract is genuinely separable — never both, and never the raised cap
+AND a split just to look thorough:
+
+- **Default — one spec, raised body cap.** Compose under `_shared/spec-contract.md`'s
+  flagship cap (≤ 120 lines instead of the default ≤ 80) — the extra room goes to
+  Normative Behavior / Constraints & Invariants, never to reproducing source.
+- **Decomposition — only with genuine separable sub-contracts.** When the module
+  exposes ≥ 2 independently-consumable sub-surfaces with distinct external consumers
+  (e.g. a 6000-LOC service with a read/query surface and a separate command/mutation
+  surface) — split into **≤ 3 sub-specs**, one per sub-surface, each back at the
+  DEFAULT ≤ 80-line cap: `filename=<module-slug>-<sub-surface-slug>`,
+  `directory=<domain-or-'architecture'>`. Relate the sub-specs to each other
+  (`related`) in addition to the standard overview edge.
+
+**Never split to pad.** A large or hot file with one cohesive contract (no separable
+sub-surface) stays a single flagship spec at the raised cap — "prefer omission over a
+guess" governs the split decision exactly as it governs candidate selection in the
+first place: when the sub-surface boundary is not unambiguous, do not split.
+
+Flagship status does not change the hotspot's rank or its consumption of the depth's
+spec-count cap (the "Top-N by mode" table above) — a decomposed flagship still
+occupies exactly **one** slot in that budget; its ≤ 3 sub-specs share that one slot,
+so the flagship gate never inflates the per-mode cap table.
 
 ## Suggested doc type (heuristic)
 
@@ -171,17 +222,28 @@ Show candidates as a numbered list. At the end, a single hint:
 
 Do NOT auto-invoke those skills — let the user walk through on their own pace.
 
-## Per-domain scoping (`--domain` re-run only)
+## Day-one per-domain floor vs. `--domain` re-run scoping
 
-Large-mode **day-one** ranks repo-wide (top 8) and does NOT scope hotspots to the
-selected domains — spec count stays fixed no matter how many domains the user picks
-in the Step A.0 dialog (that dialog scopes the data-model fact, not hotspots).
+Two different mechanisms apply "per domain," at two different times — do not
+conflate them:
 
-Per-domain scoping applies only to a later `/archcore:init --domain=<slug>` re-run:
-the candidate pool (both tiers) is restricted to files under the selected domain's
-path, and the top-N is the **same depth-modulated cap as the table above** (`light`/
-`standard` 3, `deep` 6) applied to that domain — not a separate fixed number. The
-rationale lines prefix the candidate path with the domain tag:
+- **Day-one large-mode dialog (Step A.0).** The candidate pool is still ranked
+  **repo-wide** (not restricted to any one domain's file tree); what scales with the
+  selection is the *budget* — the per-domain-scaled cap in the "Top-N by mode" table
+  above guarantees each domain the user selected a floor of ≥ 1 spec, with the rest
+  of the budget filled by repo-wide rank. This is a **budget allocation**, not a
+  candidate-pool restriction, and it also drives how many domains get a data-model
+  doc (data-model breadth is decoupled from the dialog entirely — see
+  `detect-data-model.md`).
+- **A later `/archcore:init --domain=<slug>` re-run.** This restricts the
+  **candidate pool itself** to files under the one named domain's path, and applies
+  the fixed `--domain=<slug>` re-run row from the table above (`light` 3 /
+  `standard` 5 / `deep` 8) to that narrowed pool — a flat top-up number, since a
+  re-run tops up one already-selected domain rather than distributing a repo-wide
+  budget across several.
+
+The rationale lines for a `--domain` re-run prefix the candidate path with the domain
+tag:
 
 ```
 [domain:billing] apps/billing/src/invoice-calculator.ts — 312 LOC source, 540 LOC tests. Suggested: spec. heavily tested (1.7:1).

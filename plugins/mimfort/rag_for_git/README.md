@@ -622,7 +622,7 @@ Orchestrates the three-stage pipeline (`prepare_review` → subagents → `publi
   Task reads are scoped via `project=<task_board.project>` passed to `get_task`/`get_task_context`/`search_tasks` (PRI-170).
 - **Flow:** prepare (PR + policy + units + board config) → fan out one analysis subagent per file →
   parallel **performance** / **maintainability** dimensions (+ **requirements** if a `TaskBrief`
-  exists) + **blast-radius** (impact analysis via `get_impact`) → **verify** pass (drops `is_real=false` findings) → publish (gate/grounding/dedup/assemble).
+  exists) + **blast-radius** (impact analysis via `get_impact`, plus shared-interface conformance: a changed `Protocol`/ABC → enumerate implementations and confirm all are updated) → **verify** pass (drops `is_real=false` findings) → publish (gate/grounding/dedup/assemble).
   If `prepare_review` returns `status:"skipped"` (target branch not tracked) it stops; draft PRs are
   skipped unless `REVIEW_SKIP_DRAFTS=false`.
 
@@ -646,6 +646,11 @@ and enters brainstorming. It disciplines context-gathering — it does **not** w
   `docs/superpowers/briefs/` (`ГГГГ-ММ-ДД-<KEY>-<slug>.md`, survives context compaction) → hand off to
   `superpowers:brainstorming` with the brief file path as seed → **full superpowers cycle**: brainstorming →
   writing-plans → subagent-driven-development → executing-plans → finishing-a-development-branch.
+- **Cheaper model for the brief (cross-CLI).** Before building the brief, `solve-task` asks which
+  model tier to run it on (by tier — cheap / mid / premium — not by model name, so it works across
+  CLIs) and recommends a mid (Sonnet-class) default: gathering and distilling the brief is light
+  reasoning, so a top-tier model is overkill. Where the harness supports per-subagent model override
+  it dispatches the brief-building on the chosen model; otherwise it builds inline.
 
 ### `reviewer_sync-codebase` — build/update the base index
 

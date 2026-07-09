@@ -127,6 +127,9 @@ rules:
   - id: R045
     description: Template artifacts must declare every referenced inputs.<name> key in the same Template CR spec.inputs.
     severity: error
+  - id: R047
+    description: External S3/object-storage credential inputs require explicit source evidence and cannot coexist with managed ObjectStorageBucket.
+    severity: error
   - id: R031
     description: Root-path Prefix Ingress resources must use one component name across metadata.name, cloud.sealos.io/app-deploy-manager, and backend service names; non-root or non-Prefix routes may differ.
     severity: error

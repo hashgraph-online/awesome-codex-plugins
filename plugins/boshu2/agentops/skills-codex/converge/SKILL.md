@@ -1,6 +1,6 @@
 ---
 name: converge
-description: Drive a fix→re-run-judge-panel loop to
+description: Drive a fix -> re-run-judge-panel loop to
 ---
 # $converge — bounded judge-panel convergence
 

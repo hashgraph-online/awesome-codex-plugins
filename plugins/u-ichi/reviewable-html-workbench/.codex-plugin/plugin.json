@@ -1,6 +1,6 @@
 {
   "name": "reviewable-html-workbench",
-  "version": "1.17.4",
+  "version": "1.17.5",
   "description": "Generate reviewable HTML documents, serve previews, collect comments, and feed review outcomes back into agent workflows.",
   "author": {
     "name": "u1",

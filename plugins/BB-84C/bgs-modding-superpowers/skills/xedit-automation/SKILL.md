@@ -391,6 +391,7 @@ xedit_start({
   dataPath?: string,        // -D: flag; MO2 <gamePath>\\Data
   pluginsFile?: string,     // -P: flag; agent-authored plugins.txt
   moProfile?: string,       // MO2 profile name; defaults to env
+  starfieldRedPill?: boolean, // Starfield save-unlock trio; defaults true
 })
 ```
 
@@ -404,6 +405,28 @@ For load-order experimentation (test a subset of plugins to isolate a
 conflict, or rehearse a sort), generate a plugins.txt under an
 **agent-owned artifacts path** per `writing-bgs-load-order` and pass it as
 `pluginsFile`.
+
+## Starfield save unlock (RedPill switches)
+
+Symptom: SF1Edit refuses to save Starfield small/medium/localized ESMs with an
+error like `Medium flagged files can't be saved in SF1Edit`.
+
+Upstream xEdit 4.1.5k added the required switch trio:
+`-ItJustWorksTM -ThisIsFine -GiveMeTheRedPill`. This plugin's launcher passes
+all three by **default** for `gameMode: "Starfield"` sessions. Opt out only when
+you are intentionally testing vanilla SF1 save gates:
+
+```
+xedit_start({ gameMode: "Starfield", starfieldRedPill: false })
+```
+
+Side effects when RedPill is on:
+
+- The xEdit window title shows `ItJustWorks[TM] Edition`; this is ceremonial,
+  not a bug.
+- `files.create` no longer auto-adds `Starfield.esm` as a master. Call
+  `files.create({ ..., initialMasters: ["Starfield.esm"] })` or follow with
+  `files.add_required_masters` when the new file needs the base master.
 
 ## Dirty-state and relaunch control (NEW)
 

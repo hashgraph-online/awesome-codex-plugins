@@ -31,7 +31,7 @@ See [`docs/privacy.md`](docs/privacy.md), [`docs/threat-model.md`](docs/threat-m
 
 ## Release Trust
 
-- License: MIT
+- License: GNU Affero General Public License v3.0
 - Python package: `agentpack-cli`
 - npm wrapper: `@vishal2612200/agentpack`
 - PyPI publish workflow uses GitHub OIDC / Trusted Publishing

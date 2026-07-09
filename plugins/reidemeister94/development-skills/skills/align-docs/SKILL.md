@@ -33,6 +33,7 @@ repo/
 
 `root=$(git rev-parse --show-toplevel 2>/dev/null) || root=.` — all paths below resolve under `$root`.
 `$ARGUMENTS` contains `--clean` / `clean` → read `references/clean-mode.md` and follow it (runs Steps 1-7, then deep consolidation).
+Any free-text beyond the flags is a **project directive** (e.g. *"drop principles X-Y-Z because …"*) — carry it into Step 3.
 
 ## Step 1 — Inventory
 
@@ -62,12 +63,14 @@ paths:
 
 ## Step 3 — `AGENTS.md` (≤70 lines)
 
-Prepend `references/agents-template.md` verbatim at the top (replace a similar existing block). Then, in this order and nothing else — no section headings or decoration:
+Prepend `references/agents-template.md` verbatim at the top (replace a similar existing block) — **unless** the block is headed by an `<!-- align-docs:principles-customized … -->` marker line, which makes it authoritative: preserve it, never revert to the template. Then, in this order and nothing else — no section headings or decoration:
 - Project scope (1-2 sentences)
 - Single fewest-words list of the most critical, non-trivial domain·infra·company·project facts (safety rules, test commands; tables/commands beat prose)
 - Rules index table at the bottom — one row per file in `.agents/rules/`: `Rule | Scope (paths:) | Topic`
 
 If it's in a rule file, reference — never duplicate.
+
+**Project directive (Step 0).** Asks to drop/alter/add principles → judge the rationale critically (Principle 0): sound → apply it to the principles block, prepend a `<!-- align-docs:principles-customized: <one-line reason> — see docs/chronicles/NNNN -->` marker line above the block, and record the WHY in a chronicle so later runs preserve it; unsound → push back and ask, don't apply.
 
 ## Step 4 — Capture session discoveries
 
