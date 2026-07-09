@@ -1463,6 +1463,21 @@
       "icon": "./plugins/avivsinai/bitbucket-cli/assets/bkt-icon.svg"
     },
     {
+      "name": "burpsuite-mcp-bridge",
+      "displayName": "BurpSuite MCP Bridge",
+      "source": {
+        "source": "local",
+        "path": "./plugins/6jeffr3y/burpsuite-mcp-bridge"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Bridge Burp Suite traffic, replay, rewrite rules, and evidence export into Codex through MCP for WSL, Windows, and macOS workflows.",
+      "icon": "./plugins/6jeffr3y/burpsuite-mcp-bridge/assets/icon.svg"
+    },
+    {
       "name": "calle",
       "displayName": "Call-E",
       "source": {

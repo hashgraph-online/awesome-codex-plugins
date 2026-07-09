@@ -1,0 +1,8 @@
+# Native Windows Codex/MCP
+# Burp and MCP server both run on Windows, so loopback is enough.
+[mcp_servers.burpsuite-mcp-bridge]
+command = "python"
+args = ["D:\\AI_project\\burpsuite-mcp-bridge-release\\wsl-mcp\\server.py"]
+
+[mcp_servers.burpsuite-mcp-bridge.env]
+BURP_MCP_BRIDGE_URL = "http://127.0.0.1:9639"

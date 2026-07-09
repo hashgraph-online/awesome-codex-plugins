@@ -1,0 +1,9 @@
+# macOS local setup
+# Burp and MCP server both run on macOS, so loopback is enough.
+# Replace the path with your local clone path.
+[mcp_servers.burpsuite-mcp-bridge]
+command = "python3"
+args = ["/Users/you/burpsuite-mcp-bridge-release/wsl-mcp/server.py"]
+
+[mcp_servers.burpsuite-mcp-bridge.env]
+BURP_MCP_BRIDGE_URL = "http://127.0.0.1:9639"
