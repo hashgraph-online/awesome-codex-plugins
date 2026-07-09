@@ -1,6 +1,6 @@
 # using-gc
 
-Drive a Gas City (gc) factory day-to-day: stand up a correct native city, sling quests, watch the membrane close gate, resolve the known stalls, read pawl-verdict.v1, converge. The vibing-with-ntm analog for gc. Use when standing up, running, administering, or troubleshooting a gas city. Triggers: "using-gc", "gas city", "drive a gc city", "sling a quest", "gc stall", "stand up a membrane city".
+Drive a Gas City (gc) factory day-to-day — stand up a city, sling quests, watch the membrane close-gate, resolve stalls, converge. The vibing-with-ntm analog for gc. Triggers: "using-gc", "gas city", "drive a gc city", "sling a quest", "gc stall", "stand up a membrane city".
 
 ## Instructions
 

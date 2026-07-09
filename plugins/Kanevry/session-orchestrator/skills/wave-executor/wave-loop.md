@@ -179,6 +179,7 @@ For each agent in this wave:
     run_in_background: false   // CRITICAL: always false — wait for completion
   })
       - Turn budget and status reporting: "You have a maximum of [maxTurns] turns for this task. If you cannot complete within this budget, report STATUS: partial with what was accomplished and what remains. At the end of your work, report STATUS: done (all acceptance criteria met) or STATUS: partial (some criteria unmet — list which ones)."
+      - Optional open-questions reporting (Close Handover-Alignment-Gate, PRD 2026-07-07): "If you encountered a genuinely unresolved, user-facing question you could not answer within your task scope, report it as an additional line: OPEN-QUESTIONS: <question> | context: <one-line why this is unresolved> | candidates: <opt A / opt B>. This line is optional — omit it entirely when you have no such question. Do not use it for questions you could resolve yourself by reading more code."
 ```
 
 #### Pre-Dispatch Grounding Injection (#85)
@@ -471,6 +472,14 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
      ```
 
    Cross-reference `.claude/rules/verification-before-completion.md` § VBC-004 Exception 2: a subagent's `STATUS: done` is a claim that needs its own verification — this step is that verification for the file-write side effect. `$WAVE_PREDISPATCH_HEAD` is the HEAD snapshot captured before this wave dispatched (same snapshot used by `### 3c. File-level grounding`). When `persistence: false` (no STATE.md), still perform the check and surface any violation in the wave progress update; only the deviation-write is skipped.
+
+3e. **Collect Open Questions** (Close Handover-Alignment-Gate, PRD 2026-07-07): scan every completed agent's report from this wave for an optional `OPEN-QUESTIONS:` line (see the report-line convention in `#### Agent-Type Resolution` above — an agent MAY emit `OPEN-QUESTIONS: <question> | context: <...> | candidates: <opt A / opt B>`; most agents emit none). For each such line found:
+
+   - Parse the question text (portion before the first ` | `).
+   - Dedup across this wave's agents by question text (case-sensitive exact match after trim) — if two agents raised the same question, keep one.
+   - Assign `source: 'W<N>/<agent-description-or-subagent_type>'` (the wave number + the reporting agent) and a `priority` — default `medium` unless the agent's report text contains an explicit priority hint ("high priority" / "blocking" → `high`; "low priority" / "nice to know" → `low`).
+
+   The resulting deduped list feeds `### 3a. Post-Wave: Update STATE.md` step 6 (`## Open Questions`), which does the actual lock-guarded `appendOpenQuestionOnDisk` write. This step (3e) only collects and dedups in-memory — it performs no STATE.md I/O itself, the same division of labor as steps 2/3 above (detect here, write in the Post-Wave STATE.md update). Skip entirely when no agent in the wave emitted an `OPEN-QUESTIONS:` line.
 4. **Run incremental verification** (per the quality-gates skill, based on the wave's role):
 
    **Shared-lib touch auto-promotion (#555 FL-3)** — before selecting the role-based gate variant below, check whether this wave touched files under `scripts/lib/`, `hooks/`, or `.husky/`. If so, auto-promote the inter-wave gate from Quality-Lite (Incremental) to Full Gate (typecheck + test + lint). Rationale: an Impl wave that touches shared code has a wider blast radius than the agent can predict — deep-1647 inter-wave 3→4 caught 2 such regressions only because the Lite step happened to run the full test suite. Auto-promotion makes that coverage deterministic without imposing per-session cost on waves that don't touch shared code (W1-D5 chose Option B over the always-full Option A on this exact tradeoff).
@@ -765,6 +774,17 @@ After each wave completes and before the progress update, update `<state-dir>/ST
    ```
 
    Skip silently if `persistence: false` in Session Config (no session.lock exists in that mode).
+
+6. **`## Open Questions`** (Close Handover-Alignment-Gate, PRD 2026-07-07): append the wave's deduped open questions collected earlier in `3e. Collect Open Questions`, via `appendOpenQuestionOnDisk` — the same lock-guarded on-disk pattern used by `appendDeviationOnDisk` above:
+
+   ```js
+   import { appendOpenQuestionOnDisk } from '../../scripts/lib/state-md.mjs';
+   for (const q of dedupedOpenQuestions) {
+     await appendOpenQuestionOnDisk(repoRoot, { question: q.question, source: q.source, priority: q.priority });
+   }
+   ```
+
+   Skip silently when the wave produced no `OPEN-QUESTIONS:` lines (see `3e. Collect Open Questions`) and when `persistence: false`.
 
 ### 3a-bis. Agent-Status Telemetry (#565)
 

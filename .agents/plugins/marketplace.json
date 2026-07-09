@@ -197,7 +197,7 @@
       "icon": "./plugins/biefan/anchor/assets/icon.svg"
     },
     {
-      "name": "antigravity",
+      "name": "repobrain",
       "displayName": "Antigravity Workspace Template",
       "source": {
         "source": "local",
@@ -255,6 +255,20 @@
       "category": "Development & Workflow",
       "description": "BABOK v3 business analysis agent with 16 MCP tools, a 9-stage pipeline, and human-in-the-loop approval gates.",
       "icon": "./plugins/GSkuza/BABOK_ANALYST/assets/icon.svg"
+    },
+    {
+      "name": "basemind",
+      "displayName": "basemind",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Goldziher/basemind"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Full AI context layer over MCP with a tree-sitter code-map, document RAG, shared agent memory, web crawl, and git history across 300+ languages."
     },
     {
       "name": "bgs-modding-superpowers",
@@ -536,6 +550,21 @@
       "icon": "./plugins/reidemeister94/development-skills/assets/icon.svg"
     },
     {
+      "name": "docflow",
+      "displayName": "Docflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MedAdemBHA/docflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Lightweight documentation memory for AI coding agents that scaffolds a 7-category docs tree, runs readiness checks, validates docs before finishing, and keeps a monthly changelog across Claude Code and Codex.",
+      "icon": "./plugins/MedAdemBHA/docflow/assets/icon.svg"
+    },
+    {
       "name": "ejentum",
       "displayName": "ejentum-mcp",
       "source": {
@@ -744,6 +773,34 @@
       "icon": "./plugins/mbanderas/maestro/assets/icon.png"
     },
     {
+      "name": "memoire",
+      "displayName": "memi",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sarveshsea/memi"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin."
+    },
+    {
+      "name": "odw",
+      "displayName": "Open Dynamic Workflows",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Suraj1235/open-dynamic-workflows"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "An open-source dynamic multi-agent workflow engine for AI coding agents (OpenCode, Codex, Antigravity, VS Code) that plans, orchestrates, and adversarially verifies parallel agents, shipping a Codex/Antigravity skill and an OpenCode plugin with bring-your-own-model support."
+    },
+    {
       "name": "personal-data-protection",
       "displayName": "Personal Data Protection",
       "source": {
@@ -937,6 +994,21 @@
       "icon": "./plugins/Habib0x0/spec-driven-plugin/assets/spec-driven-icon.svg"
     },
     {
+      "name": "spec-superflow",
+      "displayName": "spec-superflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MageByte-Zero/spec-superflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Spec-first workflow that bridges OpenSpec-style planning and Superpowers-style execution discipline with nine skills and guarded execution contracts.",
+      "icon": "./plugins/MageByte-Zero/spec-superflow/assets/icon.svg"
+    },
+    {
       "name": "spellbook-skills",
       "displayName": "Spellbook Skills",
       "source": {
@@ -992,8 +1064,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Evidence-gated Codex loop harness with specialist skills, including near-pixel authorized website cloning backed by screenshots, assets, build output, and visual QA.",
-      "icon": "./plugins/beefiker/superloopy/web/assets/luffy.svg"
+      "description": "Evidence-gated Codex loop harness with specialist skills, including near-pixel authorized website cloning backed by screenshots, assets, build output, and visual QA."
     },
     {
       "name": "superpipelines",
@@ -1082,6 +1153,21 @@
       },
       "category": "Development & Workflow",
       "description": "Read-only meta-skill that scans your MCP servers, skills, plugins, and CLI tools, then suggests up to three ranked approaches (Methodical / Fast / Deep) with a copy-paste Quick Action table."
+    },
+    {
+      "name": "tree-ring-memory",
+      "displayName": "Tree Ring Memory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TerminallyLazy/tree-ring-memory-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Local-first memory lifecycle guidance for Codex agents with recall, evidence-backed lessons, privacy-safe memory capture, audit, consolidation, and explicit forgetting.",
+      "icon": "./plugins/TerminallyLazy/tree-ring-memory-codex-plugin/assets/icon.svg"
     },
     {
       "name": "unity-agent-workflows",
@@ -1540,6 +1626,21 @@
       "icon": "./plugins/Rothschildiuk/context-pack/skills/context-pack/assets/context-pack-small.svg"
     },
     {
+      "name": "coolify",
+      "displayName": "Coolify",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Sevi-py/coolify-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.",
+      "icon": "./plugins/Sevi-py/coolify-codex-plugin/assets/icon.png"
+    },
+    {
       "name": "dataproduct-builder-dbt",
       "displayName": "Data Product Builder for dbt",
       "source": {
@@ -1686,21 +1787,6 @@
     },
     {
       "name": "crawlberg",
-      "displayName": "Kreuzberg Cloud",
-      "source": {
-        "source": "local",
-        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
-      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
-    },
-    {
-      "name": "crawlberg",
       "displayName": "Kreuzberg",
       "source": {
         "source": "local",
@@ -1712,6 +1798,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Local document extraction for 91+ formats with skills for CLI usage, OCR, table extraction, output formats, and a local MCP server.",
+      "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
+    },
+    {
+      "name": "crawlberg",
+      "displayName": "Kreuzberg Cloud",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
       "icon": "./plugins/kreuzberg-dev/plugins/plugins/crawlberg/assets/icon.svg"
     },
     {
@@ -2066,6 +2167,21 @@
       "category": "Tools & Integrations",
       "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.",
       "icon": "./plugins/avalonreset/seo-dungeon/assets/icon.svg"
+    },
+    {
+      "name": "shots",
+      "displayName": "Shots",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hitSlop/shots"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
+      "icon": "./plugins/hitSlop/shots/assets/icon.png"
     },
     {
       "name": "n8n-mcp-synta-codex",

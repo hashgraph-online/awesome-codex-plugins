@@ -15,24 +15,26 @@ references that other skills load based on file types being processed.
 
 | Standard | Reference | Loaded By |
 |----------|-----------|-----------|
-| Skill Structure | `references/skill-structure.md` | vibe (skill audits), doc (skill creation) |
-| Python | `references/python.md` | vibe, implement, complexity |
-| Go | `references/go.md` | vibe, implement, complexity |
-| Rust | `references/rust.md` | vibe, implement, complexity |
-| TypeScript | `references/typescript.md` | vibe, implement |
-| JavaScript | `references/javascript.md` | vibe, implement |
-| Shell | `references/shell.md` | vibe, implement |
-| YAML | `references/yaml.md` | vibe |
-| JSON | `references/json.md` | vibe |
-| Markdown | `references/markdown.md` | vibe, doc |
-| SQL Safety | `references/sql-safety-checklist.md` | vibe, pre-mortem (when DB code detected) |
-| LLM Trust Boundaries | `references/llm-trust-boundary-checklist.md` | vibe, pre-mortem (when LLM code detected) |
-| Race Conditions | `references/race-condition-checklist.md` | vibe, pre-mortem (when concurrent code detected) |
-| Codex Skills | `references/codex-skill.md` | vibe (when `skills-codex/` or converter files detected) |
-| Behavioral Discipline | `references/behavioral-discipline.md` | implement, review, vibe, pre-mortem |
+| Skill Structure | `references/skill-structure.md` | validate (skill audits), doc (skill creation) |
+| Python | `references/python.md` | validate, implement, complexity |
+| Go | `references/go.md` | validate, implement, complexity |
+| Rust | `references/rust.md` | validate, implement, complexity |
+| TypeScript | `references/typescript.md` | validate, implement |
+| JavaScript | `references/javascript.md` | validate, implement |
+| Shell | `references/shell.md` | validate, implement |
+| YAML | `references/yaml.md` | validate |
+| JSON | `references/json.md` | validate |
+| Markdown | `references/markdown.md` | validate, doc |
+| SQL Safety | `references/sql-safety-checklist.md` | validate, pre-mortem (when DB code detected) |
+| LLM Trust Boundaries | `references/llm-trust-boundary-checklist.md` | validate, pre-mortem (when LLM code detected) |
+| Race Conditions | `references/race-condition-checklist.md` | validate, pre-mortem (when concurrent code detected) |
+| Codex Skills | `references/codex-skill.md` | validate (when `skills-codex/` or converter files detected) |
+| Behavioral Discipline | `references/behavioral-discipline.md` | implement, review, validate, pre-mortem |
 | Test Pyramid | `references/test-pyramid.md` | plan, pre-mortem, implement, crank, validation, post-mortem |
-| SKILL.md Tier-Caps | `references/skill-tier-caps.md` | vibe (skill line-cap audits), doc, plan |
+| SKILL.md Tier-Caps | `references/skill-tier-caps.md` | validate (skill line-cap audits), doc, plan |
 | External-Source Attribution | `references/external-source-attribution.md` | doc (when absorbing external corpora), heal-skill |
+| Migration-Owner Discipline | `references/migration-owner.md` | implement, plan, review, pre-mortem (when writing a breaking migration / retirement / `--fix`) |
+| Agentic-Workflow Evidence | `references/agentic-workflow-evidence.md` | plan, implement, review, pre-mortem (empirical basis — Finster 2026 — for the workflow discipline) |
 
 ## How It Works
 
@@ -73,12 +75,12 @@ Skills detect triggers via file content patterns and import statements. Each che
 ## Deep Standards
 
 For comprehensive audits, skills can load extended standards from
-`vibe/references/*-standards.md` which contain full compliance catalogs.
+`validate/references/*-standards.md` which contain full compliance catalogs.
 
 | Standard | Size | Use Case |
 |----------|------|----------|
 | Tier 1 (this skill) | ~5KB each | Normal validation |
-| Tier 2 (vibe/references) | ~15-20KB each | Deep audits, `--deep` flag |
+| Tier 2 (validate/references) | ~15-20KB each | Deep audits, `--deep` flag |
 | Domain checklists | ~3-5KB each | Triggered by code pattern detection |
 
 ## Integration
@@ -86,23 +88,23 @@ For comprehensive audits, skills can load extended standards from
 Skills that use standards:
 - `$validate` - Loads based on changed file types
 - `$implement` - Loads for files being modified
-- `$review` - Loads for change-quality and blast-radius checks
+- `/review` - Loads for change-quality and blast-radius checks
 - `$doc` - Loads markdown standards
-- `$review` - Loads for root cause analysis
+- `/review` - Loads for root cause analysis
 - `$refactor` - Loads for refactoring recommendations
 
 ## Examples
 
-### Vibe Loads Python Standards
+### Validate Loads Python Standards
 
 **User says:** `$validate` (detects changed Python files)
 
 **What happens:**
-1. Vibe skill checks git diff for file types
-2. Vibe finds `auth.py` in changeset
-3. Vibe loads `standards/references/python.md` automatically
-4. Vibe validates against Python standards (type hints, docstrings, error handling)
-5. Vibe reports findings with standard references
+1. Validate skill checks git diff for file types
+2. Validate finds `auth.py` in changeset
+3. Validate loads `standards/references/python.md` automatically
+4. Validate verifies against Python standards (type hints, docstrings, error handling)
+5. Validate reports findings with standard references
 
 **Result:** Python code validated against language-specific standards without manual reference loading.
 
@@ -117,7 +119,7 @@ Skills that use standards:
 4. Implement writes code following Go standards (error handling, naming, package structure)
 5. Implement validates output against loaded standards before committing
 
-**Result:** Go code generated conforming to standards, reducing post-implementation vibe findings.
+**Result:** Go code generated conforming to standards, reducing post-implementation validate findings.
 
 ## Troubleshooting
 
@@ -125,7 +127,7 @@ Skills that use standards:
 |---------|-------|----------|
 | Standards not loaded | File type not detected or standards skill missing | Check file extension matches reference; verify standards in dependencies |
 | Wrong standard loaded | File type misidentified (e.g., .sh as .bash) | Manually specify standard; update file type detection logic |
-| Deep standards missing | Vibe needs extended catalog, not found | Check `vibe/references/*-standards.md` exists; use `--deep` flag |
+| Deep standards missing | Validate needs extended catalog, not found | Check `validate/references/*-standards.md` exists; use `--deep` flag |
 | Standard conflicts | Multiple languages in same changeset | Load all relevant standards; prioritize by primary language |
 
 ## Reference Documents
@@ -153,3 +155,4 @@ Skills that use standards:
 - [references/yaml.md](references/yaml.md)
 - [references/skill-tier-caps.md](references/skill-tier-caps.md)
 - [references/external-source-attribution.md](references/external-source-attribution.md)
+- [references/migration-owner.md](references/migration-owner.md) — One fail-closed owner per breaking migration: warn→alias→hard-error staging, atomic format-preserving `--fix`, refuse ambiguous both-forms-present, marker-last ledger writes

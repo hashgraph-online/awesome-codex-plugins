@@ -86,28 +86,38 @@ Step 4: Tech Lead レポートの生成（追加 LLM コストなし）
 
 ## How to Run / 実行方法
 
-### CLI
+River Review は npm パッケージを公開しない（プロジェクト方針）。したがって `npx river-review` は使えない。実行環境ごとに次の手段を使う。
+
+### プラグイン / エージェント環境（第一手段・CLI 不要）
+
+Claude Code / Codex のプラグイン経由では、**エージェントがこのスキルの手順を直接実行する**。CLI は不要で、上記の Execution Flow（ロール決定 → 並列実行 → consensusLevel 付与 → Tech Lead レポート）をエージェント自身が再現する。
+
+- スラッシュコマンド: `/review-team` または `/review-team bug-hunter,security-scanner`
+- CLI が無くても設計どおり動作する。CLI 実行を試みて失敗しても、スキル駆動のレビューで継続すること。
+
+### コントリビューター（リポジトリ内）
+
+リポジトリ内では `river` CLI をアクセラレータとして使える（任意）。
 
 ```bash
 # 差分から自動選択（推奨）
-river-review run --reviewers auto
+npm run river -- run . --reviewers auto
 
 # ロールを明示指定
-river-review run --reviewers bug-hunter,security-scanner,test-gap
+npm run river -- run . --reviewers bug-hunter,security-scanner,test-gap
 
 # JSON 出力（teamLeadReport を含む）
-river-review run --reviewers auto --output json
+npm run river -- run . --reviewers auto --output json
 
 # コスト事前確認
-river-review run --reviewers auto --dry-run
+npm run river -- run . --reviewers auto --dry-run
 ```
 
-### Claude Code スラッシュコマンド
+CLI は必須でない。存在しない、または失敗した場合はスキル駆動のレビューで継続する。
 
-```text
-/review-team
-/review-team bug-hunter,security-scanner
-```
+### GitHub Actions
+
+Actions では CLI が実行エンジンとして起動される。ワークフロー設定は Actions 用ドキュメントを参照する。
 
 ## Output Interpretation / 結果の読み方
 

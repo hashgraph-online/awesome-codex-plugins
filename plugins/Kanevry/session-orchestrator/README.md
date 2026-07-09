@@ -1,7 +1,7 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.11.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.12.0-blue.svg)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-10%2C000%2B-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
 
 Turn ad-hoc agent sessions into a repeatable loop with verification gates — loop engineering for software work. You design the loop (`research → plan → execute in waves → close`); Session Orchestrator runs it on top of your existing agent, with the guards, telemetry, and cross-session memory that keep a long agent run honest. Inter-wave reviews catch regressions before they ship; carryover issues mean loose ends get tracked, not lost.
@@ -133,17 +133,17 @@ The system is markdown-driven config plus a thin Node runtime — skills, comman
 - **Cross-session learning is opt-in and inspectable.** Every session writes a record; after 5+ sessions `/evolve analyze` extracts confidence-scored patterns you can read and prune. Nothing is hidden.
 - **VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your remote and drives the full lifecycle for both.
 
-## Recent highlights (v3.11.0)
+## Recent highlights (v3.12.0)
 
-Every release is additive and backward-compatible. Highlights of the v3.11.0 line:
+Every release is additive and backward-compatible. Highlights of the v3.12.0 line:
 
-- **Self-healing session ledger** — a crashed session no longer leaves an orphaned lock or a hole in the session history: the SessionEnd hook backfills an `abandoned` ledger entry and releases the session lock deterministically, and a host-wide reaper (dry-run by default) cleans up whatever is left.
-- **Learning-store safety** — every learning rewrite snapshots a backup first and can be validated without writing; dialect normalization and a mechanical expiry sweep keep the cross-session learning store readable and lean instead of silently rotting.
-- **Vault mirroring hardened** — readable note slugs, per-record crash resilience, zero dangling wiki-links, and a host-local pseudonym map so private repo names never reach shared notes.
-- **Hardened CI** — the GitHub mirror can no longer report a silent green (fail-closed test verifier on every run), the CI toolchain is pinned with checksums, and a package-manager guard catches lockfile/store drift before it corrupts a run.
-- **Leaner instruction surface** — tier-aware rule loading lets wave agents skip coordinator-only rules, and instruction-surface trims cut the always-on directive budget by ~8%.
+- **Gated session handover** — `/close` collects carryover candidates and routes them through an operator-triaged alignment gate instead of filing them scattered across phases; a new `## Open Questions` STATE.md channel carries a wave agent's unresolved questions across the session boundary, surfaced as a forced-read at the next session-start.
+- **Fail-loud wave dispatch** — small-batch `Agent()` dispatch by default (large fan-outs drop calls silently), planned-vs-started dispatch verification with re-dispatch, and git-diff edit-persistence evidence before any agent's `done` is accepted.
+- **Curated public docs** — 68 process records moved to the operator's private vault behind a sensitivity gate; three permanent guards (docs-parity drift check, docs-staleness probe, epic-close PRD archive routine) keep the public tree user-facing.
+- **Session-lock reliability** — heartbeat-first liveness ends the live-session-hijack incident class, a lock reaper sweeps orphaned registry claims, and STATE.md writes are size-guarded.
+- **Portable hooks** — all hook commands route through a node-resolver shim, fixing per-tool-call failures on nvm/volta/asdf/Homebrew setups where hook shells never source `~/.zshrc`.
 
-Previous line (v3.10.0): cross-repo `/dispatcher`, learning → rule `/reconcile`, opt-in skill self-evolution, named multi-vault routing, instruction-budget guard.
+Previous line (v3.11.0): self-healing session ledger, learning-store backup + expiry sweep, hardened CI mirror, tier-aware rule loading.
 
 Full version history: [CHANGELOG.md](CHANGELOG.md).
 
@@ -174,6 +174,10 @@ The design goal is engineering quality: every wave exits verified, every unfinis
 | Quality gates | Full | Full | Full | Full |
 
 All platforms share the same skills, commands, hooks, and scripts; platform-specific adaptation lives in `scripts/lib/platform.mjs`. **OS:** macOS and Linux are first-class and run in CI (`ubuntu-latest`, `macos-latest`). Windows runs natively (all paths via `path.join`, tmp via `os.tmpdir()`) but is **not** covered by CI — treat it as best-effort and run smoke tests locally when changing OS-sensitive code. Cursor and Pi have known event-coverage caveats — see [`docs/cursor-setup.md`](docs/cursor-setup.md) and [`docs/pi-setup.md`](docs/pi-setup.md).
+
+## Troubleshooting
+
+**"'node' not found on the hook PATH — plugin hooks are skipped."** The harness executes hook commands via `/bin/sh -c` with its own PATH — that shell does not source `~/.zshrc`/`~/.bashrc`, so Node installed via Homebrew (`/opt/homebrew/bin`), nvm, volta, or asdf can be invisible to hooks even though `node` works fine in your terminal. All hook commands route through [`hooks/run-node.sh`](hooks/run-node.sh), which resolves Node via `$SO_NODE_BIN` → PATH → well-known install dirs → nvm and degrades gracefully when nothing is found: hooks are skipped with **one** warning per 6 hours instead of a shell error on every tool call. Fixes, in order of preference: launch the harness from a shell where `node` resolves; export `SO_NODE_BIN=/abs/path/to/node`; or install Node 24+ to a standard location.
 
 ## Safety
 
@@ -215,6 +219,7 @@ What it is **not**:
 
 ## Documentation
 
+- [docs/ Router](docs/README.md) — living reference vs. public decision history vs. active work documents; what moved to the private Meta-Vault and why
 - [User Guide](docs/USER-GUIDE.md) — installation, config reference, workflow walkthrough, FAQ
 - [Components & Reference](docs/components.md) — full skill/command/agent/hook inventory, repository anatomy, comparisons
 - [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) — contributor guide, layering, hook anatomy, testing

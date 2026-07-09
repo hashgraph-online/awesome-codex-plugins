@@ -109,7 +109,7 @@ A run record lives in the brain store, never only in the terminal:
 
 Capture, per role: the changed files, the commands run + exit codes, the diff,
 and the verdict. The judge's verdict artifact (`userFacing:true`) is the only
-thing a `br close` may cite — never a live transcript. Consume an agent's
+thing an `ao beads exec close` may cite — never a live transcript. Consume an agent's
 **published compression** (this artifact + the committed repo file + the bead
 transition), never its live session.
 

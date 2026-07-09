@@ -9,7 +9,7 @@ Use this reference when a prose plan, design note, or research artifact needs to
 3. Add dependency edges for true sequencing only.
 4. Put validation commands and expected artifacts in each issue body.
 5. Add parent-child links for epics and broad follow-up work.
-6. Re-read `br ready --json` after creation and fix any issue that is not actionable.
+6. Re-read `ao beads exec ready --json` after creation and fix any issue that is not actionable.
 
 ## Issue Quality Bar
 

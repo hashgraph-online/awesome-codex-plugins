@@ -2,12 +2,16 @@
 /**
  * checker.mjs — CLAUDE.md narrative drift-check (claude-md-drift-check).
  *
- * Nine checks: path-resolver, project-count-sync, issue-reference-freshness,
+ * Ten checks: path-resolver, project-count-sync, issue-reference-freshness,
  * session-file-existence, surface-count (command/skill/agent/hook-event/
  * hook-matcher/test families), session-config-parity, vault-dir-parity,
- * generated-rule-staleness (WARN-mode only), and rule-scoping (paths-presence,
+ * generated-rule-staleness (WARN-mode only), rule-scoping (paths-presence,
  * cited-but-missing rule citations, zero-match-globs, and foreign-glob
- * PascalCase tokens in .claude/rules/*.md frontmatter).
+ * PascalCase tokens in .claude/rules/*.md frontmatter), and docs-parity
+ * (count-claims in docs/components.md vs actual on-disk counts, Session-Config
+ * key parity between docs/session-config-template.md and
+ * docs/session-config-reference.md, and stale `.claude/metrics/` path
+ * references in the live docs tree).
  * Scans CLAUDE.md + _meta/**\/*.md by default.
  * Emits JSON on stdout. Exit 0 (ok/warn/skip), 1 (hard + errors), 2 (infra).
  *
@@ -51,6 +55,7 @@ function parseArgs(argv) {
     skipVaultDirParity: false,
     skipGeneratedRuleStaleness: false,
     skipRuleScoping: false,
+    skipDocsParity: false,
     repo: null,
     commandsDir: null,
     configTemplate: null,
@@ -72,8 +77,9 @@ function parseArgs(argv) {
     else if (a === '--skip-vault-dir-parity') out.skipVaultDirParity = true;
     else if (a === '--skip-generated-rule-staleness') out.skipGeneratedRuleStaleness = true;
     else if (a === '--skip-rule-scoping') out.skipRuleScoping = true;
+    else if (a === '--skip-docs-parity') out.skipDocsParity = true;
     else if (a === '--help' || a === '-h') {
-      process.stdout.write('Usage: checker.mjs [--mode hard|warn|off] [--include-path GLOB]... [--repo OWNER/NAME] [--commands-dir PATH] [--config-template PATH] [--skip-surface-count] [--skip-command-count] [--skip-generated-rule-staleness] [--skip-rule-scoping] [--skip-*]\n');
+      process.stdout.write('Usage: checker.mjs [--mode hard|warn|off] [--include-path GLOB]... [--repo OWNER/NAME] [--commands-dir PATH] [--config-template PATH] [--skip-surface-count] [--skip-command-count] [--skip-generated-rule-staleness] [--skip-rule-scoping] [--skip-docs-parity] [--skip-*]\n');
       process.exit(0);
     } else {
       process.stderr.write(`{"status":"infra-error","reason":"unknown arg: ${a}"}\n`);
@@ -116,34 +122,50 @@ function walkDir(dir, visit) {
 }
 
 /**
- * Extract the YAML block under `## Session Config` from a Markdown document.
- * Tries fenced YAML first (```yaml ... ```), then falls back to raw body up
- * to the next `^## ` heading or EOF.
+ * Extract the YAML block under a `## Session Config` heading from a Markdown
+ * document. Tries fenced YAML first (```yaml ... ```) *within the matched
+ * heading's own body slice*, then falls back to the raw body up to the next
+ * `^## ` heading or EOF.
+ *
+ * `docs/session-config-template.md` carries TWO literal `## Session Config`
+ * lines — both live INSIDE fenced ```yaml example blocks: the "Full minimal
+ * baseline" (7 mandatory keys) and the "Full opt-in baseline" (the complete
+ * key catalog, a strict superset of the minimal block). By default this
+ * function matches the FIRST occurrence (correct for a local CLAUDE.md /
+ * AGENTS.md instruction file, which has exactly one real heading). Pass
+ * `{ occurrence: 'last' }` to match the LAST occurrence instead — the template
+ * call site uses this to reach the opt-in baseline's full key set rather than
+ * silently stopping at the 7-key minimal block (issue #785).
  *
  * Returns { body: string, headingLine: number } or null when no heading found.
+ *
+ * @param {string} content
+ * @param {{ occurrence?: 'first'|'last' }} [options]
  */
-function extractSessionConfigBlock(content) {
+function extractSessionConfigBlock(content, { occurrence = 'first' } = {}) {
   const lines = content.split('\n');
-  let headingLine = -1;
+  const headingIdxs = [];
   for (let i = 0; i < lines.length; i++) {
-    if (/^##\s+Session Config\b/.test(lines[i])) {
-      headingLine = i + 1; // 1-based line number for error reporting
-      break;
-    }
+    if (/^##\s+Session Config\b/.test(lines[i])) headingIdxs.push(i);
   }
-  if (headingLine === -1) return null;
+  if (headingIdxs.length === 0) return null;
 
-  // Try fenced YAML first.
-  const fenced = content.match(/^## Session Config\s*\n```ya?ml\n([\s\S]*?)\n```/m);
-  if (fenced) return { body: fenced[1], headingLine };
+  const targetIdx = occurrence === 'last' ? headingIdxs[headingIdxs.length - 1] : headingIdxs[0];
+  const headingLine = targetIdx + 1; // 1-based line number for error reporting
 
-  // Fallback: raw body up to next `## ` heading or EOF.
-  const startIdx = headingLine; // index *after* heading line (0-based)
+  // Raw body: from the line after the heading up to the next `## ` heading or EOF.
   let endIdx = lines.length;
-  for (let i = startIdx; i < lines.length; i++) {
+  for (let i = targetIdx + 1; i < lines.length; i++) {
     if (/^##\s+/.test(lines[i])) { endIdx = i; break; }
   }
-  const body = lines.slice(startIdx, endIdx).join('\n');
+  const rawBody = lines.slice(targetIdx + 1, endIdx).join('\n');
+
+  // Prefer a fenced YAML block found anywhere within the raw body slice
+  // (tolerates a blank line between the heading and the fence); fall back to
+  // the raw body itself when no fence is present.
+  const fenced = rawBody.match(/```ya?ml\r?\n([\s\S]*?)\r?\n```/);
+  const body = fenced ? fenced[1] : rawBody;
+
   return { body, headingLine };
 }
 
@@ -157,6 +179,64 @@ function extractTopLevelKeys(body) {
   let m;
   while ((m = re.exec(body)) !== null) {
     keys.push(m[1]);
+  }
+  return keys;
+}
+
+/**
+ * Extract Session-Config-key-shaped mentions from a "reference" style doc
+ * (docs/session-config-reference.md for Check 10b). Unlike the template,
+ * which carries one big fenced Session Config block, the reference documents
+ * most fields as ONE MARKDOWN TABLE ROW PER KEY (`| \`key-name\` | type |
+ * default | description |`) rather than in a single YAML block — a plain
+ * "union all yaml fences" extraction (as in `extractSessionConfigBlock`)
+ * massively under-counts what the reference actually documents (verified:
+ * 53 false-positive "missing" keys against the live doc when restricted to
+ * fences/headings alone, vs. the true gap of 6 keys once table rows are
+ * counted). Three surfaces contribute to the returned key set:
+ *   - top-level keys inside any ```yaml fenced block (any indent depth);
+ *   - `##`/`###`/`####` heading key-tokens (optionally backtick-wrapped),
+ *     e.g. "## Templates-First Hook" → no match (not kebab-lowercase-shaped),
+ *     "### resource-thresholds" → `resource-thresholds`;
+ *   - the FIRST CELL of a markdown table row when it is a backtick-wrapped
+ *     kebab-case token, e.g. `| \`plan-prd-location\` | string | ... |`.
+ * Fence state is tracked for ALL code fences (not just yaml-tagged ones) so
+ * headings/table-rows accidentally written inside an unrelated code example
+ * are not mistaken for real documentation structure.
+ *
+ * @param {string} content
+ * @returns {Set<string>}
+ */
+function extractDocKeyMentions(content) {
+  const keys = new Set();
+  const lines = content.split('\n');
+  let inFence = false;
+  let fenceLang = null;
+  let fenceBuf = [];
+  for (const line of lines) {
+    if (!inFence) {
+      const fenceOpen = /^```\s*(\w*)\s*$/.exec(line);
+      if (fenceOpen) { inFence = true; fenceLang = fenceOpen[1]; fenceBuf = []; continue; }
+    } else {
+      if (/^```\s*$/.test(line)) {
+        inFence = false;
+        if (/^ya?ml$/i.test(fenceLang || '')) {
+          const re = /^\s*([a-z][\w-]*):/gm;
+          let m;
+          const body = fenceBuf.join('\n');
+          while ((m = re.exec(body)) !== null) keys.add(m[1]);
+        }
+        continue;
+      }
+      fenceBuf.push(line);
+      continue;
+    }
+
+    const heading = /^#{2,4}\s+`?([a-z][\w-]*)`?/.exec(line);
+    if (heading) keys.add(heading[1]);
+
+    const tableRow = /^\|\s*`([a-z][\w-]*)`\s*\|/.exec(line);
+    if (tableRow) keys.add(tableRow[1]);
   }
   return keys;
 }
@@ -601,7 +681,26 @@ function main() {
 
   // Check 6: session-config-parity (issue #30) — diff top-level keys under
   // `## Session Config` between the canonical template and the local
-  // instruction file. Surface missing keys as parity errors.
+  // instruction file.
+  //
+  // Severity split (issue #785 follow-up — coordinator triage of the initial
+  // #785 fix): a missing MANDATORY key (present in the template's "Full
+  // minimal baseline" — the 7 schema-enforced keys) is an ERROR. A missing
+  // OPT-IN key (present only in the "Full opt-in baseline" — i.e. NOT in the
+  // minimal block) is a WARNING, not an error: a consumer repo that
+  // legitimately does not adopt an opt-in feature (e.g. no `handover-gate`)
+  // must not go red — this repo's own CLAUDE.md deliberately omits 37
+  // opt-in-baseline keys. `mode: hard` only exits non-zero on `errors[]`, so
+  // pure opt-in gaps never block `autonomous-gated` skill-evolution's
+  // `runConfigValidationGate()`.
+  //
+  // This is a deliberate, coordinator-directed DEVIATION from #785's literal
+  // fix-direction ("plants an opt-in key... asserts a session-config-parity
+  // ERROR") — the mechanism (union template keys via `{ occurrence: 'last' }`)
+  // is unchanged, but the missing-opt-in-key case now lands in `warnings[]`
+  // instead of `errors[]`. Local keys unknown to the template union were
+  // (and remain) never flagged in either direction — no existing code path
+  // inspected that direction before this change either.
   let configParityRan = false;
   if (!args.skipSessionConfigParity) {
     const templatePath = args.configTemplate
@@ -614,34 +713,44 @@ function main() {
     } else {
       const templateContent = readFileSync(templatePath, 'utf8');
       const localContent = readFileSync(instr.path, 'utf8');
-      const tplBlock = extractSessionConfigBlock(templateContent);
+      // 'last' occurrence reaches the "Full opt-in baseline" block (the full
+      // key catalog, a strict superset of the minimal block) — issue #785.
+      // 'first' occurrence reaches the "Full minimal baseline" (7 mandatory
+      // keys) — used here to classify which missing keys are mandatory vs
+      // opt-in. When the template has only ONE `## Session Config` heading
+      // (e.g. a test fixture, or a repo that never split the two baselines),
+      // 'first' and 'last' resolve to the SAME block, so every key is
+      // treated as mandatory — preserving pre-existing behaviour for
+      // single-block templates.
+      const tplBlock = extractSessionConfigBlock(templateContent, { occurrence: 'last' });
+      const tplMinimalBlock = extractSessionConfigBlock(templateContent, { occurrence: 'first' });
       const localBlock = extractSessionConfigBlock(localContent);
       if (!tplBlock) {
         checksSkipped.push('session-config-parity: template has no ## Session Config block');
-      } else if (!localBlock) {
-        // Treat absent local block as "every template key missing".
-        configParityRan = true;
-        const tplKeys = extractTopLevelKeys(tplBlock.body);
-        const rel = relative(vaultDir, instr.path);
-        for (const key of tplKeys) {
-          errors.push({
-            check: 'session-config-parity', file: rel, line: 1,
-            message: `Session Config missing top-level key '${key}' (present in docs/session-config-template.md)`,
-            extracted: key,
-          });
-        }
       } else {
         configParityRan = true;
         const tplKeys = extractTopLevelKeys(tplBlock.body);
-        const localKeys = new Set(extractTopLevelKeys(localBlock.body));
-        const missing = tplKeys.filter((k) => !localKeys.has(k));
+        const tplMinimalKeys = new Set(tplMinimalBlock ? extractTopLevelKeys(tplMinimalBlock.body) : []);
+        const localKeys = new Set(localBlock ? extractTopLevelKeys(localBlock.body) : []);
+        // Absent local block: line 1 (nothing to anchor to); present local
+        // block: attribute to its own heading line — same as before #785.
         const rel = relative(vaultDir, instr.path);
+        const line = localBlock ? localBlock.headingLine : 1;
+        const missing = tplKeys.filter((k) => !localKeys.has(k));
         for (const key of missing) {
-          errors.push({
-            check: 'session-config-parity', file: rel, line: localBlock.headingLine,
-            message: `Session Config missing top-level key '${key}' (present in docs/session-config-template.md)`,
-            extracted: key,
-          });
+          if (tplMinimalKeys.has(key)) {
+            errors.push({
+              check: 'session-config-parity', file: rel, line,
+              message: `Session Config missing top-level key '${key}' (present in docs/session-config-template.md)`,
+              extracted: key,
+            });
+          } else {
+            warnings.push({
+              check: 'session-config-parity', file: rel, line,
+              message: `Session Config omits opt-in top-level key '${key}' (documented in docs/session-config-template.md's opt-in baseline; not required)`,
+              extracted: key,
+            });
+          }
         }
       }
     }
@@ -952,6 +1061,148 @@ function main() {
     })();
   } else {
     checksSkipped.push('rule-scoping: explicitly skipped');
+  }
+
+  // Check 10: docs-parity (issue #780) — three sub-checks over the public docs
+  // surface, silently skipped (no checksRun push, no checksSkipped entry) when
+  // docs/components.md is absent (mirrors Check 8/9's silent-skip semantics):
+  //   (a) count-claims — docs/components.md's own heading counts ("## Skills
+  //       (N user-facing)", "## Commands (N)", "## Agents (N typed
+  //       sub-agents)", "## Hook event types (N)") vs the SAME actual on-disk
+  //       derivation the surface-count family (Check 5) uses (countSkills /
+  //       the commands-dir listing / countAgents / readHookCounts). This does
+  //       NOT reuse the surface-count family's `claimRe` regexes — those are
+  //       tuned for CLAUDE.md/README prose phrasing ("40 skills", "8 distinct
+  //       events") and verifiably do not match components.md's own heading
+  //       convention (count precedes/follows the noun differently); reusing
+  //       them verbatim would silently never fire. New regexes tailored to
+  //       the doc's actual authored structure are used instead.
+  //   (b) config-block-parity — top-level Session Config keys documented in
+  //       docs/session-config-template.md (opt-in baseline, via the Part 1
+  //       'last'-occurrence extractor) vs mentioned anywhere in
+  //       docs/session-config-reference.md (`extractDocKeyMentions` — yaml
+  //       fences, headings, and markdown-table first-cell keys; see its
+  //       doc-comment for why a naive fence-only extraction under-counts).
+  //   (c) metrics-path-liveness — stale `.claude/metrics/` path references
+  //       (canonical path is `.orchestrator/metrics/`) in root `docs/*.md` or
+  //       `docs/examples/*.md`.
+  // `--skip-docs-parity` disables the whole check.
+  if (!args.skipDocsParity) {
+    (function runDocsParity() {
+      const componentsPath = join(vaultDir, 'docs', 'components.md');
+      if (!existsSync(componentsPath) || !statSync(componentsPath).isFile()) return; // silent skip
+
+      checksRun.push('docs-parity');
+      const componentsRel = relative(vaultDir, componentsPath);
+      const componentsContent = readFileSync(componentsPath, 'utf8');
+      const componentsLines = componentsContent.split('\n');
+
+      // --- Sub-check (a): count-claims ---
+      const docsParitySurfaces = [
+        {
+          noun: 'skills',
+          actual: countSkills(vaultDir),
+          re: /^##\s+Skills\s+\((\d+)\s+user-facing\)/i,
+        },
+        {
+          noun: 'commands',
+          actual: (() => {
+            const dir = commandsDir || join(vaultDir, 'commands');
+            if (!existsSync(dir) || !statSync(dir).isDirectory()) return null;
+            return readdirSync(dir).filter((f) => f.endsWith('.md') && !f.startsWith('.')).length;
+          })(),
+          re: /^##\s+Commands\s+\((\d+)\)/i,
+        },
+        {
+          noun: 'agents',
+          actual: countAgents(vaultDir),
+          re: /^##\s+Agents\s+\((\d+)\s+typed\s+sub-agents\)/i,
+        },
+        {
+          noun: 'distinct hook events',
+          actual: (() => {
+            const hc = readHookCounts(vaultDir);
+            return hc ? hc.events : null;
+          })(),
+          re: /^##\s+Hook\s+event\s+types\s+\((\d+)\)/i,
+        },
+      ];
+      for (let i = 0; i < componentsLines.length; i++) {
+        const line = componentsLines[i];
+        for (const surface of docsParitySurfaces) {
+          if (surface.actual === null) continue; // artifact absent — nothing to compare
+          const m = surface.re.exec(line);
+          if (m) {
+            const claimed = parseInt(m[1], 10);
+            if (claimed !== surface.actual) {
+              errors.push({
+                check: 'docs-parity', file: componentsRel, line: i + 1,
+                message: `docs/components.md claims ${claimed} ${surface.noun} but actual on-disk count is ${surface.actual}`,
+                extracted: m[0],
+              });
+            }
+          }
+        }
+      }
+
+      // --- Sub-check (b): config-block-parity ---
+      const templatePathForDocsParity = join(vaultDir, 'docs', 'session-config-template.md');
+      const referencePath = join(vaultDir, 'docs', 'session-config-reference.md');
+      if (
+        existsSync(templatePathForDocsParity) && statSync(templatePathForDocsParity).isFile() &&
+        existsSync(referencePath) && statSync(referencePath).isFile()
+      ) {
+        const templateContentForDocsParity = readFileSync(templatePathForDocsParity, 'utf8');
+        const referenceContent = readFileSync(referencePath, 'utf8');
+        const tplBlockForDocsParity = extractSessionConfigBlock(templateContentForDocsParity, { occurrence: 'last' });
+        if (tplBlockForDocsParity) {
+          const tplKeysForDocsParity = extractTopLevelKeys(tplBlockForDocsParity.body);
+          const refKeys = extractDocKeyMentions(referenceContent);
+          const referenceRel = relative(vaultDir, referencePath);
+          for (const key of tplKeysForDocsParity) {
+            if (!refKeys.has(key)) {
+              errors.push({
+                check: 'docs-parity', file: referenceRel, line: 1,
+                message: `Session Config key '${key}' (documented in docs/session-config-template.md) is not documented in docs/session-config-reference.md`,
+                extracted: key,
+              });
+            }
+          }
+        }
+      }
+
+      // --- Sub-check (c): metrics-path-liveness ---
+      const docsDir = join(vaultDir, 'docs');
+      const metricsScanTargets = [];
+      if (existsSync(docsDir) && statSync(docsDir).isDirectory()) {
+        for (const f of readdirSync(docsDir, { withFileTypes: true })) {
+          if (f.isFile() && f.name.endsWith('.md')) metricsScanTargets.push(join(docsDir, f.name));
+        }
+        const examplesDir = join(docsDir, 'examples');
+        if (existsSync(examplesDir) && statSync(examplesDir).isDirectory()) {
+          for (const f of readdirSync(examplesDir, { withFileTypes: true })) {
+            if (f.isFile() && f.name.endsWith('.md')) metricsScanTargets.push(join(examplesDir, f.name));
+          }
+        }
+      }
+      for (const abs of metricsScanTargets) {
+        const rel = relative(vaultDir, abs);
+        let content;
+        try { content = readFileSync(abs, 'utf8'); } catch { continue; }
+        const metricsLines = content.split('\n');
+        for (let i = 0; i < metricsLines.length; i++) {
+          if (metricsLines[i].includes('.claude/metrics/')) {
+            errors.push({
+              check: 'docs-parity', file: rel, line: i + 1,
+              message: `Stale metrics path '.claude/metrics/' referenced — canonical path is '.orchestrator/metrics/'`,
+              extracted: '.claude/metrics/',
+            });
+          }
+        }
+      }
+    })();
+  } else {
+    checksSkipped.push('docs-parity: explicitly skipped');
   }
 
   if (scopeFiles.length === 0) {

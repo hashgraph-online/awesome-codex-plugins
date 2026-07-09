@@ -117,8 +117,32 @@ During plan creation (Step 2), evaluate each issue and wave against all 7 rules.
 - counts of commands → `ao --help | extract_commands | wc -l`
 - counts of files → `git ls-files | grep -c <pattern>`
 - counts of test functions → `grep -rn "^func Test" <pkg>/ | wc -l`
-- counts of br issues → `br list --status=open --json | jq length`
+- counts of br issues → `ao beads exec list --status=open --json | jq '.issues | length'`
 Plans where any numeric claim has no producing command are rejected back to research.
+
+---
+
+## PR-010: Small Batches + Refactor Separation
+
+**Rule:** Decompose by *behavior*, not by file or feature-bundle. Each slice delivers **one** Given/When/Then behavior (a small batch), and a refactor is **its own slice** — never folded into a feature slice. A slice that delivers two or more behaviors, or that mixes "make it work" with "make it clean," must split.
+
+**Evidence:** A controlled study of agent-run workflows (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`) found small batches (one behavior per cycle) beat all-at-once across every measurement, and that **refactor-after-every-green is the load-bearing quality move** — stripping the refactor step out of TDD erased its entire quality advantage, while test-first *ordering* alone contributed nothing measurable. Workflows that deferred refactoring to one final pass landed in the worst-performing cluster. Two invariants follow at plan time: bias slices small (one behavior), and schedule refactor as a distinct unit so it actually happens after each green rather than being deferred or skipped.
+
+**Detection Question:** Does each slice map to exactly one behavior (one Given/When/Then), and is every refactor a separate slice (not bundled into a feature slice)?
+
+**Checklist Item:** No slice delivers >1 behavior; every "refactor then feature" is split into two slices; test-first *ordering* is not treated as the quality lever (the acceptance test as contract + refactor-after-green are). Slice-sizing detail: `references/decomposition.md` → "Behavior batch size (small batches)". Caveat (Finster's scope): the small-batch/refactor-cadence evidence holds for small-to-medium, fully-specified tasks — it does not license skipping the requirements-clarity gate owned by `behavior-first-planning`.
+
+---
+
+## PR-011: Test Thoroughness Matched to Stakes
+
+**Rule:** Test-level and bug-finding thoroughness planned per slice must be throttled to the slice's stakes and blast radius, not maximized. Do not plan full mutation (BF3) or the whole BF1–BF9 corpus onto small, low-risk, fully-specified slices.
+
+**Evidence:** The same study (Finster 2026) found the highest mutation-score arms (0.93–0.98) *lost* on both cost and changeability — the extra thoroughness cost multiples and produced code that was harder to change later. On small-to-medium tasks coverage saturated near 100% regardless of workflow, so planning maximal thoroughness bought nothing measurable and made the code ossify. (Consistent with PR-002: L2+/L3 find the real bugs; padding L1 count or mutation score on low-risk slices is the over-testing tax.)
+
+**Detection Question:** Does the plan reserve BF3 (mutation, top 3–5 modules only), BF4 (chaos), BF8, BF9 for critical/high-blast-radius/security/format-contract slices — and keep small low-risk slices at L2 + L1 regression guards?
+
+**Checklist Item:** Each slice's `test_levels` metadata is stakes-justified: small/low-risk → L2 + L1 only (no full mutation/BF corpus); critical/security/high-blast-radius → the heavier BF levels earn their cost. See `test-pyramid.md` → "Match thoroughness to task stakes — the over-testing tax".
 
 ---
 
@@ -141,3 +165,5 @@ Use this during plan review:
 | 7b | Phased Rollout | Is the 40% context budget respected? (Sessions that load >40% context for knowledge leave insufficient room for implementation work) |
 | 8 | Pre-Decomposition Symbol Verify | Are all named symbols grep-verified against current HEAD before decomposition? (Required for plans touching deletion-adjacent code in the last 30 days) |
 | 9 | Mechanical Count Verification | Does every numeric claim have a producing command in the plan? (Hand-counts in agent-generated plans drift; counts must be reproducible by reviewers) |
+| 10 | Small Batches + Refactor Separation | Does each slice deliver exactly one behavior, and is every refactor its own slice? (Small batches + refactor-after-green are the load-bearing quality moves; test-first ordering is not — Finster 2026) |
+| 11 | Test Thoroughness Matched to Stakes | Is per-slice test/BF thoroughness throttled to stakes (small low-risk → L2+L1; critical/security → heavier BF)? (Over-testing costs multiples and ossifies code — the over-testing tax) |

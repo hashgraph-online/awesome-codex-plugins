@@ -9,6 +9,8 @@ description: "Compare budget scenarios side-by-side. Use when: testing 2-4 alloc
 
 Quick scenario comparison tool. Test 2-4 marketing scenarios against each other — different budget allocations, channel mixes, or strategic approaches — and see projected outcomes side-by-side. This is the lighter, faster alternative to full Monte Carlo simulation (`/digital-marketing-pro:simulate`). Where simulate runs thousands of iterations with full probability distributions, what-if uses point estimates with simple variance bands to give directional answers in minutes. Use it for rapid decision-making when you need a quick read on "should we do A or B?" without the statistical depth of a full simulation — team meetings, Slack discussions, quick planning calls, or narrowing down options before running a deeper analysis.
 
+> **Simulated output — not a forecast.** what-if projections are directional point-estimates produced by `revenue-simulator.py` from your stated assumptions and historical benchmarks, not measured predictions. Treat every scenario number as a planning aid: validate the ROI assumptions against your own data before committing budget. All example dollar figures in this skill are SYNTHETIC (illustrative only — never reuse these numbers).
+
 ## Input Required
 
 The user must provide (or will be prompted for):

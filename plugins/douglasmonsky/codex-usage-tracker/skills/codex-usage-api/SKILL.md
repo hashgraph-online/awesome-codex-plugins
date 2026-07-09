@@ -1,88 +1,69 @@
 ---
 name: codex-usage-api
-description: Use when the user wants to discuss, investigate, compare, or explain Codex usage using the Codex Usage Tracker API or MCP tools.
+description: Use when the user wants to discuss, investigate, compare, explain, or improve Codex usage with Codex Usage Tracker API or MCP tools, including token waste, cache/context problems, allowance or limit changes, pricing confidence, dashboard evidence, and local content-index investigations.
 ---
 
 # Codex Usage API Companion
 
-Use this companion skill as a conversational analyst for Codex Usage Tracker data. Prefer aggregate-only MCP JSON payloads, answer from evidence, and keep the user-facing output crisp instead of narrating tool discovery or local file spelunking.
+Act as an evidence-first analyst for Codex Usage Tracker data. Prefer MCP JSON payloads, answer from structured evidence, and keep the user-facing result concise.
 
-## Privacy Boundary
+## Operating Rules
 
-Normal usage answers must use aggregate-only API data. Do not expose prompts, assistant messages, tool output, pasted secrets, or raw transcript snippets.
+- For "Open dashboard" style requests, start the live localhost dashboard with `codex-usage-tracker serve-dashboard --context-api explicit --open`. Refresh is the default for dashboard launch commands. Use `open-dashboard` only when the user explicitly wants a static/offline snapshot or the environment cannot keep a server alive. Say the result is static and Live requires `serve-dashboard`.
+- Refresh with `refresh_usage_index` unless the user asks for a static historical snapshot.
+- Start with aggregate/shareable tools. Do not expose prompts, assistant messages, raw tool output, pasted secrets, raw commands, full paths, or transcript snippets unless the user explicitly asks for local content or raw context.
+- Check top-level `schema`, `content_mode`, `includes_indexed_content`, `includes_raw_fragments`, row counts, truncation, and caveats before interpreting payloads.
+- Name scope: time window, project/thread/model filters, included archived state, row limit, detail mode, and whether results are estimates.
+- Separate exact facts from estimates. Call out `pricing_estimated`, missing `pricing_model`, `usage_credit_confidence`, missing allowance windows, and outside-usage caveats.
+- For broad asks, give diagnosis plus remediation: `Evidence`, `Hypothesis result`, `Likely waste pattern`, `Next action`, `How to verify`.
 
-When the user plans to share JSON, CSV, dashboards, screenshots, or support bundles, prefer `privacy_mode="strict"` MCP calls or the CLI global option `--privacy-mode strict` before the subcommand. Configured project aliases are explicit display opt-ins.
+## Agentic Investigation Loop
 
-The only exception is `usage_call_context`, which reads one selected record's local source JSONL on demand. Use it only when the user explicitly asks to inspect actual logged context. State that returned text is local, redacted, size-limited, and not persisted by the tracker.
+Use this loop for "look through my usage", "make recommendations", "test hypotheses", "what else should I inspect?", and token-waste discovery:
 
-## First Steps
+1. Start with `usage_suggest_investigations(goal=...)` when the user needs ideas, otherwise call `usage_investigate(goal=...)` directly.
+2. Convert findings into explicit hypotheses: `I'd like to be able to...`, `I will accomplish it using...`, `I'm missing access to...`, `My hypothesis was true/false/inconclusive because...`.
+3. Drill into recommended tools such as `usage_large_low_output_calls`, `usage_shell_churn`, `usage_repeated_file_rediscovery`, `usage_allowance_diagnostics`, `usage_threads`, or `usage_calls`.
+4. Recommend concrete fixes, not just summaries: shorter handoff, split thread, preserved cache context, lower effort on routine tasks, targeted script, repo note, skill update, or an existing tool such as Headroom when available and relevant.
+5. End with the verification tool/query the user should run after changing behavior.
 
-1. For "Open dashboard" or similar requests, start the live localhost dashboard with `codex-usage-tracker serve-dashboard --context-api explicit --open`. Refresh is the default for dashboard launch commands; use `--no-refresh` only when the user explicitly asks for a cached snapshot. Use `open-dashboard` only for explicit static/offline snapshots or when the environment cannot keep a server alive; say the result is static and Live requires `serve-dashboard`.
-2. For "Heaviest thread?", "Thread leaderboard", or similar ranking requests, refresh aggregate data first, then call `usage_summary(group_by="thread", limit=10, response_format="json")`.
-3. For normal usage questions, start with MCP tools. If MCP tools are unavailable, use the CLI JSON fallback commands below.
-4. Refresh analysis with `refresh_usage_index` unless the user asks for a static historical snapshot. Keep archived sessions excluded unless explicitly requested.
-5. Use `usage_status()` for dashboard/index freshness and row counts. Use `usage_doctor(response_format="json")` when setup, indexing, pricing, MCP discovery, or dashboard freshness is uncertain.
-6. Prefer structured MCP payloads:
-   - `usage_calls(...)`
-   - `usage_call_detail(record_id=...)`
-   - `usage_threads(...)`
-   - `usage_report_pack(...)`
-   - `usage_dashboard_recommendations(...)`
-   - `usage_summary(..., response_format="json")`
-   - `session_usage(..., response_format="json")`
-   - `most_expensive_usage_calls(..., response_format="json")`
-   - `usage_recommendations(..., response_format="json")`
-   - `usage_pricing_coverage(..., response_format="json")`
-   - `usage_query(...)`
-7. Check the top-level `schema` field before interpreting structured output. Known schema ids are documented in `docs/cli-json-schemas.md`.
-8. If MCP tools are unavailable, fall back to CLI equivalents: `refresh --json`, `summary --json`, `query`, `session --json`, `expensive --json`, `recommendations --json`, and `pricing-coverage --json`.
-9. If `codex-usage-tracker` is missing but you are inside the source checkout, use `PYTHONPATH=src .venv/bin/python -m codex_usage_tracker.cli <command>`. Do not use `PYTHONPATH=src` outside that checkout.
+For maintainer dogfood or plugin-quality checks, prefer the MCP polling flow when available: call `usage_dogfood_start(privacy_mode="strict")`, poll `usage_dogfood_status(job_id)` until completed or failed, then call `usage_dogfood_result(job_id)`. After one fresh run, use `usage_dogfood_start(refresh=False, use_cache=True, privacy_mode="strict")` for repeated checks on unchanged data and confirm `result_cache.hit`. Use the blocking CLI fallback only when MCP polling tools are unavailable: `codex-usage-tracker dogfood-agentic --privacy-mode strict --json`. Treat the output as a compact aggregate QA artifact that must not include raw prompts, raw tool output, full paths, or indexed fragments.
 
-## Routing Questions To API Calls
+## Router
 
-- "What used most?" Use `usage_summary(group_by="thread", response_format="json")` for thread totals, then `most_expensive_usage_calls(response_format="json")` for supporting calls.
-- "Which project/thread/model is driving usage?" Use `usage_summary` grouped by `project`, `thread`, or `model`.
-- "Show/filter the calls table" Use `usage_calls(...)` with `limit`, `offset`, `search`, `since`, `model`, `effort`, `thread`, `pricing_status`, or `credit_confidence`. Report `row_count`, `total_matched_rows`, and `has_more`.
-- "Open/investigate this call" Use `usage_call_detail(record_id=...)` for the aggregate call investigator payload. Use `usage_call_context` only if the user explicitly asks for raw local context.
-- "Show threads" Use `usage_threads(...)`, sorted by token impact by default.
-- "Give me dashboard report evidence" Use `usage_report_pack(...)` for report cards and compact evidence rows. Use `usage_dashboard_recommendations(...)` when the user specifically wants the dashboard recommendation payload.
-- "Is my dashboard/index stale?" Use `usage_status()` first, then `usage_doctor(response_format="json")` if status suggests missing rows, stale refresh, or setup problems.
-- "Can I share this?" Use redacted or strict privacy mode and avoid `usage_call_context`.
-- "Why did usage spike?" Use `usage_recommendations(response_format="json")` for ranked causes, then `usage_query` or `usage_calls` with focused filters for supporting rows.
-- "What is unpriced or estimated?" Use `usage_pricing_coverage(response_format="json")` and `usage_query(pricing_status="unpriced")` or `usage_query(credit_confidence="estimated")`.
-- "How does this affect my allowance?" Use rows from `usage_query` or `usage_calls` and summarize `usage_credits`, `usage_credit_confidence`, and allowance annotations. Explain that remaining allowance is only as accurate as the user's local allowance config.
-- "What happened in this session?" Use `session_usage(session_id=..., response_format="json")`.
-- "What should I inspect next?" Use `usage_report_pack(...)` or `usage_recommendations(response_format="json")`, then explain the primary recommendation, secondary signals, and row scope.
+1. If the user asks what to inspect, wants suggestions, or is unsure where to start, call `usage_suggest_investigations(goal=...)`.
+2. If the user asks broadly to look through usage, find waste, explain expensive usage, improve efficiency, or recommend changes, call `usage_investigate(goal="token_waste")` or `usage_investigate(goal="overview")` first, then drill into its `recommended_next_tools`.
+3. If the user frames the work as hypotheses, asks for true/false/partial decisions, or wants "I'd like to / I will use / I'm missing / hypothesis result" output, call `usage_test_hypotheses(question=..., hypotheses=...)`.
+4. If the user asks whether limits/allowance changed, whether they are throttled, why weekly usage moved, or why the 5-hour counter looks weird, call `usage_investigate(goal="allowance_change")`, then `usage_allowance_diagnostics(window_kind="weekly", privacy_mode="strict")` when evidence is needed. Use `usage_allowance_export(...)` for manually shareable evidence.
+5. If the user asks about cache misses, cold resumes, context bloat, or low-output expensive calls, call `usage_investigate(goal="cache_failure")`, then inspect `usage_large_low_output_calls(...)`, `usage_calls(...)`, `usage_report_pack(...)`, or `usage_context_bloat_scan(...)`.
+6. If the user asks about repeated shell probing, repeated file rediscovery, or workflow churn, call `usage_investigate(goal="workflow_churn")`, then inspect `usage_shell_churn(...)`, `usage_repeated_file_rediscovery(...)`, or `usage_investigation_walk(question=...)`.
+7. If the user asks a precise dashboard/API question, use the direct tool: `usage_calls`, `usage_call_detail`, `usage_threads`, `usage_summary`, `usage_query`, `session_usage`, `usage_report_pack`, `usage_dashboard_recommendations`, `usage_recommendations`, `most_expensive_usage_calls`, `usage_pricing_coverage`, or `usage_source_coverage`.
+8. Use `usage_content_search(...)` and `usage_thread_trace(...)` only for explicit local content-index exploration when the user agrees transcript-level indexed snippets are needed.
+9. Use `usage_call_context(...)` only when the user explicitly asks for raw local context and the MCP server has raw context enabled.
 
-## Suggested Investigation Ideas
+## Tool Stance
 
-When the user asks what they can look into, offer a short menu of concrete aggregate-only investigations rather than a generic list.
+- `usage_suggest_investigations` is the front door for ideas. It should return a short, goal-led menu with adjacent safe next options.
+- `usage_investigate` is the first stop for broad agentic analysis. The default `detail_mode="compact"` returns evidence summaries and compact rows; use `detail_mode="full"` only when full underlying diagnostic rows are necessary.
+- `usage_test_hypotheses` is the first-class hypothesis runner. Use it when the user wants explicit `true`, `false`, `partially_true`, or `insufficient_evidence` decisions and the "I would like / I will use / I'm missing" framing.
+- `usage_allowance_diagnostics` is the main allowance-change evidence tool. Treat weekly windows as the primary signal and 5-hour windows as noisy rolling-window context.
+- `usage_large_low_output_calls`, `usage_shell_churn`, and `usage_repeated_file_rediscovery` are the most actionable token-waste probes. Use them to turn broad findings into concrete next steps.
+- `usage_investigation_walk` can use local content/event-index signals for deeper pattern scans, but it is not the default shareable report.
+- If MCP tools are unavailable, use CLI JSON equivalents documented in `docs/cli-json-schemas.md`.
 
-- "Look through my usage for token waste." Use `usage_report_pack(...)`, then `usage_calls(sort="tokens", direction="desc", limit=10)` and call out high-token calls, low cache ratios, high context-window percent, expensive estimates, or repeated same-thread spikes.
-- "Find calls where context got bloated." Use `usage_calls(...)` sorted by tokens or filtered to recent rows, then rank by `context_window_percent`, `input_tokens`, and low `cache_ratio`.
-- "Show me where caching failed." Use `usage_calls(...)` and `usage_report_pack(...)`; prioritize rows with high `input_tokens`, low `cached_input_tokens`, or low `cache_ratio`.
-- "Which threads are draining the most?" Use `usage_threads(limit=10)` and `usage_summary(group_by="thread", response_format="json")`; include total tokens, estimated cost or credits, and whether archived rows are excluded.
-- "What changed recently?" Use `usage_status()` for freshness, then `usage_calls(since=..., limit=...)` or `usage_summary(group_by="date", response_format="json")` for recent movement.
-- "Find expensive calls worth opening." Use `most_expensive_usage_calls(response_format="json")` or `usage_calls(sort="tokens", direction="desc")`; suggest `usage_call_detail(record_id=...)` for the top few aggregate records.
-- "Check whether model or effort choice is wasting tokens." Use `usage_summary(group_by="model", response_format="json")`, `usage_summary(group_by="effort", response_format="json")`, and supporting `usage_calls(...)` rows.
-- "Can I share this safely?" Use `privacy_mode="strict"` and avoid `usage_call_context`.
+## Remediation Guidance
 
-## Waste Reduction Recommendations
+Recommend fixes only when supported by evidence. Useful categories include:
 
-When user asks to look for token waste, treat answer as diagnosis plus remediation. After ranking aggregate drivers, recommend concrete next steps that can reduce future usage:
-
-- Suggest Headroom when available for context/headroom estimation if evidence shows high context-window pressure, repeated large reads, or long-thread accumulation. Say "if available" unless tool registry confirms it.
-- Suggest dashboard verification steps: open top rows in Calls, inspect selected records in Call Investigator, compare Threads by total tokens, or use Diagnostics Notebook for usage-drain evidence.
-- Suggest custom solutions Codex can build when pattern repeatable: repo-specific test selector, local summary command, prompt checklist, dashboard report preset, or small script extracting exact project facts Codex keeps rediscovering.
-- Suggest workflow changes only when aggregate evidence supports them: split bloated threads, lower reasoning effort for routine edits, reuse one thread for cache-friendly related work, or start fresh thread after compacting needed state into docs.
-
-Structure recommendations as `Evidence`, `Likely waste pattern`, `Next action`, and `How to verify`. Keep privacy boundary explicit and avoid raw context unless user asks.
+- Dashboard inspection: open Calls, Threads, Call Investigator, Diagnostics Notebook, or Allowance Intelligence around specific evidence rows.
+- Workflow changes: split long threads after planning, preserve handoff summaries, avoid broad rediscovery, lower effort for routine tasks, and narrow test selection before final gates.
+- Existing tools: suggest Headroom when context pressure or handoff timing appears relevant and the tool is available.
+- Custom local solutions: suggest a small script, command, repo note, or skill update when the same file discovery, shell loop, or validation sequence keeps recurring.
 
 ## Answer Style
 
-- Lead with the direct answer and key metric.
-- Use at most one short progress update such as "Refreshing aggregate usage, then ranking threads."
-- Name data scope, time window, project, thread, model, row count, and whether rows are truncated or paginated.
-- Separate exact facts from estimates. Call out `pricing_estimated`, missing `pricing_model`, `usage_credit_confidence`, and missing allowance windows.
-- Include the next useful investigation when the answer depends on unclear pricing, stale allowance values, or a broad time window.
-- Keep explanations tied to aggregate fields. Do not guess conversation content.
+- Lead with the direct answer and strongest metric.
+- Use at most one short progress update, such as "Refreshing aggregate usage, then ranking likely waste patterns."
+- Keep explanations tied to aggregate fields or clearly labeled local-index evidence.
+- Do not guess conversation content from token patterns.
+- For allowance-change answers, separate local evidence from public claims, quote the evidence grade, and say when outside usage or missing observations could explain movement.

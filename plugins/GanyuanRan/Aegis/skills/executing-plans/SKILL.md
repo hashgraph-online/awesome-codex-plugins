@@ -17,6 +17,11 @@ checkpoint, drift check, pre-edit governance, or verification boundary. This
 visibility belongs to the active execution workflow; do not replace it with a
 generic used-skills log.
 
+When execution reaches completion, do not invent a separate final report shape
+for this workflow. Pass plan adherence, checkpoint/drift status, verification,
+complexity, and residual risk into `verification-before-completion` so the
+user-facing closeout uses the unified Aegis impact/safety receipt.
+
 **Note:** Tell your human partner that Aegis works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use aegis:subagent-driven-development instead of this skill.
 
 ## The Process

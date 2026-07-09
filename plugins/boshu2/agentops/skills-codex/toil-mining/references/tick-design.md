@@ -97,7 +97,7 @@ toil-mining-tick.service`.
 |---|---|---|
 | Findings ledger | `.agents/toil-mining/findings.md` | Append-only dated sections; each section = sources consulted, new clusters, grown clusters (with previous→current counts), echo-filter note |
 | Candidate report | `.agents/toil-mining/YYYY-MM-DD-candidates.md` | Same ranked-table format as on-demand mode |
-| Bead candidates | tracker (`br create`, P3 by default) | One bead per new candidate above the ranking threshold, body citing the findings section; dedupe against open toil beads before creating |
+| Bead candidates | tracker (`ao beads exec create`, P3 by default) | One bead per new candidate above the ranking threshold, body citing the findings section; dedupe against open toil beads before creating |
 
 The tick never auto-builds an automation and never escalates a candidate past
 "bead created" — shape decisions stay with `/automation-shape-routing`, and

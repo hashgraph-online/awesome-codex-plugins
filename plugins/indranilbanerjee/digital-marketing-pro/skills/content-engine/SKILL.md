@@ -35,7 +35,7 @@ Before producing any marketing output from this module:
 4. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
 5. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
 6. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
-7. **Check campaign history** — Run `python campaign-tracker.py --brand {slug} --action list-campaigns` before planning new work
+7. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
 8. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
 9. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
 
@@ -69,7 +69,7 @@ For quick requests (e.g., "write me a LinkedIn post"), infer reasonable defaults
 - **Brand Voice System**: Voice attributes, tone spectrum (how voice adapts by context), vocabulary guidelines, do/don't examples, and brand-specific terminology
 - **Content Decay Detection**: Methodology for identifying declining content by traffic, rankings, engagement, and freshness — with refresh prioritization
 - **AI Content Quality Management**: Quality checklist for AI-generated content, originality verification approach, brand alignment review, fact-checking protocol, and human-in-the-loop guidelines
-- **Accessibility Compliance**: WCAG 2.1 AA content guidelines, alt text writing, readability scoring, heading structure, link text, color contrast guidance, and screen reader optimization
+- **Accessibility Compliance**: WCAG 2.2 AA content guidelines, alt text writing, readability scoring, heading structure, link text, color contrast guidance, and screen reader optimization
 - **Multilingual/Localization**: Translation-ready content structuring, cultural adaptation framework, locale-specific messaging guidelines, and RTL language considerations
 - **Email Infrastructure**: SPF/DKIM/DMARC setup guidance, domain warming schedules, list hygiene practices, deliverability monitoring, and sender reputation management
 
@@ -103,7 +103,13 @@ For quick requests (e.g., "write me a LinkedIn post"), infer reasonable defaults
 
 4. **Quality Assurance**
    - Brand voice alignment check
-   - Readability score assessment (aim for grade 8 or below for general audiences)
+   - Readability score assessment (aim for grade 8 or below for general audiences). Run the analyzer on the draft:
+     ```bash
+     python "${CLAUDE_PLUGIN_ROOT}/scripts/readability-analyzer.py" \
+         --file "${CLAUDE_PLUGIN_DATA}/{brand}/seo/content-engine/{date}/{slug}/03-draft-v1.md" \
+         --target b2c_general
+     ```
+     (`--text` inline or `--file` path — mutually exclusive, one required; `--target` one of `b2c_general`, `b2b_professional`, `b2b_technical`, `children`, `academic`.)
    - Accessibility review (heading hierarchy, alt text guidance, link text clarity)
    - Fact-checking for any claims, statistics, or references
    - Platform compliance check (ad policies, character limits, format requirements)
@@ -135,7 +141,7 @@ For quick requests (e.g., "write me a LinkedIn post"), infer reasonable defaults
 - `brand-voice.md` — Voice development methodology, tone spectrum design, vocabulary guidelines, and brand voice audit process
 - `content-decay.md` — Decay detection methodology, content scoring rubric, refresh prioritization framework, and update tracking
 - `ai-content-quality.md` — AI content quality checklist, originality verification, brand alignment review, and human review workflow
-- `accessibility.md` — WCAG 2.1 AA content checklist, alt text writing guide, readability standards, and inclusive language guidelines
+- `accessibility.md` — WCAG 2.2 AA content checklist, alt text writing guide, readability standards, and inclusive language guidelines
 - `multilingual.md` — Localization readiness checklist, cultural adaptation framework, translation management, and RTL considerations
 - `email-infrastructure.md` — Authentication setup (SPF/DKIM/DMARC), domain warming plan, deliverability best practices, and list hygiene
 - `email-automation.md` — Automation trigger design, workflow mapping, dynamic content rules, and behavioral email logic
@@ -174,7 +180,7 @@ For quick requests (e.g., "write me a LinkedIn post"), infer reasonable defaults
 
 ### Accessibility for Video/Audio Content
 - **Situation**: Content includes video, audio, or interactive elements needing accessibility treatment
-- **Approach**: Recommend captions (not auto-generated — accuracy matters) for all video content. Provide audio descriptions for visual-only information in videos. Create transcripts for podcasts and audio content. Ensure interactive elements are keyboard-navigable. Test with screen readers. Follow WCAG 2.1 AA at minimum, with AAA as a stretch goal for public-facing content.
+- **Approach**: Recommend captions (not auto-generated — accuracy matters) for all video content. Provide audio descriptions for visual-only information in videos. Create transcripts for podcasts and audio content. Ensure interactive elements are keyboard-navigable. Test with screen readers. Follow WCAG 2.2 AA at minimum, with AAA as a stretch goal for public-facing content.
 
 ### RTL Languages
 - **Situation**: Content in Arabic, Hebrew, Farsi, Urdu, or other right-to-left languages

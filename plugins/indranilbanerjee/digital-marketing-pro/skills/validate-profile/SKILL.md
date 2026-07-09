@@ -38,7 +38,7 @@ The skill is **read-only** — it inspects state, never modifies it. It also **n
 | **Audience profile** | `target_audience.primary_persona` with `role` + `reading_level` | WARNING |
 | **Guardrails** | `guardrails.prohibited_terms` + `guardrails.prohibited_claims` non-empty | BLOCKER for regulated industries (pharma, BFSI, healthcare, legal) |
 | **Compliance jurisdictions** | Each declared jurisdiction has a matching rules entry in `skills/context-engine/compliance-rules.md` | BLOCKER |
-| **Connector reachability** | Every connector named in `tracking.backend`, `integrations.*`, `analytics.*` resolves and authenticates | BLOCKER per failing connector |
+| **Connector config present** | Every connector named in `tracking.backend`, `integrations.*`, `analytics.*` has its env vars / `.mcp.json` entry present (local check; live reachability comes from the MCP/curl probe below) | BLOCKER per unconfigured connector |
 | **MCP server health** | Every entry in `.mcp.json` (if present) responds to a tools/list ping | WARNING |
 | **Credential storage** | `~/.claude-marketing/{brand}/credentials.json` (or env vars) present for every backend referenced | BLOCKER |
 | **Output paths writeable** | `~/.claude-marketing/{brand}/` is writeable; `$CONTENTFORGE_PUBLISH_DIR` (if cross-plugin) is writeable | BLOCKER |
@@ -78,13 +78,14 @@ For every entry in `target_jurisdictions`, confirm `skills/context-engine/compli
 For each backend referenced in `tracking.backend`, `integrations.crm`, `integrations.email`, `integrations.cms`, `integrations.analytics`, `integrations.social`, run the matching health probe via `scripts/connector-status.py`:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" \
+    --action status \
     --brand "{brand}" \
     --connectors "{comma-separated list inferred from profile}" \
     --probe-only --no-secrets
 ```
 
-`connector-status.py --probe-only --no-secrets` makes the equivalent of a `me`/`whoami` API call and reports HTTP status + auth class (OK / UNAUTHENTICATED / RATE_LIMITED / NOT_FOUND / NETWORK_ERROR). It **never** echoes the credential value, **never** writes the credential to logs, and **never** writes it to the output. If `--no-secrets` is not supported by the installed `connector-status.py`, fall back to invoking the connector's MCP `tools/list` endpoint with the same redaction discipline.
+`connector-status.py --probe-only` runs a **local** readiness check: it verifies that the required environment variables / `.mcp.json` entry for each connector are present and non-empty. It does NOT open a live network connection or make a `whoami` call — so it reports a **config-level** class (CONFIGURED / MISSING_ENV / NOT_IN_MCP), not a live HTTP status. `--no-secrets` guarantees it never echoes, logs, or writes a credential value. For an actual liveness check, use the connector's MCP `tools/list` endpoint or the HTTP curl probe below.
 
 For MCP servers in `.mcp.json` (if present at the brand or project level), run a `tools/list` ping against each via `mcp__connector__*` if the connector is loaded, or invoke a 5-second curl HEAD against the configured `url` for HTTP MCPs:
 
@@ -112,7 +113,7 @@ fi
 ### Step 6 — Model-curator currency
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/resolve_model.py --registry-age
+python "${CLAUDE_PLUGIN_ROOT}/scripts/resolve_model.py" --registry-age
 ```
 
 If the registry is more than **90 days** old, WARN: `"model_registry.json is {N} days old — frontier models change every ~6 weeks. Run scripts/refresh_models.py to check drift."` (Do not block — the curator auto-falls-forward on deprecated ids, so an older registry is degraded, not broken.)
@@ -130,14 +131,14 @@ Print a structured report. ALWAYS show every check (don't only print failures �
 ⚠️  Audience profile       primary_persona.role set, reading_level MISSING
 ✅ Guardrails             {N} prohibited_terms, {M} prohibited_claims (industry={industry})
 ✅ Compliance jurisdictions  EU-GDPR ✓ · IN-DPDPA ✓ · US-CCPA ✓
-🛑 Connector — Slack       UNAUTHENTICATED (token rotated? re-add via /digital-marketing-pro:add-integration slack)
+🛑 Connector — Slack       MISSING_ENV (SLACK_* env not set — add via /digital-marketing-pro:add-integration slack)
 ✅ Connector — HubSpot     OK (workspace acme-corp, 1247 contacts)
 ✅ Connector — Stripe      OK
 ✅ MCP — gmailmcp.googleapis.com  HTTP 405 (alive)
 ✅ Output paths            ~/.claude-marketing/{brand}/ writeable; ~/Documents/ContentForge/ writeable
 ⚠️  Model curator           registry is 102 days old — consider scripts/refresh_models.py
 
-Decision: 🛑 BLOCKED — Slack connector unauthenticated. Fix before running:
+Decision: 🛑 BLOCKED — Slack connector not configured. Fix before running:
   • /digital-marketing-pro:engagement
   • /digital-marketing-pro:campaign-plan
   • /digital-marketing-pro:launch-campaign

@@ -1,6 +1,6 @@
 ---
 name: converge
-description: Drive a fix→re-run-judge-panel loop to
+description: Drive a fix -> re-run-judge-panel loop to
 ---
 # $converge — bounded judge-panel convergence
 
@@ -15,7 +15,7 @@ description: Drive a fix→re-run-judge-panel loop to
 `ao converge` runs a bounded **fix → re-run-judge-panel** loop until the judges
 agree or it blocks:
 
-- **Converged** ⇔ ≥2 distinct **non-author contexts** PASS with zero FAIL.
+- **Converged** ⇔ ≥2 distinct **non-author contexts** PASS with zero FAIL. Each PASS must cite the slice's acceptance test (its Given/When/Then → a passing test), not just artifact agreement — model consensus on an artifact whose acceptance scenario never ran is not a converge (S5 binds to the slice's ATDD contract; see the [narrow-waist micro-cycle](../../docs/architecture/operating-loop.md#the-narrow-waist-micro-cycle-canonical--every-loop-skill-cites-this)).
 - **BLOCK** after **3 consecutive** failing rounds.
 - **NOT-CONVERGED** when `--max-rounds` elapses with neither terminal condition.
 - **KILLED** when `<dir>/.agents/rpi/KILL` appears at a round boundary.
@@ -45,6 +45,8 @@ ao converge --help
 The **FIX step is yours** (the orchestrating agent). The dispatched judge leg is
 **non-mutating** — it emits a verdict + evidence, never edits the repo. Between
 rounds: read the judges' reasons, apply the fix yourself, then re-run.
+
+On **BLOCK / NOT-CONVERGED**, emit the round's failing reasons as a next-loop finding (`.agents/findings/registry.jsonl`) so the escape ratchets forward (S6) — converge otherwise drops its by-products. See [operating-loop.md → move 7](../../docs/architecture/operating-loop.md).
 
 ## Cross-vendor dispatch table (two legs, LAW 0)
 

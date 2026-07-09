@@ -179,7 +179,7 @@ Cures, in order of preference:
 - `ntm --robot-wait=<session> --wait-until=ready --panes=<pane>` before the first separate send.
 - Manual guard: poll `tmux list-panes -F '#{pane_current_command}'` until it shows the agent process AND `capture-pane` shows the input box rendered, then dispatch and verify the working/thinking indicator.
 
-If a pane is already never-engaged from a dropped first send, **re-dispatch — do not restart** (the CLI is healthy; it just never received the order). This is the transient counterpart to the permanent bare-shell case below. See `vibing-with-ntm` OC-047.
+If a pane is already never-engaged from a dropped first send, **re-dispatch — do not restart** (the CLI is healthy; it just never received the order). This is the transient counterpart to the permanent bare-shell case below. See the `ntm` skill's anti-patterns table (OC-047).
 
 ## Session profiles
 

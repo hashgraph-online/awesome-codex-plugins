@@ -16,7 +16,7 @@ argument-hint: "[brand-slug]"
 ### 1. List Available Brands
 Run the setup script to show all configured brands:
 ```bash
-python "scripts/setup.py" --list-brands
+python "${CLAUDE_PLUGIN_ROOT}/scripts/setup.py" --list-brands
 ```
 
 The currently active brand is marked with `*`.
@@ -24,7 +24,7 @@ The currently active brand is marked with `*`.
 ### 2. Switch Active Brand
 When the user selects a brand, run:
 ```bash
-python "scripts/setup.py" --switch-brand BRAND_SLUG
+python "${CLAUDE_PLUGIN_ROOT}/scripts/setup.py" --switch-brand BRAND_SLUG
 ```
 
 ### 3. Confirm Switch

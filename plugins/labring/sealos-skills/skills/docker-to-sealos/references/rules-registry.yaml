@@ -91,6 +91,9 @@ rules:
   - id: R026
     description: HTTP Ingress resources in template artifacts must include the required nginx annotations with expected values.
     severity: error
+  - id: R048
+    description: WebSocket Ingress resources in template artifacts must use backend-protocol WS with 3600 read/send timeouts and the required nginx annotations.
+    severity: error
   - id: R027
     description: Template artifacts using non-default PostgreSQL database names must define a robust pg-init Job (readiness wait plus idempotent create).
     severity: error
@@ -140,7 +143,7 @@ rules:
     description: Managed app workloads must explicitly set automountServiceAccountToken to false unless Kubernetes API/service account token usage is evidenced by integration settings, serviceAccountName, or a service-account-token reason annotation.
     severity: error
   - id: R035
-    description: Managed app workloads that declare imagePullSecrets must reference only the app-scoped pull secret name via template.spec.imagePullSecrets; public-image workloads may omit imagePullSecrets.
+    description: Public-image managed app workloads must omit imagePullSecrets; private-registry managed app workloads may reference only the app-scoped pull secret name via template.spec.imagePullSecrets.
     severity: error
   - id: R011
     description: All PVC storage requests must be concrete values and less than or equal to 1Gi.

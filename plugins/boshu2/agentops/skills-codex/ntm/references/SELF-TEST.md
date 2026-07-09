@@ -124,8 +124,8 @@ These should all route to TROUBLESHOOTING.md via the index table:
 
 These look NTM-ish but belong to companion skills:
 
-- **"How do I tend a stuck swarm / unstick ladder / orchestrator loop"** → `vibing-with-ntm`
-- **"Bead creation / dep graph / dependency resolution"** → `br` + `beads-workflow`
+- **"How do I tend a stuck swarm / unstick ladder / orchestrator loop"** → `using-atm` (tending loop)
+- **"Bead creation / dep graph / dependency resolution"** → `br` + `beads-br`
 - **"Agent-mail reservation handshake"** → `agent-mail`
 - **"Rotate which Claude account is active globally"** → `caam` (ntm's `--robot-switch-account` wraps it for sessions)
 - **"Block this destructive command system-wide"** → `dcg`

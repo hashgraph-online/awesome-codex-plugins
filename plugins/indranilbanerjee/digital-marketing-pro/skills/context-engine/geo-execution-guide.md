@@ -24,6 +24,7 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 |---|---|---|
 | **ChatGPT** (OpenAI) | Web UI or API (`/v1/chat/completions`) | Test both GPT-4o and GPT-4o-mini. Web browsing mode vs. training data mode yield different results |
 | **Perplexity** | Web UI or API | Always cites sources with links. Pro mode uses multiple search passes. Test both default and Pro |
+| **Google AI Mode** | Google Search → AI Mode tab (or default for opted-in users since I/O, 19 May 2026) | Distinct conversational surface on a Gemini 3.5 Flash backbone. Frequently cites **different** sources than AI Overviews for the same query — test it separately, don't roll it into "AI Overviews". Supports multi-turn follow-ups |
 | **Google AI Overviews** | Google Search (standard query) | Appears above organic results for qualifying queries. Not triggered for all queries. Test from incognito/logged-out |
 | **Gemini** (Google) | Web UI or API | Integrates Google Knowledge Graph data. Test with and without Google Search grounding |
 | **Microsoft Copilot** | Web UI or Bing Chat | Bing-powered search grounding. Tests Bing index visibility. Cites sources |
@@ -41,6 +42,8 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 ---
 
 ## 2. Scoring Rubric
+
+> **This is the plugin's single AI-visibility scoring standard.** The per-query-per-platform score below is the same rubric `/digital-marketing-pro:aeo-audit` and `/digital-marketing-pro:geo-monitor` apply, persisted by `scripts/geo-tracker.py`. The 6 canonical surfaces are the `PLATFORMS` constant in that script. The aggregate 0-100 GEO score is the **trend view** of this same per-platform data — a longitudinal roll-up, not a second scoring model. Score each platform separately; never average across platforms.
 
 ### Visibility Score Per Query Per Platform
 
@@ -94,6 +97,16 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
   2. Format content for extractability: concise answer paragraphs, definition-style openings, data tables
   3. Include unique data, statistics, and research that Perplexity cannot find elsewhere
   4. Maintain accurate, up-to-date content (Perplexity uses live search; outdated content loses citations)
+
+### Google AI Mode Optimization
+
+- **Surface**: Conversational search tab on a Gemini 3.5 Flash backbone; default for opted-in users since I/O (19 May 2026). Multi-turn, deeper reasoning, and a citation pattern that diverges from AI Overviews for the same query
+- **Source selection**: Like AI Overviews it grounds on indexed, snippet-eligible pages, but its follow-up flow rewards being the *foundational* citation a user can drill into, not just a one-line snippet source
+- **Optimization priorities**:
+  1. Everything that wins AI Overviews (organic ranking, direct-answer formatting, structured data) is the floor — AI Mode is not a separate eligibility gate
+  2. Structure content to survive follow-ups: clear entity definitions, comparison tables, and "why/how" depth beneath the headline answer
+  3. Keep entity signals complete and consistent (NAP, services, hours) — Personal Intelligence in AI Mode personalizes answers against the user's own context, so entity completeness matters more
+  4. Audit AI Mode **independently** from AI Overviews; reconcile against actual impressions via `/digital-marketing-pro:gsc-ai-performance`
 
 ### Google AI Overviews Optimization
 
@@ -200,7 +213,7 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 ### Weekly Priority Monitoring
 
 - **Queries**: Brand name queries, top 5 product/service queries, top 3 comparison queries
-- **Platforms**: ChatGPT, Perplexity, Google AI Overviews (highest traffic AI surfaces)
+- **Platforms**: ChatGPT, Perplexity, Google AI Mode, Google AI Overviews (highest-traffic AI surfaces; AI Mode and AI Overviews are distinct — test both)
 - **Action**: Record scores. Compare to previous week. Flag any score drops >2 points or new misrepresentations
 
 ### Monthly Full Audit
@@ -245,8 +258,8 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 
 ### AI Visibility as Hidden Buyer Journey Stage
 
-- **Reality**: Buyers increasingly query AI chatbots during research. These queries are invisible in traditional analytics — no referral traffic, no UTM parameters, no click-through tracking
-- **Impact**: AI-influenced decisions show up as "direct" traffic, branded search, or "no referral" in analytics. True AI influence is underreported
+- **Reality**: Buyers increasingly query AI chatbots during research. Much of this is still hard to see in analytics, but the blind spot is shrinking: **GA4's `AI Assistant` channel group (13 May 2026)** now captures `Medium=ai-assistant` referrals from ChatGPT / Gemini / Claude, and the **GSC AI Performance Report (3 Jun 2026)** reports AI Overviews + AI Mode impressions (no click data). Use both before assuming a query is invisible
+- **Impact**: The residue — AI answers with no click, or Google's own AI Mode traffic that GA4 may not tag the same way — still shows up as "direct", branded search, or "no referral". Treat the sections below as the fallback for what GSC/GA4 don't yet capture, not the primary method
 - **Proxy measurement signals**:
   - Branded search volume increase after GEO improvements (correlation, not causation — but directionally useful)
   - Survey data: "How did you first hear about us?" with AI chatbot as an option

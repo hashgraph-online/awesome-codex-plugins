@@ -99,6 +99,27 @@ Gate (validate: format, dedup, cap of 10)
 Reload (next session resume reports metrics + loads evolved skills)
 ```
 
+## Skill Synthesis (host-agent)
+
+When `epic-harness reflect` seeds a skill, it emits a pending-synthesis manifest
+to `$HARNESS_DIR/pending_synth.jsonl` (failure evidence + template body). To
+synthesize a better body:
+
+1. Read `$HARNESS_DIR/pending_synth.jsonl`; for each record with `status: "pending"`:
+2. Launch a subagent (use your host's subagent mechanism — do not name a specific
+   tool or model) with the manifest's `prompt_guidance` + `evidence`, instructing
+   it to write a markdown skill body with the required sections (`## Process`,
+   `## Anti-Rationalization`, `## Evidence Required`, `## Red Flags`).
+3. Apply the result:
+   ```bash
+   epic-harness evolve accept-synth --skill <name> --file <body.md>
+   ```
+4. The CLI validates the body, runs the Critic gate, overwrites the template
+   skill, and marks the manifest consumed.
+
+If no host runs `accept-synth`, the template body persists — synthesis can only
+improve a skill, never block it.
+
 ## Scoring System
 - **Composite**: `0.5 × tool_success + 0.3 × output_quality + 0.2 × execution_cost`
 - **Failure classification**: 9 categories (type_error, syntax_error, test_fail, lint_fail, build_fail, permission_denied, timeout, not_found, runtime_error)

@@ -34,6 +34,7 @@ Installs once. Detects what you already have. Adds only what's missing.
 | **Caveman ultra** | ~75% | Sets compressed conversation mode (if Caveman plugin installed) |
 | **RTK hook** | 60-90% CLI | Adds CLI output compression hook (if RTK binary installed) |
 | **Ponytail** | less code written | Installs the real ponytail plugin: YAGNI ladder, stdlib/native first, no speculative abstraction |
+| **Model ladder** | cost + quota | Spawns every subagent one tier below the session model (Opus runs Sonnet workers, etc.) via a PreToolUse hook |
 
 **Detection-first**: Espresso checks what's already configured and skips it.
 Never overwrites your existing rules or config. Never installs duplicates.
@@ -55,13 +56,24 @@ With Espresso:
 
 Same information. 70-85% fewer tokens with the full stack.
 
-### Two axes, not one
+### Three axes, not one
 
 Caveman compresses how Claude **talks**. Ponytail compresses how much Claude
 **writes**. Verbose prose is cheap next to the real waste: an agent that builds
 a 120-line cache class, adds a dependency, scaffolds "for later", then iterates
 on its own bloat. Ponytail stops it at the first solution that works, before the
-wrong code is ever written. Espresso installs both so the two axes stack.
+wrong code is ever written. Espresso installs both so the axes stack.
+
+The third axis is **cost per token**, not token count. The model ladder spawns
+every subagent one tier below the session model: an Opus session dispatches
+Sonnet workers, a Fable session dispatches Opus workers. Discovery, mechanical
+checks, and verbose-output tasks do not need top-tier reasoning, so the expensive
+model keeps judgement and synthesis while cheaper workers do the rest. Each tier
+down roughly halves cost per MTok and preserves the capped quota of Opus and
+Fable. Fable 5 is the priciest tier and drains fastest, so a Fable session
+dispatching Opus workers is where the ladder saves most. Paired with a delegation
+rule that says when to spawn, tasks offload the expensive tier automatically, at
+equal quality on bounded work.
 
 ---
 
@@ -165,8 +177,11 @@ On first session (Claude Code / Codex), the install hook creates:
 ├── exa.md                         # Exa-only web search
 ├── git.md                         # Clean commits (no signatures)
 ├── gitnexus.md                    # GitNexus first for code exploration
-└── project-rules-suggestion.md    # Suggest rules in new projects
+├── project-rules-suggestion.md    # Suggest rules in new projects
+├── subagent-model-economy.md      # Model ladder: spawn one tier below session
+└── subagent-delegation.md         # When to offload work to cheaper workers
 
+Model ladder hook                  # PreToolUse Agent|Task, registered via plugin (default on)
 ~/.config/caveman/config.json      # {"defaultMode": "ultra"} (if Caveman found)
 ~/.config/ponytail/config.json     # {"defaultMode": "ultra"} (Ponytail companion)
 ~/.claude.json → mcpServers.gitnexus  # GitNexus MCP server (if binary found)
@@ -182,10 +197,11 @@ Nothing is created if it already exists.
 
 ## How It Works
 
-Two hooks fire automatically:
+Three hooks fire automatically:
 
 1. **SessionStart** — first run: scans existing setup, installs only what's missing, outputs summary. Every run: injects output rules as system context.
 2. **UserPromptSubmit** — reinforces rules every turn to prevent drift mid-session.
+3. **PreToolUse (Agent|Task)** — the model ladder: rewrites each subagent spawn to one tier below the session model. Reads the live model from the transcript, so a mid-session `/model` switch is tracked. Forks and agents that pin their own model are left untouched. Default on; disable with `touch ~/.claude/.espresso-ladder-off`.
 
 No skills, no extra files loaded in context. Pure hooks.
 
@@ -220,6 +236,7 @@ Other agents get the output rules via `AGENTS.md` — still 40-60% savings.
 | RTK | 60-90% CLI | If RTK binary found |
 | Caveman ultra | ~75% conversation | If Caveman plugin found |
 | Ponytail | 47-77% on code tasks* | Always (real plugin auto-installed) |
+| Model ladder | cost + quota per spawn | Always (Claude Code) |
 
 **Full stack: 70-85% total token reduction** vs vanilla.
 
@@ -274,9 +291,15 @@ Restart Claude Code. Hooks only activate on session start.
 ### Clean up everything Espresso created
 ```bash
 rm ~/.claude/rules/exa.md ~/.claude/rules/git.md ~/.claude/rules/gitnexus.md ~/.claude/rules/project-rules-suggestion.md
+rm ~/.claude/rules/subagent-model-economy.md ~/.claude/rules/subagent-delegation.md
 rm ~/.claude/.espresso-active ~/.claude/.espresso-setup-done ~/.claude/.espresso-ponytail-done
+rm -f ~/.claude/.espresso-ladder-off
 rm ~/.config/caveman/config.json ~/.config/ponytail/config.json
 ```
+
+The model ladder hook lives inside the plugin, so uninstalling the plugin removes
+it. Its per-session model cache under `~/.claude/.espresso-model-cache/` can be
+deleted too.
 
 The RTK hook in `~/.claude/settings.json` stays (it's useful independently).
 Caveman plugin stays (uninstall separately with `/uninstall-plugin caveman` if wanted).

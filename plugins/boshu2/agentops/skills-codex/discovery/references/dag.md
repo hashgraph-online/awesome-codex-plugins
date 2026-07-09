@@ -231,10 +231,11 @@ Discovery does NOT relax this requirement; run the admission gate per
 returned bead:
 
 ```bash
-# Validate the structured BODY (--json | .description), not the human `br show` render — the render also
+# Validate the structured BODY (--json | .description), not the human `ao beads exec show` render — the render also
 # includes COMMENTS, so a Gherkin block in a comment would fool a bead whose body has no `## Scenarios`.
-BEADS_DIR="$(ao beads dir)" br show "$BEAD_ID" --json 2>/dev/null \
-  | jq -r '(if type=="array" then .[0] else . end).description // ""' \
+# `ao beads exec show --json` emits the canonical shape (a JSON array) for either tracker (age-f07z).
+ao beads exec show "$BEAD_ID" --json 2>/dev/null \
+  | jq -r '.[0].description // ""' \
   | bash scripts/check-bead-scenario-coverage.sh --admission -
 ```
 

@@ -1,10 +1,15 @@
 # Standing up a correct Gas City (native + membrane)
 
-> Codifies the proven recipe from the live reference city (`~/dev/gc-city`,
-> RUNBOOK.md) and the adoption slate. Order matters — the failure modes this
-> sequence prevents are silent (perf cliffs, print-sinks, port collisions).
-> When `scripts/install-gc-city.sh` lands (bead age-gc-adoption-u0he.1) it
-> automates this file; until then this IS the bootstrap contract.
+> **AUTOMATED (2026-07-06): run `scripts/install-gc-city.sh <city-dir>` —**
+> one command executes this entire contract, fail-hard: version pins, native
+> store enforcement, LAW-0 sinks, gap-A materialization (membrane/ +
+> quests/_template), pre-trust, usage + orphan-sweep fragments, sessions
+> registered AND verified, doctor gate. Idempotent re-runs; `--dry-run`,
+> `--gc-binary`, `--skip-sessions`. Live-proven end-to-end (canary city →
+> quest → CONFIRMED, zero nudges). This file remains the CONTRACT the script
+> enforces — read it to understand WHY each step exists, or as the manual
+> fallback. Order matters — the failure modes this sequence prevents are
+> silent (perf cliffs, print-sinks, port collisions).
 
 ## 0. Isolation invariants (before anything)
 

@@ -4,6 +4,8 @@
 
 A content strategy specifically designed to build brand authority in AI-generated answers. Focuses on creating content that AI models trust, cite, and accurately represent.
 
+**Design for Google AI Mode, not just AI Overviews (mid-2026):** AI Mode — the conversational search surface that became the default for opted-in users at I/O (19 May 2026) on a Gemini 3.5 Flash backbone — is a **distinct surface** that cites differently than AI Overviews and supports multi-turn follow-ups. Structure each authority piece so it answers the headline query cleanly *and* holds up to the obvious follow-ups (definitions, comparisons, edge cases, "how do I actually do this"). Publishing structured, **dated** updates on owned channels also makes a brand more legible to the user-configured AI Information Agents launching for AI Pro / Ultra in summer 2026. Audit AI Mode and AI Overviews separately and reconcile actual impressions via `/digital-marketing-pro:gsc-ai-performance`.
+
 ---
 
 ## Topical Authority Mapping

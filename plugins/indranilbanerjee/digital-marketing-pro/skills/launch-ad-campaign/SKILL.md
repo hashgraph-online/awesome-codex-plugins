@@ -1,7 +1,7 @@
 ---
 name: launch-ad-campaign
 description: "Launch paid ad campaigns. Use when: deploying ads on Google, Meta, LinkedIn, or TikTok with targeting and safeguards."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[platform]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[platform]"
 ## Purpose
 
 Create and launch a paid advertising campaign on the specified ad platform with proper campaign structure, audience targeting, bid strategy, budget controls, and compliance checks. Includes mandatory budget safeguards that require explicit re-confirmation when spend exceeds brand thresholds, and sets up post-launch monitoring to catch early performance issues before budget is wasted on underperforming configurations.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 
@@ -36,12 +43,12 @@ The user must provide (or will be prompted for):
 2. **Verify budget against brand thresholds**: Check the campaign budget against `budget_range` in `profile.json`. If the daily or lifetime budget exceeds the brand's defined maximum, halt and require explicit re-confirmation from the user with the exact dollar amount displayed prominently. This safeguard cannot be bypassed — it protects against accidental overspend.
 3. **Verify ad platform connection**: Check which ad platform MCP server is connected and confirm it matches the user's target platform. Verify conversion tracking pixel or tag is active on the brand's website. If not connected, instruct the user to configure the MCP server and tracking first.
 4. **Build campaign structure**: Design the campaign hierarchy per platform conventions — campaign level (objective, budget, schedule), ad group or ad set level (audience, placement, bid), and ad level (creative). Apply naming conventions from brand profile or agency SOPs for clean reporting. Structure ad groups by audience segment, keyword theme, or funnel stage.
-5. **Configure audience targeting**: Set up targeting parameters per platform specs — consult `platform-publishing-specs.md` for audience field mappings, custom audience upload formats, lookalike source requirements, exclusion list configuration, and any platform-specific targeting features (Google affinity audiences, Meta detailed targeting, LinkedIn job title targeting, TikTok interest categories).
+5. **Configure audience targeting**: Set up targeting parameters per platform specs — consult `skills/context-engine/platform-publishing-specs.md` for audience field mappings, custom audience upload formats, lookalike source requirements, exclusion list configuration, and any platform-specific targeting features (Google affinity audiences, Meta detailed targeting, LinkedIn job title targeting, TikTok interest categories).
 6. **Conduct compliance review**: Check all ad creative against industry-specific requirements — mandatory disclaimers (financial services, healthcare, real estate), prohibited content categories, platform advertising policies (restricted content, special ad categories), and regulated industry restrictions. Flag any creative that needs modification before launch.
 7. **Score ad creative quality**: Evaluate ad creative — headline character limits and keyword relevance, description effectiveness and CTA clarity, image and video specs (dimensions, file size, text overlay percentage for Meta), landing page relevance, and ad-to-landing-page message match. Score against platform-specific quality benchmarks and provide improvement recommendations.
 8. **Configure bid strategy and budget controls**: Set bid strategy per user preference with appropriate guardrails — bid caps or target CPA/ROAS values, budget pacing (standard vs. accelerated), frequency caps to prevent ad fatigue, placement controls (automatic vs. manual), and device targeting adjustments. Verify conversion tracking is active and receiving data if using conversion-based bidding.
 9. **Apply negative targeting**: Configure negative keywords for Search campaigns, placement exclusions for Display and Video, and audience exclusions to prevent overlap and wasted spend. Include brand safety exclusion lists if defined in brand guidelines.
-10. **Create approval record**: Run `approval-manager.py` with risk level set to high, or critical if daily budget exceeds $1,000. Generate a campaign summary with projected reach, estimated cost per result, targeting details, creative preview, budget safeguard verification, and compliance status.
+10. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"high",...}` (use `"critical"` if daily budget exceeds $1,000). There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a campaign summary with projected reach, estimated cost per result, targeting details, creative preview, budget safeguard verification, and compliance status.
 11. **Present detailed campaign summary**: Display the complete campaign configuration for user review — platform, objective, budget with safeguard status, audience size estimates per ad group, creative preview with quality scores, bid strategy and caps, projected reach and cost range, and compliance checklist. Wait for explicit approval.
 12. **Execute campaign creation via MCP**: On approval, create the campaign through the connected ad platform MCP server. Set campaign status per user preference — active (launch immediately), paused (review in platform before activating), or scheduled (activate on start date).
 13. **Verify campaign status**: After creation, query the platform API to confirm the campaign exists with correct settings, is in the requested status, has no policy violations or ad disapprovals, and that conversion tracking is firing correctly on test events.

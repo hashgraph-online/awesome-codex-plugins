@@ -12,6 +12,8 @@ Spawn isolated agents to execute tasks in parallel with Codex session agents. Fr
 
 > **Requires a multi-agent runtime.** Prefer runtime-native Codex session agents. If spawning is unavailable, fall back to sequential execution in the current session.
 
+Worker FINAL REPORT must include `red_evidence` (the acceptance test failing BEFORE impl — the slice's ATDD contract, S3) alongside `commit_sha`/`test_tail`; a report missing it is unverified. Worker self-report is not the membrane — each slice needs an independent verdict (crank's Land Loop pawl) before a wave closes (S5). Harvest `.agents/swarm/scope-escapes.jsonl` + wave by-products back into the next wave/loop (S6).
+
 ## Architecture
 
 ```text
@@ -85,7 +87,7 @@ When tasks come from bd and `scripts/bd-cluster.sh` exists, run `scripts/bd-clus
 
 ### Step 2: Pre-Spawn Conflict Check
 
-**Pre-Spawn Friction Gates:** Before spawning workers, execute all 5 friction gates (base sync, file manifest, dependency graph, misalignment breaker, wave cap). See `references/pre-spawn-friction-gates.md`.
+**Pre-Spawn Friction Gates:** Before spawning workers, execute all 5 friction gates (base sync, file manifest, dependency graph, misalignment breaker, wave cap). See `references/pre-spawn-friction-gates.md`. The wave-validity rows themselves are owned by `$crank` (its wave-start hard gate + `../crank/references/parallel-wave-isolation.md`) — swarm cites them, never restates.
 
 ```text
 wave_tasks = [tasks with status=pending and no blockers]
@@ -205,6 +207,10 @@ for task in wave_tasks:
 ```
 
 This is slower but functionally identical.
+
+## Worktree Reaping (teardown)
+
+THIS repo lands by direct push to `main`, so reap a worker's worktree on the bead's **commit landing on trunk**, not on PR state. After a worker's slice is confirmed landed — its feat commit is an ancestor of `origin/main` (`git fetch origin main && git merge-base --is-ancestor <feat-sha> origin/main`) — the ancestor check is MANDATORY; a CLOSED bead alone is tracker state, never proof of landing — reap it: `git worktree remove <path> --force` then `git worktree prune`. Leave un-landed worktrees intact; target zero orphans, bounding the live count to in-flight beads. *(External-repo variant: where the land is a PR, gate reaping on `gh pr view --json state` = `MERGED` instead.)*
 
 ## Related skills
 

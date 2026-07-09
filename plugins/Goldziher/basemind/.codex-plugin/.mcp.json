@@ -1,0 +1,6 @@
+{
+  "basemind": {
+    "command": "${PLUGIN_ROOT}/scripts/mcp-launch.sh",
+    "args": ["serve"]
+  }
+}

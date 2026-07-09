@@ -1,7 +1,7 @@
 ---
 name: pipeline-update
 description: "Update CRM pipeline. Use when: changing deal stages, values, notes, tracking velocity, or managing deal progression."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[deal-name or stage]"
 ---
 
@@ -13,6 +13,13 @@ Update deal and opportunity records in the CRM pipeline — move deals between s
 
 Use this command for pipeline changes that affect deal stage, value, or forecast. For creating new deals from leads, use `/digital-marketing-pro:lead-import` to bring leads into the CRM first, then use this command to manage their pipeline progression.
 For bulk pipeline reporting without individual updates, use `/digital-marketing-pro:executive-dashboard` instead.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 

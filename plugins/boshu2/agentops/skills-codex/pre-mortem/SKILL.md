@@ -6,9 +6,11 @@ description: "Stress-test plans before work."
 
 > **Purpose:** Is this plan/spec good enough to implement?
 
-> **Mandatory for 3+ issue epics.** Pre-mortem is enforced by hook when `$crank` is invoked on epics with 3+ child issues. 6/6 consecutive positive ROI. Bypass: `--skip-pre-mortem` flag or `AGENTOPS_SKIP_PRE_MORTEM_GATE=1`.
+> **Mandatory doctrine for 3+ issue epics.** Run pre-mortem before `$crank` on epics with 3+ child issues — operating doctrine, not a hook (AgentOps 3.0 is hookless). 6/6 consecutive positive ROI. Bypass: `--skip-pre-mortem` flag or `AGENTOPS_SKIP_PRE_MORTEM_GATE=1`.
 
 Run `$council validate` on a plan or spec to get multi-model judgment before committing to implementation.
+
+Narrow-waist slice checks (FAIL the plan if any fails): one behavior per slice (S1 — reject multi-behavior slices, send back to `$plan`); each slice names a runnable acceptance test authored to fail RED before code (S3 — no failing test = no contract = FAIL); refactor is separated from feature and never changes a test (S4).
 
 ---
 
@@ -477,7 +479,7 @@ After the registry update, if `hooks/finding-compiler.sh` exists, run:
 bash hooks/finding-compiler.sh --quiet 2>/dev/null || true
 ```
 
-Every reusable finding write must include `dedup_key` and refresh compiled findings with `finding-compiler.sh` when that hook exists.
+Every reusable finding write must include `dedup_key` and refresh compiled findings by running `finding-compiler.sh` when it is available.
 
 This refreshes `.agents/findings/*.md`, `.agents/planning-rules/*.md`, `.agents/pre-mortem-checks/*.md`, and draft constraint metadata in the same session. `session-end-maintenance.sh` remains the idempotent backstop.
 

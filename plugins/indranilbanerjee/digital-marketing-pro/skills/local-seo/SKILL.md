@@ -57,7 +57,7 @@ Before producing any marketing output from this module:
 4. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
 5. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
 6. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
-7. **Check campaign history** — Run `python campaign-tracker.py --brand {slug} --action list-campaigns` before planning new work
+7. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
 8. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
 9. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
 
@@ -253,9 +253,9 @@ Starting from scratch requires a phased approach: (1) Claim and fully optimize G
 
 ## Tips & caveats
 
-- **Google Business Profile is the single highest-leverage asset** in local SEO — typically 60-80% of impact. Get it 100% before optimising anything else.
+- **Google Business Profile is the single highest-leverage asset** in local SEO — practitioners commonly treat it as the majority of local-pack impact (the "60-80%" figure is an illustrative rule of thumb, not a measured statistic). Get it 100% before optimising anything else.
 - **NAP (Name/Address/Phone) consistency matters across HUNDREDS of citation sources** — not just the top 10. Use a citation-management tool quarterly to catch drift.
-- **Don't fake reviews.** Google's review-spam systems are increasingly aggressive (Apr 2026 update tightened the bar further). One detected fake-review pattern can suppress GBP visibility for months.
+- **Don't fake reviews.** Google's review-spam systems are increasingly aggressive (an April 2026 update reportedly tightened the bar further — verify current enforcement status before advising a client). One detected fake-review pattern can suppress GBP visibility for months.
 - **Service-area businesses** (no storefront) need different proximity strategy than brick-and-mortar — location pages per service area, not per store.
 - **For multi-location brands,** treat each location as its own GBP entity — don't try to consolidate. Cross-link between location pages for internal-link signal.
 - **AI Overviews are increasingly local** — for "near me" queries, AI Mode + AI Overviews now both surface local results. Run `/digital-marketing-pro:aeo-audit` against location-specific queries quarterly.

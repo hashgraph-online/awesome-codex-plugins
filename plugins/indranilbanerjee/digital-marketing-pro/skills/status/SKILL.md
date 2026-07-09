@@ -20,9 +20,9 @@ This skill prints a complete status snapshot for the active Digital Marketing Pr
 
 ## Context efficiency
 
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List the brand's workspace at `~/.claude-marketing/brands/{slug}/` (or `$CLAUDE_PLUGIN_DATA/digital-marketing-pro/brands/{slug}/` when that env var is set) before opening files. On re-invocation mid-session, skip files already in context.
 
-In v3.0 and earlier, the SessionStart hook ran `setup.py` automatically at every Claude Code session start to print a 15-line brand summary banner. v3.1 removed that hook because it fired globally across every project regardless of whether the user was doing marketing work. v3.2 introduces `/digital-marketing-pro:status` as the explicit replacement — a richer view, on demand.
+An earlier version ran a SessionStart hook that executed `setup.py` at every Claude Code session start to print a 15-line brand summary banner. That hook was removed because it fired globally across every project regardless of whether the user was doing marketing work. `/digital-marketing-pro:status` is the explicit on-demand replacement — a richer view, when you ask for it.
 
 ## What it shows
 
@@ -106,7 +106,7 @@ Print only the requested section. Useful when you only need one piece of state.
 ```
 User: /digital-marketing-pro:status
 
-Skill runs: python scripts/dm-status.py
+Skill runs: python "${CLAUDE_PLUGIN_ROOT}/scripts/dm-status.py"
 Output:
 
 ============================================================
@@ -229,4 +229,4 @@ Workspace: ~/.claude-marketing      # or $CLAUDE_PLUGIN_DATA/digital-marketing-p
 ## Related references
 
 - `scripts/dm-status.py` — the underlying script
-- `docs/getting-started.md` — context on what was lost when the SessionStart hook was removed in v3.1 and why /digital-marketing-pro:status was added in v3.2
+- `docs/getting-started.md` — context on what was lost when the SessionStart hook was removed and why /digital-marketing-pro:status replaced it

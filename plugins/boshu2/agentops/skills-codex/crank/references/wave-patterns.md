@@ -20,7 +20,7 @@ Crank follows FIRE for each wave:
 ### Beads Mode
 
 ```
-Wave 1: br ready → [issue-1, issue-2, issue-3]
+Wave 1: ao beads exec ready → [issue-1, issue-2, issue-3]
         ↓
         ↓
         $swarm → spawns 3 fresh-context agents
@@ -31,7 +31,7 @@ Wave 1: br ready → [issue-1, issue-2, issue-3]
         ↓
         bd update --status closed for completed
 
-Wave 2: br ready → [issue-4, issue-3-retry]
+Wave 2: ao beads exec ready → [issue-4, issue-3-retry]
         ↓
         ↓
         $swarm → spawns 2 fresh-context agents
@@ -81,12 +81,15 @@ IMPL WAVE (standard, enhanced with GREEN mode)
   Output: implementation code
   Gate: GREEN confirmation — ALL tests must PASS + wave acceptance check
                     ↓
-[Optional] REFACTOR WAVE
+REFACTOR WAVE (refactor-under-green — the load-bearing quality move, not optional)
   Workers: 1 per changed file group
   Input: passing tests + implementation
-  Output: diff-only cleanup
-  Gate: All tests still PASS
+  Output: diff-only cleanup, as its own commit
+  Gate: All tests still PASS *and the diff changed NO test file* — a refactor
+        that edits a test changed behavior; that is a new slice, not a refactor.
 ```
+
+Refactor-after-green is where the quality actually comes from (test-first *ordering* alone contributed nothing measurable — `skills/standards/references/agentic-workflow-evidence.md`); a pipeline that defers or skips it lands in the worst-performing cluster.
 
 ### Category-Based Skip
 
@@ -150,7 +153,7 @@ But do NOT read implementation details of the specific feature being specified.
 2. **Load acceptance criteria** for all issues closed in this wave:
    ```bash
    # For each closed issue in the wave:
-   BEADS_DIR="$(ao beads dir)" br show <issue-id>  # extract ACCEPTANCE CRITERIA section
+   ao beads exec show <issue-id>  # extract ACCEPTANCE CRITERIA section
    ```
 
 3. **Validate worker result evidence (FAIL-CLOSED):**
@@ -227,7 +230,7 @@ But do NOT read implementation details of the specific feature being specified.
    | Verdict | Action |
    |---------|--------|
    | **PASS** | Record verdict in epic notes. Advance to next wave. |
-   | **WARN** | Create fix beads as children of the epic (`br create`). Execute fixes inline (small) or as wave N.5 via swarm. Re-run acceptance check. If PASS on re-check, advance. If still WARN after 2 attempts, treat as FAIL. WARN is only for non-critical review gaps after evidence is complete. |
+   | **WARN** | Create fix beads as children of the epic (`ao beads exec create`). Execute fixes inline (small) or as wave N.5 via swarm. Re-run acceptance check. If PASS on re-check, advance. If still WARN after 2 attempts, treat as FAIL. WARN is only for non-critical review gaps after evidence is complete. |
    | **FAIL** | Record verdict in epic notes. Output `<promise>BLOCKED</promise>` and exit. Human review required. Includes missing mandatory evidence. |
 
    ```bash

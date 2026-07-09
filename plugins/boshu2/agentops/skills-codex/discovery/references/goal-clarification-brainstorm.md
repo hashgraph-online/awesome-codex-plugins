@@ -157,9 +157,9 @@ Read project state so ideas align and don't duplicate work:
 
 ```bash
 cat AGENTS.md                      # or CLAUDE.md — rules, constraints, non-goals
-br list --json                     # open work — don't duplicate
-br list --status closed --json     # closed work — don't re-propose cut ideas
-br ready --json                    # what is actionable now
+ao beads exec list --json                     # open work — don't duplicate
+ao beads exec list --status closed --json     # closed work — don't re-propose cut ideas
+ao beads exec ready --json                    # what is actionable now
 ```
 
 ### Step 2 — Generate 30, winnow to 5 (ranked, with rationale)

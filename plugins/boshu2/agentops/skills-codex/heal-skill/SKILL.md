@@ -1,6 +1,6 @@
 ---
 name: heal-skill
-description: Repair skill hygiene, and deep-audit SKILL.md quality (absorbed from skill-auditor). Triggers - heal-skill, repair skill hygiene, audit skill, skill audit.
+description: Repair skill hygiene and deep-audit SKILL.md
 ---
 # $heal-skill — Automated Skill Maintenance
 
@@ -196,7 +196,7 @@ Executable spec: [references/skill-auditor.feature](references/skill-auditor.fea
 ## See Also
 
 - [skill-builder](../skill-builder/SKILL.md) — scaffolds new skills against the unified template; runs heal-skill (hygiene + deep audit) as self-checks
-- [red-team](../red-team/SKILL.md) — complementary; probes USABILITY (does the workflow actually work) vs the audit (is the structure correct)
+- [red-team](../validate/SKILL.md) — complementary; probes USABILITY (does the workflow actually work) vs the audit (is the structure correct)
 
 ## References
 

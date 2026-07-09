@@ -47,7 +47,7 @@ targets is built into sweep mode, no separate skill required:
 Interpret cyclomatic complexity (CC) grades: 1-5 simple (A), 6-10 manageable (B),
 11-20 should refactor (C), 21-30 must refactor (D), 31+ critical — refactor now (F).
 Produce a focused hotspot list ranked by CC descending, optionally written to
-`.agentscomplexity/YYYY-MM-DD-<target>.md`, then work the worst offenders first
+`.agents/complexity/YYYY-MM-DD-<target>.md`, then work the worst offenders first
 (Step 1, Sweep mode below).
 
 ### 3. Extract Mode
@@ -436,7 +436,7 @@ explicitly excluded with `--exclude` and justified in the closeout.
 - `complexity` -- analyze code complexity metrics
 - `$standards` -- language-specific conventions
 - `$validate` -- validate code quality post-refactor
-- `$review` -- if refactoring uncovers bugs
+- `/review` -- if refactoring uncovers bugs
 - `$implement` -- if refactoring requires new code
 
 ## Reference Documents

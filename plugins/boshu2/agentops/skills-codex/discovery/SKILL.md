@@ -17,8 +17,7 @@ The CLI records startup once per thread and skips duplicates automatically.
 
 ## Absorbed skills (ag-s43tg)
 
-- **brainstorm** — Separate goals from implementation; clarify goals and explore the problem space before planning.
-- **design** — Validate product fit before discovery; use when framing a problem, checking product/market fit, or pressure-testing user value before writing a discovery packet or any code.
+brainstorm (goal-vs-implementation clarification) + design (product-fit pressure test) — trigger detail in the Folded-In section below.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
@@ -27,7 +26,7 @@ The CLI records startup once per thread and skips duplicates automatically.
 > Discovery turns a goal plus delegated child artifacts into one dense execution
 > packet for `$crank` and `$validate`. It is also the **re-plan engine** for `$rpi`'s
 > [Agile Re-Plan Loop](../rpi/references/agile-replan-loop.md): invoked again at each wave
-> boundary to mutate the *remaining* waves from what the last wave taught — not only at the start.
+> boundary to mutate the *remaining* waves from what the last wave taught — not only at the start. **Seed slice candidates small:** one Given/When/Then behavior each, refactor candidates kept separate from feature candidates — small batches + refactor-after-green are the load-bearing quality moves, not test-first ordering (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`); binding decomposition discipline is `$plan` (PR-010/PR-011).
 
 ## Folded-In Trigger Surface (brainstorm, design)
 
@@ -36,8 +35,9 @@ skills (skill-prune phase 2). Fire `$discovery` for their use-cases:
 
 - **Brainstorm — Separate goals from implementation.** Clarify goals before
   planning: separate WHAT from HOW, explore the problem space before committing
-  to a solution, and capture Given/When/Then acceptance examples. Open-ended
-  ideation (generate-winnow, `--ideate`) is the [Open-Ended Path](#open-ended-path-generate-winnow--operationalize--refine) below.
+  to a solution, and capture Given/When/Then acceptance examples. The full
+  intent → Gherkin → executed-red → bead-DAG contract is owned by
+  [`behavior-first-planning`](../behavior-first-planning/SKILL.md) — cite it when the beads must carry runnable done-criteria. Open-ended ideation (generate-winnow, `--ideate`) is the [Open-Ended Path](#open-ended-path-generate-winnow--operationalize--refine) below.
 - **Design — Validate product fit before discovery.** Use when framing a
   problem, checking product/market fit, or pressure-testing user value before
   writing a discovery packet or any code. The product-validation gate
@@ -145,8 +145,8 @@ On the open-ended path, Discovery prepends the generate-winnow methodology befor
 
 1. **Ideate (delegate to `brainstorm --ideate`).** Invoke `brainstorm` in **ideation mode** (a real skill invocation — strict delegation still applies; do NOT inline the 30-idea generation). It returns a ranked portfolio of **15** ideas (top 5 + next 10) with how/perceive/implement notes, rubric scores, and red-team findings.
 2. **Research + plan-pawl duel + Plan.** Run research over the selected portfolio. Open-ended/high-risk work is fanout class: produce `PerspectivePlan` artifacts and a `SynthesisPacket`, then run the STEP 3.5 plan-pawl **duel** (two distinct families, `ao plan-pawl decide`) before `$plan` creates tracker rows — that duel verdict subsumes the pre-mortem. Then run the normal artifact-first DAG over the approved packet rather than a single goal.
-3. **Operationalize.** Turn the ranked portfolio into a comprehensive, granular set of **self-documenting `br` beads** — tasks, subtasks, dependency structure (`br dep add`), and **explicit test tasks** (unit + e2e with detailed logging). Each bead carries what/why/how/risks/success so the original plan markdown never needs to be consulted again. Overlap-check against existing beads (`br list --json`) before creating — merge, don't duplicate.
-4. **Refine in plan space (4-5 passes).** Before handing the packet to `$crank`, run **4-5 refinement passes** over the bead set. Each pass: **re-read AGENTS.md** (especially after compaction), check every bead for sense and optimality, and **DO NOT OVERSIMPLIFY / DO NOT LOSE FEATURES OR FUNCTIONALITY**. Validate between passes (no dependency cycles; every leaf actionable via `br ready`).
+3. **Operationalize.** Turn the ranked portfolio into a comprehensive, granular set of **self-documenting beads** — tasks, subtasks, dependency structure (`ao beads exec dep add`), and **explicit test tasks** (unit + e2e with detailed logging). Each bead carries what/why/how/risks/success so the original plan markdown never needs to be consulted again. Overlap-check against existing beads (`ao beads exec list --json`) before creating — merge, don't duplicate.
+4. **Refine in plan space (4-5 passes).** Before handing the packet to `$crank`, run **4-5 refinement passes** over the bead set. Each pass: **re-read AGENTS.md** (especially after compaction), check every bead for sense and optimality, and **DO NOT OVERSIMPLIFY / DO NOT LOSE FEATURES OR FUNCTIONALITY**. Validate between passes (no dependency cycles; every leaf actionable via `ao beads exec ready`).
 
 > Tracking is **`br`** with `bv` triage — this is AgentOps. The operationalize and refine steps consume `brainstorm`'s ideation output; see [`references/bead-operationalization.md`](references/bead-operationalization.md).
 
@@ -201,7 +201,7 @@ on disk.
 ## Completion Markers
 
 ```
-<promise>DONE</promise>      # Discovery complete AND the plan PERSISTED in the active tracker (br/bd, else tasklist): `br show <epic_id>` (the packet's epic_id is a STRING — it must resolve) lists the epic + Gherkin-bearing slice children. A plan packet + passing pre-mortem with NO persisted beads is NOT DONE — operationalize (dag STEP 4 / $plan), verify, then signal.
+<promise>DONE</promise>      # Discovery complete AND the plan PERSISTED in the active tracker (br/bd, else tasklist): `ao beads exec show <epic_id>` (the packet's epic_id is a STRING — it must resolve) lists the epic + Gherkin-bearing slice children. A plan packet + passing pre-mortem with NO persisted beads is NOT DONE — operationalize (dag STEP 4 / $plan), verify, then signal.
 <promise>BLOCKED</promise>   # Pre-mortem failed 3x, manual intervention needed
 ```
 

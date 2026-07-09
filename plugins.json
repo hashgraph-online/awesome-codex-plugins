@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-07-07",
-  "total": 153,
+  "last_updated": "2026-07-09",
+  "total": 161,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -178,6 +178,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/GSkuza/BABOK_ANALYST/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "basemind",
+      "url": "https://github.com/Goldziher/basemind",
+      "owner": "Goldziher",
+      "repo": "basemind",
+      "description": "Full AI context layer over MCP with a tree-sitter code-map, document RAG, shared agent memory, web crawl, and git history across 300+ languages.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Goldziher/basemind/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "BGS Modding Superpowers",
@@ -370,6 +380,16 @@
       "install_url": "https://raw.githubusercontent.com/reidemeister94/development-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Docflow",
+      "url": "https://github.com/MedAdemBHA/docflow",
+      "owner": "MedAdemBHA",
+      "repo": "docflow",
+      "description": "Lightweight documentation memory for AI coding agents that scaffolds a 7-category docs tree, runs readiness checks, validates docs before finishing, and keeps a monthly changelog across Claude Code and Codex.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/MedAdemBHA/docflow/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "ejentum-mcp",
       "url": "https://github.com/ejentum/ejentum-mcp",
       "owner": "ejentum",
@@ -510,6 +530,26 @@
       "install_url": "https://raw.githubusercontent.com/mbanderas/maestro/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "memi",
+      "url": "https://github.com/sarveshsea/memi",
+      "owner": "sarveshsea",
+      "repo": "memi",
+      "description": "Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/sarveshsea/memi/HEAD/plugins/memoire/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Open Dynamic Workflows",
+      "url": "https://github.com/Suraj1235/open-dynamic-workflows",
+      "owner": "Suraj1235",
+      "repo": "open-dynamic-workflows",
+      "description": "An open-source dynamic multi-agent workflow engine for AI coding agents (OpenCode, Codex, Antigravity, VS Code) that plans, orchestrates, and adversarially verifies parallel agents, shipping a Codex/Antigravity skill and an OpenCode plugin with bring-your-own-model support.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Suraj1235/open-dynamic-workflows/HEAD/packages/codex-adapter/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Personal Data Protection",
       "url": "https://github.com/AltByteSG/personal-data-protection-skill",
       "owner": "AltByteSG",
@@ -640,6 +680,16 @@
       "install_url": "https://raw.githubusercontent.com/Habib0x0/spec-driven-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "spec-superflow",
+      "url": "https://github.com/MageByte-Zero/spec-superflow",
+      "owner": "MageByte-Zero",
+      "repo": "spec-superflow",
+      "description": "Spec-first workflow that bridges OpenSpec-style planning and Superpowers-style execution discipline with nine skills and guarded execution contracts.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/MageByte-Zero/spec-superflow/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Spellbook Skills",
       "url": "https://github.com/yyykf/spellbook-skills",
       "owner": "yyykf",
@@ -738,6 +788,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/dragon1086/claude-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Tree Ring Memory",
+      "url": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin",
+      "owner": "TerminallyLazy",
+      "repo": "tree-ring-memory-codex-plugin",
+      "description": "Local-first memory lifecycle guidance for Codex agents with recall, evidence-backed lessons, privacy-safe memory capture, audit, consolidation, and explicit forgetting.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/TerminallyLazy/tree-ring-memory-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Unity Agent Workflows",
@@ -1050,6 +1110,16 @@
       "install_url": "https://raw.githubusercontent.com/Rothschildiuk/context-pack/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Coolify",
+      "url": "https://github.com/Sevi-py/coolify-codex-plugin",
+      "owner": "Sevi-py",
+      "repo": "coolify-codex-plugin",
+      "description": "Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Sevi-py/coolify-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Data Product Builder for dbt",
       "url": "https://github.com/entropy-data/dataproduct-builder-dbt",
       "owner": "entropy-data",
@@ -1150,21 +1220,21 @@
       "install_url": "https://raw.githubusercontent.com/aklofas/kicad-happy/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Kreuzberg Cloud",
-      "url": "https://github.com/kreuzberg-dev/plugins",
-      "owner": "kreuzberg-dev",
-      "repo": "plugins",
-      "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/crawlberg/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Kreuzberg",
       "url": "https://github.com/kreuzberg-dev/plugins",
       "owner": "kreuzberg-dev",
       "repo": "plugins",
       "description": "Local document extraction for 91+ formats with skills for CLI usage, OCR, table extraction, output formats, and a local MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/crawlberg/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Kreuzberg Cloud",
+      "url": "https://github.com/kreuzberg-dev/plugins",
+      "owner": "kreuzberg-dev",
+      "repo": "plugins",
+      "description": "Managed document extraction for Codex with API-key setup, presigned uploads, job tracking, webhook workflows, and usage guidance.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/kreuzberg-dev/plugins/HEAD/plugins/crawlberg/.codex-plugin/plugin.json"
@@ -1408,6 +1478,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/avalonreset/seo-dungeon/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Shots",
+      "url": "https://github.com/hitSlop/shots",
+      "owner": "hitSlop",
+      "repo": "shots",
+      "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hitSlop/shots/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Synta MCP",

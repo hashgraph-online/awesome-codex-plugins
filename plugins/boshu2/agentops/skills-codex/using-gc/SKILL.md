@@ -1,6 +1,6 @@
 ---
 name: using-gc
-description: Drive a Gas City (gc) factory day-to-day
+description: Drive a Gas City (gc) factory day-to-day —
 ---
 # Using Gas City — the operator loop
 
@@ -44,7 +44,7 @@ all (→ `automation-shape-routing`). City-shaped multi-quest work is an
 
 | Job | Read | You're done when |
 |---|---|---|
-| **Stand up** a correct city | [`references/standup.md`](references/standup.md) | `gc doctor` green incl. `law0-print-args` + `membrane-health`; `gc status --json` shows `NativeDoltStore` |
+| **Stand up** a correct city | **`scripts/install-gc-city.sh <city-dir>`** (one command; automates + enforces the whole contract — fail-hard version pins, native store, LAW-0, gap-A materialization, sessions verified, doctor gate). Manual fallback: [`references/standup.md`](references/standup.md) | `gc doctor` green incl. `law0-print-args` + `membrane-health`; `gc status --json` shows `NativeDoltStore` |
 | **Run** the quest loop | this file, below | quest bead closed on CONFIRMED; human merged |
 | **Admin** a running city | [`references/admin.md`](references/admin.md) | doctor green cadence; backups; binary current |
 | **Troubleshoot** a stall | [`references/troubleshooting.md`](references/troubleshooting.md) | the symptom row's move resolved it |
@@ -59,7 +59,7 @@ shim, `gc` wrapper). Never operate a city with a bare `gc` against the wrong
 default-FAIL acceptance contract. Scaffold deterministically:
 
 ```bash
-membrane/scaffold-quest.sh <slug>   # CONTRACT.md (default-FAIL), test.sh (red), impl.sh placeholder
+membrane/scaffold-quest.sh <slug> --ask "<one-line build ask>"   # CONTRACT.md (default-FAIL), test.sh (red), impl.sh placeholder
 ```
 
 The builder never reads `CONTRACT.md` (the gate reads it from `main` only);
@@ -70,8 +70,12 @@ review findings (see troubleshooting §9).
 **2. Sling it.** One motion creates the work and routes it:
 
 ```bash
-gc sling builder <quest-bead> --on membrane-quest --var quest=<slug> --var task="..."
+gc sling agentops-membrane.builder "<quest title>" --on membrane-quest \
+  --var quest=<slug> --var task="<build task text>"
 ```
+
+(Text-sling creates the quest bead from the title and attaches the workflow —
+no separate `bd create` needed.)
 
 The reconciler spawns the builder session on its own tick (healthy: ~10–15 s).
 Nothing to babysit — the control dispatcher advances the workflow.
@@ -90,16 +94,48 @@ agent) runs `membrane/close-gate.sh`: routes ONLY diff + contract to ≥2
 cross-family reviewer lanes via `gc session submit`, then the deterministic
 finalizer rules:
 
-| Disposition | Exit | What happens |
-|---|---|---|
-| CONFIRMED | 0 | quest bead closes with evidence-bound record; **human merges** |
-| REFUTED (hard) | 2 | builder respawned — bounded redo, consumes one of `max_attempts` (3) |
-| DEGRADED (transient) | 3 | lane retried; does **not** consume an attempt; never a false REFUTE |
+| Disposition | What happens |
+|---|---|
+| CONFIRMED | gate closes the ralph step with the ENGINE fingerprint; workflow finalizes pass; **human merges** |
+| REFUTED (hard) | builder respawned with the findings — bounded self-redo |
+| DEGRADED (transient) | lane retried; never converted into a false REFUTE |
+
+**Attempt semantics (native graph.v2, corrected 2026-07-06):** gc's dispatcher
+never reads `gc.failure_class` on this path — **EVERY failed check consumes one
+of `max_attempts` (now 5)**, transient DEGRADED included. Budget = ~2 transport
+flakes + 3 real refute rounds. The `failure_class` stamp is evidence for
+humans, not retry-budget control.
+
+**Never touch a bead with `gc.kind=ralph`** — that is the engine-owned gate
+bead (it shares the build step's title). An agent closing it bypasses the
+membrane entirely; the fork finalizer rejects such closes (engine attempt_log
+fingerprint required), and the formula's recovery snippet filters it, but the
+rule stands for humans too.
 
 **5. Read the verdict** at `<city>/membrane/<quest>/pawl-verdict.json`
-(schema `pawl-verdict.v1`): check `disposition`, `refuters[].family` (must be
-≥2 distinct families for CONFIRMED), `nonce_echo` (anti-replay), findings.
+(schema `pawl-verdict.v1`; per-round history at `pawl-verdict-round-N.json` +
+`lane-<family>-round-N.json`): check `disposition`, `refuters[].family` (must
+be ≥2 distinct families for CONFIRMED), `nonce` (anti-replay), findings.
 On REFUTED, the redo path is automatic — **never hand-close the quest bead**.
+
+**Observability gotcha:** the check path emits ZERO `gc events` — watch the
+ralph gate bead's `gc.attempt_log` metadata (one entry per round, gate log
+embedded), or set `GC_WORKFLOW_TRACE=<file>` for the dispatch trace. The check
+runs in the SUPERVISOR process, so workspace env does not reach it; supervisor
+plist env does.
+
+**Lane failover (degraded-diversity mode):** if the agy/gemini lane is dead
+(auth outage), keep the quorum at 2 distinct REVIEWER families with the
+pack's `opus-verifier`, a fresh-context claude lane. Explicit tradeoff: one
+reviewer then shares the BUILDER family (the default posture excludes it);
+session isolation still gives author≠judge, and it beats single-family review
+or burning attempts on DEGRADE. Temporary — restore agy when healed. Set `[workspace.env] MEMBRANE_LANE2_TARGET = "agentops-membrane.opus-verifier"`
++ `MEMBRANE_LANE2_FAMILY = "claude"`, add its `[[named_session]]`, and bounce
+the supervisor. Restore agy when healed — three families beat two.
+
+**Roll outcomes into the tracker** (read-only, never a sync):
+`scripts/gc-outcomes-report.sh <city>` — closed work with outcomes/commits +
+open work; paste relevant lines into a bead note.
 
 **6. Converge.** A run has converged when: quest bead CLOSED on CONFIRMED,
 verdict artifact valid, branch handed to a human. A run has **stalled** when a
@@ -143,4 +179,10 @@ Scenario: A REFUTED verdict routes to bounded redo, not a manual close
   Given a quest whose pawl-verdict.json shows disposition REFUTED
   When the operator reads the verdict
   Then the builder respawn consumes one bounded attempt and the quest bead is never hand-closed
+
+Scenario: The gate bead is engine-owned
+  Given a workflow whose ralph gate bead shares the build step title
+  When any agent or operator identifies their step bead
+  Then beads with gc.kind=ralph are excluded and never closed by hand
+  And a gate bead closed without the engine attempt_log fingerprint cannot finalize the workflow as pass
 ```

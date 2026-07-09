@@ -20,7 +20,7 @@ Part 12 is the continuous improvement loop that runs alongside live operations f
 
 ## Context efficiency
 
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List the brand's workspace at `~/.claude-marketing/brands/{slug}/` (or `$CLAUDE_PLUGIN_DATA/digital-marketing-pro/brands/{slug}/` when that env var is set) before opening files. On re-invocation mid-session, skip files already in context.
 
 This is **not a one-time activity**. It runs perpetually once Part 11 is complete, with formal output at each Quarterly Business Review (QBR) and ad-hoc output when significant signals warrant.
 
@@ -213,7 +213,7 @@ The plugin captures signals continuously via:
 - **Daily performance pulls** (when configured) flag anomalies
 - **Monthly report production** captures "Insights & Learnings" entries
 - **Competitor monitor** flags significant changes
-- **Manual capture** via `/digital-marketing-pro:engagement signal --source <source> --signal "<description>"` (custom command — uses the engagement-state.py lif-log-change pattern)
+- **Manual capture** — append the signal to `signals.jsonl` and record it in the Living Project Instruction File via `engagement-state.py lif-log-change` (there is no `engagement signal` subcommand; log the observation through `lif-log-change` so it enters the engagement's current-truth record)
 
 All signals append to `signals.jsonl`:
 

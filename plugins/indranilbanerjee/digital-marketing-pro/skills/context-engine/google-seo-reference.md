@@ -1,6 +1,6 @@
-# Google SEO Quick Reference (March 2026)
+# Google SEO Quick Reference (July 2026)
 
-Concise reference guide for agents and skills. Not a reproduction of Google's documentation — see Official Documentation Links at the bottom for full details.
+Concise reference guide for agents and skills. Not a reproduction of Google's documentation — see Official Documentation Links at the bottom for full details. Volatile items (surfaces, schema status, algorithm dates) carry a date — re-verify anything older than ~3 months against the official docs and the [Search Status Dashboard](https://status.search.google.com/).
 
 ---
 
@@ -67,7 +67,7 @@ Measured at the 75th percentile of real user data (field data).
 
 ---
 
-## Schema Markup Status (March 2026)
+## Schema Markup Status (July 2026)
 
 ### Active and Supported
 Article, BreadcrumbList, Course, Dataset, Event, ItemList, JobPosting, LocalBusiness, Organization, Person, Product, ProductGroup, ProfilePage, Recipe, Review, SoftwareApplication, SoftwareSourceCode, VideoObject, Clip, SeekToAction, BroadcastEvent, Certification, OfferShippingDetails, MerchantReturnPolicy, DiscussionForumPosting
@@ -98,12 +98,20 @@ Google recommends JSON-LD for all structured data. Microdata and RDFa are suppor
 
 ## AI Search Optimization (GEO/AEO)
 
-### Key Surfaces (2026)
-- Google AI Overviews
-- ChatGPT web search
+### Canonical surfaces (6, mid-2026)
+The plugin scores AI visibility across six surfaces (the `PLATFORMS` constant in `scripts/geo-tracker.py`; scored with the rubric in `/digital-marketing-pro:aeo-audit`):
+- **Google AI Mode** — conversational search tab; became the default experience for opted-in users at Google I/O (19 May 2026), ~1B MAUs, Gemini 3.5 Flash backbone. **Distinct from AI Overviews** — different citation pattern for the same query; audit it separately.
+- **Google AI Overviews** — summary block above classic SERP results
+- ChatGPT (web search mode)
 - Perplexity
-- Microsoft Copilot
 - Gemini
+- Microsoft Copilot
+
+### What's new since March 2026
+- **GSC AI Performance Report (3 Jun 2026, UK-first then global):** actual impressions in AI Overviews + AI Mode for verified properties, plus a property-level **AI opt-out toggle** (no AI-specific robots directive needed). Excludes click data. See `/digital-marketing-pro:gsc-ai-performance`.
+- **GA4 `AI Assistant` channel group (13 May 2026):** captures `Medium=ai-assistant` referrals from ChatGPT / Gemini / Claude — the click-side complement to the GSC report.
+- **Official Google position (AI Optimization Guide, 15 May 2026):** no `llms.txt`, no AI-specific schema, no separate AI eligibility gate — pages eligible for snippets in classic Search are eligible for AI features.
+- **`Google-Extended`** (robots.txt) still controls Google's *other* AI systems (Gemini training, Vertex grounding), distinct from the in-Search-Console AI Overviews/AI Mode toggle.
 
 ### Optimization Signals
 - **Entity consistency**: Brand name, descriptions, key claims consistent across website, social profiles, directories, third-party mentions

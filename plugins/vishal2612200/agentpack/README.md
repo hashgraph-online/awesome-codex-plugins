@@ -14,6 +14,8 @@
 
 <p align="center">
   <a href="https://deepwiki.com/vishal2612200/agentpack"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+  <a href="https://github.com/vishal2612200/agentpack"><img alt="AgentPack" src="docs/assets/agentpack-badge.png"></a>
+  <a href="https://github.com/vishal2612200/agentpack"><img alt="AgentPack review" src="docs/assets/agentpack-review-badge.png"></a>
   <a href="https://pypi.org/project/agentpack-cli/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/agentpack-cli.svg?cacheSeconds=300"></a>
   <a href="https://pepy.tech/projects/agentpack-cli"><img alt="PyPI downloads" src="https://static.pepy.tech/personalized-badge/agentpack-cli?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads"></a>
   <a href="https://www.npmjs.com/package/@vishal2612200/agentpack"><img alt="npm version" src="https://img.shields.io/npm/v/@vishal2612200/agentpack.svg?cacheSeconds=300"></a>
@@ -24,7 +26,7 @@
   <a href="https://hol.org/registry/plugins/agentpack%2Fagentpack"><img alt="HOL trust score" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dagentpack%252Fagentpack%26metric%3Dtrust%26style%3Dflat"></a>
   <a href="https://hol.org/registry/plugins/agentpack%2Fagentpack"><img alt="HOL security score" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dagentpack%252Fagentpack%26metric%3Dsecurity%26style%3Dflat"></a>
   <a href="https://github.com/vishal2612200/agentpack/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/vishal2612200/agentpack/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+  <a href="https://www.gnu.org/licenses/agpl-3.0.en.html"><img alt="License: AGPL v3" src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg"></a>
 </p>
 
 <p align="center">
@@ -209,12 +211,16 @@ Use route and pack when you want deeper inspection:
 ```bash
 agentpack route --task "fix billing webhook retry handling"
 agentpack pack --task auto
+agentpack dashboard
 ```
 
 `route` returns likely files, why-selected and why-not-selected notes, tests,
 rules, commands, warnings, and matching skills without writing source files.
 `pack` renders selected files, omitted-file receipts, freshness checks, token
 stats, and citation provenance for packed claims.
+`dashboard` opens the local context cockpit: selected and omitted files, task
+map risk, likely tests, memory influence, observer signals, and next actions in
+one inspectable view backed by `dashboard-data.json` and `dashboard-graph.json`.
 AgentPack reuses cached file summaries and snapshot metadata so repeated packs do not start from zero.
 Run `agentpack doctor` when an agent integration, MCP setup, hook, or installed CLI path looks stale.
 Inspect advisory memory with `agentpack memory --timeline`; prune local history
@@ -229,6 +235,7 @@ with `agentpack memory --prune`.
 | Token control | budgeted packs, token contracts, delta-context guidance, cached summaries, and retrieval IDs |
 | Review and proof | citation-backed review artifacts, review preflight, benchmark misses, and local validation guidance |
 | Advisory memory | task-start maps, node refs, episodic/procedural links, timeline/staleness checks, and observer signals below source/test evidence |
+| Context cockpit | local React/Vite view of task graph, risk/tests, memory influence, replay, raw snapshot, and graph contracts |
 
 ## Current Focus
 
@@ -398,4 +405,4 @@ Community behavior is covered by [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT
+GNU Affero General Public License v3.0

@@ -83,7 +83,8 @@ Planless Slice Lane:
 - Slice Card `Goal` anchors slice-level completeness only.
 - It does not by itself grant whole-task completion.
 - Final completion still requires `verification-before-completion` Goal Closure
-  against the parent plan/spec and any active goal frame.
+  against the parent plan/spec and any active goal frame, rendered through the
+  unified Aegis impact/safety receipt unless audit detail is requested.
 
 - Do not create new plan/spec files for micro-slices that stay inside the
   parent plan, existing compatibility boundary, and known verification path.

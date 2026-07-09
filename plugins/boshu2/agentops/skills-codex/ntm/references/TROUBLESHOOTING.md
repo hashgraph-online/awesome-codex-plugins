@@ -341,7 +341,7 @@ really exists as its own addressable session.
 
 ### No ready work / agents keep asking "what next?"
 
-**Symptom** — `br ready --json` returns empty, panes are idle, and the operator is
+**Symptom** — `ao beads exec ready --json` returns empty, panes are idle, and the operator is
 about to send another generic nudge.
 
 **Root cause** — could be a genuinely dry queue, stale Beads/BV state, degraded
@@ -350,7 +350,7 @@ Agent Mail reservation visibility, or a blocked graph. Do not guess.
 **Fix**
 
 ```bash
-br ready --json
+ao beads exec ready --json
 bv --robot-triage | jq '.quick_ref'
 ntm work queue-dry --format=json | jq '{queue_dry, evidence, recommendations, warnings}'
 ```

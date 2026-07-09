@@ -31,7 +31,7 @@ Before producing any marketing output from this module:
 4. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
 5. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
 6. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
-7. **Check campaign history** — Run `python campaign-tracker.py --brand {slug} --action list-campaigns` before planning new work
+7. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
 8. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
 9. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
 
@@ -120,11 +120,11 @@ Before executing, gather the following from the user (ask if not provided):
 1. **Identify the problem** -- Use data (analytics, heatmaps, session recordings, user feedback) to pinpoint the conversion bottleneck.
 2. **Form hypothesis** -- Write a structured hypothesis: "If we [change X], then [metric Y] will [increase/decrease] by [estimated amount] because [rationale based on evidence]."
 3. **Score with ICE** -- Rate Impact, Confidence, and Ease on a 1-10 scale. Prioritize tests with highest composite scores.
-4. **Calculate requirements** -- Determine sample size needed based on current conversion rate and minimum detectable effect. Estimate test duration based on daily traffic.
+4. **Calculate requirements** -- Determine sample size with `python "${CLAUDE_PLUGIN_ROOT}/scripts/sample-size-calculator.py" --baseline-rate {rate} --mde {mde} --mde-type absolute --significance 0.95 --power 0.80` (pass `--mde-type relative` if the MDE is a relative lift — the two differ by ~40× at a 5% baseline). Estimate test duration based on daily traffic.
 5. **Design variation** -- Create the test variation. Change only one variable per test (unless running a multivariate test with sufficient traffic).
 6. **QA the test** -- Verify tracking, check both variations across devices and browsers, confirm that the test does not break downstream flows.
 7. **Run and monitor** -- Launch the test. Do not peek at results before reaching calculated sample size. Monitor for technical issues only.
-8. **Analyze and document** -- At the end of the test, evaluate statistical significance, check segment-level results, calculate revenue impact, and document learnings regardless of outcome.
+8. **Analyze and document** -- At the end of the test, evaluate statistical significance with `python "${CLAUDE_PLUGIN_ROOT}/scripts/significance-tester.py" --control-visitors {n} --control-conversions {n} --variant-visitors {n} --variant-conversions {n} --confidence 0.95`, check segment-level results, calculate revenue impact, and document learnings regardless of outcome.
 
 ## Reference Files
 

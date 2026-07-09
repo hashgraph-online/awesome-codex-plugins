@@ -52,6 +52,12 @@ canonical-owner selection, patch-shape triage, or verification discipline
 changed the repair path. Use a natural stage transition when moving from
 diagnosis to repair and from repair to verification.
 
+This debugging report is a diagnosis/repair surface, not a separate completion
+receipt. Before claiming the bug is fixed, pass root cause, avoided misfix,
+fix boundary, verification, complexity, and residual risk to
+`verification-before-completion` so the user-facing closeout uses the unified
+Aegis impact/safety receipt.
+
 ## The Four Phases
 
 ### Phase 1: Root Cause Investigation

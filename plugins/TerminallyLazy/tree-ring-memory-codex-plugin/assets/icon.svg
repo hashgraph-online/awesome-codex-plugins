@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Tree Ring Memory icon</title>
+  <desc id="desc">Concentric tree rings with a small green sprout.</desc>
+  <rect width="512" height="512" rx="96" fill="#17251f"/>
+  <circle cx="256" cy="274" r="174" fill="#f3d38a"/>
+  <circle cx="256" cy="274" r="142" fill="none" stroke="#8b5a32" stroke-width="18"/>
+  <circle cx="256" cy="274" r="104" fill="none" stroke="#b8783a" stroke-width="14"/>
+  <circle cx="256" cy="274" r="66" fill="none" stroke="#6e4327" stroke-width="12"/>
+  <circle cx="256" cy="274" r="24" fill="#8b5a32"/>
+  <path d="M235 93c42 5 76 33 92 77-41-2-75-28-92-77Z" fill="#48a36d"/>
+  <path d="M223 91c-38 12-64 43-74 88 40-8 66-40 74-88Z" fill="#2f7d5c"/>
+  <path d="M256 111c-9 49-9 88 0 116" fill="none" stroke="#2f7d5c" stroke-width="18" stroke-linecap="round"/>
+  <path d="M168 341c50 36 127 38 178 0" fill="none" stroke="#4d2f1f" stroke-width="14" stroke-linecap="round" opacity=".65"/>
+</svg>

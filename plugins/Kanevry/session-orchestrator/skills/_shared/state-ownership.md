@@ -37,6 +37,7 @@ The `session-type: none` + `status: idle` combination is used only for bootstrap
 | `## Wave History` | Completed wave records | wave-executor (post-wave) |
 | `## Deviations` | Plan adaptation log | wave-executor (step 3) |
 | `## What Not To Retry` | Failed/abandoned approaches not to repeat (#623) | session-end (Phase 1.6) |
+| `## Open Questions` | Unresolved user-facing questions (agent → gate → next session) | wave-executor (inter-wave) + session-end (marks answered) |
 
 Wave History lines MAY include a `→ issue #NNN` suffix (or `→ existing #NNN` when a duplicate was detected) for SPIRAL/FAILED agents, linking to the auto-created carryover issue (#261). This is optional and backward-compatible; readers that do not recognize the notation can skip it. Session-end Phase 1.6 uses the presence of this suffix to decide whether to retro-file a carryover as a fallback safety net.
 
@@ -58,13 +59,31 @@ A log of failed or abandoned approaches that future sessions should NOT re-attem
 
 Helpers: `appendWhatNotToRetry` (pure), `readWhatNotToRetry` (pure), `appendWhatNotToRetryOnDisk` (lock-guarded write) — all exported from `scripts/lib/state-md.mjs`.
 
+### `## Open Questions` (Close Handover-Alignment-Gate, PRD 2026-07-07)
+
+A log of unresolved, user-facing questions surfaced by wave agents during a session, collected at inter-wave checkpoints, and (optionally) marked answered by session-end or a later Handover-Alignment-Gate run. Each entry has the shape `{question, source, priority, answered, answer?}` and renders as:
+
+```markdown
+## Open Questions
+
+- [ ] <question> (source: <source>, prio: <high|medium|low>)
+- [x] <question> (source: <source>, prio: <p>) → Antwort: <answer>
+```
+
+- **Writer:** wave-executor — at each inter-wave checkpoint, collects deduped `OPEN-QUESTIONS:` lines from the wave's agent reports and appends one entry per question via `appendOpenQuestionOnDisk(repoRoot, entry)`. session-end MAY flip an entry to answered via `markOpenQuestionAnsweredOnDisk(repoRoot, question, answer)` when the gate resolves it during close.
+- **Reader:** the Handover-Alignment-Gate (session-end / session-start) reads unanswered entries via `readOpenQuestions` to decide what to surface to the operator across the session boundary.
+- **Cap:** at most `MAX_OPEN_QUESTIONS_STORED` (20) entries, pruned FIFO (oldest dropped) on each append — a storage cap, distinct from the gate's own `max-open-questions` config (which caps how many questions are ASKED per gate run, not how many are stored).
+- **Idle-Reset preservation (load-bearing):** **`## Open Questions` SURVIVES the completed-branch Idle Reset** — unlike per-session `## Deviations` (which is emptied) and `## Wave History` (which is demoted into `## Previous Session`). Unanswered questions are exactly the ones that need to reach the NEXT session's operator, so session-start's Idle Reset MUST NOT clear, demote, or drop it — mirroring `## What Not To Retry` above (#623).
+
+Helpers: `readOpenQuestions` (pure), `appendOpenQuestion` (pure), `markOpenQuestionAnswered` (pure), `appendOpenQuestionOnDisk` (lock-guarded write), `markOpenQuestionAnsweredOnDisk` (lock-guarded write) — all exported from `scripts/lib/state-md.mjs`.
+
 ## Ownership Model
 
 | Skill | Access | Operations |
 |-------|--------|------------|
-| **wave-executor** | Read + Write (owner) | Creates STATE.md (Pre-Wave 1b), updates after each wave (current-wave, Wave History, Deviations) |
-| **session-end** | Read + Status-only write | Reads for metrics extraction (Phase 1.7), sets `status: completed` (Phase 3.4). Exception: only field modified is `status` in frontmatter. |
-| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. Surfaces `## What Not To Retry` as a forced-read HISTORICAL block (Phase 6.5.1). May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations` — but PRESERVES `## What Not To Retry` (cross-session continuity, #623). Never resets on `active` or `paused` (those paths are user-interactive). |
+| **wave-executor** | Read + Write (owner) | Creates STATE.md (Pre-Wave 1b), updates after each wave (current-wave, Wave History, Deviations); appends deduped `## Open Questions` at inter-wave checkpoints via `appendOpenQuestionOnDisk` (see `wave-loop.md` § 3e + Post-Wave step 6). |
+| **session-end** | Read + Status-only write | Reads for metrics extraction (Phase 1.7), sets `status: completed` (Phase 3.4). Exception: only fields modified are `status` in frontmatter and marking entries answered in `## Open Questions` via `markOpenQuestionAnsweredOnDisk` (Close Handover-Alignment-Gate). |
+| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. Surfaces `## What Not To Retry` as a forced-read HISTORICAL block (Phase 6.5.1). May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations` — but PRESERVES `## What Not To Retry` (cross-session continuity, #623) and `## Open Questions` (Close Handover-Alignment-Gate, PRD 2026-07-07). Never resets on `active` or `paused` (those paths are user-interactive). |
 | **evolve** | Read-only | Reads `## Deviations` section for deviation pattern extraction (Step 2.2, pattern 5) |
 
 ## Guards

@@ -1,0 +1,41 @@
+{
+  "name": "basemind",
+  "version": "0.20.0",
+  "description": "Full AI context layer over MCP — tree-sitter code-map, document RAG (PDF/Office/HTML/email + OCR + reranker), shared agent memory, on-demand web crawl, git history + blame + per-symbol diff. 300+ languages, 10+ coding-agent harnesses, content-addressed Fjall + LanceDB.",
+  "author": {
+    "name": "Na'aman Hirschfeld",
+    "email": "nhirschfeld@gmail.com",
+    "url": "https://github.com/Goldziher"
+  },
+  "homepage": "https://github.com/Goldziher/basemind",
+  "repository": "https://github.com/Goldziher/basemind",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "agent-context",
+    "rag",
+    "code-map",
+    "tree-sitter"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.codex-plugin/.mcp.json",
+  "interface": {
+    "displayName": "basemind",
+    "shortDescription": "Code-map MCP server for navigating large codebases",
+    "longDescription": "basemind indexes a repository with tree-sitter and exposes a structured code map — outlines, references, callers, history, blame, diff — over MCP. Designed for AI agents to navigate unfamiliar code without reading every file.",
+    "developerName": "Na'aman Hirschfeld",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Outline this file.",
+      "What calls `<symbol>` in this repo?",
+      "Where is `<symbol>` defined?",
+      "What changed in this file in the last 20 commits?"
+    ],
+    "websiteURL": "https://github.com/Goldziher/basemind",
+    "brandColor": "#F97316"
+  }
+}

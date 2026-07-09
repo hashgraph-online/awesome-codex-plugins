@@ -72,16 +72,15 @@ Read back the session plan that was agreed at the start. For EACH planned item:
 
 ### 1.2 Partially Done Items
 - Document what was completed and what remains
-- Create a VCS issue for the remaining work with:
-  - Title: `[Carryover] <original task description>`
-  - Labels: `priority:<original>`, `status:ready`
-  - Description: what's done, what's left, context for next session
-- Link to original issue if applicable
+- **Do NOT file the carryover issue here (#769).** Collect a carryover **candidate** instead — append it to the in-memory candidate list that the Phase 1.65 Handover Alignment Gate consumes. The issue is filed (only if the gate confirms it) in Phase 5 Step 3. Candidate record (JS keys as `routeCandidates` / `normalizeCandidate` read them — `source-phase`→`sourcePhase`, `origin-issue`→`originIssue`; see `plan-verification.md § Candidate Record Format`):
+  - `{ task: '<original task description>', sourcePhase: '1.2', originIssue: <IID or null>, priority: '<original>', bucket: 'partially-done' }`
+- The eventual issue keeps the source-specific `[Carryover]` template — Title `[Carryover] <original task description>`, Labels `priority:<original>` + `status:ready`, Description = what's done / what's left / context for next session.
+- Link to the original issue when applicable (record its IID as `originIssue`; a candidate with no origin issue auto-carries per the gate's routing, so nothing planned is silently forgotten).
 
 ### 1.3 Not Started Items
 - Document WHY (blocked? de-scoped? out of time?)
-- If still relevant: ensure original issue remains `status:ready`
-- If no longer relevant: close with comment explaining why
+- If no longer relevant: close the original issue with a comment explaining why. This is a **pre-gate disposition** — it files nothing and adds no candidate.
+- If still relevant: **do NOT touch the original issue here.** Append a carryover candidate so the Phase 1.65 gate surfaces it — `{ task: '<item>', sourcePhase: '1.3', originIssue: <original IID>, priority: '<original>', bucket: 'not-started' }`. Phase 1.3 files no NEW `[Carryover]` issue; the candidate's disposition IS the keep-vs-carry decision on the ORIGINAL issue. If the gate carries it → ensure the original remains `status:ready`; a dropped middle-band 1.3 candidate leaves the original issue unchanged and open (no auto-close in v1).
 
 ### 1.3a Optional /goal Backlog-Drain (opt-in — #636)
 
@@ -108,8 +107,8 @@ The `/goal` evaluator reads the transcript only and runs NO tools — it anchors
 
 ### 1.4 Emergent Work
 - Tasks that were NOT in the plan but were done (fixes, discoveries)
-- Document and attribute to relevant issues
-- If new issues were identified: create them on the VCS platform
+- **Completed emergent work** (finished, or already dispositioned into an issue): document and attribute to the relevant issues exactly as today — this path is **NOT gated**. If a completed emergent fix warrants a follow-up/doc issue, create it immediately (unchanged behavior).
+- **Unfinished / undispositioned emergent work** (at close, neither finished nor already filed as an issue): **do NOT file it here.** Append a carryover candidate — `{ task: '<emergent item>', sourcePhase: '1.4', originIssue: <IID or null>, priority: '<assessed>', bucket: 'emergent' }`. The Phase 1.65 gate decides whether it is filed; a confirmed 1.4 candidate is filed in Phase 5 Step 3 as a **normal** issue (NOT the `[Carryover]` template).
 
 ### 1.5 Discovery Scan (if enabled)
 
@@ -132,27 +131,29 @@ Review safety metrics from the session. This is informational — it does NOT bl
    - Enforcement: [N] scope violations, [M] command blocks
    - Isolation: [K] agents in worktrees, [J] fallbacks
    ```
-4. If any agents were `SPIRAL` or `FAILED`, ensure carryover issues exist (cross-reference with Phase 1.2)
+4. If any agents were `SPIRAL` or `FAILED`, ensure a carryover **candidate** is collected for each (they auto-carry; filed via the Phase 1.65 gate → Phase 5 Step 3 — cross-reference with Phase 1.2)
 
-5. **Carryover validation fallback (#261):** Walk each Wave History entry in STATE.md. For every agent whose status is `SPIRAL` or `FAILED`, check whether the line ends with a `→ issue #NNN` suffix (or `→ existing #NNN`). If the suffix is absent, the auto-create call in wave-executor did not run (e.g. a consumer-project #251 V0.x.y-close incident where the session crashed before dispatch completed, or the CLI was offline at detection time). Retroactively file the carryover via `createSpiralCarryoverIssue`:
+5. **Carryover validation fallback (#261) — collect, do NOT file yet (#769):** Walk each Wave History entry in STATE.md. For every agent whose status is `SPIRAL` or `FAILED`, check whether the line ends with a `→ issue #NNN` suffix (or `→ existing #NNN`). If the suffix is absent, the auto-create call in wave-executor did not run (e.g. a consumer-project #251 V0.x.y-close incident where the session crashed before dispatch completed, or the CLI was offline at detection time). **Do NOT call `createSpiralCarryoverIssue` here** — since #769 its firing moves behind the Phase 1.65 Handover Alignment Gate so that NO `[Carryover]` issue is created before the gate. Instead append an **auto-carry** candidate (SPIRAL/FAILED is a non-deselectable auto-carry class — the gate only surfaces it in the status count, never as a deselectable option; consistent with the Critical Rule at `SKILL.md:853`), carrying the payload the deferred `createSpiralCarryoverIssue` call will need:
 
    ```js
-   import { createSpiralCarryoverIssue } from '${PLUGIN_ROOT}/scripts/lib/spiral-carryover.mjs';
-
+   // #769: collect, don't file. The actual createSpiralCarryoverIssue() call
+   // fires in Phase 5 Step 3 (behind the gate). bucket 'spiral-failed' → auto-carry,
+   // so it is ALWAYS carried; the operator never sees it as a triage option.
    // For each SPIRAL/FAILED agent missing the "→ issue #NNN" suffix:
-   const result = await createSpiralCarryoverIssue({
-     taskDescription: '<agent task from Wave History>',
-     kind: 'SPIRAL', // or 'FAILED'
-     context: '<Deviations / error context from STATE.md>',
+   candidates.push({
+     task: '<agent task from Wave History>',
+     sourcePhase: '1.6',
+     originIssue: null,           // SPIRAL/FAILED safety-net items carry no origin issue
      priority: 'high',
-     vcs: '<from Session Config>'
+     bucket: 'spiral-failed',
+     // Filing payload retained on the coordinator's original candidate object,
+     // consumed in Phase 5 Step 3 (routeCandidates only classifies — it returns
+     // normalized copies and does not carry this annotation):
+     _spiral: { kind: 'SPIRAL' /* or 'FAILED' */, context: '<Deviations / error context from STATE.md>' },
    });
-   // result.created → note new issue id in Final Report under "New Issues Created"
-   // result.skipped === 'duplicate' → an earlier session already filed one; record the existing id
-   // result.skipped === 'error' → log in Final Report as "⚠ carryover filing failed for <task>: <error>" and continue (do NOT block close)
    ```
 
-   The module is idempotent via its task-hash dedup marker, so re-running the fallback across sessions will not create duplicates.
+   The deferred Phase-5.3 call imports `createSpiralCarryoverIssue` from `${PLUGIN_ROOT}/scripts/lib/spiral-carryover.mjs`; it is idempotent via its task-hash dedup marker, so re-running the fallback across sessions will not create duplicates.
 
 #### 1.6.6 Record "What Not To Retry" entries (#623)
 
@@ -178,6 +179,85 @@ await appendWhatNotToRetryOnDisk(repoRoot, {
 
 The helper is lock-guarded (PSA-005) and prunes the section FIFO to the 10 most-recent entries on each append. **Optional coordinator entry:** if the session abandoned an approach for reasons NOT captured by a SPIRAL/FAILED agent (e.g. a design that proved unworkable mid-session), the coordinator MAY add a free-text entry through the SAME `appendWhatNotToRetryOnDisk` helper with a descriptive `approach` + `why_failed`. Recording is informational and does NOT block the close.
 
+### 1.65 Handover Alignment Gate (#769)
+
+> **Opt-in-by-default interactive gate.** Reads `handover-gate.enabled` (default `true`) and `handover-gate.max-open-questions` (default `3`) from parsed Session Config (`cfg['handover-gate']`, produced by `scripts/lib/config.mjs` → `scripts/lib/config/handover-gate.mjs`). Position is load-bearing: it runs AFTER Phase 1.6.6 — so all four candidate sources (1.2 Partially Done, 1.3 Not Started still-relevant, 1.4 unfinished Emergent, 1.6 SPIRAL/FAILED walk) are computed and NOTHING has been filed yet — and BEFORE Phase 1.7, so the gate's carry/drop decision feeds the Phase 1.7 carryover count. This is the ONLY place `[Carryover]` filing is authorized to originate; Phase 5 Step 3 merely executes the gate's carry-list.
+
+> **Skill-prose-first, minimal mechanical core** — same pattern as Phase 3.6.3 memory-proposals: the coordinator runs the `AskUserQuestion` interaction (per `.claude/rules/ask-via-tool.md` AUQ-003); the pure `scripts/lib/handover-gate.mjs` lib does only the deterministic classification. No hook, no agent, no new event schema.
+
+#### Fail-open skip (FA5 — the load-bearing safety decision)
+
+Skip the gate entirely — treat EVERY candidate as carry (byte-identical to the pre-#769 status quo), emitting a single stderr WARN — when ANY of:
+
+- `cfg['handover-gate'].enabled === false`.
+- session-end runs in an **embedded / autopilot** context OR headless `claude -p` (no operator at the keyboard; `AskUserQuestion` is unavailable per AUQ-004 — the same embedded-mode precedent as discovery suppressing its AUQ).
+- `AskUserQuestion` is unavailable or throws at call time (wrap the calls; on error, fail-open — never surface a half-rendered gate).
+- The candidate list is empty AND STATE.md `## Open Questions` has no unanswered entry — **Zero-Friction clean close**: emit NO AUQ and continue unchanged.
+
+Fail-open NEVER hangs the close on an unanswerable AUQ and NEVER loses data — it degrades exactly to today's silent-carryover behavior. Log e.g. `⚠ handover-gate: skipped (<reason>) — all candidates carry (status quo)`.
+
+#### Step 1 — Assemble candidates + open questions
+
+1. The in-memory **candidate list** is the union of the candidates appended by Phases 1.2 / 1.3 (still-relevant) / 1.4 (unfinished emergent) / 1.6 (SPIRAL/FAILED). Each candidate object carries `{ task, sourcePhase, originIssue, priority, bucket }` (plus any filing payload, e.g. the SPIRAL/FAILED `_spiral` kind/context). See `plan-verification.md § Candidate Record Format`.
+
+2. **Classify** via the pure helper:
+
+   ```js
+   import { routeCandidates } from '${PLUGIN_ROOT}/scripts/lib/handover-gate.mjs';
+   const { autoCarry, ask } = routeCandidates(candidates);
+   ```
+
+   `autoCarry` = `priority:critical|high` OR `bucket === 'spiral-failed'` OR `originIssue === null` — **non-deselectable** (dropping any of these would be real forgetting; consistent with the Critical Rule at `SKILL.md:853`). `ask` = the middle-band (priority `medium`/`low`/none WITH an origin issue, buckets not-started/emergent/partially-done) plus any `malformed` record. `routeCandidates` returns NORMALIZED copies for gate rendering; the coordinator retains its ORIGINAL candidate objects (with filing payloads) for Phase 5 Step 3.
+
+3. Read STATE.md contents and extract the open questions via the sibling helper:
+
+   ```js
+   import { readOpenQuestions } from '${PLUGIN_ROOT}/scripts/lib/state-md.mjs';
+   const openQuestions = readOpenQuestions(stateMdContents); // Array<{question, source, priority, answered, answer?}>
+   const unanswered = openQuestions.filter((q) => !q.answered);
+   ```
+
+4. **Zero-Friction check:** if `autoCarry.length === 0 && ask.length === 0 && unanswered.length === 0`, skip per Fail-open above (no AUQ, no WARN needed beyond an info log — clean close).
+
+#### Step 2 — AUQ Call 1 (Status-Gate)
+
+Render ONE `AskUserQuestion`. The question text NAMES the candidate counts by class and the open-question count, e.g. `"<A> auto-carry + <M> triage candidate(s), <U> open question(s). Close and triage now?"`. Options (Recommendation first, AUQ-003):
+
+- **"Closen + Triage (Recommended)"** — proceed to AUQ Call 2 (triage the middle-band + answer the top open questions), then file the resulting carry-list in Phase 5 Step 3.
+- **"Alle carryoven (ohne Triage)"** — fast-path: carry ALL candidates (`autoCarry ∪ ask`) with no triage; SKIP AUQ Call 2; unanswered questions stay `- [ ]` and roundtrip to the next session. Equivalent to the status quo for filing, minus the friction.
+- **"Weiterarbeiten (Close abbrechen)"** — abort session-end cleanly: NO commit, NO lock-release, NO issue creation; STATE.md stays `status: active`; the session remains open and the coordinator continues working the open points. Print `session-end aborted at Phase 1.65 by user choice (Weiterarbeiten). Session stays open.` and STOP the close (do not fall through to Phase 1.7).
+
+(Codex CLI / Cursor IDE: same three options as a numbered Markdown list.)
+
+#### Step 3 — AUQ Call 2 (Triage + Open Questions) — only after "Closen + Triage"
+
+Combine the Middle-Band triage multiSelect AND up to `max-open-questions` open-question single-questions, honoring AUQ-003 (≤4 questions/call, ≤4 options/multiSelect):
+
+1. **Middle-Band multiSelect** — one multiSelect over the `ask` candidates, EVERY option **preselected** (= carry; one Enter keeps the sensible default). Option label: `[<bucket>] <task-truncated> — <priority|—> (origin #<IID|none>)`. `multiSelect: true`. Deselected = drop.
+   - **Batching (Phase 3.6.3 precedent):** `0` → no multiSelect; `1–4` → a single multiSelect that rides in the SAME first call alongside the open questions; `5+` → sequential `Batch N of M` multiSelects in FIFO batches of 4 (`header: "Handover — Triage Middle-Band (Batch N of M)"`).
+
+     ```js
+     const BATCH_SIZE = 4;
+     const batches = [];
+     for (let i = 0; i < ask.length; i += BATCH_SIZE) batches.push(ask.slice(i, i + BATCH_SIZE));
+     ```
+
+     When `ask.length ≤ 4`: the single triage multiSelect + up to `max-open-questions` open-question single-questions all ride in ONE call (1 + 3 = 4 questions max — AUQ-003-safe). When `ask.length > 4`: emit the open questions in the FIRST call and the middle-band as ⌈M/4⌉ dedicated `Batch N of M` calls.
+
+2. **Open questions** — up to `max-open-questions` (default 3; effectively capped at 3 in the first call = the 4-question limit minus the 1 triage multiSelect) highest-priority `unanswered` questions, each a single-select with 2–4 options (Recommendation first). Derive options from the agent-supplied answer-candidates when present; otherwise offer `Answer: <A> / Answer: <B> / Defer (keep open)`. Questions beyond the cap stay untouched (`- [ ]`) and roundtrip (FA3-Semantik).
+
+#### Step 4 — Apply the gate outcome
+
+1. **carry-list** = `autoCarry` (always) ∪ the middle-band `ask` items the operator LEFT SELECTED. **drop-list** = the middle-band `ask` items the operator DESELECTED. (`"Alle carryoven"` → carry-list = `autoCarry ∪ ask`, drop-list = ∅.) Store both for Phase 5 Step 3 (filing) and Phase 6 (report). NOTHING is filed in this phase.
+
+2. **Answered open questions — decide + enqueue in-memory only; do NOT mark `[x]` yet (#769):** for each open question answered in AUQ Call 2, capture the outcome in an in-memory `answeredQuestions` list — one record per answered question: `{ question, answer, impliesWork: <bool> }`. Do **NOT** call `markOpenQuestionAnsweredOnDisk` in this phase.
+
+   The durable STATE.md `- [x]` write is deliberately deferred to **Phase 5 Step 3** so that it lands on the SAME side of the Quality Gate (Phase 3) as the carryover-issue filing — either a completed close marks the question `[x]` AND files its implied work, or a Quality-Gate abort does neither. Marking `[x]` here (at gate time) would silently forget the answer if the Quality Gate later aborts the close: the now-`[x]` question no longer re-surfaces via `readOpenQuestions().filter(!answered)` on re-close, so any implied work would be dropped ticketless — exactly the silent-forget this feature exists to prevent.
+
+   If the chosen answer **implies NEW work** (`impliesWork: true`), ALSO enqueue it now onto the carry-list as a carry-candidate (`originIssue: null` → auto-carry), carrying the answer as body context, so Phase 5 Step 3 files the issue AND marks the question `[x]` atomically. Pure decisions with no to-do (`impliesWork: false`) carry no candidate; they are recorded only by the Phase 5.3 STATE.md `[x]` mark + the Final Report. Unanswered / over-cap questions stay `- [ ]` and roundtrip to the next session (FA4).
+
+3. The gate's carry/drop split feeds the Phase 1.7 carryover count.
+
 ### 1.7 Metrics Collection
 
 Read `skills/session-end/metrics-collection.md` for JSONL schema and conditional field rules.
@@ -199,8 +279,8 @@ Dispatch the session-reviewer agent to verify implementation quality before the 
      |---|---|
      | HIGH+ / blocking review finding | Fix inline if quick (<2 min); else create an issue (`priority:high`, `status:ready`) and note it in the Final Report |
      | MED / LOW review finding | Fold in-session if quick; else record under "Unresolved Review Findings" in the Final Report — DO NOT create an issue (#617) |
-     | Planned-carryover (item was in the plan, not finished) | ALWAYS create a `[Carryover]` issue per Phase 1.2 — unchanged |
-     | SPIRAL / FAILED agent carryover | ALWAYS file via `createSpiralCarryoverIssue` per Phase 1.6 — unchanged |
+     | Planned-carryover (item was in the plan, not finished) | Route as a carryover **candidate** per Phase 1.2 → the Phase 1.65 gate files it. Never forgotten: a no-origin/critical/high item auto-carries as a `[Carryover]` issue; a middle-band item with an origin issue is preselected=carry (and its origin issue stays open even if dropped). |
+     | SPIRAL / FAILED agent carryover | Route as an **auto-carry** candidate per Phase 1.6 → filed via `createSpiralCarryoverIssue` in Phase 5 Step 3 (non-deselectable) |
 
 ### 1.9 Mission-Status Classification (when `mission-status` present in STATE.md)
 
@@ -716,7 +796,7 @@ Reply with the number of your choice.
 
 ### Cross-references
 
-- **PRD:** `docs/prd/2026-05-26-parallel-aware-sessions.md` §3 P3 Gherkin rows 2-3 + §3.A P3 EARS event-driven clauses
+- **PRD:** "Parallel-Aware Sessions" (#568; archived in the private Meta-Vault) §3 P3 Gherkin rows 2-3 + §3.A P3 EARS event-driven clauses
 - **PSA-003:** `.claude/rules/parallel-sessions.md` — destructive action safeguards (`git worktree remove --force` requires explicit user authorization)
 - **#490 durableCommit dependency:** Phase 4a runs AFTER Phase 4 commit+push to guarantee `sessions.jsonl` + `STATE.md` are persisted to origin BEFORE worktree removal
 - **Detection helper:** `parseSessionId()` from `scripts/lib/session-id.mjs` (#572)
@@ -745,7 +825,21 @@ Reply with the number of your choice.
    The call is idempotent: if the issue has no `status:*` labels, no update CLI call is made. Failures from `stripStatusLabels` are non-fatal — log and proceed with close.
 
 2. **Update in-progress issues**: ensure labels reflect actual state using the issue update command
-3. **Create carryover issues**: for partially-done work (from Phase 1.2), use the issue create command with appropriate labels
+3. **Create carryover issues — from the Phase 1.65 gate's carry-list ONLY (#769):** file an issue for each item on the carry-list produced by the Handover Alignment Gate — i.e. the non-deselectable **auto-carry** class (`priority:critical|high`, SPIRAL/FAILED, or no-origin-issue candidates) PLUS the middle-band items the operator LEFT SELECTED in triage. Do NOT file anything the gate dropped, and do NOT file directly from Phase 1.2/1.3/1.4/1.6 — those phases only collected candidates.
+   - **Template stays source-specific:** 1.2 Partially-Done → `[Carryover] <task>` (labels `priority:<original>`, `status:ready`); 1.4 unfinished Emergent → a **normal** issue (NOT the `[Carryover]` template); 1.6 SPIRAL/FAILED → fire the deferred `createSpiralCarryoverIssue({ taskDescription, kind, context, priority: 'high', vcs })` (idempotent task-hash dedup — payload comes from the candidate's `_spiral` annotation set in Phase 1.6 step 5). 1.3 files no NEW issue: a carried 1.3 candidate simply keeps its ORIGINAL issue `status:ready`.
+   - **Dropped middle-band items:** file NO `[Carryover]` duplicate; the origin issue stays open and unchanged. Record each drop in the Phase 6 Final Report under `### Dropped at Handover Gate` with its origin-issue reference and a reason slot.
+   - **Fail-open / gate skipped:** when Phase 1.65 skipped fail-open, the carry-list is ALL candidates (status quo) and there is no drop-list.
+   - **Mark answered open questions `[x]` durably — atomic with the filing above (#769):** now, on the completed side of the Quality Gate, persist each answered open question captured in-memory at Phase 1.65 Step 4 to STATE.md via the lock-guarded sibling helper (PSA-005). Co-locating this write with the carryover-issue filing is the load-bearing correctness invariant: an earlier Quality-Gate abort leaves every question `- [ ]` on disk, so it correctly re-surfaces via `readOpenQuestions().filter(!answered)` on re-close — the `[x]` mark now reflects a COMPLETED handover, never a mid-close state a later abort would invalidate. Any implied-work candidate an answered question enqueued in Phase 1.65 is filed by the carry-list step above, so the mark and its issue land together:
+
+     ```js
+     import { markOpenQuestionAnsweredOnDisk } from '${PLUGIN_ROOT}/scripts/lib/state-md.mjs';
+     // answeredQuestions captured in Phase 1.65 Step 4 (in-memory, un-persisted until now)
+     for (const { question, answer } of answeredQuestions) {
+       await markOpenQuestionAnsweredOnDisk(repoRoot, question, answer); // "- [ ] Q" → "- [x] Q → Antwort: <answer>"
+     }
+     ```
+
+     Fail-open: a `markOpenQuestionAnsweredOnDisk` failure is non-fatal — log a WARN and proceed with the close; the question simply stays `- [ ]` and roundtrips to the next session.
 
 #### Discovery Issue Creation (if discovery ran in Phase 1.5)
 
@@ -774,6 +868,9 @@ Present to the user:
 ### Carried Over
 - [ ] Issue #P: [what's left] — new issue #Q created
 - [ ] [description] — blocked by [reason]
+
+### Dropped at Handover Gate (deselected in triage — origin issue left open) [#769]
+- [ ] [middle-band item] — origin #<IID> — reason: [operator deselected in Phase 1.65 triage; no [Carryover] duplicate filed]
 
 ### New Issues Created
 - #R: [title] (priority: [X], status: ready)

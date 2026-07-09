@@ -132,19 +132,7 @@ Ask: "What would give your target audience a 10-star experience?"
 
 Use this as a mandatory product judgment pass. Do not name-drop frameworks in the final document unless useful; translate them into concrete product decisions.
 
-For each lens, gather or infer the answer:
-
-| Lens | Question to answer | Output it should shape |
-|------|--------------------|------------------------|
-| **Chesky 10/11-star experience** | What would make the first meaningful use feel unexpectedly great, not merely functional? | `10-Star Experience` section and first-value path. |
-| **Rahul Vohra / Superhuman PMF** | Which narrow segment would be very disappointed if this disappeared? Who should we ignore for now? | `PMF Wedge`, target personas, and anti-personas. |
-| **April Dunford positioning** | What is the real alternative, where does it win, and what context makes this product obviously better? | Competitive positioning and strategic bet. |
-| **Teresa Torres discovery** | What recurring customer touchpoints or experiments will keep this honest? | Evidence and discovery metrics. |
-| **Marty Cagan outcomes** | What user/business outcome matters beyond shipped features? | Core value propositions and known gaps. |
-| **Gibson Biddle DHM** | How does the product delight users in ways that are hard to copy and sustainable to keep improving? | Product strategy and moat. |
-| **Elena Verna PLG** | Can the user reach value without human glue or heavy setup? Where is friction too high? | 10-star experience and onboarding gaps. |
-| **Melissa Perri build-trap guardrail** | Are we listing features or making strategic choices tied to target conditions? | Product strategy and prioritization. |
-| **Shreyas Doshi product sense** | What motivation, friction, satisfaction, and nudges decide whether usage repeats? | Value props, activation, and retention loop. |
+Pass the draft through the nine product-sense lenses — Chesky 10/11-star, Rahul Vohra / Superhuman PMF, April Dunford positioning, Teresa Torres discovery, Marty Cagan outcomes, Gibson Biddle DHM, Elena Verna PLG, Melissa Perri build-trap, and Shreyas Doshi product sense. The per-lens question and the PRODUCT.md section each should shape live in [references/product-frameworks.md](references/product-frameworks.md); translate each into a concrete decision (do not name-drop the frameworks in the output).
 
 Capture:
 - **PMF wedge:** the narrow segment to optimize for now
@@ -355,4 +343,5 @@ Tell the user:
 
 ## Reference Documents
 
+- [references/product-frameworks.md](references/product-frameworks.md) — §3g product-sense lenses: the nine-framework name-drop table (Chesky, Rahul Vohra, April Dunford, Teresa Torres, Marty Cagan, Gibson Biddle, Elena Verna, Melissa Perri, Shreyas Doshi) with each lens's question and the section it shapes (moved out of SKILL.md in the generic-craft trim)
 - [references/product.feature](references/product.feature) — Executable spec: context gather, interview-driven PRODUCT.md, product-aware council unlock, quick-mode inline (soc-qk4b)

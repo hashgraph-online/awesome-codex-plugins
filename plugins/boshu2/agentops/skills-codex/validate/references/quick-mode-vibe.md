@@ -430,7 +430,7 @@ The hook is non-blocking (always exits 0) and outputs warnings via JSON. See [re
 - `skills/bug-hunt/SKILL.md` — Proactive code audit and bug investigation
 - `.agents/specs/conflict-resolution-algorithm.md` — Conflict resolution between agent findings
 - [test](../../test/SKILL.md) — Test generation and coverage analysis
-- [perf](../../perf/SKILL.md) — Performance profiling and benchmarking
+- [perf](../SKILL.md) — Performance profiling and benchmarking
 
 ## Reference Documents
 

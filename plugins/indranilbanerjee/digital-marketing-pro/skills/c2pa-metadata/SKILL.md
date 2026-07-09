@@ -24,7 +24,7 @@ The resulting asset can be inspected by any C2PA-aware viewer (Adobe Photoshop, 
 - **C2PA Spec 2.4** (April 2026 — [spec.c2pa.org/specifications/specifications/2.4](https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html)) introduces the **AI Disclosure Assertion (`c2pa.ai-disclosure`)** for machine-readable AI transparency info — this is the assertion the EU AI Act Article 50 deployer pathway will rely on. The Code of Practice WG1 (providers) and WG2 (deployers) draft guidance both reference C2PA-style assertions as the canonical machine-readable marking mechanism. See `skills/context-engine/eu-code-of-practice.md` for the full Article 50 context.
 - The **C2PA Trust List** is now handled via the public C2PA Conformance Program (any CA meeting the Certificate Policy can join). Production signing certificates should come from a Conformance-Program-listed CA, not an ad-hoc cert.
 
-**For DMP outputs**: when the underlying `embed-c2pa.py` script supports `--ai-disclosure` (or you're piping through a C2PA SDK ≥ 0.36 that handles 2.4), include the `c2pa.ai-disclosure` assertion alongside the existing IPTC digital-source-type claim. The combination gives you both human-readable (IPTC) and machine-readable (c2pa.ai-disclosure) Article 50 signaling.
+**For DMP outputs**: `embed-c2pa.py` now supports `--ai-disclosure`. Pass it to embed the C2PA 2.4 `c2pa.ai-disclosure` assertion alongside the existing IPTC digital-source-type claim. The combination gives you both human-readable (IPTC) and machine-readable (`c2pa.ai-disclosure`) EU AI Act **Article 50** signaling — this is the deployer-side machine-readable pathway the Code of Practice draft points to as the canonical marking mechanism. See `skills/context-engine/eu-code-of-practice.md` for the full Article 50 context.
 
 ## When to invoke
 
@@ -53,6 +53,16 @@ The resulting asset can be inspected by any C2PA-aware viewer (Adobe Photoshop, 
     --generator "Runway Gen-4" \
     --ai-claim ai-generated-content \
     --reviewer "Jane Smith"
+
+# EU-targeted asset — add the machine-readable Article 50 AI-disclosure assertion (C2PA 2.4)
+/digital-marketing-pro:c2pa-metadata \
+    --input assets/q3-launch-hero.png \
+    --output assets/signed/q3-launch-hero.png \
+    --brand "Acme Corp" \
+    --generator "Vertex AI / Nano Banana Pro" \
+    --ai-claim ai-generated-content \
+    --ai-disclosure \
+    --prompt "minimalist product hero shot, soft natural lighting"
 
 # Human-created image with AI-assisted edits
 /digital-marketing-pro:c2pa-metadata \
@@ -137,5 +147,5 @@ The `/digital-marketing-pro:check` pre-publish gate should also verify that all 
 - `/digital-marketing-pro:check` — pre-publish quality gate (now verifies C2PA manifest on AI assets for EU campaigns)
 - `skills/context-engine/compliance-rules.md` — EU AI Act Article 50 rule pack
 - `skills/influencer-creator/ftc-compliance.md` — FTC May 2026 endorsement guidance
-- [C2PA spec v1.3](https://c2pa.org/specifications/specifications/1.3/index.html)
+- [C2PA Specification 2.4 (April 2026)](https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html) — defines the `c2pa.ai-disclosure` assertion (Article 50 machine-readable pathway); [Content Credentials 2.3 launch (Feb 2026)](https://c2pa.org/the-c2pa-launches-content-credentials-2-3-and-celebrates-5-years-of-impact-across-the-digital-ecosystem/)
 - [Content Authenticity Initiative](https://contentauthenticity.org/)

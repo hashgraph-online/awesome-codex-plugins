@@ -272,7 +272,7 @@ Per `.claude/rules/parallel-sessions.md` PSA-003: every `git worktree remove` is
 
 ### Cross-references
 
-- PRD: `docs/prd/2026-05-26-parallel-aware-sessions.md` §3 P3 Gherkin row 4 + §3.A P3 EARS state-driven clause
+- PRD: "Parallel-Aware Sessions" (#568; archived in the private Meta-Vault) §3 P3 Gherkin row 4 + §3.A P3 EARS state-driven clause
 - `stale-branch-days` config: `scripts/lib/config.mjs:138` (default: 7)
 - Detection helper: `parseSessionId()` from `scripts/lib/session-id.mjs`
 - Stale-sweep helpers: `listAutoPromotedWorktrees()` + `isWorktreeStale()` from `scripts/lib/memory-cleanup/worktree-sweep.mjs`

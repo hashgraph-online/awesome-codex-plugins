@@ -22,7 +22,7 @@ This skill produces Part 3 of the engagement methodology: the four documents tha
 
 ## Context efficiency
 
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List the brand's workspace at `~/.claude-marketing/brands/{slug}/` (or `$CLAUDE_PLUGIN_DATA/digital-marketing-pro/brands/{slug}/` when that env var is set) before opening files. On re-invocation mid-session, skip files already in context.
 
 **Specification:** [four-core-documents-spec.md](../context-engine/four-core-documents-spec.md) — the exact 61 steps across the four documents.
 
@@ -47,7 +47,7 @@ If any pre-condition fails, do NOT produce output. Instead, instruct the user on
 /digital-marketing-pro:four-core-documents <brand-slug> <engagement-id>
 ```
 
-Produces 3.1, 3.2, 3.3, 3.4 in sequence. Total time: 30–90 minutes depending on engagement complexity.
+Produces 3.1, 3.2, 3.3, 3.4 in sequence. Actual time varies with engagement complexity.
 
 ### Produce a single document
 
@@ -60,10 +60,10 @@ Produces just the specified document. Useful for re-runs (Part 6) or when one do
 ### Produce v2 re-runs
 
 ```
-/digital-marketing-pro:four-core-documents <brand-slug> <engagement-id> --view v2 --docs "3.1,3.3"
+/digital-marketing-pro:four-core-documents <brand-slug> <engagement-id> --view v2 --doc "3.1,3.3"
 ```
 
-Produces v2 versions of the specified documents. Used during Part 6 after the Decision Matrix has triggered re-runs.
+Produces v2 versions of the specified documents. `--doc` takes a single id (`3.1`) or a comma-separated list (`"3.1,3.3"`). Used during Part 6 after the Decision Matrix has triggered re-runs. (The canonical flags are `--doc`, `--view v2`, and `--combined` — there is no `--docs`.)
 
 ### Produce the Combined Core Document (3.C)
 
@@ -269,7 +269,7 @@ Each document is produced as a single file containing all its steps. If a docume
 2. Continue the same file from where it left off in the next turn (NEVER start a new file)
 3. The file is considered complete only when all steps are present
 
-The skill uses an internal continuation mechanism — if it hits a limit, it logs the cut-off step and resumes from there.
+There is **no hidden continuation state** — the skill does not persist a cut-off pointer. The partial file already saved to disk is the only record. If output is interrupted mid-document, re-run the document: read the saved partial as context and continue appending the remaining steps to the **same** file. For a run interrupted at the engagement level, resume from the part's last checkpoint artifact via `/digital-marketing-pro:resume`. The saved file is always the source of truth.
 
 ## After Production
 

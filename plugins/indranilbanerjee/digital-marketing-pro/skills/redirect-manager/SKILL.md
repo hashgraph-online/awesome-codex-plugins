@@ -1,7 +1,7 @@
 ---
 name: redirect-manager
 description: "Manage URL redirects. Use when: creating 301/302 redirects, auditing chains, fixing loops, or deploying via CMS MCP."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[URL or action]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[URL or action]"
 ## Purpose
 
 Manage URL redirects across the website. Create new 301/302 redirects, audit existing redirects for chains and loops, fix broken redirect paths, and deploy changes via connected CMS MCP. Covers site migrations, URL restructuring, and ongoing redirect maintenance. Redirect mismanagement is one of the most common causes of SEO traffic loss — chains dilute link equity, loops create crawl errors, and broken redirects return 404s for previously indexed URLs. This command provides systematic redirect lifecycle management from creation through auditing and repair.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — every redirect to be created/updated/removed with current-vs-proposed state and site-wide blast radius — as an **Execution Summary** before touching any live rule.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 
