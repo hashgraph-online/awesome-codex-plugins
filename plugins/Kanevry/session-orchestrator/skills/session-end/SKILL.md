@@ -796,7 +796,7 @@ Reply with the number of your choice.
 
 ### Cross-references
 
-- **PRD:** `docs/prd/2026-05-26-parallel-aware-sessions.md` §3 P3 Gherkin rows 2-3 + §3.A P3 EARS event-driven clauses
+- **PRD:** "Parallel-Aware Sessions" (#568; archived in the private Meta-Vault) §3 P3 Gherkin rows 2-3 + §3.A P3 EARS event-driven clauses
 - **PSA-003:** `.claude/rules/parallel-sessions.md` — destructive action safeguards (`git worktree remove --force` requires explicit user authorization)
 - **#490 durableCommit dependency:** Phase 4a runs AFTER Phase 4 commit+push to guarantee `sessions.jsonl` + `STATE.md` are persisted to origin BEFORE worktree removal
 - **Detection helper:** `parseSessionId()` from `scripts/lib/session-id.mjs` (#572)

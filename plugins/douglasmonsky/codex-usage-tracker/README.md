@@ -1,5 +1,5 @@
 <p align="center">
- <img src="docs/assets/readme-hero.png?v=readme-hero-20260704" alt="Codex Usage Tracker local-first analytics dashboard preview with overview, calls, and investigator surfaces." width="100%">
+ <img src="docs/assets/readme-hero-2.png?v=readme-hero-20260708" alt="Codex Usage Tracker local-first analytics dashboard preview with overview, calls, and investigator surfaces." width="100%">
 </p>
 
 # Codex Usage Tracker

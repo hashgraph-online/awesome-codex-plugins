@@ -33,7 +33,7 @@ The loop keeps running as long as post-mortem keeps finding follow-up work. Each
 **Priority cascade:**
 ```
 next-work.jsonl (harvested / queued work)    → exact repo first, then `*`, then legacy
-Open beads (br ready)                        → durable tracked backlog
+Open beads (ao beads exec ready)                        → durable tracked backlog
 GOALS.yaml directives and failing goals      → explicit fitness gaps
 Testing improvements                         → synthesize coverage / regression-test work
 Validation + bug-hunt passes                 → tighten gates, discover real defects

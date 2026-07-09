@@ -20,7 +20,7 @@ The canonical workflow for working on a bead with coordination. BR/beads is the 
    macro_start_session(human_key="/abs/path", program="codex-cli", model="YOUR_MODEL")
 
 2. Pick work
-   br ready --json → select bd-123
+   ao beads exec ready --json → select bd-123
 
 3. Reserve files
    file_reservation_paths(
@@ -48,8 +48,8 @@ The canonical workflow for working on a bead with coordination. BR/beads is the 
    - Keep durable state/evidence on the bead, not only in mail
 
 6. Complete
-   br update bd-123 --notes "Validation: npm test, CI run 123, commit abc123"
-   br close bd-123 --reason "Implemented OAuth flow"
+   ao beads exec update bd-123 --notes "Validation: npm test, CI run 123, commit abc123"
+   ao beads exec close bd-123 --reason "Implemented OAuth flow"
    release_file_reservations(project_key="/abs/path", agent_name="GreenCastle")
    send_message(
      ...

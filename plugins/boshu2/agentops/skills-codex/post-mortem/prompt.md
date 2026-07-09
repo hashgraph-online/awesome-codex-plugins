@@ -11,7 +11,7 @@ Close out completed work in a Codex-native way: validate outcomes, extract durab
 1. Treat `skills/post-mortem/SKILL.md` as the canonical close-out contract and `skills-codex/post-mortem/SKILL.md` as the Codex-facing artifact.
 2. Keep the council/validation summary concise, then write learnings and harvested work to disk.
 3. Prefer concrete follow-up items that can flow directly into `.agents/rpi/next-work.jsonl` for the next Codex loop.
-4. Own Codex closeout during the post-mortem flywheel phase by running `ao codex ensure-stop --auto-extract`; the CLI already skips duplicate closeout for the same Codex thread.
+4. Own Codex closeout during the post-mortem flywheel phase by running `ao session close --auto-extract` followed by `ao flywheel close-loop --quiet`; use `ao forge transcript <path-or-glob> --queue` first only when transcript discovery must be explicit.
 
 ## Guardrails
 

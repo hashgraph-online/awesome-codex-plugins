@@ -744,6 +744,20 @@
       "icon": "./plugins/mbanderas/maestro/assets/icon.png"
     },
     {
+      "name": "memoire",
+      "displayName": "memi",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sarveshsea/memi"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin."
+    },
+    {
       "name": "personal-data-protection",
       "displayName": "Personal Data Protection",
       "source": {
@@ -1566,7 +1580,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.",
-      "icon": "./plugins/Sevi-py/coolify-codex-plugin/assets/icon.svg"
+      "icon": "./plugins/Sevi-py/coolify-codex-plugin/assets/icon.png"
     },
     {
       "name": "dataproduct-builder-dbt",

@@ -59,7 +59,7 @@ The fix is structural: intent on the graph is the lock.
 
 When routing a write through a single writer (e.g. a beads-intake lane), require
 **ACK-with-id** back to the requester — the AM message id of the filed bead or the
-`br show <id>` output confirming the record exists. An unacknowledged routed write
+`ao beads exec show <id>` output confirming the record exists. An unacknowledged routed write
 is invisible work. "Are these filed?" must not be a question — the ACK closes it.
 
 ## When to Use What
@@ -103,20 +103,20 @@ The discipline, not the syntax (syntax: `am file_reservations --help` or the `fi
 
 ## Beads Integration
 
-Use bead IDs as your threading anchor. BR remains authoritative; mail carries the lease, notification, and discussion side channel.
+Use bead IDs as your threading anchor. The bead tracker remains authoritative; mail carries the lease, notification, and discussion side channel.
 
 ```
-1. Pick work:        br ready --json → choose bd-123
+1. Pick work:        ao beads exec ready --json → choose bd-123
 2. Reserve files:    file_reservation_paths(..., reason="bd-123")
 3. Announce:         send_message(..., thread_id="bd-123", subject="[bd-123] Starting...")
 4. Work:             Reply in thread with progress
-5. Record evidence:  br update bd-123 --notes "Validation: tests, commit, CI, or handoff proof"
-6. Complete:         br close bd-123, release_file_reservations(...), final message
+5. Record evidence:  ao beads exec update bd-123 --notes "Validation: tests, commit, CI, or handoff proof"
+6. Complete:         ao beads exec close bd-123, release_file_reservations(...), final message
 ```
 
 **Bead ID (often bd-###) goes in:** thread_id, subject prefix, reservation reason, commit message
 
-**Do not infer durable state from mail silence.** A missing reply is not proof that a bead is abandoned, blocked, or complete. Check `br show <id> --json`, `bv --robot-insights`, git state, and CI evidence before changing work state.
+**Do not infer durable state from mail silence.** A missing reply is not proof that a bead is abandoned, blocked, or complete. Check `ao beads exec show <id> --json`, `bv --robot-insights`, git state, and CI evidence before changing work state.
 
 ## Quick Troubleshooting
 

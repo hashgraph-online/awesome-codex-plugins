@@ -19,7 +19,7 @@ description: "Run autonomous improvement loops."
 A ladder re-read from the TOP after every productive cycle — never a one-shot check. Full per-rung procedure: [references/work-selection-ladder.md](references/work-selection-ladder.md).
 
 1. **Harvested** — `.agents/rpi/next-work.jsonl`, freshest unconsumed follow-up
-2. **Open ready beads** — `BEADS_DIR="$(ao beads dir)" br ready`, highest priority
+2. **Open ready beads** — `ao beads exec ready`, highest priority
 3. **Failing goals + directive gaps** — `ao goals measure` (skip if `--beads-only`; skip quarantined oscillators)
 4. **Generators** — coverage / security / perf / refactor findings → beads or queue items (below)
 5. **Complexity / TODO / drift / dead-code / stale-doc / stale-research mining**
@@ -108,7 +108,7 @@ if [ -x scripts/evolve/halt-check.sh ]; then
 fi
 ```
 
-**Agile-first dormancy:** `DORMANT` is NEVER sticky while ready beads exist — `halt-check.sh` auto-clears it when `br ready` / harvested work exists. KILL/STOP honor `EVOLVE_KILL_TTL_DAYS` (default 7); stale markers are surfaced and bypassed. `goal_regression` halts for operator attention.
+**Agile-first dormancy:** `DORMANT` is NEVER sticky while ready beads exist — `halt-check.sh` auto-clears it when `ao beads exec ready` / harvested work exists. KILL/STOP honor `EVOLVE_KILL_TTL_DAYS` (default 7); stale markers are surfaced and bypassed. `goal_regression` halts for operator attention.
 
 ### Step 1.5: Healing-first classifier
 
@@ -120,7 +120,7 @@ Skip if `--beads-only`. Run `scripts/evolve-measure-fitness.sh --output .agents/
 
 ### Step 3: Select work
 
-Run the ladder above; read [references/work-selection-ladder.md](references/work-selection-ladder.md) for the per-rung code, `--quality` cascade, and dormancy hard-gate. **Agile invariant:** `br ready ≥ 1` ⇒ the loop NEVER writes DORMANT and NEVER exits — the only path to DORMANT is a fully empty backlog + dry generators (3 passes); context exhaustion → HANDOFF, not DORMANT. Pick harvested items with a claim (`claim_status: in_progress`, `claimed_by: evolve:cycle-N`, `consumed: false` until success). If `--dry-run`: report and go to Teardown.
+Run the ladder above; read [references/work-selection-ladder.md](references/work-selection-ladder.md) for the per-rung code, `--quality` cascade, and dormancy hard-gate. **Agile invariant:** `ao beads exec ready ≥ 1` ⇒ the loop NEVER writes DORMANT and NEVER exits — the only path to DORMANT is a fully empty backlog + dry generators (3 passes); context exhaustion → HANDOFF, not DORMANT. Pick harvested items with a claim (`claim_status: in_progress`, `claimed_by: evolve:cycle-N`, `consumed: false` until success). If `--dry-run`: report and go to Teardown.
 
 ### Step 4: Execute
 
@@ -174,7 +174,7 @@ while true; do
 done
 ```
 
-**Stop ONLY on:** (1) **KILL/STOP marker** — operator override; (2) **`--max-cycles` cap**; (3) **genuine stagnation** — `br ready=0 AND harvested=0 AND failing-goals=0 AND GENERATOR_EMPTY_STREAK ≥ 2 AND IDLE_STREAK ≥ 2` → writes DORMANT, which auto-clears when `br create` adds a ready bead; (4) **regression breaker after a revert**. **Context exhaustion is NOT a stop** — write `.agents/evolve/HANDOFF` (non-sticky), log `result: "context-handoff"`, exit the turn; the next fire clears HANDOFF in Step 1 and resumes (`references/context-budget.md` in source tree).
+**Stop ONLY on:** (1) **KILL/STOP marker** — operator override; (2) **`--max-cycles` cap**; (3) **genuine stagnation** — `ao beads exec ready=0 AND harvested=0 AND failing-goals=0 AND GENERATOR_EMPTY_STREAK ≥ 2 AND IDLE_STREAK ≥ 2` → writes DORMANT, which auto-clears when `ao beads exec create` adds a ready bead; (4) **regression breaker after a revert**. **Context exhaustion is NOT a stop** — write `.agents/evolve/HANDOFF` (non-sticky), log `result: "context-handoff"`, exit the turn; the next fire clears HANDOFF in Step 1 and resumes (`references/context-budget.md` in source tree).
 
 **Mandatory checkpoint — session-PR threshold (gates next cycle, NOT terminal):** at `session_pr_count >= 5`, invoke `$post-mortem --deep` and wait for the verdict file. PASS → continue; WARN → continue with a caveat; FAIL / non-convergence → write STOP. The agent MUST NOT self-grade or self-write STOP (`references/postmortem-checkpoint.md`).
 

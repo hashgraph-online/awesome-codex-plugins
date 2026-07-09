@@ -57,7 +57,7 @@ For each promise, find the code that supposedly delivers it and read it. Build
 a code map: real / partial / stub / absent, with file paths. Run the tests and,
 where feasible, the software itself — a wired-up command that exits 0 without
 doing the work counts as a stub, because the decision here is behavioral, not
-structural. Then pull tracker state (`br list`, `bv --robot-insights`) as a
+structural. Then pull tracker state (`ao beads exec list`, `bv --robot-insights`) as a
 *secondary* signal: which promises do open beads actually cover?
 
 **Checkpoint:** for each promise you can answer "what happens today if a user

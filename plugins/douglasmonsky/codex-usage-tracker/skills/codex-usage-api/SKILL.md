@@ -15,7 +15,19 @@ Act as an evidence-first analyst for Codex Usage Tracker data. Prefer MCP JSON p
 - Check top-level `schema`, `content_mode`, `includes_indexed_content`, `includes_raw_fragments`, row counts, truncation, and caveats before interpreting payloads.
 - Name scope: time window, project/thread/model filters, included archived state, row limit, detail mode, and whether results are estimates.
 - Separate exact facts from estimates. Call out `pricing_estimated`, missing `pricing_model`, `usage_credit_confidence`, missing allowance windows, and outside-usage caveats.
-- For broad asks, give diagnosis plus remediation: `Evidence`, `Likely waste pattern`, `Next action`, `How to verify`.
+- For broad asks, give diagnosis plus remediation: `Evidence`, `Hypothesis result`, `Likely waste pattern`, `Next action`, `How to verify`.
+
+## Agentic Investigation Loop
+
+Use this loop for "look through my usage", "make recommendations", "test hypotheses", "what else should I inspect?", and token-waste discovery:
+
+1. Start with `usage_suggest_investigations(goal=...)` when the user needs ideas, otherwise call `usage_investigate(goal=...)` directly.
+2. Convert findings into explicit hypotheses: `I'd like to be able to...`, `I will accomplish it using...`, `I'm missing access to...`, `My hypothesis was true/false/inconclusive because...`.
+3. Drill into recommended tools such as `usage_large_low_output_calls`, `usage_shell_churn`, `usage_repeated_file_rediscovery`, `usage_allowance_diagnostics`, `usage_threads`, or `usage_calls`.
+4. Recommend concrete fixes, not just summaries: shorter handoff, split thread, preserved cache context, lower effort on routine tasks, targeted script, repo note, skill update, or an existing tool such as Headroom when available and relevant.
+5. End with the verification tool/query the user should run after changing behavior.
+
+For maintainer dogfood or plugin-quality checks, prefer the MCP polling flow when available: call `usage_dogfood_start(privacy_mode="strict")`, poll `usage_dogfood_status(job_id)` until completed or failed, then call `usage_dogfood_result(job_id)`. After one fresh run, use `usage_dogfood_start(refresh=False, use_cache=True, privacy_mode="strict")` for repeated checks on unchanged data and confirm `result_cache.hit`. Use the blocking CLI fallback only when MCP polling tools are unavailable: `codex-usage-tracker dogfood-agentic --privacy-mode strict --json`. Treat the output as a compact aggregate QA artifact that must not include raw prompts, raw tool output, full paths, or indexed fragments.
 
 ## Router
 

@@ -1,7 +1,7 @@
 {
   "name": "debt-ops",
   "version": "0.10.0",
-  "description": "Tracks the tech debt your AI agent writes. Every shortcut and \"I'll fix this later\" logged in your repo and kept visible until it's fixed.",
+  "description": "Every shortcut your coding agent takes, saved to your repo as it happens. Fix them when you're ready.",
   "author": {
     "name": "Brandin Canfield",
     "email": "brandincanfield@gmail.com"

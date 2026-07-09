@@ -23,7 +23,7 @@ When `/rpi --from=discovery` is invoked:
 
 ### Epic Deduplication
 
-If `br list --type epic --status open` returns an epic matching the current goal, `/plan` reuses it rather than creating a duplicate. This prevents epic proliferation on re-runs.
+If `ao beads exec list --type epic --status open` returns an epic matching the current goal, `/plan` reuses it rather than creating a duplicate. This prevents epic proliferation on re-runs.
 
 ## /validate
 

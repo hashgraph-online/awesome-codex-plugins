@@ -93,6 +93,7 @@ Agent({ subagent_type: "Explore", description: "Research technical approach",
 3. Save to `{plan-prd-location}/YYYY-MM-DD-{feature-slug}.md`. Read `plan-prd-location` from Session Config in CLAUDE.md (or AGENTS.md on Codex CLI) (default: `docs/prd/`).
 4. Dispatch PRD reviewer subagent per `prd-reviewer-prompt.md`. Max 3 iterations. Surface unresolved issues to user.
 5. **Package Legitimacy Audit (Slopcheck — #520):** if Session Config has `slopcheck.enabled: true` and `slopcheck.sources` includes `plan`, run the Phase 3.5 audit defined in `SKILL.md` against the generated PRD body (scan `## Affected Files`, `## Dependencies`, and code-fenced `pnpm add` / `npm install` / `pip install` / `cargo add` blocks for npm/pip/cargo package mentions, then call `classifyPackages()` from `scripts/lib/slopcheck.mjs`). Fail-soft on registry errors. See `SKILL.md` § "Phase 3.5: Package Legitimacy Audit" for the full handling matrix.
+6. **PRD Commit Gate:** before proceeding to Phase 3 (Issue Creation), satisfy the PRD Commit Gate — see `SKILL.md` § Phase 5.5 (HARD-GATE). Do not create issues referencing an uncommitted PRD.
 
 ---
 
@@ -136,3 +137,4 @@ Present the full issue structure via AskUserQuestion before creation:
 1. Create via VCS CLI (auto-detect per gitlab-ops skill: `glab` or `gh`).
 2. Set `blocks` / `is-blocked-by` dependency links between issues.
 3. Report created issue URLs to user.
+4. **Epic Backlink Commit:** once the Epic issue's IID is known, follow `SKILL.md` § 6.6 to add an `**Epic:** #<IID>` line to the PRD and commit it as a separate follow-up commit.

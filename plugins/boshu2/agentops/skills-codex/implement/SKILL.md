@@ -66,7 +66,7 @@ Skip silently if ao is unavailable or returns no results.
 
 **If beads issue ID provided** (e.g., `gt-123`):
 ```bash
-BEADS_DIR="$(ao beads dir)" br show <issue-id> 2>/dev/null
+ao beads exec show <issue-id> 2>/dev/null
 ```
 
 **If plain description provided:** Use that as the task description.
@@ -79,7 +79,7 @@ br ready 2>/dev/null | head -3
 ### Step 2: Claim the Issue
 
 ```bash
-BEADS_DIR="$(ao beads dir)" br update <issue-id> --claim 2>/dev/null
+ao beads exec update <issue-id> --claim 2>/dev/null
 ```
 
 ### Step 2a: Build Context Briefing
@@ -491,7 +491,7 @@ CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null | head -10 | tr '\n' ' '
 br close <issue-id> --reason "commit:${COMMIT_SHA} files:[${CHANGED_FILES}]" 2>/dev/null
 ```
 
-If `br close` is unavailable, fall back to `br update <issue-id> --status closed`.
+If `ao beads exec close` is unavailable, fall back to `ao beads exec update <issue-id> --status closed`.
 
 ### Step 7a: Record Implementation in Ratchet Chain
 
@@ -608,7 +608,7 @@ If br CLI not available:
 3. Agent edits `middleware/auth.go` to add token validation
 4. Runs `go test ./middleware/...` — all tests pass
 5. Commits with message "Add JWT token validation middleware\n\nImplements: ag-5k2"
-6. Closes issue via `br close ag-5k2 --reason "commit:<sha> files:[middleware/auth.go]"`
+6. Closes issue via `ao beads exec close ag-5k2 --reason "commit:<sha> files:[middleware/auth.go]"`
 
 **Result:** Issue implemented, verified, committed, and closed. Ratchet recorded.
 
@@ -617,8 +617,8 @@ If br CLI not available:
 **User says:** `$implement`
 
 **What happens:**
-1. Agent runs `br ready` — finds `ag-3b7` (first unblocked issue)
-2. Claims issue via `br update ag-3b7 --claim`
+1. Agent runs `ao beads exec ready` — finds `ag-3b7` (first unblocked issue)
+2. Claims issue via `ao beads exec update ag-3b7 --claim`
 3. Implements and verifies
 4. Closes issue
 
@@ -641,7 +641,7 @@ If br CLI not available:
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Issue not found | Issue ID doesn't exist or local state looks stale | Run `br show <id>` to verify; use `br sync --status` only if you need tracker sync state |
+| Issue not found | Issue ID doesn't exist or local state looks stale | Run `ao beads exec show <id>` to verify; use `br sync --status` only if you need tracker sync state |
 | GREEN mode violation | Edited a file not related to the issue scope | Revert unrelated changes. GREEN mode restricts edits to files relevant to the issue |
 | Verification gate fails | Tests fail or build breaks after implementation | Read the verification output, fix the specific failures, re-run verification |
 | "BLOCKED" status | Contract contradicts tests or is incomplete in GREEN mode | Write BLOCKED with specific reason, do NOT modify tests |

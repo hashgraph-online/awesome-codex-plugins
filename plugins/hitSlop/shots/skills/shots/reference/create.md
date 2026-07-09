@@ -35,10 +35,17 @@ visual artifact, or make the current screenshot closer to an existing reference.
 - If no real UI reference exists, search the local repo for screenshots,
   fastlane screenshots, preview images, docs images, or product mockups. Upload
   good candidates with the helper using `--kind app_screenshot`.
+- If the user provides local image paths, clipboard images saved to disk, or you
+  discover useful local screenshots yourself, upload them before generation. The
+  image model only receives references through Shots media IDs; local file paths
+  in the prompt are not enough. Use `--kind app_screenshot` for real product UI,
+  `--kind reference` for product/brand assets, and `--kind inspo` for mood-only
+  references.
 - Before planning new English screenshots, check `screenshots.listing` for
-  selected/promoted `en-US` store screenshots. Use those as the default
-  continuity/style references. Do not use recent unpromoted generations as image
-  references unless the user selects them or asks to continue from them.
+  selected/promoted `en-US` store screenshots. Use relevant selected/promoted
+  screenshots as default continuity/product references. Do not use recent
+  unpromoted generations as image references unless the user selects them or
+  asks to continue from them.
 - If the user gives another App Store URL as inspiration, use
   `gallery.ensure_app` and `gallery.get_app`; do not import it as the user's app
   unless they explicitly say it is theirs.
@@ -57,8 +64,8 @@ Before writing panels, summarize and save:
 - visual direction and palette
 - 3-5 market-native words
 - available critical screens
-- mapping of reference assets to screens
-- selected/promoted English campaign screenshots used for style
+- mapping of uploaded media IDs to screens
+- selected/promoted English campaign screenshots used for product/campaign continuity
 - public gallery inspiration ids, if used
 
 Store durable findings with `apps.update_research` so Studio and future agents
@@ -91,8 +98,10 @@ Planning rules:
   feature naming.
 - Each row needs a specific UI moment, object, scene, collage, or proof point,
   not generic "show the app" direction.
-- The `Reference assets` column must name the real UI reference and any style or
-  public inspiration reference used by that row.
+- The `Reference assets` column must name the uploaded media IDs for the real UI
+  reference and any style reference used by that row, plus any public inspiration
+  reference. If a useful reference is still only a local file, upload it before
+  approval or mark the row blocked until upload succeeds.
 - If a row uses public gallery inspiration, name the inspiration app and
   screenshot explicitly. Do not hide it behind a generic "style reference" label.
 
@@ -104,13 +113,16 @@ generate.
 For each approved row:
 
 - Build a complete plain-text prompt using [prompting.md](prompting.md).
-- Pass only the references that row actually needs, up to the server's max.
+- Pass only the uploaded references that row actually needs, up to the server's
+  max. `referenceMediaIds` must be Shots media IDs, not local paths or CDN URLs
+  mentioned only in the prompt.
 - Include `galleryInspirationScreenshotId` only when that row uses public
   gallery inspiration approved by the user. Gallery inspiration is style-only
   and still costs 3 generation credits. Keep gallery-inspiration generation on
   medium quality.
-- Use selected/promoted English campaign screenshots for style continuity, not
-  old copy. Avoid unpromoted generations unless the user picked them.
+- Use selected/promoted English campaign screenshots for product and campaign
+  continuity, not old copy. Avoid unpromoted generations unless the user picked
+  them.
 
 Prompt example:
 

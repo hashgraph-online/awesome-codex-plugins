@@ -1,6 +1,6 @@
 {
   "name": "coolify",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Control Coolify Cloud and self-hosted Coolify instances from Codex with API-aware skills and an MCP server.",
   "author": {
     "name": "Severin Hilbert"
@@ -37,8 +37,8 @@
       "Create or update Coolify environment variables safely."
     ],
     "brandColor": "#8B5CF6",
-    "composerIcon": "./assets/icon.svg",
-    "logo": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
     "screenshots": [
       "./assets/screenshot.svg"
     ]

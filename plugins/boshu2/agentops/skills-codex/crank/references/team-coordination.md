@@ -84,7 +84,7 @@ Parameters:
 After completing a wave:
 
 ### Beads Mode
-2. Check if new beads issues are now unblocked: `br ready`
+2. Check if new beads issues are now unblocked: `ao beads exec ready`
 4. If no more issues after 3 retry attempts, proceed to final validation
 
 2. If yes, loop back to wave execution

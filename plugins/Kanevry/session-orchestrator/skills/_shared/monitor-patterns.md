@@ -233,7 +233,7 @@ never advances and the watcher keeps emitting the stale-SHA line every
   `/loop` vs Routines)
 - `.claude/loop.md` — bare-`/loop` body that delegates to Monitor where
   appropriate
-- `docs/spikes/2026-06-12-640-background-detachment-test.md` — empirical
+- "Background Detachment Test" (#640; archived in the private Meta-Vault) — empirical
   verification of the Bash `run_in_background` + `TaskStop` detachment
   seam behind Pattern 3
 - Anthropic Monitor tool reference (in-session)

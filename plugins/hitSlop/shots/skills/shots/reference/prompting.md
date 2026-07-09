@@ -157,13 +157,19 @@ one before generating.
 
 ## Reference Usage
 
+References must be attached as Shots media, not merely mentioned in the prompt.
+If a useful reference is a local file or user-provided image path, upload it
+first, then pass the returned media ID in `referenceMediaIds`. The prompt should
+refer to attached images by role/order only; local filesystem paths and CDN URLs
+inside the prose do not make an image available to the model.
+
 Call out exactly what each reference should do:
 
 ```text
 Reference image usage:
-- Reference 1: real app UI layout, visible controls, and product accuracy.
-- Reference 2: existing English campaign style, palette, typography, device treatment, and background rhythm.
-- Reference 3: app icon color and brand symbol language.
+- Reference 1 / product truth: real app UI layout, visible controls, and product accuracy.
+- Reference 2 / campaign continuity: existing English campaign style, palette, typography, device treatment, and background rhythm.
+- Reference 3 / brand asset: app icon color and brand symbol language.
 - Gallery inspiration: style and composition only; do not copy its UI, claims, or branding.
 ```
 

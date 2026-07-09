@@ -117,7 +117,7 @@ During plan creation (Step 2), evaluate each issue and wave against all 7 rules.
 - counts of commands → `ao --help | extract_commands | wc -l`
 - counts of files → `git ls-files | grep -c <pattern>`
 - counts of test functions → `grep -rn "^func Test" <pkg>/ | wc -l`
-- counts of br issues → `br list --status=open --json | jq length`
+- counts of br issues → `ao beads exec list --status=open --json | jq '.issues | length'`
 Plans where any numeric claim has no producing command are rejected back to research.
 
 ---

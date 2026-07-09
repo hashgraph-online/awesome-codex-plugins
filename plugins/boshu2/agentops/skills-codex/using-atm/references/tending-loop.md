@@ -26,7 +26,7 @@ Run one tick at a time; take the first action whose trigger fires:
 - **A pane is context-saturated** (forgetting earlier instructions, repeating
   itself) → have it write a handoff, then relaunch fresh and re-dispatch.
 - **A worker finished its bead** (PR merged, bead closed) → dispatch the next
-  `br ready` bead to it.
+  `ao beads exec ready` bead to it.
 - **Many review beads open, few closing** → flip the swarm to review-only and
   drain the backlog before taking new feature work.
 - **Otherwise** → observe; do not nudge a healthy working pane.
@@ -35,9 +35,9 @@ Run one tick at a time; take the first action whose trigger fires:
 
 ## Convergence + shutdown
 
-The swarm is done when: `br ready` is empty, no pane has an in-flight bead, and
+The swarm is done when: `ao beads exec ready` is empty, no pane has an in-flight bead, and
 the last few CI runs are green. Confirm with `atm activity` (all panes idle) and
-`br ready` (empty) before tearing down with `atm kill <session>`. Don't shut down
+`ao beads exec ready` (empty) before tearing down with `atm kill <session>`. Don't shut down
 on a transient quiet patch — a rate-limited pane also looks idle.
 
 ## Single-writer + merged-before-close (cards 17–18, cp-4gj6; POLICY → gate cp-hxp6)
@@ -52,5 +52,5 @@ the gate enforces it structurally.
 the canonical store (the bead's worktree branch or the trunk after merge). `main`
 in a shared checkout is stale relative to in-flight worktree branches. A reader that
 declares "stuck" or "closed" based on a stale `main` read is reporting on phantom
-state. Verify bead state on the bead's branch or via `br show` against the live
+state. Verify bead state on the bead's branch or via `ao beads exec show` against the live
 server; do not declare convergence from a stale checkout.

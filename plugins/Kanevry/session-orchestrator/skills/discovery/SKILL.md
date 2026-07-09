@@ -61,6 +61,7 @@ Detect the project's tech stack via marker file checks. Use Glob and run checks 
 | `.orchestrator/bootstrap.lock`        | harness-audit probe     |
 | `.vault.yaml` OR Session Config `vault-integration.enabled: true` | vault probes      |
 | `package.json` / `requirements.txt` / `Cargo.toml` **AND** Session Config `slopcheck.enabled: true` AND `slopcheck.sources` includes `"discovery"` | supply-chain probe (`skills/discovery/probes-supply-chain.md`) |
+| `docs/` directory present **AND** Session Config `docs-staleness.enabled: true` | docs probe (`skills/discovery/probes-docs.md`) |
 
 ### Build Activation Set
 
@@ -150,6 +151,7 @@ Dispatch probe agents IN PARALLEL using the Agent tool. Group by category (max `
 - **Audit probes agent**: Runs harness-audit probe
 - **Vault probes** (`skills/discovery/probes-vault.md`): invokes `skills/discovery/probes/vault-staleness.mjs` and `skills/discovery/probes/vault-narrative-staleness.mjs` directly via `node`. Each probe returns `{findings, metrics, duration_ms}`. The runner reports `FINDING:` blocks per finding and appends summary records to `.orchestrator/metrics/vault-staleness.jsonl` and `vault-narrative-staleness.jsonl`.
 - **Supply-chain probe** (`skills/discovery/probes-supply-chain.md`): invokes `skills/discovery/probes/supply-chain-slopcheck.mjs` directly via `node`. **Gated:** only activates when `slopcheck.enabled: true` AND `"discovery"` is in `slopcheck.sources` (Session Config). The probe returns `{findings, summary}`. SLOP findings surface as `critical`, ASSUMED as `medium`, LEGITIMATE packages generate no finding. See `probes-supply-chain.md` for invocation details and classification reference.
+- **Docs probe** (`skills/discovery/probes-docs.md`): invokes `skills/discovery/probes/docs-staleness.mjs` directly via `node`. **Gated:** only activates when a `docs/` directory exists AND `docs-staleness.enabled: true` (Session Config). The probe returns `{findings, metrics, duration_ms}`. Scans `docs/*.md` (root level) and `docs/examples/*.md` for filesystem-mtime staleness against the `docs-staleness.thresholds.living` threshold (default 90d); `docs/adr/` and `docs/prd/` are deliberately excluded. See `probes-docs.md` for invocation details and severity escalation.
 - **Feature probes agent** (`skills/discovery/probes-feature.md`): intent-drift + stubbed-dead-feature probes. Findings MUST carry file_path:line_number anchors that survive the Phase 4.2 re-read (±3 lines).
 
 Each agent receives:

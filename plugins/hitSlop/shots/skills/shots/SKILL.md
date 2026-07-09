@@ -66,6 +66,15 @@ arguments, billing recovery, polling cadence, app setup, and review URLs. Use
   uploaded `app_screenshot`, a `reference` image showing actual app UI, or
   scraped App Store screenshots. An icon, palette, or written description alone
   is not enough.
+- If the user provides local image files, or you discover useful local
+  screenshots/assets in the repo, upload them first and use the returned media
+  IDs. Do not put local paths in the prompt and assume the image model can see
+  them.
+- Codex/local-agent screenshot generation is explicit-reference-first. Inspect
+  available media, choose the exact references for each panel, pass them as
+  `referenceMediaIds`, and describe each reference's job in the prompt. Do not
+  rely on Studio/backend default reference selection for quality; that fallback
+  exists for non-agent UI flows.
 - For unpublished apps, inspect local screens, navigation, theme tokens, preview
   fixtures, docs, and screenshots. Save durable findings to the app record so
   Studio and future sessions share the same context.
@@ -131,9 +140,9 @@ source icon with `--kind icon`:
   states, and emotional payload.
 - Keep references selective. Pass only the images that a specific screenshot
   actually needs.
-- Prefer selected/promoted App Store screenshots for continuity. Do not pass
-  recent unpromoted generations as references unless the user selects them or
-  asks to continue from them.
+- Prefer selected/promoted App Store screenshots for product and campaign
+  continuity when they are relevant. Do not pass recent unpromoted generations
+  as references unless the user selects them or asks to continue from them.
 - Do not request fake App Store chrome, gutters, dividers, rounded screenshot
   borders, or fictional product UI.
 

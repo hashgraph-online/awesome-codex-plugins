@@ -175,7 +175,7 @@ See `references/quality-mode.md` for scoring and full details.
 **Nothing found?** HARD GATE — dormancy only when ALL sources empty (soc-5qit):
 
 ```bash
-READY_BEADS=$(BEADS_DIR="$(ao beads dir)" br ready --json 2>/dev/null | jq -r 'length // 0' 2>/dev/null || echo 0)
+READY_BEADS=$(ao beads exec ready --json 2>/dev/null | jq -r 'length // 0' 2>/dev/null || echo 0)
 HARVESTED=$(jq -r 'select(.consumed==false) | .severity' .agents/rpi/next-work.jsonl 2>/dev/null | wc -l | tr -d ' ')
 FAILING_GOALS=$(jq -r '.goals[] | select(.result=="fail") | .id' .agents/evolve/fitness-latest.json 2>/dev/null | wc -l | tr -d ' ')
 IDLE_STREAK=$(jq -r '.idle_streak // 0' .agents/evolve/session-state.json 2>/dev/null)

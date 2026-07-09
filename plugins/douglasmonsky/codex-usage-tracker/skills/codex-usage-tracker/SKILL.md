@@ -40,6 +40,8 @@ When the user wants ideas, suggest concrete aggregate investigations:
 - Build strict-privacy allowance evidence I can share.
 - Find expensive calls worth opening in the investigator.
 - Check whether model or effort choice is wasting tokens.
+- Test my usage-waste hypotheses and say what was true, false, or inconclusive.
+- Compare repeated file rediscovery, shell churn, and large low-output calls.
 - Build a strict-privacy summary I can share.
 
 Route these through `usage_report_pack`, `usage_calls`, `usage_threads`, `usage_summary`, and `usage_call_detail` before considering raw context.
@@ -56,6 +58,31 @@ When a usage-waste investigation finds clear patterns, do not stop at "interesti
 - Mention dashboard actions that help the user verify the fix: open Calls filtered to the expensive rows, Threads sorted by tokens, Call Investigator for a selected record, or Diagnostics Notebook for usage-drain evidence.
 
 Phrase the final answer as "what happened, why it likely matters, what to try next, how to verify." Avoid implying an external tool is installed unless the current environment or tool registry confirms it.
+
+## Agentic Dogfood
+
+When the maintainer asks whether MCP/skill recommendations are getting more useful, prefer the MCP polling flow when available:
+
+1. Call `usage_dogfood_start(privacy_mode="strict")`.
+2. Poll `usage_dogfood_status(job_id)` until completed or failed.
+3. Call `usage_dogfood_result(job_id)` for the compact aggregate artifact.
+4. For repeated checks on unchanged data after one fresh run, call `usage_dogfood_start(refresh=False, use_cache=True, privacy_mode="strict")` and confirm `result_cache.hit`.
+
+Use the source checkout or installed CLI only as fallback:
+
+```bash
+codex-usage-tracker dogfood-agentic --privacy-mode strict --json
+```
+
+Use it to check old and new hypothesis families, direct reports, suggested goals, investigation findings, and privacy checks. Treat it as compact QA evidence, not as a user-facing raw transcript export.
+
+For experiment-style answers, use this structure:
+
+- `I'd like to be able to...`
+- `I will accomplish it using...`
+- `I'm missing access to...`
+- `My hypothesis was true/false/inconclusive because...`
+- `Next tool or fix...`
 
 ## Common Workflows
 

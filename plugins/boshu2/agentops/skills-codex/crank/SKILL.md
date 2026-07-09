@@ -13,7 +13,7 @@ description: "Execute implementation waves."
 ```text
 Crank (lead agent)
     |
-    +-> br ready (current wave)
+    +-> ao beads exec ready (current wave)
     |
     +-> Build a wave task packet
     |
@@ -21,7 +21,7 @@ Crank (lead agent)
     |
     +-> wait_agent for all worker ids
     |
-    +-> Validate results + br update
+    +-> Validate results + ao beads exec update
     |
     +-> Loop until epic DONE
 ```
@@ -95,7 +95,7 @@ fi
 ### Step 0.5: Detect Tracking Mode
 
 ```bash
-if br ready --json >/dev/null 2>&1 && br list --type epic --status open --json >/dev/null 2>&1; then
+if ao beads exec ready --json >/dev/null 2>&1 && ao beads exec list --type epic --status open --json >/dev/null 2>&1; then
     TRACKING_MODE="beads"
 else
     TRACKING_MODE="tasklist"
@@ -163,7 +163,7 @@ log_plan_mutation() {
 
 **Beads mode:**
 - If epic ID provided: use it directly
-- If no epic ID: `br list --type epic --status open 2>/dev/null | head -5`
+- If no epic ID: `ao beads exec list --type epic --status open 2>/dev/null | head -5`
 
 **Execution-packet/file mode:**
 - If the input is `.agents/rpi/execution-packet.json`, read `objective`, `epic_id`, `tracker_mode`, `done_criteria`, and `validation_commands`
@@ -185,7 +185,7 @@ br show <epic-id> 2>/dev/null
 
 **Execution-packet/file mode:**
 - Read the packet or plan file into local state for the current objective
-- Preserve the same objective across retries; do not narrow to one slice from `br ready`
+- Preserve the same objective across retries; do not narrow to one slice from `ao beads exec ready`
 
 ### Step 3: List Ready Work for the Current Wave
 
@@ -195,7 +195,7 @@ br show <epic-id> 2>/dev/null
 br ready 2>/dev/null
 ```
 
-`br ready` returns all unblocked issues - these can run in parallel.
+`ao beads exec ready` returns all unblocked issues - these can run in parallel.
 
 **Execution-packet/file mode:**
 - Read remaining tasks from `.agents/rpi/execution-packet.json` or the plan file
@@ -478,7 +478,9 @@ THIS repo lands by **direct push to main** — PR-per-bead is retired (external-
 1. **Gate:** `ao gate check --fast --scope head` — the local cockpit gate (also the pre-push hook; run it manually to fail fast).
 2. **Review:** `REVIEWER=agy bash scripts/pawl-review.sh <bead> --scope head --author-family codex` — the cross-family refuter against the commit. Codex-runtime authors need BOTH halves: `--author-family codex` (default is `claude`; omitting it silently permits a same-family codex bind) AND a non-codex `REVIEWER` (the default reviewer IS codex, which the declared family then excludes — without the override the script exits 2). **CONFIRMED (exit 0) writes the commit-bound verdict the pre-push gate requires; no CONFIRMED verdict ⇒ the bead does NOT land** (no verdict = not done). **REFUTED (exit 3) -> AUTO-REDO** the named defects and re-gate; escalate to a human only on a circuit-breaker trip (max-attempts / time / cost / oscillation), door stays closed.
 3. **Land:** `bash scripts/pawl-land.sh <bead>` — fetch + rebase onto `origin/main`, restamp the verdict onto the post-rebase feat, single-shot push.
-4. **Close on landed-only:** `br close` a child bead ONLY after its commit is an ancestor of `origin/main` (`git fetch origin main && git merge-base --is-ancestor <feat-sha> origin/main`), never on a log line or batch `br --json` query. Never close a parent epic before EVERY child is landed (`scripts/check-epic-children-closed.sh <epic>`).
+4. **Close on landed-only:** `ao beads exec close` a child bead ONLY after its commit is an ancestor of `origin/main` (`git fetch origin main && git merge-base --is-ancestor <feat-sha> origin/main`), never on a log line or batch `br --json` query. Never close a parent epic before EVERY child is landed (`scripts/check-epic-children-closed.sh <epic>`).
+
+**Multi-lane serialization + by-hand land.** When several lanes land onto a hot `main` at once, or when you land by hand via the `ao pawl review` CLI (which sets `PAWL_UNTRUSTED_REPO=1` and SKIPS auto-bind, so the sealed bind is manual), follow the serialized land-token discipline + the exact `[feat, #trivial-bind]` command sequence in [references/land-protocol.md](references/land-protocol.md) — one land at a time across lanes, `ao provenance emit-verdict` for the sealed bind (never a hand-appended ledger edge), and `git merge-base --is-ancestor` before every `ao beads exec close`.
 
 **External-repo variant (PR flow).** When targeting an external repo where you cannot push `main`, the land half becomes a PR: prepare it with `$pr-prep`, then reconcile with `scripts/reconcile-pr.sh <pr> <bead> [--epic <epic>]` (verifies the CONFIRMED pawl verdict via `scripts/pawl-verdict.sh check`, merges `gh pr merge --squash --admin`, closes on confirmed `MERGED`). External targets only — never for landing AgentOps' own beads.
 
@@ -493,10 +495,10 @@ if [[ $wave -ge 50 ]]; then
     exit 1
 fi
 
-REMAINING=$(br ready 2>/dev/null | wc -l)
+REMAINING=$(ao beads exec ready 2>/dev/null | wc -l)
 if [[ $REMAINING -eq 0 ]]; then
-    OPEN_TOTAL=$(br list --status open 2>/dev/null | wc -l || echo 0)
-    IN_PROGRESS_TOTAL=$(br list --status in_progress 2>/dev/null | wc -l || echo 0)
+    OPEN_TOTAL=$(ao beads exec list --status open 2>/dev/null | wc -l || echo 0)
+    IN_PROGRESS_TOTAL=$(ao beads exec list --status in_progress 2>/dev/null | wc -l || echo 0)
 
     if [[ $((OPEN_TOTAL + IN_PROGRESS_TOTAL)) -eq 0 ]]; then
         echo "<promise>DONE</promise>"
@@ -547,7 +549,7 @@ fi
 ## Output Specification
 
 **Format:** committed code plus a markdown progress/closeout summary to stdout; per-slice [slice-validation](../../docs/templates/slice-validation.md) roll-ups.
-**Files:** reads `.agents/rpi/execution-packet.json`; writes wave/slice results under `.agents/swarm/results/`; closes beads via `br close` in the resolved `_beads` ledger.
+**Files:** reads `.agents/rpi/execution-packet.json`; writes wave/slice results under `.agents/swarm/results/`; closes beads via `ao beads exec close` in the resolved bead ledger.
 **Exit signal:** `<promise>DONE</promise>` (all slices accepted) · `<promise>PARTIAL</promise>` (retry the same objective) · `<promise>BLOCKED</promise>` (manual intervention).
 
 ## Related skills
@@ -563,6 +565,7 @@ fi
 - [references/commit-strategies.md](references/commit-strategies.md) - per-task vs wave-batch commits
 - [references/contract-template.md](references/contract-template.md) - contract template for worker specs
 - [references/failure-recovery.md](references/failure-recovery.md) - escalation and retry logic
+- [references/land-protocol.md](references/land-protocol.md) - serialized multi-lane land protocol: land-token, the [feat, #trivial-bind] sequence, stale-bind drop, failure playbook
 - [references/failure-taxonomy.md](references/failure-taxonomy.md) - failure classification
 - [references/fire.md](references/fire.md) - FIRE loop specification
 - [references/ralph-loop-contract.md](references/ralph-loop-contract.md) - Ralph Wiggum loop contract

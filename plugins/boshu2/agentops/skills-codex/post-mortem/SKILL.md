@@ -6,7 +6,7 @@ description: "Review completed work and learn."
 
 > **Purpose:** Wrap up completed work — validate it shipped correctly, extract learnings, process the knowledge backlog, activate high-value insights, and retire stale knowledge.
 >
-> **Runtime note:** Hook-driven closeout is runtime-dependent. Claude/OpenCode can wire Phase 2-5 maintenance through lifecycle hooks. Codex does not expose that hook surface, so Codex sessions should finish closeout with `ao codex ensure-stop`.
+> **Runtime note:** Hook-driven closeout is runtime-dependent. Claude/OpenCode can wire Phase 2-5 maintenance through lifecycle hooks. Codex post-mortem closeout uses the default AgentOps session/flywheel commands, not the archived Codex lifecycle shims: finish with `ao session close --auto-extract` and `ao flywheel close-loop --quiet`.
 
 Six phases:
 1. **Council** — Did we implement it correctly?
@@ -36,11 +36,11 @@ $post-mortem --skip-checkpoint-policy epic-123  # skip ratchet chain validation
 In Codex hookless mode, run these after the post-mortem workflow writes learnings and next work:
 
 ```bash
-ao codex ensure-stop --auto-extract
-ao codex status
+ao session close --auto-extract
+ao flywheel close-loop --quiet
 ```
 
-`ao codex ensure-stop` is idempotent for the current Codex thread. It uses the latest transcript or history fallback to queue/persist learnings and run close-loop maintenance without runtime hooks.
+`ao session close --auto-extract` resolves the current transcript, forges the session, extracts lightweight learnings, and reports flywheel impact. `ao flywheel close-loop --quiet` runs the supported close-loop maintenance. If transcript discovery needs to be explicit, use `ao forge transcript <path-or-glob> --queue` before `ao flywheel close-loop --quiet`.
 
 ---
 

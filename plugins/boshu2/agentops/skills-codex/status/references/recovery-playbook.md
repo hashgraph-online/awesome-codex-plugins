@@ -73,14 +73,13 @@ git branch --show-current
 
 **Call 4 — Work Queue State:**
 ```bash
-if command -v br &>/dev/null; then
-  BEADS_DIR="$(ao beads dir)"
+if command -v ao &>/dev/null; then
   echo "=== IN_PROGRESS ==="
-  BEADS_DIR="$BEADS_DIR" br list --status in_progress 2>/dev/null | head -3
+  ao beads exec list --status in_progress 2>/dev/null | head -3
   echo "=== READY ==="
-  BEADS_DIR="$BEADS_DIR" br ready 2>/dev/null | head -3
+  ao beads exec ready 2>/dev/null | head -3
 else
-  echo "BR_UNAVAILABLE"
+  echo "AO_UNAVAILABLE"
 fi
 ```
 
@@ -346,7 +345,7 @@ Render this with a single code block. No visual dashboard when `--json` is activ
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Shows "BR_UNAVAILABLE" or "GT_UNAVAILABLE" | CLI tools not installed or not in PATH | Install missing tools (`br` / `gt`). Skill gracefully degrades by showing available state only. |
+| Shows "AO_UNAVAILABLE" or "GT_UNAVAILABLE" | CLI tools not installed or not in PATH | Install missing tools (`ao` / `gt`); `ao beads exec` resolves the bead tracker (bd or br). Skill gracefully degrades by showing available state only. |
 | RPI state shows wrong phase | Stale phased-state.json not updated | Check timestamp of `.agents/rpi/phased-state.json`. If stale, it may be from a previous run. Run `/status` to verify current phase. |
 | Evolve history shows wrong cycle | Old cycle-history.jsonl entries not pruned | Tail -3 shows most recent entries. Check all entries with `tail -20 .agents/evolve/cycle-history.jsonl`. |
 | Knowledge injection fails silently | ao CLI not installed or no knowledge artifacts | Ensure ao installed: `brew install ao`. If no learnings exist, run `/validate` to seed the knowledge base. |

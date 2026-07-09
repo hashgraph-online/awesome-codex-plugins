@@ -278,13 +278,13 @@ ntm work burndown sprint-2 --json
 
 ### `queue-dry`
 
-Use when `br ready --json` and `bv --robot-triage` appear empty or when a swarm is
+Use when `ao beads exec ready --json` and `bv --robot-triage` appear empty or when a swarm is
 about to stop for lack of work. Treat it as a **guarded transition**, not an
 idea generator to run by habit.
 
 ```bash
 # 1. Prove ready work is actually empty using the native sources.
-br ready --json
+ao beads exec ready --json
 bv --robot-triage | jq '.quick_ref'
 
 # 2. Diagnose the dry queue.
@@ -529,7 +529,7 @@ BV is optional but strongly recommended for dependency-aware assignment.
 Before broad reassignment, check whether the backlog is genuinely ready:
 
 ```bash
-br ready --json
+ao beads exec ready --json
 bv --robot-triage | jq '.quick_ref'
 ntm work queue-dry --format=json | jq '{queue_dry, evidence, recommendations}'
 ```

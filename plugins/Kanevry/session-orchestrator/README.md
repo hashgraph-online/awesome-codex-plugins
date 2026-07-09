@@ -219,6 +219,7 @@ What it is **not**:
 
 ## Documentation
 
+- [docs/ Router](docs/README.md) — living reference vs. public decision history vs. active work documents; what moved to the private Meta-Vault and why
 - [User Guide](docs/USER-GUIDE.md) — installation, config reference, workflow walkthrough, FAQ
 - [Components & Reference](docs/components.md) — full skill/command/agent/hook inventory, repository anatomy, comparisons
 - [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) — contributor guide, layering, hook anatomy, testing

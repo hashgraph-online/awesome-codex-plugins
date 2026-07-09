@@ -347,4 +347,4 @@ gh pr create --title "..." --body "..."
 - Enforcement policy: `.orchestrator/policy/templates-policy.json`
 - Session acknowledgement: `.orchestrator/runtime/templates-acknowledged.json`
 - Sister hook (destructive-command model): `hooks/pre-bash-destructive-guard.mjs`
-- PRD: `docs/prd/2026-05-22-gsd-pattern-adoption-quickwins.md` § Pattern 3 + § 3 Gherkin Pattern 3
+- PRD: "gsd Pattern Adoption Quick-Wins" (#519; archived in the private Meta-Vault) § Pattern 3 + § 3 Gherkin Pattern 3

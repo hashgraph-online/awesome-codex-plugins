@@ -37,6 +37,7 @@ if [[ "$DC_ENABLED" == "true" ]]; then
   [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-vault-dir-parity" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-vault-dir-parity)
   [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-generated-rule-staleness" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-generated-rule-staleness)
   [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-rule-scoping" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-rule-scoping)
+  [[ "$(echo "$CONFIG" | jq -r '."drift-check"."check-docs-parity" // true')" == "false" ]] && DC_SKIP_ARGS+=(--skip-docs-parity)
 
   # Invoke checker; capture JSON on stdout and exit code
   DC_EXIT=0

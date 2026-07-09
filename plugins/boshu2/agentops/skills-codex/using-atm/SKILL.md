@@ -81,7 +81,7 @@ prefer re-cutting the write-set to a sole-writer surface over a shared lease.)
    agent with the AgentOps skills installed, so `rpi`, `evolve`, `$validate`,
    etc. resolve in-pane.
 3. **The bead queue is the work source.** A lead (operator or a lead pane) runs
-   `BEADS_DIR="$(ao beads dir)" br ready`, picks the next bead, and dispatches it to a free worker pane.
+   `ao beads exec ready`, picks the next bead, and dispatches it to a free worker pane.
 4. **Green CI is the merge gate.** Each worker drives its bead to a green PR from
    a per-bead worktree (orchestrator-merge model); the operator stays *on* the
    loop (intent + stop), not *in* it (per-PR approval).
@@ -141,10 +141,11 @@ Fall back to raw `tmux send-keys` only when `atm send` / `atm codex …` can't e
 
 ATM panes coordinate through the other substrate legs, not bespoke glue:
 
-- **Beads (`br`, beads_rust)** is the shared work queue and the source of truth for state —
-  `BEADS_DIR="$(ao beads dir)" br ready` to pick, `br update <id> --claim` to claim,
-  `br close <id>` when merged. (`bd`/Dolt is retired; resolve `BEADS_DIR` before every
-  direct `br` read/write — linked worktrees don't carry `_beads`.)
+- **Beads** is the shared work queue and the source of truth for state —
+  `ao beads exec ready` to pick, `ao beads exec update <id> --claim` to claim,
+  `ao beads exec close <id>` when merged. (`ao beads exec` resolves the tracker —
+  bd or br — and its ledger for you; no manual `BEADS_DIR`, and it works from
+  linked worktrees that don't carry `_beads`.)
 - **Agent Mail (`am`)** (its own daemon at `127.0.0.1:8765` — the `am` CLI,
   **not** an `ao` subcommand) carries cross-pane **messages** and
   **file reservations** — the swarm's defense against two panes editing the same
@@ -174,7 +175,7 @@ Terminal-state conditions and the **single-writer / merged-before-close** durabi
   managed-agents driver (`ao agent`) or a plain in-session run are equally valid
   legs. Choose via [`$automation-shape-routing`](../automation-shape-routing/SKILL.md).
 - ❌ **Closing a bead before the branch is merged.** Closed-but-unmerged is
-  protection-off. Require merge confirmation before `br close`.
+  protection-off. Require merge confirmation before `ao beads exec close`.
 - ❌ **Reading state from a stale shared `main`.** Read canonical from the bead's
   worktree branch or after merge; stale reads are the other half of the split-brain.
 

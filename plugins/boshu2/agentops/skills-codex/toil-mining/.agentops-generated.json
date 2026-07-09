@@ -2,6 +2,6 @@
   "generator": "codex-sync",
   "source_skill": "skills/toil-mining",
   "layout": "modular",
-  "source_hash": "f15ee220e855ffca6e6c998030662cbc3340611e1e6fb0f2d4e3b02156a96f66",
-  "generated_hash": "9d40abc06c132a18f3a311076a890bf1d0fa145ec2fb93b630775b420773751c"
+  "source_hash": "d176b3317c951354f3317a0d05ff1d22539e022400e6e6bd7f8d4c9fc586b2e2",
+  "generated_hash": "497eb57fcacf8e97094b942d8bd0ce5a975582d6209d18d0378c61a32f06fd65"
 }
