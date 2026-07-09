@@ -1,0 +1,52 @@
+{
+  "name": "quality-engineering-skills",
+  "version": "2.0.0",
+  "description": "22 structured quality engineering skills for automotive and manufacturing — ISO 9001, IATF 16949, AIAG-VDA FMEA, VDA 6.3, PPAP, APQP, SPC, MSA. Works with Claude Code, Codex CLI, Cursor, Gemini CLI, and any agentskills.io-compatible tool.",
+  "author": {
+    "name": "RBraga01",
+    "url": "https://github.com/RBraga01"
+  },
+  "homepage": "https://rbraga01.github.io/Quality-Engineering-Skills/",
+  "repository": "https://github.com/RBraga01/Quality-Engineering-Skills",
+  "license": "MIT",
+  "websiteURL": "https://rbraga01.github.io/Quality-Engineering-Skills/",
+  "privacyPolicyURL": "https://github.com/RBraga01/Quality-Engineering-Skills/blob/master/SECURITY.md",
+  "termsOfServiceURL": "https://github.com/RBraga01/Quality-Engineering-Skills/blob/master/LICENSE",
+  "keywords": [
+    "quality-engineering",
+    "automotive",
+    "iso-9001",
+    "iatf-16949",
+    "fmea",
+    "8d-problem-solving",
+    "ppap",
+    "apqp",
+    "spc",
+    "msa",
+    "vda-6-3",
+    "manufacturing"
+  ],
+  "skills": "../skills/",
+  "interface": {
+    "composerIcon": "../docs/assets/qes-logo.jpg",
+    "displayName": "Quality Engineering Skills",
+    "shortDescription": "22 quality engineering skills — ISO 9001, IATF 16949, FMEA, PPAP, 8D.",
+    "longDescription": "Quality Engineering Skills packages decades of hands-on quality engineering expertise into structured skills your AI agent can load and apply immediately. Covers problem solving (8D, 5-Why, Fishbone, DMAIC), risk analysis (PFMEA, DFMEA, Action Priority), planning (PPAP, APQP, Control Plan), measurement (MSA, SPC), documentation (NCR, CAR, 8D Report), auditing (ISO 9001, IATF 16949, VDA 6.3), and supplier quality. Every skill maps to specific standard clauses. Validated methodology, not just format.",
+    "developerName": "RBraga01",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Load the 8d-problem-solving skill and guide me through a D0 emergency response.",
+      "Run /fmea-reviewer on my PFMEA worksheet."
+    ],
+    "websiteURL": "https://rbraga01.github.io/Quality-Engineering-Skills/",
+    "privacyPolicyURL": "https://github.com/RBraga01/Quality-Engineering-Skills/blob/master/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/RBraga01/Quality-Engineering-Skills/blob/master/LICENSE",
+    "brandColor": "#ea580c",
+    "screenshots": []
+  }
+}
