@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="BurpSuite MCP Bridge">
+  <rect width="128" height="128" rx="24" fill="#f97316"/>
+  <rect x="18" y="24" width="92" height="56" rx="8" fill="#fff7ed" opacity="0.96"/>
+  <path d="M18 40h92" stroke="#fdba74" stroke-width="4"/>
+  <circle cx="30" cy="32" r="3" fill="#fb923c"/>
+  <circle cx="40" cy="32" r="3" fill="#f97316"/>
+  <circle cx="50" cy="32" r="3" fill="#ea580c"/>
+  <path d="M26 88h76" stroke="#ffedd5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M34 102h60" stroke="#ffedd5" stroke-width="8" stroke-linecap="round"/>
+</svg>

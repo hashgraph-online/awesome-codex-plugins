@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "haunt": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@hauntapi/mcp-server"
+      ],
+      "env": {
+        "HAUNT_API_KEY": "${HAUNT_API_KEY}"
+      }
+    }
+  }
+}

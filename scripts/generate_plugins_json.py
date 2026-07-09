@@ -57,9 +57,15 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # BurpSuite MCP Bridge needs its Python MCP runtime and Burp extension JARs
+    # mirrored with the plugin manifest so marketplace installs are usable.
+    "6jeffr3y/burpsuite-mcp-bridge": ("wsl-mcp", "burp-plugin"),
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
+    # VidSeeds.ai ships a root registry fallback skill plus Dependabot metadata
+    # that HOL Guard uses when scoring the mirrored marketplace bundle.
+    "CarrotGamesStudios/vidseeds-mcp": ("SKILL.md", ".github/dependabot.yml"),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
