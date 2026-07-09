@@ -1,7 +1,0 @@
-BurpSuite MCP Bridge
-
-发布前建议检查：
-- homepage / repository / support URL 是否替换为正式地址
-- 品牌信息与联系方式是否符合你的发布环境
-- 默认 Bridge URL 是否符合目标环境
-- Python 运行环境是否可以直接启动 wsl-mcp/server.py

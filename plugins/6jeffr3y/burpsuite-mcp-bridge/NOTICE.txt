@@ -1,7 +1,0 @@
-BurpSuite MCP Bridge
-
-Distribution notes:
-- review homepage / repository / support URLs before public release
-- review organization branding and contact information
-- verify the default bridge URL matches your target release environment
-- verify Python runtime availability for directly starting wsl-mcp/server.py

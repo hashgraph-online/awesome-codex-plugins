@@ -1,7 +1,7 @@
 {
   "name": "burpsuite-mcp-bridge",
-  "version": "1.1.0",
-  "description": "Burp Suite MCP bridge for target-centric traffic triage, replay, rewrite automation, UI selection handoff, BCheck/Bambda import, and evidence export across WSL/Windows/macOS clients.",
+  "version": "2.0.1",
+  "description": "Burp Suite MCP bridge for target-centric traffic triage, marked-flow discovery, time-window search, replay, rewrite automation, selection handoff, and evidence export.",
   "author": {
     "name": "BurpSuite MCP Bridge",
     "email": "6jeffr3y@users.noreply.github.com",
@@ -18,13 +18,14 @@
     "windows",
     "montoya",
     "proxy",
-    "agent-ai"
+    "agent-ai",
+    "pentest"
   ],
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "BurpSuite MCP Bridge",
-    "shortDescription": "Bridge Burp Suite traffic, replay, and rewrite workflows into MCP clients and IDEs",
-    "longDescription": "Expose Burp Suite proxy, history, logger-like internal tool traffic, and UI-selected messages to MCP clients. Supports target-centric overview, low-noise polling, replay with mutation, request/response rewrite rules with modify/drop/spoof actions, Repeater handoff, BCheck/Bambda import, and exportable raw evidence.",
+    "shortDescription": "把 Burp Suite 流量、重放、改写规则、Selection 与证据导出接入 MCP 客户端",
+    "longDescription": "面向 Codex / Agent AI 的 Burp Suite 本地桥接插件。支持目标视角流量画像、时间窗口搜索、注释/高亮关键包检索、live/history/logger/selection 低噪声读取、按 flow id 拉完整包、改包重放、Repeater 联动、Rewrite Rule modify/drop/spoof、BCheck/Bambda 导入和原始证据导出。",
     "developerName": "BurpSuite MCP Bridge",
     "category": "Coding",
     "capabilities": [
@@ -37,9 +38,9 @@
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/logo.svg",
     "defaultPrompt": [
-      "Use BurpSuite MCP Bridge to build a target overview for the current host and pick high-value candidate flows.",
-      "Use BurpSuite MCP Bridge to inspect a selected Burp message, replay one controlled mutation, and export the raw evidence bundle.",
-      "Use BurpSuite MCP Bridge to create a temporary scoped rewrite rule, verify its effect, then delete or disable it."
+      "使用 BurpSuite MCP Bridge 对当前 host 做 target overview，并优先查看有注释或高亮的关键流量。",
+      "使用 BurpSuite MCP Bridge 查看 Burp 右键捕获给 AI 的 selection，拉取完整请求响应并导出原始证据包。",
+      "使用 BurpSuite MCP Bridge 创建带 max_matches/ttl 的临时 rewrite rule，验证后自动禁用或删除。"
     ]
   }
 }
