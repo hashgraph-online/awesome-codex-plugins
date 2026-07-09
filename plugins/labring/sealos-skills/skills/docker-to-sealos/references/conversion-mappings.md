@@ -256,6 +256,61 @@ spec:
       secretName: ${{ SEALOS_CERT_SECRET_NAME }}
 ```
 
+#### WebSocket Ingress Mapping
+
+Select WebSocket ingress when Compose/docs expose a public endpoint through `ws://`, `wss://`, CDP/Chrome DevTools, game socket traffic, or a port/service named `websocket`, `ws`, or `wss`. Service port names should preserve the protocol signal:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    app: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
+spec:
+  ports:
+    - name: websocket
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: ${{ defaults.app_name }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager-domain: ${{ defaults.app_host }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: 32m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/backend-protocol: WS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ${{ defaults.app_name }}
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      secretName: ${{ SEALOS_CERT_SECRET_NAME }}
+```
+
+When an app exposes separate HTTP and WebSocket public surfaces, create separate host defaults and separate ingress resources like the EaglerCraft pattern. When one public entry serves only WebSocket traffic, use the WebSocket ingress set even if the container port is named `http` upstream.
+
 #### TLS Offload Normalization (80/443 Dual-Port Scenario)
 
 ```yaml
@@ -387,6 +442,14 @@ Notes:
 ### Docker Compose Volumes → Sealos VolumeClaimTemplates
 
 **Important**: Sealos does not support emptyDir; all storage must be persistent.
+
+Before creating a PVC for a host-directory mount, classify the target path:
+
+- Use persistent storage for user data, uploads, model caches, database-adjacent state, and writable runtime state.
+- Use ConfigMap mounts for source-controlled config files or scripts.
+- Leave the path unmounted when the image already ships required dependency manifests, config defaults, or bootstrap metadata at the same path.
+
+Dify sandbox is the failure pattern: official Compose mounts `./volumes/sandbox/dependencies:/dependencies`, while `langgenius/dify-sandbox:0.2.15` expects `dependencies/python-requirements.txt` to exist in the image/repo runtime path. A fresh Sealos PVC mounted at `/dependencies` contains only `lost+found`, hides the required file, and produces `failed to setup runner dependencies`.
 
 #### Docker Compose
 ```yaml
@@ -924,6 +987,13 @@ metadata:
 
 ### Persistent Storage
 - Docker volumes → StatefulSet + volumeClaimTemplates
+
+### Existing Template Resource Tuning
+- Tune CPU and memory through the Sealos resource ladder.
+- Preserve existing `ephemeral-storage` requests and limits exactly during template refreshes.
+- Change `ephemeral-storage` only when live evidence shows `EphemeralStorage`, eviction, or disk-pressure failures for that workload.
+- Adjust `requests.ephemeral-storage` and `limits.ephemeral-storage` together for the same container.
+- Choose the smallest common Mi value that covers observed writable-layer usage plus startup margin; Dify sandbox uses `512Mi` after `300Mi` eviction and observed runner expansion under `/opt` and `/var/sandbox`.
 
 ### Configuration Files
 - Docker config files → ConfigMap (using vn- naming convention)

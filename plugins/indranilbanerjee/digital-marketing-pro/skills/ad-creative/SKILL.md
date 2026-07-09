@@ -57,7 +57,7 @@ When the brief includes static visuals or short-form video, recommend the model 
 **Workflow recommendation:**
 
 1. Brief the visual concept in this skill's output (subject, composition, brand-character constraints, on-pack text if any).
-2. Hand the visual spec to whichever production track owns image/video — typically **SocialForge** (`/socialforge:image` for stills, `/socialforge:video` for short-form, with Vertex AI / Nano Banana / Veo wired up via `/socialforge:setup`) or an external creative team.
+2. Hand the visual spec to whichever production track owns image/video — typically **SocialForge** (`/socialforge:compose-creative` for stills, `/socialforge:generate-video` for short-form, with Vertex AI / Nano Banana / Veo wired up via `/socialforge:setup`) or an external creative team.
 3. Treat all AI-generated visuals as **Article 50 in-scope** until proven otherwise. The pre-publish gate (`/digital-marketing-pro:check`) blocks unsigned AI assets for EU-targeted campaigns.
 
 ## Agents Used

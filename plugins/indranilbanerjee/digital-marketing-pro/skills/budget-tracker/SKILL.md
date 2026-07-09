@@ -35,7 +35,7 @@ The user must provide (or will be prompted for):
 3. **Pull spend data from connected ad MCPs**: Query each connected advertising platform
    (google-ads, meta-marketing, linkedin-marketing, tiktok-ads) for current-period spend — total spend to date,
    daily spend breakdown, campaign-level spend distribution, and cost metrics (CPC, CPM, CPA per campaign).
-4. **Calculate pacing per platform**: Execute `scripts/ad-budget-pacer.py` with spend data
+4. **Calculate pacing per platform**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/ad-budget-pacer.py" --budget {total} --period-days {N} --days-elapsed {N} --spend-to-date {amount}` with spend data
    and budget targets to compute days elapsed/remaining, budget consumed vs expected pacing percentage, pacing
    ratio (actual / expected), daily burn rate (7-day average), and burn rate trend (accelerating/steady/decelerating).
 5. **Project end-of-period spend**: Extrapolate current daily burn rate to end of period for each platform —
@@ -48,11 +48,11 @@ The user must provide (or will be prompted for):
    warning (<70%, increase bids or expand targeting or reallocate), underspend info (70-85%, monitor).
 8. **Pull efficiency metrics**: For each platform, retrieve CPA, ROAS, conversion volume, and cost per conversion
    so reallocation decisions are performance-informed, not just pacing-based.
-9. **Recommend reallocations**: Execute `scripts/budget-optimizer.py` with current spend
+9. **Recommend reallocations**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/budget-optimizer.py"` with current spend
    efficiency data to suggest specific dollar-amount shifts from underspending or low-efficiency platforms to
    high-performing ones with room to scale. Include rationale for each recommended move.
 10. **Save budget snapshot**: Persist the current pacing snapshot via
-    `scripts/performance-monitor.py --brand {slug} --action save-snapshot`
+    `python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand {slug} --action save-snapshot --data '{...pacing metrics...}'`
     for historical tracking, trend analysis, and comparison in future budget-tracker runs.
 
 ## Output

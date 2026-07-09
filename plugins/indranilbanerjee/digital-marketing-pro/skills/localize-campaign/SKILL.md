@@ -37,8 +37,8 @@ The user must provide (or will be prompted for):
    - **SEO-dependent**: Landing pages, blog posts, meta content — requires localized keyword research
    Report the full inventory to the user: total asset count, breakdown by type, breakdown by content classification, and estimated processing scope per market.
 3. **For each target market**, execute the following localization pipeline:
-   a. **Route translation service**: Run `python scripts/language-router.py --action route --source "{source_lang}" --target "{market_lang}"` to select the optimal translation service for this language pair. Log the selected service.
-   b. **Translate factual content**: Process all factual/informational assets through the routed translation service via the appropriate MCP server (deepl, sarvam-ai, google-cloud-translation, or lara-translate). Pass do-not-translate terms, glossary entries, formality settings, and formatting preservation flags. Score each translation via `python scripts/language-router.py --action score`.
+   a. **Route translation service**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action route --source "{source_lang}" --target "{market_lang}"` to select the optimal translation service for this language pair. Log the selected service.
+   b. **Translate factual content**: Process all factual/informational assets through the routed translation service via the appropriate MCP server (deepl, sarvam-ai, google-cloud-translation, or lara-translate). Pass do-not-translate terms, glossary entries, formality settings, and formatting preservation flags. Score each translation via `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action score`.
    c. **Transcreate emotional content**: For all emotional/creative assets, apply the transcreation methodology from `skills/context-engine/transcreation-framework.md`. Produce 2-3 creative adaptation options per piece, each with:
       - The adapted content in the target language
       - Back-translation for review
@@ -68,9 +68,9 @@ The user must provide (or will be prompted for):
       - Measurement units (metric vs. imperial)
       - Phone number formats with country codes
       - Address format conventions
-4. **Score each localized asset**: Run `python scripts/language-router.py --action score` on every translated/transcreated asset to assess translation quality (length ratio, formatting preservation, key term consistency, placeholder integrity, completeness).
-5. **Evaluate localized content quality**: Run `python scripts/eval-runner.py --brand {slug} --action run-quick --text "{localized_content}" --content-type "{type}"` on each localized asset to assess overall content quality in the target language. This catches issues beyond translation accuracy — readability, persuasion, brand alignment in the target language.
-6. **Run brand voice check**: Execute `python scripts/brand-voice-scorer.py --brand {slug} --text "{localized_content}"` on key assets (headlines, hero copy, email subject lines) to verify brand voice preservation across languages.
+4. **Score each localized asset**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action score` on every translated/transcreated asset to assess translation quality (length ratio, formatting preservation, key term consistency, placeholder integrity, completeness).
+5. **Evaluate localized content quality**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py" --brand {slug} --action run-quick --text "{localized_content}" --content-type "{type}"` on each localized asset to assess overall content quality in the target language. This catches issues beyond translation accuracy — readability, persuasion, brand alignment in the target language.
+6. **Run brand voice check**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/brand-voice-scorer.py" --brand {slug} --text "{localized_content}"` on key assets (headlines, hero copy, email subject lines) to verify brand voice preservation across languages.
 7. **Create per-market delivery package**: For each target market, assemble:
    - All localized assets organized by type
    - Translation quality scores per asset

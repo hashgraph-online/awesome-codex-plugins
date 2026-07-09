@@ -12,6 +12,8 @@ Perform a comprehensive SEO audit that evaluates a website across all major rank
 
 ### May 2026 Core Update context (read before triaging volatility)
 
+> **Time-boxed guidance — valid until ~2026-08.** This block is specific to the May 2026 Core Update window. After ~August 2026 it is stale: re-check the [Google Search Status Dashboard](https://status.search.google.com/) for the current/most-recent core update and its dates before applying any of the timing advice below.
+
 Google rolled out a **broad core algorithm update starting 21 May 2026** with the usual ~2-week deployment window. If the audit is being run inside that window (or in the 4 weeks after) and the brand is showing ranking volatility:
 
 - **Do not make reactive changes during the rollout.** Wait for the update to fully deploy (Google announces completion in the Search Status Dashboard) plus 7–14 days of post-deploy settling before drawing conclusions.
@@ -36,7 +38,13 @@ The user must provide (or will be prompted for):
 3. **On-page audit**: Title tags, meta descriptions, heading hierarchy, keyword usage, image alt text, internal linking structure, URL structure
 4. **Content audit**: Thin content, duplicate content, content gaps, freshness, E-E-A-T signals (author pages, citations, credentials, first-hand experience)
 5. **Local SEO** (if applicable): Google Business Profile, NAP consistency, local schema, reviews, local link profile
-6. **Link profile**: Domain authority, backlink quality, toxic links, anchor text distribution, link velocity, competitor link gap
+6. **Link profile**: Domain authority, backlink quality, toxic links, anchor text distribution, link velocity, competitor link gap. Score the own-domain profile with the analyzer (feeds `05-link-profile.md`):
+   ```bash
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/link-profile-analyzer.py" \
+       --file "${CLAUDE_PLUGIN_DATA}/{brand}/seo/seo-audit/{date}/links-export.json" \
+       --brand-domain {brand-domain}
+   ```
+   (`--file` is a JSON array of link objects `[{"url","anchor_text","domain","da","follow"}]`, or pass `--links '<json>'` inline; `--brand-domain` excludes internal links.) For competitor link-gap prospecting, hand off to `/digital-marketing-pro:backlink-gap`.
 7. Score each dimension on a 1-10 scale
 8. Prioritize findings by impact (high/medium/low) and effort (quick win/medium/major project)
 9. Generate the audit report with actionable recommendations

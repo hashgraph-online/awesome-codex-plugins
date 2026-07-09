@@ -32,6 +32,7 @@ The user must provide (or will be prompted for):
 7. Assess nurture effectiveness at each stage
 8. Model improvement scenarios: "If stage X improves by Y%, overall revenue increases by Z%"
 9. Prioritize recommendations by revenue impact and implementation effort
+10. **Size and validate the fix**: For the top recommendation, size the validating experiment with `python "${CLAUDE_PLUGIN_ROOT}/scripts/sample-size-calculator.py" --baseline-rate {stage-rate} --mde {mde} --mde-type absolute --significance 0.95 --power 0.80` (pass `--mde-type relative` if the target is a relative lift — the two differ by ~40× at a 5% baseline). Once the fix has run, confirm the improvement is statistically real with `python "${CLAUDE_PLUGIN_ROOT}/scripts/significance-tester.py" --control-visitors {n} --control-conversions {n} --variant-visitors {n} --variant-conversions {n} --confidence 0.95` rather than declaring a winner off raw rate deltas.
 
 ## Output
 

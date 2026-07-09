@@ -8,7 +8,7 @@ description: "Run discovery, crank, and validation."
 > Quick ref: `$discovery` -> `$crank` -> `$validate`, then report.
 
 **Execute this workflow. Do not only describe it.** RPI is autonomous unless
-`--interactive` is set. The user touchpoint is after validation, or after a
+`--interactive` is set. Each slice runs the narrow-waist micro-cycle: acceptance test RED -> green -> refactor-under-green (its own step, never changes a test — the load-bearing quality move; test-first ordering alone is not the lever), then the membrane verdict, then mine lessons back into the next loop. The user touchpoint is after validation, or after a
 real blocked state exhausts retries. Read
 [references/autonomous-execution.md](references/autonomous-execution.md) when
 you need the full autonomy contract.

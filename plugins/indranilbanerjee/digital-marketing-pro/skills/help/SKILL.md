@@ -1,79 +1,83 @@
 ---
 name: help
 description: "Show the getting started guide, available commands, examples, and help for Digital Marketing Pro"
-argument-hint: "[--commands | --examples | --troubleshoot]"
+argument-hint: "[--commands | --skills | --examples | --connectors | --troubleshoot | --brand]"
 ---
 
 # /digital-marketing-pro:help
 
-Show the Digital Marketing Pro getting started guide with setup instructions, available commands, usage examples, and troubleshooting.
+Show the Digital Marketing Pro user guide with **live plugin state** (version, agent/skill/command/script counts, connector counts, runtime environment) pulled from disk — not hardcoded — plus getting-started steps, usage examples, and troubleshooting.
+
+## CRITICAL: never hardcode version, counts, or connector numbers
+
+Versions and counts in this plugin used to be baked into this skill body as literal version and count strings — a hardcoded version number, a fixed slash-command count, a fixed integrations count. Those drifted out of sync with the actual install every release and misreported the plugin to users.
+
+**Always read live values from `scripts/plugin-metadata.py`. Never quote a version number, skill count, agent count, command count, or connector count from memory or from this skill body.**
 
 ## Behavior
 
-When invoked, display a structured help overview with the following sections. Use the reference documentation in `docs/getting-started.md` for full details.
+### Step 1 — Fetch live plugin metadata
 
-### 1. Quick Start Summary
+Run **first**, every time this skill is invoked (any argument or none):
 
-Display this quick orientation:
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/plugin-metadata.py" --section all-with-environment
+```
+
+This returns JSON with:
+
+- `version` — `{ version, name, required_min_version, ... }`
+- `assets` — `{ agents, skills_total, commands, scripts, reference_docs }`
+- `connectors` — `{ available_http, available_npx, available_total, active_count, active_names, cowork_compatible_count }`
+- `skills` — array of `{ skill_dir, slash_command, description }`
+- `commands` — array of `{ command_file, slash_command, description }`
+- `environment` — runtime detection (local Claude Code vs Cowork sandbox, with a warning if filesystem writes won't reach the user's host)
+
+Substitute the values from this JSON into every place the help output references a count, a version, or a slash-command list. Do **not** invent or quote numbers from elsewhere.
+
+### Step 2 — Default rendering (no args)
+
+Render a clean orientation using the live data. Suggested format (fill every `<...>` from the JSON):
 
 ```
-=== DIGITAL MARKETING PRO — HELP ===
-
-Version: 2.7.0
-Agents: 25 specialist agents
-Skills: 141 slash commands (/digital-marketing-pro:*) — all with argument-hint autocomplete
-Modules: 16 marketing knowledge domains
-Connectors: 14 HTTP + 68 npx integrations
+=== DIGITAL MARKETING PRO ===
+Version: <version.version>
+Agents: <assets.agents> | Skills: <assets.skills_total> | Commands: <assets.commands> | Scripts: <assets.scripts>
+Connectors: <connectors.available_http> HTTP + <connectors.available_npx> npx available
+  (<connectors.active_count> currently active in your .mcp.json)
+  Cowork-compatible: <connectors.cowork_compatible_count> (HTTP only — npx connectors don't run in Cowork)
+Environment: <environment.environment>
+<if environment.cowork_warning is non-null, show it as a WARNING block>
 
 Getting Started:
-  1. /digital-marketing-pro:brand-setup        — Create your brand profile (start here)
-  2. /digital-marketing-pro:import-guidelines   — Import voice guides, restrictions, templates
-  3. /digital-marketing-pro:integrations        — See which connectors are active
-  4. /digital-marketing-pro:connect <name>      — Set up a new connector
-  5. Just ask!               — Describe what you need in natural language
+  1. /digital-marketing-pro:brand-setup       — Create your brand profile (start here)
+  2. /digital-marketing-pro:import-guidelines  — Import voice guides, restrictions, templates
+  3. /digital-marketing-pro:integrations       — See which connectors are active
+  4. /digital-marketing-pro:connect <name>     — Set up a new connector
+  5. Just ask!                                 — Describe what you need in natural language
 ```
 
-### 2. Arguments
+### Step 3 — Cowork warning (when applicable)
 
-| Argument | Effect |
-|----------|--------|
-| (none) | Show the full help overview |
-| `--commands` | List all 117 slash commands grouped by category |
-| `--connectors` | Show connector status (shortcut for /digital-marketing-pro:integrations) |
-| `--brand` | Show current brand profile summary |
-| `--examples` | Show 10 example prompts across different marketing tasks |
-| `--troubleshoot` | Show common issues and solutions |
+If `environment.cowork_warning` is non-null, surface it prominently after the orientation block, explaining that brand-state writes to `~/.claude-marketing/` land inside the sandbox and won't persist to the user's host; recommend `/digital-marketing-pro:cowork-setup` to route state through a Drive MCP.
 
-### 3. Commands by Category
+### Step 4 — Argument routing
 
-When `--commands` is specified, group all commands into these categories:
+| Argument | What to render |
+|----------|----------------|
+| (none) | Steps 2 + 3 + a short "just ask" prompt |
+| `--commands` | Steps 2 + 3 + list every command from JSON `commands` array (its `slash_command` + `description`), grouped by category if helpful |
+| `--skills` | Steps 2 + 3 + list every skill from JSON `skills` array (its `slash_command` + `description`) |
+| `--connectors` | Steps 2 + 3 + redirect: "For active/available connector status, run `/digital-marketing-pro:integrations`" |
+| `--examples` | Steps 2 + 3 + the worked-example prompts (see below) |
+| `--troubleshoot` | Steps 2 + 3 + troubleshooting matrix (see below) |
+| `--brand` | Steps 2 + 3 + current brand summary (run `/digital-marketing-pro:status --section brand`) |
 
-| Category | Example Commands |
-|----------|-----------------|
-| **Brand Management** | `/digital-marketing-pro:brand-setup`, `/digital-marketing-pro:switch-brand`, `/digital-marketing-pro:import-guidelines` |
-| **Strategy & Planning** | `/digital-marketing-pro:campaign-plan`, `/digital-marketing-pro:launch-plan`, `/digital-marketing-pro:social-strategy`, `/digital-marketing-pro:media-plan` |
-| **Content Creation** | `/digital-marketing-pro:content-brief`, `/digital-marketing-pro:email-sequence`, `/digital-marketing-pro:ad-creative`, `/digital-marketing-pro:video-script` |
-| **SEO & Technical** | `/digital-marketing-pro:seo-audit`, `/digital-marketing-pro:tech-seo-audit`, `/digital-marketing-pro:keyword-research`, `/digital-marketing-pro:aeo-audit` |
-| **Analytics & Reporting** | `/digital-marketing-pro:performance-report`, `/digital-marketing-pro:roi-calculator`, `/digital-marketing-pro:attribution-model` |
-| **Paid Advertising** | `/digital-marketing-pro:media-plan`, `/digital-marketing-pro:launch-ad-campaign`, `/digital-marketing-pro:budget-optimizer` |
-| **Social Media** | `/digital-marketing-pro:social-strategy`, `/digital-marketing-pro:schedule-social`, `/digital-marketing-pro:content-calendar` |
-| **Email Marketing** | `/digital-marketing-pro:email-sequence`, `/digital-marketing-pro:send-email-campaign` |
-| **CRM & Data** | `/digital-marketing-pro:crm-sync`, `/digital-marketing-pro:lead-import`, `/digital-marketing-pro:pipeline-update`, `/digital-marketing-pro:data-export` |
-| **Competitive Intelligence** | `/digital-marketing-pro:competitor-analysis`, `/digital-marketing-pro:competitor-monitor`, `/digital-marketing-pro:share-of-voice` |
-| **PR & Outreach** | `/digital-marketing-pro:pr-pitch`, `/digital-marketing-pro:influencer-brief`, `/digital-marketing-pro:crisis-response` |
-| **Audience** | `/digital-marketing-pro:audience-profile`, `/digital-marketing-pro:focus-group`, `/digital-marketing-pro:segment-audience` |
-| **CRO & Growth** | `/digital-marketing-pro:landing-page-audit`, `/digital-marketing-pro:funnel-audit`, `/digital-marketing-pro:ab-test-plan` |
-| **Quality & Evaluation** | `/digital-marketing-pro:eval-content`, `/digital-marketing-pro:verify-claims`, `/digital-marketing-pro:quality-report` |
-| **Multilingual** | `/digital-marketing-pro:translate-content`, `/digital-marketing-pro:localize-campaign`, `/digital-marketing-pro:language-config` |
-| **Execution & Publishing** | `/digital-marketing-pro:publish-blog`, `/digital-marketing-pro:send-email-campaign`, `/digital-marketing-pro:launch-ad-campaign` |
-| **Monitoring** | `/digital-marketing-pro:performance-check`, `/digital-marketing-pro:anomaly-scan`, `/digital-marketing-pro:budget-tracker` |
-| **Connector Discovery** | `/digital-marketing-pro:integrations`, `/digital-marketing-pro:connect`, `/digital-marketing-pro:add-integration` |
-| **Agency Operations** | `/digital-marketing-pro:agency-dashboard`, `/digital-marketing-pro:client-report`, `/digital-marketing-pro:sop-library` |
-| **Memory & Knowledge** | `/digital-marketing-pro:save-knowledge`, `/digital-marketing-pro:search-knowledge`, `/digital-marketing-pro:sync-memory` |
+When rendering the skills/commands list, **iterate over the JSON arrays** — do not paste a hand-maintained list, and do not state a total count from memory. Each row shows the `slash_command` field as the user-facing label and the `description` field as the explanation.
 
-### 4. Example Prompts
+### Step 5 — Example prompts (`--examples`)
 
-When `--examples` is specified, show these real-world examples:
+Show real-world example prompts across marketing tasks:
 
 ```
 Getting Started:
@@ -82,7 +86,7 @@ Getting Started:
 
 Strategy:
   "Plan a product launch for our new cold brew line"
-  → Activates Campaign Orchestrator with your brand context
+  → Activates the campaign orchestrator with your brand context
 
 Content:
   "Write a 3-email welcome sequence for new subscribers"
@@ -96,81 +100,54 @@ Competitive:
   /digital-marketing-pro:competitor-analysis "Blue Bottle, Counter Culture, Stumptown"
   → Multi-dimensional analysis: content, SEO, ads, social, positioning
 
-Paid Ads:
-  /digital-marketing-pro:media-plan --budget=50000 --channels="google,meta,linkedin"
-  → Channel allocation, flight schedule, creative rotation plan
-
 Analytics:
-  /digital-marketing-pro:performance-check
-  → Pull live metrics from all connected platforms
-
-Execution:
-  /digital-marketing-pro:publish-blog --platform=wordpress --status=draft
-  → Publish with SEO metadata, or export HTML for manual upload
+  /digital-marketing-pro:performance-report
+  → KPI tracking, trend analysis, anomaly detection, recommendations
 
 AI Visibility:
   /digital-marketing-pro:aeo-audit
   → Check how your brand appears in ChatGPT, Perplexity, Google AI Overviews
 
-Connectors:
-  /digital-marketing-pro:connect hubspot
-  → Step-by-step OAuth setup for HubSpot CRM connector
+Full engagement:
+  /digital-marketing-pro:engagement start acme-corp 2026-q2
+  → Run the full 12-Part strategy methodology end to end
 ```
 
-### 5. Troubleshooting
-
-When `--troubleshoot` is specified, show common issues:
+### Step 6 — Troubleshooting (`--troubleshoot`)
 
 | Issue | Solution |
 |-------|----------|
 | "No active brand" message | Run `/digital-marketing-pro:brand-setup` to create your first brand profile |
-| Python features unavailable | Install: `pip install nltk textstat` (lite mode) or full requirements.txt |
+| Python features unavailable | Install: `pip install nltk textstat` (lite mode) or the full requirements.txt |
 | MCP connector not working | Run `/digital-marketing-pro:integrations` to check status, `/digital-marketing-pro:connect <name>` for setup |
 | Brand voice seems off | Run `/digital-marketing-pro:brand-setup --full` for detailed 17-question profiling |
-| Commands not recognized | Ensure plugin is installed: check "Manage Plugin" in Cowork or `claude plugin list` |
-| Session context missing | Brand context loads on SessionStart — start a fresh session |
-| Google Drive not showing | Google Drive is a platform-level integration — check Claude Desktop → Settings → Integrations |
+| Commands not recognized | Ensure the plugin is installed: check "Manage Plugin" in Cowork or `claude plugin list` |
+| Files don't persist in Cowork | Run `/digital-marketing-pro:cowork-setup` to route brand state through a Drive MCP |
+| Long workflow interrupted | Run `/digital-marketing-pro:resume` to pick up from the last checkpoint |
 
-### 6. Skill Platform Features
-
-When `--platform` argument is used or when showing the full help, include this section:
-
-```
-=== SKILL PLATFORM FEATURES ===
-
-Argument Hints (55 skills):
-  All user-invocable skills show autocomplete hints in the Skills UI.
-  Example: /digital-marketing-pro:seo-audit shows [URL]
-  Example: /digital-marketing-pro:campaign-plan shows [product/service --budget=N]
-
-Execution Safety (17 skills):
-  Skills that write to external platforms require explicit user invocation.
-  Claude cannot auto-trigger: publish-blog, send-email-campaign,
-  launch-ad-campaign, schedule-social, send-report, and 12 more.
-  This works alongside the MCP write approval hook.
-
-Quality Evals (3 skills):
-  campaign-plan, seo-audit, and content-engine have evals/evals.json
-  with structured test cases for quality benchmarking.
-```
-
-### 7. Documentation References
-
-Point users to these resources for deeper dives:
+### Step 7 — Documentation references
 
 | Guide | What it covers |
-|-------|---------------|
+|-------|----------------|
 | `docs/getting-started.md` | Full setup walkthrough with examples |
 | `docs/brand-guidelines.md` | Importing voice guides, restrictions, templates |
-| `docs/integrations-guide.md` | Connecting marketing tools (67 integrations) |
+| `docs/integrations-guide.md` | Connecting marketing tools |
 | `docs/multi-brand-guide.md` | Agency workflows, brand switching |
 | `docs/strategy-and-kpis.md` | KPI frameworks, reporting dashboards |
-| `docs/architecture.md` | Technical deep dive: modules, agents, hooks |
+| `docs/architecture.md` | Technical deep dive: modules, agents |
 | `docs/claude-interfaces.md` | Cowork-specific capabilities |
-| `docs/competitor-intelligence.md` | Competitive monitoring setup |
-| `docs/cross-channel-sync.md` | Cross-channel campaign coordination |
-| `CONNECTORS.md` | All available connectors by category |
+| `CONNECTORS.md` | Available connectors by category |
 
-## Output Format
+## Output formatting rules
 
-Present information in clean, scannable tables and code blocks. Keep the output concise — this is a quick reference, not a tutorial. Link to the full documentation for detailed walkthroughs.
+- Render in clean, scannable tables and code blocks. Keep it concise — this is a quick reference, not a tutorial.
+- **Always** quote `version` and counts from the JSON, never from this file body.
+- Iterate the JSON `skills` / `commands` arrays for those lists — never a hand-maintained list.
+- If `scripts/plugin-metadata.py` fails to run (e.g. Python not available), fall back to: "Live metadata script could not run. Plugin version is in `.claude-plugin/plugin.json`; the skill list is in `skills/`; the command list is in `commands/`." Do not invent numbers in the fallback either.
+
+## What this skill explicitly avoids
+
+- Quoting version numbers from this file body
+- Quoting any count string (agent count, skill count, command count, integrations count) from this file body
+- Listing slash commands manually — always derived from the JSON
+- Stale references to renamed skills (always use the names from the JSON)

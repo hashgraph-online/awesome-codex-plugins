@@ -24,23 +24,25 @@ multi_agent = true
 
 This enables `spawn_agent`, `wait`, and `close_agent` for skills like `dispatching-parallel-agents` and `subagent-driven-development`.
 
-## Named agent dispatch
+## Reviewer subagent dispatch
 
-Claude Code skills reference named agent types like `aegis:code-reviewer`.
-Codex does not have a named agent registry — `spawn_agent` creates generic agents
-from built-in roles (`default`, `explorer`, `worker`).
+Aegis keeps reviewer prompt content in skill-local templates, not in a root
+`agents/` directory. Codex does not have a named agent registry —
+`spawn_agent` creates generic agents from built-in roles (`default`,
+`explorer`, `worker`).
 
-When a skill says to dispatch a named agent type:
+When a skill says to dispatch a reviewer subagent:
 
-1. Find the agent's prompt file (e.g., `agents/code-reviewer.md` or the skill's
-   local prompt template like `code-quality-reviewer-prompt.md`)
+1. Find the relevant skill-local prompt template such as
+   `skills/requesting-code-review/code-reviewer.md` or
+   `skills/subagent-driven-development/code-quality-reviewer-prompt.md`
 2. Read the prompt content
 3. Fill any template placeholders (`{BASE_SHA}`, `{WHAT_WAS_IMPLEMENTED}`, etc.)
 4. Spawn a `worker` agent with the filled content as the `message`
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
-| `Task tool (aegis:code-reviewer)` | `spawn_agent(agent_type="worker", message=...)` with `code-reviewer.md` content |
+| reviewer subagent with `requesting-code-review/code-reviewer.md` | `spawn_agent(agent_type="worker", message=...)` with the filled template |
 | `Task tool (general-purpose)` with inline prompt | `spawn_agent(message=...)` with the same prompt |
 
 ### Message framing
@@ -63,12 +65,10 @@ specified in the instructions above.
 - Wrap instructions in XML tags — the model treats tagged blocks as authoritative
 - End with an explicit execution directive to prevent summarization of the instructions
 
-### When this workaround can be removed
+### Boundary
 
-This approach compensates for Codex's plugin system not yet supporting an `agents`
-field in `plugin.json`. When `RawPluginManifest` gains an `agents` field, the
-plugin can symlink to `agents/` (mirroring the existing `skills/` symlink) and
-skills can dispatch named agent types directly.
+The canonical review prompt is `skills/requesting-code-review/code-reviewer.md`.
+Do not reintroduce a root named-agent prompt as a second review checklist.
 
 ## Environment Detection
 

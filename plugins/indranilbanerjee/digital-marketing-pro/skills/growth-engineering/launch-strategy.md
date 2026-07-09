@@ -139,7 +139,7 @@ Build momentum in the weeks before launch with a structured content calendar.
 - [ ] Terms of service and privacy policy published
 - [ ] Payment processing tested end-to-end (if applicable)
 - [ ] Mobile/responsive experience verified
-- [ ] Accessibility basics covered (WCAG 2.1 AA minimum)
+- [ ] Accessibility basics covered (WCAG 2.2 AA minimum)
 
 ### Marketing Assets Ready
 

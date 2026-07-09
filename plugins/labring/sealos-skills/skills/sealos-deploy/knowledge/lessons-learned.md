@@ -245,3 +245,48 @@ fixes:
     - "Expose each official public entry path through the matching Service and Ingress rule"
     - "Verify login with final URL, page title, visible authenticated content, network 4xx/5xx list, and backend route logs"
 ```
+
+### Image-Bundled Dependency Path Hidden by PVC (Prevents API-Backed Features)
+
+```yaml
+detection:
+  symptoms:
+    - "A dependent component reports Ready while API-backed features fail or stay incomplete"
+    - "Logs contain failed to setup runner dependencies"
+    - "Logs mention a missing dependency manifest such as dependencies/python-requirements.txt"
+    - "kubectl exec shows the mounted path contains only lost+found"
+
+root_cause:
+  pattern: "A host-directory Compose mount was converted to a fresh PVC at a path where the image already ships required dependency metadata"
+
+fixes:
+  preferred:
+    - "Inspect the official image, source tree, or release tag for the missing file"
+    - "Remove the PVC and volumeMount when the image provides the required dependency/config metadata"
+    - "Keep PVCs for user data, uploads, model caches, and writable runtime state"
+
+verification:
+  - "Template API dry-run shows storage removed from that component"
+  - "Fresh deployment logs omit the missing dependency manifest error"
+  - "Setup/login and one API-backed action work from the real App URL"
+```
+
+### Ephemeral Storage Preservation During Template Updates
+
+```yaml
+detection:
+  trigger:
+    - "An existing template already defines resources.requests.ephemeral-storage or resources.limits.ephemeral-storage"
+    - "The current task is CPU/memory resource tuning, runtime debug, README refresh, or unrelated template cleanup"
+
+rule:
+  preserve:
+    - "Keep existing ephemeral-storage request and limit values unchanged"
+    - "Treat CPU/memory ladder tuning as independent from ephemeral-storage fields"
+  change_only_with:
+    - "Live evidence of EphemeralStorage, eviction, or disk-pressure failures"
+    - "Source documentation that defines a different ephemeral storage requirement"
+
+verification:
+  - "git diff -U0 -- template/<app>/index.yaml | rg ephemeral-storage returns no lines for unrelated changes"
+```

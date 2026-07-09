@@ -1,7 +1,7 @@
 ---
 name: schedule-social
 description: "Schedule social media posts. Use when: publishing to Twitter/X, Instagram, LinkedIn, TikTok, YouTube, or Pinterest."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[platform]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[platform]"
 ## Purpose
 
 Schedule social media posts to one or more platforms with platform-specific formatting, optimized posting times, hashtag strategy, and engagement monitoring setup. Handles multi-platform distribution from a single content brief by generating tailored variations that respect each platform's character limits, media specs, and audience conventions while preserving the core message across all channels.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 
@@ -34,13 +41,13 @@ The user must provide (or will be prompted for):
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand voice, compliance rules for target markets (`skills/context-engine/compliance-rules.md`), and industry context. Also check for guidelines at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load restrictions. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
 2. **Verify connected social MCPs**: Check which social media platform MCP servers are connected and confirm they cover all the user's target platforms. List any missing connections with setup instructions. Verify API permissions include scheduling capability for each platform.
-3. **Format content per platform specs**: Adapt the content for each platform's requirements — consult `platform-publishing-specs.md` for character limits (Twitter/X: 280, LinkedIn: 3,000, Instagram: 2,200, TikTok: 2,200, Pinterest: 500), image dimensions (1:1, 4:5, 9:16, 16:9), video length caps, carousel slide limits, and link preview behavior. Create distinct variations where content cannot be shared identically across platforms.
-4. **Optimize posting times**: Run `posting-time-analyzer.py` with the brand's historical engagement data to determine the best posting window for each platform by day of week and hour. Factor in audience timezone distribution. If no historical data exists, use industry-standard optimal windows by platform, content type, and audience demographic.
+3. **Format content per platform specs**: Adapt the content for each platform's requirements — consult `skills/context-engine/platform-publishing-specs.md` for character limits (Twitter/X: 280, LinkedIn: 3,000, Instagram: 2,200, TikTok: 2,200, Pinterest: 500), image dimensions (1:1, 4:5, 9:16, 16:9), video length caps, carousel slide limits, and link preview behavior. Create distinct variations where content cannot be shared identically across platforms.
+4. **Optimize posting times**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/posting-time-analyzer.py" --platform {platform} --industry {industry} --audience-type {b2b|b2c|mixed}` to suggest a posting window per platform by day of week and hour. NOTE: this returns a **static industry heuristic (2024-era best-times table)** — it does NOT read the brand's historical engagement data. Treat the output as a starting hypothesis and validate it against the brand's own engagement history before relying on it. Factor in audience timezone distribution.
 5. **Analyze and optimize hashtags**: Run `hashtag-analyzer.py` to evaluate proposed hashtags for reach potential, competition level, relevance score, and trending status. Recommend a balanced hashtag mix per platform — branded hashtags, niche community hashtags, and broad reach hashtags — with platform-specific counts (Instagram: 15-20, Twitter/X: 2-3, LinkedIn: 3-5, TikTok: 4-6, Pinterest: 2-5 as keyword tags).
 6. **Score content for brand voice**: Run `brand-voice-scorer.py` on each platform variation to verify alignment with brand tone, vocabulary, and messaging guidelines. Flag any variation that falls below the brand's minimum score and suggest specific edits.
 7. **Create per-platform variations**: If the user did not provide explicit per-platform copy, generate tailored variations — shorter and punchier for Twitter/X, professional and insight-driven for LinkedIn, visual-first captions with line breaks for Instagram, trend-aware and casual for TikTok, keyword-rich with vertical imagery for Pinterest. Preserve the core message and CTA across all while adapting voice for each platform's native style.
 8. **Validate media assets**: Verify all images and videos meet platform requirements — dimensions, aspect ratio, file size limits, video duration, and format (JPEG/PNG for images, MP4 for video). Flag any assets that need resizing or reformatting and suggest optimal crops per platform.
-9. **Create approval record**: Run `approval-manager.py` with risk level set to medium. Generate a scheduling summary showing each platform's post content, media preview, hashtags, posting time, UTM-tagged links, and brand voice score.
+9. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"medium",...}`. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a scheduling summary showing each platform's post content, media preview, hashtags, posting time, UTM-tagged links, and brand voice score.
 10. **Present scheduling summary**: Display the complete multi-platform schedule for user review — one section per platform showing final copy with character count, media attachments with dimensions, hashtags, posting time with timezone, and any platform-specific notes or warnings. Wait for explicit approval.
 11. **Schedule via each platform's MCP**: On approval, submit each post to its target platform through the connected MCP server. Handle platform-specific scheduling APIs, media uploads, hashtag formatting, and link shortening. Confirm the scheduled status for each platform individually.
 12. **Verify scheduled status**: After scheduling, query each platform's API to confirm the posts are queued at the correct times with the correct content. Flag any scheduling failures, content truncation, or media upload errors and retry or escalate as needed.

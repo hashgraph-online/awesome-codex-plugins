@@ -578,7 +578,9 @@ Remaining: <what's left>
 
 ## Key Rules
 
-- **TDD by default** - write failing tests before implementing (skip with `--no-tdd`)
+- **TDD by default** - write failing tests before implementing (skip with `--no-tdd`). Test-first ordering is not what drives quality (Finster 2026, standards agentic-workflow-evidence reference); code-first/test-after is a defensible cost-efficient variant on fully-specified small tasks if the refactor invariants below hold.
+- **Refactor after every green — the load-bearing move.** Refactor under green as its own commit after each behavior, never deferred to one final pass. **Never let a refactor step change a test** (a test change during refactor = a new slice, not a refactor).
+- **One behavior per cycle (small batch)** - implement one behavior, keep green, refactor, move on.
 - **Explore first** - understand before changing
 - **Edit, don't rewrite** - prefer targeted edits over full file rewrites
 - **Follow patterns** - match existing code style

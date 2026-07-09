@@ -1,0 +1,54 @@
+{
+  "name": "@hauntapi/mcp-server",
+  "version": "1.0.24",
+  "mcpName": "com.hauntapi/haunt",
+  "description": "MCP web extraction for permitted public pages: no-key demo plus live URL-to-JSON and Markdown output with honest blocked-page errors",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "mcp-server": "index.js",
+    "haunt-mcp": "index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE",
+    "server.json",
+    "glama.json"
+  ],
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "ai-agent",
+    "web-scraping",
+    "web-extraction",
+    "data-extraction",
+    "structured-data",
+    "markdown",
+    "markdown-extraction",
+    "clean-failure",
+    "scraper-api",
+    "json-extraction",
+    "javascript-rendering",
+    "challenge-aware",
+    "honest-failure"
+  ],
+  "author": "Haunt API",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Darko893/mcp-server.git"
+  },
+  "dependencies": {},
+  "homepage": "https://hauntapi.com",
+  "bugs": {
+    "url": "https://github.com/Darko893/mcp-server/issues"
+  }
+}

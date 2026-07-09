@@ -36,7 +36,7 @@ The user must provide (or will be prompted for):
 
 A structured content brief containing:
 
-- Target keyword map (primary, secondary, LSI, questions to answer)
+- Target keyword map (primary, secondary, related/co-occurring terms, questions to answer) — note keyword placement (title, intro, ≥2 H2s, conclusion, meta), not a density target
 - Content outline with heading hierarchy and key points per section
 - Word count target and content format specifications
 - Brand voice and tone guidance for this specific piece

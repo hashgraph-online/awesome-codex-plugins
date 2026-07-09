@@ -4,6 +4,8 @@
 
 Techniques for restructuring content so AI platforms are more likely to cite it as a source in generated answers.
 
+**Google AI Mode note (mid-2026):** AI Mode (the conversational search tab, default for opted-in users since I/O on 19 May 2026, Gemini 3.5 Flash backbone) is a **distinct surface from AI Overviews** and frequently selects different citations for the same query. Its multi-turn follow-up flow rewards content that can be *drilled into*, not just skimmed for a one-line snippet: put a clean definitional answer up top (wins the first citation) and layer genuine "why / how / compared-to" depth beneath it (wins the follow-up citations). Optimize for both AI Mode and AI Overviews; never treat them as one surface.
+
 ---
 
 ## Citation-Worthy Content Patterns

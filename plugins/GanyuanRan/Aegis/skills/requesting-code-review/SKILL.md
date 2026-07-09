@@ -5,7 +5,11 @@ description: Use when explicitly requesting an independent code review, after su
 
 # Requesting Code Review
 
-Dispatch aegis:code-reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Dispatch a reviewer subagent using the canonical `code-reviewer.md` template to
+catch issues before they cascade. The reviewer gets precisely crafted context
+for evaluation — never your session's history. This keeps the reviewer focused
+on the work product, not your thought process, and preserves your own context
+for continued work.
 
 This skill is the canonical review-request workflow for method-pack implementation work. Use it to request review only after you have enough evidence, enough context, and a clear authority boundary for what the reviewer is being asked to assess.
 
@@ -75,9 +79,11 @@ BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**3. Dispatch code-reviewer subagent:**
+**3. Dispatch reviewer subagent:**
 
-Use Task tool with aegis:code-reviewer type, fill template at `code-reviewer.md`
+Use the Task tool with a general-purpose reviewer subagent. Fill the canonical
+template at `requesting-code-review/code-reviewer.md`; do not rely on a
+separate named agent prompt.
 
 **Placeholders:**
 - `{WHAT_WAS_IMPLEMENTED}` - What you just built
@@ -109,7 +115,7 @@ You: Let me request code review before proceeding.
 BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
 HEAD_SHA=$(git rev-parse HEAD)
 
-[Dispatch aegis:code-reviewer subagent]
+[Dispatch reviewer subagent using requesting-code-review/code-reviewer.md]
   WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
   PLAN_OR_REQUIREMENTS: Task 2 from docs/aegis/plans/deployment-plan.md
   EVIDENCE: pytest tests/index/test_verify.py -v -> 12 passed

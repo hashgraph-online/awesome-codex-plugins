@@ -86,8 +86,16 @@ Feature: Plan converts dense intent into executable slices
    or `ao` command hits become **reuse** notes, not new beads.
 7. **Choose detail level.** Minimal for 1-2 simple issues, Standard for 3-6
    issues, Deep for 7+ issues, broad refactors, or `--deep`.
-8. **Decompose into issues.** Each issue needs title, file ownership,
-   dependencies, acceptance criteria, test levels, and at least one mechanical
+8. **Decompose into issues.** **Decompose by behavior, not by file or feature-
+   bundle (PR-010):** each slice delivers exactly one Given/When/Then behavior (a
+   small batch), and every refactor is its OWN slice — never folded into a feature
+   slice. Small batches + refactor-after-green are the load-bearing quality moves;
+   test-first *ordering* is not (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`).
+   Each issue needs title, file ownership,
+   dependencies, acceptance criteria, test levels (**throttled to stakes, PR-011:**
+   small/low-risk slices get L2 + L1 only; reserve full mutation/BF corpus for
+   critical/security/high-blast-radius slices — the over-testing tax), and at
+   least one mechanical
    conformance check (`files_exist`, `content_check`, `command`, `tests`, or
    `lint`). **Every bead MUST also carry an embedded `## Scenarios` Gherkin
    block (Given/When/Then) — by default, without being asked.** Free-text-only

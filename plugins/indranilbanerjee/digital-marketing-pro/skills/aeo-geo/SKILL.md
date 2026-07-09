@@ -51,7 +51,7 @@ Before producing any marketing output from this module:
 4. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
 5. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
 6. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
-7. **Check campaign history** — Run `python campaign-tracker.py --brand {slug} --action list-campaigns` before planning new work
+7. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
 8. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
 9. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
 
@@ -74,7 +74,7 @@ If the user cannot provide all context, proceed with what is available and flag 
 
 ## Capabilities
 
-- **AI Visibility Audit**: Systematic testing of how a brand appears across ChatGPT, Perplexity, Google AI Overviews, Gemini, and Copilot for target queries
+- **AI Visibility Audit**: Systematic testing of how a brand appears across the 6 canonical surfaces — Google AI Mode, Google AI Overviews, ChatGPT, Perplexity, Gemini, and Copilot — for target queries (scored with the standard defined in `/digital-marketing-pro:aeo-audit`)
 - **Citation Optimization**: Restructuring content to maximize the probability of being cited as a source in AI-generated responses
 - **Entity Consistency Audit**: Cross-referencing brand information across Google Knowledge Graph, Wikidata, Wikipedia, Crunchbase, LinkedIn, and industry databases to identify inconsistencies
 - **LLM Content Strategy**: Creating content specifically designed to be ingested and accurately represented by language models
@@ -198,7 +198,7 @@ If the user cannot provide all context, proceed with what is available and flag 
 ## Tips & caveats
 
 - **Google's official position (15 May 2026):** no `llms.txt`, no AI-specific schema, no separate AI eligibility gate. Don't manufacture work around fictional ranking factors — schema + entity consistency + citation-worthy formatting are what works.
-- **AI Mode citation patterns differ from AI Overviews 40-60% of the time** on the same query. Audit and optimise for both, treating them as distinct surfaces.
+- **AI Mode citation patterns frequently differ from AI Overviews** on the same query (internal observation, 05/2026 — the "40-60%" figure is a rough estimate, re-verify against your own probe set). Audit and optimise for both, treating them as distinct surfaces.
 - **Entity consistency across Knowledge Graph, Wikidata, Wikipedia, LinkedIn, Crunchbase is the single highest-leverage AEO investment** — more impactful than schema tweaks.
 - **AI citations are stickier than blue-link rankings** but slower to win. Expect 3-6 months of consistent work before measurable shift.
 - **Don't try to "trick" AI into citing you** with stuffed content or fake authority signals. AI platforms detect and demote this faster than traditional search.

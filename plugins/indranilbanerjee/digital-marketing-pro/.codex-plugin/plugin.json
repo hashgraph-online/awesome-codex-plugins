@@ -1,7 +1,7 @@
 {
   "name": "digital-marketing-pro",
-  "version": "3.14.1",
-  "description": "Open-source AI marketing plugin for agencies & in-house teams — 158 skills, 25 agents, 12-Part Strategy Flow, Cowork team-persistent, EU AI Act Article 50 ready. Runs on Claude Code, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw + 40+ Agent Skills platforms.",
+  "version": "3.15.0",
+  "description": "Open-source AI marketing plugin for agencies & in-house teams — 158 skills, 24 agents, 12-Part Strategy Flow, Cowork team-persistent, EU AI Act Article 50 ready. Runs on Claude Code, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw + 40+ Agent Skills platforms.",
   "author": {
     "name": "Indranil Banerjee",
     "url": "https://github.com/indranilbanerjee"
@@ -26,8 +26,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Digital Marketing Pro",
-    "shortDescription": "Open-source AI marketing plugin for agencies & in-house teams — 158 skills, 25 agents, 12-Part Strategy Flow, Cowork team-persistent, EU AI Act Article 50 ready. Runs on Claude Code, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw + 40+ Agent Skills platforms.",
-    "longDescription": "158 skills + 25 specialist agents + 12-Part Strategy Flow producing the Four Core Documents (61 explicit steps). For agencies, in-house teams running 50–200 brands, and consultancies. EU AI Act Article 50 ready (C2PA content provenance). 6-platform AEO/GEO audit including Google AI Mode. 16 privacy-law jurisdictions. 14 HTTP MCP connectors (opt-in). Cowork team persistence via Google Drive routing. fallbackModel-ready resilience chain. Single skills/ directory portable across Claude Code, Codex, Cursor, and Antigravity via the Agent Skills open standard.",
+    "shortDescription": "Open-source AI marketing plugin for agencies & in-house teams — 158 skills, 24 agents, 12-Part Strategy Flow, Cowork team-persistent, EU AI Act Article 50 ready. Runs on Claude Code, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw + 40+ Agent Skills platforms.",
+    "longDescription": "158 skills + 24 specialist agents + 12-Part Strategy Flow producing the Four Core Documents (61 explicit steps). For agencies, in-house teams running 50–200 brands, and consultancies. EU AI Act Article 50 ready (C2PA content provenance). 6-platform AEO/GEO audit including Google AI Mode. 16 privacy-law jurisdictions. 14 HTTP MCP connectors (opt-in). Cowork team persistence via Google Drive routing. fallbackModel-ready resilience chain. Single skills/ directory portable across Claude Code, Codex, Cursor, and Antigravity via the Agent Skills open standard.",
     "developerName": "Indranil Banerjee",
     "category": "Productivity",
     "capabilities": [

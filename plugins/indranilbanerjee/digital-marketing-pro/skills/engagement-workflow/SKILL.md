@@ -22,7 +22,7 @@ This skill orchestrates the full marketing engagement using the 12-Part sequenti
 
 ## Context efficiency
 
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List the brand's workspace at `~/.claude-marketing/brands/{slug}/` (or `$CLAUDE_PLUGIN_DATA/digital-marketing-pro/brands/{slug}/` when that env var is set) before opening files. On re-invocation mid-session, skip files already in context.
 
 Read these references before producing output:
 - [engagement-flow-methodology.md](../context-engine/engagement-flow-methodology.md) — the full 12-Part flow
@@ -34,7 +34,81 @@ Read these references before producing output:
 
 ## Operating Mode
 
-This skill is invoked via the `/digital-marketing-pro:engagement` command family. Each subcommand maps to a specific lifecycle action. The skill calls `scripts/engagement-state.py` for persistence; you should never hand-edit `_engagement.json`.
+This skill is invoked via the `/digital-marketing-pro:engagement` command family. The command is a thin router — **this skill is the single source of truth** for the engagement lifecycle, the checkpoint protocol, and the per-part production contract. Each subcommand maps to a specific lifecycle action. The skill calls `engagement-state.py` for persistence via:
+
+```
+python "${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py" <subcommand> ...
+```
+
+You should never hand-edit `_engagement.json` — always go through `engagement-state.py`.
+
+## Checkpointing & Resume (single source of truth)
+
+Every long engagement run is resumable. The checkpoint protocol is: **init a run → save each part as it completes → finalize → publish to the visible output folder.** This lets an interrupted run (context exhaustion, user cancel, machine sleep) resume from the next un-checkpointed part instead of restarting from Part 1.
+
+**1. On `start`, after the brand pre-condition passes, open a checkpoint run and link it to engagement state:**
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint-manager.py" init \
+    --brand "{brand_slug}" --workflow engagement --topic "{engagement_id}"
+
+# Record the returned run_id into _engagement.json so resume can find it:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py" set-checkpoint-run \
+    --brand "{brand_slug}" --id "{engagement_id}" --run-id "{run_id}"
+```
+
+`set-checkpoint-run` stores the run_id in `_engagement.json`, making the resume linkage real (previously the run_id was never persisted).
+
+**2. After each part completes and passes its quality gate, the orchestrator saves that part's output:**
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint-manager.py" save \
+    --brand "{brand}" --run-id "{run_id}" \
+    --step {part_number} --content-file "{path_to_that_part_deliverable}" --extension md
+```
+
+Pass the **actual deliverable path for that part** (e.g. Part 3 saves the Four Core Documents path; Part 8 saves the Growth Plan path) — never a placeholder for a different part.
+
+**3. Before saving Part 5 (Client Validation) and Part 8 (Growth Plan) deliverables, run the full quality gate:**
+
+```bash
+# BLOCKING gate — Part 5 and Part 8 deliverables cannot be checkpointed until this passes
+/digital-marketing-pro:check "{path_to_deliverable}" --full --brand {brand}
+```
+
+If `/digital-marketing-pro:check --full` returns BLOCKED, fix the CRITICAL issues before checkpointing the part.
+
+**4. After the final part, publish every artifact to the user-visible folder and finalize:**
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/output-publisher.py" publish-run \
+    --brand "{brand}" --run-id "{run_id}"
+
+python "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint-manager.py" finalize \
+    --brand "{brand}" --run-id "{run_id}" --status completed
+```
+
+Then point the user at the visible output folder via `/digital-marketing-pro:output-folder {brand}`.
+
+To resume an interrupted run, use `/digital-marketing-pro:resume` — it reloads every saved part and continues from the next un-checkpointed part.
+
+## State validation & rework caps
+
+- **Validate a part's outputs against the manifest** before marking it complete:
+  ```bash
+  python "${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py" validate-part \
+      --brand "{brand}" --id "{id}" --part {N}
+  ```
+  This diffs the actual files on disk against the `PART_DEFINITIONS` manifest and flags missing deliverables. Use it in `file-tree` and before `next`.
+
+- **Repair a partially-initialised engagement directory** (instead of crashing on a non-empty dir):
+  ```bash
+  python "${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py" init --repair \
+      --brand "{brand}" --id "{id}"
+  ```
+  `--repair` completes the canonical directory tree and state file on a dir that holds only partial state.
+
+- **v2 re-run cap:** a maximum of **2 v2 re-run rounds per part** is allowed without explicit user override. The round count is stored in `_engagement.json`. If a part would exceed 2 rounds, stop and ask the user to explicitly approve further re-runs (records the override in state). This prevents unbounded re-run loops.
 
 ## Subcommands
 
@@ -126,7 +200,7 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py add-opinion --brand {sl
 
 1. Run `engagement-state.py file-tree`
 2. Format as an indented tree
-3. Highlight files that are missing per the canonical structure (e.g., if Part 3 is marked completed but `3.1-business-and-sbu-analysis.md` is missing, flag it)
+3. Highlight files that are missing per the canonical structure. Use `engagement-state.py validate-part --part {N}` to diff each completed part's actual files against the `PART_DEFINITIONS` manifest (e.g., if Part 3 is marked completed but `3.1-business-and-sbu-analysis.md` is missing, `validate-part` flags it deterministically instead of eyeballing).
 
 ### `/digital-marketing-pro:engagement validate [brand] [id]`
 
@@ -138,10 +212,11 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py add-opinion --brand {sl
 
 1. Verify pre-conditions (Parts 2, 3, 4 completed)
 2. Invoke the `client-validation-document` skill — it produces the Part 5 deliverable: a structured document presenting each finding from v1 with ACCEPT/REJECT/EDIT/DEFER options
-3. After the user reviews and provides decisions, parse them into a triggers list per the Decision Matrix categories
-4. Run `engagement-state.py decision-matrix --triggers "{comma-separated}"` to compute the v2 re-run plan
-5. Present the re-run plan to the user
-6. Mark Part 5 completed; on user approval of the re-run plan, advance to Part 6
+3. **Run the full quality gate on the Part 5 deliverable before it goes to the client:** `/digital-marketing-pro:check "{part5_path}" --full --brand {brand}`. If it returns BLOCKED, fix the CRITICAL issues first (this gate is mandatory before Part 5 and Part 8 deliverables).
+4. After the user reviews and provides decisions, parse them into a triggers list per the Decision Matrix categories
+5. Run `engagement-state.py decision-matrix --triggers "{comma-separated}"` to compute the v2 re-run plan
+6. Present the re-run plan to the user
+7. Mark Part 5 completed; on user approval of the re-run plan, advance to Part 6
 
 ### `/digital-marketing-pro:engagement re-run-decision [brand] [id]`
 
@@ -168,7 +243,7 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py add-opinion --brand {sl
 2. Confirm the correction with the user (validation step per the Update-Back Rule)
 3. Bump the version via `engagement-state.py bump-version --doc {id} --reason "{reason}"`
 4. Save the new version file with a header noting v(prev) → v(new) changes
-5. Update the Living Project Instruction File via `lif-log-change`
+5. Update the Living Project Instruction File via `lif-log-change` — it now appends the change to `living-instruction-file.md` and refreshes the header date, so the LIF reflects the correction immediately
 6. Identify downstream documents that may need review and add to the engagement's review queue
 
 ### `/digital-marketing-pro:engagement lif-show [brand] [id]`
@@ -183,28 +258,37 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/engagement-state.py add-opinion --brand {sl
 
 **Steps:** Run `engagement-state.py list-engagements --brand {slug}` and format as a table.
 
-## Per-Part Production Skills
+### Production shorthands
 
-Each part has a dedicated skill that produces its outputs. This orchestrator delegates:
+The command family also exposes four production shorthands that route straight to the part-producing skills (documented in *Per-Part Production Targets* below). These match the command surface one-to-one:
 
-| Part | Skill |
-|------|-------|
+- `/digital-marketing-pro:engagement four-core <brand> <id> [--doc 3.X] [--view v2] [--combined]` — Part 3, invokes the `four-core-documents` skill
+- `/digital-marketing-pro:engagement growth-plan <brand> <id>` — Part 8, invokes the `growth-plan` skill
+- `/digital-marketing-pro:engagement yearly-planner <brand> <id>` — Part 8 companion, invokes the `yearly-planner` skill
+- `/digital-marketing-pro:engagement loop <brand> <id>` — Part 12, invokes the `continuous-improvement-loop` skill
+
+## Per-Part Production Targets
+
+Each part is produced by real, existing agents and skills. This orchestrator dispatches to the targets below — there are **no** wrapper skills named `external-research` / `preparation-documents` / `channel-strategy-fanout` / `execution-artefacts` / `ai-creative-instructions`; those never existed. Use the exact targets named here:
+
+| Part | Real target(s) |
+|------|----------------|
 | 1 | (this skill — intake walked here directly) |
-| 2 | `external-research` (use existing market-intelligence + competitive-intelligence skills) |
-| 3 | `four-core-documents` (produces 3.1, 3.2, 3.3, 3.4) |
-| 4 | (use existing competitor-analysis + audience-intelligence + market-intelligence) |
-| 5 | `client-validation-document` |
-| 6 | (re-runs invoke `four-core-documents` with view=v2) |
-| 7 | `preparation-documents` (uses content-engine + campaign-orchestrator + analytics) |
-| 8 | `growth-plan` + `yearly-planner` |
-| 9 | `channel-strategy-fanout` (delegates to per-channel skills in paid-advertising / aeo-geo / etc.) |
-| 10 | `execution-artefacts` (uses content-engine output mode) |
-| 11 | `ai-creative-instructions` |
-| 12 | `continuous-improvement-loop` |
+| 2 | agents `market-intelligence` + `competitive-intel`; skill `audience-intelligence` (invoke as a skill); reference `compliance-rules.md` (load as context) |
+| 3 | skill `four-core-documents` (produces 3.1, 3.2, 3.3, 3.4) |
+| 4 | command `competitor-analysis` + skills `audience-intelligence` + agent `market-intelligence` |
+| 5 | skill `client-validation-document` |
+| 6 | re-runs invoke skill `four-core-documents` with `--view v2` |
+| 7 | skills `content-engine` + `campaign-orchestrator` + `analytics-insights` |
+| 8 | skills `growth-plan` + `yearly-planner` |
+| 9 | per-channel skills — `paid-advertising`, `aeo-geo`, `social-strategy`, `seo-plan`, `email-sequence` (one per channel family) |
+| 10 | skill `content-engine` (execution / output mode) |
+| 11 | skills `content-engine` + `ad-creative` + `video-script` (creative briefs); actual asset generation via `/socialforge:compose-creative` + `/socialforge:generate-video` (requires the SocialForge plugin) |
+| 12 | skill `continuous-improvement-loop` |
 
-## Parallel Dispatch (added v3.4)
+## Parallel Dispatch
 
-Several parts of the engagement contain **independent sub-tasks** that should be dispatched **in parallel via multiple `Task` tool calls in a single message** — not sequentially. Claude Code's April 2026 parallel-subagent initialization makes this a real time saving — published guidance reports **4–6× parallelism** with roughly **50–80% wall-clock reduction** for 3–8 concurrent subagents. A 4-document Part 4 that took ~16 min sequentially typically completes in ~4–6 min when dispatched as four parallel subagent calls. Past 8 concurrent subagents you start queueing against API rate limits and the win drops; under 3 there's nothing to parallelize.
+Several parts of the engagement contain **independent sub-tasks** that should be dispatched **in parallel via multiple `Task` tool calls in a single message** — not sequentially. Dispatching independent sub-tasks concurrently is substantially faster than running them one after another; actual time varies by engagement depth, model, and rate limits. Keep concurrent subagents to a handful (roughly 3–8) — past that you queue against API rate limits and the win drops; under 3 there is nothing to parallelize.
 
 **Cost note:** total token usage is broadly similar (you're doing the same work) but billed-per-turn input costs trend up slightly because each parallel subagent re-loads its context.
 
@@ -212,7 +296,7 @@ Several parts of the engagement contain **independent sub-tasks** that should be
 
 | Part | Parallel-eligible work | How to dispatch |
 |---|---|---|
-| **Part 2 — External Research** | Market sizing, competitor landscape, customer signals, regulatory landscape — none depend on each other | One `Task` call per dimension (market-intelligence + competitive-intelligence + audience-intelligence + compliance-rules) in a single message |
+| **Part 2 — External Research** | Market sizing, competitor landscape, customer signals, regulatory landscape — none depend on each other | Dispatch the `market-intelligence` agent and the `competitive-intel` agent as parallel `Task` calls; invoke `audience-intelligence` as a skill; load `compliance-rules.md` (a reference file) as context — not as a subagent |
 | **Part 4 — Competitive + Customer + Market** | Four documents (4.1, 4.2, 4.3, 4.4) are independent — they reference Part 2 only | Dispatch all four in a single message with the four respective subagents |
 | **Part 9 — Channel Strategy Fan-out** | Up to 17 channel docs in 7 families. Families 2 (Paid platforms), 3 (Organic & Influencer), 4 (Marketplace & CRM), 5 (Content/ATL/BTL/PR) are independent after Families 1 (Search & Campaign) and 6 (Web + Measurement) complete | Sequence: F1 → (F2 ∥ F3 ∥ F4 ∥ F5 in parallel) → F6 → F7. The middle batch is four parallel `Task` calls in one message. |
 | **Part 10 — Execution Artefacts** | Ad copy, post copy, headlines, CTAs across channels — independent per channel | Dispatch one subagent per channel in parallel |
@@ -229,37 +313,31 @@ Several parts of the engagement contain **independent sub-tasks** that should be
 **Cross-cutting rules:**
 
 1. Never dispatch parallel agents that need to write to the same file simultaneously — chunk by output file.
-
-## Opus 4.7 1M context — single-conversation 12-part engagements (May 2026)
-
-As of May 2026, Claude Opus 4.7 with the 1M-token context window is generally available to Max, Team, and Enterprise users. The full 12-part engagement — Stone-vs-Opinion intake, external research, Four Core Documents (61 explicit steps), competitive/customer/market analysis, Client Validation Document, selective v2 re-runs, preparation docs, Growth Plan + Yearly Planner, channel fan-out, execution artefacts, AI creative briefs, continuous improvement loop — typically produces 50–60 canonical documents totaling 250K–600K tokens depending on engagement depth.
-
-**This now fits in a single conversation context.** Cross-conversation continuity tricks (writing intermediate state to disk + re-loading it on the next conversation) that v3.0–v3.3 relied on are no longer strictly necessary for engagements that complete within one working session.
-
-When 1M context is available:
-- Skip the LIF re-load between parts — the Living Project Instruction File and all earlier-part outputs are already in context
-- Run Parts 1–8 sequentially in a single conversation, dispatch Part 9 channel families in parallel, complete Parts 10–12 in the same conversation
-- Engagement-state.py is still useful for audit trail + cross-conversation resume + multi-user team scenarios, but not required for the active engagement
-
-When 1M context is NOT available (Pro tier, third-party API access, batch mode):
-- Use the existing engagement-state.py persistence pattern; chunk by Part; re-load the LIF at each Part transition
-
-Keep using the persistence pattern by default — it's correct in both worlds and the only one that works for multi-day / multi-author engagements.
-2. Each parallel subagent gets the engagement slug and the LIF path so it can read shared context but writes to its own numbered subdirectory (01-… 12-…).
-3. After a parallel batch completes, ALWAYS re-read the LIF before the next step in case a parallel subagent updated it (use `engagement-state.py lif-log-change` from inside each subagent).
-4. If a parallel batch fails partway, the failed subagent's outputs are NOT auto-rolled-back — re-dispatch only the failed ones, the successful peers stay valid.
+2. Each parallel subagent gets the engagement slug and the LIF path so it can read shared context, but writes ONLY to its own numbered per-part subdirectory (01-… 12-…).
+3. **Subagents never mutate engagement state.** A subagent must NOT call `lif-log-change`, `mark-part-completed`, `bump-version`, or any other `engagement-state.py` write, and must NOT touch `_engagement.json` or `living-instruction-file.md`. Those are unlocked read-modify-write files; concurrent writers lose updates. Each subagent returns its output as per-part files only. After a parallel batch completes, the **orchestrator alone** applies state mutations — one `lif-log-change` per batch, plus `mark-part-completed` / `bump-version` as needed — and then re-reads the LIF before the next step.
+4. If a parallel batch fails partway, the failed subagent's outputs are NOT auto-rolled-back — re-dispatch only the failed ones; the successful peers stay valid.
 
 For multi-dimensional commands outside the 12-part flow (e.g. `/digital-marketing-pro:competitor-analysis`, `/digital-marketing-pro:seo-audit`, `/digital-marketing-pro:content-engine`), the same pattern applies — dispatch independent dimensions in parallel via multiple `Task` calls in a single message.
+
+## Running an engagement in a single conversation
+
+A large-context model can hold much of an engagement — intake, external research, the Four Core Documents (61 steps), competitive/customer/market analysis, Client Validation, selective v2 re-runs, preparation docs, Growth Plan + Yearly Planner, channel fan-out, execution artefacts, creative briefs, and the continuous-improvement loop — within one working session (a full engagement typically produces 50–60 canonical documents).
+
+**The checkpoint + persistence pattern is still the default — always.** Even when everything fits in one conversation:
+
+- `engagement-state.py` + `checkpoint-manager.py` remain the system of record: audit trail, cross-conversation resume, and multi-user / multi-day continuity all depend on persisted state.
+- Do NOT skip LIF updates or state writes on the assumption that "it's all in context." An interruption still loses in-memory work, and a teammate resuming the engagement reads persisted state — not your conversation.
+- The only single-conversation convenience is that you re-read fewer files mid-session because they are already in context. It does not remove the need to persist, checkpoint, and update the LIF.
 
 ## Quality Discipline
 
 1. **Never hand-edit `_engagement.json`.** Always go through `engagement-state.py`.
 2. **Never delete v1.** When v2 is produced, both stay.
-3. **Always update the LIF when source docs change.** Use `lif-log-change`.
+3. **Always update the LIF when source docs change.** Use `lif-log-change` — it appends to the change-log section of `living-instruction-file.md` and refreshes the header date, so the LIF never goes stale.
 4. **Always cite source per fact.** Stone facts cite the validation source; Opinion hypotheses cite the client's evidence.
 5. **Never auto-advance parts.** The user confirms part completion explicitly.
 6. **Always parallelize independent work.** When a Part has 2+ independent sub-tasks (see Parallel Dispatch above), dispatch them in a single message with multiple Task calls. Sequential dispatch of independent work wastes wall-clock time and API turns.
-6. **Never auto-execute v2 re-runs without user approval.** Show the plan, get approval, then run.
+7. **Never auto-execute v2 re-runs without user approval.** Show the plan, get approval, then run. Cap: 2 v2 re-run rounds per part without an explicit user override (stored in state).
 
 ## Examples
 

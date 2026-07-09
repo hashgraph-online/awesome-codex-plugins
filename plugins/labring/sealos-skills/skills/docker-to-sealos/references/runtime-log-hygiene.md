@@ -46,6 +46,49 @@ Use quiet success behavior:
 - Print the install log only when the command exits non-zero.
 - Keep successful boot logs focused on app readiness and actionable warnings.
 
+## Image-Bundled Dependency Paths
+
+A Ready pod can still have a broken dependency setup when a template mounts an empty PVC over a path that the image already populates.
+
+Detection signals:
+
+- Logs contain `failed to setup runner dependencies`.
+- Logs mention a missing file under a relative or mounted dependency path, such as `dependencies/python-requirements.txt`.
+- `kubectl exec` shows the mounted path contains only filesystem bootstrap entries like `lost+found`.
+
+Fix pattern:
+
+1. Check the official image, source tree, or release tag for the missing file.
+2. If the image provides the file, remove the PVC/volumeMount for that path.
+3. Keep PVCs for real user data and writable runtime state.
+4. Redeploy fresh and re-run setup/login plus log scan.
+
+## Ephemeral Local Storage Pressure
+
+Tune `ephemeral-storage` only from live runtime evidence.
+
+Detection signals:
+
+- Events contain `Pod ephemeral local storage usage exceeds the total limit of containers ...`.
+- The pod is repeatedly `Evicted` while the workload's main process otherwise starts.
+- `kubectl describe pod` shows tight `requests.ephemeral-storage` and `limits.ephemeral-storage` values for the failing container.
+- Logs show large runtime extraction or dependency bootstrap shortly before eviction.
+
+Debug pattern:
+
+1. Inspect recent events with `kubectl get events --sort-by=.lastTimestamp` and filter for the workload name, `Evicted`, or `ephemeral`.
+2. Inspect the failing container resources with `kubectl describe pod` or `kubectl get pod -o jsonpath`.
+3. When the pod survives long enough, run `du -sh /opt /var /var/sandbox /tmp /root /var/cache 2>/dev/null` inside the container to identify runtime-expanded directories.
+4. Patch the live workload to the smallest Mi value that covers observed writable-layer usage with startup margin.
+5. Observe beyond the previous eviction window, then update both `requests.ephemeral-storage` and `limits.ephemeral-storage` together in the template.
+
+Dify sandbox case study:
+
+- `langgenius/dify-sandbox:0.2.15` expands Node and Python runner assets during startup.
+- Observed writable-layer directories included `/opt/node-v20.20.0-linux-x64` at about `167Mi` and `/var/sandbox` at about `174Mi`.
+- `300Mi` caused repeated eviction with `Pod ephemeral local storage usage exceeds the total limit of containers 300Mi`.
+- `512Mi` kept `dify-sandbox` Ready with zero restarts after the old eviction window.
+
 ## Restricted-Compatible Security Context
 
 When the image default UID is verified as non-root through image metadata, upstream docs, or `id` inside a live container, set restricted-compatible security context on managed app workloads and init Jobs:

@@ -1,7 +1,7 @@
 ---
 name: send-email-campaign
 description: "Send email campaigns. Use when: deploying via SendGrid, Klaviyo, Customer.io, Brevo, or Mailgun with A/B testing."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[campaign-name]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[campaign-name]"
 ## Purpose
 
 Create and send a targeted email campaign through the brand's connected email platform with personalization, A/B subject lines, compliance checks, and deliverability monitoring. Handles the full lifecycle from content validation through send execution to post-send monitoring, with tiered risk controls based on recipient list size. Ensures every send passes spam, compliance, and brand voice gates before reaching any inbox.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 
@@ -36,11 +43,11 @@ The user must provide (or will be prompted for):
 2. **Verify email platform connection**: Check which email MCP server is connected and confirm it matches the user's target platform. Verify the sending domain is authenticated (SPF, DKIM, DMARC records). If not connected or not authenticated, instruct the user on setup steps.
 3. **Score email subject lines**: Run `email-subject-tester.py` on all subject line variants to evaluate length (optimal 30-50 chars), power words, personalization token effectiveness, emoji usage, and predicted open rate. Recommend improvements if any variant scores below threshold.
 4. **Check spam score**: Run `spam-score-checker.py` to analyze subject lines and body content for spam trigger words, excessive capitalization, exclamation marks, link-to-text ratio, image-to-text ratio, and authentication alignment. Flag any deliverability risks with specific remediation steps.
-5. **Optimize send time**: If the user selected "optimal" timing, run `send-time-optimizer.py` with historical engagement data to determine the best send window by day of week and hour for the target segment. Factor in timezone distribution of the recipient list.
-6. **Build platform-specific payload**: Structure the email payload per the target platform's API requirements — consult `platform-publishing-specs.md` for field mappings, template rendering, merge tag syntax (e.g., `{{first_name}}` vs `{first_name}`), A/B test configuration parameters, and scheduling API format.
+5. **Optimize send time**: If the user selected "optimal" timing, run `python "${CLAUDE_PLUGIN_ROOT}/scripts/send-time-optimizer.py" --industry {industry} --audience-type {b2b|b2c|mixed}` to suggest a send window by day of week and hour. NOTE: this returns a **static industry heuristic (2024-era best-times table)** — it does NOT read your historical engagement data. Treat the output as a starting hypothesis and validate it against your own segment's open/click history before relying on it. Factor in the timezone distribution of the recipient list.
+6. **Build platform-specific payload**: Structure the email payload per the target platform's API requirements — consult `skills/context-engine/platform-publishing-specs.md` for field mappings, template rendering, merge tag syntax (e.g., `{{first_name}}` vs `{first_name}`), A/B test configuration parameters, and scheduling API format.
 7. **Verify list size and consent compliance**: Confirm recipient count and segment definition. Check that the list has proper opt-in consent flags for the applicable jurisdiction. Verify unsubscribe mechanism is functional, one-click unsubscribe header is present, physical mailing address is included, and compliance with CAN-SPAM (US), GDPR (EU), CASL (Canada), and any other regulations for the brand's target markets.
 8. **Score brand voice**: Run `brand-voice-scorer.py` on the email body content to verify alignment with brand tone and messaging guidelines. Flag any copy that deviates from brand standards.
-9. **Create approval record**: Run `approval-manager.py` with tiered risk levels — medium for fewer than 1,000 recipients, high for 1,000-10,000, critical for more than 10,000. Generate a send summary with all campaign details, scores, and compliance status.
+9. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the tiered risk level inside the `--data` JSON — `{"risk_level":"medium",...}` for fewer than 1,000 recipients, `"high"` for 1,000-10,000, `"critical"` for more than 10,000. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a send summary with all campaign details, scores, and compliance status.
 10. **Present campaign summary**: Display the complete summary for user review — subject lines with scores, preview text, recipient count and segment name, send time, personalization preview with sample recipient data, spam score, brand voice score, and compliance checklist. Wait for explicit confirmation.
 11. **Send test email**: On initial approval, send a test email to the user's address (and any additional test addresses) via the MCP server. Ask the user to confirm the test renders correctly across desktop and mobile, personalization tokens resolve, links work, and images load.
 12. **Execute full send via MCP**: After test confirmation, trigger the campaign send through the connected email platform MCP. Handle A/B test split configuration, scheduling, and any platform-specific send options (track opens, track clicks, Google Analytics UTM tagging).
