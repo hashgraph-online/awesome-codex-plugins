@@ -148,6 +148,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [AgentOps](https://github.com/boshu2/agentops) - DevOps layer for coding agents with flow, feedback, and memory that compounds between sessions.
 - [AgentPack](https://github.com/vishal2612200/agentpack) - Ranks repo context for Codex with likely files, skill recommendations, agent rules, commands, warnings, and compact task-focused packs before editing.
 - [Agentry Observability](https://github.com/fr33dr4g0n/agentry-public) - Agent-native product analytics, error logging, and deploy attribution for coding agents through one HTTP API.
+- [AI Mobile](https://github.com/comprono/Ai-Mobile-Codex-plugin) - Mobile-started Codex bridge for low-RAM Antigravity CLI, Antigravity desktop UI, and Claude Code workers on Windows, with model checks and compact bridge-job artifacts.
 - [AgiFlow](https://github.com/AgiFlow/ai-plugin) - Project management workflows for AI coding agents with planning, grooming, task execution, review, and AgiFlow MCP integration.
 - [AIBoarding](https://github.com/gustavo-meilus/aiboarding) - Generate, maintain, compress, and audit standard AI-agent onboarding files with AGENTS.md, CLAUDE.md, drift tracking, and lifecycle hooks.
 - [Alcove](https://github.com/epicsagas/alcove) - Local-first MCP server for private project docs with hybrid BM25+vector search, tree-sitter code indexing, and automated linting for team-wide documentation standards.
