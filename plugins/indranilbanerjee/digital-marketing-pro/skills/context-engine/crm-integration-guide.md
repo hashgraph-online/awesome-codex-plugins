@@ -20,7 +20,9 @@ How the Digital Marketing Pro plugin connects to CRMs, maps marketing data to CR
 | **Close CRM** | `mcp-close-crm` | API Key (Basic Auth) | Yes | Yes | Leads, Contacts, Opportunities, Activities, Sequences |
 | **Keap** | `mcp-keap` | OAuth 2.0 | Yes | Yes | Contacts, Companies, Deals, Tags, Campaigns, Orders |
 
-**Setup:** Set the relevant API key or OAuth credentials in `.env`. The MCP server configuration in `.mcp.json` handles connection routing. Each brand can use a different CRM (see Section 7: Multi-CRM Setup).
+**Setup:** Set the relevant API key or OAuth credentials in `.env`. The MCP server configuration in `.mcp.json` handles connection routing. Each brand can use a different CRM (see Section 7: Multi-CRM Setup). The MCP server package names above are illustrative — verify the package exists on npm before use (`npx` executes remote code), or use `/digital-marketing-pro:add-integration` to wire a custom connector.
+
+> **How the two layers fit together (read this first).** `crm-sync.py` never writes to a CRM. It is the *local* preparation and bookkeeping layer: it validates and field-maps records (`prepare-contact`, `prepare-deal`), checks the local dedup index (`check-dedup`), records what was pushed (`log-synced`), and reports state (`get-sync-history`, `get-crm-status`, `audit-workflows`, `create-campaign`). The actual read/write against the CRM is performed by the **connected CRM MCP server** — the model calls the MCP's create/update tool with the payload `prepare-contact`/`prepare-deal` returns. Every example below follows the same shape: **prepare with `crm-sync.py` → write via the CRM MCP → record with `log-synced`.** `crm-sync.py --action` accepts only: `prepare-contact`, `prepare-deal`, `check-dedup`, `log-synced`, `get-sync-history`, `get-crm-status`, `audit-workflows`, `create-campaign` (plus `--brand`, `--data`, `--platform`, `--type`, `--limit`, `--plan`). There is no `push`, `setup-fields`, `dsr`, or `opt-out` action, and no `--crm`, `--object`, `--email`, or `--phone` flag.
 
 ---
 
@@ -51,7 +53,7 @@ How brand profile and marketing data fields map to CRM object fields across plat
 | `campaign_status` | Campaign.Status | (custom property) | Campaign.Status | (custom field) |
 | `utm_source` | Lead.UTM_Source__c (custom) | Contact.hs_analytics_source | Lead.UTM_Source (custom) | Person.utm_source (custom) |
 
-**Note:** Fields marked "(custom)" require creating a custom field/property in the CRM before the plugin can write to them. Use `crm-sync.py --action setup-fields --crm {crm}` to auto-create required custom fields.
+**Note:** Fields marked "(custom)" require creating a custom field/property in the CRM before the plugin can write to them. The plugin does NOT create CRM schema — create custom fields in the CRM's own admin UI (or via the connected CRM MCP if it exposes a schema tool), then map them in `--data` when you call `prepare-contact` / `prepare-deal`.
 
 ### Extended Platform Contact & Company Fields
 
@@ -82,17 +84,21 @@ How brand profile and marketing data fields map to CRM object fields across plat
 
 ### One-Way Push (Plugin to CRM)
 
-The most common pattern. The plugin is the source of truth for marketing data and pushes to the CRM.
+The most common pattern. The plugin is the source of truth for marketing data and the CRM MCP writes it into the CRM.
 
-| Use Case | Trigger | CRM Action |
-|---|---|---|
-| Lead import from campaign | Campaign execution or form submission | Create Lead/Contact |
-| Deal update from pipeline analysis | Pipeline review or scoring change | Update Opportunity/Deal |
-| Campaign record creation | Campaign launch via `/digital-marketing-pro:launch-campaign` (or `/digital-marketing-pro:launch-ad-campaign` for paid-ads only) | Create Campaign object |
-| Activity logging | Email send, ad click, webinar registration | Create Activity/Task |
+| Use Case | Trigger | crm-sync.py prepare step | CRM MCP write |
+|---|---|---|---|
+| Lead import from campaign | Campaign execution or form submission | `prepare-contact` | Create Lead/Contact |
+| Deal update from pipeline analysis | Pipeline review or scoring change | `prepare-deal` | Update Opportunity/Deal |
+| Campaign record creation | Campaign launch via `/digital-marketing-pro:launch-campaign` (or `/digital-marketing-pro:launch-ad-campaign` for paid-ads only) | `create-campaign` | Create Campaign object |
+| Activity logging | Email send, ad click, webinar registration | (log after the fact) | Create Activity/Task |
 
 ```bash
-python crm-sync.py --brand {slug} --action push --object lead --data '{"email": "...", "source": "q3-webinar"}'
+# 1. Prepare + field-map the record locally (validates; does NOT write to the CRM)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"email": "user@example.com", "source": "q3-webinar"}'
+# 2. Write the returned payload via the connected CRM MCP (the MCP's create/update tool)
+# 3. Record the write so the audit trail + dedup index stay current
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "salesforce", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ### Two-Way Sync (Plugin and CRM)
@@ -131,9 +137,9 @@ Before creating any CRM record, the plugin checks for existing matches. Rules ar
 | 3 | Company + Name | Company name exact + contact name fuzzy (Levenshtein distance ≤ 2) | Medium |
 | 4 | Domain match | Extract domain from email → match to company | Company-level only |
 
-**Always check dedup BEFORE creating records:**
+**Always check dedup BEFORE creating records** (email/phone go inside `--data`, not as flags):
 ```bash
-python crm-sync.py --brand {slug} --action check-dedup --email "user@example.com" --phone "+1-555-0123"
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action check-dedup --data '{"email": "user@example.com", "phone": "+1-555-0123"}'
 ```
 
 **Merge behavior:** When a match is found, the plugin updates the existing record rather than creating a duplicate. If multiple matches are found, the highest-confidence match is used and the others are flagged for manual review.
@@ -158,9 +164,9 @@ How marketing campaigns connect to CRM campaign objects for attribution and repo
 | **Close CRM** | Custom field on Lead | Smart View filter + custom field tagging | Custom attribution via plugin |
 | **Keap** | Campaign (visual campaign builder) | Tag-based campaign membership on Contacts | Built-in campaign reporting, tag-based attribution |
 
-**Plugin tracking:** Every campaign execution logs a `crm_campaign_id` via:
+**Plugin tracking:** Every campaign execution logs its `crm_campaign_id` via the execution tracker (all fields go inside `--data`; there are no `--campaign-id` / `--crm-campaign-id` flags):
 ```bash
-python execution-tracker.py --action log-execution --campaign-id {id} --crm-campaign-id {crm_id}
+python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand {slug} --action log-execution --data '{"campaign_id": "{id}", "crm_campaign_id": "{crm_id}", "action": "campaign-link", "result": "success"}'
 ```
 
 This creates a bidirectional link: the plugin knows which CRM campaign corresponds to each marketing campaign, and the CRM campaign links back to the plugin's campaign ID via a custom field.
@@ -284,8 +290,10 @@ ODOO_URL=https://mycompany.odoo.com
 ODOO_DB=mycompany
 ODOO_API_KEY=your-api-key-here
 
-# Sync command
-python crm-sync.py --brand {slug} --crm odoo --action push --object lead --data '{"name": "Q3 Webinar Lead", "email_from": "user@example.com"}'
+# Prepare the record locally (validates + field-maps; does NOT write to Odoo)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"email": "user@example.com", "company": "Q3 Webinar Lead"}'
+# Then write the returned payload via the Odoo MCP, and record the sync:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "odoo", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ---
@@ -321,8 +329,10 @@ python crm-sync.py --brand {slug} --crm odoo --action push --object lead --data 
 FRESHSALES_DOMAIN=yourcompany
 FRESHSALES_API_KEY=your-api-key-here
 
-# Sync command
-python crm-sync.py --brand {slug} --crm freshsales --action push --object contact --data '{"first_name": "Jane", "last_name": "Doe", "emails": [{"value": "jane@example.com"}]}'
+# Prepare the record locally (validates + field-maps; does NOT write to Freshsales)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"first_name": "Jane", "last_name": "Doe", "email": "jane@example.com"}'
+# Then write the returned payload via the Freshsales MCP, and record the sync:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "freshsales", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ---
@@ -356,8 +366,10 @@ python crm-sync.py --brand {slug} --crm freshsales --action push --object contac
 # .env
 MONDAY_API_TOKEN=your-api-token-here
 
-# Sync command (uses GraphQL mutations)
-python crm-sync.py --brand {slug} --crm monday-crm --action push --object item --data '{"board_id": 123456, "group_id": "new_leads", "name": "Q3 Webinar Lead", "column_values": {"email": "user@example.com", "numbers": 5000}}'
+# Prepare the record locally (validates + field-maps; does NOT write to Monday.com)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"email": "user@example.com", "company": "Q3 Webinar Lead"}'
+# Then write the returned payload via the Monday.com MCP (GraphQL mutation), and record the sync:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "monday-crm", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ---
@@ -396,8 +408,10 @@ DYNAMICS_TENANT_ID=your-tenant-id
 DYNAMICS_CLIENT_ID=your-client-id
 DYNAMICS_CLIENT_SECRET=your-client-secret
 
-# Sync command
-python crm-sync.py --brand {slug} --crm dynamics-365 --action push --object lead --data '{"firstname": "Jane", "lastname": "Doe", "emailaddress1": "jane@example.com", "companyname": "Acme Corp"}'
+# Prepare the record locally (validates + field-maps; does NOT write to Dynamics 365)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"first_name": "Jane", "last_name": "Doe", "email": "jane@example.com", "company": "Acme Corp"}'
+# Then write the returned payload via the Dynamics 365 MCP, and record the sync:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "dynamics-365", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ---
@@ -433,8 +447,10 @@ python crm-sync.py --brand {slug} --crm dynamics-365 --action push --object lead
 COPPER_API_KEY=your-api-key-here
 COPPER_USER_EMAIL=user@yourcompany.com
 
-# Sync command
-python crm-sync.py --brand {slug} --crm copper --action push --object people --data '{"name": "Jane Doe", "emails": [{"email": "jane@example.com", "category": "work"}]}'
+# Prepare the record locally (validates + field-maps; does NOT write to Copper)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"first_name": "Jane", "last_name": "Doe", "email": "jane@example.com"}'
+# Then write the returned payload via the Copper MCP, and record the sync:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "copper", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ---
@@ -472,8 +488,10 @@ python crm-sync.py --brand {slug} --crm copper --action push --object people --d
 # .env
 CLOSE_API_KEY=your-api-key-here
 
-# Sync command
-python crm-sync.py --brand {slug} --crm close-crm --action push --object lead --data '{"name": "Acme Corp", "contacts": [{"name": "Jane Doe", "emails": [{"email": "jane@example.com"}]}]}'
+# Prepare the record locally (validates + field-maps; does NOT write to Close)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"first_name": "Jane", "last_name": "Doe", "email": "jane@example.com", "company": "Acme Corp"}'
+# Then write the returned payload via the Close MCP, and record the sync:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "close-crm", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ---
@@ -512,8 +530,10 @@ KEAP_CLIENT_SECRET=your-client-secret
 KEAP_ACCESS_TOKEN=your-access-token
 KEAP_REFRESH_TOKEN=your-refresh-token
 
-# Sync command
-python crm-sync.py --brand {slug} --crm keap --action push --object contact --data '{"given_name": "Jane", "family_name": "Doe", "email_addresses": [{"email": "jane@example.com", "field": "EMAIL1"}]}'
+# Prepare the record locally (validates + field-maps; does NOT write to Keap)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action prepare-contact --data '{"first_name": "Jane", "last_name": "Doe", "email": "jane@example.com"}'
+# Then write the returned payload via the Keap MCP, and record the sync:
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action log-synced --data '{"platform": "keap", "record_type": "contact", "crm_id": "..."}'
 ```
 
 ---
@@ -525,7 +545,7 @@ python crm-sync.py --brand {slug} --crm keap --action push --object contact --da
 | Requirement | Implementation |
 |---|---|
 | Document legal basis for processing | Store `consent_basis` field on every CRM record (consent, legitimate interest, contract) |
-| Respect data subject requests | `crm-sync.py --action dsr --type {access/delete/port} --email "..."` |
+| Respect data subject requests | Execute access/delete/portability against the CRM through the connected CRM MCP (its read/delete tools) per the brand's compliance workflow; there is no `dsr` action in `crm-sync.py`. Record the fulfilled request via `--action log-synced --data '{"platform":"...","record_type":"dsr","note":"access\|delete\|port"}'` for the audit trail |
 | Data retention policy | Configure max retention per brand; auto-flag records exceeding retention period |
 | Data Processing Agreements | Required with every CRM vendor — verify before connecting |
 
@@ -533,7 +553,7 @@ python crm-sync.py --brand {slug} --crm keap --action push --object contact --da
 
 | Requirement | Implementation |
 |---|---|
-| Honor opt-out requests | `crm-sync.py --action opt-out --email "..."` — suppresses across all sync operations |
+| Honor opt-out requests | Apply the suppression in the CRM via the connected CRM MCP, then record it with `--action log-synced --data '{"platform":"...","record_type":"opt-out","email":"..."}'` so future `check-dedup`/prepare steps see the suppression. There is no `opt-out` action in `crm-sync.py` |
 | Do not sell data | Plugin never transfers CRM data to third parties |
 | Disclosure on collection | Lead forms must include privacy notice linking to brand's privacy policy |
 

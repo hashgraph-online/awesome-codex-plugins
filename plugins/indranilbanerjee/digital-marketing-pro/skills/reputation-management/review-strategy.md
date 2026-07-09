@@ -1,6 +1,6 @@
 # Review Strategy — Generation & Management
 
-> Systematic framework for generating, managing, and leveraging customer reviews across every major platform. Reviews are the single highest-trust signal in purchase decisions — 93% of consumers say online reviews influence their buying behavior.
+> Systematic framework for generating, managing, and leveraging customer reviews across every major platform. Reviews are among the highest-trust signals in purchase decisions — surveys consistently find that most consumers say online reviews influence their buying behavior (verify the current figure against a primary source such as the annual BrightLocal Local Consumer Review Survey before citing a specific percentage).
 
 ---
 

@@ -8,6 +8,8 @@ description: "Review completed work and learn."
 >
 > **Runtime note:** Hook-driven closeout is runtime-dependent. Claude/OpenCode can wire Phase 2-5 maintenance through lifecycle hooks. Codex post-mortem closeout uses the default AgentOps session/flywheel commands, not the archived Codex lifecycle shims: finish with `ao session close --auto-extract` and `ao flywheel close-loop --quiet`.
 
+S6 loop-closure: a lesson is durable only when the NEXT loop consumes it. When a gate/adversary caught a defect a green test missed, append the dimension to `docs/gate/findings-ledger.md` — the ledger `$behavior-first-planning` reads to ratchet its Standing Review Dimensions — so the catch closes back into the next loop's planning; a membrane escape compiles into a mechanical check.
+
 Six phases:
 1. **Council** — Did we implement it correctly?
 2. **Extract** — What did we learn?

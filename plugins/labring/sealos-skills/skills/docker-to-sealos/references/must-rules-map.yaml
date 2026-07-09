@@ -128,6 +128,10 @@ must_rules:
     enforcement:
       type: rule
       target: R026
+  - must: "WebSocket Ingress must include required nginx annotations (`kubernetes.io/ingress.class`, `nginx.ingress.kubernetes.io/proxy-body-size`, `nginx.ingress.kubernetes.io/proxy-read-timeout`, `nginx.ingress.kubernetes.io/proxy-send-timeout`, `nginx.ingress.kubernetes.io/backend-protocol`, `nginx.ingress.kubernetes.io/ssl-redirect`) with `backend-protocol: WS` and `3600` read/send timeouts."
+    enforcement:
+      type: rule
+      target: R048
   - must: "CronJob resources must define labels `cloud.sealos.io/cronjob`, `cronjob-launchpad-name`, and `cronjob-type`; `cloud.sealos.io/cronjob` must equal `metadata.name`, `cronjob-launchpad-name` must be `\"\"`, and `cronjob-type` must be `image`."
     enforcement:
       type: rule
@@ -388,6 +392,10 @@ must_rules:
     enforcement:
       type: rule
       target: R038
+  - must: "Do not add, delete, or change existing `ephemeral-storage` resource fields during existing-template updates unless runtime evidence identifies ephemeral storage pressure; preserve the original requests/limits values while tuning CPU and memory."
+    enforcement:
+      type: manual
+      note: "Requires diff review against the source template or runtime evidence for ephemeral storage pressure."
   - must: "`revisionHistoryLimit: 1`"
     enforcement:
       type: rule

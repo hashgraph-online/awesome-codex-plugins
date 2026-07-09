@@ -83,16 +83,33 @@ membrane triage over the catch corpus:
 ao membrane triage
 ```
 
-For any class with **HitCount >= 2** that no existing gate covers, open a compile
-bead naming the class and the strongest feasible binding layer — **gate >
-discovery checklist > prose** (bind as high as the failure allows). The
-two-strikes rule (noticed once → handoff; repeats → promote; must-never-regress →
-gate) is the admission bar: one hit stays a handoff, two hits earns a compile bead.
+For any class with **HitCount >= 2**, route it by the class's **nature**, NOT
+gate-first ([ADR-0014](../../../docs/adr/ADR-0014-catch-to-producer-loop-judgment-catches-need-a-producer-route.md)).
+`ao membrane triage` reports `Axis2Compilable ≈ 0` — recurring catches are almost
+all **judgment-class**, so a gate is the exception, not the goal:
 
-> **UNMEASURED (prose/workflow-tier):** this triage step is itself a workflow-tier
-> instruction, not a mechanical gate, so its behavioral effect is unproven pending
-> the age-e508.1 probe — and any prose-tier compile target it opens is UNMEASURED
-> until that probe lands. Prefer a gate binding whenever feasible.
+- **Compilable** (rare): open a compile bead for a mechanical gate (Loop B).
+- **Judgment-class** (the common case): bind a **producer-side fix** — a rule in the
+  owning skill's standards, a `CLAUDE.md`/`AGENTS-*.md` footgun, a `/plan`
+  planning-rule, or a `/discovery` pre-mortem check. For a judgment defect this **is**
+  the highest feasible binding, not a fallback. **When a gate/adversary CAUGHT a defect
+  a green test missed, also append the dimension to `docs/gate/findings-ledger.md`** —
+  the ledger `behavior-first-planning` reads to ratchet its Standing Review Dimensions,
+  so the catch closes back into the NEXT loop's planning (S6). Then add a row to the
+  **[producer-defect register](../../../docs/architecture/producer-defect-register.md)**:
+  the class, the fix + surface, and the recurrence count now (the "before").
+
+The two-strikes rule (once → handoff; repeats → promote; must-never-regress → gate,
+for the compilable case) is the admission bar. The **measurement** is the register's
+recurrence-before-vs-after: the *next* post-mortem that runs `ao membrane triage` fills
+the "after" — a class that recurs after its fix means the binding was too weak, so
+escalate it. Also classify a batch of the **unclassified-catch floor** each run — that
+floor is the register's fuel.
+
+> **Honest scope:** this route does not claim a compounding moat (ADR-0004/0011 remain
+> unproven, and we do not market ahead of them). It claims exactly one falsifiable
+> thing — after a producer fix binds for class X, X should be caught *less*. The
+> register makes that checkable.
 
 ### Phase 4: Activate
 

@@ -19,18 +19,17 @@ The user must provide (or will be prompted for):
 
 ## Process
 
-1. **Look up connector**: Execute `python3 scripts/connector-status.py --action setup-guide --name <connector>` to get the detailed setup guide for the requested connector. If the name doesn't match exactly, search the registry for close matches and suggest the correct name.
+1. **Look up connector**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" --action setup-guide --name <connector>` to get the detailed setup guide for the requested connector. If the name doesn't match exactly, search the registry for close matches and suggest the correct name.
 
-2. **Check current status**: Execute `python3 scripts/connector-status.py --action check --name <connector>` to determine if the connector is already configured. If already connected, report that and show which skills it powers — ask if the user wants to verify connectivity or reconfigure.
+2. **Check current status**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" --action check --name <connector>` to determine if the connector is already configured. If already connected, report that and show which skills it powers — ask if the user wants to verify connectivity or reconfigure.
 
 3. **Present setup instructions based on transport type**:
 
    **For HTTP connectors** (Slack, Canva, Figma, HubSpot, Notion, Ahrefs, Similarweb, Klaviyo, Google Calendar, Gmail, Stripe, Asana, Webflow):
-   - Explain that the connector is already pre-configured in `.mcp.json`
-   - No API keys or manual configuration needed
-   - The user just needs to use a skill that requires it — Claude will prompt for OAuth authorization
-   - Example: "Your Slack connector is already configured. Just run `/digital-marketing-pro:send-notification` and you'll be prompted to authorize Slack access."
-   - List the skills this connector enables
+   - **Nothing is pre-connected.** The shipped `.mcp.json` is empty (`{"mcpServers":{}}`) so a fresh install has zero auto-connecting MCP servers — this is deliberate (it keeps Cowork and multi-tenant installs safe). These HTTP connectors are an **opt-in catalog**, documented in `.mcp.json.connectors-reference`.
+   - To enable one, the user copies its block from `.mcp.json.connectors-reference` into their own `.mcp.json` (or adds it via `/digital-marketing-pro:add-integration`), then restarts the client. HTTP connectors need no API key in the file — once the server is added, Claude prompts for OAuth on first use.
+   - Example: "Slack isn't connected yet. Copy the Slack block from `.mcp.json.connectors-reference` into your `.mcp.json` (or run `/digital-marketing-pro:add-integration slack`), restart, then run `/digital-marketing-pro:send-notification` — you'll be prompted to authorize Slack via OAuth."
+   - List the skills this connector would enable once added
 
    **For npx connectors** (Google Ads, Meta, Salesforce, Twilio, etc.):
    - List the specific environment variables needed with clear descriptions

@@ -20,7 +20,7 @@ The Growth Plan is the flagship client-facing deliverable. It synthesises every 
 
 ## Context efficiency
 
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List the brand's data dir (`~/.claude-marketing/brands/{slug}/`, or `$CLAUDE_PLUGIN_DATA/digital-marketing-pro/brands/{slug}/` when that env var is set) before opening files. On re-invocation mid-session, skip files already in context.
 
 **Specification:** [growth-plan-template.md](../context-engine/growth-plan-template.md) — the canonical 11-section structure.
 
@@ -211,6 +211,8 @@ Set the stage for why the strategy is what it is.
 ## Examples
 
 ### Example 1: First Growth Plan production
+
+*SYNTHETIC EXAMPLE — fabricated for illustration; never reuse these numbers. The INR forecast figures below are made up.*
 
 ```
 User: Produce the Growth Plan for Acme.

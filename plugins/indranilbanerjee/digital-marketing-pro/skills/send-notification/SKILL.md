@@ -1,7 +1,7 @@
 ---
 name: send-notification
 description: "Send team notifications. Use when: pushing campaign updates, alerts, or approval requests via Slack or Intercom."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[channel or recipient]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[channel or recipient]"
 ## Purpose
 
 Send internal team notifications via Slack or Intercom for campaign status updates, performance alerts, approval requests, or general team communication. This command is strictly for internal team messaging — not customer-facing outreach. It provides structured, urgency-aware notifications that keep marketing teams, stakeholders, and collaborators informed about campaign progress, metric thresholds, and pending approvals without requiring them to check dashboards or wait for scheduled reports. Supports tiered urgency with appropriate formatting and mention behavior to balance keeping teams informed without causing alert fatigue.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 

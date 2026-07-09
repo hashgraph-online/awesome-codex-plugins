@@ -1,7 +1,7 @@
 ---
 name: data-export
 description: "Export marketing data. Use when: sending data to BigQuery, Google Sheets, or Supabase for analysis or reporting."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[destination]"
 ---
 
@@ -12,6 +12,13 @@ argument-hint: "[destination]"
 Export marketing data — metrics, contacts, campaign results, and performance snapshots — to an external data store for analysis, reporting, or integration with other tools. Supports BigQuery for data warehousing and advanced analytics, Google Sheets for sharing and collaboration with stakeholders, and Supabase for custom database use and application integration. Transforms raw marketing data into clean, structured, tabular formats ready for downstream consumption with full schema documentation. Handles PII redaction when exporting contact data to shared destinations, ensuring compliance with privacy regulations.
 
 Use this command to move data out of the marketing system for external analysis, client reporting, or data warehouse integration. For exporting audience segments specifically, use `/digital-marketing-pro:segment-audience` to create the segment first, then this command to export the member data.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 

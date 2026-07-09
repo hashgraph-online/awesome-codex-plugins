@@ -66,7 +66,7 @@ Before executing analytics work, gather:
 1. **Business Model**: SaaS, e-commerce, lead gen, marketplace, etc. (determines the KPI framework)
 2. **Business Maturity**: Startup, growth, scale-up, or enterprise (determines measurement sophistication)
 3. **Current Metrics**: What is already being tracked? What tools are in use?
-4. **Analytics Stack**: Google Analytics (UA/GA4), ad platforms, CRM, BI tools, CDPs, tag managers
+4. **Analytics Stack**: Google Analytics (GA4), ad platforms, CRM, BI tools, CDPs, tag managers
 5. **Data Availability**: How much historical data exists? What granularity?
 6. **Reporting Audience**: Who receives reports? (Exec/C-suite, marketing team, board, clients)
 7. **Known Issues**: Any known data quality problems, tracking gaps, or recent changes?

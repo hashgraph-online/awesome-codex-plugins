@@ -1,11 +1,13 @@
 ---
 name: superloopy-slides
-description: Create beautiful, animation-rich HTML slide decks from scratch or by converting PowerPoint files — zero-dependency single-file presentations with curated distinctive styles, gated by real-browser visual-QA evidence on the Superloopy evidence spine. Use when the user wants slides, a presentation, a deck, a pitch deck, a talk, a keynote, or to convert a PPT/PPTX to web. Triggers — slides, presentation, deck, pitch deck, keynote, talk, PPT, PPTX, "make me a deck", "loopy slides". Discovers the user's aesthetic through visual style previews rather than abstract choices; supports PDF export and Vercel deployment. NOT for general web pages or landing pages — use superloopy-frontend for those.
+description: Create beautiful, animation-rich HTML slide decks from scratch or by converting PowerPoint files — zero-dependency single-file presentations with curated distinctive styles, gated by real-browser visual-QA evidence on the Superloopy evidence spine. Use when the user wants slides, a presentation, a deck, a pitch deck, a talk, a keynote, or to convert a PPT/PPTX to web. Triggers — slides, presentation, deck, pitch deck, keynote, talk, PPT, PPTX, "make me a deck", "loopy slides". Discovers the user's aesthetic through visual style previews rather than abstract choices; supports PDF export and Vercel/Cloudflare Pages deployment. Live example deck built with this skill: https://fileloom-slides.pages.dev. NOT for general web pages or landing pages — use superloopy-frontend for those.
 ---
 
 # Superloopy Slides
 
 Create zero-dependency, animation-rich HTML presentations that run entirely in the browser.
+
+> **Live example** — a multilingual deck built with this skill: <https://fileloom-slides.pages.dev> (English · 한국어 · 中文 · 日本語 · Español; single-file, embed-safe, on a fixed 16:9 stage).
 
 This is a Superloopy skill: the deck is done only when a real-browser visual artifact proves it renders correctly — never when the HTML "looks complete" in source. Completion requires an artifact under the active evidence root via `SUPERLOOPY_EVIDENCE`.
 

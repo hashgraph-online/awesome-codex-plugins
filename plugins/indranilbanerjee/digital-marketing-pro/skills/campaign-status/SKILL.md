@@ -26,12 +26,12 @@ The user must provide (or will be prompted for):
 ## Process
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand voice, compliance rules for target markets (`skills/context-engine/compliance-rules.md`), and industry context. Also check for guidelines at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load restrictions. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
-2. **List all tracked campaigns**: Execute `scripts/campaign-tracker.py --brand {slug} --action list-campaigns`
+2. **List all tracked campaigns**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns`
    to get the campaign registry with names, platforms, statuses, creation dates, and assigned KPI targets.
-3. **Pull execution history**: Execute `scripts/execution-tracker.py --brand {slug} --action get-history --days {time_window}`
+3. **Pull execution history**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand {slug} --action get-history --limit {N}`
    to retrieve recent execution logs — what ran, when it ran, outcome (success/failure/skipped), error messages if any,
    and the user or automation that triggered it.
-4. **Check pending approvals**: Execute `scripts/approval-manager.py --brand {slug} --action list-pending`
+4. **Check pending approvals**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action list-pending`
    to surface any campaigns, creatives, or content pieces awaiting review before they can go live.
    Include submission date and age in hours for each pending item.
 5. **Pull live metrics from connected MCPs**: For each active campaign, query the relevant platform MCP

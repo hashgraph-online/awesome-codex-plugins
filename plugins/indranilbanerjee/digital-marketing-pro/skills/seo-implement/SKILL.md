@@ -1,7 +1,7 @@
 ---
 name: seo-implement
 description: "Execute SEO changes. Use when: updating meta tags, schema markup, canonicals, redirects, or indexing via CMS MCP."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[URL or change-type]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[URL or change-type]"
 ## Purpose
 
 Execute SEO implementation changes on connected CMS platforms. Goes beyond analysis to actually update meta tags, deploy JSON-LD schema markup, manage canonical URLs, create 301/302 redirects, and request indexing — all via WordPress or Webflow MCP connections. This command bridges the gap between SEO recommendations and live deployment, ensuring that audit findings and optimization plans translate into real page-level changes with full audit trails and rollback capability.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — the before/after diff of every meta / schema / canonical / redirect change, plus scope and compliance — as an **Execution Summary** before touching any live page.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 

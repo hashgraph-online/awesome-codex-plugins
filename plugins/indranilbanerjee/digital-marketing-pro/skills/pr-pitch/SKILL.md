@@ -15,7 +15,7 @@ Create compelling media pitch packages designed to earn coverage. Includes pitch
 The user must provide (or will be prompted for):
 
 - **Story angle**: What is newsworthy (launch, data, trend, expert commentary, milestone)
-- **Pitch type**: Proactive pitch, reactive (newsjacking), HARO/Connectively response, or thought leadership placement
+- **Pitch type**: Proactive pitch, reactive (newsjacking), journalist-request-platform response (e.g., Qwoted, Featured, Source of Sources), or thought leadership placement
 - **Target outlets**: Desired publications or tier level (Tier 1 national, trade, local, podcasts)
 - **Spokesperson**: Who speaks for the brand, their credentials and availability
 - **Supporting assets**: Data, quotes, images, press releases, case studies available
@@ -29,7 +29,7 @@ The user must provide (or will be prompted for):
 4. Build a target media list with journalist names, beats, outlets, and contact approach
 5. Design an outreach sequence: initial pitch, follow-up timing, alternative angles
 6. Prepare supporting materials: press release draft, fact sheet, quote bank, boilerplate
-7. If HARO/Connectively: craft a source response optimized for journalist selection criteria
+7. If responding to a journalist request platform (e.g., Qwoted, Featured, Source of Sources): craft a source response optimized for journalist selection criteria
 8. Review all materials for brand voice consistency and factual accuracy
 
 ## Output

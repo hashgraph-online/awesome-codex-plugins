@@ -52,8 +52,8 @@ A comprehensive guide to earning high-quality backlinks through ethical, sustain
 - **Scalability:** Medium — depends on available broken links in your niche
 - **Best For:** Any industry with mature content ecosystems (healthcare, education, SaaS)
 
-#### HARO / Connectively / Featured / Qwoted
-- **Description:** Respond to journalist queries on source-request platforms. Provide expert commentary that gets quoted with a backlink to your site.
+#### Journalist source-request platforms (Featured / Qwoted / Source of Sources)
+- **Description:** Respond to journalist queries on source-request platforms. Provide expert commentary that gets quoted with a backlink to your site. (Older legacy source-request services have wound down — verify which platforms are active before recommending one.)
 - **Effort:** Low-Medium (daily monitoring required)
 - **Authority Potential:** High — links from major publications
 - **Scalability:** Medium — limited by query volume and selection rates (5–15% success rate)
@@ -156,7 +156,7 @@ Thanks,
 [Your Name]
 ```
 
-### HARO / Source Request Response
+### Journalist source-request response
 ```
 Subject: RE: [Query headline] — [Your Name], [Title]
 
@@ -301,7 +301,7 @@ Maintain a natural-looking anchor text profile. Over-optimization of exact-match
 ### Healthcare
 - Medical association and professional organization directories
 - Patient education resource pages (.edu and .org sites)
-- Health publication expert commentary (HARO is particularly effective)
+- Health publication expert commentary (journalist source-request platforms are particularly effective)
 - Research citation links from academic papers and clinical references
 - Continuing education resource lists
 

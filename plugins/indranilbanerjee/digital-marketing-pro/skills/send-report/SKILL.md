@@ -1,7 +1,7 @@
 ---
 name: send-report
 description: "Deliver performance reports. Use when: sending KPI summaries via Slack, email, or Google Sheets with analysis."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[destination]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[destination]"
 ## Purpose
 
 Generate a formatted performance report from connected analytics sources and deliver it via Slack, email, or Google Sheets. Supports weekly pulse, monthly review, QBR, and custom report types. Pulls live metrics from connected platforms, calculates KPIs against targets and previous periods, adds trend analysis with anomaly detection, generates actionable recommendations, then formats and delivers through the user's preferred channel with appropriate approval gates.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 
@@ -39,7 +46,7 @@ The user must provide (or will be prompted for):
 6. **Generate recommendations**: Based on the performance data, produce 3-5 actionable recommendations ranked by expected impact — what to scale (high performers with headroom), what to pause (underperformers burning budget), what to test (hypotheses from anomalies), and what to investigate (unexplained movements). Tie each recommendation to specific data points with estimated impact range.
 7. **Generate report content**: Run `report-generator.py` to compile the full report per the selected type — executive summary (what happened, why it matters, what to do next), KPI dashboard section with sparklines and status indicators, channel-by-channel breakdown with period-over-period comparisons, trend analysis with visualizations, anomaly flags with investigation prompts, and prioritized recommendations. Apply the appropriate template depth for the report type.
 8. **Format for delivery channel**: Format the report content for the selected channel — Slack (structured message blocks with bold metrics, emoji indicators, and chart images as attachments), email (responsive HTML template with inline charts, summary table, and deep-link buttons to platform dashboards), or Google Sheets (structured tabs for summary, channel detail, and raw data, with conditional formatting, sparkline formulas, and chart objects). Apply brand formatting if specified.
-9. **Create approval record**: Run `approval-manager.py` with risk level set to low for internal team recipients or medium for external stakeholders, client-facing delivery, or reports containing revenue or financial data. Generate a report preview with delivery configuration.
+9. **Create approval record**: Create the record via `approval-manager.py --action create-approval` with the risk level inside the `--data` JSON — `{"risk_level":"low",...}` for internal team recipients, `"medium"` for external stakeholders, client-facing delivery, or reports containing revenue/financial data. There is no `--risk-level` flag; see the Execution gate above for the exact command. Generate a report preview with delivery configuration.
 10. **Present report preview**: Display the complete report content for user review — executive summary, key metrics with trend indicators, channel highlights, anomaly flags, and recommendations. Show delivery configuration — channel, recipients, formatting, and branding. Wait for explicit approval before sending.
 11. **Deliver via MCP**: On approval, deliver the report through the connected MCP server — post to Slack channel with threaded detail, send HTML email via email platform with tracking, or create and share Google Sheets document with appropriate permissions. Handle attachments, chart images, and formatting per channel requirements.
 12. **Verify delivery**: Confirm the report was successfully delivered — check Slack message posted status, email delivery confirmation, or Google Sheets sharing permissions applied. Retry on failure with error details.

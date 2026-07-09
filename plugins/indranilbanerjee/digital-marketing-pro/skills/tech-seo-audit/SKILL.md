@@ -12,6 +12,8 @@ Run a comprehensive technical SEO audit that covers the infrastructure and code-
 
 ### Important — technical SEO during the May 2026 Core Update
 
+> **Time-boxed guidance — valid until ~2026-08.** This block is specific to the May 2026 Core Update window. After ~August 2026 it is stale: re-check the [Google Search Status Dashboard](https://status.search.google.com/) for the current/most-recent core update and its dates before applying the timing advice below.
+
 The Google **broad core update that started 21 May 2026** is primarily a quality/relevance reweighting, not a technical signal change. If a brand contacts you about ranking volatility in May/June 2026:
 
 - **Run this audit anyway** — Core Updates frequently surface pre-existing technical debt because relative quality matters more during reweighting. Crawl-budget waste on low-quality pages, broken canonical chains, soft-404s, and orphaned JS-rendered routes all amplify Core Update damage.
@@ -33,7 +35,7 @@ The user must provide (or will be prompted for):
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand voice, compliance rules for target markets (`skills/context-engine/compliance-rules.md`), and industry context. **Also check for guidelines** at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load restrictions and relevant category files. Check for custom templates at `~/.claude-marketing/brands/{slug}/templates/`. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
 2. **Load reference files**: Read `skills/technical-seo/core-web-vitals.md`, `skills/technical-seo/crawlability.md`, `skills/technical-seo/site-architecture.md`, `skills/technical-seo/indexation.md`, and `skills/technical-seo/international-seo.md` for detailed technical SEO frameworks
-3. **Run tech-seo-auditor script** (if Python available): `python "scripts/tech-seo-auditor.py" --url {url}` to get automated checks on status codes, redirects, meta tags, and page structure
+3. **Run tech-seo-auditor script** (if Python available): `python "${CLAUDE_PLUGIN_ROOT}/scripts/tech-seo-auditor.py" --url {url}` to get automated checks on status codes, redirects, meta tags, and page structure
 4. **Core Web Vitals assessment**: Evaluate LCP, INP, and CLS using known thresholds. If GSC MCP is connected, pull real CrUX data. Otherwise, provide optimization checklist based on CMS/platform
 5. **Crawlability audit**: Check robots.txt configuration, XML sitemap presence and structure, crawl budget considerations, JavaScript rendering impact
 6. **Indexation review**: Canonical tag usage, meta robots directives, duplicate content risks, index bloat potential, pagination handling
@@ -68,7 +70,7 @@ A structured technical SEO audit report containing:
 - **Don't fix what isn't broken.** A site at 95th-percentile CWV doesn't need re-engineering — that effort is better spent on content. Tech-SEO is necessary, not sufficient.
 - **Robots.txt + meta robots conflicts** are common. If both fire, Google obeys the most restrictive. Always cross-check.
 - **For a Core Update window,** run this audit anyway — Core Updates often surface pre-existing tech debt, but the fixes are background work, not Core Update remedies.
-- **Hand off `05-link-profile` work** to `/digital-marketing-pro:backlink-gap` for competitor-comparison; this audit only covers own-domain link health.
+- **Link-profile work is out of scope for this technical audit.** This audit covers own-domain *technical* health (crawlability, indexation, redirects, canonicals, CWV, schema) — not backlinks. For own-domain link health see `/digital-marketing-pro:seo-audit`; for competitor link-gap analysis hand off to `/digital-marketing-pro:backlink-gap`.
 
 ## Agents Used
 

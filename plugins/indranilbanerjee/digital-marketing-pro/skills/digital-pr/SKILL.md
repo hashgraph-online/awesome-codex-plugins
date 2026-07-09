@@ -1,6 +1,6 @@
 ---
 name: digital-pr
-description: "Plan digital PR campaigns. Use when: pitching journalists, HARO responses, thought leadership, or E-E-A-T building."
+description: "Plan digital PR campaigns. Use when: pitching journalists, journalist-request responses, thought leadership, or E-E-A-T building."
 ---
 
 # Digital PR & Authority
@@ -12,14 +12,14 @@ Activate this module when the user's request involves any of the following:
 - **Earned Media Strategy**: Planning how to get press coverage, media mentions, or editorial features
 - **Press Releases**: Writing or optimizing press releases for distribution and pickup
 - **Journalist Outreach**: Crafting pitch emails, building media lists, or developing journalist relationships
-- **HARO/Connectively Pitching**: Responding to journalist queries on Help A Reporter Out (now Connectively) or similar platforms
+- **Journalist-request pitching**: Responding to journalist source requests on platforms like Qwoted, Featured, and Source of Sources (older legacy source-request services have wound down — verify which platforms are active before recommending one)
 - **Thought Leadership**: Positioning an executive or brand as an industry authority through content and speaking
 - **Newsjacking**: Rapid-response commentary on breaking news to earn media coverage
 - **Executive Personal Branding**: Building an executive's public profile and industry presence
 - **E-E-A-T Authority Building**: Strengthening Experience, Expertise, Authoritativeness, and Trustworthiness signals for SEO and credibility
 - **Press Kit Creation**: Assembling brand media kits with approved assets, boilerplate, and key facts
 
-**Trigger phrases**: "press release," "media coverage," "journalist outreach," "HARO," "Connectively," "thought leadership," "newsjacking," "executive branding," "personal brand," "E-E-A-T," "authority building," "earned media," "PR strategy," "media pitch," "press kit," "media relations," "byline," "guest post," "speaking opportunity," "expert source"
+**Trigger phrases**: "press release," "media coverage," "journalist outreach," "journalist request," "source request," "Qwoted," "Featured," "thought leadership," "newsjacking," "executive branding," "personal brand," "E-E-A-T," "authority building," "earned media," "PR strategy," "media pitch," "press kit," "media relations," "byline," "guest post," "speaking opportunity," "expert source"
 
 ## Brand Context (Auto-Applied)
 
@@ -31,7 +31,7 @@ Before producing any marketing output from this module:
 4. **Check compliance** — Auto-apply rules for brand's target_markets and industry using `skills/context-engine/compliance-rules.md`
 5. **Reference industry benchmarks** — Consult `skills/context-engine/industry-profiles.md` for the brand's industry
 6. **Use platform specs** — Reference `skills/context-engine/platform-specs.md` for character limits and format requirements
-7. **Check campaign history** — Run `python campaign-tracker.py --brand {slug} --action list-campaigns` before planning new work
+7. **Check campaign history** — Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` before planning new work
 8. **If no brand exists**, say: "No brand profile found. Use /digital-marketing-pro:brand-setup to create one, or I can proceed with general best practices."
 9. **Check brand guidelines** — If `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` exists, load and enforce: `restrictions.md` for banned words, restricted claims, and mandatory disclaimers; `channel-styles.md` for channel-specific tone overrides (may differ from base voice); `messaging.md` for approved key messages, taglines, and positioning language; `voice-and-tone.md` for detailed voice rules beyond the 4 numeric scores. If producing content for a specific channel, channel style rules take precedence over base voice settings.
 
@@ -59,7 +59,7 @@ For quick requests (e.g., "write a press release for our product launch"), proce
 - **Media Outreach Strategy**: Target publication mapping, journalist identification, relationship-building approach, pitch calendar, and outreach cadence planning
 - **Press Release Optimization**: Newsworthy angle identification, inverted pyramid structure, quote crafting, multimedia integration, distribution channel selection, and SEO optimization for press releases
 - **Pitch Template Creation**: Customizable pitch email templates for different scenarios (product launch, data/research, expert commentary, trend story, company milestone, partnership announcement)
-- **HARO/Connectively Response Optimization**: Query monitoring strategy, response templates, credibility formatting, rapid-response workflow, and success rate optimization
+- **Journalist-request response optimization**: Query monitoring strategy across active source-request platforms (Qwoted, Featured, Source of Sources), response templates, credibility formatting, rapid-response workflow, and success-rate optimization
 - **Thought Leadership Content Strategy**: Byline article planning, speaking opportunity identification, podcast guesting strategy, original research planning, and industry report creation
 - **Newsjacking Rapid-Response Framework**: News monitoring setup, relevance assessment criteria, speed-to-response protocols, pre-approved messaging templates, and brand safety guardrails
 - **E-E-A-T Optimization**: Author bio optimization, credentials display, expert review processes, trust signal implementation, experience demonstration, and authority signal building
@@ -109,7 +109,7 @@ For quick requests (e.g., "write a press release for our product launch"), proce
    - Keep pitches under 200 words — journalists scan, they don't read
    - Prepare a follow-up sequence (one follow-up after 3-5 business days, maximum two total)
 
-5. **HARO/Connectively Response Protocol**
+5. **Journalist-request response protocol** (Qwoted / Featured / Source of Sources)
    - Set up query monitoring for relevant categories and keywords
    - Response framework:
      - Answer the journalist's exact question first (in 2-3 sentences)
@@ -155,7 +155,7 @@ For quick requests (e.g., "write a press release for our product launch"), proce
 | Media List | Spreadsheet | Tiered list of publications and journalists with contact info and beat details |
 | Press Release | Document | Publication-ready release with headline, subhead, body, quotes, boilerplate, and contact |
 | Pitch Email Templates | Document | Customized pitch templates for each angle and journalist tier |
-| HARO Response Templates | Document | Pre-structured response frameworks for common query types |
+| Journalist-Request Response Templates | Document | Pre-structured response frameworks for common query types (Qwoted / Featured / Source of Sources) |
 | Thought Leadership Calendar | Spreadsheet/Calendar | 90-day plan with content types, topics, platforms, and deadlines |
 | E-E-A-T Audit Report | Document | Current authority assessment with specific improvement actions |
 | Press Kit | Document + asset folder | Brand boilerplate, bios, fact sheet, approved images, and media contact info |
@@ -169,11 +169,11 @@ For quick requests (e.g., "write a press release for our product launch"), proce
 
 ### Regulated Industries (Legal Review Required)
 - **Situation**: Healthcare, financial services, legal, or other regulated industries need legal review before any public statement
-- **Approach**: Build legal review into the workflow timeline — add 3-5 business days minimum for legal approval. Pre-approve a library of statements and claims that can be used without per-instance legal review to enable faster response. For HARO responses (where speed matters), create pre-cleared credential statements and limit expert commentary to well-established facts rather than claims that could be construed as advice. Always include appropriate disclaimers. Flag that press releases in regulated industries require compliance review before distribution.
+- **Approach**: Build legal review into the workflow timeline — add 3-5 business days minimum for legal approval. Pre-approve a library of statements and claims that can be used without per-instance legal review to enable faster response. For journalist-request responses (where speed matters), create pre-cleared credential statements and limit expert commentary to well-established facts rather than claims that could be construed as advice. Always include appropriate disclaimers. Flag that press releases in regulated industries require compliance review before distribution.
 
 ### Small Brand with No Media Relationships
 - **Situation**: Brand or executive has no existing press coverage, no media contacts, and no public profile
-- **Approach**: Start with foundation-building, not pitching tier 1 outlets. Phase the approach: (1) Build a credible online presence first (LinkedIn, website bio, author pages). (2) Start with HARO/Connectively responses to build a portfolio of quotes and mentions. (3) Target tier 3 outlets (niche blogs, local media, industry newsletters) for initial coverage. (4) Create original data or research that gives media a reason to cite the brand. (5) After building a portfolio of 5-10 placements, begin pitching tier 2 publications. Set realistic expectations: building media authority from zero takes 6-12 months of consistent effort.
+- **Approach**: Start with foundation-building, not pitching tier 1 outlets. Phase the approach: (1) Build a credible online presence first (LinkedIn, website bio, author pages). (2) Start with journalist-request responses (Qwoted, Featured, Source of Sources) to build a portfolio of quotes and mentions. (3) Target tier 3 outlets (niche blogs, local media, industry newsletters) for initial coverage. (4) Create original data or research that gives media a reason to cite the brand. (5) After building a portfolio of 5-10 placements, begin pitching tier 2 publications. Set realistic expectations: building media authority from zero takes 6-12 months of consistent effort.
 
 ### Crisis-Related PR
 - **Situation**: The brand is facing negative press, a product recall, customer complaint viral moment, or other reputation threat

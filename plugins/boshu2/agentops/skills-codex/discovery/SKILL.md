@@ -26,7 +26,7 @@ brainstorm (goal-vs-implementation clarification) + design (product-fit pressure
 > Discovery turns a goal plus delegated child artifacts into one dense execution
 > packet for `$crank` and `$validate`. It is also the **re-plan engine** for `$rpi`'s
 > [Agile Re-Plan Loop](../rpi/references/agile-replan-loop.md): invoked again at each wave
-> boundary to mutate the *remaining* waves from what the last wave taught — not only at the start.
+> boundary to mutate the *remaining* waves from what the last wave taught — not only at the start. **Seed slice candidates small:** one Given/When/Then behavior each, refactor candidates kept separate from feature candidates — small batches + refactor-after-green are the load-bearing quality moves, not test-first ordering (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`); binding decomposition discipline is `$plan` (PR-010/PR-011).
 
 ## Folded-In Trigger Surface (brainstorm, design)
 

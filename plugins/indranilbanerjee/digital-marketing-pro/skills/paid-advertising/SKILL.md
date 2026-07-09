@@ -5,27 +5,16 @@ description: "Plan paid advertising campaigns. Use when: managing Google Ads, Me
 
 # Paid Advertising
 
-## Recent platform API changes (April–May 2026)
+## Recent platform API changes (as of June 2026)
 
-If you're integrating with or generating code against any of these platforms, the following recent changes have direct impact:
+Target **Google Ads API v24.2** (released 24 June 2026 — current latest). v24.0 was the last release with breaking changes; v24.1 and v24.2 are non-breaking additive releases. Full detail — including AI Max — lives in [`google-ads.md`](google-ads.md), the single source for the Google Ads API surface. Source: [Google Ads API release notes](https://developers.google.com/google-ads/api/docs/release-notes).
 
-### Google Ads API v24 (released 22 April 2026)
-Source: [Google Ads API release notes](https://developers.google.com/google-ads/api/docs/release-notes).
+**Highlights that affect campaign construction:**
 
-**Breaking changes that affect code construction of ads:**
-
-- **`videos` and `logo_images` are now REQUIRED** in `DemandGenVideoResponsiveAdInfo` and `VideoResponsiveAdInfo`. Existing code that creates these ad types without populating both fields will fail at request time on v24+. Any DMP-generated Google Ads request bodies or asset-attach helpers must include both.
-- **`Campaign.video_brand_safety_suitability` has been REMOVED.** The control still exists, but only at the **Customer level**. Any code that set brand-safety suitability per-campaign must be repointed to the Customer object. If a brand profile encodes a "video brand safety suitability" preference, the implementation should now apply it once at the Customer level on connector setup, not per-campaign.
-- **`CallAd` / `CallAdInfo` are fully removed** (deprecation finalized — was in progress through v23).
-
-### Google Ads API v23.1 (released 25 February 2026 — AEO-relevant)
-- **`text_guidelines` on AI-generated assets in Performance Max and Search** — `term_exclusions` and `messaging_restrictions` are now supported. This is the channel where DMP can pipe a brand's banned-word list (`brand.profile.json → restrictions.md → banned_words`) and approved messaging restrictions directly into the Performance Max asset-generation guardrails. When generating PMax campaigns, populate `text_guidelines.term_exclusions` and `text_guidelines.messaging_restrictions` from the brand profile to keep AI-generated headlines and descriptions on-brand.
-
-### What DMP files must reflect this
-
-- `skills/paid-advertising/google-ads.md` — surface the v24 breaking changes in any code patterns shown
-- `scripts/connector_resolver.py` — if Google Ads is in the connector map, note v24 requirements in manifest comments / setup hints (the resolver already returns `manifest_ready` / `stub_unconfigured` per the v3.7.10 architecture; no behavioral change needed beyond doc accuracy)
-- `.mcp.json.connectors-reference` — Google Ads connector entry should note "v24+" as the minimum supported API version
+- **v24.2 (24 Jun 2026):** first-class **Local Services Ads** support (`AssetGroup.google_local_services_info`), landing-page-text auto-generation (`AssetAutomationType.GENERATE_LANDING_PAGE_TEXT`), and a beta Multi-Party Auth review resource for regulated verticals (finance, health, political).
+- **v24.1 (13 May 2026) — AI Max:** four new experiment types (`ADOPT_AI_MAX`, `ADOPT_BROAD_MATCH_KEYWORDS`, `OPTIMIZE_ASSETS`, `PMAX_REPLACEMENT_SHOPPING`). **Run an `ADOPT_AI_MAX` experiment before any AI Max rollout** — it gives statistically-clean lift numbers vs the baseline. Also adds `mobile_device_platform` (iOS vs Android) reporting segmentation.
+- **v24.0 (22 Apr 2026) — breaking:** `videos` + `logo_images` now REQUIRED on `DemandGenVideoResponsiveAdInfo`/`VideoResponsiveAdInfo` (and `business_name` on the latter); `Campaign.video_brand_safety_suitability` REMOVED (moved to the Customer level); `CallAd`/`CallAdInfo` fully removed (use Call Assets).
+- **v23.1 (25 Feb 2026):** `text_guidelines.term_exclusions` + `text_guidelines.messaging_restrictions` on AI-generated **Performance Max** and **Search** assets — pipe a brand's banned-word list (`profile.json → restrictions.md → banned_words`) and approved messaging straight into PMax asset-gen guardrails.
 
 ## When to Use This Skill
 

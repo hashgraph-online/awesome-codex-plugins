@@ -8,6 +8,8 @@ description: "Execute implementation waves."
 
 **You must execute this workflow. Do not just describe it.**
 
+Each slice runs the canonical narrow-waist micro-cycle: its acceptance test authored RED before code is the slice contract, and refactor-under-green is its own wave, never optional (see references/wave-patterns.md) — a refactor wave must change no test (test-first ordering alone is not the quality lever; refactor-after-green is).
+
 ## Architecture
 
 ```text

@@ -85,6 +85,28 @@ TLS_CERT_MOUNT_EXACT_PATHS = {
     "/certs",
     "/tls",
 }
+WEBSOCKET_FIELD_HINTS = (
+    "websocket",
+    "web-socket",
+    "web_socket",
+    "ws",
+    "wss",
+    "devtools",
+    "chrome_devtools",
+    "cdp",
+    "debugger",
+    "socketio",
+)
+WEBSOCKET_VALUE_HINTS = (
+    "ws://",
+    "wss://",
+    "websocket",
+    "web-socket",
+    "chrome devtools",
+    "devtools",
+    "cdp",
+    "socket.io",
+)
 EXPLICIT_VERSION_TAG_RE = re.compile(
     r"^v?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:[-+](?P<suffix>[0-9A-Za-z][0-9A-Za-z._-]*))?$"
 )
@@ -92,6 +114,7 @@ FLOATING_NUMERIC_TAG_RE = re.compile(r"^v?\d+(?:\.\d+)?$")
 FLOATING_ALIAS_TAGS = {"latest", "stable", "main", "master", "edge", "nightly", "dev"}
 COMPOSE_BRACED_VAR_RE = re.compile(r"\$\{([^}]+)\}")
 COMPOSE_SIMPLE_VAR_RE = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*)")
+PRIVATE_IMAGE_REGISTRY_PREFIXES = ("ghcr.io/",)
 SEALOS_CPU_REQUEST_BY_LIMIT = {
     "100m": "10m",
     "200m": "20m",
@@ -194,6 +217,14 @@ HTTP_INGRESS_ANNOTATIONS = {
         "  add_header Cache-Control \"public\";\n"
         "}"
     ),
+}
+WEBSOCKET_INGRESS_ANNOTATIONS = {
+    "kubernetes.io/ingress.class": "nginx",
+    "nginx.ingress.kubernetes.io/proxy-body-size": "32m",
+    "nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+    "nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
+    "nginx.ingress.kubernetes.io/backend-protocol": "WS",
+    "nginx.ingress.kubernetes.io/ssl-redirect": "true",
 }
 COMPOSE_DURATION_PART_RE = re.compile(r"(\d+)(ns|us|ms|s|m|h)")
 URL_IN_COMMAND_RE = re.compile(r"https?://[^\s\"'`]+")
@@ -418,6 +449,10 @@ def has_pinned_image(image: str) -> bool:
     without_digest = text.split("@", 1)[0]
     last_segment = without_digest.rsplit("/", 1)[-1]
     return ":" in last_segment
+
+
+def requires_image_pull_secret(image: str) -> bool:
+    return any(image.strip().startswith(prefix) for prefix in PRIVATE_IMAGE_REGISTRY_PREFIXES)
 
 
 def is_latest_image(image: str) -> bool:
@@ -792,6 +827,54 @@ def parse_container_port(item: Any) -> Optional[int]:
     return None
 
 
+def _text_has_websocket_hint(value: Any) -> bool:
+    normalized = str(value).lower()
+    return any(hint in normalized for hint in WEBSOCKET_VALUE_HINTS)
+
+
+def _field_has_websocket_hint(value: Any) -> bool:
+    normalized = re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-")
+    if not normalized:
+        return False
+    tokens = set(normalized.split("-"))
+    return any(hint in normalized for hint in WEBSOCKET_FIELD_HINTS) or bool(tokens & set(WEBSOCKET_FIELD_HINTS))
+
+
+def _iter_compose_values(value: Any) -> Iterable[Any]:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield key
+            yield item
+            yield from _iter_compose_values(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield item
+            yield from _iter_compose_values(item)
+    else:
+        yield value
+
+
+def parse_port_name(item: Any) -> Optional[str]:
+    if isinstance(item, dict):
+        for key in ("name", "app_protocol", "appProtocol", "protocol"):
+            value = item.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return None
+
+
+def is_port_websocket(item: Any) -> bool:
+    name = parse_port_name(item)
+    if name and (_field_has_websocket_hint(name) or _text_has_websocket_hint(name)):
+        return True
+    if isinstance(item, dict):
+        for key in ("app_protocol", "appProtocol", "protocol"):
+            value = item.get(key)
+            if isinstance(value, str) and _text_has_websocket_hint(value):
+                return True
+    return False
+
+
 def parse_ports(service: Mapping[str, Any]) -> List[int]:
     ports = service.get("ports")
     if not isinstance(ports, list):
@@ -805,6 +888,50 @@ def parse_ports(service: Mapping[str, Any]) -> List[int]:
         seen.add(port)
         values.append(port)
     return values
+
+
+def infer_websocket_ports(service: Mapping[str, Any]) -> Set[int]:
+    websocket_ports: Set[int] = set()
+    ports = service.get("ports")
+    if isinstance(ports, list):
+        for item in ports:
+            port = parse_container_port(item)
+            if port is not None and is_port_websocket(item):
+                websocket_ports.add(port)
+
+    expose = service.get("expose")
+    if isinstance(expose, list):
+        for item in expose:
+            port = parse_container_port(item)
+            if port is not None and is_port_websocket(item):
+                websocket_ports.add(port)
+
+    for key, value in parse_env(service):
+        if (_field_has_websocket_hint(key) or _text_has_websocket_hint(value)) and value.isdigit():
+            websocket_ports.add(int(value))
+
+    return websocket_ports
+
+
+def service_requires_websocket_ingress(service_name: str, service: Mapping[str, Any], selected_port: int) -> bool:
+    websocket_ports = infer_websocket_ports(service)
+    if selected_port in websocket_ports:
+        return True
+    if _field_has_websocket_hint(service_name):
+        return True
+    for key, value in parse_env(service):
+        if _field_has_websocket_hint(key) or _text_has_websocket_hint(value):
+            return True
+    for value in _iter_compose_values(
+        {
+            "labels": service.get("labels"),
+            "command": service.get("command"),
+            "entrypoint": service.get("entrypoint"),
+        }
+    ):
+        if _text_has_websocket_hint(value) or _field_has_websocket_hint(value):
+            return True
+    return False
 
 
 def normalize_ports_for_gateway_tls_termination(ports: Sequence[int]) -> List[int]:
@@ -2158,6 +2285,7 @@ def build_workload(
     workload_name: str,
     image: str,
     ports: Sequence[int],
+    websocket_ports: Set[int],
     env_entries: Sequence[Dict[str, Any]],
     command_args: Sequence[str],
     mount_paths: Sequence[str],
@@ -2180,9 +2308,17 @@ def build_workload(
             }
         ],
     }
+    if requires_image_pull_secret(image):
+        template_spec["imagePullSecrets"] = [{"name": "${{ defaults.app_name }}"}]
     container = template_spec["containers"][0]
     if ports:
-        container["ports"] = [{"containerPort": p} for p in ports]
+        container["ports"] = [
+            {
+                "containerPort": p,
+                "name": "websocket" if p in websocket_ports else f"tcp-{p}",
+            }
+            for p in ports
+        ]
     if env_entries:
         container["env"] = list(env_entries)
     if command_args:
@@ -2266,7 +2402,6 @@ def build_workload(
         "spec": spec,
     }
 
-
 def build_configmap(workload_name: str, config_mounts: Sequence[ConfigMount]) -> Dict[str, Any]:
     return {
         "apiVersion": "v1",
@@ -2282,10 +2417,18 @@ def build_configmap(workload_name: str, config_mounts: Sequence[ConfigMount]) ->
     }
 
 
-def build_service(workload_name: str, ports: Sequence[int]) -> Optional[Dict[str, Any]]:
+def build_service(workload_name: str, ports: Sequence[int], websocket_ports: Set[int]) -> Optional[Dict[str, Any]]:
     if not ports:
         return None
-    service_ports = [{"name": f"tcp-{p}", "port": p, "targetPort": p, "protocol": "TCP"} for p in ports]
+    service_ports = [
+        {
+            "name": "websocket" if p in websocket_ports else f"tcp-{p}",
+            "port": p,
+            "targetPort": p,
+            "protocol": "TCP",
+        }
+        for p in ports
+    ]
     return {
         "apiVersion": "v1",
         "kind": "Service",
@@ -2303,7 +2446,8 @@ def build_service(workload_name: str, ports: Sequence[int]) -> Optional[Dict[str
     }
 
 
-def build_ingress(primary_workload_name: str, port: int) -> Dict[str, Any]:
+def build_ingress(primary_workload_name: str, port: int, protocol: str = "HTTP") -> Dict[str, Any]:
+    annotations = WEBSOCKET_INGRESS_ANNOTATIONS if protocol.upper() == "WS" else HTTP_INGRESS_ANNOTATIONS
     return {
         "apiVersion": "networking.k8s.io/v1",
         "kind": "Ingress",
@@ -2314,7 +2458,7 @@ def build_ingress(primary_workload_name: str, port: int) -> Dict[str, Any]:
                 "cloud.sealos.io/app-deploy-manager-domain": "${{ defaults.app_host }}",
             },
             "annotations": {
-                **HTTP_INGRESS_ANNOTATIONS,
+                **annotations,
             },
         },
         "spec": {
@@ -2473,6 +2617,7 @@ def build_documents(
     workload_docs: List[Dict[str, Any]] = []
     service_docs: List[Dict[str, Any]] = []
     primary_port: Optional[int] = None
+    primary_ingress_protocol = "HTTP"
     primary_workload_name = "${{ defaults.app_name }}"
     compose_dir = compose_path.parent if compose_path is not None else Path.cwd()
     for index, (service_name, service) in enumerate(app_services):
@@ -2495,11 +2640,13 @@ def build_documents(
                 if not mount_paths:
                     mount_paths = list(shape.mount_paths)
         ports = normalize_ports_for_gateway_tls_termination(ports)
+        websocket_ports = infer_websocket_ports(service)
         probes = build_probe_pair(service, image, ports, command_args)
         workload = build_workload(
             workload_name=workload_name,
             image=image,
             ports=ports,
+            websocket_ports=websocket_ports,
             env_entries=env_entries,
             command_args=command_args,
             mount_paths=mount_paths,
@@ -2509,16 +2656,18 @@ def build_documents(
         if config_mounts:
             workload_docs.append(build_configmap(workload_name, config_mounts))
         workload_docs.append(workload)
-        service_doc = build_service(workload_name, ports)
+        service_doc = build_service(workload_name, ports, websocket_ports)
         if service_doc is not None:
             service_docs.append(service_doc)
             if index == 0 and ports:
                 primary_port = ports[0]
+                if service_requires_websocket_ingress(service_name, service, primary_port):
+                    primary_ingress_protocol = "WS"
 
     docs.extend(workload_docs)
     docs.extend(service_docs)
     if primary_port is not None:
-        docs.append(build_ingress(primary_workload_name, primary_port))
+        docs.append(build_ingress(primary_workload_name, primary_port, primary_ingress_protocol))
     docs.append(build_app_resource(meta))
     return docs
 
