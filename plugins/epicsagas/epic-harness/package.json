@@ -1,6 +1,6 @@
 {
   "name": "epic-harness",
-  "version": "0.6.5",
+  "version": "0.8.1",
   "description": "8 commands, auto-trigger skills, self-evolving agent harness for Claude Code",
   "author": "epicsagas",
   "license": "Apache-2.0",

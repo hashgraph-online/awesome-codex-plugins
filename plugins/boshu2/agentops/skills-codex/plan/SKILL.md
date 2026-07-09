@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Run plan."
+description: "Decompose intent into slices."
 ---
 
 # $plan - Issue-Ready Decomposition
@@ -75,6 +75,15 @@ Feature: Plan converts dense intent into executable slices
 6. **Baseline audit.** Mechanically count the current state before making
    quantitative claims: files, sections, LOC, tests, fixtures, schemas, and
    any SKILL.md files near size limits. Record commands and results.
+   Inventory facts are symbols too (2026-07-02, showcase kernel R10): any
+   count, file list, or "X is empty/absent" claim gets the same verification,
+   and consumers re-verify at the moment of use (`ls`/`jq`/`grep` cost
+   seconds) — three of nine duel round-1 findings were plan facts stale
+   within the hour they were written. Search the skill/CLI corpus for each
+   major capability before scoping it as new: `ms search "<capability>"` (fast
+   path when available — `command -v ms`, or the `mcp__ms__search` tool is
+   attached; else grep `skills/**/SKILL.md` + `docs/SKILLS.md`); existing-skill
+   or `ao` command hits become **reuse** notes, not new beads.
 7. **Choose detail level.** Minimal for 1-2 simple issues, Standard for 3-6
    issues, Deep for 7+ issues, broad refactors, or `--deep`.
 8. **Decompose into issues.** Each issue needs title, file ownership,
@@ -85,8 +94,11 @@ Feature: Plan converts dense intent into executable slices
    acceptance is invalid (AGENTS.md); promote any free text to scenarios before
    creating the bead. The `## Scenarios` block is the behavior layer and sits
    above the `acceptance_criteria` YAML (the machine-checkable layer); they are
-   complementary, never substitutes. One scenario per distinct Given/When/Then
-   behavior. Non-trivial plans and bead bodies should include the `hexagon:`
+   complementary, never substitutes. Scenario granularity (one per distinct
+   Given/When/Then behavior) and the intent → Gherkin → executed-red → bead-DAG
+   contract are owned by `$behavior-first-planning`; this step states only the
+   plan-specific mechanics, not a restatement of the discipline.
+   Non-trivial plans and bead bodies should include the `hexagon:`
    boundary block: inbound port, bounded context, adapters, context packet, and
    done state.
 9. **Compute waves.** Group independent issues by dependency. Serialize or

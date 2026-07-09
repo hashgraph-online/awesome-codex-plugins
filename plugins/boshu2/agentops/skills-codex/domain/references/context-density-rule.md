@@ -50,7 +50,7 @@ when it only restates background.
 
 ## Example in this codebase
 
-`docs/cdlc.md` states the rule at the product-doctrine level. `$rpi` applies it
+`docs/cdlc.md` states the rule at the product-doctrine level. `/rpi` applies it
 at the orchestration boundary: phase handoffs should preserve the objective
 spine, bounded context, validation evidence, decisions, constraints, and next
 action without carrying phase-local chat history forward.

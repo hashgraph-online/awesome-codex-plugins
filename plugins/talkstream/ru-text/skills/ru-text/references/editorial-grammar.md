@@ -6,7 +6,7 @@
 - [E. Tautology and pleonasms](#e-tautology-and-pleonasms)
 - [F. List homogeneity](#f-list-homogeneity)
 - [G. Numbers in text](#g-numbers-in-text)
-- [H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal)](#h-clean-language-principles-inspired-by-the-anti-bureaucratic-tradition-cf-n-gal)
+- [H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal, M. Ilyakhov)](#h-clean-language-principles-inspired-by-the-anti-bureaucratic-tradition-cf-n-gal-m-ilyakhov)
 - [Sources](#sources)
 
 ## C. Capitalization
@@ -43,9 +43,9 @@ academic degrees, titles|always lower|доктор наук, профессор,
 ### C.5. After ellipsis
 
 situation|upper/lower
-ellipsis ends sentence|upper (new sentence): Всё кончилось... Наступила тишина.
-ellipsis = pause inside sentence|lower: Он вошёл... и остановился.
-ellipsis at text start (continuation)|lower: ...и тогда всё стало ясно.
+ellipsis ends sentence|upper (new sentence): Всё кончилось… Наступила тишина.
+ellipsis = pause inside sentence|lower: Он вошёл… и остановился.
+ellipsis at text start (continuation)|lower: …и тогда всё стало ясно.
 
 ### C.6. Quotation marks and names
 
@@ -165,6 +165,10 @@ wrong|correct|why
 страсть к графомании|графомания|мания = obsession
 хронометраж времени|хронометраж|хроно- = time
 экспонат выставки|экспонат|экспонат = exhibited item
+в январе месяце|в январе|январь = month
+полностью завершить|завершить|завершить = bring fully to an end
+внутренний интерьер|интерьер|интерьер = inside space
+ответная реакция|реакция|реакция = response
 
 ### E.2. Tautology (cognate repeats)
 
@@ -259,7 +263,7 @@ Do not mix words and digits for same-type values within one sentence/paragraph.
 
 ---
 
-## H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal)
+## H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal, M. Ilyakhov)
 
 ### H.1. Officialese (канцелярит) -- disease markers
 
@@ -291,6 +295,29 @@ dead|live
 вышеуказанный|этот / упомянутый
 нижеследующий|следующий / такой
 надлежащий|нужный / подходящий
+осуществлять деятельность|работать
+производить оплату|оплатить / заплатить
+производить полив|поливать
+осуществлять контроль|контролировать
+принимать участие|участвовать
+оказывать влияние|влиять
+давать оценку|оценивать
+вести наблюдение|наблюдать
+проводить исследование|исследовать
+вести подготовку|готовить / готовиться
+совершать покупку|покупать
+делать выводы|заключать / считать
+приносить извинения|извиняться
+нести ответственность|отвечать (за)
+дать соответствующее указание|поручить / попросить
+задействовать ресурсы|использовать [что конкретно]
+был осуществлён выход|вышли
+находиться в состоянии усталости|устать
+является обязательным условием|обязательно
+на постоянной основе|постоянно / регулярно
+по причине того что|потому что
+с целью повышения|чтобы повысить
+вопрос решается в рабочем порядке|решим до [даты]
 
 ### H.3. Translation traps leaking into Russian
 

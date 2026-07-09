@@ -338,9 +338,9 @@ gt sling <issue> <rig>                    # Re-ignite
 
 **Beads sync conflict**:
 ```bash
-git checkout --theirs .beads/issues.jsonl
-git add .beads/issues.jsonl
-bd vc status   # Optional: inspect Dolt state after resolving the JSONL file
+git -C "$(ao beads dir)" checkout --theirs issues.jsonl
+git -C "$(ao beads dir)" add issues.jsonl
+BEADS_DIR="$(ao beads dir)" br doctor
 ```
 
 ---

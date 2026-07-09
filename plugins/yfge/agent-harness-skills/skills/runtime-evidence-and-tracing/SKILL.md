@@ -13,7 +13,7 @@ Agents should not only say they tested something; they should leave run IDs, req
 
 ## When To Use
 
-- The user mentions interactive validation, runtime validation, request IDs, traces, logs, metrics, or artifacts.
+- The user asks to connect, diagnose, or design interactive validation, runtime validation, request IDs, traces, logs, metrics, or artifacts.
 - A production or test-environment issue must be traced from observed behavior to runtime evidence.
 - A flow with external dependencies needs classification as code failure, dependency blocker, environment issue, or data problem.
 

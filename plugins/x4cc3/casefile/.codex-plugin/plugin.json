@@ -1,6 +1,6 @@
 {
   "name": "casefile",
-  "version": "1.2.2",
+  "version": "1.3.7",
   "description": "Persistent security case tracking for Codex and pi.",
   "author": {
     "name": "x4cc3"

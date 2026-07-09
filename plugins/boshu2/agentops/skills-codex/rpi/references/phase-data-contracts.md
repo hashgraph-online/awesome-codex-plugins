@@ -6,7 +6,7 @@ How each consolidated phase passes data to the next. Artifacts are filesystem-ba
 |------------|--------|------------|---------------|
 | → Discovery | Goal string + repo execution profile contract | Goal from the `$rpi` invocation; repo policy from `docs/contracts/repo-execution-profile.md`, `repo-execution-profile.schema.json`, and `repo-execution-profile.json` when present | `repo_profile` state is loaded before research/planning begins, including validation lane mutation metadata |
 | Discovery → Implementation | Epic execution context or file-backed objective + discovery summary + `execution_packet` | `phased-state.json` + `.agents/rpi/phase-1-summary.md` + `.agents/rpi/execution-packet.json` (latest alias) or `.agents/rpi/runs/<run-id>/execution-packet.json` (run archive) | `$crank <epic-id>` when `epic_id` exists; otherwise `$crank .agents/rpi/execution-packet.json` with repo policy, contract surfaces, validation bundle, and `validation_lanes` already normalized |
-| Implementation → Validation | Completed/partial crank status + implementation summary + `execution_packet` | `br children <epic-id>` or file-backed implementation state + `.agents/rpi/phase-2-summary.md` + `.agents/rpi/execution-packet.json` (latest alias) or `.agents/rpi/runs/<run-id>/execution-packet.json` (run archive) | `$validate <epic-id>` when `epic_id` exists; otherwise standalone `$validate` with the same repo execution profile fields, validation lanes, and done criteria |
+| Implementation → Validation | Completed/partial crank status + implementation summary + `execution_packet` | `ao beads exec children <epic-id>` or file-backed implementation state + `.agents/rpi/phase-2-summary.md` + `.agents/rpi/execution-packet.json` (latest alias) or `.agents/rpi/runs/<run-id>/execution-packet.json` (run archive) | `$validate <epic-id>` when `epic_id` exists; otherwise standalone `$validate` with the same repo execution profile fields, validation lanes, and done criteria |
 | Validation → Next Cycle (optional) | Vibe/post-mortem verdicts + harvested follow-up work + queue lifecycle fields (`claim_status`, `claimed_by`, `claimed_at`, `consumed`, `failed_at`) | Latest council reports + `.agents/rpi/next-work.jsonl` | Stop, loop (`--loop`), suggest next `$rpi` (`--spawn-next`), or hand work back to `$evolve` |
 
 Execution packet v1 should remain additive. Recommended fields:
@@ -24,10 +24,18 @@ Execution packet v1 should remain additive. Recommended fields:
 - `pre_mortem_verdict`
 - `test_levels`
 - `ranked_packet_path`
+- `skills_loaded` (canonical skill slugs without `$` sigils; at minimum `rpi` and the delegated phase skill that produced the artifact)
+- `phase_receipts` (phase, skill, status/verdict, artifact path, optional next action)
 
 Execution packet retention rule:
 - `.agents/rpi/execution-packet.json` is the mutable latest alias for the current objective
 - `.agents/rpi/runs/<run-id>/execution-packet.json` is the durable per-run packet archive when `run_id` exists
+
+Phase receipt rule:
+- every phase boundary artifact records `skills_loaded`
+- `.agents/rpi/execution-packet.json` carries the cumulative `phase_receipts` array for discovery, implementation, validation, and any re-plan pass
+- `phase_receipts[].status` must match the delegated skill's completion marker or verdict (`DONE`, `PARTIAL`, `BLOCKED`, `FAIL`, or `PASS/WARN/FAIL` as emitted)
+- receipts are an audit index, not proof by themselves; transcript or runtime invocation trace remains the stronger evidence when available
 
 Validation lane selection rule:
 - implementation and fast closeout phases prefer lanes where `read_only=true`, `writes_artifacts=false`, `release_only=false`, `cost_class` is `cheap` or `standard`, and `auto_select` is `default` or matches the changed surface

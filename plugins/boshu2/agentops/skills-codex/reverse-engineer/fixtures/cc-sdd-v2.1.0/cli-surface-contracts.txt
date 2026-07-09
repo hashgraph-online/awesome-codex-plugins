@@ -1,0 +1,30 @@
+# CLI surface contract assertions for cc-sdd v2.1.0
+# Each non-comment line below must appear verbatim in the generated spec-cli-surface.md.
+# The check uses grep -F (fixed-string substring match), so leading spaces matter.
+# Lines starting with # are comments.
+
+# Package identity
+- Node package: `tools/cc-sdd`
+- package name: `cc-sdd`
+- version: `2.1.0`
+
+# Binary entrypoint
+- `cc-sdd` -> `./dist/cli.js`
+
+# Source entry heuristic
+- `tools/cc-sdd/src/cli.ts` (node shebang entry; typically calls `runCli`)
+
+# Key CLI flags (2-space indent as they appear inside the help text code block)
+  --agent <claude-code|claude-code-agent|codex|cursor|github-copilot|gemini-cli|windsurf|qwen-code|opencode|opencode-agent>  Select agent
+  --lang <ja|en|zh-TW|zh|es|pt|de|fr|ru|it|ko|ar|el>  Language
+  --os <auto|mac|windows|linux>               Target OS (auto uses runtime)
+  --kiro-dir <path>                           Kiro root dir (default .kiro)
+  --overwrite <prompt|skip|force>             Overwrite policy (default: prompt)
+  --dry-run                                   Print plan only
+  --yes, -y                                   Skip prompts (prompt -> force)
+  -h, --help                                  Show help
+  -v, --version                               Show version
+
+# Config surface
+- User config file: `.cc-sdd.json` (loaded from CWD).
+- Environment variables: `NO_COLOR`

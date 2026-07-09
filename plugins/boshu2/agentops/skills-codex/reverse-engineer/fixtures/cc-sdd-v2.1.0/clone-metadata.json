@@ -1,0 +1,5 @@
+{
+  "upstream_repo": "https://github.com/gotalab/cc-sdd.git",
+  "upstream_ref": "v2.1.0",
+  "resolved_commit": "6e972c064ac4723bc8ad0181871d07e199af6a9f"
+}

@@ -1,0 +1,61 @@
+{
+  "spec_id": "spec-example-flow",
+  "unit_id": "unit-example-flow",
+  "producer_role": "contaminated-source-analyst",
+  "created_at": "2000-01-01T00:00:00Z",
+  "source_unit_refs": [
+    "unit-example-flow"
+  ],
+  "evidence_refs": [
+    "evidence-ledger:item-001"
+  ],
+  "evidence_status": "observed",
+  "confidence": "high",
+  "leakage_risk": "low",
+  "summary": "The example component accepts a valid request and returns a successful result.",
+  "observable_surface": [],
+  "public_surface": [],
+  "compatibility_level": "behavior-compatible",
+  "observable_behaviors": [
+    {
+      "claim_id": "claim-001",
+      "claim": "A valid request produces a successful result.",
+      "evidence_status": "observed",
+      "evidence_refs": [
+        "evidence-ledger:item-001"
+      ],
+      "confidence": "high",
+      "rationale": "Example claim only."
+    }
+  ],
+  "inputs": [],
+  "outputs": [],
+  "state_transitions": [],
+  "edge_cases": [],
+  "error_conditions": [],
+  "negative_behaviors": [],
+  "timing_or_ordering": [],
+  "security_relevant_behavior": [],
+  "invariants": [],
+  "compatibility_notes": [],
+  "non_goals": [
+    "No implementation code is generated."
+  ],
+  "test_scenarios": [
+    {
+      "scenario_id": "test-001",
+      "scenario": "Submit a valid request.",
+      "expected_result": "A successful result is returned.",
+      "coverage": [
+        "claim-001"
+      ]
+    }
+  ],
+  "open_questions": [],
+  "leakage_review": {
+    "status": "passed",
+    "reviewer_role": "contaminated-handoff-sanitizer",
+    "notes": "No blocked material in example."
+  },
+  "review_history": []
+}

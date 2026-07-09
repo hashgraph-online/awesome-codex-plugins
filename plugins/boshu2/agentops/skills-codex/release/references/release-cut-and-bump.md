@@ -44,9 +44,13 @@ The generic Step 7 detection (`package.json`, `pyproject.toml`, `Cargo.toml`, `*
 | `.claude-plugin/plugin.json` | Top-level `"version": "X.Y.Z"` | AgentOps plugin manifest consumed by the Claude Code marketplace. |
 | `.claude-plugin/marketplace.json` | `metadata.version` | Manifest-level marketplace version. |
 | `.claude-plugin/marketplace.json` | `plugins[0].version` | Per-plugin version inside the same file. Both fields must move together. |
-| `docs/comparisons/vs-gsd.md` | `latest AgentOps version vX.Y.Z` | Comparison page references the current shipped version. |
-| `docs/comparisons/vs-compound-engineer.md` | `latest AgentOps version vX.Y.Z` | Same pattern. |
-| `docs/comparisons/vs-claude-flow.md` | `latest AgentOps version vX.Y.Z` | Same pattern. |
+| `.agy-plugin/plugin.json` | Top-level `"version"` | Gemini/AGY plugin manifest (added 3.1 line). |
+| `.codex-plugin/plugin.json` | Top-level `"version"` | Codex plugin manifest (added 3.1 line). |
+| `images/gemini/plugin.json` | Top-level `"version"` | Bundled Gemini image manifest — keep in step with `.agy-plugin`. |
+| `images/claude/verify.sh` | `AGENTOPS_EXPECTED_VERSION:-X.Y.Z` default | The Claude image version guard compares plugin.json against this default; a missed bump fails the image verify after the manifest moves. |
+| `cli/cmd/ao/main.go` | `var version = "X.Y.Z-rc"` fallback | Source-build fallback (goreleaser ldflags override it at tag). Missed at 3.2 prep until the coherence audit caught source builds self-reporting `3.1.0-rc`. |
+| `scripts/install-claude.sh` / `scripts/install-agy.sh` | `--ref vX.Y.Z` usage examples | Doc examples only, but keep fresh so the old-version grep stays clean. |
+| `docs/comparisons/vs-gsd.md` | `latest AgentOps version vX.Y.Z` | Historical (v2.39 era) — these pages no longer carry version strings; verify with the grep below and drop this row when confirmed gone. |
 
 When new comparison docs or manifests are added, extend this list. Audit by comparing against the most recent `docs/releases/YYYY-MM-DD-v<version>-audit.md`.
 

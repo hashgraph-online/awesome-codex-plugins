@@ -131,6 +131,12 @@ claude plugins install praxis
 }
 ```
 
+**Qoder CLI CN** — clone and checkout:
+```bash
+git clone --branch <branch> https://github.com/ouonet/praxis.git ~/.qoder-cn/praxis
+ln -s ~/.qoder-cn/praxis/skills ./skills
+```
+
 Replace `<branch>` with the branch name.
 
 ---
@@ -196,7 +202,7 @@ open customization of copilot -> Plugins -> Install Plugin From Source -> input 
 agy plugin install https://github.com/ouonet/praxis
 ```
 
-The plugin loads `skills/using-praxis/SKILL.md` as session context, so triage runs from the first turn.
+Antigravity imports Praxis through the Gemini-compatible plugin path, including the session-start hook.
 
 ### Gemini CLI
 
@@ -205,6 +211,21 @@ gemini extensions install https://github.com/ouonet/praxis
 ```
 
 The extension loads `skills/using-praxis/SKILL.md` as session context, so triage runs from the first turn.
+
+### Qoder CLI CN
+
+Qoder CLI CN auto-discovers skills from the project's `skills/` directory — no hooks or manual loading needed.
+
+Clone this repo and symlink (or copy) the `skills/` directory into your project:
+
+```bash
+git clone https://github.com/ouonet/praxis.git ~/.qoder-cn/praxis
+ln -s ~/.qoder-cn/praxis/skills ./skills
+```
+
+Or install as an SDK plugin by pointing to the `.qoder-plugin/` manifest in your project config.
+
+The `using-praxis` skill is auto-discovered and triggered at session start by its description.
 
 ### Manual / fallback
 
@@ -341,8 +362,8 @@ hooks/
 .claude-plugin/        # Claude Code plugin manifest
 .codex-plugin/         # Codex plugin manifest
 .copilot-plugin/       # Copilot CLI plugin manifest
+.qoder-plugin/         # Qoder CLI CN plugin manifest
 .opencode/             # OpenCode config + install doc
-plugin.json            # Antigravity CLI plugin manifest
 gemini-extension.json  # Gemini CLI extension manifest
 ```
 

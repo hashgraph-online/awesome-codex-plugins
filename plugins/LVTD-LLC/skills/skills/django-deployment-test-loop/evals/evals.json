@@ -1,0 +1,19 @@
+{
+  "skill_name": "django-deployment-test-loop",
+  "evals": [
+    {
+      "id": 1,
+      "name": "debug-static-files-production",
+      "prompt": "My Django app works locally, but static files disappear in the Docker container with DEBUG=False. What should I test and change?",
+      "expected_output": "Names static serving as the deployment risk, recommends production-like local checks, covers collectstatic/WhiteNoise/settings, and includes focused verification.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "staging-release-checklist",
+      "prompt": "We are deploying a Django feature that writes to the database and sends email. Build me a test-driven staging checklist.",
+      "expected_output": "Includes migrations, env vars, email staging behavior, logs, functional smoke checks, and rollback/cleanup notes.",
+      "files": []
+    }
+  ]
+}

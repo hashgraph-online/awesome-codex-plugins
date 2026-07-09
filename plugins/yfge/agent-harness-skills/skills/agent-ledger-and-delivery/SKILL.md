@@ -13,7 +13,7 @@ This skill focuses on delivery evidence and long-term traceability, not commit s
 
 ## When To Use
 
-- The user mentions `agent_chats`, `agents_chat`, review descriptions, delivery records, linked tasks, or linked commits.
+- The user asks to create, refactor, or evaluate `agent_chats`, `agents_chat`, review descriptions, delivery records, linked tasks, or linked commits.
 - A project requires AI collaboration records for each delivery.
 - Validation, risk, next steps, and artifact references need a stable format.
 

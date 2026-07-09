@@ -1,7 +1,7 @@
 {
   "mcp_servers": {
     "vidseeds": {
-      "url": "https://vidseeds.ai/api/mcp",
+      "url": "https://vidseeds.ai/api/mcp?toolset=core",
       "bearer_token_env_var": "VIDSEEDS_PAT"
     }
   }

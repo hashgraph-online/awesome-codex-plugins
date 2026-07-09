@@ -181,7 +181,7 @@ description: Use for TDD - write test first, watch it fail, write minimal code, 
 description: Use when executing implementation plans with independent tasks in the current session
 
 # ✅ GOOD: Triggering conditions only
-description: Use when strict TDD is explicitly requested, or when an approved atomic implementation task has already chosen TDD Route strict.
+description: Use when the user explicitly requests strict or test-first TDD, or when the current conversation already contains an explicit `TDD Route: strict` decision from another Aegis workflow.
 ```
 
 **Content:**

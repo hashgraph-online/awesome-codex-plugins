@@ -215,8 +215,8 @@ gate flakes that could block otherwise good tags.
 
 ### Daemon, Scheduling, and Factory
 
-- Added: daemon Dream runs now write terminal summaries that `ao daemon status`
-  can surface without reading raw runtime files.
+- Added: daemon Dream runs now write terminal summaries operators can surface
+  without reading raw runtime files.
 - Refactored: queue projection rebuilds now share the same replay path used by
   status checks, reducing drift between CLI and daemon views.
 - Fixed: daemon runs no longer claim success from stale projections after a

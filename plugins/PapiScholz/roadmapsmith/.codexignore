@@ -1,0 +1,13 @@
+# Files excluded from Codex plugin installation
+node_modules/
+roadmap-skill/node_modules/
+.git/
+*.log
+*.tmp
+assets/demo.mp4
+assets/demo.gif
+scripts/
+test/
+roadmap-skill/
+.claude/
+.dev/

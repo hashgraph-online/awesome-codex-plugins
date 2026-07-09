@@ -29,6 +29,54 @@ When the official Kubernetes method conflicts with Compose:
 - For all other application behavior, default to aligning with the official Kubernetes method
 - Record key decisions in the output (only record items with ambiguity)
 
+## Runtime Bundle Consistency
+
+When official compose/docs define multiple cooperating runtime services, treat the service set as a single versioned runtime bundle. Use one official release, compose file, or docs artifact as the evidence source for API, frontend/console, worker, realtime, gateway, and other required components.
+
+Do not upgrade one bundle component independently. Keep component image tags, public entry routes, and critical env vars aligned with the same evidence source.
+
+Record the evidence contract in a separate validator-only YAML file, such as `.sealos/runtime-bundle-evidence.yaml`. Do not write this evidence into `template/<app>/index.yaml`.
+
+```yaml
+apiVersion: docker-to-sealos/v1
+kind: RuntimeBundleEvidence
+metadata:
+  name: demo-runtime-bundle
+spec:
+  appName: demo
+  source: https://example.com/releases/v1/docker-compose.yml
+  images:
+    - ghcr.io/example/api:1.0.0
+    - ghcr.io/example/console:1.0.0
+  components:
+    - ${{ defaults.app_name }}
+    - ${{ defaults.app_name }}-console
+  routes:
+    - path: /
+      service: ${{ defaults.app_name }}
+    - path: /console
+      service: ${{ defaults.app_name }}-console
+  env:
+    - PUBLIC_ENDPOINT
+```
+
+Evidence contract:
+
+- `spec.appName`: Template `metadata.name` that this evidence validates.
+- `spec.source`: official compose/docs/release artifact URL or identifier.
+- `spec.images`: exact image refs expected from that source.
+- `spec.components`: workload names that must be emitted as managed app workloads.
+- `spec.routes`: `path` plus `service` entries that must appear in Service and Ingress resources.
+- `spec.env`: critical env var names that must remain present on managed workloads.
+
+Run validation with both files included:
+
+```bash
+python scripts/check_consistency.py --skill SKILL.md --references references --rules-file references/rules-registry.yaml --artifacts template/demo/index.yaml,.sealos/runtime-bundle-evidence.yaml
+```
+
+For web consoles or frontends, keep the official public entry path reachable through an explicit Service and Ingress rule. A frontend/console component may be merged into the API workload only when the official image embeds that entry and runtime validation proves the route works after login.
+
 ## Core Concept Mapping
 
 ### Docker Compose Service → Sealos Resources
@@ -358,7 +406,6 @@ metadata:
   labels:
     app: ${{ defaults.app_name }}
     cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
-    cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
 spec:
   revisionHistoryLimit: 1
   template:
@@ -376,9 +423,6 @@ spec:
         annotations:
           path: /app/data
           value: '1'
-        labels:
-          app: ${{ defaults.app_name }}
-          cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
         name: vn-appvn-data
       spec:
         accessModes:
@@ -390,9 +434,6 @@ spec:
         annotations:
           path: /app/config
           value: '1'
-        labels:
-          app: ${{ defaults.app_name }}
-          cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
         name: vn-appvn-config
       spec:
         accessModes:
@@ -446,8 +487,9 @@ spec:
         - name: ${{ defaults.app_name }}-cm
           configMap:
             name: ${{ defaults.app_name }}
-            defaultMode: 493
 ```
+
+Omit `defaultMode` for ConfigMap volumes unless the application explicitly requires a non-default file mode. Scripts invoked through `/bin/sh /path/script` do not need executable bits.
 
 ## Database Service Mapping
 
@@ -796,6 +838,8 @@ spec:
 
 When docs offer local file storage and S3-compatible object storage as a binary choice, model the S3 branch with a boolean input. Use `type: boolean` and conditionals that test `inputs.<name> === 'true'`; do not model the binary local/S3 choice as a `choice` input.
 
+When an app needs S3-compatible storage, prefer Sealos `ObjectStorageBucket` and inject the managed object-storage secrets into the app. Preserve managed Sealos toggles such as `use_sealos_objectstorage` when they control an optional `ObjectStorageBucket` branch. Expose external S3/object-storage credential inputs only when source docs or the user require an externally managed bucket, and record that evidence in `metadata.annotations.docker-to-sealos.external-object-storage-source`. Do not combine external S3 credential inputs with a managed `ObjectStorageBucket`.
+
 ### Docker Compose (Using Minio)
 ```yaml
 services:
@@ -876,6 +920,7 @@ metadata:
 
 ### Database Services
 - Docker postgres/mysql/mongo/redis → Kubeblocks Cluster + ServiceAccount + Role + RoleBinding
+- Kubernetes Deployment/StatefulSet/DaemonSet/Service resources that run or expose database servers map to Kubeblocks resources, while app initContainers and init/migration/bootstrap Jobs may use database client images for readiness and bootstrap gates.
 
 ### Persistent Storage
 - Docker volumes → StatefulSet + volumeClaimTemplates

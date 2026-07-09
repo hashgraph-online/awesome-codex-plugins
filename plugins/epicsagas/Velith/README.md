@@ -9,7 +9,7 @@
   <a href="https://github.com/epicsagas/Velith/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/epicsagas/Velith?style=for-the-badge&labelColor=0d1117&color=58a6ff&logo=git&logoColor=white" /></a>
 </p>
 <p>
-  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.3.1-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
+  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.4.1-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-3fb950?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://claude.ai/code"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-plugin-bc8cff?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://github.com/openai/codex"><img alt="Codex CLI" src="https://img.shields.io/badge/Codex_CLI-plugin-10a37f?style=for-the-badge&labelColor=0d1117" /></a>
@@ -43,6 +43,11 @@ You wouldn't ship code without a spec, tests, and review — so don't ship a boo
 
 What the pipeline does to unstructured input — [try it yourself →](https://huggingface.co/spaces/epicsaga/Velith)
 
+> **Note:** the live demo and the numbers below are produced by the HF Space's
+> **open-source NLP heuristics** (no LLM calls) — they illustrate the kind of
+> transformation each phase targets, not measured output of a full LLM run.
+> End-to-end LLM-produced books live in the author's vault.
+
 | Metric | Raw Input | After Velith Pipeline |
 |--------|-----------|----------------------|
 | Structure score | 2–4 / 10 | 6–9 / 10 |
@@ -55,7 +60,7 @@ What the pipeline does to unstructured input — [try it yourself →](https://h
 |--|---------|----------------|
 | 📋 | 6-phase pipeline | Each phase validates before moving on — no rework |
 | 📖 | 7 genre templates | Fiction, non-fiction, technical, screenplay, poetry, game, academic (+ custom via genre-creator) |
-| 🤖 | 7 specialized agents | Architecture, drafting, scene generation, continuity, style, cover, marketing |
+| 🤖 | 8 specialized agents | Architecture, drafting, scene generation, continuity, style, cover, illustrations, marketing |
 | ✏️ | 5-stage editing | Assessment → Developmental → Line → Copy → Proofread |
 | 🔄 | Resume anywhere | Skip completed chapters, pick up from where you left off |
 | 📦 | EPUB, PDF, MOBI, TXT, Markdown | Publish-ready files via Pandoc + Calibre |
@@ -95,7 +100,7 @@ Velith ships as a book pipeline — but the same 6 phases apply to **any long-fo
 /plugin install velith@epicsagas
 ```
 
-All 16 skills and 7 agents are available immediately. No further steps needed.
+All 17 skills and 8 agents are available immediately. No further steps needed.
 
 Updates with `/plugin update velith@epicsagas`.
 
@@ -107,7 +112,7 @@ Updates with `/plugin update velith@epicsagas`.
 codex plugin marketplace add epicsagas/plugins
 ```
 
-Velith provides 16 skills (via `.agents/skills/`) and 7 custom subagents (via `.codex/agents/`):
+Velith provides 17 skills (via `.agents/skills/`) and 8 custom subagents (via `.codex/agents/`):
 
 | Subagent | Role |
 |----------|------|
@@ -117,6 +122,7 @@ Velith provides 16 skills (via `.agents/skills/`) and 7 custom subagents (via `.
 | `continuity-editor` | Cross-chapter consistency checks |
 | `style-doctor` | AI-slop detection, voice consistency |
 | `cover-designer` | Cover concepts + image prompts |
+| `illustrator` | Interior illustrations + style-consistent prompts |
 | `marketing-expert` | Reader personas, launch strategy |
 
 Codex auto-discovers skills from `.agents/skills/` and subagents from `.codex/agents/*.toml`. No extra configuration needed.
@@ -194,6 +200,7 @@ The plugin guides you through:
 | `/book-draft` | 3 | Draft chapters (all/specific/resume) with parallel agents |
 | `/book-edit` | 4 | 5-stage editing pipeline |
 | `/book-publish` | 5 | Format to EPUB/PDF/MOBI, cover, marketing |
+| `/book-illustrate` | 3-5 | Interior illustrations — scene extraction, style-consistent prompts, placement plan |
 | `/book-status` | — | Terminal dashboard + `--ui` for browser dashboard |
 | `/book-fiction` | — | Fiction patterns (15-beat, Snowflake, character bible) |
 | `/book-nonfiction` | — | Non-fiction patterns (problem-solution, evidence hierarchy) |
@@ -214,6 +221,7 @@ The plugin guides you through:
 | `style-doctor` | Voice/tone consistency, AI-slop detection |
 | `scene-generator` | Scene-level breakdown with GMC+RDD structure (fiction only) |
 | `cover-designer` | Cover concepts + Midjourney/DALL-E image prompts |
+| `illustrator` | Interior illustrations — scene extraction, style bible, prompt generation |
 | `marketing-expert` | Reader personas, channel strategy, 12-week launch calendar |
 
 ## Visual Dashboard
@@ -223,7 +231,7 @@ The plugin guides you through:
 `/book-status --ui` opens a Svelte-based progress dashboard in your browser. The dashboard auto-refreshes every 5 seconds:
 
 - 6-phase pipeline tracker (Onboarding → Ideation → Outlining → Drafting → Editing → Publishing)
-- 7 agent status cards (book-architect, chapter-writer, continuity-editor, cover-designer, marketing-expert, scene-generator, style-doctor)
+- 8 agent status cards (book-architect, chapter-writer, continuity-editor, cover-designer, illustrator, marketing-expert, scene-generator, style-doctor)
 - Chapter outline, drafts table, and 5-stage editing kanban
 - Output file status (EPUB/PDF/MOBI/TXT/MD) with publish checklist
 - Project settings and command reference

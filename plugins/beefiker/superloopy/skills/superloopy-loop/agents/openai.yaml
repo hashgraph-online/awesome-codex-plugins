@@ -1,0 +1,13 @@
+interface:
+  display_name: "Superloopy Loop"
+  short_description: "Lightweight strict-evidence loop harness"
+  search_terms:
+    - "loopy"
+    - "loopywork"
+    - "lpy"
+    - "loop"
+    - "evidence"
+    - "guide"
+    - "quality-gate"
+    - "proof"
+  default_prompt: "Use superloopy-loop to run this task with durable criteria, guided next actions, and evidence-backed completion."

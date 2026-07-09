@@ -166,10 +166,10 @@ VCS backlog priority-weighting, and bootstrap.lock tier — is the Phase B-1 fol
 - Tests: `tests/lib/mode-selector.test.mjs` (selector core, 75 tests), `tests/lib/backlog-scan.test.mjs` (signal source), `tests/lib/mode-selector-accuracy.test.mjs` (feedback loop)
 - Backlog signal source: `scripts/lib/backlog-scan.mjs` (Phase B-3, #293)
 - Accuracy feedback writer: `scripts/lib/mode-selector-accuracy.mjs` (Phase B-4, #294)
-- PRD: `docs/prd/2026-04-25-mode-selector.md`
+- PRD: "Mode Selector" (#276; archived in the private Meta-Vault)
 - Epic: [#271 v3.2 Autopilot](https://github.com/Kanevry/session-orchestrator/issues/271)
 - Issue: [#276 Phase B Mode-Selector](https://github.com/Kanevry/session-orchestrator/issues/276)
-- Phase A Contract PRD: `docs/prd/2026-04-24-state-md-recommendations-contract.md`
+- Phase A Contract PRD: "STATE.md Recommendations Contract" (#271; archived in the private Meta-Vault)
 - Phase A parser: `scripts/lib/state-md.mjs::parseRecommendations` (issue #272)
 - Phase A writer: `skills/session-end/SKILL.md` Phase 3.7a (issue #273)
 - Mode enum: `scripts/lib/recommendations-v0.mjs::isValidMode`

@@ -7,6 +7,8 @@ Write the current packet to:
 - `.agents/rpi/execution-packet.json` as the latest alias
 - `.agents/rpi/runs/<run-id>/execution-packet.json` as the per-run archive when `run_id` exists
 
+When no `epic_id` exists, this execution packet becomes the file-backed discovery-to-implementation handoff; the next phase invokes `/crank .agents/rpi/execution-packet.json` instead of inventing an epic.
+
 ```json
 {
   "schema_version": 1,
@@ -22,7 +24,7 @@ Write the current packet to:
     "evidence": ["<acceptance example, test, gate, or verdict>"],
     "decision": "<why this slice/plan shape was chosen>",
     "constraint": ["<safety, runtime, token, or process limit>"],
-    "next_action": "<exact $crank command or block reason>"
+    "next_action": "<exact /crank command or block reason>"
   },
   "artifacts": {
     "research_path": ".agents/research/<topic>.md",
@@ -46,7 +48,7 @@ Write the current packet to:
     "verdict": "PASS|WARN",
     "accepted_risks": []
   },
-  "epic_id": "<epic-id or null when discovery stays file-backed>",
+  "epic_id": "<epic-id or omitted>",
   "plan_path": ".agents/plans/<plan-file>.md",
   "contract_surfaces": ["docs/contracts/repo-execution-profile.md"],
   "validation_commands": ["<from repo profile or defaults>"],
@@ -86,16 +88,11 @@ Write the current packet to:
 The `density` block is the phase boundary. Raw research, raw plan prose, and
 raw council deliberation stay in the referenced artifacts.
 
-## acceptance_criteria - per-epic + per-bead
+## acceptance_criteria — per-epic + per-bead
 
-The packet carries criteria at two slots: `epic_criteria` (array, one entry per
-epic-level acceptance statement) and `bead_criteria` (object keyed by bead ID,
-value is an array per bead). Both slots are typed by `#/$defs/Criterion` in
-[`schemas/execution-packet.schema.json`](../../../schemas/execution-packet.schema.json).
-Discovery STEP 6 lifts the YAML fences from the plan and serializes them into
-the packet; do not redefine the shape here.
+The packet carries criteria at two slots — `epic_criteria` (array, one entry per epic-level acceptance statement) and `bead_criteria` (object keyed by bead ID, value is an array per bead). Both slots are typed by `#/$defs/Criterion` in [`schemas/execution-packet.schema.json`](../../../schemas/execution-packet.schema.json) — that schema is the canonical machine-readable form. Discovery STEP 6 lifts the YAML fences from the plan and serializes them into the packet; do not redefine the shape here.
 
-Source YAML:
+Source YAML (lifted verbatim from epic + bead bodies emitted by `/plan`):
 
 ```yaml
 acceptance_criteria:
@@ -107,41 +104,25 @@ acceptance_criteria:
     evidence_required: true | false
     weight: 0.0-1.0
     optional: true | false
-    agent_judge: "<council:name>"  # required only for custom_rubric
+    agent_judge: "<council:name>"  # REQUIRED only when check_type == custom_rubric
 ```
 
-Packet-side JSON shape:
+Packet-side JSON shape (excerpt):
 
 ```json
 {
   "epic_criteria": [
-    {
-      "id": "ac-e1.1",
-      "description": "...",
-      "check_type": "file_exists",
-      "evidence_required": true,
-      "weight": 1.0,
-      "optional": false
-    }
+    { "id": "ac-e1.1", "description": "...", "check_type": "file_exists", "evidence_required": true, "weight": 1.0, "optional": false }
   ],
   "bead_criteria": {
     "soc-bcrn.1.2": [
-      {
-        "id": "ac-bcrn.1.2.1",
-        "description": "...",
-        "check_type": "grep_match",
-        "evidence_required": true,
-        "weight": 1.0,
-        "optional": false
-      }
+      { "id": "ac-bcrn.1.2.1", "description": "...", "check_type": "grep_match", "evidence_required": true, "weight": 1.0, "optional": false }
     ]
   }
 }
 ```
 
-If discovery does not produce an epic, this execution packet becomes the
-concrete phase-2 handoff object for `$crank` and the concrete phase-3 context
-for standalone `$validate`.
+`/crank` and `/validate` read these slots; v1 packets without them fall back to the legacy `done_criteria` array.
 
 ## Phase Summary
 

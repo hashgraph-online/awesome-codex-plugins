@@ -1,0 +1,73 @@
+{
+  "skill_name": "content-engine",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Write a 3-email welcome sequence for new subscribers to our fitness app",
+      "expected_output": "Three complete emails with subject lines, preview text, body copy, CTAs, and send timing in the active brand voice",
+      "files": [],
+      "assertions": [
+        {
+          "text": "All 3 emails have subject lines, preview text, body copy, and clear CTAs",
+          "type": "quantitative"
+        },
+        {
+          "text": "Email sequence follows a logical progression (welcome → value → action)",
+          "type": "qualitative"
+        },
+        {
+          "text": "Send timing recommendations are included (delay between emails)",
+          "type": "quantitative"
+        },
+        {
+          "text": "Content is personalized with merge tag placeholders where appropriate",
+          "type": "quantitative"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Create Google Ads copy for our organic skincare line — 3 responsive search ads targeting 'natural face cream'",
+      "expected_output": "Three RSA ad groups with multiple headlines, descriptions, and extensions following Google Ads best practices",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Each RSA includes 10-15 headlines (max 30 chars each) and 3-4 descriptions (max 90 chars each)",
+          "type": "quantitative"
+        },
+        {
+          "text": "Headlines include the target keyword 'natural face cream' in at least 3 variations",
+          "type": "quantitative"
+        },
+        {
+          "text": "Ad extensions (sitelinks, callouts, structured snippets) are recommended",
+          "type": "quantitative"
+        },
+        {
+          "text": "No superlative claims without substantiation (compliant with brand guardian rules)",
+          "type": "quantitative"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Draft a LinkedIn thought leadership post about the future of remote work for our HR tech brand",
+      "expected_output": "A LinkedIn post optimized for the platform's algorithm with hook, value, and CTA structure",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Post length is appropriate for LinkedIn (1200-1500 characters or 150-200 words for high engagement)",
+          "type": "quantitative"
+        },
+        {
+          "text": "Post structure follows hook-story-insight-CTA pattern",
+          "type": "qualitative"
+        },
+        {
+          "text": "Hashtag recommendations are included (3-5 relevant hashtags)",
+          "type": "quantitative"
+        }
+      ]
+    }
+  ]
+}

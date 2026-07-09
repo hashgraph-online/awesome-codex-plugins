@@ -162,7 +162,7 @@ This example demonstrates symbol-level implementation detail — the key differe
 | File | Change |
 |------|--------|
 | `cli/cmd/ao/rpi_status.go` | Add worktree check to `classifyRunStatus`, add `Reason` field to `rpiRunInfo` |
-| `cli/cmd/ao/rpi_cleanup.go` | **NEW** — `ao rpi cleanup` command |
+| `cli/cmd/ao/rpi_cleanup.go` | **Historical** — superseded by ADR-0009; use retained worktree/registry cleanup surfaces instead |
 | `cli/cmd/ao/rpi_phased.go` | Add terminal metadata fields to `phasedState` |
 | `cli/internal/config/config.go` | Add `RPIConfig` with `WorktreeMode` |
 
@@ -213,10 +213,9 @@ This example demonstrates symbol-level implementation detail — the key differe
    mkdir -p .agents/rpi/runs/fakestale
    echo '{"schema_version":1,"run_id":"fakestale","phase":2,"worktree_path":"/nonexistent"}' \
      > .agents/rpi/runs/fakestale/phased-state.json
-   ao rpi status           # Should show "stale" not "running"
-   ao rpi cleanup --all --dry-run   # Preview
-   ao rpi cleanup --all             # Fix
-   ao rpi status                    # Should show "stale" with reason
+   ao worktree gc --dry-run          # Preview stale managed worktrees
+   ao worktree gc                    # Clean stale managed worktrees
+   ao worktree gc --dry-run          # Confirm no stale worktrees remain
    ```
 
 ### Why This Format Works

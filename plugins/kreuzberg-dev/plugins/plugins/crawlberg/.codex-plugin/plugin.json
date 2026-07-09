@@ -1,0 +1,43 @@
+{
+  "name": "crawlberg",
+  "version": "0.2.2",
+  "description": "Web crawling and scraping with HTML→Markdown and headless-Chrome fallback.",
+  "author": {
+    "name": "Kreuzberg, Inc.",
+    "email": "contact@xberg.io",
+    "url": "https://xberg.io"
+  },
+  "homepage": "https://xberg.io",
+  "repository": "https://github.com/xberg-io/plugins",
+  "license": "MIT",
+  "keywords": [
+    "web-scraping",
+    "crawling",
+    "html-to-markdown",
+    "headless-chrome"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Crawlberg",
+    "shortDescription": "Crawl and scrape sites to clean markdown",
+    "longDescription": "Scrape single pages, crawl entire sites, or map a domain's URLs through the local crawlberg CLI. Every page is converted to clean Markdown via the built-in HTML→Markdown engine. WAF-blocked or JS-heavy pages transparently fall back to a headless Chrome backend.",
+    "developerName": "Kreuzberg, Inc.",
+    "category": "web-scraping",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Crawl this site to markdown",
+      "Scrape a single page",
+      "Fall back to headless mode"
+    ],
+    "websiteURL": "https://xberg.io",
+    "privacyPolicyURL": "https://xberg.io/privacy",
+    "termsOfServiceURL": "https://xberg.io/terms",
+    "brandColor": "#7C3AED",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

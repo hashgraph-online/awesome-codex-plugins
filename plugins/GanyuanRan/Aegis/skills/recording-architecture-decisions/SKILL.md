@@ -106,6 +106,9 @@ Never leave baseline sync implicit after create, amend, or supersede.
 ## Compact Output Contract
 
 ```text
+Aegis Visibility:
+- Why executed-decision filtering, ADR gate, owner surface, or baseline sync matters now:
+
 Decision Candidate:
 - Summary:
 - Evidence source:

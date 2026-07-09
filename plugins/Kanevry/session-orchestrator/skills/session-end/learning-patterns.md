@@ -47,6 +47,8 @@ Before writing new learnings, read `.orchestrator/metrics/learnings.jsonl` and c
 - `confidence_updates`: list of `{id: "<existing_learning_id>", operation: "confirm"|"contradict"}`
 - `new_learnings`: list of complete learning objects (all JSONL fields per the format above)
 
+> ⚠️ **NEVER point a validating writer at the live store to "test" it.** `rewriteLearnings` performs an atomic, destructive replace — validating the input does NOT protect the file that is being overwritten. On 2026-07-02 a coordinator probe ran the validator against the live `learnings.jsonl` and the subsequent atomic rewrite replaced 107 entries with 3; because the store is gitignored there was no VCS restore (recovered only via the `.bak` sidecar + vault-mirror). To probe a live store safely, use the dry-run path — `rewriteLearnings(file, entries, { dryRun: true })` validates the batch and returns the validated entries but writes NOTHING (no rewrite, no `.bak`). Since #721, a real `rewriteLearnings` also snapshots the current file to `${file}.bak-<ISO>` (keep 3) before the rename, so an accidental overwrite is recoverable — but the dry-run path is still the correct tool for a probe.
+
 **Subject matching:** Match on exact `type` + `subject` string equality. For `fragile-file`, `subject` is the file path. For other types, use a short canonical identifier (e.g., `type-errors-in-api`, `scope-too-large`, `missing-imports`).
 
 ### 3.6 Memory Cleanup & Learnings Write

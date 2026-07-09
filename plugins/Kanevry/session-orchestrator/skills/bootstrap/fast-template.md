@@ -77,6 +77,19 @@ If `## Session Config` is present, confirm the 7 mandatory fields (per issue #18
 - Codex CLI → `AGENTS.md`
 - Cursor IDE → `CLAUDE.md`
 
+**Step 2c: CLAUDE.md budget lint.** After Step 2b confirms/repairs the Session Config block, run the raw-file-property lint against the freshly written instruction file:
+
+```bash
+node "$PLUGIN_ROOT/scripts/lib/claude-md-budget-lint.mjs" --repo-root "$REPO_ROOT" --require-provenance --mode warn --json
+```
+
+`--mode warn` is deliberate at Anlage-time — the lint informs, the operator decides; it never blocks the scaffold. Interpret the JSON `violations[]`:
+- `max-lines` — the instruction file is already over the lean-root ceiling (150 lines default). Recommend trimming to pointers per the lean-root convention (delegate detail to `README.md` / `.orchestrator/steering/` / `.claude/rules/*.md` — see this plugin's own `CLAUDE.md` for a worked example of the pointer pattern — note it predates the lint and currently exceeds the 150-line ceiling itself).
+- `max-line-chars` — a single line exceeds the char ceiling (400 default); surface the line number for a quick manual wrap.
+- `provenance-header` — line 1 lacks a `<!-- source: ...` attribution. On the `claude init` path (Public Fast Tier, Claude Code) this is a WARN only, never a hard failure — `claude init` output is not plugin-authored and has no reason to carry the plugin's provenance convention.
+
+Report any violations to the user as part of the bootstrap summary; do not block or retry on them.
+
 ## Step 3: Generate .gitignore
 
 Detect the platform from existing files in the repo root (best-effort, repo may be empty):

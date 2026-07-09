@@ -45,6 +45,9 @@ Before you leave this workflow, you must be able to state:
 7. **What old owner / fallback / patch stays, shrinks, or retires**
 8. **What the reviewer must specifically validate**
 9. **Whether the reviewer is providing advisory review only, or also any higher-level merge recommendation**
+10. **Aegis Visibility**: why findings-first ordering, evidence sufficiency,
+    baseline alignment, compatibility, or retirement risk matters for this
+    review request
 
 Review in this method pack is advisory and evidence-oriented. It is not authoritative completion by itself.
 

@@ -1,8 +1,8 @@
 # account-rotation
 
-Use when you hit a usage/rate limit on a coding-agent subscription and need to switch accounts, or to spread swarm lanes across accounts. Routes by host+agent: macOS+Claude → claude-acct (Keychain swap); macOS+Codex/Gemini or any Linux/WSL → caam (file swap). One symptom, the right tool per host.
+Switch coding-agent accounts on a usage/rate limit. Routes by host+agent: macOS+Claude to claude-acct; Codex/Gemini and Linux/WSL to caam. Triggers: "account-rotation", "account rotation", "switch coding-agent accounts on a".
 
 ## Instructions
 
 Load and follow the skill instructions from the sibling `SKILL.md` file for this skill.
-
+Then read local files in `references/` and `scripts/` when needed.

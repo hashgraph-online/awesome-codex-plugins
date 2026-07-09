@@ -8,7 +8,7 @@
 
 ## Phase 1: Feature Discovery (1-2 waves)
 
-### Wave 1 — Feature Core (5 questions)
+### Wave 1 — Feature Core (6 questions)
 
 Before asking questions, dispatch 3 Explore agents in parallel:
 
@@ -29,15 +29,16 @@ Agent({ subagent_type: "Explore", description: "Research best practices",
   Report: top 3 approaches with pros/cons." })
 ```
 
-Synthesize agent findings into 2 AskUserQuestion calls (3+2 split):
+Synthesize agent findings into 2 AskUserQuestion calls (3+3 split):
 
 **Questions:**
 
 1. **What to build** — Open-ended. Analyze the answer and suggest structure (e.g., break into sub-features, identify components). Use codebase agent findings to ground suggestions.
 2. **Why now** — Business driver, user feedback, or technical necessity? Present agent-found context (related issues, recent changes) as options.
 3. **Who uses it** — Existing personas or new audience? Reference existing user research if available in the repo.
-4. **Scope** — MVP appetite (Shape Up: 1w/2w/6w) + explicit exclusions. Push hard for "what is NOT in this feature." First option is always the recommended appetite based on complexity.
-5. **Dependencies** — On existing issues, features, or other repos. Pre-populate from VCS agent findings. Flag blockers.
+4. **User-Story-Schicht** — "User-Story-Schicht für dieses Feature erzeugen?" Immer fragen (kein Audience-Heuristik-Gate). Bei "ja" emittiert die PRD eine optionale ## User Stories Sektion (Als/möchte/damit, je Story ein ↳ AC-Pointer); bei "nein" byte-identisches Status-quo-Verhalten.
+5. **Scope** — MVP appetite (Shape Up: 1w/2w/6w) + explicit exclusions. Push hard for "what is NOT in this feature." First option is always the recommended appetite based on complexity.
+6. **Dependencies** — On existing issues, features, or other repos. Pre-populate from VCS agent findings. Flag blockers.
 
 ### Wave 2 — Technical Deep Dive (conditional, 5 questions)
 
@@ -82,15 +83,17 @@ Agent({ subagent_type: "Explore", description: "Research technical approach",
 | Section | Source |
 |---------|--------|
 | 1. Problem & Motivation | Wave 1 Q1 (what) + Q2 (why). Concise, 2-3 paragraphs. |
-| 2. Solution & Scope | Wave 1 Q4 (scope). Explicit In-Scope and Out-of-Scope lists. |
+| 2. Solution & Scope | Wave 1 Q5 (scope). Explicit In-Scope and Out-of-Scope lists. |
+| ## User Stories (conditional) | Emit only when the User-Story-Schicht toggle = yes; one story per persona-goal in Als/möchte/damit form, each linking ≥1 §3/§3.A acceptance criterion. Omit the section entirely when toggle = no (byte-for-byte status quo). |
 | 3. Acceptance Criteria | Derive Given/When/Then scenarios from Wave 1 answers. Each sub-feature produces 1-3 Gherkin scenarios. |
 | 3.A Acceptance Criteria (EARS) | OPTIONAL — emit EARS clauses (Ubiquitous/State-driven/Event-driven/Optional feature/Unwanted behaviour) for the same Feature Areas. Used by `/write-executable-plan` for 1:1 vitest stub generation. Leave blank if Section 3 narrative suffices. |
 | 4. Technical Notes | Wave 2 findings if it ran (architecture, affected files, data model). If Wave 2 was skipped, populate from Wave 1 Explore agent findings. |
-| 5. Risks & Dependencies | Wave 1 Q5 (dependencies) + Wave 2 Q4-Q5 (edge cases, performance) if available. |
+| 5. Risks & Dependencies | Wave 1 Q6 (dependencies) + Wave 2 Q4-Q5 (edge cases, performance) if available. |
 
 3. Save to `{plan-prd-location}/YYYY-MM-DD-{feature-slug}.md`. Read `plan-prd-location` from Session Config in CLAUDE.md (or AGENTS.md on Codex CLI) (default: `docs/prd/`).
 4. Dispatch PRD reviewer subagent per `prd-reviewer-prompt.md`. Max 3 iterations. Surface unresolved issues to user.
 5. **Package Legitimacy Audit (Slopcheck — #520):** if Session Config has `slopcheck.enabled: true` and `slopcheck.sources` includes `plan`, run the Phase 3.5 audit defined in `SKILL.md` against the generated PRD body (scan `## Affected Files`, `## Dependencies`, and code-fenced `pnpm add` / `npm install` / `pip install` / `cargo add` blocks for npm/pip/cargo package mentions, then call `classifyPackages()` from `scripts/lib/slopcheck.mjs`). Fail-soft on registry errors. See `SKILL.md` § "Phase 3.5: Package Legitimacy Audit" for the full handling matrix.
+6. **PRD Commit Gate:** before proceeding to Phase 3 (Issue Creation), satisfy the PRD Commit Gate — see `SKILL.md` § Phase 5.5 (HARD-GATE). Do not create issues referencing an uncommitted PRD.
 
 ---
 
@@ -119,7 +122,7 @@ Apply per gitlab-ops skill label taxonomy:
 - **Type:** `type:feature` for new capabilities, `type:enhancement` for extensions of existing features.
 - **Priority:** `priority:critical` / `priority:high` / `priority:medium` / `priority:low` from auto-prioritize above.
 - **Area:** Infer from affected code paths (e.g., `area:api`, `area:frontend`, `area:infra`).
-- **Appetite:** Map from Wave 1 Q4 scope answer (`appetite:1w`, `appetite:2w`, `appetite:6w`).
+- **Appetite:** Map from Wave 1 Q5 scope answer (`appetite:1w`, `appetite:2w`, `appetite:6w`).
 
 ### User Review Gate
 
@@ -134,3 +137,4 @@ Present the full issue structure via AskUserQuestion before creation:
 1. Create via VCS CLI (auto-detect per gitlab-ops skill: `glab` or `gh`).
 2. Set `blocks` / `is-blocked-by` dependency links between issues.
 3. Report created issue URLs to user.
+4. **Epic Backlink Commit:** once the Epic issue's IID is known, follow `SKILL.md` § 6.6 to add an `**Epic:** #<IID>` line to the PRD and commit it as a separate follow-up commit.

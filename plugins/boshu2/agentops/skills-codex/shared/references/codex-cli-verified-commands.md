@@ -20,14 +20,14 @@ codex exec --json "Return one-line status"
 codex exec -o /tmp/codex-last.txt "Return one-line status"
 ```
 
-## Integration with `ao rpi phased`
+## Integration with NTM / Operating Loop
 
 ```bash
-# Preferred runtime override for phased runs
-/path/to/ao rpi phased --from=implementation --runtime-cmd codex <bead-id>
+# Preferred runtime for a substrate pane running one operating-loop slice
+codex exec "<prompt>"
 ```
 
-Expected dry-run spawn shape from current `ao` implementation:
+Expected spawn shape:
 
 ```text
 codex "exec" "<prompt>"
@@ -50,4 +50,3 @@ Other invalid assumptions to avoid:
 
 - `codex -q` (not a valid quiet flag)
 - `codex exec --quiet` (no such flag)
-

@@ -1,83 +1,60 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.9.0-blue.svg)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-8856%20passing-brightgreen.svg)](#development)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Codex](https://img.shields.io/badge/Codex-Compatible-green.svg)](https://developers.openai.com/codex/)
-[![Cursor IDE](https://img.shields.io/badge/Cursor_IDE-Compatible-blue.svg)](https://cursor.com)
-[![Pi](https://img.shields.io/badge/Pi-Package-orange.svg)](https://pi.dev/docs/latest)
+[![Version](https://img.shields.io/badge/version-3.11.0-blue.svg)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-10%2C000%2B-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
 
-Turn ad-hoc Claude Code sessions into a repeatable loop with verification gates. Session Orchestrator adds a structured `research → plan → execute in waves → close` cycle on top of your existing agent — across Claude Code, Codex CLI, Cursor IDE, and Pi. Inter-wave reviews catch regressions before they ship; carryover issues mean nothing slips through.
+Turn ad-hoc agent sessions into a repeatable loop with verification gates — loop engineering for software work. You design the loop (`research → plan → execute in waves → close`); Session Orchestrator runs it on top of your existing agent, with the guards, telemetry, and cross-session memory that keep a long agent run honest. Inter-wave reviews catch regressions before they ship; carryover issues mean loose ends get tracked, not lost.
 
-Community plugin (MIT, not affiliated with Anthropic) for solo devs and small teams using Claude Code, Codex CLI, Cursor, or Pi.
+Works with **Claude Code, Codex CLI, Cursor IDE, and [Pi](docs/pi-setup.md)** — the same skills and commands across all four, with platform-adapted hooks and enforcement (see [Platform support](#platform-support)). Community plugin (MIT, community-maintained) for solo devs and small teams.
+
+## A session in three commands
+
+```text
+/session feature    # research + Q&A — inspect git, issues, history, then agree on scope
+/go                 # execute in five typed waves (fixed roles), with a quality gate between each
+/close              # verify every item, commit cleanly, file carryover issues for the rest
+```
+
+That is the whole loop. `/plan` and `/evolve` extend it (see [Lifecycle](#lifecycle-at-a-glance)), but you can start with just these three.
 
 ## Install
 
-> **Prerequisite:** Node.js 24 or later. Check with `node --version`. v3.x runs as ES modules and requires a real Node runtime, no Bash shim. [Install Node.js](https://nodejs.org/).
+> **Prerequisite:** Node.js 24 or later (`node --version`). v3.x runs as ES modules and needs a real Node runtime. [Install Node.js](https://nodejs.org/).
 
-### Claude Code
+The two paths below differ only by **install mechanism**, not capability or tier: Claude Code pulls from the plugin marketplace; every other platform clones the repo. The same skills and commands ship to all four.
 
-Run these two slash commands **inside** Claude Code (they are not shell commands):
+### Claude Code (plugin marketplace)
+
+Run these two slash commands **inside** Claude Code (not in a shell):
 
 ```text
 /plugin marketplace add Kanevry/session-orchestrator
 /plugin install session-orchestrator@kanevry
 ```
 
-Then install Node dependencies **once** (hooks import `zx`):
+Then install Node dependencies **once** (hooks import `zx`) and restart Claude Code:
 
 ```bash
 cd "$(claude plugin dir session-orchestrator 2>/dev/null || echo ~/.claude/plugins/session-orchestrator)"
 npm install
 ```
 
-Restart Claude Code so the slash commands become available.
-
-### Codex CLI
+### Codex CLI, Cursor IDE & Pi (git clone)
 
 ```bash
 git clone https://github.com/Kanevry/session-orchestrator.git ~/Projects/session-orchestrator
-cd ~/Projects/session-orchestrator
-npm install
-node scripts/codex-install.mjs
+cd ~/Projects/session-orchestrator && npm install
+node scripts/codex-install.mjs                          # Codex CLI
+node scripts/cursor-install.mjs /path/to/your/project   # Cursor IDE
+node scripts/pi-install.mjs    /path/to/your/project --settings-only   # Pi
 ```
 
-### Cursor IDE
-
-```bash
-git clone https://github.com/Kanevry/session-orchestrator.git ~/Projects/session-orchestrator
-cd ~/Projects/session-orchestrator
-npm install
-node scripts/cursor-install.mjs /path/to/your/project
-# Session Config goes in CLAUDE.md (Cursor reads CLAUDE.md natively)
-```
-
-### Pi
-
-```bash
-npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-git clone https://github.com/Kanevry/session-orchestrator.git ~/Projects/session-orchestrator
-cd ~/Projects/session-orchestrator
-npm install
-node scripts/pi-install.mjs /path/to/your/project --settings-only
-# Or use Pi's package installer directly:
-# pi install ~/Projects/session-orchestrator -l
-```
-
-Setup guides: [Codex](docs/codex-setup.md), [Cursor IDE](docs/cursor-setup.md), and [Pi](docs/pi-setup.md). Per-IDE setup notes for `CLAUDE.md` vs `AGENTS.md`: [skills/_shared/instruction-file-resolution.md](skills/_shared/instruction-file-resolution.md).
+Setup guides: [Codex](docs/codex-setup.md) · [Cursor IDE](docs/cursor-setup.md) · [Pi](docs/pi-setup.md). Per-IDE notes on `CLAUDE.md` vs `AGENTS.md`: [instruction-file-resolution](skills/_shared/instruction-file-resolution.md).
 
 ## Quick Start
 
-Add a `## Session Config` section to your project's `CLAUDE.md` (or `AGENTS.md` on Codex CLI / Pi), then run three commands:
-
-```text
-/session feature
-/go
-/close
-```
-
-The smallest valid Session Config is seven fields:
+Add a `## Session Config` section to your project's `CLAUDE.md` (Claude Code and Cursor IDE) or `AGENTS.md` (Codex CLI and Pi) — see [instruction-file-resolution](skills/_shared/instruction-file-resolution.md) for which file each platform reads. The smallest valid config is seven fields:
 
 ```yaml
 ## Session Config
@@ -93,29 +70,15 @@ enforcement: warn
 
 Everything else is opt-in. See [`docs/session-config-template.md`](docs/session-config-template.md) for the full template and [`docs/session-config-reference.md`](docs/session-config-reference.md) for the canonical type and default reference.
 
-## Support & expectations
-
-Session Orchestrator is MIT-licensed and provided **as-is, with no SLA**. It is a community project, **not an official Anthropic product**.
-
-- Questions, ideas, show-and-tell → [GitHub Discussions](https://github.com/Kanevry/session-orchestrator/discussions).
-- Bugs and feature requests → [Issues](https://github.com/Kanevry/session-orchestrator/issues).
-
-There is no commercial support contract or guaranteed response time; maintenance happens on a best-effort basis.
-
-## What this is NOT
-
-- **Not an official Anthropic product.** Not affiliated with or endorsed by Anthropic.
-- **Not a replacement for Claude Code** (or Codex CLI / Cursor / Pi). It is a workflow layer that runs *on top of* your existing agent — you still need one of those tools installed.
-- **Not a hosted service.** Everything runs locally as plain Markdown plus a thin Node runtime; there is no server, account, or cloud component.
-- **No guarantee that telemetry numbers transfer to your repo.** Reported test counts and metrics describe this repository under its own conditions — see [`docs/telemetry/telemetry-claims.md`](docs/telemetry/telemetry-claims.md). Your results will vary by stack, project size, and configuration.
-
 ## What you get
 
-- **40 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, harness/repo audits, tmux visualization, and more
-- **20 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/test`, `/brainstorm`, `/debug`, `/persona-panel`, `/memory-cleanup`, …)
-- **13 typed sub-agents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, dialectic-deriver, memory-proposal-collector, …)
-- **10 hook event types** (handlers under `hooks/`) enforcing scope, blocking destructive commands, gating templates-first, auditing memory proposals, capturing telemetry
-- **8856 vitest tests** passing on every commit ([telemetry methodology](docs/telemetry/telemetry-claims.md)), validate-plugin 138/138, typecheck OK, lint 0
+- **42 skills** for the session lifecycle (start, plan, execute, close, evolve), discovery, vault sync, MCP authoring, debugging, brainstorming, plan grilling, persona panels, cross-repo dispatch, learning→rule reconciliation, audits, and more
+- **22 slash commands** (`/session`, `/go`, `/close`, `/discovery`, `/plan`, `/grill`, `/evolve`, `/autopilot`, `/dispatcher`, `/reconcile`, `/test`, `/debug`, …)
+- **14 typed subagents** (code-implementer, test-writer, security-reviewer, session-reviewer, qa-strategist, architect-reviewer, …)
+- **10 hook event types** enforcing scope, blocking destructive commands, gating templates-first, capturing telemetry — full on Claude Code; experimental, post-hoc, or bridged on the other platforms ([Platform support](#platform-support))
+- **10,000+ vitest tests** run on every commit ([telemetry methodology](docs/telemetry/telemetry-claims.md))
+
+Full component inventory: [`docs/components.md`](docs/components.md).
 
 ## Lifecycle at a glance
 
@@ -130,7 +93,7 @@ flowchart TD
     style D fill:#238636,color:#fff
 ```
 
-`/plan` is optional. You can create issues manually and jump straight to `/session`. `/evolve` runs deliberately after 5+ sessions, not automatically.
+`/plan` is optional — you can create issues manually and jump straight to `/session`. `/evolve` runs deliberately after 5+ sessions, not automatically.
 
 ## How it works
 
@@ -149,99 +112,40 @@ flowchart LR
     style G4 fill:#d29922,color:#000
 ```
 
-Here is what happens when you type `/session feature`:
+When you type `/session feature`:
 
-1. **Phase analysis runs in parallel.** Git state, open issues, recent commits, SSOT freshness, plugin freshness, resource health, prior-session memory, and project-intelligence learnings all get inspected. The result is a structured Session Overview with a recommendation, not a wall of raw data.
-2. **You agree on scope.** Through a tool-rendered picker (Claude Code) or a numbered list (Codex CLI / Cursor / Pi), you pick which issues to tackle. The orchestrator has an opinion and tells you what it would do.
-3. **The plan is decomposed into five waves.** Discovery (read-only), Impl-Core, Impl-Polish, Quality, and Finalize. Agent counts per role scale by session type. Each wave has a defined purpose and a deliverable.
-4. **`/go` executes.** Agents work in parallel within a wave. A session-reviewer audits the output between waves on eight dimensions: implementation correctness, test coverage, TypeScript health, OWASP, issue tracking, silent failures, test depth, type design. Only findings with confidence at or above 80 reach you.
-5. **`/close` ships it.** Every planned item is verified. Quality gates run full. Unfinished work becomes carryover issues so nothing falls through the cracks. Files are staged individually, not via `git add .`, so parallel sessions cannot stomp each other.
+1. **Phase analysis runs in parallel** — git state, open issues, recent commits, SSOT freshness, resource health, and prior-session memory are all inspected, then distilled into a structured Session Overview with a recommendation, not a wall of raw data.
+2. **You agree on scope** — through a tool-rendered picker (Claude Code) or a numbered list (Codex / Cursor / Pi). The orchestrator has an opinion and tells you what it would do.
+3. **The plan is decomposed into five waves** — Discovery (read-only), Impl-Core, Impl-Polish, Quality, Finalization. Each wave has a defined purpose and a deliverable; agent counts scale by session type.
+4. **`/go` executes** — agents work in parallel within a wave. A session-reviewer audits the output between waves on eight dimensions; only findings at confidence ≥ 80 reach you.
+5. **`/close` ships it** — every planned item is verified, quality gates run full, and unfinished work becomes carryover issues. Files are staged individually, so parallel sessions can't stomp each other.
 
-Two complementary commands round out the loop:
+Two complementary commands round out the loop: **`/plan`** runs *before* a session when you need a PRD or retrospective; **`/evolve`** runs occasionally to surface patterns across sessions and feed them back at the next start.
 
-- **`/plan`** runs *before* a session, when you need a PRD, requirements, or a retrospective.
-- **`/evolve`** runs occasionally, deliberately. It analyses session history across runs, surfaces patterns that only emerge over time, and feeds them back as Project Intelligence at the next session-start.
-
-The system is markdown-driven config plus a thin Node runtime. Skills, commands, and agents are Markdown with YAML frontmatter; the runtime under `scripts/lib/*.mjs` and `hooks/*.mjs` handles dispatch, hooks, validation, and telemetry. Everything is plain text — if something goes wrong, you can read every file and see what happened.
+The system is markdown-driven config plus a thin Node runtime — skills, commands, and agents are Markdown with YAML frontmatter; `scripts/lib/*.mjs` and `hooks/*.mjs` handle dispatch, validation, and telemetry. Everything is plain text: if something goes wrong, you can read every file and see what happened.
 
 ## Why this design
 
-**Five typed waves, not one big batch.** Discovery first, so the implementer agents start with shared context. Impl-Core before Impl-Polish, so the architectural decisions land before the integrations. Quality runs a *simplification pass* on AI-generated code before tests are written, otherwise tests pin the AI patterns into place.
+- **Five typed waves, not one big batch.** Discovery first, so implementers start with shared context. Impl-Core before Impl-Polish, so architecture lands before integrations. Quality runs a *simplification pass* on AI-generated code **before** tests are written — otherwise tests pin the AI patterns into place.
+- **Inter-wave reviews, not just end-of-session.** Catching regressions between waves — not only at the end — stops a bad pattern from propagating into later work; the confidence floor filters speculative criticism so only high-signal findings reach you.
+- **State persists across crashes.** `STATE.md` records wave progress and deviations; the next `/session` offers to resume from the last completed wave.
+- **Hooks enforce, not just warn.** A pre-Bash guard blocks destructive shell commands, and pre-Edit scope enforcement blocks writes outside an agent's allowed paths — in main sessions and subagent waves alike (specifics in [Safety](#safety)). This hard enforcement is full on Claude Code; it degrades to experimental / post-hoc / bridged on Codex CLI, Cursor IDE, and Pi (see [Platform support](#platform-support)).
+- **Cross-session learning is opt-in and inspectable.** Every session writes a record; after 5+ sessions `/evolve analyze` extracts confidence-scored patterns you can read and prune. Nothing is hidden.
+- **VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your remote and drives the full lifecycle for both.
 
-**Inter-wave reviews, not just end-of-session.** A session-reviewer agent runs between every wave with explicit confidence scoring on eight dimensions. Only findings at or above confidence 80 surface — this filters speculative criticism and keeps your attention on what matters.
+## Recent highlights (v3.11.0)
 
-**State persists across crashes.** `STATE.md` records wave progress, mission status, and deviations. If the session is interrupted, the next `/session` invocation offers to resume from the last completed wave. Coordinator snapshots (git refs under `refs/so-snapshots/*`) capture the working tree on demand.
+Every release is additive and backward-compatible. Highlights of the v3.11.0 line:
 
-**Hooks enforce, not just warn.** Pre-Bash destructive-command guard blocks `git reset --hard`, `rm -rf`, force-pushes, and ten more rules from `.orchestrator/policy/blocked-commands.json`. Pre-Edit scope enforcement blocks writes outside an agent's `allowedPaths`. The guard runs in main sessions and subagent waves equally.
+- **Self-healing session ledger** — a crashed session no longer leaves an orphaned lock or a hole in the session history: the SessionEnd hook backfills an `abandoned` ledger entry and releases the session lock deterministically, and a host-wide reaper (dry-run by default) cleans up whatever is left.
+- **Learning-store safety** — every learning rewrite snapshots a backup first and can be validated without writing; dialect normalization and a mechanical expiry sweep keep the cross-session learning store readable and lean instead of silently rotting.
+- **Vault mirroring hardened** — readable note slugs, per-record crash resilience, zero dangling wiki-links, and a host-local pseudonym map so private repo names never reach shared notes.
+- **Hardened CI** — the GitHub mirror can no longer report a silent green (fail-closed test verifier on every run), the CI toolchain is pinned with checksums, and a package-manager guard catches lockfile/store drift before it corrupts a run.
+- **Leaner instruction surface** — tier-aware rule loading lets wave agents skip coordinator-only rules, and instruction-surface trims cut the always-on directive budget by ~8%.
 
-**Cross-session learning is opt-in and inspectable.** Every session writes a record to `.orchestrator/metrics/sessions.jsonl`. After 5+ sessions, `/evolve analyze` extracts confidence-scored patterns into `learnings.jsonl`. You can read every line, prune via `/evolve review`. Nothing is hidden.
+Previous line (v3.10.0): cross-repo `/dispatcher`, learning → rule `/reconcile`, opt-in skill self-evolution, named multi-vault routing, instruction-budget guard.
 
-**VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your git remote. Full lifecycle for both: issue management, MR/PR tracking, pipeline status, label taxonomy, milestone queries.
-
-## What's new since v3.6.0
-
-Eighteen sessions across 9 days (2026-05-15 → 2026-05-23). Tests grew from **5001 → 7360** (+2359). Zero breaking changes, zero CI regressions. Headlines:
-
-- **F2 Memory & Personas cluster** — Agent-writable `memory.propose` CLI with session-end AUQ collector (#501), startup memory banner showing surfaced learnings + peer-card excerpts (#505), `USER.md` + `AGENT.md` per-repo behavioural identity ([peer cards](https://github.com/Kanevry/session-orchestrator/issues/503)), and a haiku-cheap `dialectic-deriver` agent that derives card updates from session history (#506).
-- **gsd Pattern Adoption Epic #517** — four mechanical hardening patterns: STATE.md cross-process write-lock (#518), `pre-bash-templates-first` PreToolUse hook with `/templates-ack` bypass (#519), Slopcheck against LLM-hallucinated package names (#520), bounded auto-fix loop with diagnostics-bundle (#521).
-- **Persona-Panel Foundation** — parallel multi-persona review skill + `/persona-panel` command + 4 reusable persona templates (buyer / expert / compliance / custom). Three reconciliation modes: voting-quorum, hard-gate-threshold, coordinator-summary.
-- **Anthropic + Superpowers ecosystem** — `/brainstorm` (Socratic design dialogue), `/debug` (4-phase Iron-Law root-cause), `write-executable-plan` skill, two new always-on rules (`verification-before-completion`, `receiving-review`), `operator-steer` mid-wave-guidance hook, in-process MCP docs, OTel `gen_ai.*` aliases on subagents.jsonl, security-reviewer FP-reduction 35→15%.
-- **harness-audit + repo-audit + portfolio** — `/harness-audit` (Anthropic 8-category large-codebase rubric), `/repo-audit` (9-category baseline compliance), `/portfolio` (cross-repo health from vault `01-projects/`).
-- **`/memory-cleanup`** — Manual Dream-equivalent memory consolidation skill ported from personal user-config into the plugin so all users get it.
-- **Privacy-first pre-commit hook (#494)** — `.husky/pre-commit` invokes the same owner-leakage scanner CI uses, closing the `git add <leak> && git commit` gap. Regression test asserts the hook contains the scanner invocation; E2E tests plant leaks in tmp git repos and assert commits are blocked.
-
-For the full version history see [CHANGELOG.md](CHANGELOG.md). For previous releases: v3.6.0 (2026-05-14), v3.5.0 (2026-05-09), v3.4.0 (2026-05-08), v3.3.0 (2026-04-30).
-
-### Claude Code 2.1.x adoption matrix (condensed)
-
-| Area | Features adopted | Issue |
-|---|---|---|
-| Hooks & telemetry | `experimental.monitors` plugin manifest; `hookSpecificOutput.additionalContext` on 3 PostToolUse hooks; `terminalSequence` (OSC 9 + OSC 777); `worktree.bgIsolation: "none"` | #427, #428, #429, #431 |
-| Commands & skills | `disable-model-invocation: true` on 12 USER-ONLY commands; skill descriptions ≤ 1024 chars + trigger phrases verified across 36/36 | #430, #432 |
-| Routing | `model:` frontmatter routing on 36 SKILL.md (opus / sonnet / haiku / inherit); `Skill(name:*)` permission wildcards on 5 worker agents | #434, #435 |
-| Validation | `$schema` validation (schemastore.org) on both manifests + CI gate | #433 |
-
-Full table and follow-ups in `CLAUDE.md` (or `AGENTS.md` on Codex CLI / Pi) and CHANGELOG.md.
-
-## Repository anatomy
-
-```mermaid
-flowchart LR
-    USER([Operator]) -->|invokes /session| COORD[Coordinator]
-    COORD -->|reads| SK[Skills<br/>40 user-facing]
-    COORD -->|invokes| CMD[Commands<br/>20 slash-cmds]
-    COORD -->|dispatches| AG[Agents<br/>13 typed sub-agents]
-    AG -.->|parallel waves| W1[code-implementer]
-    AG -.-> W2[test-writer]
-    AG -.-> W3[security-reviewer]
-    AG -.-> W4[session-reviewer]
-    HOOK[Hooks<br/>10 event types] -.->|enforce scope + commands| COORD
-    COORD -->|writes| METRIC[.orchestrator/metrics/<br/>sessions · learnings · events]
-```
-
-## Components
-
-**Skills (40 user-facing).** Lifecycle: `session-start`, `session-plan`, `wave-executor`, `session-end`, `quality-gates`, `using-orchestrator`. Authoring: `skill-creator`, `mcp-builder`, `hook-development`, `frontmatter-guard`. Planning & discovery: `plan`, `discovery`, `repo-audit`, `brainstorm`, `write-executable-plan`, `debug`, `claude-md-drift-check`, `grill`. Architecture: `architecture`, `domain-model`, `ubiquitous-language`. Cross-session: `evolve`, `convergence-monitoring`, `memory-cleanup`, `sunset-review`. Vault & docs: `vault-sync`, `vault-mirror`, `daily`, `docs-orchestrator`. Ecosystem: `bootstrap`, `gitlab-ops`, `gitlab-portfolio`, `ecosystem-health`, `mode-selector`, `autopilot`. Testing: `test-runner`, `playwright-driver`, `peekaboo-driver`. Content review: `persona-panel`. Visualization: `tmux-layout` (opt-in, operator side-channel — ADR-0007).
-
-**Commands (20).** `/session`, `/go`, `/close`, `/discovery`, `/plan`, `/evolve`, `/bootstrap`, `/harness-audit`, `/autopilot`, `/autopilot-multi`, `/repo-audit`, `/test`, `/memory-cleanup`, `/portfolio`, `/brainstorm`, `/debug`, `/persona-panel`, `/grill`, `/sunset-review`, `/templates-ack`.
-
-**Agents (13 typed sub-agents).** `code-implementer`, `test-writer`, `ui-developer`, `db-specialist`, `security-reviewer`, `session-reviewer`, `docs-writer`, `architect-reviewer`, `qa-strategist`, `analyst`, `ux-evaluator`, `dialectic-deriver`, `memory-proposal-collector`.
-
-**Hook event types (10).** `SessionStart` (banner + init), `SessionEnd` (close events), `PreToolUse/Edit|Write` (scope enforcement), `PreToolUse/Bash` (destructive-command guard + enforce-commands + templates-first + staging-fence + memory-propose audit), `PostToolUse` (edit validation), `Stop` (session events), `SubagentStop` (telemetry), `PostToolUseFailure` (corrective context), `PostToolBatch` (wave signal + operator-steer), `SubagentStart` (telemetry), `CwdChanged` (cwd-change record). Plus the Clank Event Bus integration in `hooks/_lib/events.mjs`.
-
-**Output Styles.** 3 (`session-report`, `wave-summary`, `finding-report`) for consistent reporting.
-
-**Policy & rules.** `.orchestrator/policy/blocked-commands.json` (13 destructive-command rules); `.claude/rules/parallel-sessions.md` (PSA-001..PSA-004).
-
-**Codex.** `.codex-plugin/plugin.json` (manifest), compatibility config, 3 agent role definitions, marketplace `composerIcon`.
-
-**Pi.** `package.json` `pi` manifest, `pi/extensions/session-orchestrator.ts` bridge, `hooks/hooks-pi.json`, and `scripts/pi-install.mjs`.
-
-**Scripts.** Deterministic CLI tools (parse-config, run-quality-gate, validate-wave-scope, validate-plugin, token-audit, autopilot, autopilot-multi) plus migration helpers (`vault-consolidate.mjs` — vault folding [#499](https://github.com/Kanevry/session-orchestrator/issues/499); `migrate-vault-paths.mjs` — username-drift path repair [#499]; `migrate-cold-start-seed.mjs` — seeds welcome-banner markers in dormant repos [#507](https://github.com/Kanevry/session-orchestrator/issues/507)) plus shared lib (`scripts/lib/*.mjs`) plus a vitest suite of 8856+ tests.
-
-### `/harness-audit` — Anthropic large-codebase rubric
-
-`scripts/harness-audit.mjs` runs **8 deterministic categories / 33 checks** (rubric `2026-06`) over a repo and emits `.orchestrator/metrics/audit.jsonl`. Category 8 ("Large-Codebase Readiness") operationalises Anthropic's [Claude Code large-codebase best-practices](https://claude.com/blog/how-claude-code-works-in-large-codebases-best-practices-and-where-to-start) checklist — layered `CLAUDE.md` (or `AGENTS.md` on Codex CLI / Pi), codebase-map presence, LSP/code-intelligence wiring, scoped test/lint commands, `permissions.deny`, and root-file structural leanness — as scored signals you can run on yourself and on consumer repos. The checks are intentionally orthogonal to repo-audit's baseline-compliance pass/fail (`skills/repo-audit/SKILL.md`); both surfaces ship.
+Full version history: [CHANGELOG.md](CHANGELOG.md).
 
 ## Comparison
 
@@ -253,155 +157,91 @@ flowchart LR
 | Scope and command enforcement hooks | PreToolUse with strict / warn / off | None | None |
 | Circuit breaker and spiral detection | Per-agent, with recovery | None | Partial |
 | Cross-session learning | Confidence-scored learnings | None | None |
-| Adaptive wave sizing | Complexity-scored, dynamic | Fixed | Fixed |
 | VCS integration (GitLab + GitHub) | Dual, auto-detected | Manual CLI | Usually GitHub only |
-| Design-code alignment | Pencil integration | None | None |
 | Session close with carryover | Verified, with issue creation | Manual | Partial |
 
-The design goal is engineering quality. Every wave exits verified, every unfinished issue gets a carryover ticket, every session closes with a clean commit.
+The design goal is engineering quality: every wave exits verified, every unfinished issue gets a carryover ticket, every session closes with a clean commit. A detailed head-to-head vs. [maestro-orchestrate](https://github.com/josstei/maestro-orchestrate) is in [`docs/components.md`](docs/components.md#comparison-vs-maestro-orchestrate).
 
-### vs. maestro-orchestrate
-
-Both [`maestro-orchestrate`](https://github.com/josstei/maestro-orchestrate) and session-orchestrator coordinate multi-agent work in long-running AI coding sessions. They differ in scope and execution model:
-
-| Axis | session-orchestrator | maestro-orchestrate |
-|---|---|---|
-| Execution model | 5 typed waves (Discovery → Impl-Core → Impl-Polish → Quality → Finalization) with inter-wave quality gates and confidence-scored session-reviewer | 4-phase sequential model with parallel subagents |
-| Runtime coverage | Claude Code + Codex CLI + Cursor IDE + Pi (4) | Gemini CLI + Claude Code + Codex + Qwen Code (4) |
-| VCS integration | GitLab-first with GitHub mirror (auto-detected); 10 hook event types + 20 commands wire to both | Runtime-agnostic; VCS work delegated to user |
-| Cross-session learning | Confidence-scored entries in `.orchestrator/metrics/learnings.jsonl`; surfaced at session-start; opt-in `/evolve` review | Session archival to `docs/maestro/` without explicit learning extraction |
-| Specialist agents | 13 typed agents (code-implementer, security-reviewer, test-writer, qa-strategist, dialectic-deriver, memory-proposal-collector, etc.) | 39 specialist agents across design/impl/review/debugging/security/compliance |
-
-We see the two plugins as complementary rather than competing: session-orchestrator focuses on a single wave-based lifecycle with VCS+learning integration, while maestro-orchestrate optimises for multi-runtime parallel specialist delivery.
-
-## Platform Support
+## Platform support
 
 | Feature | Claude Code | Codex CLI | Cursor IDE | Pi |
-|---------|------------|-----------|------------|----|
-| OS | macOS, Linux, **Windows (native)** | macOS, Linux, **Windows (native)** | macOS, Linux, **Windows (native)** | macOS, Linux, **Windows (native)** |
-| All 20 commands | Native slash commands | Native plugin commands | Rules-based (.mdc) | Prompt templates generated from `commands/*.md` |
-| Parallel agents | Agent tool | Multi-agent roles | Sequential only | Sequential v1; SDK-based parallel waves planned |
+|---|---|---|---|---|
+| All 22 commands | Native slash commands | Native plugin commands | Rules-based (.mdc) | Prompt templates |
+| Parallel agents | Agent tool | Multi-agent roles | Sequential only | Sequential (parallel planned) |
 | Session persistence | `.claude/STATE.md` | `.codex/STATE.md` | `.cursor/STATE.md` | `.pi/STATE.md` |
-| Shared knowledge | `.orchestrator/metrics/` | `.orchestrator/metrics/` | `.orchestrator/metrics/` | `.orchestrator/metrics/` |
 | Scope enforcement | PreToolUse hooks | Hooks (experimental) | `afterFileEdit` (post-hoc) | `tool_call` bridge |
-| AskUserQuestion | Native tool | Numbered-list fallback | Numbered-list fallback | Numbered-list fallback; native UI adapter planned |
+| AskUserQuestion | Native tool | Numbered-list fallback | Numbered-list fallback | Numbered-list fallback |
 | Quality gates | Full | Full | Full | Full |
-| Design alignment | Pencil integration | Pencil integration | Pencil integration | Pencil integration |
 
-Windows support is **native** since v3.0.0. No WSL, no Git-Bash, no msys. All file paths use `path.join`, all tmp paths use `os.tmpdir()`. CI currently runs on `ubuntu-latest` and `macos-latest`; run Windows smoke tests locally when changing OS-sensitive path or process code.
+All platforms share the same skills, commands, hooks, and scripts; platform-specific adaptation lives in `scripts/lib/platform.mjs`. **OS:** macOS and Linux are first-class and run in CI (`ubuntu-latest`, `macos-latest`). Windows runs natively (all paths via `path.join`, tmp via `os.tmpdir()`) but is **not** covered by CI — treat it as best-effort and run smoke tests locally when changing OS-sensitive code. Cursor and Pi have known event-coverage caveats — see [`docs/cursor-setup.md`](docs/cursor-setup.md) and [`docs/pi-setup.md`](docs/pi-setup.md).
 
-All platforms share the same skills, commands, hooks, and scripts. Platform-specific adaptations are handled in `scripts/lib/platform.mjs`; Pi additionally uses `package.json` `pi` metadata, `pi/extensions/session-orchestrator.ts`, and `hooks/hooks-pi.json`.
+## Troubleshooting
 
-### Cursor IDE caveats
+**"'node' not found on the hook PATH — plugin hooks are skipped."** The harness executes hook commands via `/bin/sh -c` with its own PATH — that shell does not source `~/.zshrc`/`~/.bashrc`, so Node installed via Homebrew (`/opt/homebrew/bin`), nvm, volta, or asdf can be invisible to hooks even though `node` works fine in your terminal. All hook commands route through [`hooks/run-node.sh`](hooks/run-node.sh), which resolves Node via `$SO_NODE_BIN` → PATH → well-known install dirs → nvm and degrades gracefully when nothing is found: hooks are skipped with **one** warning per 6 hours instead of a shell error on every tool call. Fixes, in order of preference: launch the harness from a shell where `node` resolves; export `SO_NODE_BIN=/abs/path/to/node`; or install Node 24+ to a standard location.
 
-Cursor has two event-coverage limitations vs. Claude Code and Codex CLI:
+## Safety
 
-1. **No SessionStart equivalent.** Cursor lacks a conversation-start lifecycle event. Session initialisation must be triggered manually via `/session`.
-2. **Post-hoc scope enforcement.** The Cursor-equivalent `afterFileEdit` hook fires *after* the edit. The destructive-command guard (`beforeShellExecution`) is fully equivalent to Claude Code's PreToolUse Bash gate. Scope enforcement is best-effort warn-only on Cursor.
-
-Active Cursor hooks: 2 events (`afterFileEdit`, `beforeShellExecution`) routed to 2 handlers (`enforce-scope.mjs`, `enforce-commands.mjs`).
-
-### Pi caveats
-
-Pi support is delivered as a Pi package (`keywords: ["pi-package"]`, `package.json.pi`). v1 loads skills/prompts, runs lifecycle/tool hooks through the bridge, and persists state under `.pi/`. Native Pi subagent dispatch is not implemented yet, so wave execution falls back to sequential coordinator work until the SDK-based dispatcher lands.
-
-### Cross-platform notifications
-
-Session-stop emits an OSC desktop notification via the `terminalSequence` hook output field (CC 2.1.141+). Coverage: iTerm2, Windows Terminal, WezTerm, ConEmu (OSC 9); Ghostty, urxvt, Warp (OSC 777). Both sequences are emitted together — unsupported terminals silently ignore.
-
-## Destructive-command guard
-
-`hooks/pre-bash-destructive-guard.mjs` blocks destructive shell commands in the main session and in subagent waves. Policy lives in `.orchestrator/policy/blocked-commands.json` (13 rules covering `git reset --hard`, `rm -rf`, `git push --force`, and more).
-
-Bypass per-session by adding to your Session Config:
+`hooks/pre-bash-destructive-guard.mjs` blocks destructive shell commands (`git reset --hard`, `rm -rf`, `git push --force`, and more) in the main session *and* in subagent waves. Policy lives in `.orchestrator/policy/blocked-commands.json`. Bypass per session only for intentional maintenance:
 
 ```yaml
 allow-destructive-ops: true
 ```
 
-Set this for intentional maintenance sessions only. The rule source of truth is [`.claude/rules/parallel-sessions.md`](.claude/rules/parallel-sessions.md) (PSA-003), vendored to all consumer repos via `/bootstrap`.
-
-## Agent authoring
-
-Custom agents live in `agents/` (plugin) or `.claude/agents/` (project) as Markdown with YAML frontmatter. The frontmatter contract follows the canonical [code.claude.com/sub-agents](https://code.claude.com/docs/en/sub-agents) spec. Required fields:
-
-```yaml
----
-name: kebab-case-name           # 3-50 chars, lowercase + hyphens only
-description: Use this agent when [conditions]. <example>...</example>
-model: inherit                  # inherit | sonnet | opus | haiku, OR full ID like claude-opus-4-7
-color: blue                     # blue | cyan | green | yellow | purple | orange | pink | red | magenta
-tools: Read, Grep, Glob, Bash   # comma-separated string OR JSON array; both accepted
----
-```
-
-**Critical:** `description` must be a single-line inline string, not a YAML block scalar (`>` or `|`). Put `<example>` blocks inline. Reference: [Anthropic agent-development SKILL.md](https://github.com/anthropics/claude-code/blob/main/plugins/plugin-dev/skills/agent-development/SKILL.md). Body conventions: 500 to 3000 words, sections in the order Core Responsibilities → Process → Quality Standards → Output Format → Edge Cases.
+The rule source of truth is [`.claude/rules/parallel-sessions.md`](.claude/rules/parallel-sessions.md) (PSA-003), vendored to consumer repos via `/bootstrap`.
 
 ## Development
-
-Clone, install, verify in three commands:
 
 ```bash
 git clone https://github.com/Kanevry/session-orchestrator.git && cd session-orchestrator
 npm install
-npm test        # vitest, 8856 tests
+npm test          # vitest
+npm run lint      # ESLint v10 + Prettier
+npm run typecheck # node --check on every .mjs file
 ```
 
-Additional scripts:
+`.npmrc` ships with `ignore-scripts=true` (supply-chain defence), so Husky git hooks don't auto-wire on install — run `npx husky` once after cloning. `git commit` then runs gitleaks → owner-privacy scan → lint-staged → commitlint. CI re-runs everything, plus more.
 
-- `npm run test:watch`: vitest in watch mode
-- `npm run lint` / `npm run lint:fix`: ESLint v10 + Prettier
-- `npm run typecheck`: `node --check` on every `.mjs` file (syntactic only; no TypeScript yet)
-- `npm run format` / `npm run format:check`: Prettier write or check
+Contributor docs: [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [agent authoring spec](agents/AGENTS.md).
 
-### Pre-commit hooks (Husky + commitlint + lint-staged)
+## Support & scope
 
-`.npmrc` ships with `ignore-scripts=true` (SEC-020 supply-chain defence), so the `prepare` script does **not** auto-run on `npm install`. After cloning, run husky once manually:
+Session Orchestrator is provided **as-is** — a community project with no SLA, no commercial support contract, and no guaranteed response time. Maintenance is best-effort.
 
-```bash
-npm install
-npx husky                  # one-time setup, wires git hooks via .husky/_/
-```
+- Questions, ideas, show-and-tell → [GitHub Discussions](https://github.com/Kanevry/session-orchestrator/discussions)
+- Bugs and feature requests → [Issues](https://github.com/Kanevry/session-orchestrator/issues)
 
-After that, `git commit` will:
+What it is **not**:
 
-- **pre-commit**: three stages, fail-fast:
-  1. **gitleaks** — scan staged changes for secrets.
-  2. **check-owner-leakage** (#494) — scan tracked files for P1–P7 owner-privacy leakage (personal paths, private host, private slugs, etc.). Reuses the same scanner CI runs in its `owner-leakage` validate job, closing the gap where `git add <leak> && git commit` slipped through 3× before.
-  3. **lint-staged** — ESLint `--fix` on staged `*.mjs` files.
-- **commit-msg**: validate Conventional Commits format via commitlint.
-
-To bypass (rare, emergencies only): `git commit --no-verify`. CI re-runs everything pre-commit ran, plus more.
-
-For contributor-facing architecture, hook authoring, and the `zx`-vs-stdlib heuristic, see [docs/plugin-architecture-v3.md](docs/plugin-architecture-v3.md).
+- **Not an official product of any agent vendor.** An independent, community-maintained project — not affiliated with, endorsed by, or sponsored by Anthropic, OpenAI, Cursor, or any agent it integrates with. (It is distributed through the Claude Code plugin marketplace, but is not an Anthropic product.)
+- **Not a replacement** for Claude Code / Codex CLI / Cursor / Pi. It is a workflow layer that runs *on top of* your existing agent — you still need one of those installed.
+- **Not a hosted service.** Runs locally — no server, account, or cloud component.
+- **No guarantee that telemetry numbers transfer to your repo.** Reported test counts and metrics describe *this* repository under its own conditions ([details](docs/telemetry/telemetry-claims.md)). Your results will vary by stack, project size, and configuration.
 
 ## Documentation
 
-- [User Guide](docs/USER-GUIDE.md): installation, config reference, workflow walkthrough, FAQ
-- [Migration to v3](docs/migration-v3.md): upgrade path from v2.x to v3.0.0, known issues, rollback
-- [Plugin Architecture (v3)](docs/plugin-architecture-v3.md): contributor guide, layering, hook anatomy, lib catalog, testing
-- [CONTRIBUTING.md](CONTRIBUTING.md): plugin architecture, skill anatomy, development setup
-- [CHANGELOG.md](CHANGELOG.md): version history
-- [Telemetry claims](docs/telemetry/telemetry-claims.md): how the reported test counts and metrics are measured, and why they may not transfer to your repo
-- [Example Configs](docs/examples/): Session Config examples for Next.js, Express, Swift
+- [docs/ Router](docs/README.md) — living reference vs. public decision history vs. active work documents; what moved to the private Meta-Vault and why
+- [User Guide](docs/USER-GUIDE.md) — installation, config reference, workflow walkthrough, FAQ
+- [Components & Reference](docs/components.md) — full skill/command/agent/hook inventory, repository anatomy, comparisons
+- [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) — contributor guide, layering, hook anatomy, testing
+- [Migration to v3](docs/migration-v3.md) — upgrade path from v2.x, known issues, rollback
+- [Telemetry claims](docs/telemetry/telemetry-claims.md) — how reported metrics are measured, and why they may not transfer
+- [Example Configs](docs/examples/) — Session Config examples for Next.js, Express, Swift
+- [CHANGELOG.md](CHANGELOG.md) — version history
 
-## Community
+We follow [Conventional Commits](https://www.conventionalcommits.org/) — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-[GitHub Discussions](https://github.com/Kanevry/session-orchestrator/discussions) are open for questions, ideas, and show-and-tell. For bug reports and feature requests, use [Issues](https://github.com/Kanevry/session-orchestrator/issues). We follow [Conventional Commits](https://www.conventionalcommits.org/) — see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+## Learn the method behind it
+
+This plugin is a methodology turned into code. If you want the reasoning behind it — why execution runs in waves, why every wave ends at a verification gate, how to make an autonomous loop that actually finishes — those playbooks are taught hands-on at **[agenticbuilders.at](https://agenticbuilders.at)**:
+
+- **[Multi-Agent Orchestration](https://agenticbuilders.at/orchestrierung)** — leading several agents in coordinated waves: when parallelism pays, briefing subagents cleanly, turning failures into firm gates.
+- **[Loop Engineering](https://agenticbuilders.at/loop-engineering)** — designing autonomous loops that finish verifiably: done-conditions, verification gates, kill-switches.
+
+The plugin is free and MIT. The courses are for going deeper, not a requirement for using it.
 
 ## Links
 
-- [Homepage](https://gotzendorfer.at/en/session-orchestrator)
-- [Privacy Policy](https://gotzendorfer.at/en/session-orchestrator/privacy)
-
-## Project state
-
-For the live runtime SSOT, see [`CLAUDE.md`](./CLAUDE.md):
-
-- `## Current State` block (active epic, test count, backlog snapshot, recent sessions)
-- `## Session Config` block (read at runtime by `skills/_shared/config-reading.md`)
-
-On Codex CLI the same file is `AGENTS.md`. Resolution rule: [skills/_shared/instruction-file-resolution.md](skills/_shared/instruction-file-resolution.md).
+- [Homepage](https://gotzendorfer.at/en/session-orchestrator) · [Privacy Policy](https://gotzendorfer.at/en/session-orchestrator/privacy)
 
 ## License
 

@@ -42,6 +42,8 @@ The short dashboard is project-wide by design — it doesn't take filters. Any n
 
 Call in parallel: `mcp__archcore__list_documents` and `mcp__archcore__list_relations`. Apply filter from `$ARGUMENTS` if present (tag, category, or type).
 
+**Global sources (only when present).** If any `list_documents` result has `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`. Exclude global documents from every local-health metric — category / status / type counts, orphan detection (globals carry no local relations by design), tag hygiene, coverage gaps, and drift — mirroring `archcore status`, which scopes these checks to local documents only. Globals are read-only org-wide context, not this project's documents; counting them inflates totals and reports them as false orphans. You MAY add one separate line naming the mounted source(s) and their count (e.g. `Global sources: company (11 docs, read-only)`). If no result is global, audit exactly as below — no change.
+
 ### Short mode (default): present dashboard
 
 Output four tables, then a one-line issues summary. Data only, no analysis.

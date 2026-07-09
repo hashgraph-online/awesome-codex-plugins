@@ -4,7 +4,7 @@
 
 Run ALL checks — do NOT skip any:
 
-> **Quality Reference:** Run Full Gate quality checks per the quality-gates skill. Read `test-command`, `typecheck-command`, and `lint-command` from Session Config (defaults: `pnpm test --run`, `tsgo --noEmit`, `pnpm lint`).
+> **Quality Reference:** Run Full Gate quality checks per the quality-gates skill. Read `test-command`, `typecheck-command`, and `lint-command` from Session Config (defaults: `npm test`, `npm run typecheck`, `npm run lint`).
 
 1. **Full Gate checks**: TypeScript (0 errors), tests (must pass), lint (must pass, warnings OK)
    Alternatively, run `node "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-$PLUGIN_ROOT}}/scripts/run-quality-gate.mjs" --variant full-gate --config "$CONFIG"` for deterministic quality gate execution with structured JSON output.

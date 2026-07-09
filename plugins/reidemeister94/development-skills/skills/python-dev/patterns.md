@@ -430,6 +430,15 @@ Exception: when the intermediate result is needed for other logic, or must be lo
 
 `async with conn.transaction():` for multi-statement units of work. Single-statement reads do not need an explicit transaction (asyncpg manages it).
 
+### Advisory locks — cross-process mutual exclusion
+
+For cross-process / cross-worker mutual exclusion on a domain resource (e.g. one writer must drain readers before mutating shared tables). NOT for single-transaction races (use `SERIALIZABLE`) nor intra-process (use `asyncio.Lock`). Derive the lock id from a string key, never a raw int: `sha256(key)[:16]` as hex to int, minus `2**63`, to land in signed-bigint range. Two scopes:
+
+- **Transaction-scoped (default)** — `async with conn.transaction(): await conn.execute("SELECT pg_advisory_xact_lock($1)", lock_id)`; auto-released at COMMIT/ROLLBACK. Use when the critical region is one transaction.
+- **Session-scoped** — hold ONE dedicated connection (kept out of normal pool use) for the whole region: `pg_advisory_lock($1)` (exclusive) / `pg_advisory_lock_shared($1)` (many readers); release every lock at once with `pg_advisory_unlock_all()` after a `ROLLBACK` (clears any aborted-tx state a `lock_timeout` left). Closing the connection also auto-releases. Use when the region spans multiple transactions.
+
+`pg_try_advisory_lock[_shared]` is the non-blocking variant — returns false on contention so you fail fast instead of queueing. Acquire multiple keys in SORTED order to avoid deadlock across overlapping lock sets. Wrap acquire+release in one async context manager so release is leak-free.
+
 ### PostgreSQL conventions
 
 | Area | Rule |

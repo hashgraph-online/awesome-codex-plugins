@@ -383,7 +383,8 @@ codex-multi-auth doctor --json
 
 ## Release Notes
 
-- Current stable: [docs/releases/v2.3.2.md](docs/releases/v2.3.2.md) — install via `npm i -g codex-multi-auth`
+- Current stable: [docs/releases/v2.3.3.md](docs/releases/v2.3.3.md) — install via `npm i -g codex-multi-auth`
+- Previous stable: [docs/releases/v2.3.2.md](docs/releases/v2.3.2.md)
 - Previous stable: [docs/releases/v2.3.1.md](docs/releases/v2.3.1.md)
 - Previous stable: [docs/releases/v2.3.0.md](docs/releases/v2.3.0.md)
 - Previous stable: [docs/releases/v2.2.2.md](docs/releases/v2.2.2.md)

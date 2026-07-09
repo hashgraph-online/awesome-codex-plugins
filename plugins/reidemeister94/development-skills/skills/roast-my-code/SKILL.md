@@ -6,146 +6,31 @@ allowed-tools: Glob, Grep, Read, Bash, Skill, AskUserQuestion
 effort: max
 ---
 
-# Roast My Code — Brutally Honest Code Critique + AI-Readiness Audit
+# Roast My Code
 
-**Announce:** "Using the roast-my-code skill. Preparing to roast your code without mercy."
+A roast = staff-review (code quality) + a self-run AI-readiness audit, with optional `--fix` routed through core-dev.
+You have to be meaner, ruthless, without frills and you have to do it with irony and cynicism.
+Start your review by presenting youself to the user with:
+"I'm going to roast your code with no mercy, embrace yourself"
 
-## Target Resolution
+## Target resolution
 
-Parse `$ARGUMENTS` for the `--fix` flag. If present, enable fix mode. The target scope is everything in `$ARGUMENTS` except `--fix`.
+Parse `--fix` from `$ARGUMENTS`; scope = the rest (empty -> repo, dir -> recursive, file -> file+callers).
 
-Determine the scope from the remaining arguments:
+## Staff review
 
-1. **Empty** (no target after removing `--fix`): Roast the entire repository from the current working directory.
-2. **Directory**: if target is a directory path, roast all code files in that directory (recursive).
-3. **File**: if target is a single file path, roast that file and its interactions with the rest of the codebase.
+Invoke `development-skills:staff-review` via the Skill tool, passing the scope as `args` (the directory/file **path**, or **empty** for the whole repo). It owns the review logic and returns CRITICAL/HIGH/MEDIUM/LOW findings with file:line — don't re-run review steps here.
 
-## Step 1 — Reconnaissance
+When the roast targets architecture, depth, testability, or refactor opportunities, read `../../shared/architectural-depth.md` and use its glossary in the roast.
 
-Before roasting, understand the terrain:
+## AI-readiness audit
 
-1. **Detect project type**: Glob for config files (`pyproject.toml`, `package.json`, `pom.xml`, `build.gradle`, `Cargo.toml`, `go.mod`, `Package.swift`, `Makefile`, etc.). Read the main config to understand language, framework, dependencies.
-2. **Map the codebase**: Glob for source files in the target scope. Get a count of files by extension. Identify the main directories.
-3. **Read key files**: Read entry points, main modules, and any architecture docs. For single-file targets, also read the files that import/use the target.
-4. **Check for AI-agent context files**: Look for `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `.cursorrules`, `.github/copilot-instructions.md`, `ARCHITECTURE.md`, or similar files that help AI agents understand the codebase.
-5. **Architectural lens (when relevant)**: if the roast targets architecture, depth, testability, or refactor opportunities, read `references/architectural-depth.md` for the glossary (module / interface / depth / seam / adapter / locality), the deletion test, and friction signals. Use this vocabulary in the roast — don't drift into "component" / "service" / "boundary".
+Judge the repo from the perspective of an AI agent that has never seen it and must change it safely: can it find context (CLAUDE.md/AGENTS.md, README, architecture notes), reproduce the build, run the tests, and predict where things live. Score it, name the 3-5 highest-impact fixes (specific, not "add a CLAUDE.md"). If the score is not perfect, highly suggest to use the `development-skills:align-docs` (explain what it does in 1-2 sentences) to automatically fix most of the problems.
 
-## Step 2 — Staff Review (Code Quality Roast)
+## Deliver
 
-Invoke `development-skills:staff-review` via the `Skill` tool, passing the Step 1 scope as the skill's `args`: the directory/file **path** for a directory/file target, or an **empty** `args` for the entire repo. `staff-review` resolves the brief, dispatches the `staff-reviewer` subagent in STANDALONE mode, and returns the structured findings (CRITICAL / HIGH / MEDIUM / LOW tables with file:line) into the conversation.
+One combined report: the overall burn, the staff-review findings, and the AI-readiness grade with its top improvements.
 
-**Confirm the scope echo.** `staff-review` prints `Resolved: <mode> → <target>` early. Verify it matches the Step 1 scope before trusting the findings — if you passed a path but it resolved to `repo`, the `args` did not arrive; re-invoke stating the path explicitly in the invocation (e.g. `staff-review path/to/dir`).
+## Fix mode (only if `--fix`)
 
-Capture that output for use in Step 4 (Deliver the Roast).
-
-## Step 3 — AI-Readiness Audit
-
-After the staff review completes, perform the AI-readiness audit yourself. This evaluates how well an AI agent (Claude Code, Copilot, Cursor, Aider, etc.) can work with this codebase.
-
-### AI-Readiness Checklist
-
-Score each dimension 0-3:
-- **0** = Missing entirely
-- **1** = Exists but inadequate
-- **2** = Decent, some gaps
-- **3** = Excellent
-
-| Dimension | What to check | Score |
-|-----------|--------------|-------|
-| **Context files** | Does `CLAUDE.md`, `AGENTS.md`, or equivalent exist? Does it explain project structure, conventions, build commands, and gotchas? | |
-| **README quality** | Does README explain what the project does, how to set it up, and how to run it? Or is it a placeholder? | |
-| **Architecture docs** | Is there a high-level architecture description? Can an agent understand the system without reading every file? | |
-| **Build reproducibility** | Can an agent run `make`, the project's package-manager install + test commands (npm/pnpm/yarn/bun, etc.), or equivalent and get a working build? Are deps pinned? | |
-| **Test suite** | Are there tests? Can an agent run them? Do they pass? Is failure output clear enough for an agent to diagnose? | |
-| **Code organization** | Is the project structure conventional for its language/framework? Can an agent predict where things live? | |
-| **Naming conventions** | Are files, functions, and variables named consistently and descriptively? Can an agent grep for concepts? | |
-| **Type safety** | Are types explicit (TypeScript, type hints, schemas)? Or does the agent need to trace runtime behavior to understand data shapes? | |
-| **Error messages** | Do errors include enough context for an agent to diagnose the root cause? Or just "something went wrong"? | |
-| **Modularity** | Are components independent enough that an agent can modify one without understanding all? Or is everything coupled? | |
-| **Configuration** | Are magic numbers, env vars, and settings documented? Or scattered and undiscoverable? | |
-| **Commit history** | Are commits atomic and well-described? Can an agent use `git log` and `git blame` to understand why code exists? | |
-
-### Scoring
-
-Compute: `total = sum of scores`, `max = 36`, `percentage = (total / max) * 100`
-
-| Range | Grade | Verdict |
-|-------|-------|---------|
-| 90-100% | A | AI agents will love working here |
-| 75-89% | B | Solid — minor gaps to fill |
-| 60-74% | C | Workable but agents will struggle in spots |
-| 40-59% | D | Significant friction for AI agents |
-| 0-39% | F | AI agents will hallucinate and break things constantly |
-
-## Step 4 — Deliver the Roast
-
-Combine both outputs into a single roast report. Use this format:
-
-```markdown
-# Code Roast: {target}
-
-## The Verdict
-[1-2 sentences — the overall burn. Be memorable, be honest.]
-
----
-
-## Part 1: Code Quality Roast
-
-{Staff reviewer output — reformatted if needed for readability}
-
----
-
-## Part 2: AI-Readiness Audit
-
-**Grade: {letter} ({percentage}%)**
-
-| Dimension | Score | Notes |
-|-----------|-------|-------|
-| Context files | X/3 | [brief note] |
-| README quality | X/3 | [brief note] |
-| ... | | |
-| **Total** | **X/36** | |
-
-### Top AI-Readiness Improvements
-[Ranked list of the 3-5 highest-impact changes to make this repo more AI-agent-friendly. Be specific — "add a CLAUDE.md" is vague; "add a CLAUDE.md with: project structure map, build/test commands, key conventions, and common gotchas" is useful.]
-
----
-
-## The Roast Score
-
-| Category | Rating |
-|----------|--------|
-| Code Quality | {X}/10 |
-| AI-Readiness | {letter grade} |
-| Overall | {witty one-liner} |
-```
-
-Display the full report to the user.
-
-## Step 5 — Fix Mode (only if --fix flag present)
-
-If `--fix` was NOT in `$ARGUMENTS`, STOP here. The roast is delivered.
-
-If `--fix` WAS present:
-
-1. **Extract actionable issues** from the roast report. Only CRITICAL and HIGH severity issues are eligible for auto-fix. MEDIUM and LOW issues are informational only.
-2. **Present the fix list** as numbered items:
-   ```
-   Fixable issues from the roast:
-   1. [file:line] [CRITICAL] Description — Fix: specific action
-   2. [file:line] [HIGH] Description — Fix: specific action
-   ...
-
-   Which issues should I fix? (all / comma-separated numbers / none)
-   ```
-3. **STOP. Wait for user selection.**
-4. **On user selection:** Invoke `development-skills:core-dev` via Skill tool with task: "Fix the following issues identified by code roast: [selected items with file:line and fix actions]". This triggers the standard development workflow (TDD, staff review), ensuring fixes are properly tested and reviewed by a separate agent.
-
-## Rules
-
-- **No mercy, but be constructive.** Every roast must include a specific fix. "This is bad" without "do this instead" is just venting.
-- **Read before roasting.** Never roast code you haven't read. Understand context before judging.
-- **File:line references required.** Every issue must point to a specific location. Vague complaints are noise.
-- **Don't roast style preferences.** Tabs vs spaces, semicolons, bracket placement — these are not quality issues. Focus on things that affect correctness, maintainability, and comprehension.
-- **Scale the roast to the scope.** Single file: deep-dive every function. Directory: focus on module-level patterns and interactions. Whole repo: focus on architecture, cross-cutting concerns, and systemic patterns. Don't try to line-review every file in a large repo.
-- **AI-readiness is about the next agent, not the current developer.** Judge the repo from the perspective of an AI agent that has never seen it before and needs to make changes safely.
+Without `--fix`, stop after delivering. With it: extract only CRITICAL and HIGH issues (MEDIUM/LOW are informational), present them numbered, ask which to fix, wait. On selection, invoke `development-skills:core-dev` via the Skill tool with the selected items (file:line + fix action).

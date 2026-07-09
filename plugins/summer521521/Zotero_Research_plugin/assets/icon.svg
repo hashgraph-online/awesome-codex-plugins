@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Zotero Research Tools</title>
+  <rect width="512" height="512" rx="96" fill="#b91c1c"/>
+  <path d="M144 128h224v48L232 336h136v48H144v-48l136-160H144v-48Z" fill="#ffffff"/>
+  <circle cx="360" cy="152" r="24" fill="#fecaca"/>
+</svg>

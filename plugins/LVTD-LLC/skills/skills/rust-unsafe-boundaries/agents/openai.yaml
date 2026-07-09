@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Unsafe Boundaries"
+  short_description: "Isolate and review unsafe Rust with explicit safety contracts"
+  default_prompt: "Review this unsafe Rust and tighten its safety invariants, docs, and tests."

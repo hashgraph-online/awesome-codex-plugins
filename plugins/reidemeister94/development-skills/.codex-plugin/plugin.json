@@ -1,6 +1,6 @@
 {
   "name": "development-skills",
-  "version": "0.7.0",
+  "version": "0.9.2",
   "description": "Development workflow: three-tier triage (PASS_THROUGH / LIGHT / FULL 4-phase Research+Plan → Chronicle → Implement+Verify → Review+Finalize) with language auto-detection (Python, Java, TypeScript, Swift, frontend) and a staff-reviewer subagent.",
   "repository": "https://github.com/reidemeister94/development-skills",
   "homepage": "https://github.com/reidemeister94/development-skills",

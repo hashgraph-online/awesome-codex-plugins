@@ -288,7 +288,7 @@ Entered when `$ARGUMENTS` contains `--sync-rules`. This is a standalone flow —
 
 4. **Commit (optional).** `--sync-rules` does not auto-commit. If rules changed, prompt the user to review `git status` and stage/commit the updates manually. Rationale: rules are canonical artifacts and should travel with an intentional review, not land silently.
 
-5. **Report.** Print: `rules-sync complete. Written: <N>. Skipped: <N>. Preserved: <N>. Errors: <N>.` If `errors > 0`, non-zero exit.
+5. **Report.** Print: `rules-sync complete. Written: <N>. Skipped: <N>. Preserved: <N>. Warnings: <N>. Errors: <N>.` `warnings[]` carries WARN-severity validation findings (e.g. zero-match-globs, foreign-glob) surfaced by `validateRuleContent` — these do NOT block the write; they are informational only. If `errors > 0`, non-zero exit.
 
 **Local overrides.** Any `.claude/rules/<name>.md` without the plugin source header is considered local and never overwritten. To replace a local override with the canonical version, delete it before re-running.
 
@@ -352,6 +352,53 @@ if (probe.status === 'pending') {
 **WHERE:** Written to `~/.config/session-orchestrator/owner.yaml` (user-global, never committed).
 
 **RE-TRIGGER:** `/bootstrap --owner-reset` sets `force: true` in `runOwnerInterview`, archives the existing yaml to `owner.yaml.bak-<timestamp>`, and re-runs the 5 questions.
+
+## Phase 3.5.1: Dispatcher-Autonomy Capture (one-time, per-repo)
+
+> Closes session-orchestrator issue #681 (Epic #673 P3 — one-time per-repo dispatcher-autonomy capture). Cross-reference `.claude/rules/ask-via-tool.md` (AUQ via tool, not prose).
+
+**WHEN:** Runs after Phase 3.5 (Owner Persona Interview) and after the tier template has scaffolded `CLAUDE.md` (Phase 3 / Phase 3.3). A new project's CLAUDE.md never contains the committed `dispatcher-autonomy:` block, so bootstrap **always asks** — the presence guard below is belt-and-suspenders for re-runs.
+
+**WHY (one-time guard):** The committed `## Dispatcher Autonomy` block is the never-re-ask marker. Detect "block absent" via `isDispatcherAutonomyBlockPresent($CLAUDE_MD_CONTENT)` — a raw `/^dispatcher-autonomy:\s*$/m` presence check on the file content. Do NOT use the resolved autonomy value from `$CONFIG` (it returns `'off'` for BOTH "absent" AND "present-with-off" and cannot distinguish first-run from a deliberate `off`).
+
+> **The guard is gated purely on committed-block PRESENCE, never on the resolved value.** A machine whose effective autonomy differs from the committed default — because `SO_DISPATCHER_AUTONOMY` or `owner.yaml` `dispatcher.autonomy` overrides it — STILL counts as "captured" the moment the committed block exists, and is never re-asked. Conversely a host with `owner.yaml` `dispatcher.autonomy` set but NO committed block is still asked once: a host-local override does NOT satisfy the migration guard; only the committed CLAUDE.md / AGENTS.md block does. Even a header-present-but-body-malformed block counts as PRESENT (a malformed block is the operator's to fix, not a re-prompt trigger).
+
+**WHAT:** The coordinator dispatches ONE `AskUserQuestion` using the definition from `scripts/lib/config/dispatcher-autonomy-capture.mjs`:
+
+- **Dispatcher autonomy** — `off` (Recommended, fail-closed) | `advisory` | `autonomous-gated`
+
+On **any** answer (including `off`) the committed block is written, presented, and never re-asked. The writer persists ONLY the committed default — host-local overrides (`SO_DISPATCHER_AUTONOMY` env, `owner.yaml` `dispatcher.autonomy`) stay host-local and NEVER land in CLAUDE.md.
+
+> **Capture writes the committed default; the runtime value flows through `resolveDispatcherAutonomy`.** This phase only persists the operator's one-time choice as the committed baseline. The EFFECTIVE autonomy at run time is resolved separately by `resolveDispatcherAutonomy()` in `scripts/lib/config/dispatcher-autonomy.mjs` with host-local precedence `SO_DISPATCHER_AUTONOMY` env > `owner.yaml` `dispatcher.autonomy` > committed > `off` (#653 pattern). Capture never reads or writes those override tiers — it writes the committed tier only.
+
+**AUQ (mandatory — use the tool, not prose):** On Claude Code / Cursor IDE, dispatch this via the **`AskUserQuestion` tool** per `.claude/rules/ask-via-tool.md` (AUQ-001) — never an inline markdown "choose 1/2/3" list. Option 1 (`off`) is the recommended, fail-closed default. Only Codex CLI (no `AskUserQuestion`) falls back to a numbered-list prose prompt (AUQ-004 exception 1).
+
+**HOW (coordinator steps):**
+
+```js
+import {
+  getDispatcherAutonomyQuestion,
+  isDispatcherAutonomyBlockPresent,
+  writeDispatcherAutonomyBlock,
+} from '$PLUGIN_ROOT/scripts/lib/config/dispatcher-autonomy-capture.mjs';
+import { readFileSync } from 'node:fs';
+
+const claudeMdPath = `${REPO_ROOT}/CLAUDE.md`;
+const content = readFileSync(claudeMdPath, 'utf8');
+if (!isDispatcherAutonomyBlockPresent(content)) {
+  const q = getDispatcherAutonomyQuestion(); // option 1 = 'off' (Recommended, fail-closed)
+  // Claude Code / Cursor: dispatch AskUserQuestion([q]) (the TOOL — AUQ-001); collect the
+  //   selected label (the `autonomy` enum). Never an inline numbered-list prose question here.
+  // Codex CLI fallback only (no AskUserQuestion — AUQ-004 exception 1): print q.question +
+  //   numbered q.options list, read the operator's pick, map it to the option label.
+  const autonomy = /* selected option label: 'off' | 'advisory' | 'autonomous-gated' */;
+  const result = writeDispatcherAutonomyBlock({ claudeMdPath, autonomy });
+  // result: { written: true, path } on first write; { written: false, reason: 'already-present' }
+  //   on no-op (block — even a malformed one — already present; defensive double-write guard).
+}
+```
+
+**WHERE:** Appended as a standalone `## Dispatcher Autonomy` H2 in the repo's committed `CLAUDE.md` (NOT a key inside `## Session Config` — the standalone-H2 placement keeps `claude-md-drift-check` Check-6 parity green).
 
 ## Phase 3.6: (Optional) Rules-Fetch Bridge
 
@@ -475,6 +522,21 @@ PLUGIN_VERSION="$(node -e "const p=require('$PLUGIN_ROOT/package.json');console.
 
 The template's initial git commit includes `bootstrap.lock`. If the template already wrote the lock file (as `fast-template.md` does), skip this step — the lock is already committed.
 
+> Deep tier note: if Step D5.5 (GitHub Mirror Remote) added a `github` remote earlier in this run, it is committed alongside `bootstrap.lock` here — no separate commit is needed for the remote itself (remotes are local git config, not tracked files).
+
+## Phase 4.5: Instruction-Budget Baseline
+
+Non-blocking, informational — never gates Phase 5. Runs two probes against the just-scaffolded instruction file and folds both results into the Phase 5 summary:
+
+1. **Directive-count baseline.** Call `checkInstructionBudget({ repoRoot: REPO_ROOT })` from `scripts/lib/instruction-budget-guard.mjs`. It returns a banner string or `null`. On a fresh scaffold there is no `.claude/rules/` directory yet, so this returns `null`/empty — expected, not an error. The probe becomes meaningful only after `--sync-rules` populates `.claude/rules/`.
+2. **Raw-file budget lint.** Run the same lint Step 2c of `fast-template.md` already ran once (idempotent to re-run here for tiers that skip Step 2c, e.g. Standard/Deep archetype copies that don't go through the Fast-tier CLAUDE.md path):
+
+   ```bash
+   node "$PLUGIN_ROOT/scripts/lib/claude-md-budget-lint.mjs" --repo-root "$REPO_ROOT" --require-provenance --mode warn --json
+   ```
+
+Fold both results into one line for the Phase 5 report, e.g. `Instruction budget: n/a (no .claude/rules/ yet). Budget lint: ok.` or `Budget lint: 1 violation (max-lines).` Never block or retry — this phase informs only.
+
 ## Phase 5: Resume
 
 Report bootstrap completion with a one-line summary:
@@ -494,3 +556,4 @@ If invoked directly via `/bootstrap`: report the created files list and stop.
 - **ALWAYS commit** — bootstrap ends with a git commit. The lock file is part of that commit.
 - **ALWAYS check for retroactive flag** — if `--retroactive` is in `$ARGUMENTS`, skip all scaffolding and jump directly to writing `bootstrap.lock` (tier inferred from existing file inventory, fallback: `fast`).
 - **NEVER abort bootstrap on rules-fetch failure** — rules-fetch is opt-in and best-effort. The legacy Clank sync path is the safety net.
+- **Repos that mirror to GitHub SHOULD get the `github` remote added at bootstrap time** — Deep tier's Step D5.5 (`skills/bootstrap/deep-template.md`) wires this in for GitLab-primary repos (or any repo with `mirror: github` in Session Config), so mirror-push at session-end (§4.4) and mirror-drift auditing (repo-audit's `github-mirror-sync` check, `scripts/lib/harness-audit/categories/category6.mjs`, Category 6) both have a remote to work against from day one, rather than discovering the gap later.

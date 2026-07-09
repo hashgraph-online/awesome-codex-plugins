@@ -1,0 +1,54 @@
+{
+  "name": "bootstrap",
+  "form": "A",
+  "summary": "Initialize AgentOps project files — the product/operations layer around the `ao quick-start` core seed. Progressive and idempotent: bare repos get the golden path, existing repos fill gaps only; never overwrites.",
+  "sections": [
+    { "id": "title", "title": "/bootstrap", "type": "header", "priority": "high" },
+    { "id": "quick-start", "title": "Quick Start", "type": "overview", "priority": "high" },
+    { "id": "external-tools", "title": "External Tools", "type": "constraints", "priority": "medium" },
+    { "id": "flags", "title": "Flags", "type": "reference", "priority": "medium" },
+    { "id": "execution-steps", "title": "Execution Steps", "type": "methodology", "priority": "high" },
+    { "id": "examples", "title": "Examples", "type": "examples", "priority": "medium" },
+    { "id": "troubleshooting", "title": "Troubleshooting", "type": "troubleshooting", "priority": "medium" },
+    { "id": "see-also", "title": "See Also", "type": "routing", "priority": "low" },
+    { "id": "reference-documents", "title": "Reference Documents", "type": "routing", "priority": "low" }
+  ],
+  "references": [
+    { "path": "references/related-runbooks.md", "intent": "read", "description": "Host-hygiene operator runbooks (PATH rationalization, etc.)." },
+    { "path": "references/bootstrap.feature", "intent": "read", "description": "Executable spec: bare repo gets golden path, existing repo fills gaps only, idempotent never-overwrite." }
+  ],
+  "scripts": [
+    { "path": "scripts/install-bd.sh", "intent": "execute", "description": "Optional bd installer the user invokes themselves; bootstrap only recommends it." }
+  ],
+  "metadata": {
+    "tier": "session",
+    "stability": "stable",
+    "hexagonal_role": "driving-adapter",
+    "dependencies": ["goals", "product", "doc", "shared"],
+    "triggers": [
+      "/bootstrap",
+      "initialize agentops",
+      "bootstrap this repo",
+      "set up agentops project files",
+      "make this repo agentops-ready",
+      "/bootstrap --dry-run",
+      "/bootstrap --force"
+    ],
+    "token_estimate": {
+      "minimal": 120,
+      "overview": 360,
+      "standard": 1200,
+      "full": 1800
+    }
+  },
+  "produces": [".agents/ directory structure", "GOALS.md", "PRODUCT.md"],
+  "consumes": ["goals", "product", "doc", "shared"],
+  "context_rel": [],
+  "quality_score": 0.92,
+  "evidence": {
+    "sources": [
+      "skills/bootstrap/SKILL.md",
+      "skills/bootstrap/references/bootstrap.feature"
+    ]
+  }
+}

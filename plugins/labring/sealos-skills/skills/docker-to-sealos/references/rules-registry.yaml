@@ -55,6 +55,9 @@ rules:
   - id: R024
     description: Workloads with official health checks must define livenessProbe/readinessProbe and startupProbe using official endpoints/commands.
     severity: error
+  - id: R046
+    description: Official multi-component RuntimeBundleEvidence must match emitted images, components, routes, and critical env vars.
+    severity: error
   - id: R036
     description: CronJob resources must define cloud.sealos.io/cronjob, cronjob-launchpad-name, and cronjob-type labels with required values.
     severity: error
@@ -71,13 +74,13 @@ rules:
     description: Env/volume Secret usage must follow approved database/object-storage policy, including database secret naming variants and bucket-scoped object-storage secrets, and Kubeblocks reserved database secret names must not be overridden.
     severity: error
   - id: R017
-    description: Database connection env fields (endpoint/host/port/username/password) in business workloads must use approved Kubeblocks database secretKeyRef entries, except Redis host/port may use Sealos Redis Service FQDN and port 6379, MongoDB URLs may use Sealos MongoDB Service FQDN and port 27017, and endpoint/URL fields may compose values from approved DB secretKeyRef env vars.
+    description: Database connection env fields (endpoint/host/port/username/password) in business workloads must use approved Kubeblocks database secretKeyRef entries, except Redis host/port may use Sealos Redis Service FQDN and port 6379, MongoDB host/port or URLs may use Sealos MongoDB Service FQDN and port 27017, and endpoint/URL fields may compose values from approved DB secretKeyRef env vars.
     severity: error
   - id: R019
     description: Database cluster component resources must use limits cpu=500m/memory=512Mi and requests cpu=50m/memory=51Mi.
     severity: error
   - id: R039
-    description: Database services must use KubeBlocks Cluster resources instead of raw Deployment or StatefulSet workloads.
+    description: Database services must use KubeBlocks Cluster resources instead of raw Kubernetes resources.
     severity: error
   - id: R038
     description: Managed workload container resources must use allowed Sealos limits ladder values and derive requests from limits.
@@ -116,10 +119,16 @@ rules:
     description: Runtime component ConfigMaps must use one component name across metadata.name, labels.app, and cloud.sealos.io/app-deploy-manager; bootstrap-only init-copy ConfigMaps must not define either managed label.
     severity: error
   - id: R043
-    description: ConfigMaps mounted by managed Deployment/StatefulSet workloads must share the workload name, use a <workload>-cm volume, and mount every data key through an independent volumeMount with matching subPath.
+    description: ConfigMaps mounted by managed Deployment/StatefulSet workloads must share the workload name, use a <workload>-cm volume, mount every data key through an independent volumeMount with matching subPath, and omit ConfigMap defaultMode unless explicitly required.
     severity: error
   - id: R044
     description: Binary optional object storage/S3 branches must be controlled by boolean inputs.
+    severity: error
+  - id: R045
+    description: Template artifacts must declare every referenced inputs.<name> key in the same Template CR spec.inputs.
+    severity: error
+  - id: R047
+    description: External S3/object-storage credential inputs require explicit source evidence and cannot coexist with managed ObjectStorageBucket.
     severity: error
   - id: R031
     description: Root-path Prefix Ingress resources must use one component name across metadata.name, cloud.sealos.io/app-deploy-manager, and backend service names; non-root or non-Prefix routes may differ.
@@ -135,7 +144,4 @@ rules:
     severity: error
   - id: R011
     description: All PVC storage requests must be concrete values and less than or equal to 1Gi.
-    severity: error
-  - id: R041
-    description: StatefulSet resources with volumeClaimTemplates must label the StatefulSet and every volumeClaimTemplate with cloud.sealos.io/deploy-on-sealos for Template PVC tracking.
     severity: error

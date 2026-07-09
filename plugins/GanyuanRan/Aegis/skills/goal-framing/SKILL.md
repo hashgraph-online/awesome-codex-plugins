@@ -56,6 +56,7 @@ TaskIntentDraft:
 - Constraints:
 - Scope:
 - Risk hints:
+- Aegis Visibility:
 - Route:
 - Next:
 ```
@@ -68,6 +69,9 @@ Default behavior:
   route when the user asked to do the work.
 - Keep the visible frame natural and short when the goal is clear; do not emit a
   large internal-looking card unless the user asked for a formal frame.
+- Use `Aegis Visibility` to say why the goal frame constrains the route, stop
+  condition, or non-goals. Do not add trace ceremony unless the user explicitly
+  asks for auditability.
 
 Frame-only behavior:
 

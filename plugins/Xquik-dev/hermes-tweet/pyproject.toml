@@ -14,6 +14,7 @@ dependencies = [
   "httpx>=0.28.1,<0.29",
 ]
 keywords = [
+  "agent-skill",
   "agent-tools",
   "ai-agent",
   "automation",
@@ -47,14 +48,14 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
   "bandit[toml]>=1.9.4",
-  "basedpyright>=1.39.7",
+  "basedpyright>=1.39.9",
   "build>=1.5.0",
   "pip>=26.1.2",
-  "pip-audit>=2.10.0",
+  "pip-audit>=2.10.1",
   "PyYAML>=6.0.3",
-  "pytest>=9.0.3",
+  "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "ruff>=0.15.16",
+  "ruff>=0.15.20",
   "twine>=6.2.0",
   "types-PyYAML>=6.0.12.20260518",
 ]

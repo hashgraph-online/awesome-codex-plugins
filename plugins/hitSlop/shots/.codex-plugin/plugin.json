@@ -1,0 +1,63 @@
+{
+  "name": "shots",
+  "version": "0.1.0",
+  "description": "Ship store-ready App Store screenshots in minutes from your coding agent. Shots researches competing listings, then generates, revises, and translates screenshots and icons from your real app context.",
+  "author": {
+    "name": "hitSlop",
+    "email": "security@hitslop.com",
+    "url": "https://hitslop.com"
+  },
+  "homepage": "https://shots.run",
+  "repository": "https://github.com/hitSlop/shots",
+  "license": "MIT",
+  "keywords": [
+    "screenshots",
+    "app-store",
+    "app-icon",
+    "aso",
+    "marketing",
+    "image-generation",
+    "localization",
+    "screenshot-generator",
+    "ios",
+    "android",
+    "app-store-optimization",
+    "mcp",
+    "codex-plugin",
+    "keyword-research",
+    "screenshot-localization",
+    "app-store-screenshot-audit",
+    "app-store-inspiration",
+    "inspiration-gallery"
+  ],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "scripts": "./scripts/",
+  "interface": {
+    "displayName": "Shots",
+    "shortDescription": "App Store screenshots, icons, and localized listings — generated from your coding agent",
+    "longDescription": "Ship App Store screenshots in minutes without leaving your coding agent. Shots reads your app repo, uploaded screenshots, App Store URL, and saved Studio context, researches competing listings, then generates, revises, translates, and reviews screenshots for iPhone, iPad, Android, and Apple Watch. It also creates app icon moodboards, final icon candidates, ASO listing copy, and keyword ideas, all synced to hosted Shots Studio for review. Start with 3 free screenshots; no card required.",
+    "developerName": "hitSlop",
+    "category": "Design",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write",
+      "Research"
+    ],
+    "websiteURL": "https://shots.run",
+    "privacyPolicyURL": "https://shots.run/privacy",
+    "termsOfServiceURL": "https://shots.run/terms",
+    "defaultPrompt": [
+      "Generate App Store screenshots for my app",
+      "Generate an app icon for my app",
+      "Translate my App Store screenshots into Spanish"
+    ],
+    "brandColor": "#0F969C",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/demo.png"
+    ]
+  }
+}

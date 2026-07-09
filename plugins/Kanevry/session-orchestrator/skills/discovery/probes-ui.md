@@ -105,3 +105,43 @@ Drift: <description>
 **Default Severity:** High.
 
 ---
+
+### Probe: frontend-slop
+
+**Activation:** Frontend source files exist (`.css`, `.scss`, `.sass`, `.less`, `.html`, `.astro`, `.vue`, `.svelte`, `.jsx`, `.tsx`).
+
+**Detection Method:**
+
+Invoke `skills/discovery/probes/frontend-slop.mjs` directly via `node`. Unlike the grep-pattern probes above, this is a deterministic detector module (`scripts/lib/frontend-detect/`) — **no LLM, no network, no browser**. It walks the repo (skipping `node_modules`, `dist`, `.next`, etc.), runs the regex-tier rule set over each scannable file, and returns `{ probe, findings, summary }`.
+
+```bash
+node -e 'import("./skills/discovery/probes/frontend-slop.mjs").then(m => m.default({ repoRoot: process.cwd() }).then(r => console.log(JSON.stringify(r, null, 2))))'
+```
+
+Detects AI-generated design tells + quality issues, each tied back to a prose rule via `ruleRef` (the "Disziplin statt Mechanik" pattern):
+
+| Rule | Severity | Catches |
+|---|---|---|
+| `gradient-text` | high | `background-clip:text` + gradient (incl. Tailwind `bg-clip-text`) |
+| `side-stripe-border` | high | `border-left/right` ≥ 2px colored accent (incl. `border-l-4`) |
+| `overused-font` | medium | Inter / Roboto / Arial / Helvetica as the **primary** family |
+| `bounce-easing` | medium | bounce/elastic keywords + overshoot `cubic-bezier` |
+| `ai-purple-gradient` | medium | purple→blue / two-purple gradients (high FP-risk if brand-purple) |
+| `pure-black-ink` | low | `color:#000 / black` body text (always tint) |
+| `arbitrary-z-index` | low | `z-index: 999 / 9999` magic numbers |
+| `layout-property-transition` | low | animating width/height/margin/padding |
+
+**Evidence Format:**
+```
+File: <path> Line: <n>
+Rule: <rule-id>  Category: ai-slop | quality
+ruleRef: <prose-guidance anchor it enforces>
+Snippet: <offending source line>
+fpRisk: low | medium | high
+```
+
+**Default Severity:** Per-rule (high for the absolute-ban tells, low for advisory quality nits). `fpRisk` is reported so triage can weight high-FP rules (`ai-purple-gradient`) more skeptically.
+
+> **Precision boundary (honest):** this regex tier cannot resolve CSS cascade, so `side-stripe-border` flags any ≥2px side accent even when the element is unrounded — `.claude/rules/frontend.md` bans those (>1px accent), but a cascade-aware detector would narrow further. The heavier static-HTML + browser tiers are deliberately omitted (cost ≫ value for a probe/hook). See `scripts/lib/frontend-detect/rules.mjs`.
+
+---

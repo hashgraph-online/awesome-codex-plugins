@@ -1,0 +1,16 @@
+docs/README/README_en
+docs/README/README_ja
+docs/README/README_zh-TW
+docs/README
+docs/RELEASE_NOTES/RELEASE_NOTES_en
+docs/RELEASE_NOTES/RELEASE_NOTES_ja
+docs/guides/claude-subagents
+docs/guides/command-reference
+docs/guides/customization-guide
+docs/guides/ja/claude-subagents
+docs/guides/ja/command-reference
+docs/guides/ja/customization-guide
+docs/guides/ja/migration-guide
+docs/guides/ja/spec-driven
+docs/guides/migration-guide
+docs/guides/spec-driven

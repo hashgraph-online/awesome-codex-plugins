@@ -12,7 +12,7 @@ origin: adapted from ECC
 
 ## 何时激活
 
-- 会话上下文超过 70% 使用率
+- 会话上下文超过 65% 使用率
 - 需要重组上下文以保留关键信息
 - 长会话中需要压缩早期对话
 - 需要按重要性重新组织 specialist 输出
@@ -25,6 +25,7 @@ origin: adapted from ECC
 
 | Trigger | 条件 | 行为 |
 |---------|------|------|
+| `context_65%` | 上下文使用 > 65% | 触发 advisory 压缩建议 |
 | `context_70%` | 上下文使用 > 70% | 触发压缩建议 |
 | `context_85%` | 上下文使用 > 85% | 强制压缩 |
 | `logical_break` | 检测到逻辑断点 | 建议整理 |
@@ -95,11 +96,19 @@ Specialist：输出详细代码审查报告
 系统：保存结论到 memory store
 ```
 
+## Context 计算与 Compact 轮次
+
+- 运行时使用 `scripts/lib/context-window.js` 统一计算上下文压力。
+- 优先消费 CCometixLine-compatible remaining context，例如 `ccometixline.context_window.remaining_percentage`、`ccometixline_context_window.remaining_tokens`、`TSP_CONTEXT_WINDOW_JSON` 或 `CCOMETIXLINE_CONTEXT_FILE`。
+- 如果没有外部 remaining 信号，则退回 Claude `context_window`、transcript JSONL usage、bridge file 和 transcript size fallback。
+- `scripts/hooks/pre-compact.js` 每次 PreCompact 会递增 `.tsp/context/compact-state.json` 的 session / total compact count；`suggest-compact.js` 输出 `compact_count`。
+
 ## 触发阈值
 
 | 使用率 | 紧迫度 | 建议操作 |
 |--------|--------|---------|
-| < 70% | low | 无需操作 |
+| < 65% | low | 无需操作 |
+| 65-70% | advisory | 提醒控制上下文增长 |
 | 70-85% | medium | 建议压缩，可选择性执行 |
 | 85-95% | high | 强烈建议压缩 |
 | > 95% | critical | 必须立即压缩 |

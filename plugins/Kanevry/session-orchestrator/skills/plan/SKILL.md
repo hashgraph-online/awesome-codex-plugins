@@ -2,7 +2,7 @@
 name: plan
 user-invocable: false
 tags: [planning, prd, requirements, research]
-model: opus
+model: inherit
 model-preference: opus
 model-preference-codex: gpt-5.4
 model-preference-cursor: claude-opus-4-6
@@ -113,7 +113,7 @@ Wait for ALL agents to complete before proceeding. Use `run_in_background: false
 
 ### 3.2 Question Presentation
 
-Synthesize research results into 5 questions per wave. Split across 2 AskUserQuestion calls (3+2 or 4+1) to stay within the 4-question-per-call limit.
+Synthesize research results into 5 questions per wave. Split across 2 AskUserQuestion calls (3+2 or 4+1) to stay within the 4-question-per-call limit. Note: in `feature` and `new` modes, Wave 1 may present 6 questions (split 3+3) when the optional User-Story toggle question is included; the 5-question / 3+2|4+1 default stands otherwise.
 
 **Option format rules:**
 - Option 1 is ALWAYS the recommendation, marked with `(Recommended)` in the label
@@ -255,13 +255,14 @@ generation due to slopcheck failure — log + continue.
 
 Dispatch a reviewer subagent: read `prd-reviewer-prompt.md` in this skill directory for review instructions. Pass the full PRD content to the reviewer.
 
-The reviewer checks 6 criteria:
+The reviewer checks 7 criteria:
 1. **Completeness** — all sections filled, no TBD or placeholder content
 2. **Consistency** — no internal contradictions between sections
 3. **Clarity** — unambiguous enough that a developer could implement from this document alone
 4. **Scope** — focused on one project/feature, not sprawling across multiple subsystems
 5. **YAGNI** — no unrequested features or gold-plating
 6. **SMART metrics** — success criteria are Specific, Measurable, Achievable, Relevant, Time-bound
+7. **User Stories** (gated — active only when a populated ## User Stories section is present) — section present, every story in complete Als/möchte/damit form, each story links ≥1 acceptance criterion; SKIP when no User Stories section. No INVEST checks.
 
 ### 5.2 Revision Loop
 
@@ -307,11 +308,56 @@ AskUserQuestion({
 
 If user requests changes, apply them, save the updated document, and re-present for approval. No limit on user-requested revisions.
 
+## Phase 5.5: PRD Commit Gate (all modes)
+
+<HARD-GATE>
+Do NOT proceed to Phase 6 (Issue Creation) until the generated document (PRD or retro) is committed to HEAD. There is no bypass. An issue referencing an uncommitted file is an unverifiable claim — see `.claude/rules/verification-before-completion.md` (VBC).
+</HARD-GATE>
+
+Two prior `/plan` sessions filed issues referencing a PRD path that no downstream session could find, because the document was written to disk (Phase 4.3) but never committed (issue #784). This gate closes that gap mechanically, right after user approval (Phase 5) and before any issue is filed (Phase 6). It applies to every mode that reaches Phase 6 — including `/plan retro`, which skips Phase 5's review loop but still saves a document and (conditionally) files issues.
+
+### 5.5.1 Commit the Document
+
+The Epic issue does not exist yet at this point in the flow — do NOT reference an issue number in the commit message. Use a session-dated message instead:
+
+```bash
+git add {plan-prd-location}/YYYY-MM-DD-{project-or-feature-name}.md   # or {plan-retro-location}/YYYY-MM-DD-retro.md
+git commit -m "docs(prd): {project-or-feature-name} PRD (plan-session YYYY-MM-DD)"
+```
+
+For `/plan retro`, use `"docs(retro): YYYY-MM-DD retrospective (plan-session YYYY-MM-DD)"` — the retro document has no Epic wrapper by default.
+
+### 5.5.2 Verify the Commit Landed
+
+Both checks MUST pass before Phase 6 starts. Quote both outputs per VBC-001 — a bare claim of "committed" without this evidence is exactly the unverifiable-claim failure mode this gate exists to close:
+
+```bash
+git status --porcelain <doc-path>   # MUST be empty — no staged/unstaged diff remains on the doc
+git ls-files <doc-path>             # MUST print the path — confirms it is tracked at HEAD
+```
+
+If either check fails, the commit did not land. Do not proceed to Phase 6 — diagnose (uncommitted hunk, wrong path, `.gitignore` collision) and retry § 5.5.1.
+
+### 5.5.3 Push Timing (Not This Gate's Job)
+
+This gate guarantees HEAD-presence, not remote-presence. Do not push here — push timing remains the session's normal `/close` responsibility. If the session pushes before `/close`, the PRD rides along; if not, `/close`'s commit+push flow carries it to the remote in the ordinary course.
+
+### 5.5.4 Headless / Autopilot
+
+The gate is a mechanical git step, not a judgment call — it applies unchanged in headless/autopilot mode. No `AskUserQuestion` is required here; run § 5.5.1 and § 5.5.2 exactly as above.
+
+### 5.5.5 Epic Backlink (Phase 6 Followup)
+
+The Epic issue's number is not known during § 5.5.1. Once Phase 6 creates it, see § 6.6 for the small follow-up commit that adds the Epic reference to the document.
+
 ## Phase 6: Issue Creation (all modes)
 
 ### 6.1 Derive Issue Structure
 
-Determine Epic and sub-issues based on mode:
+**If the PRD contains a populated `## User Stories` section** (story toggle was "yes"):
+- Each user story becomes exactly one issue. The issue body carries the story text (`Als/möchte/damit`) plus its linked Gherkin/EARS acceptance criteria (the story's `↳ AC:` targets). Group under an Epic named after the feature/project.
+
+**Otherwise** (no User Stories section — status quo), determine Epic and sub-issues based on mode:
 - **`/plan new`** — derive from PRD Section 4 (Solution & Scope). Each major scope item becomes a sub-issue. Group under an Epic named after the project.
 - **`/plan feature`** — derive from PRD Section 3 (Acceptance Criteria). Each Given/When/Then block becomes a sub-issue. Group under an Epic named after the feature.
 - **`/plan retro`** — derive from the improvement actions in the reflection phase. Each action becomes an issue (no Epic wrapper unless 5+ actions).
@@ -394,6 +440,20 @@ For `/plan new`, next steps include: "Run `/session feature` in the new repo to 
 For `/plan feature`, next steps include: "Run `/session feature` to implement this PRD."
 For `/plan retro`, next steps include: "Address improvement issues in your next session."
 
+### 6.6 Epic Backlink Commit (PRD Update)
+
+Once § 6.4 creates the Epic issue, its IID is known. Update the document to reference it, then commit as a **separate, small follow-up commit** — never amend the § 5.5.1 commit (amending risks clobbering a commit the session may already have pushed, or that a sibling session has based work on; see `parallel-sessions.md` PSA-003/PSA-004).
+
+1. Add or update a status line near the top of the document body (e.g. next to `**Status:**`) with `**Epic:** #<IID>`.
+2. Save the document to the same path used in § 4.3 / § 5.5.1.
+3. Commit:
+   ```bash
+   git add <doc-path>
+   git commit -m "docs(prd): link {project-or-feature-name} PRD to Epic #<IID>"
+   ```
+
+Skip this step if issue creation was cancelled at § 6.3 ("Cancel") — there is no Epic number to backlink. For `/plan retro` without an Epic wrapper (fewer than 5 improvement actions — see § 6.1), skip this step as well.
+
 ## Critical Rules
 
 - **NEVER skip the Q&A phase** — even if the user provides a detailed brief, validate through structured questions. The Q&A surfaces blind spots.
@@ -402,6 +462,7 @@ For `/plan retro`, next steps include: "Address improvement issues in your next 
 - **ALWAYS mark Option 1 as recommended** — with `(Recommended)` in the label. Every question must have a clear recommendation.
 - **ALWAYS use AskUserQuestion** — never present options as plain text. The structured UI is mandatory.
 - **ALWAYS save documents before creating issues** — the PRD/retro document is the source of truth. Issues reference it.
+- **ALWAYS commit the PRD before creating issues** — see Phase 5.5 (HARD-GATE). A saved-but-uncommitted document is unverifiable by any downstream session; commit to HEAD is the trust boundary, not disk-write.
 - **Security** — never include internal paths, IPs, or infrastructure details in output documents. Read sensitive baseline areas for context but filter from outputs.
 - **Idempotency** — if the user re-runs `/plan` with the same mode, check for an existing PRD at the target location. If found, use AskUserQuestion to offer: "Update existing PRD" vs. "Create new version" vs. "Cancel".
 

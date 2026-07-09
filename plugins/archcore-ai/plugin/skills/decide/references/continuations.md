@@ -7,11 +7,11 @@ After an ADR is created, `/archcore:decide` offers two continuation cascades. Bo
 After Step 3 (ADR creation), evaluate the decision content:
 
 - **Standard cascade** (rule + guide) — the decision describes enforceable behavior, naming convention, coding pattern, or anything that should bind future code. Signal phrases: "we should always", "developers must", "the team should", "going forward all X must Y".
-- **Architecture cascade** (spec + plan) — the decision describes a technical contract or component that needs formal specification before implementation. Signal phrases: "the X system will provide", "the contract is", "the interface exposes", "implementation comes next".
+- **Architecture cascade** (spec + plan) — the decision establishes or changes behavior others rely on: a boundary other code calls (API, interface, schema, protocol) or a feature/subsystem with states, field-driven rules, and invariants. A spec may capture the behavior of existing code or specify one to build. Signal phrases: "the X system will provide", "the contract is", "the interface exposes", "the API will be", "the feature must behave", "the states are".
 
 If neither signal is present, do not offer continuations. The ADR alone is a valid endpoint.
 
-If both signals are present, ask: "This decision could become a team standard (rule + guide) or a technical contract (spec + plan). Which fits better — or neither for now?"
+If both signals are present, ask: "This decision could become a team standard (rule + guide) or a behavior contract (spec + plan). Which fits better — or neither for now?"
 
 ## Standard cascade — rule + guide
 
@@ -19,7 +19,7 @@ Offer: "Want to codify this into a team standard? I can create a rule (mandatory
 
 ### Rule
 
-- Read `skills/_shared/precision-rules.md` if not already loaded in this session.
+- Read `skills/_shared/precision-rules.md` once before composing.
 - Ask via `AskUserQuestion`: "What are the mandatory behaviors (MUST / MUST NOT statements)? How will each be verified — test, lint, CI signal, or manual review?"
 - Compose rule content covering:
   - **Rule** — imperative directives (MUST / MUST NOT)
@@ -43,20 +43,18 @@ Offer: "Want to codify this into a team standard? I can create a rule (mandatory
 
 ## Architecture cascade — spec + plan
 
-Offer: "Want to formalize this as a technical contract and plan? I can create a spec (contract surface) and plan (implementation phases) based on this decision."
+Offer: "Want to formalize this as a behavior contract and plan? I can create a spec (normative behavior) and plan (implementation phases) based on this decision."
 
 ### Spec
 
-- Read `skills/_shared/precision-rules.md` if not already loaded.
-- Ask via `AskUserQuestion`: "What is the contract surface? What are the key constraints and invariants? How is error behavior defined?"
-- Compose spec content covering:
-  - **Purpose**
-  - **Scope** and **Authority**
-  - **Subject**
-  - **Contract Surface** (interfaces, types, signatures)
-  - **Normative Behavior** (MUST / SHOULD / MAY)
-  - **Constraints** and **Invariants**
-  - **Error Handling**
+- Read `skills/_shared/precision-rules.md` and `skills/_shared/spec-contract.md` once before composing — the contract defines what a spec is (behavior others rely on right now), the routing gate against `prd`, and the notation.
+- Ask via `AskUserQuestion`: "Who depends on this, and what is its surface — the interface, or the parts/states/fields that drive behavior? What are the key constraints, invariants, and failure behaviors?"
+- Compose the six sections defined in `spec-contract.md`:
+  - **Purpose & Scope** — the subject this spec governs, who depends on it, and what it excludes
+  - **Surface** — interface and/or parts, states, field-drivers — referenced by `@path`, not reproduced
+  - **Normative Behavior** — EARS clauses + BCP 14 keywords (MUST / SHOULD / MAY), each numbered
+  - **Constraints & Invariants**
+  - **Failure Behavior** — error/edge conditions with observable outcome and recovery
   - **Conformance** — what makes an implementation conformant
 - Avoid forbidden lexicon.
 - Create via `mcp__archcore__create_document(type="spec")`.

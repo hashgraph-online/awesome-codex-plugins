@@ -46,10 +46,11 @@ Scan the target files to identify languages:
 
 ## Step 2: Load Relevant Standards
 
-For each language detected, read the matching standard:
+For each language detected, use Read tool:
 
-Read `skills/validate/references/<language>-standards.md` with the available file
-read or shell tool.
+Tool: Read
+Parameters:
+  file_path: "skills/validate/references/<language>-standards.md"
 
 Only load standards for languages actually present in the review.
 
@@ -65,9 +66,9 @@ Cite specific sections: "Per python-standards.md section 3.2..."
 Files detected: src/main.py, pkg/handler.go, scripts/deploy.sh
 
 Load (3 standards only):
-1. `skills/validate/references/python-standards.md`
-2. `skills/validate/references/go-standards.md`
-3. `skills/validate/references/shell-standards.md`
+1. Read("skills/validate/references/python-standards.md")
+2. Read("skills/validate/references/go-standards.md")
+3. Read("skills/validate/references/shell-standards.md")
 
 Skip: typescript, yaml, json, markdown (not present)
 ```

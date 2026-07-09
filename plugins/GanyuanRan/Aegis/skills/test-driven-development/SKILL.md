@@ -1,13 +1,17 @@
 ---
 name: test-driven-development
-description: Use when strict TDD is explicitly requested, or when an approved atomic implementation task has already chosen TDD Route strict.
+description: Use when the user explicitly requests strict or test-first TDD, or when the current conversation already contains an explicit `TDD Route: strict` decision from another Aegis workflow.
 ---
 
 # Execute
 
+→ False-positive entry on a native-direct-skill host? → **Exit immediately unless the user explicitly asked for TDD or the conversation already contains `TDD Route: strict`.**
+  In `off` mode, do not start RED / GREEN / REFACTOR from generic bugfix, contract, shared-module, or risky-code wording alone.
+  Hand control back to `using-aegis`, `systematic-debugging`, `writing-plans`, or the fast path with verification.
 → Implementing a feature or bugfix under TDD Route `strict`? → **No production code without a failing test first.**
   Gate: medium/high complexity? → route to brainstorming or writing-plans first.
-  Mode: `auto` chooses strict/light/skipped by risk; `off` disables automatic TDD, not completion verification.
+  Mode: default `off` disables automatic TDD, not completion verification; `auto` chooses strict/light/skipped by risk.
+  Change Necessity: before strict RED/GREEN enters production edits, confirm the slice really needs a code change.
   Cycle: RED (write test → watch it fail) → GREEN (minimal code → watch it pass) → REFACTOR (clean up → keep green)
   Regression: shared module → related tests. contract change → producer + consumer. core logic → old + new tests.
   Ripple signal hit → cover producer+consumer or real user path before claiming green.
@@ -23,13 +27,24 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 If you didn't watch the test fail, you don't know if it tests the right thing.
 
-TDD Mode has two values: `auto` and `off`. `auto` lets Aegis choose a
-`TDD Route`; `off` disables automatic TDD routing but never disables
-`verification-before-completion`.
+TDD Mode has two values: `off` and `auto`. The default `off` mode disables
+automatic TDD routing but never disables `verification-before-completion`.
+`auto` lets Aegis choose a `TDD Route` by task risk.
+
+On native-direct-skill hosts, automatic entry must stay anchored to literal
+conversation markers such as `TDD Route: strict`, `strict TDD`, `test-first`,
+or `RED / GREEN / REFACTOR`, not generic risky-implementation wording.
 
 ## When to Use
 
-New features, bug fixes, refactoring, behavior/logic changes, interface/data contract changes, cross-module or shared module changes, core logic refactors.
+Only enter this skill after one of these explicit entry signals exists:
+
+- the user explicitly asks for strict TDD, test-first development, or RED / GREEN / REFACTOR
+- the current conversation already contains `TDD Route: strict` from another Aegis workflow
+
+Typical strict-route shapes once entry is already justified: new features, bug
+fixes, refactoring, behavior or logic changes, interface/data contract changes,
+cross-module or shared-module changes, and core logic refactors.
 
 Exceptions (ask your human partner): throwaway prototypes, generated code, config files, pure docs cleanup, read-only diagnosis, comment-only changes.
 
@@ -38,6 +53,11 @@ Exceptions (ask your human partner): throwaway prototypes, generated code, confi
 Before source edits, decide:
 
 ```text
+Aegis Visibility:
+- Why this TDD route is strict, light, or skipped:
+- What RED/GREEN proves:
+- What still needs verification:
+
 TDD Route:
 - Mode: auto | off
 - Decision: strict | light | skipped
@@ -54,6 +74,12 @@ environment-bound work where TDD does not fit.
 In `off`, do not automatically require TDD. Explicit user/project TDD requests
 still apply, and risky work may still justify recommending strict TDD.
 `verification-before-completion` still applies before any completion claim.
+If this skill was loaded anyway without an explicit TDD request or a visible
+`TDD Route: strict` marker, exit instead of improvising an automatic strict
+route from risk words alone.
+
+Keep `Aegis Visibility` task-specific: explain the route decision and the
+regression boundary, not a generic claim that TDD was used.
 
 ## Preflight Gate
 
@@ -76,6 +102,36 @@ High-complexity or ambiguous tasks also need a spec/design review before
 planning. Only proceed directly with TDD for low-complexity work whose intent,
 owner, compatibility boundary, verification path, and slice goal / success
 evidence are already clear.
+
+## Change Necessity
+
+Before strict RED/GREEN enters production code edits, make the code-change
+decision visible. Any new source-code path needs this check before RED/GREEN
+normalizes it as work to implement. This is the "should code change at all?"
+check; it is not a new artifact and does not belong in the `using-aegis` hot
+path.
+
+This is behavior-triggered, not prompt-triggered. If strict TDD is about to add
+any new source-code path or enter production source edits, expose a natural
+readback even when the user did not ask for it. A tiny helper, small guard, new
+branch, fallback, adapter, or owner is not exempt. Example: "Code necessity
+check: a non-code path is insufficient because <reason>; the minimum change
+boundary is <owner/files>, so the decision is code-change."
+
+```text
+Change Necessity:
+- User-visible need:
+- No-change / non-code option:
+- Why code change is necessary:
+- Minimum change boundary:
+- Decision: no-change | docs/config-only | code-change | needs-clarification
+```
+
+If the decision is `no-change`, do not write tests or production code for a
+non-change. If the decision is `docs/config-only`, route to that narrower
+surface and verify it. If the decision is `needs-clarification`, pause before
+RED/GREEN. If the decision is `code-change`, carry the minimum boundary into
+`TDD Route`, RED, and regression scope.
 
 ## Complexity Budget
 
@@ -108,6 +164,12 @@ Pre-Edit Complexity Check:
 - Owner fit:
 - Safer edit boundary:
 - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+
+Pre-Edit Owner-Fit Decision:
+- Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
+- Owner fit:
+- Safer edit boundary:
+- Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
 ```
 
 If the decision is `pause for plan update`, stop TDD and return to
@@ -116,6 +178,13 @@ If the decision is `pause for plan update`, stop TDD and return to
 If the predicted result is that this slice would push a maintained artifact
 over budget and the slice does not also govern that overrun, do not continue
 with RED/GREEN as if the task were safely scoped. Pause and update the plan.
+
+When the target edit file is over-budget or mixed-purpose, classify edit intent
+before production source edits. `new-responsibility` must not be added in place
+by default. `wiring-only`, `move-out / extract-first`, and
+`local-fix-without-new-responsibility` may proceed only when they do not add a
+new responsibility and the verification boundary is clear. `emergency /
+compatibility patch` requires residual risk and a retirement trigger.
 
 When a medium- or high-complexity task needs project records, use configured Aegis workspace support
 lazily. Prefer the installed Aegis workspace helper

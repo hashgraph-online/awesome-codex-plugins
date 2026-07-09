@@ -1,0 +1,19 @@
+{
+  "skill_name": "django-forms-validation-tdd",
+  "evals": [
+    {
+      "id": 1,
+      "name": "duplicate-form-validation",
+      "prompt": "Add duplicate-name validation to a Django form and make sure invalid submissions do not save anything.",
+      "expected_output": "Places tests at form/model/view layers as needed, checks invalid-save prevention, and explains constraint versus form responsibility.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "model-form-refactor",
+      "prompt": "Refactor this Django view to use a ModelForm, but I am worried about coupling the HTML field names to the database.",
+      "expected_output": "Characterizes current behavior, adds form tests, discusses ModelForm tradeoffs, and keeps view/template wiring coverage.",
+      "files": []
+    }
+  ]
+}

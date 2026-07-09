@@ -1,0 +1,20 @@
+{
+  "name": "local-repo",
+  "interface": {
+    "displayName": "Local Repo"
+  },
+  "plugins": [
+    {
+      "name": "waggle",
+      "source": {
+        "source": "local",
+        "path": "./plugins/waggle"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
