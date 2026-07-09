@@ -321,6 +321,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [WakeWire](https://github.com/glenncalleja/wakewire) - Push events from GitHub, Gmail, Slack, and any signed webhook (Linear, Sentry, ClickUp) straight into your Codex threads as new turns — event-driven triggers instead of polling, with HMAC verification, deduplication, and a durable delivery queue.
 - [X Twitter Scraper](https://github.com/Xquik-dev/x-twitter-scraper) - X/Twitter data, monitored workflows, HMAC webhooks, and MCP access through the Xquik REST API with confirmation-gated write guidance.
 - [Yandex Direct](https://github.com/nebelov/yandex-direct-for-all) - GitHub-ready Codex plugin bundle for Yandex Direct, Wordstat, Metrika, and Roistat.
+- [handoff](https://github.com/dazuiba/handoff) - Cross-agent task dispatcher: delegate work to DeepSeek V4, Claude Opus, or Codex right inside your Claude Code / Codex session. Runs in background; result returns automatically.
 - [Zotero Research Tools](https://github.com/summer521521/Zotero_Research_plugin) - Connects Codex to Zotero Desktop for local-library search, citation export, collection and tag inspection, and research workflow support.
 
 ## Plugin Development
