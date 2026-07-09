@@ -84,6 +84,22 @@ When `goal-integration.enabled: true` with seam `session-end-backlog`, the close
 - Document and attribute to relevant issues
 - If new issues were identified: create them on the VCS platform
 
+### Candidate Record Format (#769)
+
+> Since #769, Phases 1.2 / 1.3 (still-relevant) / 1.4 (unfinished emergent) / 1.6 (SPIRAL/FAILED walk) **no longer file `[Carryover]` issues immediately** — they append **carryover candidates** to an in-memory list that the Phase 1.65 Handover Alignment Gate routes, and Phase 5 Step 3 files the gate's carry-list. The authoritative gate prose (routing, AUQ shapes, fail-open) lives in `SKILL.md § 1.65 Handover Alignment Gate` — this subsection documents only the record shape the phases produce.
+
+Each candidate is a plain object with these fields (JS keys are the ones `routeCandidates` / `normalizeCandidate` in `scripts/lib/handover-gate.mjs` read):
+
+| Concept | JS key | Type | Notes |
+|---|---|---|---|
+| task | `task` | `string` | Task text. Missing/empty → `normalizeCandidate` flags `malformed: true` and routes it to `ask`. |
+| source-phase | `sourcePhase` | `'1.2' \| '1.3' \| '1.4' \| '1.6'` | The Phase-1 bucket that emitted the candidate; used to infer `bucket` when absent. |
+| origin-issue | `originIssue` | `number \| null` | Origin issue IID, or `null` when there is none. **`null` → auto-carry** (dropping a candidate with no origin issue would be real forgetting; keeps `SKILL.md:853` intact). |
+| priority | `priority` | `'critical' \| 'high' \| 'medium' \| 'low' \| null` | `critical`/`high` → auto-carry. `medium`/`low`/`null` (with an origin issue) → middle-band `ask`. |
+| bucket | `bucket` | `'partially-done' \| 'not-started' \| 'emergent' \| 'spiral-failed'` | Maps 1.2→`partially-done`, 1.3→`not-started`, 1.4→`emergent`, 1.6→`spiral-failed`. `spiral-failed` → auto-carry. |
+
+**Routing (deterministic, `routeCandidates`):** a candidate lands in `autoCarry` (non-deselectable, gate-summary only) when `priority ∈ {critical, high}` OR `bucket === 'spiral-failed'` OR `originIssue === null`; otherwise it lands in `ask` (the preselected middle-band multiSelect). SPIRAL/FAILED candidates additionally carry a non-schema `_spiral: { kind, context }` annotation on the coordinator's original object — consumed by the deferred `createSpiralCarryoverIssue` call in Phase 5 Step 3 (`routeCandidates` strips it from its normalized copies).
+
 ### 1.5 Discovery Scan (if enabled)
 
 Check if `discovery-on-close` is `true` in Session Config. If not configured or `false`, skip this section.

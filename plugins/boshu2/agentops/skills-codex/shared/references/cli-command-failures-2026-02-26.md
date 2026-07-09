@@ -13,7 +13,7 @@ Captured from live RPI batch execution logs in this repo.
 - Cause: `-p` means profile for Codex CLI
 - Working form: `codex exec "<prompt>"`
 
-3. `ao rpi phased ...` using Codex runtime in heavy batch
+3. Historical/superseded: retired phased-engine runs using Claude runtime in heavy batch
 - Output: `phase 2 (implementation) failed: claude exited with code -1: signal: killed`
 - Mitigation: lower concurrency or switch runtime to Codex (`--runtime-cmd codex`)
 

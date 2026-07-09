@@ -16,7 +16,7 @@
 </p>
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-3fb950?style=for-the-badge&labelColor=0d1117" /></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.6.2-fc8d62?style=for-the-badge&labelColor=0d1117" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.7.0-fc8d62?style=for-the-badge&labelColor=0d1117" />
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.82+-d73a49?style=for-the-badge&labelColor=0d1117&logo=rust&logoColor=white" />
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-plugin-bc8cff?style=for-the-badge&labelColor=0d1117" />
   <a href="https://buymeacoffee.com/epicsaga"><img alt="Buy Me a Coffee" src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&labelColor=0d1117&logo=buymeacoffee&logoColor=black" /></a>
@@ -34,7 +34,7 @@ A Claude Code plugin that **consolidates 30+ commands into 3 commands + 26 auto-
 
 ### Web Dashboard — auto-launches on session start
 
-10-screen real-time metrics for eval scores, tool stats, orbit pipelines, evolved skills, and hook health. Opens automatically with the first Claude Code session — no manual setup needed.
+10-screen real-time metrics for eval scores, tool stats, orbit pipelines, evolved skills, and hook health. Opens automatically with the first Claude Code session — no manual setup needed. The **Eval & Evolve** screen surfaces the HarnessX evolution-engine state: reward-hacking warnings, seesaw solved-task registry, variant pool, and the adaptation landscape (persistent failures + untried edit types).
 
 <p align="center">
   <img src="./assets/dashboard.png" alt="Dashboard" width="49%" />
@@ -88,6 +88,8 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 
 > **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md).
 
+epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP server are loaded directly from the plugin layout (`skills/`, `hooks.json`, `mcp_config.json`). There is no `install` subcommand; each tool reads the plugin from disk.
+
 ### Claude Code (recommended)
 
 ```
@@ -95,7 +97,7 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 /plugin install epic@epicsagas
 ```
 
-Auto-installs the binary and registers all hooks in one step.
+Auto-installs the binary, skills, hooks, and the `harness-mem` MCP server in one step.
 
 ### Codex CLI
 
@@ -105,10 +107,21 @@ codex plugin marketplace add epicsagas/plugins
 
 Skills and agents are available immediately — no further steps needed.
 
-### macOS / Linux
+### agy (Antigravity CLI)
 
 ```bash
-brew install epicsagas/tap/epic-harness
+agy plugin install https://github.com/epicsagas/epic-harness
+agy plugin enable epic
+```
+
+Skills (27), hooks, and the `harness-mem` MCP server are auto-discovered from the plugin's `plugin.json` + `skills/` + `hooks.json` + `mcp_config.json`.
+
+### Binary-only (no plugin host)
+
+```bash
+brew install epicsagas/tap/epic-harness      # macOS / Linux (Homebrew)
+cargo binstall epic-harness                  # pre-built binary (Rust)
+cargo install epic-harness                   # build from source
 ```
 
 No Homebrew? Use the installer script:
@@ -118,64 +131,48 @@ curl --proto '=https' --tlsv1.2 -LsSf \
   https://github.com/epicsagas/epic-harness/releases/latest/download/install.sh | sh
 ```
 
-### Windows
+Windows:
 
 ```powershell
 irm https://github.com/epicsagas/epic-harness/releases/latest/download/install.ps1 | iex
 ```
 
-### Via Rust toolchain
-
-```bash
-cargo binstall epic-harness   # pre-built binary (fast)
-cargo install epic-harness    # build from source
-```
-
-Then run the setup wizard:
-
-```bash
-epic install               # Claude Code (default)
-epic install codex         # Codex CLI
-epic install antigravity   # Antigravity
-```
+The binary self-seeds `~/.harness/config.toml` and `HARNESS.md` on the first hook run — no setup wizard, no `install` step.
 
 > `epic-harness --version` to verify. Update with `brew upgrade epic-harness` or re-run the installer script.
 
 Prerequisites: **Git**. Source/binary installs also need the [Rust toolchain](https://rustup.rs).
 
-### `epic install` — setup wizard
-
-After installing the binary, run `epic install` (or `epic install claude`) to:
-
-1. Create `~/.harness/` directory structure
-2. Sync commands and skills to the tool's config directory
-3. Register the MCP server (harness-mem) for Claude Code
-4. Create `~/.harness/config.toml` with defaults if absent
-
-On Claude Code, `hooks/install.js` auto-runs on session start and installs the binary if missing. No manual step needed after the initial clone.
-
-### Other tools
-
-```bash
-epic install codex          # Codex CLI      → ~/.codex/ + ~/.agents/skills/
-epic install antigravity   # Antigravity    → ~/.gemini/config/plugins/epic/
-epic install cursor         # Cursor         → ~/.cursor/ (requires Cursor 1.7+)
-epic install opencode     # OpenCode    → ~/.config/opencode/
-epic install cline        # Cline       → ~/Documents/Cline/Rules/
-epic install aider        # Aider       → ~/.aider.conf.yml + ~/.aider/
-epic install              # Interactive menu
-```
-
-Integration files are **synced** from the binary: missing or outdated files are written. `AGENTS.md` is only created when absent.
-
 ### Verify
 
 ```bash
 epic --version              # Binary installed
-ls ~/.harness/              # Data directory exists
+ls ~/.harness/              # Data directory (auto-created on first session)
 ```
 
 Inside a Claude Code session: `/evolve status`
+
+> **Telemetry**: usage reporting is on by default (opt-out). Toggle with `epic-harness telemetry status|on|off`.
+
+---
+
+## Telemetry
+
+epic-harness collects **anonymous** usage telemetry by default (opt-out) to improve hook reliability and skill evolution. Events are sent to Posthog.
+
+**What we collect:** command name, duration, outcome (success/failure), failure class, and hook block/failure events — plus `product`, `product_version`, `os`, and a random `install_id` (a UUID generated on first run, stored at `~/.config/epic-harness/install-id`).
+
+**What we never collect:** source code, file contents, file paths, environment variables, secrets, or any personally-identifiable information.
+
+**Control it:**
+
+```bash
+epic-harness telemetry status   # show current consent
+epic-harness telemetry off      # disable (stops all sending immediately)
+epic-harness telemetry on       # re-enable
+```
+
+Consent is stored at `~/.config/epic-harness/telemetry-consent`. When off, no telemetry is sent.
 
 ---
 
@@ -325,20 +322,25 @@ Three deep learning-inspired techniques adapted from [SkillOpt](https://arxiv.or
 
 Underperforming evolved skills receive targeted tuning guidance appended after `<!-- auto-tuned -->` delimiter. Original content is never modified. 3 consecutive declining sessions → auto-rollback tuning, history cleared.
 
-### Skill Effectiveness
+### Skill Effectiveness (Holdout A/B)
 
-Every evolved skill tracked with A/B attribution:
+Every evolved skill is measured against a genuine counterfactual: each day an
+under-evaluation skill is deterministically rotated into the **active** arm
+(injected into context at session start) or the **holdout** arm (withheld).
+"With" averages active-arm sessions, "Without" averages holdout-arm sessions —
+not a derived guess from pre-creation history.
 
 ```
-/evolve history → Skill Effectiveness
+/evolve history → Skill Effectiveness (illustrative)
 
-| Skill              | With | Without | Delta |
-|--------------------|------|---------|-------|
-| evo-ts-care        | 0.87 | 0.72    | +15%  |
-| evo-bash-discipline| 0.65 | 0.68    | -3%   |
+| Skill              | With | Without | Holdout n | Delta |
+|--------------------|------|---------|-----------|-------|
+| evo-ts-care        | 0.87 | 0.72    | 4         | +15%  |
+| evo-bash-discipline| 0.65 | 0.68    | 3         | -3%   |
 ```
 
-Positive delta = effective. Negative = consider removing via `/evolve rollback`.
+Positive delta = effective. Negative delta with ≥3 active and ≥2 holdout
+sessions → auto-evicted. Manual removal: `/evolve rollback`.
 
 ### Cold-Start Presets
 
@@ -367,6 +369,33 @@ observe (100% confirmed) → extract_instincts() → instinct node (confidence �
 /evolve cross-project # Cross-project pattern analysis
 /evolve rollback     # Restore previous best
 /evolve reset        # Clear all evolution data
+```
+
+### HarnessX-Inspired Defenses (v0.7.0)
+
+The evolution loop now carries the safety mechanisms from the [HarnessX](https://arxiv.org/abs/2606.14249v1) paper's AEGIS pipeline, adapted to epic-harness's single-agent, per-project model. See `docs/references/operational-mirror.md` for the RL-analogy mapping.
+
+| Defense | Module | Protects against | Paper |
+|---------|--------|------------------|-------|
+| **Seesaw gate** | `evolve/seesaw.rs` | Catastrophic forgetting — blocks seeding when a previously-solved task regresses | §4.1 |
+| **Variant isolation** | `evolve/variants.rs` | Catastrophic forgetting — forks a sibling variant on regression instead of overwriting | §4.5 |
+| **Reward-hacking detection** | `evolve/metrics.rs` | Metric gaming — flags when execution_cost rises while output_quality falls | §4.3 |
+| **Critic layer** | `evolve/critic.rs` | Reward hacking — suppresses seeding + rejects manifests contradicting evidence | §4.3 |
+| **Digester** | `evolve/digester.rs` | (Trace compression) — per-task digests feeding the Planner | §4.3 |
+| **Planner** | `evolve/planner.rs` | Under-exploration — tracks untried edit types + persistent failures | §4.3 |
+| **Typed edits + manifests** | `evolve/edits.rs` | Opaque edits — each edit carries a falsifiable manifest (Table 9) | §4.3 |
+| **Processor abstraction** | `hooks/processor.rs` | (Foundation) — typed `HookPoint`/`Processor` over the CLI hooks | §3.2 |
+
+A **regression harness** (`tests/evolve_regression_test.rs`) locks these contracts with 6 hermetic scenarios — no live benchmark required.
+
+### Harness Snapshot (v0.7.0)
+
+The harness is now a serializable, comparable first-class object:
+
+```bash
+epic harness snapshot              # JSON: config + skills + guard rules + metrics + content hash
+epic harness diff before.json after.json   # field-by-field structural diff
+# (restore is deferred — destructive)
 ```
 
 ---
@@ -471,12 +500,8 @@ All tools share the same `~/.harness/projects/{slug}/` data directory.
 | **Claude Code** | ✓ Full | ✓ 3 commands (incl. /orbit) | ✓ 26 skills | Live |
 | **Codex CLI** | ✓ Full¹ | ✓ 3 prompts (incl. /orbit) | ✓ 26 | — |
 | **Antigravity** | ✓ Partial² | ✓ 3 commands (incl. /orbit) | ✓ 26 | — |
-| **Cursor** | ✓ Full³ | ✓ 3 commands (incl. /orbit) | ✓ via rules | Live |
-| **OpenCode** | ✓ Partial⁴ | ✓ 3 commands (incl. /orbit) | — | — |
-| **Cline** | ✓ Full⁵ | — | — | — |
-| **Aider** | —⁶ | — | — | — |
 
-¹ `codex_hooks = true` in `~/.codex/config.toml` · ² Plugin install; subagent support not yet available · ³ Cursor 1.7+ · ⁴ JS plugin · ⁵ 5 hook scripts · ⁶ Conventions only
+¹ `plugin_hooks = true` in `~/.codex/config.toml` · ² PreInvocation/PostInvocation only — no PreToolUse (guard/polish unavailable)
 
 ---
 
@@ -696,13 +721,13 @@ Add this line to your `~/.zshrc` or `~/.bashrc` to make it permanent.
 <details>
 <summary>Hooks not firing in Claude Code</summary>
 
-Re-run the install to sync hooks into Claude Code settings:
+Reinstall the plugin to reload hooks:
 
-```bash
-epic install claude
+```
+/plugin install epic@epicsagas
 ```
 
-Then restart Claude Code. Hooks are written to `~/.claude/settings.json`.
+Then restart Claude Code. Hooks are loaded from the plugin's `hooks.json`.
 </details>
 
 <details>

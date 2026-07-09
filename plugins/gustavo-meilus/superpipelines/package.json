@@ -1,0 +1,23 @@
+{
+  "name": "superpipelines",
+  "version": "2.5.0",
+  "type": "module",
+  "bin": {
+    "superpipelines-install": "./bin/install.js"
+  },
+  "scripts": {
+    "package:codex": "node scripts/package-codex-plugin.js",
+    "check:codex-plugin": "node scripts/package-codex-plugin.js --check",
+    "docs:install-table": "node scripts/generate-install-docs.js",
+    "check:install-docs": "node scripts/generate-install-docs.js --check",
+    "check:profiles": "node scripts/check-profiles.js",
+    "check:versions": "node scripts/check-version-agreement.js",
+    "check:authoring": "node scripts/check-authoring-rules.js",
+    "check:parity": "node scripts/check-materialization-parity.js",
+    "report:preload": "node scripts/report-preload-budget.js",
+    "check:all": "npm run check:versions && npm run check:profiles && npm run check:authoring && npm run check:parity && npm run report:preload && npm run check:install-docs && npm run check:codex-plugin"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

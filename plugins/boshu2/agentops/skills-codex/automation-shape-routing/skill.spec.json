@@ -1,0 +1,62 @@
+{
+  "name": "automation-shape-routing",
+  "form": "A",
+  "skill_api_version": 1,
+  "summary": "Front door for agent automation — decide the SHAPE (Workflow vs NTM swarm vs plain skill) via a three-axis decision rule, then hand off to the right builder. Routes, does not build.",
+  "sections": [
+    { "id": "title", "title": "Automation Shape Routing — Workflow vs NTM vs Skill", "type": "header", "priority": "high" },
+    { "id": "three-shapes", "title": "The three shapes", "type": "reference-table", "priority": "high" },
+    { "id": "decision-rule", "title": "The decision rule (three axes)", "type": "methodology", "priority": "high" },
+    { "id": "spike-nuances", "title": "Spike-validated nuances (2026-05-29)", "type": "rationale", "priority": "medium" },
+    { "id": "traps", "title": "Two traps to avoid", "type": "constraints", "priority": "medium" },
+    { "id": "worked-examples", "title": "Worked examples", "type": "examples", "priority": "medium" },
+    { "id": "workflow-template", "title": "Canonical Workflow template", "type": "reference", "priority": "medium" },
+    { "id": "handoff", "title": "Handoff — after the verdict, invoke the next skill", "type": "routing", "priority": "high" },
+    { "id": "contract-note", "title": "Contract note (SDK)", "type": "rationale", "priority": "low" }
+  ],
+  "references": [],
+  "scripts": [],
+  "metadata": {
+    "tier": "meta",
+    "stability": "stable",
+    "user_invocable": false,
+    "hexagonal_role": "supporting",
+    "dependencies": [],
+    "consumes": [],
+    "produces": [],
+    "context_rel": [
+      { "kind": "supplier-to", "with": "skill-builder" },
+      { "kind": "supplier-to", "with": "workflow-builder" }
+    ],
+    "triggers": [
+      "build automation",
+      "convert skills to workflows",
+      "which shape",
+      "Workflow vs NTM vs skill",
+      "should this be a workflow",
+      "automate this",
+      "fan out vs swarm",
+      "deterministic orchestration or attach-and-steer"
+    ],
+    "token_estimate": {
+      "minimal": 110,
+      "overview": 360,
+      "standard": 1100,
+      "full": 1850
+    }
+  },
+  "produces": [],
+  "consumes": [],
+  "context_rel": [
+    { "kind": "supplier-to", "with": "skill-builder" },
+    { "kind": "supplier-to", "with": "workflow-builder" }
+  ],
+  "quality_score": 0.9,
+  "evidence": {
+    "sources": [
+      "skills/automation-shape-routing/SKILL.md",
+      "~/dev/agentops-3cat-spike/ (three-legged backend spike, 2026-05-29)",
+      ".claude/workflows/operating-loop.js"
+    ]
+  }
+}

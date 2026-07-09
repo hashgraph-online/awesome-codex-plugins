@@ -1,6 +1,6 @@
 ---
 name: pr-prep
-description: "Run pr prep."
+description: "Prepare PR commits and body."
 ---
 # PR Preparation Skill
 
@@ -252,5 +252,4 @@ gh pr create --title "type(scope): brief description" \
 ### scripts/
 
 - `scripts/validate.sh`
-
 

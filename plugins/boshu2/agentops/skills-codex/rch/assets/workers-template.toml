@@ -1,0 +1,48 @@
+# RCH Workers Configuration Template
+# Copy to: ~/.config/rch/workers.toml
+#
+# Each [[workers]] block defines a remote machine for compilation offloading.
+# RCH selects workers based on available slots, priority, and project locality.
+
+# Example: Primary fast build server
+[[workers]]
+id = "primary"                           # Unique identifier
+host = "192.168.1.100"                   # IP or hostname
+user = "ubuntu"                          # SSH username
+identity_file = "~/.ssh/id_ed25519"      # Path to SSH private key
+total_slots = 16                         # Max concurrent jobs (usually CPU cores)
+priority = 100                           # Higher = preferred (default: 50)
+tags = ["rust", "bun", "fast"]           # Optional capability tags
+# enabled = true                         # Set to false to disable temporarily
+
+# Example: Secondary backup server (lower priority)
+# [[workers]]
+# id = "backup"
+# host = "build-backup.local"
+# user = "build"
+# identity_file = "~/.ssh/build_key"
+# total_slots = 8
+# priority = 50
+# tags = ["rust"]
+
+# Example: Specialized TypeScript worker
+# [[workers]]
+# id = "typescript-builder"
+# host = "ts.internal"
+# user = "node"
+# identity_file = "~/.ssh/ts_key"
+# total_slots = 12
+# priority = 75
+# tags = ["bun", "typescript"]
+
+# Tips:
+# - total_slots: Match to CPU cores. Leave 1-2 for system overhead.
+# - priority: Range 1-100. Equal slots? Higher priority wins.
+# - tags: Projects can require specific tags in .rch.toml
+# - identity_file: Use ssh-agent for passphrase-protected keys
+#
+# Test your configuration:
+#   rch config validate
+#   rch config doctor
+#   rch workers probe --all
+#   rch workers setup --all

@@ -147,6 +147,8 @@ _Classified as: <mode>._
 
 **Do NOT emit a section header if its group is empty.** The classification footer is always emitted.
 
+**Global sources (only when results carry them).** If any result has `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md` and apply its rendering and precedence rules (badge the document, keep it in its normal type section, mark local-overrides-global for same-slug pairs). If no result is global (the default — and the case when the CLI is too old to emit the fields on search), render exactly as above: no badge, no change.
+
 **Git-changes mode — two render additions:**
 
 - Under each item add a `  _via: <dir>_` line naming the changed directory that surfaced it (on multiple matches, the most specific dir).

@@ -10,20 +10,20 @@ Move `[Unreleased]` into a versioned section, reset `[Unreleased]`, maintain com
 
 ## 2 — Bump
 
-Apply the SemVer table in `writing-guidelines.md` to `[Unreleased]`; compute the next version.
+Apply the SemVer table in `writing-guidelines.md`; compute the next version.
 
 ## 3 — Confirm
 
-`AskUserQuestion` (include an explicit free-text "Other"): recommend the inferred bump (state why — breaking / feat-class / fix-only) and offer Patch/Minor/Major. Pre-1.0 with a BREAKING entry → also offer non-recommended `Promote to 1.0.0`. Accept any valid SemVer via "Other".
+`AskUserQuestion` (include free-text "Other"): recommend the inferred bump (state why — breaking / feat-class / fix-only) and offer Patch/Minor/Major. Pre-1.0 with a BREAKING entry → also offer non-recommended `Promote to 1.0.0`.
 
 ## 4 — Apply (`Edit`)
 
-- Rename `## [Unreleased]` → `## [X.Y.Z] - <date>` (`date +%Y-%m-%d`); insert a fresh empty `## [Unreleased]` above it. Don't touch the released entries.
+- Rename `## [Unreleased]` → `## [X.Y.Z] - <date>` (`date +%Y-%m-%d`); insert a fresh empty `## [Unreleased]` above it. Don't touch released entries.
 - **Footers — only if the file already has them:** build the new line by mimicking an existing `[<prev>]: <url>` line's structure (it already encodes this host's correct shape — operand order, dot count, path), substituting versions; repoint the `[Unreleased]` footer from the new version. No footers → add none.
 
 ## 5 — Suggested commands
 
-If version files exist (package.json, pyproject.toml, plugin.json, Cargo.toml, …), tell the user to bump them to `X.Y.Z` first — this skill doesn't, and a CHANGELOG-only commit leaves versions inconsistent. Then print:
+If version files exist (package.json, pyproject.toml, plugin.json, Cargo.toml, …), tell the user to bump them to `X.Y.Z` first — this skill doesn't, and a CHANGELOG-only commit leaves versions inconsistent. Then print (state the skill ran none):
 
 ```
 git add CHANGELOG.md   # + any version-file edits
@@ -31,9 +31,3 @@ git add CHANGELOG.md   # + any version-file edits
 git tag vX.Y.Z
 git push && git push origin vX.Y.Z   # specific tag — avoid `git push --tags`
 ```
-
-State that the skill ran none of these.
-
-## 6 — Confirm
-
-Print: path, the new versioned section, the reset `[Unreleased]`, and the suggested commands.

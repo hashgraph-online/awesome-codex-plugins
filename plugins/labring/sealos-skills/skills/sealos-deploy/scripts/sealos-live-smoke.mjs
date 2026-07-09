@@ -77,6 +77,54 @@ function redactJson(value, key = "") {
   return Object.fromEntries(Object.entries(value).map(([entryKey, entry]) => [entryKey, redactJson(entry, entryKey)]));
 }
 
+function getSetCookieHeaders(headers) {
+  if (typeof headers.getSetCookie === "function") {
+    return headers.getSetCookie();
+  }
+  const value = headers.get("set-cookie");
+  if (!value) {
+    return [];
+  }
+  return value.split(/,(?=\s*[^;,=\s]+=[^;]+)/g).map((entry) => entry.trim());
+}
+
+function updateCookieJar(jar, headers) {
+  for (const cookie of getSetCookieHeaders(headers)) {
+    const [pair, ...attributes] = cookie.split(";");
+    const separatorIndex = pair.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+    const name = pair.slice(0, separatorIndex).trim();
+    const value = pair.slice(separatorIndex + 1).trim();
+    const deleted = attributes.some((attribute) => /^max-age=0$/i.test(attribute.trim()));
+    if (deleted) {
+      delete jar[name];
+    } else {
+      jar[name] = value;
+    }
+  }
+}
+
+function cookieHeader(jar) {
+  const entries = Object.entries(jar);
+  if (entries.length === 0) {
+    return null;
+  }
+  return entries.map(([name, value]) => `${name}=${value}`).join("; ");
+}
+
+function csrfHeadersFromCookies(jar, args) {
+  const cookiePrefix = args.csrfCookiePrefix || "CSRF-Token-";
+  const headerPrefix = args.csrfHeaderPrefix || "X-CSRF-Token-";
+  const entry = Object.entries(jar).find(([name]) => name.startsWith(cookiePrefix));
+  if (!entry) {
+    return {};
+  }
+  const [cookieName, value] = entry;
+  return { [`${headerPrefix}${cookieName.slice(cookiePrefix.length)}`]: value };
+}
+
 const FAILURE_SIGNAL_PATTERNS = [
   {
     id: "application-error",
@@ -104,16 +152,21 @@ function detectFailureSignals(text) {
   return FAILURE_SIGNAL_PATTERNS.filter(({ pattern }) => pattern.test(text)).map(({ id }) => id);
 }
 
-async function requestStep(name, url, options = {}) {
+async function requestStep(name, url, options = {}, session = null) {
   const startedAt = Date.now();
+  const cookie = session ? cookieHeader(session.cookies) : null;
   const response = await fetch(url, {
     redirect: "manual",
     ...options,
     headers: {
       "user-agent": "sealos-live-smoke/1.0",
+      ...(cookie ? { cookie } : {}),
       ...(options.headers || {}),
     },
   });
+  if (session) {
+    updateCookieJar(session.cookies, response.headers);
+  }
   const text = await response.text();
   const contentType = response.headers.get("content-type") || "";
   let json = null;
@@ -134,7 +187,7 @@ async function requestStep(name, url, options = {}) {
     elapsedMs: Date.now() - startedAt,
     contentType,
     location: response.headers.get("location"),
-    setCookie: response.headers.get("set-cookie") ? "<present>" : null,
+    setCookie: getSetCookieHeaders(response.headers).length ? "<present>" : null,
     bodyPreview: safeJson ? JSON.stringify(safeJson).slice(0, 240) : text.slice(0, 240),
     failureSignals,
     json: safeJson,
@@ -182,39 +235,43 @@ const args = parseArgs(process.argv);
 const baseUrl = args.url;
 
 if (!baseUrl) {
-  fail("usage: node sealos-live-smoke.mjs --url <url> [--captcha-path <path>] [--login-path <path>] [--username <user>] [--password <pass>] [--auth-path <path>]");
+  fail("usage: node sealos-live-smoke.mjs --url <url> [--captcha-path <path>] [--login-path <path>] [--login-method json-token|cookie-json] [--username <user>] [--password <pass>] [--auth-path <path>]");
 }
 
 const steps = [];
+const session = { cookies: {} };
 try {
-  steps.push(await requestStep("root", joinUrl(baseUrl, args.rootPath)));
+  steps.push(await requestStep("root", joinUrl(baseUrl, args.rootPath), {}, session));
 
   if (args.captchaPath) {
-    steps.push(await requestStep("captcha", joinUrl(baseUrl, args.captchaPath)));
+    steps.push(await requestStep("captcha", joinUrl(baseUrl, args.captchaPath), {}, session));
   }
 
   if (args.loginPath && args.username && args.password) {
+    const loginMethod = args.loginMethod || "json-token";
     const body = JSON.stringify({
       username: args.username,
       password: args.password,
       email: args.username,
     });
+    const extraHeaders = loginMethod === "cookie-json" ? csrfHeadersFromCookies(session.cookies, args) : {};
     steps.push(
       await requestStep("login", joinUrl(baseUrl, args.loginPath), {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...extraHeaders },
         body,
-      }),
+      }, session),
     );
   }
 
   const loginStep = steps.find((step) => step.name === "login");
   const token = extractToken(loginStep);
   for (const path of authPathsFromArgs(args)) {
+    const cookieAuthHeaders = args.loginMethod === "cookie-json" ? csrfHeadersFromCookies(session.cookies, args) : {};
     steps.push(
       await requestStep(`auth:${path}`, joinUrl(baseUrl, path), {
-        headers: token ? { authorization: `Bearer ${token}` } : {},
-      }),
+        headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...cookieAuthHeaders },
+      }, session),
     );
   }
 } catch (error) {
@@ -238,6 +295,7 @@ console.log(
         (loginStep ? loginStep.ok && loginJsonSuccess !== false : true) &&
         authSuccess,
       url: baseUrl,
+      loginMethod: args.loginMethod || (loginStep ? "json-token" : null),
       credentials: args.username ? { username: args.username, password: redact(args.password) } : null,
       steps: steps.map(({ rawJson, ...step }) => step),
     },

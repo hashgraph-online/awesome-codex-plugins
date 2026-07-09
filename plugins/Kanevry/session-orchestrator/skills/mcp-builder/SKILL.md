@@ -141,6 +141,15 @@ server.registerTool(
 
 For the **stdio MCP server** implementation path (≥ 6 tools, external auth, or language mismatch), continue with [Phase 2 — Implementation](#phase-2--implementation) below, which covers project structure, core infrastructure, and the full TypeScript stdio setup.
 
+### Alternative: Token-Frugal CLI Driver for MCP-Only Capabilities
+
+If a future capability is **MCP-only** (no good native CLI of its own), the token-frugal path skips full `.mcp.json` wiring:
+
+- **Standalone CLI driver:** `mcporter generate-cli <server> --bundle` mints a schema-baked standalone CLI for one MCP server (real flags: `--compile`, `--bundler rolldown|bun`, `--output <path>`, `--include-tools <csv>` / `--exclude-tools <csv>`). A driver skill dispatches it via Bash, writes deterministic JSON to a run-dir, and the orchestrator parses from disk — never via prompt context, so token cost stays flat. This is the same pattern `skills/playwright-driver/SKILL.md` and `skills/peekaboo-driver/SKILL.md` already use (dispatch CLI → write AX-snapshot/JSON → parse from disk).
+- **One-shot tool call:** `mcporter call <server>.<tool>` (also: `mcporter call --server <s> --tool <t> --args '{...}'`) invokes a single MCP tool without a standing `.mcp.json` entry — a concrete implementation of the projects-baseline **MCP-002** discipline ("no cargo-cult `.mcp.json`"). Note: MCP-002 is a baseline cross-repo reference, not a local mandate in this repo.
+
+**MCPJungle context:** this repo's local MCP layer is `session-orchestrator` declared in `.mcp.json` (a bash-based server). Baseline MCP aggregation is **MCPJungle** (machine-level gateway, not wired here). mcporter is therefore an *alternative recipe for MCP-only drivers*, not a drop-in for MCPJungle — it is optional (`skills/repo-audit/SKILL.md` Category 9 already uses it with graceful-degrade). **Only reach for this pattern when a real MCP-only-driver need arises; this is a forward-looking planning note.**
+
 ## Phase 2 — Implementation
 
 ### 2.1 Project structure (TypeScript)

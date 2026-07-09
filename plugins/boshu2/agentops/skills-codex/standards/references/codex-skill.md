@@ -6,7 +6,7 @@ Source of truth: `docs/contracts/codex-skill-api.md`
 
 ## Frontmatter
 
-Codex SKILL.md frontmatter must include `name` and `description`:
+Codex SKILL.md frontmatter must contain **only** `name` and `description`:
 
 ```yaml
 ---
@@ -16,26 +16,33 @@ description: 'When this skill triggers and when it does not.'
 ```
 
 **Prohibited fields** (Claude-internal, ignored by Codex):
-`skill_api_version`, `context`, `allowed-tools`, `model`, `user-invocable`, `output_contract`
-
-Existing generated bundles may still carry compatibility metadata, but the executable validator only requires the `name` and `description` fields above.
+`skill_api_version`, `context`, `metadata`, `allowed-tools`, `model`, `user-invocable`, `output_contract`
 
 ## Tool References
 
-Skills must reference the Codex session agent surface that actually exists in this repo's runtime:
+Skills must reference only tools available in Codex sessions:
 
-| Codex session surface | Purpose | Usage note |
-|-----------------------|---------|------------|
-| `spawn_agent` | Create a focused subagent | Use one agent per task, judge, or worker |
-| `wait_agent` | Wait for one or more agents | Prefer explicit waits over polling loops |
-| `send_input` | Send a short follow-up message | Use only for brief steering or retry prompts |
-| `close_agent` | Terminate an agent | Use for stuck or no-longer-needed agents |
-| `agent_type` | Label the agent role | Common roles in this repo are `default`, `explorer`, and `worker` |
+| Codex Tool | Purpose | Claude Equivalent |
+|------------|---------|-------------------|
+| `read_file` | Read file contents | `Read` |
+| `apply_patch` | Apply file edits | `Edit` |
+| `rg` | Search file contents | `Grep` |
+| `glob_file_search` | Find files by pattern | `Glob` |
+| `cmd` | Shell execution | `Bash` |
+| `git` | Git operations | `Bash(git ...)` |
+| `list_dir` | List directory | `Bash(ls)` |
+| `spawn_agent` | Spawn a focused sub-agent | `Agent` |
+| `send_input` | Send follow-up input to a sub-agent | `SendMessage` |
+| `wait_agent` | Wait for one or more sub-agents | Built into Agent tool |
+| `close_agent` | Stop a stuck or no-longer-needed sub-agent | `TaskStop` |
 
 ### Prohibited Tool References
 
-These Codex primitives have **no Codex equivalent** and must not appear:
+These Claude Code primitives have **no Codex equivalent** and must not appear:
 
+- `TaskCreate`, `TaskList`, `TaskUpdate`, `TaskGet`, `TaskStop`
+- `TeamCreate`, `TeamDelete`, `SendMessage`
+- `EnterPlanMode`, `ExitPlanMode`, `EnterWorktree`
 - `Skill(skill=...)` — Codex uses `$skill-name` invocation, not a Skill tool
 - `Agent(subagent_type=...)` — Codex uses agent roles, not subagent_type
 
@@ -65,12 +72,16 @@ Codex orchestration uses:
 | Agent roles | `agent_type` | Specialized sub-agents (worker, explorer, monitor) |
 | Shell orchestration | `cmd` + `bd` CLI | Issue tracking, wave management |
 
+**NOT:** TaskList-based queueing, TeamCreate/SendMessage coordination, or Skill tool chaining.
 
 ## Common Issues
 
 | Pattern | Problem | Fix |
 |---------|---------|-----|
-| `$validate ` | Claude Skill tool, doesn't exist | Use `$validate` invocation syntax |
+| `TaskCreate(subject=...)` | Claude primitive, doesn't exist | Use `bd create` via shell or `spawn_agent` |
+| `TeamCreate(team_name=...)` | Claude primitive, doesn't exist | Use agent roles in config |
+| `SendMessage(to=...)` | Claude primitive, doesn't exist | Use `send_input` for brief follow-up messages |
+| `Skill(skill="vibe")` | Claude Skill tool, doesn't exist | Use `$validate` invocation syntax |
 | `context.window: fork` | Claude frontmatter, ignored | Remove from Codex SKILL.md |
 | `~/.claude/skills/` | Wrong path | Use `.agents/skills/` |
 | `todo_write(...)` | Not available in Codex sessions | Use `bd` CLI or file-based tracking |
@@ -83,7 +94,8 @@ Use a two-phase approach for comprehensive coverage at minimal cost:
 
 **Phase 1 — Static (fast, no API cost):**
 - Check frontmatter has only `name` + `description`
-- Check for `~/.codex/` paths
+- Grep for Claude-only primitives (TaskCreate, TeamCreate, SendMessage, etc.)
+- Check for `~/.claude/` paths
 - Verify reference files are also clean
 
 **Phase 2 — Live (thorough, requires Codex API):**
@@ -127,10 +139,9 @@ When reviewing Codex skills (`skills-codex/*/SKILL.md`):
 
 - [ ] Frontmatter has only `name` + `description`
 - [ ] No Claude primitive names (PascalCase or lowercase-hyphenated)
-- [ ] No `~/.codex/` paths
+- [ ] No `~/.claude/` paths
 - [ ] No `Skill(skill=...)` tool invocations
 - [ ] No `Agent(subagent_type=...)` tool invocations
-- [ ] No batch-only spawn primitive references
 - [ ] No `context.*` or `metadata.*` frontmatter
 - [ ] Reference files (`references/*.md`) also free of Claude primitives
 - [ ] Instructions are actionable for a Codex agent with only Codex tools

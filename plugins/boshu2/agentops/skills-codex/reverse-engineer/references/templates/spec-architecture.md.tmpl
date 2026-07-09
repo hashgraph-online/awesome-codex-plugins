@@ -1,0 +1,37 @@
+# Architecture Spec: {{PRODUCT_NAME}}
+
+- Date: {{DATE}}
+- Guardrails: authorized analysis only; no proprietary prompt/source reconstruction in reports.
+
+## Scope
+
+- What is in-scope for this reverse engineering session.
+- What is explicitly out-of-scope.
+
+## High-Level Model
+
+Describe the system as:
+- Data-plane components (what runs locally, what processes user data)
+- Control-plane components (hosted services, auth, telemetry, policy)
+
+## Evidence Buckets (MUST keep separate)
+
+### Docs Say
+
+- Claims from docs (cite slugs from `feature-inventory.md`).
+
+### Code Proves (Repo / Extracted Artifacts)
+
+- Concrete anchors: file paths, symbols, string evidence (no embedded prompts).
+
+### Hosted / Control-Plane (Unknown Until Proven)
+
+- Anything that is accessed over the network or controlled by SaaS services.
+
+## Component Map
+
+- Component: ...
+- Responsibility: ...
+- Trust boundary notes: ...
+- Evidence: ...
+

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Book Reader Conversations"
+  short_description: "Validate a book with real readers"
+  default_prompt: "Use $book-reader-conversations to plan reader conversations for my nonfiction book."

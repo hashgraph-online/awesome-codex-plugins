@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room QC Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_id",
+    "reviewer_role",
+    "reviewed_at",
+    "reviewed_artifacts",
+    "artifact_hashes",
+    "schema_validator_version",
+    "schema_status",
+    "leakage_status",
+    "leakage_scan_summary",
+    "architecture_status",
+    "architecture_findings",
+    "coverage_status",
+    "required_rerun",
+    "contamination_incidents",
+    "findings",
+    "abstract_delta_tickets",
+    "final_status"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewer_role": {
+      "enum": [
+        "clean-qa-editor",
+        "contaminated-manager-verifier"
+      ]
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "artifact_hashes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact",
+          "sha256"
+        ],
+        "properties": {
+          "artifact": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "schema_validator_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_status": {
+      "enum": [
+        "passed",
+        "failed",
+        "not-run"
+      ]
+    },
+    "leakage_status": {
+      "enum": [
+        "passed",
+        "failed",
+        "quarantined",
+        "not-run"
+      ]
+    },
+    "leakage_scan_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "architecture_status": {
+      "enum": [
+        "aligned",
+        "drift",
+        "blocked",
+        "not-run"
+      ]
+    },
+    "architecture_findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "coverage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "blocked",
+        "not-run"
+      ]
+    },
+    "required_rerun": {
+      "type": "boolean"
+    },
+    "contamination_incidents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/contamination_incident"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "abstract_delta_tickets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/abstract_delta_ticket"
+      }
+    },
+    "final_status": {
+      "enum": [
+        "passed",
+        "passed-with-gaps",
+        "failed",
+        "blocked",
+        "quarantined"
+      ]
+    }
+  },
+  "$defs": {
+    "contamination_incident": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "artifact",
+        "blocked_material_type",
+        "action",
+        "clean_context_invalidated",
+        "notes"
+      ],
+      "properties": {
+        "incident_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocked_material_type": {
+          "enum": [
+            "source_excerpt",
+            "raw_diff",
+            "private_identifier",
+            "source_shaped_pseudocode",
+            "other"
+          ]
+        },
+        "action": {
+          "enum": [
+            "quarantined",
+            "deleted",
+            "regenerated"
+          ]
+        },
+        "clean_context_invalidated": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "category",
+        "summary"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "blocker"
+          ]
+        },
+        "category": {
+          "enum": [
+            "schema",
+            "leakage",
+            "coverage",
+            "implementation",
+            "verification",
+            "ambiguity",
+            "testability",
+            "code-hygiene",
+            "terminology",
+            "architecture",
+            "process"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "affected_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommended_action": {
+          "type": "string"
+        }
+      }
+    },
+    "abstract_delta_ticket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "summary",
+        "requested_clean_change",
+        "status"
+      ],
+      "properties": {
+        "ticket_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_clean_change": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "deferred"
+          ]
+        }
+      }
+    }
+  }
+}

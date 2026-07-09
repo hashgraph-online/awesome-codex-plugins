@@ -14,7 +14,6 @@ from check_consistency_models import (
     ScanContext,
     SEALOS_CPU_REQUEST_BY_LIMIT,
     SEALOS_MEMORY_REQUEST_BY_LIMIT,
-    TEMPLATE_DEPLOY_KEY,
     Violation,
 )
 from check_consistency_parser import find_line
@@ -111,62 +110,6 @@ def check_pvc_storage_limit(context: ScanContext) -> List[Violation]:
                         message="PVC storage request must be <= 1Gi",
                     )
                 )
-
-    return violations
-
-
-def check_statefulset_template_deploy_labels(context: ScanContext) -> List[Violation]:
-    violations: List[Violation] = []
-    expected_value = "${{ defaults.app_name }}"
-
-    for doc in context.yaml_documents:
-        if doc.skip_checks or not isinstance(doc.data, dict):
-            continue
-        if doc.data.get("kind") != "StatefulSet":
-            continue
-
-        metadata = doc.data.get("metadata")
-        labels = metadata.get("labels") if isinstance(metadata, dict) else None
-        if not isinstance(labels, dict) or labels.get(TEMPLATE_DEPLOY_KEY) != expected_value:
-            add_doc_violation(
-                violations,
-                rule_id="R041",
-                doc=doc,
-                pattern=rf"^\s*{re.escape(TEMPLATE_DEPLOY_KEY)}\s*:",
-                default_pattern=r"^\s*labels\s*:",
-                message=(
-                    f"StatefulSet metadata.labels.{TEMPLATE_DEPLOY_KEY} "
-                    f"must be {expected_value} for Template instance tracking"
-                ),
-            )
-
-        spec = doc.data.get("spec")
-        volume_claim_templates = spec.get("volumeClaimTemplates") if isinstance(spec, dict) else None
-        if not isinstance(volume_claim_templates, list):
-            continue
-
-        for volume_claim_template in volume_claim_templates:
-            if not isinstance(volume_claim_template, dict):
-                continue
-            vct_metadata = volume_claim_template.get("metadata")
-            vct_labels = vct_metadata.get("labels") if isinstance(vct_metadata, dict) else None
-            if isinstance(vct_labels, dict) and vct_labels.get(TEMPLATE_DEPLOY_KEY) == expected_value:
-                continue
-
-            name = "<unknown>"
-            if isinstance(vct_metadata, dict) and isinstance(vct_metadata.get("name"), str):
-                name = vct_metadata["name"]
-            add_doc_violation(
-                violations,
-                rule_id="R041",
-                doc=doc,
-                pattern=rf"^\s*{re.escape(TEMPLATE_DEPLOY_KEY)}\s*:",
-                default_pattern=rf"^\s*name\s*:\s*{re.escape(name)}\s*$",
-                message=(
-                    f"StatefulSet volumeClaimTemplates[{name}] metadata.labels.{TEMPLATE_DEPLOY_KEY} "
-                    f"must be {expected_value} so Template can track and clean PVCs"
-                ),
-            )
 
     return violations
 
@@ -464,7 +407,6 @@ STORAGE_RULES: Dict[str, Rule] = {
     "R005": Rule("R005", check_no_emptydir),
     "R006": Rule("R006", check_image_pull_policy),
     "R011": Rule("R011", check_pvc_storage_limit),
-    "R041": Rule("R041", check_statefulset_template_deploy_labels),
     "R019": Rule("R019", check_database_cluster_component_resources),
     "R040": Rule("R040", check_database_cluster_visibility_labels),
     "R038": Rule("R038", check_managed_workload_resource_ladder),

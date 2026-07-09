@@ -1,0 +1,18 @@
+# Keep local artifacts and secrets out of the packaged plugin.
+node_modules/
+*.vsix
+*.log
+*.tmp
+__pycache__/
+*.pyc
+
+# Secrets / credentials — never ship.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+marketplace.env
+
+# OS cruft
+.DS_Store

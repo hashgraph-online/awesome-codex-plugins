@@ -2,7 +2,7 @@
 name: session-plan
 user-invocable: false
 tags: [orchestration, planning, waves, agents]
-model: opus
+model: inherit
 model-preference: opus
 model-preference-codex: gpt-5.4
 model-preference-cursor: claude-opus-4-6
@@ -506,8 +506,8 @@ Present the plan in this format:
 - Waves: [N] | Agents-per-wave cap: [M] | Isolation: [worktree|none|auto]
 - Enforcement: [strict|warn|off] | Max turns: [N per session type]
 - Persistence: [true|false] | Pencil: [path|none]
-- Bite-sized plan: [path if exists, e.g. `docs/plans/2026-05-16-superpowers-cluster.md` | none]
-- Parallel dispatch: All agents within each wave execute simultaneously via Agent() tool
+- Bite-sized plan: [path if exists, e.g. `docs/plans/YYYY-MM-DD-<feature>.md` | none]
+- Parallel dispatch: agents execute in small batches of 3–4 per message (up to the wave cap)
 - Total agents planned: [sum across all waves]
 
 Ready to execute? Use /go to begin.

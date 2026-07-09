@@ -1,0 +1,131 @@
+---
+type: tech-review
+outputFor: [scrum-master, frontend, backend]
+dependencies: [prd, architecture, ui-spec, ui-design]
+---
+
+# 技术方案评审报告
+
+## 1. 评审概述
+
+- **项目名称**：{{PROJECT_NAME}}
+- **评审日期**：{{DATE}}
+- **评审人**：Tech Lead Agent
+- **评审文档**：
+
+## 摘要
+
+> 下游 Agent 请优先阅读本节，需要细节时再查阅完整文档。
+
+- **评审结论**：✅ 通过 / ⚠️ 有条件通过 / ❌ 不通过
+- **主要风险**：[最重要的 1-3 个风险点]
+- **必须解决**：[阻塞项列表，无则填"无"]
+- **建议优化**：[非阻塞改进建议]
+- **技术债务**：[已知技术债务]
+
+---
+
+  - PRD：`.boss/{{FEATURE}}/prd.md`
+  - 架构：`.boss/{{FEATURE}}/architecture.md`
+  - UI 规范：`.boss/{{FEATURE}}/ui-spec.md`
+  - UI 设计 JSON：`.boss/{{FEATURE}}/ui-design.json`
+
+## 2. 评审结论
+
+| 维度 | 评分 | 说明 |
+|------|------|------|
+| 架构合理性 | ⭐⭐⭐⭐⭐ | {{ARCHITECTURE_COMMENT}} |
+| 技术选型 | ⭐⭐⭐⭐⭐ | {{TECH_STACK_COMMENT}} |
+| 可扩展性 | ⭐⭐⭐⭐⭐ | {{SCALABILITY_COMMENT}} |
+| 可维护性 | ⭐⭐⭐⭐⭐ | {{MAINTAINABILITY_COMMENT}} |
+| 安全性 | ⭐⭐⭐⭐⭐ | {{SECURITY_COMMENT}} |
+
+**总体评价**：{{OVERALL_RESULT}}
+
+## 3. 技术风险评估
+
+| 风险 | 等级 | 影响范围 | 缓解措施 |
+|------|------|----------|----------|
+| {{RISK_1}} | {{RISK_1_LEVEL}} | {{RISK_1_IMPACT}} | {{RISK_1_MITIGATION}} |
+| {{RISK_2}} | {{RISK_2_LEVEL}} | {{RISK_2_IMPACT}} | {{RISK_2_MITIGATION}} |
+
+## 4. 技术可行性分析
+
+### 4.1 核心功能可行性
+
+| 功能 | 可行性 | 复杂度 | 说明 |
+|------|--------|--------|------|
+| {{FEATURE_1}} | {{FEASIBILITY_1}} | {{COMPLEXITY_1}} | {{COMMENT_1}} |
+| {{FEATURE_2}} | {{FEASIBILITY_2}} | {{COMPLEXITY_2}} | {{COMMENT_2}} |
+
+### 4.2 技术难点
+
+| 难点 | 解决方案 | 预估工时 |
+|------|----------|----------|
+| {{CHALLENGE_1}} | {{SOLUTION_1}} | {{EFFORT_1}} |
+| {{CHALLENGE_2}} | {{SOLUTION_2}} | {{EFFORT_2}} |
+
+## 5. 架构改进建议
+
+### 5.1 必须修改（阻塞项）
+
+- [ ] {{BLOCKER_1}}
+- [ ] {{BLOCKER_2}}
+
+### 5.2 建议优化（非阻塞）
+
+- [ ] {{SUGGESTION_1}}
+- [ ] {{SUGGESTION_2}}
+
+## 6. 实施建议
+
+### 6.1 开发顺序建议
+
+```mermaid
+graph LR
+    A[基础架构] --> B[核心功能]
+    B --> C[辅助功能]
+    C --> D[优化完善]
+```
+
+### 6.2 里程碑建议
+
+| 里程碑 | 内容 | 建议工时 | 风险等级 |
+|--------|------|----------|----------|
+| M1 | {{M1_CONTENT}} | {{M1_EFFORT}} | {{M1_RISK}} |
+| M2 | {{M2_CONTENT}} | {{M2_EFFORT}} | {{M2_RISK}} |
+| M3 | {{M3_CONTENT}} | {{M3_EFFORT}} | {{M3_RISK}} |
+
+### 6.3 技术债务预警
+
+| 潜在债务 | 产生原因 | 建议处理时机 |
+|----------|----------|--------------|
+| {{DEBT_1}} | {{DEBT_1_REASON}} | {{DEBT_1_TIMING}} |
+| {{DEBT_2}} | {{DEBT_2_REASON}} | {{DEBT_2_TIMING}} |
+
+## 7. 代码规范建议
+
+### 7.1 目录结构规范
+
+```
+{{DIRECTORY_STRUCTURE}}
+```
+
+### 7.2 命名规范
+
+- **文件命名**：{{FILE_NAMING}}
+- **组件命名**：{{COMPONENT_NAMING}}
+- **函数命名**：{{FUNCTION_NAMING}}
+- **变量命名**：{{VARIABLE_NAMING}}
+
+### 7.3 代码风格
+
+- {{CODE_STYLE_1}}
+- {{CODE_STYLE_2}}
+
+## 8. 评审结论
+
+- **是否通过**：{{PASS_STATUS}}
+- **阻塞问题数**：{{BLOCKER_COUNT}} 个
+- **建议优化数**：{{SUGGESTION_COUNT}} 个
+- **下一步行动**：{{NEXT_ACTION}}

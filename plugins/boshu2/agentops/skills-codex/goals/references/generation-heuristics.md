@@ -49,7 +49,7 @@ The pattern: chaos + filter + ratchet = directional progress from undirected ene
 
 Escape velocity condition: `signal_rate x retrieval_rate > decay_rate` (informally: you learn faster than you forget). Goals should verify:
 - Signal generation (extract, forge, retro produce learnings)
-- Retrieval (inject loads learnings into sessions)
+- Retrieval (ao lookup loads learnings into sessions)
 - Decay resistance (learnings are persisted, not just in-memory)
 
 ## Weight Guidelines

@@ -1,7 +1,7 @@
 {
   "name": "graymatter",
   "version": "0.2.1",
-  "description": "Durable memory, shared graph state, and live api-docs schema awareness for Codex and OpenClaw agents.",
+  "description": "Exclusive primary durable memory, shared graph state, and live api-docs schema awareness for Codex and OpenClaw agents.",
   "author": {
     "name": "ValkyrLabs",
     "email": "support@valkyrlabs.com",
@@ -19,7 +19,10 @@
     "analytics",
     "semantic-layer",
     "mcp",
+    "retrieval-receipts",
+    "graymatter-light",
     "valkyrai",
+    "valoride",
     "openclaw",
     "codex"
   ],
@@ -27,8 +30,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "GrayMatter",
-    "shortDescription": "Durable memory and live schema context for agents",
-    "longDescription": "GrayMatter gives Codex and OpenClaw agents a durable memory layer, shared graph context, authenticated awareness of the live ValkyrAI api-0 schema, and a bundled mcp-server for direct tool access. Use it to persist decisions, query context, inspect business objects, and coordinate agent state through ValkyrAI.",
+    "shortDescription": "Exclusive primary durable memory and live schema context for agents",
+    "longDescription": "GrayMatter gives Codex, OpenClaw, ValorIDE, and MCP-compatible agents the exclusive primary durable memory layer, retrieval receipts with fail-closed policy guidance, shared graph context, GrayMatter Light local mode, authenticated awareness of the live ValkyrAI api-0 schema, and a bundled mcp-server for direct tool access. Use it immediately at task start to retrieve invariants, rules, instructions, prior context, personalization, business truth, personal truth, and organizational truth before planning. Write new durable user context back to api-0 during the session; local files are temporary replay fallback only.",
     "developerName": "ValkyrLabs",
     "category": "Productivity",
     "capabilities": [
@@ -42,10 +45,13 @@
     "composerIcon": "./assets/composer-icon.svg",
     "logo": "./assets/logo.svg",
     "defaultPrompt": [
+      "Run GrayMatter invariant preflight before work",
+      "Retrieve memory with receipts and obey graymatterPolicy",
+      "Query GrayMatter for rules and prior context",
       "Use GrayMatter to remember this decision",
-      "Query GrayMatter for relevant context",
       "Inspect the live api-docs schema with GrayMatter",
-      "Use GrayMatter to set up analytics context"
+      "Start GrayMatter Light for local/offline memory",
+      "Replay deferred GrayMatter memory after auth recovers"
     ],
     "brandColor": "#245B4A",
     "screenshots": [

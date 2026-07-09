@@ -340,7 +340,7 @@ volumes:
 - For StatefulSet: Use `volumeClaimTemplates` to create persistent storage
 - For Deployment: Consider whether storage is truly needed; if so, switch to StatefulSet
 - For temporary configuration: Consider using ConfigMap or Secret
-- For StatefulSet PVC tracking: set `cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}` on both the StatefulSet metadata labels and every `volumeClaimTemplates[].metadata.labels`, while preserving component labels such as `app`.
+- Keep standard StatefulSet workload labels such as `app` and `cloud.sealos.io/app-deploy-manager`; omit only `cloud.sealos.io/deploy-on-sealos` from StatefulSet metadata labels and claim template metadata labels.
 
 ### PersistentVolumeClaim Usage Restriction
 
@@ -369,9 +369,6 @@ volumeClaimTemplates:
       annotations:
         path: /var/lib/headscale  # Mount path
         value: '1'                 # Fixed value
-      labels:
-        app: ${{ defaults.app_name }}
-        cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
       name: vn-varvn-libvn-headscale  # Naming rules see below
     spec:
       accessModes:
@@ -435,6 +432,7 @@ data:
 ### Volume Mount Specification
 
 Create one ConfigMap volume per workload. The volume name must be `<workload metadata.name>-cm`. Every ConfigMap `data` key must have its own `volumeMount`, and `volumeMount.subPath` must exactly equal the ConfigMap `data` key.
+Omit `defaultMode` for ConfigMap volumes unless the application explicitly requires a non-default file mode.
 
 ```yaml
 volumes:
@@ -502,7 +500,6 @@ spec:
         - name: ${{ defaults.app_name }}-cm
           configMap:
             name: ${{ defaults.app_name }}
-            defaultMode: 493
 ```
 
 ## Labels and Naming Specification
@@ -694,6 +691,44 @@ spec:
 3. `ssl-redirect` defaults to `'true'`
 4. Includes a configuration-snippet for static resource caching
 5. Backend service name must be `${{ defaults.app_name }}`
+
+### WebSocket Format
+
+Use WebSocket ingress when the public entry is `ws://`, `wss://`, CDP/Chrome DevTools, a game socket, or a service/port named `websocket`, `ws`, or `wss`. Follow the EaglerCraft-style pattern: name the service port `websocket`, route the ingress to that port, and use the WS annotation set.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    app: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager-domain: ${{ defaults.app_host }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: 32m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/backend-protocol: WS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ${{ defaults.app_name }}
+                port:
+                  number: <websocket-port-number>
+  tls:
+    - hosts:
+        - ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      secretName: ${{ SEALOS_CERT_SECRET_NAME }}
+```
 
 ## Database Connection Configuration
 

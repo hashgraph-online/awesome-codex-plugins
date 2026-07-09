@@ -309,7 +309,14 @@ Do not:
 
 ## Minimal Reporting Shape
 
+This shape is the anti-entropy workflow's decision surface, not a separate
+final completion report. When anti-entropy materially shapes a completed task,
+its preserved/retired behavior, deletion class, retained boundary, verification
+plan, and residual risk should flow into `verification-before-completion`'s
+unified Aegis impact/safety receipt.
+
 ```text
+Aegis Visibility:
 Anti-Entropy Declaration:
 Retirement Decision:
 Verification Plan:

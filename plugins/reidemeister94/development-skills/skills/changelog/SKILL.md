@@ -13,7 +13,7 @@ Edits `CHANGELOG.md` ONLY — never version files, never `git tag`/`git commit`.
 
 ## Step 1 — Resolve the action
 
-Read `$ARGUMENTS`: contains `add` / `from-commits` (or `commits`) / `release` → that action. Empty or unrecognized → infer from the user's request. Still ambiguous → `AskUserQuestion` with `add | from-commits | release`.
+`$ARGUMENTS` contains `add` / `from-commits` (or `commits`) / `release` → that action; else infer from the request, and `AskUserQuestion` (`add | from-commits | release`) if still ambiguous.
 
 ## Step 2 — Pre-flight (all actions)
 
@@ -22,30 +22,29 @@ root=$(git rev-parse --show-toplevel 2>/dev/null) || root=.
 ls "$root/CHANGELOG.md" 2>/dev/null
 ```
 
-All actions read/edit `$root/CHANGELOG.md` (the repo-root file — never a bare cwd-relative path).
+All actions read/edit `$root/CHANGELOG.md` (repo-root, never cwd-relative).
 
 - Exists → `Read` it; note its style (compare-link footers? PR refs? capitalization?).
-- Missing + action `add`/`from-commits` → write this skeleton, then proceed:
-
-  ```markdown
-  # Changelog
-
-  All notable changes to this project will be documented in this file.
-
-  The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-  and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-  ## [Unreleased]
-  ```
-
-- Missing + action `release` → STOP: nothing to release; suggest `/changelog add` or `/changelog from-commits`.
+- Missing + `add`/`from-commits` → write the standard Keep a Changelog 1.1.0 skeleton (title + intro linking keepachangelog.com/en/1.1.0 and semver.org/spec/v2.0.0, then `## [Unreleased]`), then proceed.
+- Missing + `release` → STOP: nothing to release; suggest `/changelog add` or `/changelog from-commits`.
 
 ## Step 3 — Insert under `[Unreleased]` (add, from-commits)
 
-Via `Edit`: ensure `## [Unreleased]` exists (after the boilerplate, before the first `## [X.Y.Z]`); put the entry under its `### <Category>`, creating the subsection in Keep a Changelog's canonical category order if absent; append `- <imperative description>`. Never modify a released section; never date `[Unreleased]`.
+Via `Edit`, append `- <imperative description>` under the entry's `### <Category>` within `## [Unreleased]`, creating the subsection in Keep a Changelog's canonical order if absent. Obey the contract in `references/writing-guidelines.md` (never modify released sections, never date `[Unreleased]`).
 
 ## Step 4 — Run the action
 
-Load the matching reference and follow it: add → `references/add.md` · from-commits → `references/from-commits.md` · release → `references/release.md`.
+`references/writing-guidelines.md` is the single source of truth for entry rules, the Conventional Commits map, and the SemVer bump table — load it for every action.
 
-`references/writing-guidelines.md` is the single source of truth for entry rules, the Conventional Commits map, and the SemVer bump table — load it when an action says to.
+- **add** — entry from the user's text; else `AskUserQuestion` for category (the six Keep a Changelog categories) + a ≤15-word description. Tighten wording per writing-guidelines, then insert (Step 3).
+- **from-commits** — see below.
+- **release** — follow `references/release.md`.
+
+### from-commits
+
+The changelog, not git tags, is the source of truth for what shipped — derive entries, don't mirror the log.
+
+1. **Range.** `git tag --sort=-version:refname | head -5`: ≥1 tag → `<latest-tag>..HEAD`. No tag but a prior `## [X.Y.Z]` section → `git log --grep="release.*X\.Y\.Z" -iE -1 --format=%H` for the lower bound. No baseline → `git rev-list --count HEAD`, print N, `AskUserQuestion` (`all N | last 30 | last 100 | other`). Never silently default to all commits.
+2. **Gather.** `git log --oneline <range>`, then `git log --pretty=format:"%h %s%n%b%n---" <range>` (BREAKING footers live in bodies).
+3. **Classify → filter → aggregate.** Per writing-guidelines: map prefixes to categories, keep macro-only changes, collapse a 10–20-commit feature into 1–3 entries. De-duplicate against existing `[Unreleased]` entries.
+4. **Propose & confirm.** Show entries grouped by category, plus what was skipped/aggregated (one-line reasons). Get approval, then insert per Step 3.

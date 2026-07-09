@@ -1,7 +1,7 @@
 {
   "name": "ru-text",
-  "version": "1.8.0",
-  "description": "Russian text quality plugin — typography, information style, editorial standards, UX writing, business correspondence",
+  "version": "1.10.0",
+  "description": "Russian text quality plugin — typography, information style, editorial standards, UX writing, business correspondence, and AI-text cleanup",
   "author": {
     "name": "Arseniy Kamyshev",
     "email": "nafigator@gmail.com",

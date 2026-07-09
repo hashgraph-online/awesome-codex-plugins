@@ -1,6 +1,6 @@
 # `.agents/scope.lock` — Format Reference
 
-The scope lock file declares which repo-relative directory prefixes are currently in scope for editing. The PreToolUse hook `hooks/edit-scope-guard.sh` consults it on every edit-class tool call.
+The scope lock file declares which repo-relative directory prefixes are currently in scope for editing. The PreToolUse hook `hooks/edit-scope-guard.sh` consults it on every `Edit`, `Write`, and `Bash` tool call.
 
 ## Schema (v1)
 
@@ -16,13 +16,13 @@ The scope lock file declares which repo-relative directory prefixes are currentl
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `schema_version` | integer | yes | Currently `1`. Hook treats unknown versions as fail-open. |
-| `frozen_dirs` | array of strings | yes | Repo-relative directory prefixes. Trailing slash optional. Empty array means "no enforcement". |
-| `acquired_at` | string (ISO-8601) | yes | UTC, RFC 3339. |
-| `acquired_by` | string | yes | Session id, PID, or human-supplied label. |
+| `frozen_dirs` | array of strings | yes | Repo-relative directory prefixes. Trailing slash optional but conventional. Empty array means "no enforcement". |
+| `acquired_at` | string (ISO-8601) | yes | UTC, RFC 3339. Updated on every successful `freeze` / `unfreeze`. |
+| `acquired_by` | string | yes | Session id, PID, or human-supplied label. Used for diagnostic messages only. |
 
 ## Atomicity guarantee
 
-Writes go through `cli/internal/llmwiki/scope_guard.go:SafeAtomicWrite` (temp file + `rename(2)`). Readers either see the previous JSON or the new JSON, never a torn document. Concurrent writers converge to last-writer-wins.
+Writes go through `cli/internal/llmwiki/scope_guard.go:SafeAtomicWrite`, which writes to a temp file in the same directory and `rename(2)`s into place. Readers either see the previous JSON or the new JSON, never a torn document. Concurrent writers converge to last-writer-wins.
 
 ## Hook behavior
 
@@ -32,12 +32,12 @@ Writes go through `cli/internal/llmwiki/scope_guard.go:SafeAtomicWrite` (temp fi
 - **JSON parse fails:** exit 0 (fail-open). Log warning to stderr.
 - **`frozen_dirs` empty:** exit 0 (allow).
 - **Target path under any `frozen_dirs[i]`:** exit 0 (allow).
-- **Target path outside every `frozen_dirs[i]`:** exit 2 with structured stderr reason.
-- **Tool input malformed:** exit 0 (nothing to check).
+- **Target path outside every `frozen_dirs[i]`:** exit 2 with structured stderr reason `edit-scope-guard: <path> outside frozen scope <frozen-dirs>`.
+- **Tool input malformed (missing `tool.params.file_path` AND `tool.params.command`):** exit 0 (nothing to check).
 
-Path comparison uses prefix match on the repo-relative path. Trailing slashes are normalized away before comparison.
+Path comparison uses prefix match on the repo-relative path. Trailing slashes in `frozen_dirs` entries are normalized away before comparison.
 
 ## Forward compatibility
 
-- `schema_version` future bumps will be additive.
-- New optional fields may be added without breaking the contract.
+- `schema_version` future bumps will be additive. The hook will continue to honor v1 fields.
+- New optional fields (e.g., `expires_at`, `owner_session`) may be added without breaking the contract.

@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/pre-land-refuters",
   "layout": "modular",
-  "source_hash": "75d0df76afeac46ad115db128a828dc5e00960ddc3e8c40b21ab526a318fd3d5",
-  "generated_hash": "d690bcee73e2b64f0fea3333a07f9f473ad75b1e2227e58b3e2f3875d0b5ca7c"
+  "source_hash": "12bd6cf00984252edb50b6ce61e299006ddff5a6846bafbc180b4fc7778997c0",
+  "generated_hash": "ad437f3ec2e326ee26457bccb7d330fce255241b4af12a7e8d48149708fe1633"
 }

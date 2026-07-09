@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Cluster Map</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --text: #1a1a2e;
+      --text-secondary: #555555;
+      --border: #e0e0e0;
+      --pillar-fill: #1e3a5f;
+      --pillar-stroke: #16304d;
+      --link-mandatory: #4E79A7;
+      --link-recommended: #76B7B2;
+      --link-optional: #B07AA1;
+      --tooltip-bg: #1a1a2e;
+      --tooltip-text: #ffffff;
+      --stats-bg: #f0f4f8;
+      --written-opacity: 1.0;
+      --planned-opacity: 0.6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a2e;
+        --bg-secondary: #16213e;
+        --text: #e0e0e0;
+        --text-secondary: #aaaaaa;
+        --border: #333355;
+        --pillar-fill: #2d5a8f;
+        --pillar-stroke: #4E79A7;
+        --tooltip-bg: #0f0f23;
+        --tooltip-text: #e0e0e0;
+        --stats-bg: #16213e;
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      text-align: center;
+      padding: 24px 16px 8px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    header p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      padding: 12px 16px;
+      background: var(--stats-bg);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .map-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      min-height: 500px;
+    }
+
+    svg {
+      max-width: 100%;
+      max-height: 80vh;
+    }
+
+    .pillar-node {
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .pillar-node:hover {
+      filter: brightness(1.1);
+    }
+
+    .spoke-node {
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+
+    .spoke-node:hover {
+      filter: brightness(1.15);
+    }
+
+    .spoke-node.planned {
+      opacity: var(--planned-opacity);
+      stroke-dasharray: 4 2;
+    }
+
+    .spoke-node.written {
+      opacity: var(--written-opacity);
+    }
+
+    .link-line {
+      transition: opacity 0.2s ease, stroke-width 0.2s ease;
+    }
+
+    .link-line.mandatory {
+      stroke: var(--link-mandatory);
+      stroke-width: 2;
+    }
+
+    .link-line.recommended {
+      stroke: var(--link-recommended);
+      stroke-width: 1.5;
+      stroke-dasharray: 6 3;
+    }
+
+    .link-line.optional {
+      stroke: var(--link-optional);
+      stroke-width: 1;
+      stroke-dasharray: 3 3;
+    }
+
+    .link-line.dimmed {
+      opacity: 0.1;
+    }
+
+    .link-line.highlighted {
+      opacity: 1;
+      stroke-width: 3;
+    }
+
+    .node-label {
+      font-size: 11px;
+      fill: var(--text);
+      text-anchor: middle;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .pillar-label {
+      font-size: 13px;
+      font-weight: 700;
+      fill: #ffffff;
+      text-anchor: middle;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .cluster-label {
+      font-size: 10px;
+      fill: var(--text-secondary);
+      text-anchor: middle;
+      pointer-events: none;
+      font-style: italic;
+    }
+
+    .tooltip {
+      position: fixed;
+      background: var(--tooltip-bg);
+      color: var(--tooltip-text);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      max-width: 280px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 100;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .tooltip.visible {
+      opacity: 1;
+    }
+
+    .tooltip-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .tooltip-detail {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .tooltip-detail span:first-child {
+      color: var(--text-secondary);
+    }
+
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      padding: 8px 16px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .legend-line {
+      width: 24px;
+      height: 2px;
+    }
+
+    .legend-line.mandatory { background: var(--link-mandatory); }
+    .legend-line.recommended { background: var(--link-recommended); background-image: repeating-linear-gradient(90deg, var(--link-recommended) 0 6px, transparent 6px 9px); background-color: transparent; height: 2px;}
+    .legend-line.optional { background: var(--link-optional); background-image: repeating-linear-gradient(90deg, var(--link-optional) 0 3px, transparent 3px 6px); background-color: transparent; height: 1px;}
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.written { background: #59A14F; }
+    .legend-dot.planned { background: #59A14F; opacity: 0.5; border: 1px dashed #59A14F; }
+
+    footer {
+      text-align: center;
+      padding: 12px 16px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="map-title">Content Cluster Map</h1>
+    <p id="map-subtitle">SERP-based semantic topic clustering</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value" id="stat-posts">0</div>
+      <div class="stat-label">Total Posts</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-clusters">0</div>
+      <div class="stat-label">Clusters</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-links">0</div>
+      <div class="stat-label">Internal Links</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-words">0</div>
+      <div class="stat-label">Est. Words</div>
+    </div>
+  </div>
+
+  <div class="map-container">
+    <svg id="cluster-svg" role="img" aria-label="Content cluster visualization showing pillar page connected to topic clusters and spoke pages">
+      <title>Content Cluster Map</title>
+      <desc>Interactive visualization of a hub-and-spoke content architecture. The central pillar node connects to surrounding cluster groups, each containing spoke pages.</desc>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-line mandatory"></div> Mandatory link</div>
+    <div class="legend-item"><div class="legend-line recommended"></div> Recommended link</div>
+    <div class="legend-item"><div class="legend-line optional"></div> Optional link</div>
+    <div class="legend-item"><div class="legend-dot written"></div> Written</div>
+    <div class="legend-item"><div class="legend-dot planned"></div> Planned</div>
+  </div>
+
+  <footer>Generated by Claude SEO v1.9.0</footer>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    // === CLUSTER DATA (replaced by skill at generation time) ===
+    const CLUSTER_DATA = {
+      pillar: { title: "Sample Pillar Page", keyword: "sample keyword", volume: 5000, template: "ultimate-guide", wordCount: 3500, url: "/pillar" },
+      clusters: [
+        {
+          name: "Sample Cluster",
+          color: "#4E79A7",
+          posts: [
+            { title: "Sample Post 1", keyword: "sample post 1", volume: 1200, template: "how-to", wordCount: 1500, url: "/post-1", status: "planned" },
+            { title: "Sample Post 2", keyword: "sample post 2", volume: 800, template: "listicle", wordCount: 1400, url: "/post-2", status: "planned" }
+          ]
+        }
+      ],
+      links: [
+        { from: "pillar", to: "cluster-0-post-0", type: "mandatory" },
+        { from: "cluster-0-post-0", to: "pillar", type: "mandatory" }
+      ],
+      meta: { totalPosts: 3, totalClusters: 1, totalLinks: 2, estimatedWords: 6400 }
+    };
+    // === END CLUSTER DATA ===
+
+    const COLORS = ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1", "#FF9DA7"];
+
+    (function render() {
+      const data = CLUSTER_DATA;
+      const svg = document.getElementById("cluster-svg");
+      const tooltip = document.getElementById("tooltip");
+
+      // Update header
+      document.getElementById("map-title").textContent = data.pillar.title || "Content Cluster Map";
+      document.getElementById("map-subtitle").textContent = "Cluster map for: " + data.pillar.keyword;
+
+      // Update stats
+      document.getElementById("stat-posts").textContent = data.meta.totalPosts;
+      document.getElementById("stat-clusters").textContent = data.meta.totalClusters;
+      document.getElementById("stat-links").textContent = data.meta.totalLinks;
+      document.getElementById("stat-words").textContent = data.meta.estimatedWords.toLocaleString();
+
+      // Layout calculations
+      const numClusters = data.clusters.length;
+      const maxPostsInCluster = Math.max(...data.clusters.map(c => c.posts.length), 1);
+      const baseRadius = 140;
+      const clusterRadius = baseRadius + numClusters * 15;
+      const spokeRadius = 55 + maxPostsInCluster * 10;
+      const totalRadius = clusterRadius + spokeRadius + 60;
+      const cx = totalRadius + 40;
+      const cy = totalRadius + 40;
+      const width = (totalRadius + 40) * 2;
+      const height = (totalRadius + 40) * 2;
+
+      svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+      svg.setAttribute("width", Math.min(width, 900));
+      svg.setAttribute("height", Math.min(height, 900));
+
+      // Build node position map
+      const nodePositions = {};
+      nodePositions["pillar"] = { x: cx, y: cy };
+
+      const clusterCenters = [];
+      for (let ci = 0; ci < numClusters; ci++) {
+        const angle = (2 * Math.PI * ci) / numClusters - Math.PI / 2;
+        const ccx = cx + Math.cos(angle) * clusterRadius;
+        const ccy = cy + Math.sin(angle) * clusterRadius;
+        clusterCenters.push({ x: ccx, y: ccy, angle: angle });
+
+        const cluster = data.clusters[ci];
+        const numPosts = cluster.posts.length;
+        for (let pi = 0; pi < numPosts; pi++) {
+          const spreadAngle = Math.PI * 0.6;
+          const startAngle = angle - spreadAngle / 2;
+          const postAngle = numPosts === 1
+            ? angle
+            : startAngle + (spreadAngle * pi) / (numPosts - 1);
+          const px = ccx + Math.cos(postAngle) * spokeRadius;
+          const py = ccy + Math.sin(postAngle) * spokeRadius;
+          const nodeId = "cluster-" + ci + "-post-" + pi;
+          nodePositions[nodeId] = { x: px, y: py };
+        }
+      }
+
+      // SVG content assembly
+      let svgContent = "";
+
+      // Draw links first (behind nodes)
+      const linkElements = [];
+      data.links.forEach(function(link, idx) {
+        const fromPos = nodePositions[link.from];
+        const toPos = nodePositions[link.to];
+        if (!fromPos || !toPos) return;
+        const linkClass = "link-line " + link.type;
+        const linkId = "link-" + idx;
+        svgContent += '<line id="' + linkId + '" class="' + linkClass + '" '
+          + 'x1="' + fromPos.x + '" y1="' + fromPos.y + '" '
+          + 'x2="' + toPos.x + '" y2="' + toPos.y + '" '
+          + 'data-from="' + link.from + '" data-to="' + link.to + '"/>';
+        linkElements.push(linkId);
+      });
+
+      // Draw cluster group labels
+      clusterCenters.forEach(function(cc, ci) {
+        const cluster = data.clusters[ci];
+        const labelAngle = cc.angle;
+        const labelDist = clusterRadius * 0.55;
+        const lx = cx + Math.cos(labelAngle) * labelDist;
+        const ly = cy + Math.sin(labelAngle) * labelDist;
+        svgContent += '<text class="cluster-label" x="' + lx + '" y="' + ly + '">'
+          + escapeHtml(cluster.name) + '</text>';
+      });
+
+      // Draw spoke nodes
+      data.clusters.forEach(function(cluster, ci) {
+        const color = cluster.color || COLORS[ci % COLORS.length];
+        cluster.posts.forEach(function(post, pi) {
+          const nodeId = "cluster-" + ci + "-post-" + pi;
+          const pos = nodePositions[nodeId];
+          const statusClass = post.status === "written" ? "written" : "planned";
+          svgContent += '<g class="spoke-node ' + statusClass + '" data-node="' + nodeId + '">'
+            + '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="22" '
+            + 'fill="' + color + '" stroke="' + darken(color) + '" stroke-width="2"/>'
+            + '<text class="node-label" x="' + pos.x + '" y="' + (pos.y + 34) + '">'
+            + escapeHtml(truncate(post.title, 18))
+            + '</text></g>';
+        });
+      });
+
+      // Draw pillar node (on top)
+      svgContent += '<g class="pillar-node" data-node="pillar">'
+        + '<circle cx="' + cx + '" cy="' + cy + '" r="38" '
+        + 'fill="' + getComputedStyle(document.documentElement).getPropertyValue("--pillar-fill").trim() + '" '
+        + 'stroke="' + getComputedStyle(document.documentElement).getPropertyValue("--pillar-stroke").trim() + '" '
+        + 'stroke-width="3"/>'
+        + '<text class="pillar-label" x="' + cx + '" y="' + (cy - 4) + '">'
+        + escapeHtml(truncate(data.pillar.title, 16))
+        + '</text>'
+        + '<text class="pillar-label" x="' + cx + '" y="' + (cy + 12) + '" style="font-size:9px;font-weight:400;opacity:0.8">'
+        + 'PILLAR'
+        + '</text></g>';
+
+      svg.innerHTML = svgContent;
+
+      // Tooltip handling
+      function showTooltip(e, nodeId) {
+        let info;
+        if (nodeId === "pillar") {
+          info = data.pillar;
+        } else {
+          const parts = nodeId.match(/cluster-(\d+)-post-(\d+)/);
+          if (!parts) return;
+          const cluster = data.clusters && data.clusters[parseInt(parts[1], 10)];
+          info = cluster && cluster.posts ? cluster.posts[parseInt(parts[2], 10)] : null;
+        }
+        if (!info) return;
+
+        let html = '<div class="tooltip-title">' + escapeHtml(info.title) + '</div>';
+        html += '<div class="tooltip-detail"><span>Keyword:</span><span>' + escapeHtml(info.keyword) + '</span></div>';
+        html += '<div class="tooltip-detail"><span>Volume:</span><span>' + (info.volume || "N/A") + '</span></div>';
+        html += '<div class="tooltip-detail"><span>Template:</span><span>' + escapeHtml(info.template) + '</span></div>';
+        html += '<div class="tooltip-detail"><span>Words:</span><span>' + info.wordCount.toLocaleString() + '</span></div>';
+        if (info.status) {
+          html += '<div class="tooltip-detail"><span>Status:</span><span>' + info.status + '</span></div>';
+        }
+
+        tooltip.innerHTML = html;
+        tooltip.classList.add("visible");
+
+        const rect = tooltip.getBoundingClientRect();
+        let tx = e.clientX + 12;
+        let ty = e.clientY + 12;
+        if (tx + rect.width > window.innerWidth) tx = e.clientX - rect.width - 12;
+        if (ty + rect.height > window.innerHeight) ty = e.clientY - rect.height - 12;
+        tooltip.style.left = tx + "px";
+        tooltip.style.top = ty + "px";
+      }
+
+      function hideTooltip() {
+        tooltip.classList.remove("visible");
+      }
+
+      function highlightLinks(nodeId) {
+        document.querySelectorAll(".link-line").forEach(function(line) {
+          if (line.dataset.from === nodeId || line.dataset.to === nodeId) {
+            line.classList.add("highlighted");
+            line.classList.remove("dimmed");
+          } else {
+            line.classList.add("dimmed");
+            line.classList.remove("highlighted");
+          }
+        });
+      }
+
+      function resetLinks() {
+        document.querySelectorAll(".link-line").forEach(function(line) {
+          line.classList.remove("highlighted", "dimmed");
+        });
+      }
+
+      // Attach event listeners to nodes
+      document.querySelectorAll(".pillar-node, .spoke-node").forEach(function(node) {
+        const nodeId = node.dataset.node;
+
+        node.addEventListener("mouseenter", function(e) {
+          showTooltip(e, nodeId);
+          highlightLinks(nodeId);
+        });
+
+        node.addEventListener("mousemove", function(e) {
+          const rect = tooltip.getBoundingClientRect();
+          let tx = e.clientX + 12;
+          let ty = e.clientY + 12;
+          if (tx + rect.width > window.innerWidth) tx = e.clientX - rect.width - 12;
+          if (ty + rect.height > window.innerHeight) ty = e.clientY - rect.height - 12;
+          tooltip.style.left = tx + "px";
+          tooltip.style.top = ty + "px";
+        });
+
+        node.addEventListener("mouseleave", function() {
+          hideTooltip();
+          resetLinks();
+        });
+
+        node.addEventListener("focus", function(e) {
+          showTooltip(e, nodeId);
+          highlightLinks(nodeId);
+        });
+
+        node.addEventListener("blur", function() {
+          hideTooltip();
+          resetLinks();
+        });
+      });
+
+      // Keyboard accessibility
+      document.querySelectorAll(".pillar-node, .spoke-node").forEach(function(node) {
+        node.setAttribute("tabindex", "0");
+        node.setAttribute("role", "button");
+        const nodeId = node.dataset.node;
+        let label;
+        if (nodeId === "pillar") {
+          label = "Pillar page: " + data.pillar.title;
+        } else {
+          const parts = nodeId.match(/cluster-(\d+)-post-(\d+)/);
+          if (parts) {
+            const cluster = data.clusters && data.clusters[parseInt(parts[1], 10)];
+            const post = cluster && cluster.posts ? cluster.posts[parseInt(parts[2], 10)] : null;
+            if (post) {
+              label = "Spoke page: " + post.title;
+            }
+          }
+        }
+        if (label) node.setAttribute("aria-label", label);
+      });
+    })();
+
+    // Utility functions
+    function escapeHtml(str) {
+      var div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function truncate(str, maxLen) {
+      if (!str) return "";
+      return str.length > maxLen ? str.substring(0, maxLen - 1) + "\u2026" : str;
+    }
+
+    function darken(hex) {
+      if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex)) {
+        return "#000000";
+      }
+      var r = parseInt(hex.slice(1, 3), 16);
+      var g = parseInt(hex.slice(3, 5), 16);
+      var b = parseInt(hex.slice(5, 7), 16);
+      r = Math.max(0, Math.floor(r * 0.75));
+      g = Math.max(0, Math.floor(g * 0.75));
+      b = Math.max(0, Math.floor(b * 0.75));
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+  </script>
+</body>
+</html>

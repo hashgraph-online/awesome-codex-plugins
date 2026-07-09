@@ -1,0 +1,35 @@
+{
+  "name": "waggle",
+  "version": "0.1.1",
+  "description": "Persistent graph-backed conversational memory for Codex.",
+  "author": {
+    "name": "Abhigyan Shekhar"
+  },
+  "homepage": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
+  "repository": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
+  "license": "Apache-2.0",
+  "keywords": [
+    "memory",
+    "mcp",
+    "knowledge-graph",
+    "codex"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Waggle",
+    "shortDescription": "Persistent local memory for Codex",
+    "longDescription": "Waggle gives Codex a local graph memory MCP server for recalling project decisions, constraints, preferences, and meaningful outcomes across sessions.",
+    "developerName": "Abhigyan Shekhar",
+    "category": "Productivity",
+    "capabilities": [
+      "Local graph memory",
+      "Cross-session recall",
+      "Conversation observation",
+      "Scoped context retrieval"
+    ],
+    "websiteURL": "https://github.com/Abhigyan-Shekhar/Waggle-mcp",
+    "defaultPrompt": "Use Waggle to remember durable project context and retrieve relevant memories before context-dependent work.",
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}

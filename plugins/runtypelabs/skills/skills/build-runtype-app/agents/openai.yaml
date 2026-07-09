@@ -1,0 +1,14 @@
+interface:
+  display_name: 'Build Runtype App'
+  short_description: 'Build and deploy hosted AI apps on runtype.run'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $build-runtype-app to build this app and deploy it to a live runtype.run URL.'
+dependencies:
+  tools:
+    - type: 'mcp'
+      value: 'runtype'
+      description: 'Hosted Runtype MCP server for creating apps and deploying bundle versions'
+      transport: 'streamable_http'
+      url: 'https://api.runtype.com/v1/mcp/protocol'
+policy:
+  allow_implicit_invocation: true

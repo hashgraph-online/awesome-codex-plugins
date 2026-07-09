@@ -6,5 +6,9 @@
     "https://gzg.sealos.run",
     "https://bja.sealos.run",
     "https://hzh.sealos.run"
-  ]
+  ],
+  "template_fast_path": {
+    "enabled": true,
+    "templates": []
+  }
 }

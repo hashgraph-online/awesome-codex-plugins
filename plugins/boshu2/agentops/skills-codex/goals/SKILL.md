@@ -1,10 +1,10 @@
 ---
 name: goals
-description: "Run goals."
+description: "Maintain measurable project goals."
 ---
 # $goals — Fitness Goal Maintenance
 
-> Maintain GOALS.yaml and GOALS.md fitness specifications. Use `ao goals` CLI for all operations.
+> Maintain GOALS.md (canonical, v4) fitness specifications; GOALS.yaml is legacy, surviving only for migration via `ao goals migrate`. Use `ao goals` CLI for all operations.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
@@ -16,6 +16,7 @@ $goals init               # Bootstrap GOALS.md interactively
 $goals steer              # Manage directives
 $goals add                # Add a new goal
 $goals drift              # Compare snapshots for regressions
+$goals scenarios          # Link directives to behavioral scenarios (the `ao eval scenario` family)
 $goals history            # Show measurement history
 $goals export             # Export snapshot as JSON for CI
 $goals meta               # Run meta-goals only
@@ -338,5 +339,4 @@ The `--to-md` flag creates a GOALS.md with mission, north/anti stars sections, a
 ### scripts/
 
 - `scripts/validate.sh`
-
 

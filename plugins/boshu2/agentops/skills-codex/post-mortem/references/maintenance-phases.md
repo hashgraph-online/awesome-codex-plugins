@@ -74,6 +74,43 @@ Phase 3 (Process Backlog) Summary:
 - N flagged stale
 ```
 
+#### Step BP.7: Two-Strikes Membrane Triage
+
+The backlog is where recurring **catches** ratchet, not just learnings. Run the
+membrane triage over the catch corpus:
+
+```bash
+ao membrane triage
+```
+
+For any class with **HitCount >= 2**, route it by the class's **nature**, NOT
+gate-first ([ADR-0014](../../../docs/adr/ADR-0014-catch-to-producer-loop-judgment-catches-need-a-producer-route.md)).
+`ao membrane triage` reports `Axis2Compilable ≈ 0` — recurring catches are almost
+all **judgment-class**, so a gate is the exception, not the goal:
+
+- **Compilable** (rare): open a compile bead for a mechanical gate (Loop B).
+- **Judgment-class** (the common case): bind a **producer-side fix** — a rule in the
+  owning skill's standards, a `CLAUDE.md`/`AGENTS-*.md` footgun, a `/plan`
+  planning-rule, or a `/discovery` pre-mortem check. For a judgment defect this **is**
+  the highest feasible binding, not a fallback. **When a gate/adversary CAUGHT a defect
+  a green test missed, also append the dimension to `docs/gate/findings-ledger.md`** —
+  the ledger `behavior-first-planning` reads to ratchet its Standing Review Dimensions,
+  so the catch closes back into the NEXT loop's planning (S6). Then add a row to the
+  **[producer-defect register](../../../docs/architecture/producer-defect-register.md)**:
+  the class, the fix + surface, and the recurrence count now (the "before").
+
+The two-strikes rule (once → handoff; repeats → promote; must-never-regress → gate,
+for the compilable case) is the admission bar. The **measurement** is the register's
+recurrence-before-vs-after: the *next* post-mortem that runs `ao membrane triage` fills
+the "after" — a class that recurs after its fix means the binding was too weak, so
+escalate it. Also classify a batch of the **unclassified-catch floor** each run — that
+floor is the register's fuel.
+
+> **Honest scope:** this route does not claim a compounding moat (ADR-0004/0011 remain
+> unproven, and we do not market ahead of them). It claims exactly one falsifiable
+> thing — after a producer fix binds for class X, X should be caught *less*. The
+> register makes that checkable.
+
 ### Phase 4: Activate
 
 Promote high-value learnings and feed downstream systems. Read `references/activation-policy.md` for detailed promotion thresholds and procedures.
@@ -436,7 +473,7 @@ if command -v ao &>/dev/null; then
   echo "Session closed, flywheel loop triggered"
 else
   # Learnings are already in .agents/learnings/ from Phase 2.
-  # Without ao CLI, grep-based search in /research and /inject
+  # Without ao CLI, grep-based search in /research
   # will find them directly — no copy to pending needed.
 
   # Feedback-loop fallback: update confidence for cited learnings

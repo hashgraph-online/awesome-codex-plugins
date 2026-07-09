@@ -1,0 +1,32 @@
+{
+  "name": "agent-guard",
+  "version": "1.9.0",
+  "description": "Real-time secret-leak guardrails for AI coding agents (Claude Code, Codex), Git hooks, and CI.",
+  "author": {
+    "name": "Agent Guard contributors"
+  },
+  "homepage": "https://github.com/JeongJaeSoon/agent-guard",
+  "repository": "https://github.com/JeongJaeSoon/agent-guard",
+  "license": "MIT",
+  "keywords": [
+    "agent",
+    "secrets",
+    "gitleaks",
+    "hooks",
+    "security"
+  ],
+  "interface": {
+    "displayName": "Agent Guard",
+    "shortDescription": "Real-time secret-leak guardrails for AI coding agents",
+    "longDescription": "Real-time secret-leak guardrails for AI coding agents (Claude Code, Codex), Git hooks, and CI. Blocks `.env` reads, secret writes, and credential-dumping shell commands at the agent's tool boundary, with native Git-hook and GitHub Actions backstops.",
+    "developerName": "Agent Guard contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/JeongJaeSoon/agent-guard",
+    "brandColor": "#14532D",
+    "composerIcon": "./assets/icon.png",
+    "screenshots": []
+  }
+}

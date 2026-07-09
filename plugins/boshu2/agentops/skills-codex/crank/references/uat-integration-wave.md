@@ -7,7 +7,7 @@ Cross-cutting validation wave added after all feature implementation waves compl
 Add a UAT integration wave when:
 - An epic spans 3+ features that interact at runtime
 - Features share state (filesystem, config, CLI flags)
-- Pipeline flows cross feature boundaries (e.g., inject → mine → defrag)
+- Pipeline flows cross feature boundaries (e.g., harvest → mine → defrag)
 - The epic's pre-mortem identified cross-feature risk
 
 ## Read-Only Wave Concept

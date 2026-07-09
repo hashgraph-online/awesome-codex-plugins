@@ -1,6 +1,6 @@
 ---
 name: test
-description: "Run test."
+description: Generate tests and coverage plans.
 ---
 # Test Skill
 
@@ -25,13 +25,14 @@ Default mode is `generate` when unspecified. Detect from user intent.
 
 When the task is tied to a bead or `.feature` file, **author tests FORWARD from the Gherkin scenarios** — not backward from a coverage gap. This is the C2 contract (ag-9jle.4): the unit of test authoring is one scenario, one covering test.
 
-1. Read the scenarios: the bead's `## Scenarios` block (`bd show <bead-id>`) or a `.feature` under `skills/<skill>/references/`.
+1. Read the scenarios: the bead's `## Scenarios` block (`ao beads exec show <bead-id>`) or a `.feature` under `skills/<skill>/references/`.
 2. For each `Scenario:`, locate or write the test that exercises its `Given/When/Then`. Name it after the behavior.
 3. Declare the linkage by adding `@covered-by:<test-path>` (optionally `::<TestName>`) directly above the scenario in its source — so the leaf coverage gate can prove the mapping.
 4. Run the leaf coverage gate and require it to pass before considering the slice tested:
 
 ```bash
 bash scripts/check-bead-scenario-coverage.sh --bead <bead-id> --run      # every scenario -> a PASSING test
+# (--bead fetches the body via `br show`; BEADS_DIR defaults to <repo>/_beads — bd is retired)
 bash scripts/check-bead-scenario-coverage.sh skills/<skill>/references/<name>.feature --run
 ```
 
@@ -365,7 +366,7 @@ If you find existing tests that match the "bad" patterns, flag them in the summa
 | `$refactor` | Cross-referenced in Step 2 to prioritize high-risk untested code |
 | `$validate` | After test generation, run `$validate` to validate overall code quality |
 | `$implement` | During implementation, invoke `$test --mode=tdd` for test-first workflow |
-| `$review` | Tests generated here help `$review` verify fixes |
+| `/review` | Tests generated here help `/review` verify fixes |
 
 ## Flags
 
@@ -389,3 +390,7 @@ All artifacts are written to `.agents/test/`:
 | `summary.md` | Before/after coverage delta and test inventory |
 | `tdd-log.md` | TDD cycle log (tdd mode only) |
 | `strategy.md` | Test architecture recommendations (strategy mode only) |
+
+## Reference Documents
+
+- [references/test.feature](references/test.feature) — Executable spec: load standards + detect language, generate real passing tests (not a plan), coverage gap-fill, artifacts in .agents/test/ (soc-qk4b)

@@ -1,0 +1,207 @@
+{
+  "source": "derived from ~/.claude/usage-data/rituals-2026-06-12.json (prompts truncated to 280 chars, example_paths dropped)",
+  "total_prompts_scanned": 71191,
+  "note": "frequency inversion: hand-typed rituals repeat 94/81/44/39 times while skill invocations peak at <=9 in the same window",
+  "repeated_prompts": [
+    {
+      "prompt": "(Bash completed with no output)",
+      "count": 1545,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-04-28T19:49:03.292000+00:00",
+      "last_seen": "2026-06-12T00:59:02.606000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "Structured output provided successfully",
+      "count": 498,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-29T12:33:46.412000+00:00",
+      "last_seen": "2026-06-11T12:24:48.477000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>",
+      "count": 337,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-21T01:05:26.352000+00:00",
+      "last_seen": "2026-06-12T00:33:23.730000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "[Request interrupted by user]",
+      "count": 319,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-25T17:18:07.314000+00:00",
+      "last_seen": "2026-06-12T01:02:19.193000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "ok",
+      "count": 112,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-29T15:04:36.118000+00:00",
+      "last_seen": "2026-06-11T16:36:26.065000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "[/loop overnight factory supervisor — Bo is asleep, Athena in charge until he stops the loop] Keep the autonomous factory alive AND safe: (1) run `factory status`; if it's OFF, run `factory go` to restart it. (2) Runaway/health check: confirm `continuity-budget cap-check --run fa",
+      "count": 94,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-06T04:52:39.294000+00:00",
+      "last_seen": "2026-06-06T12:19:40.801000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "No matching deferred tools found",
+      "count": 86,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-26T17:39:58.194000+00:00",
+      "last_seen": "2026-06-11T11:21:26.800000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "Wasted call — file unchanged since your last Read. Refer to that earlier tool_result instead.",
+      "count": 82,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-08T00:03:19.350000+00:00",
+      "last_seen": "2026-06-10T20:55:39.575000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "META-ORCHESTRATOR TICK v2 (Athena — outside the work; never implement inline; delegate; silent unless escalation warranted).\n\nPass over ~/dev/control-plane:\n1. LOOP HEALTH: `br ready | head -12`, `br list --status=in_progress`. Append ONE dated line to evidence/meta-orchestrator-",
+      "count": 81,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-10T00:54:15.185000+00:00",
+      "last_seen": "2026-06-10T20:54:15.920000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "The server returned HTTP 403 Forbidden.\n\nThe response body was not retrieved. If this URL requires authentication, use an authenticated tool (e.g. `gh` for GitHub, or an MCP-provided fetch tool) instead of WebFetch.",
+      "count": 70,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-25T22:29:54.157000+00:00",
+      "last_seen": "2026-06-10T23:33:21.520000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "Exit code 1\nrtk: rtk find does not support compound predicates or actions (e.g. -not, -exec). Use `find` directly.",
+      "count": 70,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-30T14:59:17.673000+00:00",
+      "last_seen": "2026-06-11T10:16:29.057000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "The file /Users/bo/dev/personal-site/src/app/training/page.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+      "count": 60,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-30T13:53:26.279000+00:00",
+      "last_seen": "2026-06-11T00:28:07.329000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "Sent to 1 pane(s)",
+      "count": 49,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-08T17:36:46.398000+00:00",
+      "last_seen": "2026-06-10T17:14:53.103000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "keep going towards goal",
+      "count": 44,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-08T19:09:02.114000+00:00",
+      "last_seen": "2026-06-08T22:53:10.776000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "(empty)",
+      "count": 43,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-26T15:10:58.443000+00:00",
+      "last_seen": "2026-06-10T14:57:14.522000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "You are ONE work tick in Bo's autonomous factory (repo: /Users/bo/dev/agentops). Bo is OUT. Do ONE unit of real work, then STOP. Gates are absolute.\n\n1. Pick ONE ready item you can advance AUTONOMOUSLY: cd /Users/bo/dev/agentops && bd ready. Prefer pure code/docs factory work, or",
+      "count": 39,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-06T05:23:15.730000+00:00",
+      "last_seen": "2026-06-06T12:05:50.367000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "[Request interrupted by user for tool use]",
+      "count": 34,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-25T17:46:30.487000+00:00",
+      "last_seen": "2026-06-11T15:39:43+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "<local-command-stdout>Set model to \u001b[1mFable 5\u001b[22m and saved as your default for new sessions</local-command-stdout>",
+      "count": 34,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-09T17:39:30.640000+00:00",
+      "last_seen": "2026-06-12T00:52:02.362000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "0",
+      "count": 29,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-05-31T16:50:51.361000+00:00",
+      "last_seen": "2026-06-11T03:46:13.337000+00:00",
+      "is_ritual": true
+    },
+    {
+      "prompt": "Send a message to one or more agents\n\nUsage: am mail send [OPTIONS] --project <PROJECT_KEY> --from <SENDER> --to <TO> --subject <SUBJECT> --body <BODY>\n\nOptions:\n  -p, --project <PROJECT_KEY>    Project key (slug or human_key)\n      --from <SENDER>            Sender agent name\n  ",
+      "count": 29,
+      "agents": [
+        "claude_code"
+      ],
+      "first_seen": "2026-06-05T23:29:11.423000+00:00",
+      "last_seen": "2026-06-12T00:40:33.949000+00:00",
+      "is_ritual": true
+    }
+  ]
+}

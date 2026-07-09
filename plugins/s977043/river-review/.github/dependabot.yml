@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule: { interval: 'weekly' }
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule: { interval: 'weekly' }
+    groups:
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+      opentelemetry:
+        patterns:
+          - '@opentelemetry/*'
+  - package-ecosystem: 'pip'
+    directory: '/'
+    schedule: { interval: 'weekly' }

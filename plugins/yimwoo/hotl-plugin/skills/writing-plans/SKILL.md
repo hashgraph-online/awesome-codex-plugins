@@ -9,6 +9,8 @@ description: Use after design approval to create a dated executable workflow fil
 
 Produce a dated workflow file that `loop-execution` can execute. The canonical filename is `YYYY-MM-DD-<slug>-workflow.md`, where `<slug>` is a short kebab-case identity derived from the intent (e.g., `2026-04-22-add-rate-limiting-workflow.md`). Each step should be 2-5 minutes of work. Include loop conditions and gates from the design's governance contract.
 
+When the accepted design defines execution limits, include only the relevant optional portable budget fields (`max_total_attempts`, `max_agents`, `max_cost_usd`, `max_elapsed_minutes`) in workflow frontmatter. Do not invent numeric budgets. `policy_profile` is descriptive and never grants host permissions.
+
 **Announce:** "I'm using the writing-plans skill to create the executable workflow."
 
 ## Output Filename

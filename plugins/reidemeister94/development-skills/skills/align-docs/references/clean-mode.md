@@ -4,8 +4,6 @@ Run **SKILL.md Steps 1-7 first**, then the consolidation below.
 
 **Prime directive — decision records are immutable.** Chronicles are decision records (the WHY). You **never merge, delete, or edit the body** of one. The truth is the full chain, not the latest record. Compression = a generated **index + status-flip + archive dir**, never destruction. Plans (the HOW) go obsolete on ship — those you archive, because their durable WHY already lives in the chronicle.
 
-**Propose-then-confirm.** Mutate nothing until the user approves the proposal (C3). All actions are `git`-reversible.
-
 **Lifecycle vocabulary (introduced by `--clean`).** A chronicle's own `> Status:` (`Draft|In Progress|Completed`) is its *work* state — `--clean` never changes it. Decision *validity* is a separate axis `--clean` annotates via blockquote metadata headers: a superseded decision gets `> Superseded-by: NNNN`, its successor `> Supersedes: NNNN`; a decision that no longer applies but has no successor gets `> Obsolete: <date — reason>`. ATLAS derives `active` (no such marker) / `superseded` / `obsolete` from these. Adding these headers is metadata, never a body edit.
 
 ## C1 — Gather
@@ -33,7 +31,7 @@ Build a single proposal listing, per item, the exact action:
 - `docs/ATLAS.md` to (re)generate;
 - reference dedupe / linkrot / stale fixes.
 
-Present via `AskUserQuestion`: **Apply (Recommended) / Modify / Cancel**. STOP. Mutate nothing yet.
+Present via `AskUserQuestion`: **Apply (Recommended) / Modify / Cancel**. STOP — mutate nothing until the user approves; all actions are `git`-reversible.
 
 ## C4 — Apply (only on Apply)
 

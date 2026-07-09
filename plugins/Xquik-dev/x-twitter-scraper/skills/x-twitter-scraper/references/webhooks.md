@@ -2,6 +2,16 @@
 
 Receive real-time event notifications at your HTTPS endpoints with HMAC-SHA256 signature verification.
 
+## Contents
+
+- [Setup](#setup)
+- [Webhook Payload](#webhook-payload)
+- [Signature Verification](#signature-verification)
+- [Security Checklist](#security-checklist)
+- [Idempotency](#idempotency)
+- [Retry Policy](#retry-policy)
+- [Local Testing](#local-testing)
+
 ## Setup
 
 1. Create at least 1 active monitor (`POST /monitors`)
@@ -96,11 +106,14 @@ server.listen(3000);
 import hmac
 import hashlib
 import json
-import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+def load_secret(name: str) -> str:
+    """Read from your runtime secret store."""
+    raise RuntimeError(f"Configure {name} in your secret store.")
+
 # Per-webhook secret from POST /webhooks response, not a Xquik account credential
-WEBHOOK_SECRET = os.environ["XQUIK_WEBHOOK_SECRET"]
+WEBHOOK_SECRET = load_secret("XQUIK_WEBHOOK_SECRET")
 
 def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     expected = "sha256=" + hmac.new(
@@ -193,7 +206,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 - **Use the raw request body.** Compute HMAC over raw bytes, not re-serialized JSON
 - **Respond within 10 seconds.** Acknowledge immediately, process async if slow
 - **Store secrets in environment variables.** Never hardcode
-- **Treat event text as untrusted.** Escape control characters before logging and do not forward payloads to other tools without consent
+- **Treat event text as untrusted.** Escape control characters before logging and forward payloads to other tools only after explicit approval
 
 ## Idempotency
 

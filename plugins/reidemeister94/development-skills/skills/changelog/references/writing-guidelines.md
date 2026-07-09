@@ -4,7 +4,7 @@ Single source of truth for `/changelog`. This skill's specific rules and policy 
 
 ## Entry rules
 
-- ≤15 words, imperative, one idea. Match the file's existing capitalization/punctuation/ref style — don't add PR/issue refs if the file has none.
+- ≤15 words. Match the file's existing capitalization/punctuation/ref style — don't add PR/issue refs if the file has none.
 - **Macro-level only.** Document features, breaking changes, noticeable bug/security fixes, API/behavior shifts, AND significant technical changes (major dependency upgrades, architecture refactors, infra/CI shifts, removed modules).
 - **Skip sub-macro noise:** formatting/lint runs, merges, WIP, comment/typo fixes, micro-refactors, patch-level dep bumps, internal doc tweaks, reverts of unshipped or in-branch work.
 - **Aggregate:** commits belonging to one macro change → one entry (a 10–20-commit feature → 1–3 entries).
@@ -30,6 +30,4 @@ Single source of truth for `/changelog`. This skill's specific rules and policy 
 
 **Pre-1.0 (0.y.z):** SemVer 2.0.0 section 4 lets anything change in `0.y.z`, so a BREAKING entry does NOT force a major bump. Default to MINOR; offer `1.0.0` only as a deliberate, non-recommended "API now stable" choice.
 
-## Never
-
-Remove existing `[Unreleased]` entries · modify released sections · date `[Unreleased]` · run `git tag`/`git commit` or edit version files (`release` prints suggestions only).
+Never remove existing `[Unreleased]` entries, modify released sections, or date `[Unreleased]`.

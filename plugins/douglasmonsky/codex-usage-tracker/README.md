@@ -1,24 +1,24 @@
-# Codex Usage Tracker
-
 <p align="center">
-  <a href="docs/assets/dashboard-calls.png"><img src="docs/assets/dashboard-calls-preview.png?v=readme-drilldown" alt="Codex Usage Tracker dashboard showing filters, usage totals, and named model-call rows." width="49%"></a>
-  <a href="docs/assets/dashboard-call-investigator.png"><img src="docs/assets/dashboard-call-investigator-preview.png?v=readme-drilldown" alt="Codex Usage Tracker call investigator showing token accounting, cache diagnostics, and redacted runtime evidence." width="49%"></a>
+ <img src="docs/assets/readme-hero-2.png?v=readme-hero-20260708" alt="Codex Usage Tracker local-first analytics dashboard preview with overview, calls, and investigator surfaces." width="100%">
 </p>
+
+# Codex Usage Tracker
 
 Local-first dashboard, Codex plugin, and companion skill for understanding where your Codex tokens and usage credits are going.
 
 [![CI](https://github.com/douglasmonsky/codex-usage-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/douglasmonsky/codex-usage-tracker/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/codex-usage-tracking.svg)](https://pypi.org/project/codex-usage-tracking/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/codex-usage-tracking?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=RED&left_text=downloads)](https://pepy.tech/projects/codex-usage-tracking)
 ![Python 3.10-3.14](https://img.shields.io/badge/python-3.10--3.14-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 > **Unofficial project:** Codex Usage Tracker is an independent open-source project. It is not made by, affiliated with, endorsed by, sponsored by, or supported by OpenAI. OpenAI and Codex are trademarks of OpenAI; this project only reads local log files from your machine.
 
-Codex Usage Tracker reads the JSONL logs already written by Codex, indexes aggregate usage counters into SQLite, and gives you a dashboard, CLI, and MCP tools for investigating real usage patterns. It keeps prompts, assistant messages, tool output, pasted secrets, and raw transcript content out of SQLite, CSV exports, and generated dashboard HTML.
+Codex Usage Tracker reads the JSONL logs already written by Codex, indexes aggregate usage counters plus local content/tool/command/file-event evidence into SQLite, and gives you a dashboard, CLI, and MCP tools for investigating real usage patterns. The content index stays on your machine; CSV exports, generated dashboard HTML, support bundles, and shareable reports omit indexed content by default. Use `refresh --aggregate-only` or `rebuild-index --aggregate-only` when you want the older aggregate-only SQLite posture.
 
 Built for developers using Codex locally who want to know which threads, models, subagents, and long chats are driving usage without uploading logs anywhere. The public PyPI package is [`codex-usage-tracking`](https://pypi.org/project/codex-usage-tracking/), and it installs the `codex-usage-tracker` command.
 
-After install, you get a localhost dashboard, a local SQLite aggregate index, CLI reports, MCP tools, and a companion Codex skill for asking questions like "what drove my usage this week?"
+After install, you get a localhost dashboard, a local SQLite usage index, CLI reports, MCP tools, and a companion Codex skill for asking questions like "what drove my usage this week?"
 
 ## Quick Install
 
@@ -33,7 +33,9 @@ codex-usage-tracker serve-dashboard --open
 Use your normal Python launcher for your platform: `python3` is common on macOS/Linux, and `py` may be preferable on Windows. On macOS with Homebrew, `brew install pipx` is also fine.
 If `codex-usage-tracker` is not found after installing with pipx, open a new terminal or add the binary directory printed by `pipx ensurepath` to your `PATH`.
 
-`serve-dashboard` refreshes active-session usage before opening by default. Use `--no-refresh` only when you intentionally want to inspect the cached local index.
+First install? Start with the [First Five Minutes guide](docs/first-five-minutes.md) for setup, verification, empty-dashboard checks, and safe issue diagnostics.
+
+`serve-dashboard` refreshes active-session usage before opening the React dashboard by default. The legacy dashboard remains available at `/dashboard.html` on the same localhost server. Use `--no-refresh` only when you intentionally want to inspect the cached local index.
 
 Package naming: the PyPI distribution is `codex-usage-tracking`; the installed command is `codex-usage-tracker`; the GitHub repository remains `douglasmonsky/codex-usage-tracker`. The `codex-usage-tracker` PyPI name is not this project, so avoid similarly named packages when following these docs.
 
@@ -43,39 +45,68 @@ Source install for development or branch testing:
 pipx install "git+https://github.com/douglasmonsky/codex-usage-tracker.git"
 ```
 
-`setup` installs or refreshes the local Codex plugin wrapper, initializes local config templates when needed, refreshes the aggregate index, runs `codex-usage-tracker doctor`, and tells you whether Codex needs a restart for plugin discovery.
+`setup` installs or refreshes the local Codex plugin wrapper, initializes local config templates when needed, refreshes the local usage index, runs `codex-usage-tracker doctor`, and tells you whether Codex needs a restart for plugin discovery.
 
 Want Codex to do it for you? Paste: `Install codex-usage-tracking with pipx, run codex-usage-tracker setup, and open the Codex Usage Tracker dashboard.`
 
+## Talk To Your Usage Data
+
+The dashboard shows the evidence; the companion plugin and skills make it conversational. After `setup` and a Codex restart, ask Codex to refresh the local usage index, call MCP tools, and explain what is driving usage. Shareable reports stay aggregate-first and omit indexed content unless an explicit local content tool/export is added for that purpose.
+
+Good starter prompts:
+
+```text
+Look through my usage for token waste and recommend what I should change.
+Find high-context, low-cache calls worth opening in the investigator.
+Which threads are draining the most, and what would reduce that next time?
+Compare model and effort usage, then suggest safer defaults.
+Open the dashboard and filter Calls to the rows behind your recommendation.
+```
+
+The companion skill treats waste discovery as diagnosis plus remediation: it can point to Calls, Threads, Call Investigator, Diagnostics Notebook, Allowance Intelligence, Headroom when available, or a custom local command/skill/report preset Codex can build to stop repeating the same waste pattern.
+
+Example conversation docs:
+
+- [Token Waste Review](docs/examples/token-waste-conversation.md)
+- [Remediation Planning](docs/examples/remediation-conversation.md)
+
 ## Dashboard Preview
 
-The Calls table is the main investigation surface: filter, sort, inspect details, and export the exact aggregate rows you are looking at.
+Overview is the dashboard landing workspace: it shows recent aggregate usage, weekly remaining usage context, row loading controls, and charts that open on recent dates.
 
-![Calls view showing filters, totals, the model-call table, and the compact details rail.](docs/assets/dashboard-calls.png?v=readme-drilldown)
+![Overview view showing high-level metrics, row loading controls, time-series charts, and recent aggregate calls.](docs/assets/dashboard-insights.png?v=readme-smart-20260704)
 
-Click a call to open the dedicated investigator for exact token accounting, cache/accounting deltas, local serialized evidence buckets, and redacted turn-log evidence loaded only at runtime.
+Calls is the high-density investigation surface: filter, sort, inspect details, and export the exact aggregate rows you are looking at.
 
-![Call investigator showing token accounting, cache diagnostics, serialized evidence groups, and raw evidence controls.](docs/assets/dashboard-call-investigator.png?v=readme-drilldown)
+![Calls view showing the expanded model-call table with sticky thread rows and detail controls.](docs/assets/dashboard-calls.png?v=readme-smart-20260704)
 
-The lower investigator view keeps the raw JSONL evidence opt-in and runtime-only while still showing visible-context estimates, serialized evidence upper bounds, and redacted turn-log entries.
+The details rail stays beside the model-call table, so you can inspect aggregate call accounting before opening a full investigator route.
 
-![Lower call investigator view showing context-change estimates, serialized evidence groups, and redacted runtime evidence entries.](docs/assets/dashboard-call-investigator-evidence.png?v=readme-drilldown)
+![Calls view showing the expanded model-call table beside the Call Drill-Down detail rail.](docs/assets/dashboard-details.png?v=readme-smart-20260704)
+
+Click a call row to open the dedicated investigator for exact token accounting, cache/accounting deltas, local serialized evidence buckets, and runtime-only evidence controls.
+
+![Call investigator showing token accounting, cache diagnostics, serialized evidence groups, and evidence controls.](docs/assets/dashboard-call-investigator.png?v=readme-smart-20260704)
+
+The lower investigator view keeps local JSONL context gated behind explicit localhost actions; raw context is not embedded in generated dashboard HTML.
+
+![Lower call investigator view showing context estimates and the explicit raw-context evidence gate.](docs/assets/dashboard-call-investigator-evidence.png?v=readme-smart-20260704)
 
 Threads view groups related calls so long chats, subagents, and auto-review passes are easier to reason about as one work session.
 
-![Threads view with one expanded thread and its calls in chronological order.](docs/assets/dashboard-threads.png?v=readme-drilldown)
+![Threads view with one expanded thread and its calls.](docs/assets/dashboard-threads.png?v=readme-smart-20260704)
 
-Insights still gives a fast triage layer for costly threads, low cache reuse, context bloat, and pricing gaps.
+Diagnostics Notebook surfaces on-demand snapshot reports for usage drain, tool output, commands, Git interactions, file reads, file modifications, read productivity, and concentration without tying them to the normal live refresh loop.
 
-![Insights view with ranked Needs Attention cards, investigation presets, and top threads by attention score.](docs/assets/dashboard-insights.png?v=readme-drilldown)
+![Diagnostics Notebook view showing diagnostic snapshot modules and usage-drain reporting.](docs/assets/dashboard-diagnostics.png?v=readme-smart-20260704)
 
-The dashboard screenshots use synthetic aggregate fixture data, and the companion prompt and chat previews are synthetic. They do not contain prompts from local logs, assistant responses, tool output, real thread names, real usage totals, or real Codex session content. See the [Dashboard Guide](docs/dashboard-guide.md) for the full walkthrough.
+Dashboard screenshots use synthetic aggregate fixture data, and companion prompt/chat previews are synthetic. They do not contain prompts, local logs, assistant responses, real tool output, real thread names, real usage totals, or real Codex session content. See the [Dashboard Guide](docs/dashboard-guide.md) for the full walkthrough.
 
 If this helped you track Codex usage, starring the repo helps others find it. Issues and feature requests are welcome.
 
 ## Companion Skill And Plugin
 
-The dashboard is the core product surface. The Codex plugin and companion usage skill are add-ons that let Codex refresh local aggregates, call the MCP tools, and explain usage patterns conversationally after plugin discovery. Examples: [MCP And Codex Skills](docs/mcp.md).
+The dashboard is the core product surface. The Codex plugin and companion usage skills let Codex refresh local aggregates, call MCP tools, and explain usage patterns conversationally after plugin discovery. Setup and tool details: [MCP And Codex Skills](docs/mcp.md).
 
 <p align="center">
   <a href="docs/assets/plugin-prompts.png"><img src="docs/assets/plugin-prompts.png?v=readme-drilldown" alt="Synthetic Codex plugin prompt preview showing usage dashboard and thread investigation suggestions." width="86%"></a>
@@ -137,7 +168,7 @@ codex-usage-tracker serve-dashboard --open
 Then:
 
 1. Leave `Live` enabled while working, or click `Refresh` after a Codex run finishes.
-2. Start in `Insights` and scan the `Needs Attention` cards.
+2. Start in `Overview` and scan the high-level metrics and recent calls.
 3. Use `Time` presets or calendar fields to focus on today, this week, the last 7 days, this month, or a custom range.
 4. Use investigation presets for highest-cost threads, highest-credit calls, context bloat, cache misses, pricing gaps, or estimated-price review.
 5. Open `Threads` to see how a conversation grew and whether subagent or auto-review work attached to it.
@@ -150,13 +181,13 @@ Optional allowance context:
 codex-usage-tracker parse-allowance "5h 79% 6:50 PM Weekly 33% Jun 7"
 ```
 
-The tracker cannot read your logged-in ChatGPT plan or live remaining usage automatically. Allowance values are only as accurate as the values you manually copy from Codex Settings, `/status`, or another trusted usage display. Details: [Pricing, Credits, And Allowance](docs/pricing-and-credits.md).
+The tracker cannot read your logged-in ChatGPT plan or live remaining usage automatically. When local Codex logs include `token_count.rate_limits`, the dashboard can show the latest observed 5-hour and weekly remaining percentages from those logs. Otherwise, allowance values are only as accurate as the values you manually copy from Codex Settings, `/status`, or another trusted usage display. Details: [Pricing, Credits, And Allowance](docs/pricing-and-credits.md).
 
 ## What It Includes
 
 - Local SQLite index at `~/.codex-usage-tracker/usage.sqlite3`.
 - Static dashboard generation plus localhost live refresh.
-- `Insights`, `Calls`, and `Threads` dashboard views.
+- `Overview`, `Calls`, `Threads`, and `Diagnostics` dashboard views, including on-demand usage-drain report runs with cumulative per-thread cost curves.
 - Active-only dashboards by default, with an explicit `All history` toggle for archived sessions.
 - CLI summaries, queries, CSV export, dashboard generation, doctor checks, and support bundles.
 - MCP tools for Codex sessions that want to query local usage data.
@@ -231,10 +262,12 @@ Full model: [Privacy Guide](docs/privacy.md).
 - [Dashboard Guide](docs/dashboard-guide.md)
 - [CLI Reference](docs/cli-reference.md)
 - [Pricing, Credits, And Allowance](docs/pricing-and-credits.md)
+- [Allowance Intelligence](docs/allowance-intelligence.md)
 - [MCP And Codex Skills](docs/mcp.md)
 - [Privacy Guide](docs/privacy.md)
 - [Architecture](docs/architecture.md)
 - [CLI And MCP JSON Schemas](docs/cli-json-schemas.md)
+- [Usage Drain Modeling](docs/usage-drain-modeling.md)
 - [Development And Release](docs/development.md)
 
 ## Codex-Assisted Install
@@ -258,12 +291,14 @@ This is optional. The normal shell install above is the fastest trusted path for
 - Token counts come from Codex's logged counters; the tracker does not re-tokenize prompts.
 - Pricing and rate-card sources can change outside this project.
 - Pricing and Codex credit estimates depend on local rate data and confidence labels and are not guaranteed to match exact billing.
-- Live account allowance cannot be read automatically by this local tracker; remaining 5-hour and weekly allowance is only available when you configure copied values.
+- Live account allowance cannot be read automatically by this local tracker; remaining 5-hour and weekly allowance is shown only from local Codex `token_count.rate_limits` snapshots when present, or from copied values you configure.
 - Local Codex logs may not include usage from other ChatGPT agentic surfaces that share the same allowance.
 - Plugin discovery limitations are separate from core Python CLI/dashboard support.
 - Parent-child thread relationships are only as good as the metadata Codex logs; inferred auto-review attachments are labeled as inferred.
 
 ## Roadmap
+
+The next phase is adoption hardening: better first-run setup, safer support bundles, clearer guided diagnostics, and scale/reliability checks now that more people are trying the project. See [Adoption Hardening Roadmap](docs/adoption-hardening-roadmap.md) for the branch-by-branch plan.
 
 - Keep Python runtime support validated with CI matrix coverage, package classifiers, release docs, and installed-package smoke tests.
 - Improve the `Set limits` flow with a paste/import experience for 5-hour and weekly allowance snapshots.

@@ -36,6 +36,18 @@
 - {{excluded-1 — why}}
 - {{excluded-2 — why}}
 
+## User Stories
+
+> Optional intent layer — emitted only when the Wave-1 story toggle is "yes". Leave blank or delete this section if §3/§3.A acceptance criteria already capture the intent. Stories are the "who/why"; acceptance criteria are the "verify".
+
+### US-1 (→ {{Feature Area}})
+**Als** {{Persona}} **möchte ich** {{Capability}}, **damit** {{Nutzen}}.
+- ↳ AC: {{§3 / §3.A reference to ≥1 acceptance criterion}}
+
+### US-2 (→ {{Feature Area}})
+**Als** {{Persona}} **möchte ich** {{Capability}}, **damit** {{Nutzen}}.
+- ↳ AC: {{§3 / §3.A reference to ≥1 acceptance criterion}}
+
 ## 3. Acceptance Criteria
 
 ### {{Feature Area 1}}

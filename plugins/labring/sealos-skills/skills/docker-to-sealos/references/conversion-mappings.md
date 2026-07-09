@@ -29,6 +29,54 @@ When the official Kubernetes method conflicts with Compose:
 - For all other application behavior, default to aligning with the official Kubernetes method
 - Record key decisions in the output (only record items with ambiguity)
 
+## Runtime Bundle Consistency
+
+When official compose/docs define multiple cooperating runtime services, treat the service set as a single versioned runtime bundle. Use one official release, compose file, or docs artifact as the evidence source for API, frontend/console, worker, realtime, gateway, and other required components.
+
+Do not upgrade one bundle component independently. Keep component image tags, public entry routes, and critical env vars aligned with the same evidence source.
+
+Record the evidence contract in a separate validator-only YAML file, such as `.sealos/runtime-bundle-evidence.yaml`. Do not write this evidence into `template/<app>/index.yaml`.
+
+```yaml
+apiVersion: docker-to-sealos/v1
+kind: RuntimeBundleEvidence
+metadata:
+  name: demo-runtime-bundle
+spec:
+  appName: demo
+  source: https://example.com/releases/v1/docker-compose.yml
+  images:
+    - ghcr.io/example/api:1.0.0
+    - ghcr.io/example/console:1.0.0
+  components:
+    - ${{ defaults.app_name }}
+    - ${{ defaults.app_name }}-console
+  routes:
+    - path: /
+      service: ${{ defaults.app_name }}
+    - path: /console
+      service: ${{ defaults.app_name }}-console
+  env:
+    - PUBLIC_ENDPOINT
+```
+
+Evidence contract:
+
+- `spec.appName`: Template `metadata.name` that this evidence validates.
+- `spec.source`: official compose/docs/release artifact URL or identifier.
+- `spec.images`: exact image refs expected from that source.
+- `spec.components`: workload names that must be emitted as managed app workloads.
+- `spec.routes`: `path` plus `service` entries that must appear in Service and Ingress resources.
+- `spec.env`: critical env var names that must remain present on managed workloads.
+
+Run validation with both files included:
+
+```bash
+python scripts/check_consistency.py --skill SKILL.md --references references --rules-file references/rules-registry.yaml --artifacts template/demo/index.yaml,.sealos/runtime-bundle-evidence.yaml
+```
+
+For web consoles or frontends, keep the official public entry path reachable through an explicit Service and Ingress rule. A frontend/console component may be merged into the API workload only when the official image embeds that entry and runtime validation proves the route works after login.
+
 ## Core Concept Mapping
 
 ### Docker Compose Service → Sealos Resources
@@ -208,6 +256,61 @@ spec:
       secretName: ${{ SEALOS_CERT_SECRET_NAME }}
 ```
 
+#### WebSocket Ingress Mapping
+
+Select WebSocket ingress when Compose/docs expose a public endpoint through `ws://`, `wss://`, CDP/Chrome DevTools, game socket traffic, or a port/service named `websocket`, `ws`, or `wss`. Service port names should preserve the protocol signal:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    app: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
+spec:
+  ports:
+    - name: websocket
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: ${{ defaults.app_name }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager-domain: ${{ defaults.app_host }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: 32m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/backend-protocol: WS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ${{ defaults.app_name }}
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      secretName: ${{ SEALOS_CERT_SECRET_NAME }}
+```
+
+When an app exposes separate HTTP and WebSocket public surfaces, create separate host defaults and separate ingress resources like the EaglerCraft pattern. When one public entry serves only WebSocket traffic, use the WebSocket ingress set even if the container port is named `http` upstream.
+
 #### TLS Offload Normalization (80/443 Dual-Port Scenario)
 
 ```yaml
@@ -340,6 +443,14 @@ Notes:
 
 **Important**: Sealos does not support emptyDir; all storage must be persistent.
 
+Before creating a PVC for a host-directory mount, classify the target path:
+
+- Use persistent storage for user data, uploads, model caches, database-adjacent state, and writable runtime state.
+- Use ConfigMap mounts for source-controlled config files or scripts.
+- Leave the path unmounted when the image already ships required dependency manifests, config defaults, or bootstrap metadata at the same path.
+
+Dify sandbox is the failure pattern: official Compose mounts `./volumes/sandbox/dependencies:/dependencies`, while `langgenius/dify-sandbox:0.2.15` expects `dependencies/python-requirements.txt` to exist in the image/repo runtime path. A fresh Sealos PVC mounted at `/dependencies` contains only `lost+found`, hides the required file, and produces `failed to setup runner dependencies`.
+
 #### Docker Compose
 ```yaml
 services:
@@ -358,7 +469,6 @@ metadata:
   labels:
     app: ${{ defaults.app_name }}
     cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
-    cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
 spec:
   revisionHistoryLimit: 1
   template:
@@ -376,9 +486,6 @@ spec:
         annotations:
           path: /app/data
           value: '1'
-        labels:
-          app: ${{ defaults.app_name }}
-          cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
         name: vn-appvn-data
       spec:
         accessModes:
@@ -390,9 +497,6 @@ spec:
         annotations:
           path: /app/config
           value: '1'
-        labels:
-          app: ${{ defaults.app_name }}
-          cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}
         name: vn-appvn-config
       spec:
         accessModes:
@@ -446,8 +550,9 @@ spec:
         - name: ${{ defaults.app_name }}-cm
           configMap:
             name: ${{ defaults.app_name }}
-            defaultMode: 493
 ```
+
+Omit `defaultMode` for ConfigMap volumes unless the application explicitly requires a non-default file mode. Scripts invoked through `/bin/sh /path/script` do not need executable bits.
 
 ## Database Service Mapping
 
@@ -796,6 +901,8 @@ spec:
 
 When docs offer local file storage and S3-compatible object storage as a binary choice, model the S3 branch with a boolean input. Use `type: boolean` and conditionals that test `inputs.<name> === 'true'`; do not model the binary local/S3 choice as a `choice` input.
 
+When an app needs S3-compatible storage, prefer Sealos `ObjectStorageBucket` and inject the managed object-storage secrets into the app. Preserve managed Sealos toggles such as `use_sealos_objectstorage` when they control an optional `ObjectStorageBucket` branch. Expose external S3/object-storage credential inputs only when source docs or the user require an externally managed bucket, and record that evidence in `metadata.annotations.docker-to-sealos.external-object-storage-source`. Do not combine external S3 credential inputs with a managed `ObjectStorageBucket`.
+
 ### Docker Compose (Using Minio)
 ```yaml
 services:
@@ -876,9 +983,17 @@ metadata:
 
 ### Database Services
 - Docker postgres/mysql/mongo/redis → Kubeblocks Cluster + ServiceAccount + Role + RoleBinding
+- Kubernetes Deployment/StatefulSet/DaemonSet/Service resources that run or expose database servers map to Kubeblocks resources, while app initContainers and init/migration/bootstrap Jobs may use database client images for readiness and bootstrap gates.
 
 ### Persistent Storage
 - Docker volumes → StatefulSet + volumeClaimTemplates
+
+### Existing Template Resource Tuning
+- Tune CPU and memory through the Sealos resource ladder.
+- Preserve existing `ephemeral-storage` requests and limits exactly during template refreshes.
+- Change `ephemeral-storage` only when live evidence shows `EphemeralStorage`, eviction, or disk-pressure failures for that workload.
+- Adjust `requests.ephemeral-storage` and `limits.ephemeral-storage` together for the same container.
+- Choose the smallest common Mi value that covers observed writable-layer usage plus startup margin; Dify sandbox uses `512Mi` after `300Mi` eviction and observed runner expansion under `/opt` and `/var/sandbox`.
 
 ### Configuration Files
 - Docker config files → ConfigMap (using vn- naming convention)

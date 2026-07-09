@@ -1,0 +1,37 @@
+{
+  "name": "clean-room",
+  "version": "0.6.5",
+  "description": "Spec-first clean-room workflow for authorized source analysis without replacement code.",
+  "author": {
+    "name": "whit3rabbit"
+  },
+  "homepage": "https://github.com/whit3rabbit/clean-room-skill",
+  "repository": "https://github.com/whit3rabbit/clean-room-skill",
+  "license": "MIT",
+  "keywords": [
+    "clean-room",
+    "specification",
+    "migration",
+    "reverse-engineering",
+    "compliance"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Clean Room",
+    "shortDescription": "Produce clean-room behavioral specs",
+    "longDescription": "Guides spec-first clean-room workflows that separate contaminated source analysis from clean behavioral specifications, skeleton manifests, QC reports, and test plans. Writes clean specification artifacts only. Does not generate replacement implementation code.",
+    "developerName": "whit3rabbit",
+    "category": "Development",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Create a clean-room spec package for this authorized source scope.",
+      "Review these clean-room spec artifacts for leakage, coverage gaps, and schema conformance.",
+      "Organize these behavioral specs into a clean skeleton manifest."
+    ],
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

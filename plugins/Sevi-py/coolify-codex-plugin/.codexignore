@@ -1,0 +1,9 @@
+node_modules/
+.git/
+.DS_Store
+.env
+.env.*
+.hol-plugin-scanner-dist/
+coverage/
+dist/
+*.log

@@ -1,6 +1,6 @@
 ---
 name: atomic-commit-discipline
-description: Use when splitting changes into atomic commits, checking git status and diffs, staging exact paths, including related task-state updates, writing Conventional Commits, or preventing unrelated changes.
+description: Use when splitting changes into atomic commits, preparing commits from mixed worktrees, staging exact paths, including related task-state updates, writing Conventional Commits, or preventing unrelated changes.
 ---
 
 # Atomic Commit Discipline
@@ -14,6 +14,7 @@ This skill is not a review template or ledger template. It focuses on minimal co
 ## When To Use
 
 - The user asks to commit, split commits, stage exact paths, or avoid unrelated changes.
+- You are preparing a commit and need to inspect `git status` or diffs to avoid unrelated work.
 - The worktree has multiple changes and you need to decide which belong in the same logical commit.
 - A tracked task is completed, changed, or invalidated and its task-state update must travel with the related commit.
 - The project requires Conventional Commits or a ledger entry paired with each commit.

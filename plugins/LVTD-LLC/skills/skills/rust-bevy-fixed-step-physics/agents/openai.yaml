@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Bevy Fixed Step Physics"
+  short_description: "Stabilize Bevy movement loops"
+  default_prompt: "Use $rust-bevy-fixed-step-physics to make this Bevy movement system deterministic and collision-safe."

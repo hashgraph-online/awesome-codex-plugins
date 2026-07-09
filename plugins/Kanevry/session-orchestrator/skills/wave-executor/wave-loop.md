@@ -6,6 +6,21 @@
 
 ## Wave Execution Loop
 
+### 0. Wave-Executor Self-Report (C4 — #724)
+
+Run this ONCE at the start of wave execution (before the first wave — not per-wave). The `PreToolUse` skill-invocation matcher does NOT fire for prose-invoked skills, so `wave-executor` is under-counted in `skill-invocations.jsonl` (verified gap: 0 `wave-executor` rows despite a 25-agent session). Emit one `selected` record here so telemetry reflects reality. Best-effort — a write failure NEVER blocks dispatch.
+
+```js
+import { appendSkillInvocation } from '$PLUGIN_ROOT/scripts/lib/skill-invocations-schema.mjs';
+import path from 'node:path';
+try {
+  await appendSkillInvocation(
+    path.join(process.cwd(), '.orchestrator/metrics/skill-invocations.jsonl'),
+    { timestamp: new Date().toISOString(), event: 'selected', skill: 'session-orchestrator:wave-executor', session_id: '<session_id>', phase: 'wave-execution' },
+  );
+} catch { /* telemetry is best-effort — swallow and continue to dispatch */ }
+```
+
 For each wave, resolve its assigned role(s) from the session plan's role-to-wave mapping:
 
 **Empty waves:** If the session plan shows a wave with 0 agents (role had no tasks), skip it entirely:
@@ -52,17 +67,25 @@ Skip the deviation entry on `proceed`, even when `concurrentSessions` warns — 
 
 ### 1. Dispatch Agents
 
-When `worker-pool.enabled: true` in Session Config, dispatch via `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` with `maxParallel = worker-pool.max-parallel || agents-per-wave`. Else fall back to single-message parallel Agent() dispatch.
+When `worker-pool.enabled: true` in Session Config, dispatch via `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` with `maxParallel = worker-pool.max-parallel || agents-per-wave` — the bounded cursor is the opt-in alternative that supersedes manual batching. Else fall back to the small-batch Agent() dispatch described below (3–4 calls per message, cumulative up to the wave's `agents-per-wave` cap).
 
 **Worker-pool timing note:** when `worker-pool.enabled: true`, per-agent start and end times are recorded individually in subagents.jsonl as workers pull from the cursor at different moments. Wave-level timings (for progress updates and metrics) are computed as first-worker-start to last-worker-finish, not as a uniform fan-out timestamp.
 
-Use the **Agent tool** to dispatch all agents for this wave IN PARALLEL in a SINGLE message.
+Use the **Agent tool** to dispatch this wave's agents in **SMALL BATCHES of 3–4 Agent() calls per message** (cumulative up to the wave's `agents-per-wave` cap). Large single-message fan-outs (>4 Agent() calls in one message) are **FORBIDDEN** — fleet evidence (conf 1.0, 5 sessions) shows they drop Agent() calls SILENTLY (the coordinator receives fewer tool-results than it dispatched, with no error), whereas serial / small-batch dispatch held 13/13 and 8/8. Dispatch the first batch, wait for its tool-results, then dispatch the next batch, until the wave's planned agents are all started. See `docs/specs/2026-07-02-fleet-mining-followup-grill.md` (C4) for the policy rationale. The `worker-pool.enabled: true` path (above) is the mechanised opt-in alternative to manual batching.
 
 Read each wave's dispatch metadata from the session plan header (e.g., `(4 agents, parallel, isolation: worktree)`). When the plan specifies `isolation`, use it verbatim. When the plan does not specify, resolve the effective value via `resolveIsolation({ agentCount, sessionType, collisionRisk, configIsolation })` from `scripts/lib/wave-sizing.mjs` — the graduated default (#194) replaces the previous session-type-only switch. Pass the resolved value to each Agent() tool call per `circuit-breaker.md` (omit the parameter when resolved to `none`).
 
 After resolving `isolation`, compute the wave's enforcement via `resolveEnforcement({ isolation, configEnforcement })` (same module) and write it into `wave-scope.json` under `enforcement`. When isolation resolves to `none`, enforcement auto-promotes from `warn` → `strict` unless the user explicitly set `off` — this ensures the scope hook is hard, not informational, when worktree-level isolation is absent.
 
 Before dispatching, verify the wave's agent count does not exceed `$CONFIG.agents-per-wave` — if it does, warn the user and request plan revision.
+
+#### Dispatch Verification (fail-loud — #724)
+
+After each batch's Agent() tool-results return, and once all batches for the wave have been dispatched, **count the Agent tool-results received for this wave against the planned agent list** (the agents named in the session plan for this wave). This closes the silent-drop failure class that motivated the small-batch default above (a large fan-out drops calls with no error).
+
+- If every planned agent produced a tool-result → proceed to `### 2. Review Agent Outputs`.
+- If any planned agent produced **NO** tool-result (silent drop) → **re-dispatch ONLY the missing agents in a fresh batch** (3–4 per message) before proceeding to Review. Do NOT re-dispatch agents that already returned — that would duplicate their file writes.
+- Record `agent_count_planned` (from the plan) and `agent_count_started` (distinct agents that produced a tool-result, after any re-dispatch) in the wave metrics (see § Capture wave metrics). A persistent gap after re-dispatch is a deviation — log it to STATE.md `## Deviations`.
 
 #### Pre-Dispatch New-Directory Detection (#243)
 
@@ -148,7 +171,7 @@ For each agent in this wave:
       - What to do (specific, measurable)
       - Which files to read/modify (exact paths)
       - Acceptance criteria (how to verify done)
-      - Relevant patterns from <state-dir>/rules/
+      - Relevant patterns — injected automatically as the <APPLICABLE-RULES> block (see Pre-Dispatch: Glob-Scoped Rule Injection below)
       - VCS issue reference if applicable
       - What NOT to touch (other agents' files)
       >",
@@ -156,6 +179,7 @@ For each agent in this wave:
     run_in_background: false   // CRITICAL: always false — wait for completion
   })
       - Turn budget and status reporting: "You have a maximum of [maxTurns] turns for this task. If you cannot complete within this budget, report STATUS: partial with what was accomplished and what remains. At the end of your work, report STATUS: done (all acceptance criteria met) or STATUS: partial (some criteria unmet — list which ones)."
+      - Optional open-questions reporting (Close Handover-Alignment-Gate, PRD 2026-07-07): "If you encountered a genuinely unresolved, user-facing question you could not answer within your task scope, report it as an additional line: OPEN-QUESTIONS: <question> | context: <one-line why this is unresolved> | candidates: <opt A / opt B>. This line is optional — omit it entirely when you have no such question. Do not use it for questions you could resolve yourself by reading more code."
 ```
 
 #### Pre-Dispatch Grounding Injection (#85)
@@ -274,6 +298,34 @@ Performance note: `readVaultSchema()` caches by file mtime, so repeated calls wi
 
 Behaviour change: agents writing vault notes now receive the canonical schema enums + per-type examples directly in their prompt context. This eliminates the agent-guessing failure class documented in #328.
 
+#### Pre-Dispatch: Glob-Scoped Rule Injection (#336/#694)
+
+After `wave-scope.json` is written for this wave and before assembling the `Agent()` prompt, inject the wave's applicable rule set into each dispatched agent's prompt. This wires the `loadApplicableRules()` loader (`scripts/lib/rule-loader.mjs`) — dormant since #336 — into the live per-wave prompt assembly via the thin CLI `scripts/print-applicable-rules.mjs`.
+
+**Gate:** runs when `.claude/rules/` exists. When it does not, the CLI prints nothing and exits 0 — zero behaviour change. This step never blocks dispatch: any non-zero exit or empty output means "inject nothing, continue" (same best-effort framing as Pre-Dispatch Grounding Injection above).
+
+**Per-wave scoping (not per-agent):** the rule set is computed ONCE per wave from the wave's `allowedPaths` union (the same `wave-scope.json` source used elsewhere), not per agent. The CLI resolves `scopePaths` from `allowedPaths`, `mode` from the `session-type:` frontmatter in `.claude/STATE.md`, and `hostClass` from `.orchestrator/host.json` — all overridable, all degrading to "no gating" when unreadable.
+
+**Invocation:** once per wave, run from the repo root and capture stdout as `$RULES_BLOCK`:
+
+    RULES_BLOCK="$(node "$PLUGIN_ROOT/scripts/print-applicable-rules.mjs" --context wave 2>/dev/null)"
+
+`--context wave` (issue #692) excludes `tier: coordinator-only` rules (owner-persona, lsp, mvp-scope, loop-and-monitor) from the wave-agent prompt — those are operator/coordinator-context rules a wave implementation agent does not need. `tier: always` and `tier: wave-only` rules are unaffected; omitting the flag (or passing `--context coordinator`) disables wave-tier exclusion. Use `--wave-scope <path>` only if `wave-scope.json` is not at the default `.claude/wave-scope.json`. The CLI returns:
+- a Markdown block (header `## Applicable Rules (scoped to this wave)` + each matching rule's raw content, separated by `---`) when one or more rules apply, OR
+- empty output (exit 0) when no rules match — in which case prepend nothing.
+
+**Prompt assembly:** when `$RULES_BLOCK` is non-empty, prepend it to EACH agent's prompt in this wave under a clear separator:
+
+    <APPLICABLE-RULES>
+    $RULES_BLOCK
+    </APPLICABLE-RULES>
+
+    <original prompt>
+
+When `$RULES_BLOCK` is empty (no `.claude/rules/`, no matching rules, or any CLI failure), dispatch the agent unchanged. Because the block is computed once per wave, the same `$RULES_BLOCK` is reused for every agent dispatched in this wave — narrow waves (e.g. only `scripts/**` or only `tests/**` files) receive a smaller rule set, which is the #336 token-reduction payoff.
+
+This replaces the older prose slot "Relevant patterns from `<state-dir>/rules/`" in the `Agent()` template above: the `<APPLICABLE-RULES>` block IS that injection, now mechanically scoped to the wave instead of left to the coordinator's judgement.
+
 #### Structured Reasoning (STATE:/PLAN:) — opt-in via `reasoning-output: true` (#79)
 
 When `$CONFIG.reasoning-output` is `true`, append the following block to every agent prompt. The pattern is adapted from the BitGN PAC Agent's Soft-SGR: short structured transparency lines before tool invocations, without forcing structured output. Leave the block OUT when the flag is `false` (default) — this preserves exact legacy prompt behavior.
@@ -308,7 +360,7 @@ Rules:
 
 > **How to detect project agents:** The session plan's "Agent Registry" section lists all discovered agents. If an agent name does NOT contain a colon (`:`), it's a project-level agent. If it contains `session-orchestrator:`, it's a plugin agent.
 
-**CRITICAL: `run_in_background: false`** — You MUST wait for ALL agents to complete before proceeding. NEVER use `run_in_background: true` during wave execution. Dispatch all agents in a single message for maximum parallelism, then wait.
+**CRITICAL: `run_in_background: false`** — You MUST wait for ALL agents to complete before proceeding. NEVER use `run_in_background: true` during wave execution. Dispatch in small batches of 3–4 Agent() calls per message (never a large single-message fan-out — see § Dispatch Agents; large fan-outs drop calls silently, conf 1.0), waiting for each batch's tool-results before the next, then run Dispatch Verification.
 
 #### Platform-Specific Dispatch
 
@@ -399,6 +451,35 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
 ```
 
 3c. **File-level grounding** (per wave, informational, gated by `grounding-check: true` — default): compute Planned (union of agent file scopes for this wave from the dispatch metadata) vs Actual (files actually edited by this wave's agents). Report scope creep (Actual ∖ Planned) and incomplete coverage (Planned ∖ Actual). Does NOT block the next wave. Reuses the semantics defined in `skills/session-end/plan-verification.md` § 1.1a — the session-end variant computes against `$SESSION_START_REF`, the per-wave variant computes against the wave's pre-dispatch HEAD snapshot. Not to be confused with pre-dispatch grounding injection (§ Pre-Dispatch Grounding Injection above): that feature is per-agent and runs before dispatch to prevent friction; this check is per-wave and runs after dispatch to detect scope creep. Skip the entire check when `grounding-check: false`.
+
+3d. **Edit-Persistence Verify (#724 C5c)** (per agent, blocking on violation): an agent's `STATUS: done` / `STATUS: partial` is a *claim*, not evidence — fleet evidence shows agents reporting a successful Edit whose change never landed on disk (worktree merge-back drop, silent Edit no-op, or a mid-turn abort after the tool-result). Before trusting any agent's output, verify each declared file actually changed on disk.
+
+   For each agent that reported `done` or `partial`, take its declared `files_changed` list (from the agent's machine-readable output block, or the "Files changed" section of its prose report) and confirm every declared path appears in the working-tree change set:
+
+   ```bash
+   # Union of committed-since-dispatch + still-uncommitted changes. Run from repo root.
+   git diff --name-only "$WAVE_PREDISPATCH_HEAD"..HEAD   # files committed during the wave (e.g. auto-commit)
+   git status --porcelain                                 # files modified / staged / untracked right now
+   ```
+
+   Build the on-disk change set as the UNION of the two commands' outputs (untracked files appear as `??` lines in `git status --porcelain` — strip the two-column status prefix). **Every path in an agent's declared `files_changed` MUST appear in that union.** A declared file that is absent from both is an **edit-persistence violation**:
+
+   - Treat that agent's result as **NOT verified** — do not count its claimed work as done, and do not feed its (phantom) changes into the next wave.
+   - **Recover** by either (a) re-dispatching that agent's task package in a fresh batch (per `#### Dispatch Verification`), or (b) applying the missing edit coordinator-direct when the fix is small and unambiguous.
+   - **Log the deviation** to `## Deviations` in `<state-dir>/STATE.md` via `appendDeviationOnDisk(repoRoot, isoTimestamp, message)` from `scripts/lib/state-md.mjs`:
+     ```
+     - [<ISO 8601 UTC>] Wave N edit-persistence violation: agent "<description>" reported <done|partial> but declared file(s) <paths> are absent from the on-disk change set. Result treated as unverified — <re-dispatched | coordinator-direct fix>.
+     ```
+
+   Cross-reference `.claude/rules/verification-before-completion.md` § VBC-004 Exception 2: a subagent's `STATUS: done` is a claim that needs its own verification — this step is that verification for the file-write side effect. `$WAVE_PREDISPATCH_HEAD` is the HEAD snapshot captured before this wave dispatched (same snapshot used by `### 3c. File-level grounding`). When `persistence: false` (no STATE.md), still perform the check and surface any violation in the wave progress update; only the deviation-write is skipped.
+
+3e. **Collect Open Questions** (Close Handover-Alignment-Gate, PRD 2026-07-07): scan every completed agent's report from this wave for an optional `OPEN-QUESTIONS:` line (see the report-line convention in `#### Agent-Type Resolution` above — an agent MAY emit `OPEN-QUESTIONS: <question> | context: <...> | candidates: <opt A / opt B>`; most agents emit none). For each such line found:
+
+   - Parse the question text (portion before the first ` | `).
+   - Dedup across this wave's agents by question text (case-sensitive exact match after trim) — if two agents raised the same question, keep one.
+   - Assign `source: 'W<N>/<agent-description-or-subagent_type>'` (the wave number + the reporting agent) and a `priority` — default `medium` unless the agent's report text contains an explicit priority hint ("high priority" / "blocking" → `high`; "low priority" / "nice to know" → `low`).
+
+   The resulting deduped list feeds `### 3a. Post-Wave: Update STATE.md` step 6 (`## Open Questions`), which does the actual lock-guarded `appendOpenQuestionOnDisk` write. This step (3e) only collects and dedups in-memory — it performs no STATE.md I/O itself, the same division of labor as steps 2/3 above (detect here, write in the Post-Wave STATE.md update). Skip entirely when no agent in the wave emitted an `OPEN-QUESTIONS:` line.
 4. **Run incremental verification** (per the quality-gates skill, based on the wave's role):
 
    **Shared-lib touch auto-promotion (#555 FL-3)** — before selecting the role-based gate variant below, check whether this wave touched files under `scripts/lib/`, `hooks/`, or `.husky/`. If so, auto-promote the inter-wave gate from Quality-Lite (Incremental) to Full Gate (typecheck + test + lint). Rationale: an Impl wave that touches shared code has a wider blast radius than the agent can predict — deep-1647 inter-wave 3→4 caught 2 such regressions only because the Lite step happened to run the full test suite. Auto-promotion makes that coverage deterministic without imposing per-session cost on waves that don't touch shared code (W1-D5 chose Option B over the always-full Option A on this exact tradeoff).
@@ -425,22 +506,26 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
 
    `detectSharedLibTouch` never throws — on any git failure (invalid sinceRef, detached HEAD, missing repo) it returns `{ touched: false, paths: [] }`, so a probe failure silently falls back to the role-default Incremental rather than blocking the wave. When `waveRole === 'Quality'`, the gate is **already Full** — no further promotion possible, no double-promotion. When `waveRole === 'Discovery'` or `'Finalization'`, this check is skipped entirely (the role's verification semantics don't include a test gate to promote).
 
-   **Baseline cache check (#258)** — before running Incremental quality checks for this wave, consult the session-start Baseline cache. If the cache is still valid and the diff since `$SESSION_START_REF` is narrow (<50 files), skip Incremental for this wave and note the skip in the wave progress update.
+   **Baseline cache check (#258, #724)** — before running Incremental quality checks for this wave, consult the session-start Baseline cache. If the cache is still valid and the diff since `$SESSION_START_REF` is narrow (<50 files), skip Incremental for this wave and note the skip in the wave progress update. **The Quality wave is exempt from the skip**: pass the current wave's `waveRole` so `shouldSkipIncremental` hard-returns `skip: false` (reason `quality-wave-full-gate-mandate`) BEFORE any cache/diff logic runs — the Quality-wave Full Gate is mechanically un-skippable (#724 C6).
 
    ```js
    // import at the top of the wave-executor runtime
    import { shouldSkipIncremental } from '$PLUGIN_ROOT/scripts/lib/quality-gates-cache.mjs';
 
-   const skip = shouldSkipIncremental({ repoRoot: process.cwd(), sessionStartRef: SESSION_START_REF });
+   // waveRole is this wave's role: Discovery | Impl-Core | Impl-Polish | Quality | Finalization.
+   // When waveRole === 'Quality', shouldSkipIncremental hard-returns skip=false so the Full Gate
+   // ALWAYS runs — the cache short-circuit applies only to the Impl waves.
+   const skip = shouldSkipIncremental({ repoRoot: process.cwd(), sessionStartRef: SESSION_START_REF, waveRole });
    if (skip.skip) {
      console.log(`ℹ Incremental quality check skipped — ${skip.reason} (${skip.changedFileCount} files changed).`);
      // proceed to next wave without running Incremental
    } else {
-     // run Incremental quality check as before (per role-specific rules below)
+     // run the role-specific quality check as before (per role-specific rules below).
+     // For the Quality wave, skip.reason === 'quality-wave-full-gate-mandate' and the Full Gate runs.
    }
    ```
 
-   `shouldSkipIncremental` never throws — on any error (git failure, unreadable cache) it returns `skip: false` so Incremental runs. Full Gate at session-end is NEVER skipped regardless of the cache — see the close-safety invariant in `skills/quality-gates/SKILL.md § Baseline Cache (#258)`.
+   `shouldSkipIncremental` never throws — on any error (git failure, unreadable cache) it returns `skip: false` so Incremental runs. Full Gate at session-end is NEVER skipped, and after the Quality wave is likewise NEVER skipped — as of #724 the Quality-wave mandate is enforced MECHANICALLY via the `waveRole` parameter (not prose): see the close-safety invariant in `skills/quality-gates/SKILL.md § Baseline Cache (#258)`.
 
    - After **Discovery**: no verification needed (read-only)
    - After **Impl-Core**: Incremental quality checks per quality-gates (test changed files, typecheck)
@@ -458,7 +543,7 @@ Log every non-`pass` result as an event to `.orchestrator/metrics/events.jsonl` 
         - Model: sonnet
      4. After simplification agents complete, proceed to Quality test/review agents
    - After **Quality**: Full Gate quality checks per quality-gates (typecheck + test + lint, must all pass)
-     (Full Gate is NEVER skipped regardless of cache state — this is the close-safety invariant.)
+     (Full Gate is NEVER skipped regardless of cache state — this is the close-safety invariant. As of #724 this mandate is MECHANICAL, not prose-only: the Baseline cache check above passes `waveRole: 'Quality'`, so `shouldSkipIncremental` hard-returns `skip: false` before any cache/diff logic. A targeted/incremental pass is necessary but NOT sufficient — the Quality-wave completion requires the full typecheck + test + lint run.)
    - After **Finalization**: final git status check
 
 #### Auto-Fix Protocol (#521)
@@ -554,7 +639,7 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
 
 **Mission-status transition:** after a successful auto-commit, transition the mission status for all tasks in this wave from `in-dev` → `testing` using `setMissionStatus(stateContent, taskId, 'testing')` from `scripts/lib/state-md.mjs`. This matches the coordinator-level rule in `SKILL.md § Mission-Status Updates`: "in-dev → testing: Quality wave begins and this item's implementation wave completed without failure." The auto-commit checkpoint fires at the same logical moment — after implementation completes and Quality-Lite passes.
 
-**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in V3.6 as `scripts/lib/auto-commit.mjs` (see follow-up issue GitLab #214). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal").
+**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in a future release as `scripts/lib/auto-commit.mjs` (tracked in GitLab #214; not yet implemented as of v3.10.0). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal").
 
 ---
 
@@ -620,6 +705,8 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
 7. **Capture wave metrics**: If `persistence` is enabled in Session Config, record for this wave after all agents complete and quality checks run. If `persistence` is `false`, skip metrics capture entirely — do not accumulate in-memory metrics. Record:
    - `wave_number`, `role`, `started_at` (when agents were dispatched), `completed_at` (when all finished)
    - `agent_count`: number of agents dispatched
+   - `agent_count_planned`: agents named in the session plan for this wave (Dispatch Verification, #724)
+   - `agent_count_started`: distinct agents that produced a tool-result, after any silent-drop re-dispatch (Dispatch Verification, #724). A gap `agent_count_planned > agent_count_started` after re-dispatch signals a persistent silent drop.
    - Per-agent results: `{description, status: done|partial|failed, files_changed_count}`
    - `files_changed`: total unique files changed this wave (from `git diff --stat --name-only`)
    - `quality_check`: incremental check result (pass/fail/skipped)
@@ -687,6 +774,17 @@ After each wave completes and before the progress update, update `<state-dir>/ST
    ```
 
    Skip silently if `persistence: false` in Session Config (no session.lock exists in that mode).
+
+6. **`## Open Questions`** (Close Handover-Alignment-Gate, PRD 2026-07-07): append the wave's deduped open questions collected earlier in `3e. Collect Open Questions`, via `appendOpenQuestionOnDisk` — the same lock-guarded on-disk pattern used by `appendDeviationOnDisk` above:
+
+   ```js
+   import { appendOpenQuestionOnDisk } from '../../scripts/lib/state-md.mjs';
+   for (const q of dedupedOpenQuestions) {
+     await appendOpenQuestionOnDisk(repoRoot, { question: q.question, source: q.source, priority: q.priority });
+   }
+   ```
+
+   Skip silently when the wave produced no `OPEN-QUESTIONS:` lines (see `3e. Collect Open Questions`) and when `persistence: false`.
 
 ### 3a-bis. Agent-Status Telemetry (#565)
 

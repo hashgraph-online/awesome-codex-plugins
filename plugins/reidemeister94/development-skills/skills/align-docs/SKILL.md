@@ -9,6 +9,8 @@ allowed-tools: Read, Edit, Write, Bash, Glob, Grep, AskUserQuestion
 
 Claude Code, Codex CLI, and every other agent read the same canonical context from the repo, without duplication. Convert structure where missing, capture what the session learned, then reduce every docs/agents file **and project memory** to the most critical, non-trivial **domain · infrastructure · company · project-specific** facts in the fewest words that stay clear. Everything else is noise — removed. The repo is the only context teammates share: anything load-bearing outside it is invisible to them and lost.
 
+Regardless of the project's current status, proceed with the following steps and relentlessly reduce and simplify CLAUDE.md, AGENTS.md, and the additional docs and rules until they converge to the principles and structure expressed below.
+
 ## Target architecture
 
 ```
@@ -31,6 +33,7 @@ repo/
 
 `root=$(git rev-parse --show-toplevel 2>/dev/null) || root=.` — all paths below resolve under `$root`.
 `$ARGUMENTS` contains `--clean` / `clean` → read `references/clean-mode.md` and follow it (runs Steps 1-7, then deep consolidation).
+Any free-text beyond the flags is a **project directive** (e.g. *"drop principles X-Y-Z because …"*) — carry it into Step 3.
 
 ## Step 1 — Inventory
 
@@ -60,38 +63,14 @@ paths:
 
 ## Step 3 — `AGENTS.md` (≤70 lines)
 
-Prepend this block at the top; if a similar one exists, replace it:
-
-```markdown
-# {Name of the project}
-
-## Principles to always follow
-
-Think critically from first principles; prize simplicity above all. Maximize efficiency, maintainability, and state-of-the-art quality while keeping every requested feature. Say everything in the fewest clear words. These principles bind every line, claim, gate, skill, phase, and subagent in development-skills; any skipped gate, suppressed test, swallowed warning, or hidden failure is a violation, whatever the intent. On conflict, pick the application least surprising to a critical reader.
-
-0. **Don't pander · be critical.** Challenge assumptions, push back on bad ideas. No flattery openers. User confirmation validates the decision, not the analysis.
-1. **Think before coding.** State assumptions explicitly. Ask when unclear. Don't guess, don't hide confusion.
-2. **Plan before implementing.** Explore → plan → lock the HOW (edge cases · data shapes · error semantics · contract boundaries · test scope · rollback) → code.
-3. **Simplicity by default.** Minimum code that solves the problem. Filters before adding anything: can this be one fewer file / abstraction / config / dependency? · would removing it cause a real failure? A refactor must measurably improve one of: clear · descriptive · efficient · performant · reliable · robust · maintainable.
-4. **Surgical changes.** Every changed line traces to the request. No refactoring of adjacent code. No error handling for impossible scenarios. Clean up only your own mess.
-5. **All signal, zero noise.** No dead branches, no defensive try/catch on safe paths, no wrapper-for-nothing functions, no unused imports. No filler openers, no trailing summaries when the diff is the answer.
-6. **Comments explain WHY, not WHAT.** Non-obvious business logic, hidden constraints, workarounds — yes. Restating what the next line does — no.
-7. **TDD: Red → Green → Refactor.** No production code without a failing test first. One test = one cycle. Wrote production code before the test? Delete it. Untestable (UI-heavy / infrastructure / config-only) → closest automated check + documented WHY + manual evidence.
-8. **No claim without fresh evidence.** IDENTIFY → RUN → READ → VERIFY → CLAIM. *"I'm confident"* is not a step. Skipping any step = lying, not verifying.
-9. **Root cause, not symptoms.** Fix the underlying error, never suppress it. `# type: ignore`, swallowed exceptions, disabled tests, `--no-verify` are admissions the bug is winning.
-10. **Document every discovery** (anything you lacked at the start — non-obvious, domain·infrastructure·company·project-specific). WHY → `docs/chronicles/`, HOW → `docs/plans/`; a critical always-read fact → one line in the `AGENTS.md` list; a topic with depth → `.agents/rules/<topic>.md` (same convention), indexed from `AGENTS.md`. Fewest words. Pay investigation costs once.
-11. **No commits without explicit user request.** Approving a plan, completing phases, passing review — none are permission. Omit AI-attribution trailers when authorized (e.g. "Co-Authored By ...")
-12. **Slim docs · English · memory ≈ empty.** `AGENTS.md` ≤ 70 lines: principles → *use development-skills* → single fewest-words list of the most critical, non-trivial domain·infra·company·project facts → index to `.agents/rules/`; no section headings. Each rules file: same convention, vertical per topic. English only across all artifacts. Teammates share only the repo — memory is per-machine and invisible to them: project facts live in `AGENTS.md` / `.agents/rules/`, never in memory; machine-specific facts → gitignored `.claude/CLAUDE.md` / `~/.codex/AGENTS.md`; memory stays ≈ empty.
-
-Always use the `development-skills` plugin for every task on this project (brainstorming, development, bug fixing, new feature, ...). If the plugin is not available on the user's system, notice it and tell the user to download it.
-```
-
-Then, in this order and nothing else — no section headings or decoration:
+Prepend `references/agents-template.md` verbatim at the top (replace a similar existing block) — **unless** the block is headed by an `<!-- align-docs:principles-customized … -->` marker line, which makes it authoritative: preserve it, never revert to the template. Then, in this order and nothing else — no section headings or decoration:
 - Project scope (1-2 sentences)
 - Single fewest-words list of the most critical, non-trivial domain·infra·company·project facts (safety rules, test commands; tables/commands beat prose)
 - Rules index table at the bottom — one row per file in `.agents/rules/`: `Rule | Scope (paths:) | Topic`
 
 If it's in a rule file, reference — never duplicate.
+
+**Project directive (Step 0).** Asks to drop/alter/add principles → judge the rationale critically (Principle 0): sound → apply it to the principles block, prepend a `<!-- align-docs:principles-customized: <one-line reason> — see docs/chronicles/NNNN -->` marker line above the block, and record the WHY in a chronicle so later runs preserve it; unsound → push back and ask, don't apply.
 
 ## Step 4 — Capture session discoveries
 
@@ -117,7 +96,7 @@ Not just `AGENTS.md` ≤ 70 lines: audit **every** docs/agents file — `AGENTS.
 - Remove noise: entries referencing nonexistent things · duplicates (keep once, link from others) · empty sections/placeholders · generic content the agent already knows from general training.
 - **Preserve all load-bearing content** (safety rules, domain glossary, test commands, rules index) — shrink the expression, never the function.
 
-## Step 7 — Self-verify
+## Step 7 — Verify & gates
 
 ```bash
 wc -l AGENTS.md CLAUDE.md
@@ -126,23 +105,11 @@ readlink .claude/rules && diff <(ls .claude/rules/) <(ls .agents/rules/) && echo
 git check-ignore -v .claude/CLAUDE.md AGENTS.override.md
 ```
 
-Report: AGENTS.md line count (≤70) · rule files vs index rows (must match) · symlink status · gitignore entries · memory residue after sweep.
-
-## Hard gates — STOP if
+Report: AGENTS.md line count · rule files vs index rows · symlink status · gitignore entries · memory residue. STOP and fix if any invariant fails:
 
 - `CLAUDE.md` is not exactly `@AGENTS.md`.
 - `AGENTS.md` exceeds 70 lines — trim further.
-- A rule file lacks `paths:` frontmatter.
-- A rule file is absent from the `AGENTS.md` index table.
-- A domain·infra·company·project fact survives only in memory.
-
-## Anti-patterns
-
-| Bad | Good |
-|-----|------|
-| `@rules/x.md` import inside `AGENTS.md` — Codex has no imports | Textual index row: `\| .agents/rules/x.md \| src/** \| topic \|` |
-| Rule file without `paths:` frontmatter — loads every session | Path-scoped frontmatter |
-| `AGENTS.override.md` committed beside `AGENTS.md` — two sources of truth | Personal Codex notes in `~/.codex/AGENTS.md`; override only per-subdirectory, gitignored |
-| Project facts in memory / `MEMORY.md` | In repo: `AGENTS.md` or `.agents/rules/` |
-
-Never commit `.claude/CLAUDE.md` or `AGENTS.override.md`.
+- A rule file lacks `paths:` frontmatter (else it loads every session).
+- A rule file is absent from the `AGENTS.md` index table — index by textual row, never `@import` (Codex has no imports).
+- A domain·infra·company·project fact survives only in memory / `MEMORY.md` — move it into `AGENTS.md` or `.agents/rules/`.
+- `AGENTS.override.md` committed beside `AGENTS.md` (two sources of truth) — or `.claude/CLAUDE.md` committed. Never commit either.

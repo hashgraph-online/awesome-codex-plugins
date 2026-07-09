@@ -1,0 +1,4 @@
+interface:
+  display_name: "CSS Grid Math"
+  short_description: "CSS Grid sizing and placement math"
+  default_prompt: "Use $css-grid-math to debug this grid track sizing and placement behavior."

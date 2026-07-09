@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Evidence Ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ledger_id",
+    "task_id",
+    "domain",
+    "entries"
+  ],
+  "properties": {
+    "ledger_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain": {
+      "const": "contaminated"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "source_unit_ref",
+          "evidence_type",
+          "description",
+          "evidence_location_ref",
+          "retained_in_contaminated_domain"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_unit_ref": {
+            "type": "string",
+            "description": "Task-manifest unit id or accepted unit alias for the assigned unit. Do not put source paths here; use evidence_location_ref and source_index_refs or visual_index_refs for source/index location details.",
+            "minLength": 1
+          },
+          "evidence_type": {
+            "enum": [
+              "source-observation",
+              "public-doc",
+              "runtime-observation",
+              "tool-output",
+              "manual-note"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_location_ref": {
+            "type": "string",
+            "description": "Contaminated-only pointer to where the evidence was observed, such as a source-index ref, visual-index ref, or other non-clean location reference.",
+            "minLength": 1
+          },
+          "source_hash": {
+            "type": "string"
+          },
+          "sensitivity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "retained_in_contaminated_domain": {
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}

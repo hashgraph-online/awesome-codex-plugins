@@ -36,6 +36,9 @@ every role:
 
 These fields are stripped because they should not become team policy.
 The user can review and re-add team-relevant instructions manually.
+Stripping `model` intentionally restores platform default inheritance for
+collaborators and avoids sharing a pin that may be unavailable in their Codex
+catalog.
 
 ### 4. Normalize Version
 

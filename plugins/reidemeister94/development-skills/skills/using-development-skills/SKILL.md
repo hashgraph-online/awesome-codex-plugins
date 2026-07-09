@@ -7,31 +7,20 @@ description: Use when starting any conversation - establishes how the developmen
 
 If dispatched as a subagent for a specific task: skip this skill.
 
-**If any skill might apply (even 1% chance), invoke it.** Skills are the disciplined entry points — the meta-rule (spirit beats letter) covers the rest.
-
-## Iron Rules
-
-14 principles (0-13) + 1 meta-rule (spirit beats letter). Canonical: `shared/iron-rules.md`. Do not duplicate.
+Iron Rules to always follow: [`../../shared/iron-rules.md`](../../shared/iron-rules.md).
 
 ## Triage & Flow
 
-Classify the task before reading its content in depth:
+Classify before reading the task in depth:
 
-1. **PASS_THROUGH** — trivial, 1 file, fully reversible, no design choice → execute directly.
-2. **LIGHT** — mechanical, no design choice (full 4-criteria gate in `shared/workflow.md` # Tier selection) → follow the 6-step inline flow. **Default on uncertainty → FULL.**
-3. **FULL** (default) — 4 phases, sequential, mandatory:
-   - **Phase 1:** plan file `docs/plans/NNNN__YYYY-MM-DD__implementation_plan__slug.md` + HOW-level Q&A locks (data shapes · edge cases · error semantics · contract boundaries · test scope · rollback).
-   - **Phase 2:** chronicle `docs/chronicles/NNNN__YYYY-MM-DD__topic.md` capturing initial decisions.
-   - **Phase 3:** implement with Red/Green TDD.
-   - **Phase 4:** `staff-reviewer` subagent review.
+1. **PASS_THROUGH** — trivial, few files, fully reversible, no design choice → execute directly.
+2. **LIGHT** — mechanical, no design choice → 6-step inline flow ([`../../shared/workflow.md` # LIGHT](../../shared/workflow.md)). Default on uncertainty → FULL. Mid-execution discovery that breaks LIGHT criteria → escalate to FULL.
+3. **FULL** (default) — Phase 1 plan + HOW-locks, Phase 2 chronicle, Phase 3 Red/Green TDD, Phase 4 `staff-reviewer` review. Detail and gates: [`../../shared/workflow.md` # FULL](../../shared/workflow.md), [`../../shared/phases/*`](../../shared/phases/).
 
-**Rules during FULL:**
+During FULL:
 
-- External spec / guide / prior brainstorming exists → skip brainstorming only. Phases 1-4 still run. The spec is INPUT to Phase 1, not a substitute. A guide's own gates STACK with the workflow.
-- Ambiguity ≥1% on any HOW-level dimension → ask the user (`AskUserQuestion` for discrete options; plain text otherwise; Codex fallback in `references/codex-tools.md`).
-- Phase skipping mid-execution → stop, rejoin at the missed phase, produce its artifact, continue.
-
-**Rules during LIGHT:** Tier is qualitative (ambiguity / logic impact / new-pattern) — not file count. A 30-file mechanical rename is LIGHT; a 1-file new-caching-strategy is FULL. All Iron Rules still apply. Mid-execution discovery breaks LIGHT criteria → escalate to FULL per `shared/workflow.md` # LIGHT (final paragraph).
+- External spec / guide / prior brainstorming → skip brainstorming only; phases 1-4 still run (the spec is INPUT to Phase 1, not a substitute; a guide's gates STACK).
+- HOW-level ambiguity → ask the user (`AskUserQuestion` for discrete options; plain text otherwise; Codex fallback in `references/codex-tools.md`).
 
 **Routing:** Bug fixes → `development-skills:debugging`. Test work → `development-skills:create-test`.
 

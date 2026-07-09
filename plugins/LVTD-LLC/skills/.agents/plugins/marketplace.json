@@ -1,0 +1,274 @@
+{
+  "name": "lvtd-skills",
+  "interface": {
+    "displayName": "LVTD Skills",
+    "brandColor": "#FF4057",
+    "logo": "./assets/app-icon.png"
+  },
+  "plugins": [
+    {
+      "name": "router",
+      "source": {
+        "source": "local",
+        "path": "./plugins/router"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "utilities",
+      "source": {
+        "source": "local",
+        "path": "./plugins/utilities"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "game-design",
+      "source": {
+        "source": "local",
+        "path": "./plugins/game-design"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Game Development"
+    },
+    {
+      "name": "rust-core",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rust-core"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "rust-game-development",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rust-game-development"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "game-geometry",
+      "source": {
+        "source": "local",
+        "path": "./plugins/game-geometry"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "django",
+      "source": {
+        "source": "local",
+        "path": "./plugins/django"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "htmx",
+      "source": {
+        "source": "local",
+        "path": "./plugins/htmx"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "nonfiction-book-writing",
+      "source": {
+        "source": "local",
+        "path": "./plugins/nonfiction-book-writing"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Writing"
+    },
+    {
+      "name": "developer-docs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/developer-docs"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Writing"
+    },
+    {
+      "name": "web-design-math",
+      "source": {
+        "source": "local",
+        "path": "./plugins/web-design-math"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "tdd",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tdd"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "practical-ab-testing",
+      "source": {
+        "source": "local",
+        "path": "./plugins/practical-ab-testing"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Product Management"
+    },
+    {
+      "name": "customer-discovery",
+      "source": {
+        "source": "local",
+        "path": "./plugins/customer-discovery"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "traction",
+      "source": {
+        "source": "local",
+        "path": "./plugins/traction"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "product-marketing",
+      "source": {
+        "source": "local",
+        "path": "./plugins/product-marketing"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "eighty-twenty",
+      "source": {
+        "source": "local",
+        "path": "./plugins/eighty-twenty"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "linkedin-writing",
+      "source": {
+        "source": "local",
+        "path": "./plugins/linkedin-writing"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "b2b-sales",
+      "source": {
+        "source": "local",
+        "path": "./plugins/b2b-sales"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "influence",
+      "source": {
+        "source": "local",
+        "path": "./plugins/influence"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "cookiecutter",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cookiecutter"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
+    },
+    {
+      "name": "seo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/seo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Marketing"
+    }
+  ]
+}

@@ -57,8 +57,8 @@ command -v jq >/dev/null 2>&1 || {
   exit 1
 }
 
-command -v bd >/dev/null 2>&1 || {
-  echo "bd is required" >&2
+command -v br >/dev/null 2>&1 || {
+  echo "br is required" >&2
   exit 1
 }
 
@@ -75,130 +75,69 @@ run_git_clean() {
   env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR git "$@"
 }
 
+# br is the current tracker (bd/Dolt retired). It needs BEADS_DIR; default to the
+# repo's nested ledger (_beads) when the caller has not set it. Resolved lazily so
+# run_git_clean (defined above) is available at call time.
+br_cmd() {
+  local beads_dir="${BEADS_DIR:-$(run_git_clean rev-parse --show-toplevel 2>/dev/null || pwd)/_beads}"
+  BEADS_DIR="$beads_dir" br "$@"
+}
+
 regex_escape_extended() {
   printf '%s' "$1" | sed -e 's/[][(){}.^$*+?|\\-]/\\&/g'
 }
 
-bd_show_json() {
+# issue_show_json prints the single issue object for an id (br show --json returns
+# a one-element array; bd did too, so the unwrap is identical).
+issue_show_json() {
   local issue_id="$1"
-  bd show "$issue_id" --json 2>/dev/null | jq -ec 'if type == "array" then .[0] // empty else . end'
-}
-
-extract_description_from_show_text() {
-  awk '
-    /^DESCRIPTION$/ { in_desc = 1; next }
-    in_desc {
-      if ($0 ~ /^(LABELS|DEPENDENCIES|DEPENDENTS|CHILDREN|COMMENTS|REFERENCES|NOTES):?[[:space:]]*$/) {
-        exit
-      }
-      print
-    }
-  '
-}
-
-extract_close_reason_from_show_text() {
-  awk '
-    /Close reason:/ {
-      sub(/^.*Close reason:[[:space:]]*/, "", $0)
-      print
-      exit
-    }
-  '
+  br_cmd show "$issue_id" --json 2>/dev/null | jq -ec 'if type == "array" then .[0] // empty else . end'
 }
 
 issue_audit_text() {
   local child="$1"
   local child_json=""
-  local human_output=""
-  local description=""
-  local close_reason=""
 
-  if child_json="$(bd_show_json "$child" 2>/dev/null)"; then
-    printf '%s\n' "$child_json" \
-      | jq -r '
-          [
-            (.title // ""),
-            (.description // ""),
-            (.acceptance_criteria // ""),
-            (.close_reason // "")
-          ]
-          | map(select(type == "string" and length > 0))
-          | join("\n\n")
-        '
-    return 0
-  fi
-
-  human_output="$(bd show "$child" 2>/dev/null || true)"
-  description="$(printf '%s\n' "$human_output" | extract_description_from_show_text)"
-  close_reason="$(printf '%s\n' "$human_output" | extract_close_reason_from_show_text)"
-
-  printf '%s\n\n%s\n' "$description" "$close_reason"
+  child_json="$(issue_show_json "$child" 2>/dev/null)" || return 0
+  [[ -n "$child_json" ]] || return 0
+  printf '%s\n' "$child_json" \
+    | jq -r '
+        [
+          (.title // ""),
+          (.description // ""),
+          (.acceptance_criteria // ""),
+          (.close_reason // "")
+        ]
+        | map(select(type == "string" and length > 0))
+        | join("\n\n")
+      '
 }
 
-collect_children_from_bd_children_json() {
-  local json_output
-  json_output="$(bd children "$EPIC_ID" --json 2>/dev/null)" || return 1
-  printf '%s\n' "$json_output" \
-    | jq -er '
-        .[]? |
-        if type == "object" then
-          (.id // .child_id // .issue_id // empty)
-        elif type == "string" then
-          .
-        else
-          empty
-        end
-      ' 2>/dev/null \
-    | sed '/^[[:space:]]*$/d' \
-    | sort -u
-}
-
-collect_children_from_bd_show_json() {
-  local json_output
-  json_output="$(bd show "$EPIC_ID" --json 2>/dev/null)" || return 1
-  printf '%s\n' "$json_output" \
-    | jq -er '
-        .[]? |
-        ((.dependents // .children // [])[]? |
-          select((.dependency_type // .type // "parent-child") == "parent-child") |
-          (.id // .child_id // .issue_id // empty))
-      ' 2>/dev/null \
-    | sed '/^[[:space:]]*$/d' \
-    | sort -u
-}
-
-collect_children_from_human_output() {
-  local human_output
-  human_output="$(bd show "$EPIC_ID" 2>/dev/null)" || return 1
-  printf '%s\n' "$human_output" \
-    | awk '
-        /^CHILDREN$/ { in_children = 1; next }
-        in_children && /^[[:space:]]*$/ { exit }
-        in_children { print }
-      ' \
-    | grep -oE '[[:alnum:]]+-[[:alnum:]]+(\.[0-9]+)+' \
-    | sort -u
-}
-
+# Children are the epic's parent-child dependents. br has no `children`
+# subcommand; the authoritative source is `br show <epic> --json` .dependents
+# (each carries dependency_type). The bd `children`/human-output collectors were
+# removed with the bd retirement.
 collect_children() {
   local children_output=""
 
-  if children_output="$(collect_children_from_bd_children_json)" && [[ -n "$children_output" ]]; then
+  children_output="$(
+    br_cmd show "$EPIC_ID" --json 2>/dev/null \
+      | jq -er '
+          .[]? |
+          ((.dependents // .children // [])[]? |
+            select((.dependency_type // .type // "parent-child") == "parent-child") |
+            (.id // .child_id // .issue_id // empty))
+        ' 2>/dev/null \
+      | sed '/^[[:space:]]*$/d' \
+      | sort -u
+  )"
+
+  if [[ -n "$children_output" ]]; then
     printf '%s\n' "$children_output"
     return 0
   fi
 
-  if children_output="$(collect_children_from_bd_show_json)" && [[ -n "$children_output" ]]; then
-    printf '%s\n' "$children_output"
-    return 0
-  fi
-
-  if children_output="$(collect_children_from_human_output)" && [[ -n "$children_output" ]]; then
-    printf '%s\n' "$children_output"
-    return 0
-  fi
-
-  COLLECTION_DETAIL="no child issues discovered from bd children/show output"
+  COLLECTION_DETAIL="no child issues discovered from br show --json dependents"
   return 1
 }
 
@@ -519,23 +458,17 @@ target_is_closed_non_epic() {
   local target_id="$1"
   local target_json=""
   local issue_type=""
-  local human_output=""
 
-  if target_json="$(bd_show_json "$target_id" 2>/dev/null)"; then
-    child_is_closed "$target_json" || return 1
-    issue_type="$(
-      printf '%s\n' "$target_json" \
-        | jq -r '(.issue_type // .type // "") | ascii_downcase'
-    )"
-    [[ "$issue_type" == "epic" ]] && return 1
-    [[ -n "$issue_type" ]] && return 0
-  fi
-
-  human_output="$(bd show "$target_id" 2>/dev/null || true)"
-  [[ "$human_output" == *"CLOSED"* ]] || return 1
-  [[ "$human_output" == *"[EPIC]"* ]] && return 1
-  [[ "$human_output" =~ \[(TASK|BUG|FEATURE|CHORE|ISSUE|DECISION)\] ]] || return 1
-  return 0
+  target_json="$(issue_show_json "$target_id" 2>/dev/null)" || return 1
+  [[ -n "$target_json" ]] || return 1
+  child_is_closed "$target_json" || return 1
+  issue_type="$(
+    printf '%s\n' "$target_json" \
+      | jq -r '(.issue_type // .type // "") | ascii_downcase'
+  )"
+  [[ "$issue_type" == "epic" ]] && return 1
+  [[ -n "$issue_type" ]] && return 0
+  return 1
 }
 
 extract_pr_numbers_from_text() {
@@ -661,12 +594,12 @@ child_has_nondiscovery_proof_surface() {
     return 0
   fi
 
-  local human_output
-  human_output="$(bd show "$child" 2>/dev/null || true)"
-  [[ -n "$human_output" ]] || return 1
+  local audit_text=""
+  audit_text="$(issue_audit_text "$child" 2>/dev/null || true)"
+  [[ -n "$audit_text" ]] || return 1
 
-  # Collect all file-like paths from the full bd-show text (description +
-  # close reason). Filter to non-discovery paths.
+  # Collect all file-like paths from the bead's structured text (title +
+  # description + acceptance + close reason). Filter to non-discovery paths.
   local candidate=""
   while IFS= read -r candidate; do
     [[ -n "$candidate" ]] || continue
@@ -684,24 +617,23 @@ child_has_nondiscovery_proof_surface() {
       return 0
     fi
   done < <(
-    printf '%s\n' "$human_output" \
+    printf '%s\n' "$audit_text" \
       | strip_urls_from_stream \
       | extract_file_paths_from_stream \
       | sed '/^[[:space:]]*$/d' \
       | sort -u
   )
 
-  # Last proof surface: a non-trivial "Close reason:" line (>= 24 chars of
-  # free text after the prefix). A substantive close reason written at
-  # bd-close time is itself auditable evidence that the work was accepted.
-  # Empty or generic close reasons do NOT count.
-  local close_reason_len=0
-  close_reason_len="$(
-    printf '%s\n' "$human_output" \
-      | awk -F'Close reason:' '/Close reason:/ { print length($2); exit }'
-  )"
-  if [[ -n "$close_reason_len" && "$close_reason_len" -ge 24 ]]; then
-    return 0
+  # Last proof surface: a non-trivial close_reason (>= 24 chars). A substantive
+  # close reason written at close time is itself auditable evidence that the
+  # work was accepted. Empty or generic close reasons do NOT count.
+  local child_json="" close_reason_len=0
+  child_json="$(issue_show_json "$child" 2>/dev/null || true)"
+  if [[ -n "$child_json" ]]; then
+    close_reason_len="$(printf '%s\n' "$child_json" | jq -r '(.close_reason // "") | length')"
+    if [[ "$close_reason_len" =~ ^[0-9]+$ && "$close_reason_len" -ge 24 ]]; then
+      return 0
+    fi
   fi
 
   return 1
@@ -848,7 +780,7 @@ classify_task_queue_target() {
   local pr_merge_json=""
 
   target_is_closed_non_epic "$target_id" || return 1
-  COLLECTION_DETAIL="${COLLECTION_DETAIL:-no child issues discovered from bd children/show output}; task-queue fallback requires PR merge evidence in git history or a valid evidence-only closure packet"
+  COLLECTION_DETAIL="${COLLECTION_DETAIL:-no child issues discovered from br show --json dependents}; task-queue fallback requires PR merge evidence in git history or a valid evidence-only closure packet"
 
   if packet_path="$(durable_packet_path_for_child "$target_id")" && packet_is_valid_for_child "$packet_path" "$target_id"; then
     packet_json="$(packet_matches_json "$packet_path")"
@@ -870,30 +802,74 @@ classify_task_queue_target() {
   return 1
 }
 
+# classify_single_epic_target handles a CLOSED epic that has no children of its
+# own (a single-epic closure — work tracked and landed directly on the epic, not
+# fanned out to child beads). It distinguishes a VALID commit-backed single-epic
+# closure (landed SHAs / commit referencing the epic id / evidence-only packet /
+# substantive close reason) from an INVALID no-child epic (closed with no proof).
+# Without this, every legitimate single-epic closure trips collection_failed.
+classify_single_epic_target() {
+  local target_id="$1"
+  local target_json="" issue_type="" close_reason="" packet_path="" packet_json=""
+
+  target_json="$(issue_show_json "$target_id" 2>/dev/null || true)"
+  [[ -n "$target_json" ]] || return 1
+  child_is_closed "$target_json" || return 1
+  issue_type="$(printf '%s\n' "$target_json" | jq -r '(.issue_type // .type // "") | ascii_downcase')"
+  [[ "$issue_type" == "epic" ]] || return 1
+
+  # Strongest proof: durable evidence-only closure packet.
+  if packet_path="$(durable_packet_path_for_child "$target_id")" && packet_is_valid_for_child "$packet_path" "$target_id"; then
+    packet_json="$(packet_matches_json "$packet_path")"
+    build_child_result "$target_id" '[]' "evidence-only-packet" "single_epic_closure: matched durable closure proof packet for no-child epic" "$packet_json" "pass" "single-epic"
+    return 0
+  fi
+
+  # Commit referencing the epic id directly in git history.
+  if commit_ref_exists "$target_id"; then
+    build_child_result "$target_id" '[]' "commit" "single_epic_closure: matched epic id in git history (commit-backed closure)" '[]' "pass" "single-epic"
+    return 0
+  fi
+
+  # Close reason citing a landed SHA: each 7-40 hex token in the close reason is
+  # a candidate commit ref, but a bare hex token is NOT proof — it must resolve to
+  # a REAL commit in git history (else "done deadbeef" or an incidental hex word
+  # would false-pass). Verify every candidate against the object database; only a
+  # token that resolves to an actual commit counts. Generic close reasons with no
+  # resolvable SHA do NOT count — an invalid no-child epic must still fail.
+  local sha=""
+  close_reason="$(printf '%s\n' "$target_json" | jq -r '.close_reason // ""')"
+  while IFS= read -r sha; do
+    [[ -n "$sha" ]] || continue
+    if run_git_clean rev-parse --verify --quiet "${sha}^{commit}" >/dev/null 2>&1; then
+      build_child_result "$target_id" '[]' "close-reason" "single_epic_closure: close reason cites a landed commit ($sha) for no-child epic" '[]' "pass" "single-epic"
+      return 0
+    fi
+  done < <(printf '%s' "$close_reason" | grep -oE '\b[0-9a-f]{7,40}\b' | sort -u)
+
+  return 1
+}
+
 classify_child() {
   local child="$1"
   local child_json=""
-  local human_output=""
   local created_at=""
   local closed_at=""
   local packet_path=""
   local scoped_json commit_json staged_json worktree_json packet_json
   local -a scoped_files=()
 
-  if child_json="$(bd_show_json "$child" 2>/dev/null)"; then
-    if ! child_is_closed "$child_json"; then
-      return 0
-    fi
-    created_at="$(issue_timestamp "$child_json" "created_at")"
-    closed_at="$(issue_timestamp "$child_json" "closed_at")"
-    if [[ -z "$closed_at" ]]; then
-      closed_at="$(issue_timestamp "$child_json" "updated_at")"
-    fi
-  else
-    human_output="$(bd show "$child" 2>/dev/null || true)"
-    if [[ "$human_output" != *"CLOSED"* ]]; then
-      return 0
-    fi
+  # Only closed children are audited; a child the tracker cannot resolve (no
+  # json) is skipped silently (open children also skip).
+  child_json="$(issue_show_json "$child" 2>/dev/null || true)"
+  [[ -n "$child_json" ]] || return 0
+  if ! child_is_closed "$child_json"; then
+    return 0
+  fi
+  created_at="$(issue_timestamp "$child_json" "created_at")"
+  closed_at="$(issue_timestamp "$child_json" "closed_at")"
+  if [[ -z "$closed_at" ]]; then
+    closed_at="$(issue_timestamp "$child_json" "updated_at")"
   fi
 
   # Evidence-only packet short-circuit: when a durable closure packet exists
@@ -1050,7 +1026,8 @@ emit_results_summary() {
           "discovery-seed-missing": ([.[] | select(.status == "warn" and .evidence_mode == "discovery-seed-missing") | .child_id] | sort)
         },
         closure_modes: {
-          "task-queue": ([.[] | select(.closure_mode == "task-queue") | .child_id] | sort)
+          "task-queue": ([.[] | select(.closure_mode == "task-queue") | .child_id] | sort),
+          "single-epic": ([.[] | select(.closure_mode == "single-epic") | .child_id] | sort)
         }
       },
       children: .,
@@ -1065,12 +1042,21 @@ trap 'rm -f "$tmp_results" "$children_file"' EXIT
 
 if ! collect_children >"$children_file"; then
   if target_is_closed_non_epic "$EPIC_ID"; then
-    COLLECTION_DETAIL="${COLLECTION_DETAIL:-no child issues discovered from bd children/show output}; task-queue fallback requires PR merge evidence in git history or a valid evidence-only closure packet"
+    COLLECTION_DETAIL="${COLLECTION_DETAIL:-no child issues discovered from br show --json dependents}; task-queue fallback requires PR merge evidence in git history or a valid evidence-only closure packet"
     if task_result="$(classify_task_queue_target "$EPIC_ID")" && [[ -n "$task_result" ]]; then
       printf '%s\n' "$task_result" > "$tmp_results"
       emit_results_summary "$tmp_results"
       exit 0
     fi
+  fi
+
+  # A closed epic with no children is a single-epic closure: accept it when the
+  # closure is commit-backed (landed SHAs / commit-ref / evidence packet),
+  # otherwise fall through to the collection_failed hard-fail below.
+  if single_epic_result="$(classify_single_epic_target "$EPIC_ID")" && [[ -n "$single_epic_result" ]]; then
+    printf '%s\n' "$single_epic_result" > "$tmp_results"
+    emit_results_summary "$tmp_results"
+    exit 0
   fi
 
   jq -n \

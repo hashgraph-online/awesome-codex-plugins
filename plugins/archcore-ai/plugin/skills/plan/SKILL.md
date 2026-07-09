@@ -49,6 +49,12 @@ Content voice: default to architectural prose — decisions, rationale, intent.
 See `skills/_shared/precision-rules.md` Rule 6. Code blocks only where the
 document type requires it (`rule`, `guide`, `cpat`) or the user asks.
 
+**Global sources (only when a flow's check-existing surfaces one).** If a
+`list_documents` / `search_documents` result has `global: true` /
+`read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`.
+Create local documents and wire relations to local documents only — never
+reference a global as a relation endpoint. No global match → proceed unchanged.
+
 ### Step 1: Resolve track
 
 Parse `$ARGUMENTS`:

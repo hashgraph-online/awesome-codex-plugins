@@ -8,6 +8,7 @@ This document specifies how validation requirements are defined, executed, and e
 
 ```
 BROKEN (old):
+<task-notification> --> TaskUpdate(completed) --> bd close
                         ^ TRUST (no verification)
 
 CORRECT (new):
@@ -45,10 +46,12 @@ reconciliation outcome.
 
 ## Specifying Validation Requirements
 
+### TaskCreate Metadata
 
 Validation requirements are specified with `metadata.issue_type` plus the `metadata.validation` field when creating tasks:
 
 ```
+TaskCreate(
   subject="Implement feature X",
   description="...",
   metadata={
@@ -71,8 +74,8 @@ Validation requirements are specified with `metadata.issue_type` plus the `metad
 | `feature`, `bug`, `task` | `metadata.validation.tests` is required, plus at least one structural check: `files_exist` and/or `content_check` |
 | `docs`, `chore`, `ci` | Explicit exemption from required `tests`; use structural and/or command/lint checks as applicable |
 
-If a `feature`/`bug`/`task` task packet is missing required test or structural checks, do not dispatch the task.
-If a task packet is missing `metadata.issue_type`, do not dispatch it once active constraints are in play; task validation cannot apply issue-scoped prevention safely without it.
+If a `feature`/`bug`/`task` TaskCreate is missing required test or structural checks, do not dispatch the task.
+If a TaskCreate is missing `metadata.issue_type`, do not dispatch it once active constraints are in play; task validation cannot apply issue-scoped prevention safely without it.
 Treat this as part of the closed flywheel, not extra metadata ceremony: a finding only shifts left into deterministic validation when applicability can be resolved without guessing.
 
 ### Active Compiled Constraint Runtime
@@ -192,11 +195,10 @@ Verifies file contains expected content.
 
 **Execution:**
 ```bash
-content="$(cat "$file")"
-if ! printf '%s' "$content" | grep -Eq "$pattern"; then
-    echo "Pattern not found in $file: $pattern" >&2
-    exit 1
-fi
+content = read_file(file)
+if not regex.search(pattern, content):
+    FAIL("Pattern not found in " + file + ": " + pattern)
+PASS
 ```
 
 **Use when:** Task must implement specific functions/patterns.
@@ -289,10 +291,11 @@ for check in cross_cutting:
 PASS
 ```
 
-**Use when:** Plan defines "Always" boundaries that apply to every issue in the epic. $crank reads these from the epic description and injects into every worker task.
+**Use when:** Plan defines "Always" boundaries that apply to every issue in the epic. /crank reads these from the epic description and injects into every worker task.
 
 **Source:** Cross-cutting constraints flow from plan boundaries:
 ```
+Plan "Always" boundaries → Epic description → /crank extracts → TaskCreate metadata
 ```
 
 ---
@@ -336,10 +339,12 @@ After MAX_RETRIES failures:
 
 1. Mark task as blocked:
    ```
+   TaskUpdate(taskId="<id>", status="blocked")
    ```
 
 2. Record failure history:
    ```
+   TaskUpdate(taskId="<id>", description="<original>
 
    ## ESCALATED - Validation Failures
    Attempt 1: <failure>
@@ -360,8 +365,10 @@ When no explicit validation is specified (docs/chore/ci exemption path or legacy
 ```python
 def default_validation(task_id, worker_artifacts):
     # Check agent didn't end with errors
+    # (parse task notification / SendMessage envelope for failure indicators)
 
     # Check worker reported artifacts exist
+    # Workers do NOT commit — they write files and report via SendMessage.
     # The team lead validates artifacts exist before committing.
     for artifact in worker_artifacts:
         if not os.path.exists(artifact):
@@ -389,6 +396,7 @@ When crank invokes swarm, it can specify validation at the epic level:
 ```python
 # Crank creates tasks from beads issues
 for issue in ready_issues:
+    TaskCreate(
         subject=f"{issue.id}: {issue.title}",
         description=issue.description,
         metadata={
@@ -444,6 +452,7 @@ def build_validation_from_issue(issue):
 ### Example 1: New Feature with Tests
 
 ```
+TaskCreate(
   subject="Add user authentication",
   description="Implement JWT-based authentication...",
   metadata={
@@ -467,6 +476,7 @@ def build_validation_from_issue(issue):
 ### Example 2: Bug Fix
 
 ```
+TaskCreate(
   subject="Fix null pointer in user lookup",
   description="Handle case where user not found...",
   metadata={
@@ -484,6 +494,7 @@ def build_validation_from_issue(issue):
 ### Example 3: Documentation Update
 
 ```
+TaskCreate(
   subject="Update API docs for v2",
   description="Update README with new endpoints...",
   metadata={
@@ -501,6 +512,7 @@ def build_validation_from_issue(issue):
 ### Example 4: Infrastructure Change
 
 ```
+TaskCreate(
   subject="Add Redis caching layer",
   description="Configure Redis for session caching...",
   metadata={
