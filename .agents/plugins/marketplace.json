@@ -629,6 +629,11 @@
       "source": {
         "source": "local",
         "path": "./plugins/ValkyrLabs/GrayMatter"
+      "name": "haunt-mcp",
+      "displayName": "Haunt MCP",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Darko893/mcp-server"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -637,6 +642,8 @@
       "category": "Development & Workflow",
       "description": "Durable memory and shared graph state for Codex and OpenClaw agents, with live ValkyrAI schema awareness.",
       "icon": "./plugins/ValkyrLabs/GrayMatter/assets/composer-icon.svg"
+      "category": "Tools & Integrations",
+      "description": "Web extraction MCP for permitted public pages. Returns clean JSON, Markdown, article fields, metadata, and usage with clear blocked-page errors."
     },
     {
       "name": "hol-guard-plugin",
