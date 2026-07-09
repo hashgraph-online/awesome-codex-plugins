@@ -257,6 +257,20 @@
       "icon": "./plugins/GSkuza/BABOK_ANALYST/assets/icon.svg"
     },
     {
+      "name": "basemind",
+      "displayName": "basemind",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Goldziher/basemind"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Full AI context layer over MCP with a tree-sitter code-map, document RAG, shared agent memory, web crawl, and git history across 300+ languages."
+    },
+    {
       "name": "bgs-modding-superpowers",
       "displayName": "BGS Modding Superpowers",
       "source": {
@@ -771,6 +785,20 @@
       },
       "category": "Development & Workflow",
       "description": "Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin."
+    },
+    {
+      "name": "odw",
+      "displayName": "Open Dynamic Workflows",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Suraj1235/open-dynamic-workflows"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "An open-source dynamic multi-agent workflow engine for AI coding agents (OpenCode, Codex, Antigravity, VS Code) that plans, orchestrates, and adversarially verifies parallel agents, shipping a Codex/Antigravity skill and an OpenCode plugin with bring-your-own-model support."
     },
     {
       "name": "personal-data-protection",

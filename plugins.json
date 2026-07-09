@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-07-09",
-  "total": 159,
+  "total": 161,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -178,6 +178,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/GSkuza/BABOK_ANALYST/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "basemind",
+      "url": "https://github.com/Goldziher/basemind",
+      "owner": "Goldziher",
+      "repo": "basemind",
+      "description": "Full AI context layer over MCP with a tree-sitter code-map, document RAG, shared agent memory, web crawl, and git history across 300+ languages.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Goldziher/basemind/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "BGS Modding Superpowers",
@@ -528,6 +538,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/sarveshsea/memi/HEAD/plugins/memoire/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Open Dynamic Workflows",
+      "url": "https://github.com/Suraj1235/open-dynamic-workflows",
+      "owner": "Suraj1235",
+      "repo": "open-dynamic-workflows",
+      "description": "An open-source dynamic multi-agent workflow engine for AI coding agents (OpenCode, Codex, Antigravity, VS Code) that plans, orchestrates, and adversarially verifies parallel agents, shipping a Codex/Antigravity skill and an OpenCode plugin with bring-your-own-model support.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Suraj1235/open-dynamic-workflows/HEAD/packages/codex-adapter/.codex-plugin/plugin.json"
     },
     {
       "name": "Personal Data Protection",

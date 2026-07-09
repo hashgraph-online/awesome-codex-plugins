@@ -1,0 +1,39 @@
+{
+  "name": "odw",
+  "description": "Dynamic multi-agent workflows for Codex — plan, orchestrate, and verify parallel agents via a local daemon.",
+  "version": "0.1.0",
+  "author": {
+    "name": "open-dynamic-workflows contributors",
+    "url": "https://github.com/Suraj1235/open-dynamic-workflows"
+  },
+  "homepage": "https://github.com/Suraj1235/open-dynamic-workflows",
+  "repository": "https://github.com/Suraj1235/open-dynamic-workflows",
+  "license": "MIT",
+  "keywords": [
+    "workflows",
+    "orchestration",
+    "multi-agent",
+    "parallel",
+    "ultracode",
+    "planning"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Open Dynamic Workflows",
+    "shortDescription": "Plan, orchestrate, and verify parallel AI coding agents.",
+    "longDescription": "Open Dynamic Workflows (ODW) is an open-source dynamic multi-agent workflow engine for AI coding agents. It plans a task into a workflow graph, dispatches subtasks to parallel agents through a local daemon, and adversarially verifies their output before results are synthesized. Bring-your-own-model: Anthropic, OpenAI-compatible, or Ollama.",
+    "developerName": "open-dynamic-workflows contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Plan and run this task as a parallel multi-agent workflow",
+      "Adversarially verify the changes the agents produced"
+    ],
+    "websiteURL": "https://github.com/Suraj1235/open-dynamic-workflows"
+  }
+}
