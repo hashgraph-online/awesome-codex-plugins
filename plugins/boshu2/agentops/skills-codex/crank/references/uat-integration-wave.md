@@ -55,7 +55,7 @@ ao defrag --dedup --quiet
 ### Cross-Feature State Test
 ```bash
 # Handoff creates artifact → lookup reads it
-ao handoff --dry-run "integration test"
+ao session handoff --dry-run "integration test"
 ao lookup --query "integration test" --no-cite
 ```
 

@@ -39,11 +39,11 @@ It is the **single-shot launch event**, not the planning or the optimisation.
 This skill REFUSES to proceed unless ALL of these pass. Print the failing items, do not start the launch.
 
 1. `/digital-marketing-pro:validate-profile --brand {brand}` returns `passed` or `passed_with_warnings`.
-2. A campaign plan exists at `~/.claude-marketing/{brand}/campaigns/{campaign_id}/plan.json` (or the user provides `--plan-path`).
+2. A campaign plan exists at `~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/plan.json` (or the user provides `--plan-path`).
 3. The plan's `status` field is `approved` (not `draft` / `in_review` / `rejected`).
 4. Every asset referenced in the plan exists at the path the plan claims it does (creative files, landing-page URLs respond 200, email templates exist in the email platform).
-5. Every connector required by the channels in scope is reachable (re-run a fast `connector-status.py --quick` probe).
-6. Conversion tracking is verified for every channel in scope — GA4 events configured AND test-fired in the last 7 days (per `performance-monitor.py --channel ga4_health`).
+5. Every connector required by the channels in scope is reachable — re-run a fast probe: `python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" --brand {slug} --action status --probe-only --connectors {comma-separated channel connectors}`.
+6. Conversion tracking is verified for every channel in scope — GA4 events configured AND test-fired in the last 7 days: `python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand {slug} --action diagnostic --channel ga4_health`.
 7. If any AI-generated visual / video / audio is in the asset list AND the campaign targets EU markets, every such asset has been signed via C2PA (`/digital-marketing-pro:c2pa-metadata` workflow, or the SocialForge / ContentForge `--c2pa-sign` flag). Article 50 compliance is non-negotiable for EU launches as of 2 Aug 2026.
 
 If any of these fail, print the punch list with the literal next command for each item, and exit.
@@ -79,7 +79,7 @@ Before touching any live system, print a dry-run preview of every action that's 
    11. Tracking — Wire UTM parameters across every link (cross-check against plan)
    12. Attribution — Confirm {attribution_model} active in GA4 + CRM
    13. Monitoring — Activate day-1 watchdog on {KPIs} via /digital-marketing-pro:performance-check
-   14. Documentation — Write launch record to ~/.claude-marketing/{brand}/campaigns/{campaign_id}/launch-record.json
+   14. Documentation — Write launch record to ~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/launch-record.json
        and publish a user-visible copy to ~/Documents/DigitalMarketingPro/{brand}/campaigns/
 
    Estimated total wall-clock time: ~{N} minutes.
@@ -91,7 +91,7 @@ Before touching any live system, print a dry-run preview of every action that's 
 
 ### Step 3 — Execute in dependency order
 
-Run the actions sequentially. **After every action, write a state checkpoint** to `~/.claude-marketing/{brand}/campaigns/{campaign_id}/launch-state.json` so an interruption can be resumed. (Reuses the same pattern as ContentForge's `checkpoint-manager.py` — see `/contentforge:resume` for the analogous flow.)
+Run the actions sequentially. **After every action, write a state checkpoint** to `~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/launch-state.json` so an interruption can be resumed. (Reuses the same pattern as ContentForge's `checkpoint-manager.py` — see `/contentforge:resume` (requires the ContentForge plugin) for the analogous flow.)
 
 Key dependency rules:
 
@@ -105,39 +105,39 @@ Each platform action is dispatched via the relevant script:
 
 ```bash
 # CRM Campaign object
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py --brand "{brand}" \
-    --action create-campaign --plan ~/.claude-marketing/{brand}/campaigns/{campaign_id}/plan.json
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand "{brand}" \
+    --action create-campaign --plan ~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/plan.json
 
 # Landing page check
 curl -sS -o /dev/null -w "%{http_code}" "{landing_url}"
 
 # Email automation enable (idempotent — skips if already enabled)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand "{brand}" \
     --action enable-automation --automation-id "{id}" --platform "{klaviyo|hubspot|...}"
 
 # Paid-ads activation (delegates to launch-ad-campaign for the paid-only subset)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py --brand "{brand}" \
-    --action launch-ads --plan ~/.claude-marketing/{brand}/campaigns/{campaign_id}/plan.json
+python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand "{brand}" \
+    --action launch-ads --plan ~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/plan.json
 # (this internally calls the launch-ad-campaign workflow for Google/Meta/LinkedIn/TikTok)
 
 # Organic social scheduling
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py --brand "{brand}" \
-    --action schedule-posts --plan ~/.claude-marketing/{brand}/campaigns/{campaign_id}/plan.json
+python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand "{brand}" \
+    --action schedule-posts --plan ~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/plan.json
 
 # Influencer notification
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py --brand "{brand}" \
-    --action notify-influencers --plan ~/.claude-marketing/{brand}/campaigns/{campaign_id}/plan.json
+python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand "{brand}" \
+    --action notify-influencers --plan ~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/plan.json
 
 # PR send
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py --brand "{brand}" \
-    --action pr-send --plan ~/.claude-marketing/{brand}/campaigns/{campaign_id}/plan.json
+python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand "{brand}" \
+    --action pr-send --plan ~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/plan.json
 
 # Internal kickoff
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py --brand "{brand}" \
-    --action internal-kickoff --plan ~/.claude-marketing/{brand}/campaigns/{campaign_id}/plan.json
+python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand "{brand}" \
+    --action internal-kickoff --plan ~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/plan.json
 
 # Day-1 monitoring
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand "{brand}" \
     --action arm-watchdog --campaign-id "{campaign_id}" --kpis "{kpi list}"
 ```
 
@@ -146,7 +146,7 @@ If any action fails:
 1. Update `launch-state.json` with `status: paused_at_step_{N}` and the error.
 2. Do NOT proceed to subsequent steps. Subsequent steps depend on this one.
 3. Print the failure with a literal remediation command and the exact resume command:
-   `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py --action resume-launch --campaign-id "{campaign_id}" --from-step {N}`
+   `python "${CLAUDE_PLUGIN_ROOT}/scripts/execution-tracker.py" --brand "{brand}" --action resume-launch --data '{"campaign_id":"{campaign_id}","from_step":{N}}'`
 4. Do NOT auto-retry. Day-1 failures often mean a misconfiguration that retries will only amplify (duplicate campaigns, doubled emails, etc.). Human decision required.
 
 ### Step 4 — Write the launch record
@@ -155,13 +155,13 @@ After every action succeeds, write the final launch record to two locations:
 
 ```bash
 # Internal (system-of-record)
-~/.claude-marketing/{brand}/campaigns/{campaign_id}/launch-record.json
+~/.claude-marketing/brands/{slug}/campaigns/{campaign_id}/launch-record.json
 
 # User-visible
 ~/Documents/DigitalMarketingPro/{brand}/campaigns/{YYYY-MM-DD}-{campaign_name_slug}-launch.json
 ```
 
-(Or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR/{brand}/campaigns/{...}` if set, mirroring the ContentForge v3.12.3 publish-dir pattern.)
+(Or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR/{slug}/campaigns/{...}` if set, mirroring the ContentForge dual-copy publish-dir pattern.)
 
 The record contains: launched_at timestamp, every action with its return value, channel-by-channel activation status, CRM Campaign object ID, the URL of the internal kickoff Slack/email, the watchdog ID for day-1 monitoring, and the absolute path to the campaign plan that produced this launch.
 
@@ -192,7 +192,7 @@ Print the launch summary in the conversation:
 3. **Dependency order is fixed.** CRM → landing-page verify → email → paid → organic → influencer → PR → internal → tracking → monitoring → record. Don't reorder. If a channel needs to be skipped, the plan should say so before this skill runs.
 4. **Checkpoint after every action.** Treat the launch as a 14-phase pipeline. Any failure leaves a resumable state in `launch-state.json` — never "lost" work.
 5. **No auto-retry on failure.** A failed launch step requires human eyes — retrying blindly creates duplicate campaigns, doubled emails, and untraceable CRM records.
-6. **Dual-copy the launch record.** Internal + user-visible, same pattern as the ContentForge v3.12.3 fix. Agencies want to send the launch record to clients without explaining where dotfolders are.
+6. **Dual-copy the launch record.** Internal + user-visible, same pattern as the ContentForge dual-copy fix. Agencies want to send the launch record to clients without explaining where dotfolders are.
 
 ## Arguments
 
@@ -203,7 +203,7 @@ Print the launch summary in the conversation:
 
 - `--brand <slug>` — brand to launch for (else uses active brand)
 - `--campaign-id <id>` — campaign to launch (else, if a single approved plan exists for the brand, use it; otherwise prompt)
-- `--plan-path <path>` — explicit path to the plan JSON (overrides the default `~/.claude-marketing/{brand}/campaigns/{id}/plan.json` location)
+- `--plan-path <path>` — explicit path to the plan JSON (overrides the default `~/.claude-marketing/brands/{slug}/campaigns/{id}/plan.json` location)
 - `--dry-run` — print the preview and exit without launching (alias for typing `dry-run-only` at the confirmation prompt)
 - `--resume-from-step <N>` — resume a paused launch from step N (looks up `launch-state.json`)
 - `--skip-internal-kickoff` — skip the Slack/email kickoff (use when the launch happens outside business hours and comms go later)
@@ -215,6 +215,6 @@ Print the launch summary in the conversation:
 - [`campaign-plan`](../campaign-plan/SKILL.md) — produces the plan this skill consumes
 - [`launch-ad-campaign`](../launch-ad-campaign/SKILL.md) — the paid-ads-only subset that this skill delegates to for Step 5
 - [`performance-check`](../performance-check/SKILL.md) — day-1 check-in skill mentioned in the success message
-- [`performance-monitor`](../performance-monitor/SKILL.md) — arms the day-1 watchdog
+- `performance-monitor.py` (`${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py`) — arms the day-1 watchdog
 - [`crm-sync`](../crm-sync/SKILL.md) — creates the CRM Campaign object
 - [`c2pa-metadata`](../c2pa-metadata/SKILL.md) — signs AI assets for EU launches (mandatory per Step 0)

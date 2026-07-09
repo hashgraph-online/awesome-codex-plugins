@@ -98,14 +98,14 @@ Ask the user one question at a time (don't overwhelm):
 
 After collecting all information:
 
-1. Run: `python3 scripts/setup.py --create-brand "[brand name]"`
+1. Run: `python "${CLAUDE_PLUGIN_ROOT}/scripts/setup.py" --create-brand "[brand name]"`
 2. Update the created profile.json with all collected data
 3. Confirm to user: "Brand profile created for [brand_name]. All marketing modules will now use this context. You can update it anytime by saying 'update my brand profile.'"
 
 ## Switching Brands
 
 When user says "switch to [brand name]":
-1. Run: `python3 scripts/setup.py --list-brands`
+1. Run: `python "${CLAUDE_PLUGIN_ROOT}/scripts/setup.py" --list-brands`
 2. Find matching brand
 3. Update `~/.claude-marketing/brands/_active-brand.json`
 4. Confirm: "Switched to [brand_name]."

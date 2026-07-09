@@ -49,6 +49,23 @@ Feature: Plan converts dense intent into executable slices
     And no slice depends on raw Discovery chat context
 ```
 
+## Goal-Design Packet Input
+
+When the input is `.agents/goal-design/<slug>` or any directory containing
+`intent.md` and `driver.md`, run `scripts/check-goal-design-packet.sh <packet-dir>`
+before decomposition. Checker failure blocks planning.
+
+For a checker-clean packet:
+
+- Treat `driver.candidate_beads[]` as slice seeds.
+- Preserve each candidate `behavior` string and scenario ids exactly in the bead
+  `## Scenarios` block.
+- Map `first_failing_proof`, `write_scope`, and `close_signal` into the issue
+  acceptance criteria.
+- Carry `intent.boundaries.non_goals`, `rollback_or_containment`, and
+  `hard_rules` into the plan boundary section.
+- Do not create beads from a stale or unchecked packet.
+
 ## Workflow
 
 1. **Pre-flight stale bead scope.** If the input is a bead ID and the work is
@@ -86,8 +103,16 @@ Feature: Plan converts dense intent into executable slices
    or `ao` command hits become **reuse** notes, not new beads.
 7. **Choose detail level.** Minimal for 1-2 simple issues, Standard for 3-6
    issues, Deep for 7+ issues, broad refactors, or `--deep`.
-8. **Decompose into issues.** Each issue needs title, file ownership,
-   dependencies, acceptance criteria, test levels, and at least one mechanical
+8. **Decompose into issues.** **Decompose by behavior, not by file or feature-
+   bundle (PR-010):** each slice delivers exactly one Given/When/Then behavior (a
+   small batch), and every refactor is its OWN slice — never folded into a feature
+   slice. Small batches + refactor-after-green are the load-bearing quality moves;
+   test-first *ordering* is not (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`).
+   Each issue needs title, file ownership,
+   dependencies, acceptance criteria, test levels (**throttled to stakes, PR-011:**
+   small/low-risk slices get L2 + L1 only; reserve full mutation/BF corpus for
+   critical/security/high-blast-radius slices — the over-testing tax), and at
+   least one mechanical
    conformance check (`files_exist`, `content_check`, `command`, `tests`, or
    `lint`). **Every bead MUST also carry an embedded `## Scenarios` Gherkin
    block (Given/When/Then) — by default, without being asked.** Free-text-only

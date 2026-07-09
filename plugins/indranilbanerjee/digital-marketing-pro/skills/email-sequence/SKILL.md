@@ -28,9 +28,20 @@ The user must provide (or will be prompted for):
 3. Determine optimal email count and send cadence based on sequence type
 4. Write each email: subject line (2-3 options), preview text, body copy with clear CTA
 5. Define segmentation and branching logic (open/click triggers, conditional paths)
-6. Apply deliverability checks: spam trigger words, link density, image-to-text ratio, authentication reminders
+6. Apply deliverability checks: spam trigger words, link density, image-to-text ratio, authentication reminders, and the **bulk-sender checklist** below
 7. Add personalization tokens and dynamic content recommendations
 8. Review full sequence for brand voice consistency and regulatory compliance (CAN-SPAM, GDPR)
+
+### Bulk-sender deliverability checklist (Gmail / Yahoo / Outlook)
+
+Any brand sending at bulk volume (~5,000+ messages/day to a mailbox provider) must meet the mailbox-provider sender requirements or mail is throttled or rejected. Bake these into the sequence's implementation notes (ported from `/digital-marketing-pro:send-email-campaign`, with Outlook 2025 added):
+
+- **Authenticate the sending domain**: SPF **and** DKIM **and** a published DMARC policy (at least `p=none`, aligned) — required by **Gmail & Yahoo (Feb 2024)** and **Microsoft Outlook / Outlook.com (rolling out through 2025 for senders ≥5,000/day)**.
+- **One-click unsubscribe**: include the `List-Unsubscribe` header with one-click support (RFC 8058), and honour opt-outs within 2 days. A visible unsubscribe link in the body is still required in addition.
+- **Keep the spam-complaint rate under 0.3%** (measured in Google Postmaster Tools / Yahoo / Microsoft SNDS) — ideally under 0.1%.
+- **Send from a consistent, PTR/reverse-DNS-valid IP over TLS**, with a warmed-up sending domain and consistent from-address.
+- **Physical mailing address + accurate From/Reply-To identity** in every message (CAN-SPAM), and documented opt-in consent per jurisdiction (GDPR / CASL).
+- **List hygiene**: suppress hard bounces and inactive addresses; never send to purchased lists.
 
 ## Output
 

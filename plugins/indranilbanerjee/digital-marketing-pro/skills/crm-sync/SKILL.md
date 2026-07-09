@@ -1,7 +1,7 @@
 ---
 name: crm-sync
 description: "Sync data to CRM platforms. Use when: pushing contacts, deals, or campaigns to Salesforce, HubSpot, Zoho, or Pipedrive."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[crm-platform]"
 ---
 
@@ -12,6 +12,13 @@ argument-hint: "[crm-platform]"
 Sync marketing data to and from the brand's connected CRM platform. Handles contact creation, deal updates, and campaign linking with automatic field mapping, deduplication, and compliance checks. Supports Salesforce, HubSpot, Zoho, and Pipedrive with bi-directional sync capabilities, ensuring marketing and sales teams operate from a single source of truth without manual data entry or import/export cycles. Designed for both one-time bulk syncs and recurring automated transfers, with full audit trails and rollback capabilities for enterprise-grade data governance.
 
 Use this command instead of manual CSV imports when you need deduplication, compliance validation, or audit logging. For lead-specific imports with scoring, use `/digital-marketing-pro:lead-import` instead.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 
@@ -35,10 +42,10 @@ The user must provide (or will be prompted for):
 ## Process
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand voice, compliance rules for target markets (`skills/context-engine/compliance-rules.md`), and industry context. **Also check for guidelines** at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load restrictions and relevant category files. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
-2. **Check connected CRM status**: Run `crm-sync.py --action get-crm-status` to verify platform connection, API credentials, rate limit headroom, and available objects. If no CRM is connected, guide the user to configure their CRM MCP integration and provide platform-specific setup instructions.
+2. **Check connected CRM status**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action get-crm-status` to verify platform connection, API credentials, rate limit headroom, and available objects. If no CRM is connected, guide the user to configure their CRM MCP integration and provide platform-specific setup instructions.
 3. **Validate input data**: Parse the source data and validate required fields — check email format (RFC 5322), phone number normalization (E.164), required field presence, data type consistency, and character encoding. Flag invalid records with specific error reasons and separate them from the valid set.
 4. **Map fields to CRM schema**: Consult `skills/context-engine/crm-integration-guide.md` for standard field mappings per platform. Auto-map matching field names, apply user overrides, identify unmapped source fields, and flag required CRM fields with no source mapping. Present the complete field mapping table for confirmation before proceeding.
-5. **Check for duplicates**: Run `crm-sync.py --action check-dedup` against the target CRM using the selected deduplication strategy. Identify exact matches, fuzzy matches (Levenshtein distance on name + domain), and genuinely new records. Present dedup results with recommended actions per record (create, update, skip, merge).
+5. **Check for duplicates**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand {slug} --action check-dedup --data '{"strategy":"email","records":[...]}'` against the target CRM using the selected deduplication strategy. Identify exact matches, fuzzy matches (Levenshtein distance on name + domain), and genuinely new records. Present dedup results with recommended actions per record (create, update, skip, merge).
 6. **Validate compliance requirements**: Check consent fields, opt-in status, and data processing basis against compliance rules for the brand's target markets. Flag records missing required consent or violating data retention policies. For GDPR markets, verify lawful basis is documented per record.
 7. **Prepare CRM-ready payloads**: Transform validated, deduplicated records into platform-specific API payloads with correct field names, data types, picklist values, relationship references (e.g., linking contacts to accounts), and owner assignment based on territory or round-robin rules.
 8. **Create approval gate**: Assess risk level — medium for fewer than 100 records, high for 100 or more. Present sync preview showing total record count, create/update/skip breakdown, dedup results, field mapping summary, compliance status, and any validation warnings requiring attention.

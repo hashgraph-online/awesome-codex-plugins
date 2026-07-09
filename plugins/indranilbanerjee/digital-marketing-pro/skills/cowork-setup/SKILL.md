@@ -22,7 +22,7 @@ v3.12.0 fixed this with environment-aware routing: when Cowork is detected AND a
 ### Step 1 — Verify Cowork environment
 
 ```bash
-python scripts/plugin-metadata.py --section environment
+python "${CLAUDE_PLUGIN_ROOT}/scripts/plugin-metadata.py" --section environment
 ```
 
 Parse the JSON. Three branches:
@@ -98,7 +98,7 @@ Don't create empty brand subfolders yet — those auto-create during the first r
 Then write the config via the canonical script (NOT a hand-written JSON file — use the script so the format stays in sync with the rest of the toolchain):
 
 ```bash
-python scripts/drive-sync-state.py --action write-config --data '{
+python "${CLAUDE_PLUGIN_ROOT}/scripts/drive-sync-state.py" --action write-config --data '{
   "environment": "cowork-sandbox",
   "drive_root_folder_name": "<team folder name chosen>",
   "drive_root_folder_id": "<id from Step 3>",
@@ -114,7 +114,7 @@ Future Cowork sessions: every DMP operation (`brand-setup`, `status`, `seo-audit
 To verify it was written correctly:
 
 ```bash
-python scripts/drive-sync-state.py --action read-config
+python "${CLAUDE_PLUGIN_ROOT}/scripts/drive-sync-state.py" --action read-config
 ```
 
 ### Step 5 — Set the user's expectations
@@ -160,7 +160,7 @@ When the routing is configured, brand-setup writes locally to `~/.claude-marketi
 Concretely: after every state-mutating DMP operation, the agent runs:
 
 ```bash
-python scripts/drive-sync-state.py --action profile-needs-upload --brand <brand>
+python "${CLAUDE_PLUGIN_ROOT}/scripts/drive-sync-state.py" --action profile-needs-upload --brand <brand>
 ```
 
 If `needs_upload: true`, the agent uses its Drive MCP to upload the file and then runs `--action profile-mark-uploaded` with the Drive file ID returned by the MCP.

@@ -94,7 +94,7 @@ This skill loads and manages:
 ### Switching Brands
 
 When user says "switch to [brand name]":
-1. Run: `python "scripts/setup.py" --switch-brand SLUG`
+1. Run: `python "${CLAUDE_PLUGIN_ROOT}/scripts/setup.py" --switch-brand SLUG`
 2. The script handles fuzzy matching, validation, and updates `_active-brand.json`
 3. Confirm: "Switched to [brand_name]. All marketing outputs will now use this brand's voice, compliance rules, and context."
 

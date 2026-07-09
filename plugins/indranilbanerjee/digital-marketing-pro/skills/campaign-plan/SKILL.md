@@ -24,14 +24,15 @@ The user must provide (or will be prompted for):
 ## Process
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand voice, compliance rules for target markets (`skills/context-engine/compliance-rules.md`), and industry context. **Also check for guidelines** at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load restrictions and relevant category files. Check for custom templates at `~/.claude-marketing/brands/{slug}/templates/`. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
-2. Clarify campaign objective and classify as awareness, consideration, or conversion
-3. Define primary and secondary audience segments with targeting parameters
-4. Recommend channel mix based on audience behavior, budget, and objective
-5. Allocate budget across channels using expected CPM/CPC benchmarks for the industry
-6. Build a phased timeline: pre-launch, launch, sustain, optimize, wrap-up
-7. Define KPIs per channel and overall campaign success metrics
-8. Identify dependencies, risks, and contingency actions
-9. Output the full plan in a structured, actionable format
+2. **Load shared planning references (don't re-derive them)**: Consume the campaign-orchestrator reference docs rather than duplicating their frameworks — `skills/campaign-orchestrator/campaign-planning.md` (planning framework), `skills/campaign-orchestrator/channel-strategy.md` (channel selection), `skills/campaign-orchestrator/budget-allocation.md` (budget-split heuristics), `skills/campaign-orchestrator/utm-tracking.md` (UTM naming conventions), and `skills/campaign-orchestrator/abm-strategy.md` (ABM). This skill produces the plan document; `/digital-marketing-pro:campaign-orchestrator` runs the broader multi-agent orchestration on top of the same references.
+3. Clarify campaign objective and classify as awareness, consideration, or conversion
+4. Define primary and secondary audience segments with targeting parameters
+5. Recommend channel mix based on audience behavior, budget, and objective
+6. Allocate budget across channels using expected CPM/CPC benchmarks for the industry
+7. Build a phased timeline: pre-launch, launch, sustain, optimize, wrap-up
+8. Define KPIs per channel and overall campaign success metrics
+9. Identify dependencies, risks, and contingency actions
+10. Output the full plan in a structured, actionable format
 
 ## Output
 

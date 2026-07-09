@@ -393,6 +393,86 @@ class ComposeToTemplateTests(unittest.TestCase):
             ports = service["spec"]["ports"]
             self.assertEqual("tcp-9000", ports[0]["name"])
             self.assertEqual("tcp-9443", ports[1]["name"])
+            workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+            self.assertEqual(
+                [{"name": "${{ defaults.app_name }}"}],
+                workload["spec"]["template"]["spec"]["imagePullSecrets"],
+            )
+
+    def test_generates_websocket_ingress_for_named_websocket_port(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(
+                compose,
+                """
+                services:
+                  app:
+                    image: ghcr.io/example/demo:1.0.0
+                    ports:
+                      - target: 3000
+                        published: 3000
+                        protocol: tcp
+                        name: websocket
+                """,
+            )
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("demo"),
+            )
+            docs = parse_yaml_documents(index_path)
+            workload = next(doc for doc in docs if doc.get("kind") in {"Deployment", "StatefulSet"})
+            service = next(doc for doc in docs if doc.get("kind") == "Service")
+            ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
+
+            container_port = workload["spec"]["template"]["spec"]["containers"][0]["ports"][0]
+            service_port = service["spec"]["ports"][0]
+            self.assertEqual("websocket", container_port["name"])
+            self.assertEqual("websocket", service_port["name"])
+            self.assertEqual(
+                {
+                    "kubernetes.io/ingress.class": "nginx",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "32m",
+                    "nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+                    "nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
+                    "nginx.ingress.kubernetes.io/backend-protocol": "WS",
+                    "nginx.ingress.kubernetes.io/ssl-redirect": "true",
+                },
+                ingress["metadata"]["annotations"],
+            )
+
+    def test_generates_websocket_ingress_for_websocket_url_env(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(
+                compose,
+                """
+                services:
+                  app:
+                    image: ghcr.io/example/demo:1.0.0
+                    ports:
+                      - "3000:3000"
+                    environment:
+                      PUBLIC_WEBSOCKET_URL: wss://demo.example.com
+                """,
+            )
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("demo"),
+            )
+            docs = parse_yaml_documents(index_path)
+            service = next(doc for doc in docs if doc.get("kind") == "Service")
+            ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
+
+            self.assertEqual("tcp-3000", service["spec"]["ports"][0]["name"])
+            self.assertEqual("WS", ingress["metadata"]["annotations"]["nginx.ingress.kubernetes.io/backend-protocol"])
+            self.assertEqual(
+                "3600",
+                ingress["metadata"]["annotations"]["nginx.ingress.kubernetes.io/proxy-read-timeout"],
+            )
 
     def test_drops_https_port_when_http_port_exists(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -463,7 +543,7 @@ class ComposeToTemplateTests(unittest.TestCase):
                 """
                 services:
                   app:
-                    image: ghcr.io/example/demo:1.0.0
+                    image: nginx:1.27.2
                     configs:
                       - source: app_config
                         target: /opt/demo/app-config.yaml

@@ -131,7 +131,7 @@ Tier 1b — Graphify structural map (optional; the freshest queryable structure)
   Use BEFORE Tier 3 grep for "what is X / where / what's connected / cross-file links".
   Bound: maps STRUCTURE (calls/connections), not in-body logic — read the file (Tier 4) for logic.
   Skip if: `graphify` not installed (graceful — fall through to the tiers below).
-  Recipe + the REQUIRED vocab-expansion step: references/structural-graph-navigation.md
+  Recipe + the REQUIRED vocab-expansion step: [references/structural-graph-navigation.md](references/structural-graph-navigation.md)
 
 Tier 2 — Semantic Search (conceptual matches):
   mcp__smart-connections-work__lookup query="<topic>" limit=10

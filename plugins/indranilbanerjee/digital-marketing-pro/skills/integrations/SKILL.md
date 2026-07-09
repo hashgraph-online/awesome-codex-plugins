@@ -18,7 +18,7 @@ The user may optionally provide:
 
 ## Process
 
-1. **Run connector status check**: Execute `python3 scripts/connector-status.py --action status` to get the full status dashboard. This reads the active `.mcp.json` configuration and checks environment variables for npx connectors to determine which are connected.
+1. **Run connector status check**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" --action status` to get the full status dashboard. This reads the active `.mcp.json` configuration and checks environment variables for npx connectors to determine which are connected.
 
 2. **Format the dashboard**: Present the results organized by category, with clear visual distinction between connected and available connectors:
 

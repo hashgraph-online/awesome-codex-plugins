@@ -25,7 +25,16 @@ The user must provide (or will be prompted for):
 3. **Check Google Knowledge Panel**: Verify Knowledge Panel existence for the brand name query. If present, check whether the panel is claimed or unclaimed, whether displayed information (website, address, social links, description, category) matches the brand profile, and whether images and logos are current. Record each element as accurate, inaccurate (with discrepancy details), outdated, or missing. Note the panel source attribution.
 4. **Assess Wikipedia presence**: Search for the entity on Wikipedia. If an article exists, verify accuracy of key facts — founding date, headquarters, description, key people, products/services, and any claims that could be outdated or incorrect. Check for citation quality and recency. If no article exists, assess notability criteria — significant coverage in reliable independent sources, demonstrated importance in the field, and verifiable claims. Record as present-and-accurate, present-with-issues (list issues), or absent with notability assessment (likely notable, borderline, or unlikely notable).
 5. **Check industry directories**: For each relevant directory, verify the listing exists and check data consistency — business name spelling, address, phone number, website URL, business description, category classification, and any directory-specific fields. Record each listing as consistent, inconsistent (with specific discrepancies), incomplete (missing fields), or absent. Flag NAP (Name, Address, Phone) inconsistencies specifically, as these have outsized impact on entity resolution by AI engines.
-6. **Record findings**: Store all audit results via `geo-tracker.py entity-check` with timestamp, brand slug, platform, property, expected value, actual value, status (match/mismatch/missing/absent), and severity rating for each discrepancy.
+6. **Record findings**: Store each entity finding via geo-tracker's `entity-check` action (`--platform` takes an entity platform: `wikidata`, `google-kp`, `wikipedia`, or `directory`; `--status` takes `present`, `absent`, `inconsistent`, or `outdated`):
+   ```bash
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/geo-tracker.py" \
+       --brand {slug} --action entity-check \
+       --platform wikidata \
+       --entity-name "Acme Corp" \
+       --status inconsistent \
+       --details "Founding date P571 shows 2015; brand profile says 2014"
+   ```
+   Run once per platform × property finding, recording expected vs. actual value and severity in `--details`.
 7. **Generate inconsistency report**: Compile all discrepancies across platforms into a single report — grouped by property (see all platforms that disagree about the founding date, for example) and by platform (see all issues on Wikidata, for example). Calculate an overall entity consistency score based on the proportion of properties that match across all platforms.
 8. **Create prioritized action plan**: Rank fixes by impact on AI visibility — Wikidata property corrections first (direct knowledge graph impact), Knowledge Panel claims and corrections second (Google AI Overview impact), Wikipedia accuracy fixes third (broad citation impact), and directory consistency fixes fourth (reinforcing entity signals). Include specific instructions for each fix: what to change, where to change it, and any process requirements (Wikipedia's reliable source requirements, Knowledge Panel claim verification, Wikidata citation needs).
 

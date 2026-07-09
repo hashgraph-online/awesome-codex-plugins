@@ -24,7 +24,7 @@ Deep single-page SEO analysis — examines everything about one URL across all r
 3. **Title tag analysis**: Character count (50-60 chars ideal), keyword placement, brand inclusion, uniqueness, click-worthiness.
 4. **Meta description analysis**: Character count (150-160 chars), keyword inclusion, CTA presence, uniqueness.
 5. **Heading hierarchy**: H1 presence and uniqueness, H2-H6 logical structure, keyword distribution across headings.
-6. **Content depth analysis**: Word count, reading level, topic coverage completeness, keyword density (target 1-2%), semantic keyword usage, content freshness (last modified date).
+6. **Content depth analysis**: Word count, reading level, topic coverage completeness, keyword *placement* (primary keyword in title, intro, ≥2 H2s, conclusion, and meta — density is not a target; keyword-density percentages are a discredited metric, not a ranking factor), natural coverage of related/co-occurring terms, content freshness (last modified date).
 7. **E-E-A-T signals**: Author byline and bio, credentials, first-hand experience indicators, citations and sources, about page link, contact information.
 8. **Schema markup detection**: JSON-LD, Microdata, RDFa — validate against Google's supported types, check for deprecations (HowTo deprecated Sept 2023, FAQ restricted to gov/health Aug 2023, SpecialAnnouncement deprecated July 2025), suggest missing schema opportunities.
 9. **Image audit**: Alt text, dimensions, format, lazy loading, fetchpriority on LCP image (see image-seo-audit skill for full methodology).

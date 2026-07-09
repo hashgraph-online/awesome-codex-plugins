@@ -2,7 +2,7 @@
 name: launch-plan
 description: "Build product launch playbooks. Use when: planning pre-launch, launch day, or post-launch phases."
 argument-hint: "[product-name]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # /digital-marketing-pro:launch-plan
@@ -10,6 +10,10 @@ disable-model-invocation: true
 ## Purpose
 
 Build a comprehensive launch playbook that coordinates all marketing activities across three phases — pre-launch, launch, and post-launch — to maximize impact and sustain momentum.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+This skill produces a launch **playbook** — it performs no external action itself, so it runs freely. The gate governs the *handoff*: before ANY step of this playbook is executed by a downstream execution skill (`/digital-marketing-pro:launch-campaign`, `/digital-marketing-pro:launch-ad-campaign`, `/digital-marketing-pro:send-email-campaign`, etc.), that skill presents its own Execution Summary and the user must type `yes`. Never proceed on ambiguous input, never auto-execute a playbook step, and never auto-retry a failed one.
 
 ## Input Required
 

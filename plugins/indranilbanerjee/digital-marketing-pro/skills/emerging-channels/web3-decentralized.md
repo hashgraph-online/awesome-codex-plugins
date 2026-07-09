@@ -1,6 +1,6 @@
 # Web3 & Decentralized Marketing
 
-> Blockchain-based marketing channels, tokenized loyalty programs, and decentralized social platforms represent a small but growing frontier. This guide covers practical applications — not hype.
+> **Reference vintage: ~2022-era landscape — re-verify before relying on any platform, tool, or tactic named here (the Web3 space turns over fast).** Blockchain-based marketing channels, tokenized loyalty programs, and decentralized social platforms represent a small but growing frontier. This guide covers practical applications — not hype.
 
 ---
 

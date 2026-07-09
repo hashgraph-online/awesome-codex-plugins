@@ -60,6 +60,12 @@ The loop skill is the default guardrail. `loopy` starts or resumes the evidence 
 
 `superloopy-clone` reproduced Transferloom.com locally and passed desktop/mobile browser validation. The reference run preserved the sticky nav, animated hero, app preview sections, comparison table, security panel, sister app banner, footer, local assets, and Superloopy evidence trail.
 
+## Slides Demo
+
+[![Fileloom intro deck built with superloopy-slides](.github/assets/slides-demo-reference.png)](https://fileloom-slides.pages.dev)
+
+`superloopy-slides` generated this **[live multilingual deck →](https://fileloom-slides.pages.dev)** — a zero-dependency single-file HTML presentation on a fixed 16:9 stage in English · 한국어 · 中文 · 日本語 · Español. It passed real-browser visual-QA (standalone, phone letterbox, and iframe embed) recorded under `.superloopy/evidence/slides/`.
+
 ## The crew
 
 For bigger work, Superloopy ships six optional subagents — each owns one lane (`.codex/agents/*.toml` on Codex, bundled `agents/*.md` on Claude Code). They come with the plugin (no command needed); on Codex, `superloopy agents install` just re-copies them if you ever need it. Their advisory model defaults are documented in `docs/superloopy-model-policy.md` (Codex) and `docs/superloopy-model-policy-claude.md` (Claude Code), and checked by `superloopy doctor`.

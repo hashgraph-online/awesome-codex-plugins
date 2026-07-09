@@ -51,7 +51,11 @@ there, just run it.
 
 - **Pin acceptance BEFORE the work.** The claim under test must be mechanical:
   grep-able fixtures (pinned phrases, counts, ledger states) frozen before
-  implementation, not chosen post-hoc. No pins → write them first.
+  implementation, not chosen post-hoc. No pins → write them first. **Pins must
+  include the slice's BDD scenario→test mapping** (Given/When/Then → the passing
+  acceptance test), not only grep/count fixtures — a green pin with an unmapped
+  scenario is REFUTED (S5 binds to the slice's ATDD contract, not just mechanical
+  pins).
 - **Refuters are read-only and stake-free.** Fresh context, no session history,
   no authorship of the change. Prompt them to REFUTE, default to skepticism.
 - **Diversity is mode-based; the default fires ONE fresh-context refuter.** The
@@ -67,7 +71,10 @@ there, just run it.
   per-pawl and operator-tunable — see
   [docs/contracts/pawls.md](../../docs/contracts/pawls.md) "Diversity mode".
 - **Findings are fixed forward, never disarmed.** A refuted contract test gets
-  an honest repoint to the surviving surface or a real fix — not deletion.
+  an honest repoint to the surviving surface or a real fix — not deletion. Each
+  REFUTED finding also emits a next-loop check (a `$pre-mortem` check or
+  planning-rule) — the catch→producer ratchet (S6), so the same escape cannot
+  recur in the next loop.
 - **Orchestrator stays the single writer.** Refuters report; only the
   orchestrator edits. Run the panel concurrently with the final full gate.
 - **Re-verify pins on the landed tree** after merge/push, not just pre-commit.

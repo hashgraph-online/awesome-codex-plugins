@@ -1,6 +1,6 @@
 [project]
 name = "rag-reviewer"
-version = "0.2.26"
+version = "0.2.27"
 description = "AI pull-request reviewer: hybrid RAG + a code graph + Claude Code. Whole-repo context, inline GitHub comments grounded on exact code."
 readme = "README.md"
 license = { text = "MIT" }

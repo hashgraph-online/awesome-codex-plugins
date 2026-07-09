@@ -1,7 +1,7 @@
 ---
 name: data-import
 description: "Import data from external sources. Use when: loading CRM contacts, email lists, or campaign data from CSV, JSON, or Sheets."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[source-file or URL]"
 ---
 
@@ -10,6 +10,13 @@ argument-hint: "[source-file or URL]"
 ## Purpose
 
 Universal data import tool for bringing structured data into any connected platform. Import from CSV, JSON, or Google Sheets into CRM systems, email subscriber lists, audience segments, competitor trackers, campaign managers, or custom data stores. Handles the full import pipeline — field mapping with auto-suggestion, data validation, deduplication against existing records, consent and compliance verification for contact data, batched execution through platform MCPs, and detailed result reporting with rollback guidance if needed.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 

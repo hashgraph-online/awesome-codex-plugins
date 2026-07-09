@@ -4,7 +4,7 @@ description: Produce PASS/WARN/FAIL verdicts for
 ---
 # $validate — Canonical Validator Skill
 
-> **Loop position:** move 6 (prove acceptance) of the [operating loop](../../docs/architecture/operating-loop.md) — the driving adapter for the `validate_acceptance` port: every Given/When/Then must map to a passing test before a bead closes.
+> **Loop position:** move 6 (prove acceptance) of the [operating loop](../../docs/architecture/operating-loop.md) — the driving adapter for the `validate_acceptance` port: every Given/When/Then must map to a passing test before a bead closes, and the verdict binds to the SLICE's own acceptance test (its ATDD contract), not only the parent intent issue. This is S5 of the [narrow-waist micro-cycle](../../docs/architecture/operating-loop.md#the-narrow-waist-micro-cycle-canonical--every-loop-skill-cites-this).
 
 > **Role:** validator. Input = artifact (plan, spec, code, PR, fitness gate). Output = `verdict.v1` (PASS / WARN / FAIL with rationale + findings).
 
@@ -113,6 +113,17 @@ ARTIFACT="${1:-recent}"  # path, PR ID, or "recent"
 # (folded into skill body; not a separate hook)
 ```
 
+If `ARTIFACT` is a goal-design packet directory containing `intent.md` and
+`driver.md`, run the deterministic packet checker before spawning or judging:
+
+```bash
+scripts/check-goal-design-packet.sh "$ARTIFACT"
+```
+
+Non-zero exit is a FAIL verdict. Include the command and output in
+`COMMANDS RUN:`. This is a pre-check inside the existing validator role, not a
+new mode.
+
 For `--mode=pre-impl`, also load:
 - `.agents/planning-rules/*.md` (compiled planning rules)
 - `.agents/findings/registry.jsonl` (active findings)
@@ -174,6 +185,7 @@ For `--mode=pre-impl --target=plan`:
 
 For `--mode=post-impl`:
 - L0/L1/L2 coverage check on changed files
+- **refactor-under-green check:** if the diff is a refactor, assert no acceptance/unit test text changed (`git diff` of test files is empty) — a refactor that edits a test changed behavior and is a new slice, not a refactor (S4). FAIL if a refactor diff also edits a test.
 
 For `--mode=pre-impl --target=fitness`:
 - read GOALS.md
@@ -226,7 +238,7 @@ The exact heading `## Council Verdict: PASS / WARN / FAIL` is mandatory — down
 
 ### Step 8: Persist findings (when applicable)
 
-For `--mode=pre-impl` reusable findings: append to `.agents/findings/registry.jsonl` (atomic temp+rename).
+For `--mode=pre-impl` reusable findings: append to `.agents/findings/registry.jsonl` (atomic temp+rename). Every FAIL finding must be emitted as a next-loop producer — a `$pre-mortem` check or `$plan` planning-rule keyed by dedup_key (the escape→check ratchet, S6), not just a logged finding; a defect the membrane caught that produces no next-loop check will recur. See [operating-loop.md → move 7](../../docs/architecture/operating-loop.md).
 
 ### Step 9: Report
 

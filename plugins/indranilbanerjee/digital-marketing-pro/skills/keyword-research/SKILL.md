@@ -1,6 +1,6 @@
 ---
 name: keyword-research
-description: "Research and cluster keywords. Use when: mapping search intent, finding content gaps, or long-tail discovery."
+description: "Research keyword expansion, intent, and gaps. Use when: mapping search intent, finding content gaps, or long-tail discovery."
 argument-hint: "[topic or seed keywords]"
 ---
 
@@ -8,7 +8,7 @@ argument-hint: "[topic or seed keywords]"
 
 ## Purpose
 
-Standalone keyword research and clustering tool. Produces a prioritized keyword list with estimated search volume, keyword difficulty, search intent classification, and content recommendations mapped to each cluster.
+Standalone keyword *research* tool — expansion, search-intent classification, and competitor gap analysis. Produces a prioritized, intent-classified keyword list with content recommendations. Volume and keyword-difficulty figures come from the brand's connected keyword MCP (Ahrefs / Semrush / SE Ranking / GSC) — this skill surfaces and interprets them, it does not fabricate them. **Clustering into a pillar+spokes plan is delegated to `/digital-marketing-pro:keyword-cluster`** (the `keyword_cluster.py` engine); this skill produces the seeds that skill consumes.
 
 ## Input Required
 
@@ -25,9 +25,9 @@ The user must provide (or will be prompted for):
 ## Process
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply voice, compliance, industry context. Check `guidelines/_manifest.json` for restrictions, messaging, channel styles, voice-and-tone rules, and templates. If a template matching this command exists in `~/.claude-marketing/brands/{slug}/templates/`, apply its format. If no brand exists, prompt for `/digital-marketing-pro:brand-setup` or proceed with defaults.
-2. **Check campaign history**: Run `python campaign-tracker.py --brand {slug} --action list-campaigns` to identify previous keyword research and content campaigns to build upon rather than duplicate.
+2. **Check campaign history**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py" --brand {slug} --action list-campaigns` to identify previous keyword research and content campaigns to build upon rather than duplicate.
 3. **Load reference files**: Consult `skills/content-engine/` for content strategy context and `skills/context-engine/industry-profiles.md` for industry-specific keyword benchmarks and search behavior patterns.
-4. **Run keyword clustering**: Execute `scripts/keyword-clusterer.py` with seed keywords to generate an expanded keyword list with volume estimates, difficulty scores, and trend signals.
+4. **Expand the seed set**: Use the brand's connected keyword MCP (Ahrefs `getRelatedKeywords`, Semrush, SE Ranking, or GSC query mining) to expand seeds into a candidate list, pulling provider volume and keyword-difficulty figures where available. Record the provider and pull date — volume/KD are provider estimates, not measurements, and providers disagree by 20-50%. Do **not** claim volume/KD/trend numbers the connected tools didn't return.
 5. **Classify search intent**: Categorize every keyword into intent buckets -- informational (how-to, what-is), navigational (brand, product names), commercial (best, reviews, comparison), and transactional (buy, pricing, demo, free trial).
 6. **Map keywords to content types**: Assign each cluster a recommended content format -- blog post, landing page, pillar page, comparison page, FAQ, video, tool, or interactive content -- based on intent and SERP feature analysis.
 7. **Identify content gaps vs competitors**: If competitor domains were provided, cross-reference their ranking keywords against the brand's current coverage to surface missed opportunities and underserved topics.

@@ -26,7 +26,7 @@ brainstorm (goal-vs-implementation clarification) + design (product-fit pressure
 > Discovery turns a goal plus delegated child artifacts into one dense execution
 > packet for `$crank` and `$validate`. It is also the **re-plan engine** for `$rpi`'s
 > [Agile Re-Plan Loop](../rpi/references/agile-replan-loop.md): invoked again at each wave
-> boundary to mutate the *remaining* waves from what the last wave taught — not only at the start.
+> boundary to mutate the *remaining* waves from what the last wave taught — not only at the start. **Seed slice candidates small:** one Given/When/Then behavior each, refactor candidates kept separate from feature candidates — small batches + refactor-after-green are the load-bearing quality moves, not test-first ordering (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`); binding decomposition discipline is `$plan` (PR-010/PR-011).
 
 ## Folded-In Trigger Surface (brainstorm, design)
 
@@ -90,10 +90,10 @@ for the boundary between Discovery and Plan:
 
 Executable acceptance: [references/discovery.feature](references/discovery.feature) — Discovery hands dense intent across the `plan_slices` port (promoted from inline; soc-qk4b.2).
 
+Goal-design packet inputs (`intent.md` + `driver.md`) use [references/goal-design-packet-input.md](references/goal-design-packet-input.md): run the checker before research; failure blocks; checked packets feed density fields and candidate slice seeds, not a `$plan` replacement.
+
 ## Plan-Pawl Duel Gate
-
 ### Risk-class routing: MVP vertical slice vs fanout (decide FIRST)
-
 The duel is for one-way doors, not every slice. Route first:
 
 - **Fanout class** (architecture forks, one-way-door decisions, cross-agent
