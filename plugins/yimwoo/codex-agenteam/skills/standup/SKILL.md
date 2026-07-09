@@ -14,7 +14,8 @@ synthesizes.
 
 ### 1. Auto-Init Guard
 
-Check for `.agenteam/config.yaml` (or legacy `agenteam.yaml`) in the project root. If missing:
+Check for `.agenteam/config.yaml`, `.agenteam.team/config.yaml`, or legacy
+`agenteam.yaml` in the project root. If all are missing:
 - Create config dir: `mkdir -p .agenteam`
 - Copy the template: `cp <plugin-dir>/templates/agenteam.yaml.template .agenteam/config.yaml`
 - Set the team name to the project directory name
@@ -36,7 +37,11 @@ Capture the JSON output. Expected fields:
 - `task` -- task description
 - `stages` -- list of stages with status, assigned role, and gate state
 - `artifact_paths` -- map of role name to artifact directory
+- `governance.adoption` -- optional summary of decisions, escalations,
+  tripwire checks, gate rejections, and criteria overrides
 - `output_path` -- where to write the final report (e.g., `docs/meetings/<timestamp>-standup.md`)
+- Active attempt details -- `thread_id`, last heartbeat and heartbeat age,
+  idle budget and wall budget remaining, retry count, and stop reason
 
 ### 3. Read Role Artifacts
 
@@ -107,12 +112,18 @@ Rules for the report:
 - **Completed** lists roles whose stages are done, with a one-line
   summary of their artifact output.
 - **In Progress** lists roles with active stages, describing current
-  work.
+  work. Include `thread_id`, last heartbeat, idle budget, and wall budget for
+  long-running work.
 - **Blocked** lists any role that is stuck. Every blocker must include
   three parts: the problem, the proposed next step, and the owner
   responsible for unblocking.
+- An interrupted role must include its stop reason and whether the persisted
+  thread can be resumed. A stale heartbeat is an at-risk signal, not automatic
+  authorization for fresh redispatch.
 - **Decisions** captures key architectural or strategic decisions found
-  in design docs or strategy files. Omit this section if none are
+  in `governance.adoption`, design docs, or strategy files. Include open
+  follow-ups, escalations, tripwire blocks, gate rejections, and criteria
+  overrides when the runtime JSON reports them. Omit this section if none are
   found.
 - **Next** describes what happens once current in-progress work
   completes (the next stage in the pipeline, or follow-up actions).

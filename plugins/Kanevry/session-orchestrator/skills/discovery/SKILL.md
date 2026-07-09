@@ -22,7 +22,7 @@ Two modes of operation:
 - **Standalone** (`/discovery [scope]`): Full 6-phase flow with interactive triage (Phases 0-6)
 - **Embedded** (from session-end when `discovery-on-close: true`): Phases 0-4 only, returns structured findings to session-end
 
-The `scope` argument accepts: `all` (default), `code`, `infra`, `ui`, `arch`, `session`, `audit`, `vault`, or comma-separated like `code,session`.
+The `scope` argument accepts: `all` (default), `code`, `infra`, `ui`, `arch`, `session`, `audit`, `vault`, `feature`, or comma-separated like `code,session`.
 
 ## Phase 0: Bootstrap Gate
 
@@ -61,6 +61,7 @@ Detect the project's tech stack via marker file checks. Use Glob and run checks 
 | `.orchestrator/bootstrap.lock`        | harness-audit probe     |
 | `.vault.yaml` OR Session Config `vault-integration.enabled: true` | vault probes      |
 | `package.json` / `requirements.txt` / `Cargo.toml` **AND** Session Config `slopcheck.enabled: true` AND `slopcheck.sources` includes `"discovery"` | supply-chain probe (`skills/discovery/probes-supply-chain.md`) |
+| `docs/` directory present **AND** Session Config `docs-staleness.enabled: true` | docs probe (`skills/discovery/probes-docs.md`) |
 
 ### Build Activation Set
 
@@ -72,6 +73,8 @@ Detect the project's tech stack via marker file checks. Use Glob and run checks 
 The audit probe activates when `bootstrap.lock` is present OR when `discovery-probes` config explicitly lists `audit`.
 
 The vault probe activates when `.vault.yaml` is present in the repo root OR when `vault-integration.enabled: true` in Session Config OR when `discovery-probes` config explicitly lists `vault`.
+
+The feature probe activates ONLY when the scope argument includes `feature` OR when `discovery-probes` config explicitly lists `feature`. It never activates under bare `all` — feature discovery is an explicitly requested scan, and its interactive router (below) cannot run in embedded mode.
 
 ### Exclude Paths
 
@@ -87,6 +90,37 @@ Add any paths from `discovery-exclude-paths` in Session Config.
 ### Status Report
 
 Report: "Discovery: [N] probes active across [categories]. Stack: [detected]. Threshold: [severity]."
+
+### Feature-Scope Router (standalone only)
+
+Fires ONLY when the active scope set includes `feature` AND the skill is running standalone (coordinator context). In embedded mode (session-end dispatches discovery as an Explore subagent — AskUserQuestion is unavailable in subagents per `.claude/rules/ask-via-tool.md` AUQ-004), the router MUST NOT fire; proceed directly with the grounded scan as the non-interactive default.
+
+Judgment-based PM work (opportunity framing, personas, market-sizing) deliberately stays OUT of the verified-findings pipeline (Epic #750) — this router is the fork point that keeps grounded, evidence-anchored discovery separate from open-ended product judgment.
+
+When the gate above is satisfied, present exactly this AskUserQuestion (AUQ-003 shape) before proceeding to Phase 3:
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "Scope `feature` was requested. How should this run handle feature discovery?",
+    header: "Feature Scope",
+    options: [
+      { label: "Grounded scan (Recommended)", description: "Run the evidence-anchored feature probes (intent-drift, stubbed-dead-feature) on the probe→verify→triage rails." },
+      { label: "Also judgment topics", description: "Grounded scan PLUS collect judgment-based product questions (opportunity framing, personas) as a non-verified appendix routed to /brainstorm or /grill — judgment items never enter the verified-findings pipeline." },
+      { label: "Route out", description: "No scan; hand off to /brainstorm (product ideation) or /grill (assumption stress-test) instead." },
+      { label: "Skip", description: "Drop `feature` from this run's scope set." }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+**On user selection (every branch is explicit — do not fall through):**
+
+- **"Grounded scan"** → keep `feature` in the active scope set and continue to Phase 3 unchanged.
+- **"Also judgment topics"** → keep `feature` in the active scope set and continue to Phase 3. Additionally, AFTER Phase 5 triage, append a `### Judgment Topics (non-verified)` section to the discovery report listing open product-judgment questions (opportunity framing, personas, market-sizing) encountered during the scan, each with a pointer to `/brainstorm` (ideation) or `/grill` (assumption stress-test). These items are report-appendix ONLY — they MUST NOT become findings, MUST NOT pass through Phase 4 verification, and MUST NOT produce issues in Phase 6.
+- **"Route out"** → remove `feature` from the active scope set. Do NOT run the feature probes. Recommend the operator invoke `/brainstorm` or `/grill` after this run (name whichever fits the operator's question), then continue to Phase 3 with the remaining scopes — or, if `feature` was the ONLY requested scope, stop after reporting: "Feature scope routed out — no probes to run. Invoke /brainstorm or /grill directly."
+- **"Skip"** → remove `feature` from the active scope set before Phase 3. If `feature` was the only requested scope, stop with: "Feature scope skipped — nothing to run."
 
 ## Phase 3: Probe Execution
 
@@ -117,6 +151,8 @@ Dispatch probe agents IN PARALLEL using the Agent tool. Group by category (max `
 - **Audit probes agent**: Runs harness-audit probe
 - **Vault probes** (`skills/discovery/probes-vault.md`): invokes `skills/discovery/probes/vault-staleness.mjs` and `skills/discovery/probes/vault-narrative-staleness.mjs` directly via `node`. Each probe returns `{findings, metrics, duration_ms}`. The runner reports `FINDING:` blocks per finding and appends summary records to `.orchestrator/metrics/vault-staleness.jsonl` and `vault-narrative-staleness.jsonl`.
 - **Supply-chain probe** (`skills/discovery/probes-supply-chain.md`): invokes `skills/discovery/probes/supply-chain-slopcheck.mjs` directly via `node`. **Gated:** only activates when `slopcheck.enabled: true` AND `"discovery"` is in `slopcheck.sources` (Session Config). The probe returns `{findings, summary}`. SLOP findings surface as `critical`, ASSUMED as `medium`, LEGITIMATE packages generate no finding. See `probes-supply-chain.md` for invocation details and classification reference.
+- **Docs probe** (`skills/discovery/probes-docs.md`): invokes `skills/discovery/probes/docs-staleness.mjs` directly via `node`. **Gated:** only activates when a `docs/` directory exists AND `docs-staleness.enabled: true` (Session Config). The probe returns `{findings, metrics, duration_ms}`. Scans `docs/*.md` (root level) and `docs/examples/*.md` for filesystem-mtime staleness against the `docs-staleness.thresholds.living` threshold (default 90d); `docs/adr/` and `docs/prd/` are deliberately excluded. See `probes-docs.md` for invocation details and severity escalation.
+- **Feature probes agent** (`skills/discovery/probes-feature.md`): intent-drift + stubbed-dead-feature probes. Findings MUST carry file_path:line_number anchors that survive the Phase 4.2 re-read (±3 lines).
 
 Each agent receives:
 - The probe definitions from `probes-intro.md` (confidence scoring reference) AND the category-specific `probes-<category>.md` file for this agent's category (include the actual grep commands/patterns in the prompt)
@@ -291,6 +327,9 @@ Probes run: [N] | Findings verified: [N] | False positives discarded: [N]
 | UI       | ...      | ...  | ...    | ... | ...   |
 | Arch     | ...      | ...  | ...    | ... | ...   |
 | Session  | ...      | ...  | ...    | ... | ...   |
+| Audit    | ...      | ...  | ...    | ... | ...   |
+| Vault    | ...      | ...  | ...    | ... | ...   |
+| Feature  | ...      | ...  | ...    | ... | ...   |
 ```
 
 ### Step 2: Critical + High Findings -- Review Individually

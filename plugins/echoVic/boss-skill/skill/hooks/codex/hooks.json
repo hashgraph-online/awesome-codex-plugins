@@ -1,0 +1,95 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"session:start\" \"scripts/hooks/session-start.js\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Load pipeline context and previous session state on startup",
+        "id": "session:start"
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"session:resume\" \"scripts/hooks/session-resume.js\"",
+            "timeout": 10
+          }
+        ],
+        "description": "List unfinished pipelines on session resume",
+        "id": "session:resume"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"pre:write:artifact-guard\" \"scripts/hooks/pre-tool-write.js\" \"standard,strict\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Protect execution.json and validate stage status before artifact writes",
+        "id": "pre:write:artifact-guard"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"pre:bash:dangerous-cmd-guard\" \"scripts/hooks/pre-tool-bash.js\" \"standard,strict\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Intercept dangerous shell commands (rm -rf, git push --force, DROP TABLE, etc.)",
+        "id": "pre:bash:dangerous-cmd-guard"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"post:write:artifact-track\" \"scripts/hooks/post-tool-write.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Auto-track artifacts to execution.json after apply_patch operations",
+        "id": "post:write:artifact-track"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"post:bash:context\" \"scripts/hooks/post-tool-bash.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Capture gate/harness/test command execution context",
+        "id": "post:bash:context"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"stop:pipeline-guard\" \"scripts/hooks/on-stop.js\" \"standard,strict\"",
+            "timeout": 30
+          }
+        ],
+        "description": "Block premature exit when pipeline stages are still running",
+        "id": "stop:pipeline-guard"
+      }
+    ]
+  }
+}

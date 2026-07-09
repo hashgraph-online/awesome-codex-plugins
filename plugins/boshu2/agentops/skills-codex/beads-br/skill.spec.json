@@ -1,0 +1,69 @@
+{
+  "name": "beads-br",
+  "form": "A",
+  "skill_api_version": 1,
+  "summary": "Local-first issue tracker (beads_rust / br) for AI agents. Track tasks, manage dependencies, find ready work, and sync issues to git via JSONL. Non-invasive: br never runs git; sync and commit are the caller's job.",
+  "sections": [
+    { "id": "title", "title": "beads-br — Beads Rust Issue Tracker", "type": "header", "priority": "high" },
+    { "id": "critical-rules", "title": "Critical Rules for Agents", "type": "constraints", "priority": "critical" },
+    { "id": "quick-workflow", "title": "Quick Workflow", "type": "quickstart", "priority": "high" },
+    { "id": "essential-commands", "title": "Essential Commands", "type": "reference", "priority": "high" },
+    { "id": "priority-scale", "title": "Priority Scale", "type": "reference-table", "priority": "medium" },
+    { "id": "bv-integration", "title": "bv Integration", "type": "reference", "priority": "medium" },
+    { "id": "agent-mail", "title": "Agent Mail Coordination", "type": "reference", "priority": "medium" },
+    { "id": "session-ending", "title": "Session Ending Pattern", "type": "methodology", "priority": "medium" },
+    { "id": "anti-patterns", "title": "Anti-Patterns", "type": "constraints", "priority": "medium" },
+    { "id": "storage", "title": "Storage", "type": "reference", "priority": "low" },
+    { "id": "troubleshooting", "title": "Troubleshooting", "type": "troubleshooting", "priority": "medium" },
+    { "id": "references", "title": "References", "type": "routing", "priority": "low" }
+  ],
+  "references": [
+    { "path": "references/COMMANDS.md", "intent": "read", "description": "Full br command reference." },
+    { "path": "references/CONFIG.md", "intent": "read", "description": "Configuration details." },
+    { "path": "references/TROUBLESHOOTING.md", "intent": "read", "description": "Troubleshooting guide." },
+    { "path": "references/INTEGRATION.md", "intent": "read", "description": "Multi-agent coordination patterns." }
+  ],
+  "scripts": [],
+  "metadata": {
+    "tier": "execution",
+    "stability": "stable",
+    "user_invocable": false,
+    "hexagonal_role": "supporting",
+    "dependencies": [],
+    "consumes": [],
+    "produces": [],
+    "context_rel": [
+      { "kind": "peer-of", "with": "beads-bv" }
+    ],
+    "triggers": [
+      "br ready",
+      "track tasks with br",
+      "beads_rust",
+      "find ready work",
+      "manage dependencies",
+      "BEADS_DIR br sync --flush-only",
+      "br create",
+      "br close",
+      "sync issues to git"
+    ],
+    "token_estimate": {
+      "minimal": 100,
+      "overview": 320,
+      "standard": 800,
+      "full": 1100
+    }
+  },
+  "produces": [],
+  "consumes": [],
+  "context_rel": [
+    { "kind": "peer-of", "with": "beads-bv" }
+  ],
+  "quality_score": 0.88,
+  "evidence": {
+    "sources": [
+      "skills/beads-br/SKILL.md",
+      "skills/beads-br/references/COMMANDS.md",
+      "skills/beads-br/references/INTEGRATION.md"
+    ]
+  }
+}

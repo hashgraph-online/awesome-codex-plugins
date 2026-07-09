@@ -12,8 +12,8 @@ Audits and cleans shell PATH pollution across `.bashrc`, `.zshrc`, `.zshenv`, `.
 
 ## Adding a runbook to this list
 
-When a new runbook lands under `docs/runbooks/`, add a sub-section above with a one-paragraph description and an explicit "When to read" line. Keep entries scoped to runbooks bootstrap callers actually need -- operational concerns adjacent to repo initialization, host hygiene, or the rc files bootstrap may end up touching.
+When a new runbook lands under `docs/runbooks/`, add a sub-section above with a one-paragraph description and an explicit "When to read" line. Keep entries scoped to runbooks bootstrap callers actually need — operational concerns adjacent to repo initialization, host hygiene, or the rc files bootstrap may end up touching.
 
 ---
 
-> Pattern adopted from `path-rationalization` (ACFS skill corpus). Methodology only -- no verbatim text.
+> Pattern adopted from `path-rationalization` (ACFS skill corpus). Methodology only — no verbatim text.

@@ -192,6 +192,62 @@ class CheckMustCoverageTests(unittest.TestCase):
 
             self.assertEqual(0, exit_code)
 
+    def test_main_accepts_cwd_relative_mapping_and_registry_paths(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill_root = root / "skills" / "docker-to-sealos"
+            skill_file = skill_root / "SKILL.md"
+            mapping_file = skill_root / "references" / "must-rules-map.yaml"
+            rules_file = skill_root / "references" / "rules-registry.yaml"
+
+            write_file(
+                skill_file,
+                """
+                ## MUST Rules (Condensed)
+                - Do not use `:latest`.
+                ## Validation Commands
+                """,
+            )
+            write_file(
+                mapping_file,
+                """
+                version: 1
+                must_rules:
+                  - must: "Do not use `:latest`."
+                    enforcement:
+                      type: rule
+                      target: R001
+                """,
+            )
+            write_file(
+                rules_file,
+                """
+                version: 1
+                rules:
+                  - id: R001
+                    description: test
+                    severity: error
+                """,
+            )
+
+            original_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                exit_code = main(
+                    [
+                        "--skill",
+                        "skills/docker-to-sealos/SKILL.md",
+                        "--mapping",
+                        "skills/docker-to-sealos/references/must-rules-map.yaml",
+                        "--rules-file",
+                        "skills/docker-to-sealos/references/rules-registry.yaml",
+                    ]
+                )
+            finally:
+                os.chdir(original_cwd)
+
+            self.assertEqual(0, exit_code)
+
 
 if __name__ == "__main__":
     unittest.main()

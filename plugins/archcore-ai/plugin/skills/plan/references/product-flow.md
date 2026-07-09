@@ -22,6 +22,8 @@ Use `AskUserQuestion` to ask: "What problem does this solve? What are the succes
 
 Compose content covering **Vision**, **Problem Statement**, **Goals and Success Metrics**, **Requirements**. Create via `mcp__archcore__create_document(type="prd")`.
 
+**Scope rule:** a prd covers one unit of product decision — a whole product OR a single feature. Size never changes type: for a small feature write the same four sections, compressed (target ≤ 40 lines) — do not reach for a different document type. A product-level prd links its feature-scoped prds via `add_relation`.
+
 Add relation: `mcp__archcore__add_relation` — prd `implements` idea.
 
 ## Step 5: Plan

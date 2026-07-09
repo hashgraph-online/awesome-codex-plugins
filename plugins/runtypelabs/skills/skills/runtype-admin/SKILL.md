@@ -7,7 +7,7 @@ description: >-
   account mutations. Includes search/execute patterns, read-before-write, validation,
   pagination, and conservative destructive-change policy.
 user-invocable: true
-argument-hint: "[live account operation or debugging task]"
+argument-hint: '[live account operation or debugging task]'
 ---
 
 # Runtype Admin
@@ -53,20 +53,20 @@ Code Mode MCP exposes `search`, `execute`, `get_platform_documentation`,
 Use `search` first when unsure:
 
 ```js
-(spec) => spec.categories
+;(spec) => spec.categories
 ```
 
 Then inspect one method:
 
 ```js
-(spec) => spec.methods.updateAgent
+;(spec) => spec.methods.updateAgent
 ```
 
 Use `execute` with shaped results. Filter, project, slice, and aggregate inside the
 function before returning data so large responses do not consume context:
 
 ```js
-async (runtype) => {
+;async (runtype) => {
   const products = await runtype.listProducts()
   return products.products.map((p) => ({ id: p.id, name: p.name })).slice(0, 20)
 }
@@ -92,6 +92,8 @@ be an agent.
 - Preserve fields unrelated to the request.
 - Validate before update when validators exist.
 - Respect pagination cursors on list endpoints.
+- When a payload shape, route, or dashboard URL is uncertain, use Code Mode
+  `search` or `get_platform_documentation(topic="platform-catalog")` before guessing.
 - Use `get_platform_documentation(topic="dashboard-links")` when giving the user links.
 - Use `get_secret_intake_manifest`, `submit_secret_intake`, and `check_secrets` rather
   than asking the model to handle credential values.

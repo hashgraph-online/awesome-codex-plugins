@@ -51,7 +51,7 @@ command variant not listed there, add it to this file first, then reference it.
 
 ## Dynamic Project Resolution
 
-Never hardcode project IDs. Resolve them at runtime.
+Never hardcode project IDs. Resolve them at runtime — and re-resolve live each session; never cache a project ID across sessions (a stale ID silently targets the wrong project on rename/fork/mirror-drift, and is the root cause behind the close-verification incident documented below).
 
 ### Current project
 
@@ -77,7 +77,29 @@ gh api "repos/<owner>/<name>" --jq '.full_name'
 
 **Note:** Some API calls require numeric project IDs (GitLab) or `owner/repo` slugs (GitHub). Always resolve dynamically from the project name.
 
+### Canonical enumeration pattern
+
+To enumerate ALL projects (or issues) in a group, a single page is never the whole result — paginate and guard against silent truncation:
+
+```bash
+# GitLab — paginate a group's projects, following x-next-page until empty
+page=1
+while [ -n "$page" ]; do
+  resp=$(glab api "groups/<group-id>/projects?include_subgroups=true&per_page=100&page=$page" --include)
+  # parse the response body ($resp) for project ids/paths here, deduping by id.
+  # Then advance by reading the `x-next-page` response header — an empty value
+  # means this was the last page, so the loop exits (the guard above is what breaks).
+  page=$(printf '%s\n' "$resp" | awk -F': *' 'tolower($1)=="x-next-page"{sub(/\r/,"",$2); print $2}')
+done
+```
+
+- **Follow pagination via the `x-next-page` response header** — loop until it comes back empty. A single-page read on a known-large group is a signal the loop stopped early, not proof the group is small.
+- **Dedupe by project id** — subgroup traversal can surface the same project more than once.
+- **Silent-zero guard:** `membership=true` can return a misleadingly small subset (e.g. a host that only sees a handful of a group's dozens of projects). If the count looks suspiciously low relative to the known group size, retry WITHOUT `membership` (rely on `include_subgroups=true` alone) before trusting the result. A zero/one-page result on a known-large group is a probable auth/pagination bug — treat it as a bug signal, never as ground truth that "the group is actually empty."
+
 ## Label Taxonomy
+
+**Taxonomy convention (decided 2026-07-05, #727):** labels use the SINGLE-COLON form exclusively (`priority:high`, `status:ready`, `area:vcs`, `type:chore`, `from:<agent>`). The `::`-scoped form (`priority::high`, GitLab scoped-labels) is DEPRECATED baseline-scaffold legacy and MUST NOT be introduced — this repo mirrors to GitHub, which has no scoped-label semantics (no mutual-exclusion enforcement), so `::` yields zero benefit on the mirror while a migration would break every existing label reference and issue.
 
 ### Priority Labels
 - `priority:critical` — blocking production or users
@@ -95,11 +117,15 @@ gh api "repos/<owner>/<name>" --jq '.full_name'
 - `area:frontend` | `area:backend` | `area:database`
 - `area:ai` | `area:security` | `area:testing`
 - `area:ci` | `area:infrastructure` | `area:compliance`
+- `area:skills` | `area:vcs` | `area:harness`
 
 ### Type Labels
 - `bug` | `feature` | `enhancement` | `refactor`
 - `chore` | `documentation` | `epic` | `discovery` | `carryover`
 - `carryover` — auto-created for 2×SPIRAL or FAILED agent tasks; see `scripts/lib/spiral-carryover.mjs`.
+
+### Provenance Labels
+- `from:<agent>` — SHOULD be applied to any issue/MR created by an automated agent (e.g. `from:discovery`, `from:reconcile`), so operators can filter agent-authored items from human-authored ones. Single-colon form, per the taxonomy convention above.
 
 ## Common CLI Commands
 
@@ -114,8 +140,8 @@ glab issue list --closed --per-page 10                      # Recently closed
 glab issue view <IID>                                       # View issue details
 glab issue view <IID> --comments                            # With comments
 glab issue create --title "title" --label "priority:high,status:ready"
-glab issue update <IID> --label "status:in-progress"
-glab issue close <IID>
+glab issue update <IID> --label "status:in-progress"        # WARNING: --label REPLACES the full set — see caveat below
+glab issue close <IID>                                       # then VERIFY: glab issue view <IID> must show state=closed
 glab issue note <IID> -m "Comment text"                    # Add comment
 
 # MRs
@@ -131,6 +157,12 @@ glab pipeline status <ID>                                  # Pipeline details
 glab api "projects/$(glab repo view --output json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")/issues?state=opened&per_page=50"
 glab api "projects/$(glab repo view --output json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")/milestones?state=active"
 ```
+
+**Label update caveat (PUT-replaces, not additive):** `glab issue update --label` (and the underlying GitLab labels API) PUT-REPLACES the entire label set — it does not add to the existing set. To change a single label you must pass the FULL desired label list, or use the dedicated add/remove operations, which are themselves unreliable across `glab` versions. Preferred safe pattern: use `--label` (adds) together with `--unlabel` (removes) on `glab issue update` when your installed `glab` version supports both; otherwise read the current labels first, compute the full new set, and PUT once. The same PUT-replace semantics apply to `glab mr update --label`.
+
+**Close verification:** after `glab issue close <IID>`, always verify the close actually landed — re-read the issue (`glab issue view <IID>`) and confirm `state: closed` in the output. A stale/wrong project ID or a silent 404 can report local success while closing nothing; a documented incident closed 32 issues into the void this way (project ID pointed at the wrong project — see "Dynamic Project Resolution" above for the re-resolve-each-session rule that prevents it).
+
+**`-f`/`--raw-field` vs `-F`/`--field` on `glab api`:** `-f` (`--raw-field`) sends a literal string value with no coercion and no `@file` expansion. `-F` (`--field`) interprets a value starting with `@` as a file to read, and coerces bare `true`/`false`/`null`/numeric strings to their typed form. Prefer `-f` for literal values — it avoids an unintended `@`-expansion when a value happens to start with `@` (e.g. an `@mention` in a comment body).
 
 ### GitHub (gh)
 
@@ -207,6 +239,11 @@ What should be achieved and why.
 ### Context for next session
 [relevant context, file paths, decisions made]
 
+### Open Questions
+_(optional — include only when unanswered questions remain in STATE.md `## Open Questions` at close; omit this section entirely otherwise)_
+- [ ] [unanswered question 1] (source: W<N>/<agent>, prio: high|medium|low)
+- [ ] [unanswered question 2] (source: W<N>/<agent>, prio: high|medium|low)
+
 ### Original Issue
 Relates to #ORIGINAL_IID
 ```
@@ -218,7 +255,7 @@ Relates to #ORIGINAL_IID
 
 **Probe:** <probe_name>
 **Severity:** <priority:critical|high|medium|low>
-**Category:** <code|infra|ui|arch|session>
+**Category:** <code|infra|ui|arch|session|audit|vault|feature>
 
 ### Finding
 
@@ -310,4 +347,4 @@ gh pr create --title "..." --body "..."
 - Enforcement policy: `.orchestrator/policy/templates-policy.json`
 - Session acknowledgement: `.orchestrator/runtime/templates-acknowledged.json`
 - Sister hook (destructive-command model): `hooks/pre-bash-destructive-guard.mjs`
-- PRD: `docs/prd/2026-05-22-gsd-pattern-adoption-quickwins.md` § Pattern 3 + § 3 Gherkin Pattern 3
+- PRD: "gsd Pattern Adoption Quick-Wins" (#519; archived in the private Meta-Vault) § Pattern 3 + § 3 Gherkin Pattern 3

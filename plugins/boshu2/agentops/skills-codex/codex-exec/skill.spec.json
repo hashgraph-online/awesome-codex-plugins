@@ -1,0 +1,57 @@
+{
+  "name": "codex-exec",
+  "form": "A",
+  "skill_api_version": 1,
+  "summary": "Drive worker/validator agents with `codex exec` on the ChatGPT Pro subscription (OAuth) — never an API-billed path.",
+  "sections": [
+    { "id": "critical-constraints", "title": "Critical Constraints", "type": "constraints", "priority": 1 },
+    { "id": "why-this-exists", "title": "Why This Exists", "type": "rationale", "priority": 2 },
+    { "id": "quick-start", "title": "Quick Start", "type": "quickstart", "priority": 2 },
+    { "id": "workflow", "title": "Workflow / Methodology", "type": "procedure", "priority": 1 },
+    { "id": "output-specification", "title": "Output Specification", "type": "output-contract", "priority": 2 },
+    { "id": "exit-codes", "title": "Exit Codes", "type": "reference-table", "priority": 2 },
+    { "id": "quality-rubric", "title": "Quality Rubric", "type": "rubric", "priority": 2 },
+    { "id": "examples", "title": "Examples", "type": "examples", "priority": 3 },
+    { "id": "troubleshooting", "title": "Troubleshooting", "type": "troubleshooting", "priority": 3 },
+    { "id": "see-also", "title": "See Also / References", "type": "routing", "priority": 3 }
+  ],
+  "references": [],
+  "scripts": [
+    { "path": "scripts/validate.sh", "intent": "execute", "exit0_on_pass": true, "checks": ["frontmatter", "exact-line-start-triggers", "section-spine", "spine-order", "line-budget"] }
+  ],
+  "metadata": {
+    "tier": "orchestration",
+    "stability": "stable",
+    "user_invocable": false,
+    "hexagonal_role": "driving-adapter",
+    "dependencies": ["ntm", "caam"],
+    "consumes": [],
+    "produces": ["codex-run-output"],
+    "context_rel": [{ "kind": "supplier-to", "with": "codex-sandbox-evidence" }],
+    "triggers": [
+      "codex exec",
+      "spawn a codex worker",
+      "run codex non-interactively",
+      "codex validator",
+      "headless codex",
+      "codex resume",
+      "drive codex from a script",
+      "factory worker on Codex"
+    ],
+    "token_estimate": {
+      "minimal": 120,
+      "overview": 380,
+      "standard": 1100,
+      "full": 1700
+    }
+  },
+  "evidence": {
+    "verified_against": "codex-cli 0.139.0",
+    "sources": [
+      { "kind": "cli-help", "cmd": "codex exec --help", "verified": "2026-06-15" },
+      { "kind": "cli-help", "cmd": "codex exec resume --help", "verified": "2026-06-15" },
+      { "kind": "cli-status", "cmd": "codex login status", "result": "Logged in using ChatGPT", "verified": "2026-06-15" }
+    ]
+  },
+  "quality_score": 0.95
+}

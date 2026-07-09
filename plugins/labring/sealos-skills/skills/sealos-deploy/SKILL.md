@@ -3,6 +3,7 @@ name: sealos-deploy
 description: Deploy any GitHub project to Sealos Cloud in one command. Assesses readiness, generates Dockerfile, builds image, creates Sealos template, and deploys — fully automated. Use when user says "deploy to sealos", "deploy this project", "deploy to cloud", "deploy this repo", mentions Sealos deployment, wants to deploy a GitHub URL or local project to a cloud platform, or asks about one-click deployment. Also triggers on "/sealos-deploy".
 metadata:
   author: labring
+  compatibility: Sealos auth/workspace are required for deploys. Docker, buildx, and gh CLI are required only when the selected path needs local build/push. git is required when cloning from a GitHub URL or when git metadata is needed. Node.js 18+ and Python 3.8+ remain optional accelerators.
 ---
 
 # Sealos Deploy
@@ -137,12 +138,16 @@ Located in `scripts/` within this skill directory (`<SKILL_DIR>/scripts/`):
 | Script | Usage | Purpose |
 |--------|-------|---------|
 | `score-model.mjs` | `node score-model.mjs <repo-dir>` | Deterministic readiness scoring (0-12) |
+| `detect-template.mjs` | `node detect-template.mjs [--github-url <url>] --work-dir <repo-dir> --skill-dir <SKILL_DIR>` | Detect configured GitHub repo → Sealos template fast-path matches |
 | `validate-artifacts.mjs` | `node validate-artifacts.mjs --dir <work-dir>` | Validate `.sealos` JSON artifacts against enforced schemas |
 | `detect-image.mjs` | `node detect-image.mjs <github-url> [work-dir]` or `node detect-image.mjs <work-dir>` | Detect existing Docker/GHCR images |
 | `build-push.mjs` | `node build-push.mjs <work-dir> <repo> [--registry ghcr\|dockerhub] [--user <user>]` | Build amd64 image & push to the selected registry (Docker Hub path assumes a public image at deploy time; omitting `--registry` keeps auto-detect behavior) |
 | `ensure-image-pull-secret.mjs` | `node ensure-image-pull-secret.mjs <namespace> <secret-name> <image-ref> [deployment-name]` | Create/update app-scoped GHCR pull Secret and optionally patch an existing Deployment to reference it |
 | `gh-refresh-scopes.mjs` | `node gh-refresh-scopes.mjs write:packages` | Refresh GHCR package access in the current TTY; `write:packages` is sufficient for both push and private pull in this workflow |
 | `deploy-template.mjs` | `node deploy-template.mjs <template-path> [--dry-run] [--args-json '{"KEY":"value"}'\|--args-file <file>]` | Resolve the current region from `~/.sealos/auth.json`, build the correct Template API URL, and post a local template YAML |
+| `sealos-footprint.mjs` | `node sealos-footprint.mjs --namespace <ns> --app <app>` | Read-only inventory of Instance/App/workloads/Jobs/KubeBlocks/PVCs for deploy debug and cleanup planning |
+| `sealos-live-smoke.mjs` | `node sealos-live-smoke.mjs --url <url> [--captcha-path <path>] [--login-method json-token\|cookie-json] [--login-path <path>] [--username <user>] [--password <pass>] [--auth-path <path>]` | Read-only or credentialed HTTP smoke test for the real Sealos App entry URL |
+| `sealos-log-scan.mjs` | `node sealos-log-scan.mjs --namespace <ns> --app <app> [--since 10m] [--tail 300]` | Read-only JSON scan of Pod/init/main logs and status signals after readiness, login, and random 404 checks |
 | `sealos-auth.mjs` | `node sealos-auth.mjs check\|login\|list\|switch` | Sealos Cloud authentication & workspace switching |
 
 All scripts output JSON. Run via Bash and parse the result.
@@ -173,6 +178,7 @@ Paths used in pipeline.md follow the pattern:
 | Phase | Action | Skip When |
 |-------|--------|-----------|
 | 0 — Preflight | Capability scan, path-specific warnings, Sealos auth | Initial blockers resolved |
+| 0.5 — Template Fast Path | Match GitHub repo to a configured Sealos template | No match, or match cannot materialize template YAML |
 | 1 — Assess | Clone repo (or use current project), analyze deployability | Score too low → stop |
 | 2 — Detect | Find existing image (Docker Hub / GHCR / README) | Found → jump to Phase 5 |
 | 3 — Dockerfile | Generate Dockerfile if missing | Already has one → skip |
@@ -180,6 +186,7 @@ Paths used in pipeline.md follow the pattern:
 | 5 — Template | Generate Sealos application template | — |
 | 5.5 — Configure | Guide user through app env vars and inputs | No inputs needed |
 | 6 — Deploy | Deploy template to Sealos Cloud | — |
+| 6.5 — Runtime Truth Pass | Verify the actual Sealos runtime, logs, App URL, login path, and resource footprint | User explicitly requests deploy-only output |
 
 ## Decision Flow
 
@@ -190,6 +197,11 @@ Input (GitHub URL / local path)
 [Phase 0] Preflight ── fail → guide user to fix and STOP
   │ pass
   ▼
+[Phase 0.5] Template fast path
+  │
+  ├── materialized template match ───────┐
+  │                                      │
+  ▼                                      │
 [Phase 1] Assess ── not suitable → STOP with reason
   │ suitable
   ▼
@@ -207,14 +219,18 @@ Input (GitHub URL / local path)
   │
   ▼
 [Phase 5] Generate Sealos Template
+  ◄──────────────────────────────────────┘
   │
   ▼
 [Phase 5.5] Configure ── present env vars → ask user for inputs → confirm
   │
   ▼
 [Phase 6] Deploy to Sealos Cloud ── 401 → re-auth
-  │                                  409 → instance exists
-  ▼
+│                                  409 → instance exists
+▼
+[Phase 6.5] Runtime Truth Pass ── runtime/log/login issue → debug template or runtime config
+│
+▼
 Done — app deployed ✓
 ```
 

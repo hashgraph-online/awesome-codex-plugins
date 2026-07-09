@@ -1,6 +1,6 @@
 {
   "name": "@colin4k1024/tsp",
-  "version": "2.5.0",
+  "version": "2.5.4",
   "description": "Open-source Team Skills Platform for role-based AI delivery workflows, shared skills, hooks, commands, and multi-platform installs.",
   "repository": {
     "type": "git",
@@ -62,6 +62,7 @@
     "install:codex": "node scripts/install-apply.js --profile full --target codex",
     "install:cursor": "node scripts/install-apply.js --profile full --target cursor",
     "install:opencode": "node scripts/install-apply.js --profile full --target opencode",
+    "install:cangming": "node scripts/install-apply.js --profile full --target cangming",
     "prepack": "node scripts/validate-prebuilt.js",
     "prepublishOnly": "node scripts/validate-prebuilt.js",
     "test": "node tests/run-all.js",

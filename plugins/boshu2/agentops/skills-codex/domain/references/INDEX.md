@@ -13,6 +13,7 @@ Load entries on demand; do not preload the whole corpus.
 6. `anti-pattern.md` — documented mistakes with the cost when ignored
 7. `tracer-bullet.md` — test entry; uses only citations to entries 1-6
 8. `context-density-rule.md` — CDLC compression rule for agent context
+9. `behavior-shaping.md` — the ABC register: building agent capability is operant conditioning, not specification
 
 ## Naming note
 
@@ -44,11 +45,34 @@ case-insensitive filesystems (macOS APFS default) do not collapse the two.
 |---------------------|---------------|------------|----------|
 | `tracer-bullet.md`  | Tracer Bullet | tracer     | concept  |
 
+### Verification membrane concepts
+
+| Slug                           | Concept                   | Status | Kind         |
+|--------------------------------|---------------------------|--------|--------------|
+| `silent-contract-violation.md` | Silent Contract Violation | draft  | anti-pattern |
+
 ### Operating discipline concepts
 
 | Slug                      | Concept              | Status     | Kind    |
 |---------------------------|----------------------|------------|---------|
 | `context-density-rule.md` | Context Density Rule | canonical  | concept |
+| `behavior-shaping.md`     | Behavior Shaping     | draft      | concept |
+| `primitive-selection.md`  | Primitive Selection  | draft      | concept |
+| `reach.md`                | Reach                | draft      | concept |
+
+### Loop family (the operating loop)
+
+"One loop body, two drivers, one inner tick, one config." Doctrine:
+`docs/architecture/canonical-loop-model.md`.
+
+| Slug                  | Concept          | Status     | Kind    |
+|-----------------------|------------------|------------|---------|
+| `loop.md`             | Loop             | draft      | concept |
+| `evolve.md`           | Evolve           | draft      | concept |
+| `factory.md`          | Factory          | draft      | concept |
+| `rpi.md`              | RPI              | draft      | concept |
+| `autodev.md`          | Autodev          | draft      | concept |
+| `context-compiler.md` | Context-Compiler | draft      | concept |
 
 ## Status legend
 

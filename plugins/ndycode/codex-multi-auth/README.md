@@ -179,6 +179,7 @@ For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
 | --- | --- |
 | `codex-multi-auth list` | Which accounts are saved and which one is active? |
 | `codex-multi-auth switch <index>` | How do I move to a different saved account? |
+| `codex-multi-auth-codex --account <index\|email\|id>` | How do I force one account for a single wrapper session without changing my default? |
 | `codex-multi-auth forecast --live` | Which account looks best for the next session? |
 
 ### Repair
@@ -276,8 +277,8 @@ Selected runtime/environment overrides:
 | `CODEX_MODE=0/1` | Disable/enable Codex mode |
 | `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0/1` | Opt out/in of live Responses proxy rotation for forwarded Codex CLI/app sessions |
 | `CODEX_MULTI_AUTH_APP_ROTATION_IDLE_MS=<ms>` | Override automatic Codex app helper idle shutdown |
-| `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0/1` | Opt out/in of packaged Codex app bind self-heal during install/update or rotation enable |
-| `CODEX_MULTI_AUTH_APP_LAUNCHER_INSTALL=0/1` | Opt out/in of routing supported app shortcuts during install/update or rotation enable |
+| `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0/1` | Opt out/in of packaged Codex app bind self-heal on first CLI run or rotation enable |
+| `CODEX_MULTI_AUTH_APP_LAUNCHER_INSTALL=0/1` | Opt out/in of routing supported app shortcuts on first CLI run or rotation enable |
 | `CODEX_TUI_V2=0/1` | Disable/enable TUI v2 |
 | `CODEX_TUI_COLOR_PROFILE=truecolor\|ansi256\|ansi16` | TUI color profile |
 | `CODEX_TUI_GLYPHS=ascii\|unicode\|auto` | TUI glyph style |
@@ -295,7 +296,7 @@ codex-multi-auth forecast --live
 
 Responses background mode stays opt-in. Enable `backgroundResponses` in settings or `CODEX_AUTH_BACKGROUND_RESPONSES=1` only for callers that intentionally send `background: true`, because those requests switch from stateless `store=false` routing to stateful `store=true`. See [docs/upgrade.md](docs/upgrade.md) for rollout guidance.
 
-Runtime rotation is enabled by default for request-bearing wrapper-launched Codex sessions. Global install/update self-heals supported packaged Codex app binds and user-level launcher routing when possible, while `codex-multi-auth rotation enable` remains the explicit repair command. `codex-multi-auth rotation disable` turns the setting off and removes the persistent app bind. Set `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`, `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0`, or `CODEX_MULTI_AUTH_APP_LAUNCHER_INSTALL=0` to opt out of the matching default behavior.
+Runtime rotation is enabled by default for request-bearing wrapper-launched Codex sessions. Package install scripts stay side-effect-free: npm postinstall only prints a short notice (and stays silent in CI or non-interactive installs). The first CLI run after an install self-heals supported packaged Codex app binds and user-level launcher routing when possible (recorded once in a `first-run-setup.json` marker under the multi-auth runtime root), while `codex-multi-auth rotation enable` remains the explicit repair command. `codex-multi-auth rotation disable` turns the setting off and removes the persistent app bind. Set `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`, `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0`, or `CODEX_MULTI_AUTH_APP_LAUNCHER_INSTALL=0` to opt out of the matching default behavior.
 
 Installed wrappers may perform a best-effort daily npm version check during normal forwarded Codex startup. When a newer package is detected, the wrapper only prints a manual notice on an interactive TTY or when `CODEX_MULTI_AUTH_DEBUG=1`: `npm install -g codex-multi-auth@latest`. It never runs npm install or update commands for you.
 
@@ -383,7 +384,12 @@ codex-multi-auth doctor --json
 
 ## Release Notes
 
-- Current stable: [docs/releases/v2.2.2.md](docs/releases/v2.2.2.md) — install via `npm i -g codex-multi-auth`
+- Current stable: [docs/releases/v2.4.0.md](docs/releases/v2.4.0.md) — install via `npm i -g codex-multi-auth`
+- Previous stable: [docs/releases/v2.3.3.md](docs/releases/v2.3.3.md)
+- Previous stable: [docs/releases/v2.3.2.md](docs/releases/v2.3.2.md)
+- Previous stable: [docs/releases/v2.3.1.md](docs/releases/v2.3.1.md)
+- Previous stable: [docs/releases/v2.3.0.md](docs/releases/v2.3.0.md)
+- Previous stable: [docs/releases/v2.2.2.md](docs/releases/v2.2.2.md)
 - Previous stable: [docs/releases/v2.2.1.md](docs/releases/v2.2.1.md)
 - Previous stable: [docs/releases/v2.2.0.md](docs/releases/v2.2.0.md)
 - Previous stable: [docs/releases/v2.1.12.md](docs/releases/v2.1.12.md)

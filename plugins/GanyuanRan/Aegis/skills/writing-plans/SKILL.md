@@ -10,7 +10,7 @@ description: Use when you have a spec or requirements for a multi-step task, bef
   2. Update the parent workstream checkpoint/evidence/drift state if persistent state is needed
   3. Do not save a new plan for the micro-slice
 → Have approved spec/requirements for a new workstream or an escalation trigger? → **Write implementation plan. Assume engineer has zero context.**
-  1. Scope check: fact/assumption/unknown, baseline, Ripple Signal Triage, compatibility boundary, dual-track needs
+  1. Scope check: fact/assumption/unknown, baseline, Requirement Ready Check, Ripple Signal Triage, compatibility boundary, dual-track needs
   2. File map: what files created/modified, clear boundaries, follow existing patterns
   3. Bite-sized tasks (2-5 min each): exact file paths, complete code, exact commands, expected output
   4. Self-review: spec coverage, placeholders, type consistency, compatibility, verification, dual-track
@@ -77,10 +77,104 @@ If the input is a Spec Brief, keep the plan scoped to the pinned
 what/why/acceptance and do not expand into a formal design unless new
 architecture, contract, migration, or cross-module uncertainty appears.
 
-Compact output contract before writing the plan: `Plan Basis`, `Files`,
-`Compatibility`, `Architecture Integrity Lens`, `Plan Pressure Test`,
-`Plan-Time Complexity Check`, `Tasks`, `Risks`, and `Retirement`. Expand only
+Compact output contract before writing the plan: `Aegis Visibility`, `Plan Basis`,
+`BaselineUsageDraft`, `Requirement Ready Check`, `Files`, `Compatibility`,
+`Change Necessity`, `Existence Check`, `Architecture Integrity Lens`,
+`Plan Pressure Test`, `Plan-Time Complexity Check`,
+`Execution Readiness View`, `Tasks`, `Risks`, and `Retirement`. Expand only
 where the approved scope, risk, or verification surface requires it.
+
+`Aegis Visibility` for this workflow states which owner, contract, retirement,
+compatibility, or verification pressure makes planning useful before execution.
+Use one natural sentence for ordinary plans; reserve structured trace for audit,
+debug, release, long-task review, or explicit user request.
+
+Use a compact `BaselineUsageDraft` whenever the plan depends on specific
+baseline docs or current-authority refs:
+
+```text
+BaselineUsageDraft:
+- Required baseline refs:
+- Delivered context refs:
+- Acknowledged before plan refs:
+- Cited in plan refs:
+- Missing refs:
+- Decision: continue | needs-baseline-readback | needs-verification | pause-for-user | blocked
+```
+
+`Delivered context refs` is optional host-projected bookkeeping only. It is not
+authoritative proof that a host injected or the model internally consumed a
+context payload. The artifact exists to make baseline/context attention drift
+visible before and during planning.
+
+Use a compact `Requirement Ready Check` before task decomposition unless the
+input is already an approved plan/spec whose acceptance boundary is explicit:
+
+```text
+Requirement Ready Check:
+- Requirement source refs:
+- Goals and scope refs:
+- User / scenario refs:
+- Requirement item refs:
+- Acceptance / verification criteria refs:
+- Open blocker questions:
+- Decision: ready | needs-source | needs-goal-alignment | needs-scenario | needs-acceptance-criteria | needs-clarification | needs-user-decision | blocked
+```
+
+If the decision is not `ready`, do not create implementation tasks. Return to
+the requirement/spec owner with the smallest missing evidence or decision. A
+task intent, conversation, or agent inference can be cited as a candidate
+source, but it is not durable requirement authority by itself.
+
+Use a compact `Change Necessity` before task decomposition when the plan would
+endorse any new source-code path or non-trivial source edits. This is the
+"should code change at all?" check; it is not a new artifact or a
+`using-aegis` hot-path expansion.
+
+This is behavior-triggered, not prompt-triggered. If the plan is about to add
+any new source-code path or create non-trivial source-edit tasks, expose a
+natural readback even when the user did not ask for it. A tiny helper, small
+guard, new branch, fallback, adapter, or owner is not exempt. Example: "Code
+necessity check: a non-code path is insufficient because <reason>; the minimum
+change boundary is <owner/files>, so the decision is code-change."
+
+```text
+Change Necessity:
+- User-visible need:
+- No-change / non-code option:
+- Why code change is necessary:
+- Minimum change boundary:
+- Decision: no-change | docs/config-only | code-change | needs-clarification
+```
+
+If the decision is `no-change`, do not write code-edit tasks. If the decision
+is `docs/config-only`, narrow the plan to that surface. If the decision is
+`needs-clarification`, return to the requirement/spec owner. If the decision is
+`code-change`, carry the minimum boundary into `Files`, task steps, and
+verification. Approved requirements do not by themselves prove that a new
+source-code path is necessary.
+
+Use a compact `Existence Check` before task decomposition when a plan would add
+a new owner, skill, artifact, host adapter, fallback, compatibility path,
+workflow step, or benchmark metric. Use
+`docs/current/AEGIS_MINIMALITY_REFERENCE.md` as the reference and keep the check
+advisory. Do not force it onto plans that only reuse existing owners and
+surfaces.
+
+```text
+Existence Check:
+- Proposed new surface:
+- Existing owner / reuse candidate:
+- Why existing surface is insufficient:
+- Creation proof:
+- Entropy / retirement impact:
+- Decision: reuse-existing | add-with-proof | defer | reject | needs-first-principles-review
+```
+
+If the decision is `reuse-existing`, write tasks against the existing owner
+instead of creating a new surface. If the decision is `add-with-proof`, carry
+the proof, verification signal, and any retirement trigger into the relevant
+task.
 
 Use the `Architecture Integrity Lens` before task decomposition when an
 executable plan may still encode responsibility overlap, a wrong canonical
@@ -104,11 +198,53 @@ The pressure test is not an approval gate and should not redesign an approved
 spec without cause. It exists to catch owner / contract / retirement risk,
 missing verification, and tasks that are too vague to execute safely.
 
+Render an `Execution Readiness View` before handing a medium/high,
+subagent-driven, handoff-prone, long-running, architecture, contract,
+compatibility, or retirement-sensitive plan to execution. This view is a
+human-readable projection of existing runtime-ready drafts and plan content. It
+is not a new JSON artifact type, approval gate, authoritative `GateDecision`,
+`PolicySnapshot`, or completion authority.
+The view must expose Intent Lock, Scope Fence, and Baseline Lock before any
+task batch is handed to execution.
+
+```text
+Execution Readiness View:
+- Intent Lock:
+- Scope Fence:
+- Baseline Lock:
+- Approved Behavior:
+- Owner / Contract Constraints:
+- Compatibility Boundary:
+- Retirement Boundary:
+- Task Batches:
+- Test Obligations:
+- Review Gates:
+- Drift / Rewind Rules:
+- Evidence Required Before Completion:
+- Advisory Boundary: method-pack execution guidance only; not GateDecision, PolicySnapshot, or completion authority
+```
+
+Use existing inputs for the view: `TaskIntentDraft`, `BaselineUsageDraft`,
+`ImpactStatementDraft`, `GateInputPack`, the plan's task batches,
+compatibility / retirement sections, and verification commands. Skip the view
+for tiny fast-path tasks unless the user asks for an execution handoff readback.
+
 Use a compact `Plan-Time Complexity Check` before writing task steps when the
 plan changes maintained source files, core owners, handlers, routers, managers,
 shared utilities, adapters, or fallback paths:
 
+Use `using-aegis/references/complexity-governance.md` for the shared artifact
+classes, pressure signals, and over-budget handling rules.
+
 ```text
+Complexity Budget:
+- Artifact class:
+- Target files / artifacts:
+- Current pressure:
+- Projected post-change pressure:
+- Budget result: within-budget | at-risk | over-budget
+- Planned governance:
+
 Plan-Time Complexity Check:
 - Target files:
 - Existing size / shape signals:
@@ -118,10 +254,10 @@ Plan-Time Complexity Check:
 - Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
 ```
 
-Signals: 800+ line files, 80+ line blocks, deep nesting, mixed reasons to
-change, owner mismatch, or new branches/fallbacks/adapters. Advisory only. If
-the best answer is a new file, define its owner and contract; do not merely move
-complexity sideways.
+If the projected budget result is `over-budget`, do not write an atomic task
+that silently assumes add-in-place growth. Revise the task boundary, add
+governance work, or explicitly mark the slice as requiring follow-up before
+implementation begins.
 
 If the spec covers multiple independent subsystems, suggest breaking into
 separate plans. Before writing tasks, check: fact/assumption/unknown, baseline
@@ -134,8 +270,10 @@ rediscovering the decision from scratch.
 If task decomposition would encode a new owner, duplicate owner, fallback,
 adapter, compat-only carrier, delete-first question, unverified assumption, or
 long-term stability claim that the spec did not already settle, use
-`first-principles-review` and its `Decision Hygiene Review` or `Architecture
-Integrity Lens` before task decomposition.
+`Existence Check` first. If the new surface is still justified but the owner,
+contract, or retirement decision remains risky, use `first-principles-review`
+and its `Decision Hygiene Review` or `Architecture Integrity Lens` before task
+decomposition.
 
 When the plan must decide between deleting old internal paths, retaining compat
 for a proven external boundary, or stopping for persistent-state confirmation,
@@ -158,7 +296,9 @@ into durable planning artifacts.
 
 ## Aegis Project Workspace
 
-Workspace creation is triggered by the plan save step. See `using-aegis/SKILL.md` Rule 3 for the hard binary rule. If the project already has docs/adr/ or architecture docs, reference them — do not duplicate authority.
+Workspace creation is triggered by the plan save step. See the workspace support
+rule in `using-aegis/SKILL.md` for the hard binary rule. If the project already
+has docs/adr/ or architecture docs, reference them — do not duplicate authority.
 
 ## File Structure
 
@@ -170,13 +310,23 @@ Before you leave this workflow, the written plan must make these items answerabl
 
 1. **What problem or approved scope this plan is implementing**
 2. **Which baseline docs, ADRs, or requirements shaped the plan**
-3. **What files own the change**
-4. **What compatibility boundary must hold**
-5. **Whether the architecture integrity check found a higher-level owner /
+3. **Whether the Requirement Ready Check is ready, or which requirement source,
+   scenario, acceptance, clarification, or user decision is still missing**
+4. **Which required baseline refs were explicitly acknowledged before planning and which were actually cited in the plan**
+5. **What files own the change**
+6. **What compatibility boundary must hold**
+7. **Why a code change is necessary, or why the plan is narrowed to no-change,
+   docs/config-only, or clarification**
+8. **Whether any new surface passed an Existence Check or was routed to an
+   existing owner**
+9. **Whether the architecture integrity check found a higher-level owner /
    contract path before task decomposition**
-6. **What plan-time complexity pressure exists and which edit boundary is safer**
-7. **What verification proves each major slice**
-8. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
+10. **What plan-time complexity pressure exists and which edit boundary is safer**
+11. **Whether an `Execution Readiness View` is needed for this handoff, and if
+   needed, which intent, scope, baseline, compatibility, retirement, testing,
+   review, and drift boundaries it renders**
+12. **What verification proves each major slice**
+13. **What risks, rollback surface, old owner/fallback handling, ADR signal preservation, and baseline-sync signals remain**
 
 ## Bite-Sized Task Granularity
 
@@ -193,7 +343,7 @@ Every plan MUST start with: Goal, Architecture, Tech Stack, Baseline/Authority R
 
 ## Task Structure
 
-Each task: Files (create/modify/test paths), Why (user/business value), Impact/Compatibility, Verification (exact commands), then 5 checkbox steps: Write test → Verify RED → Minimal code → Verify GREEN → Commit. Every step must include complete code and exact commands.
+Each task: Files (create/modify/test paths), Why (user/business value), Change Necessity (why source edits are needed and the minimum boundary), Impact/Compatibility, Verification (exact commands), then 5 checkbox steps: Write test → Verify RED → Minimal code → Verify GREEN → Commit. Every step must include complete code and exact commands.
 
 For bug fixes, refactors, contract changes, or governance cleanup, add Repair
 Track (root cause, canonical owner, minimal sufficient stable repair, compat
@@ -211,18 +361,23 @@ Never write: "TBD", "TODO", "implement later", "fill in details", "Add appropria
 Check plan against spec: 1) Spec coverage — can you point to a task for each
 requirement? 2) Placeholder scan — any TBD/TODO/vague instructions? 3) Type
 consistency — do signatures match across tasks? 4) Compatibility — invariants,
-non-goals, stable interfaces marked? 5) Plan-time complexity and minimality —
+non-goals, stable interfaces marked? 5) Change necessity — any code-edit task
+states why no-change or docs/config-only is insufficient and names the minimum
+boundary? 6) Existence check — any new owner,
+artifact, adapter, fallback, workflow step, or benchmark metric has proof and a
+reuse decision? 7) Plan-time complexity and minimality —
 lowest-entropy owner/file boundary that fixes the bug class, not just the
-smallest textual diff? 6) Architecture integrity — any higher-level owner /
-contract / source-of-truth simplification skipped? 7) Verification — exact
-commands? 8) Dual-track, decision hygiene, and ADR/baseline-sync signals
+smallest textual diff? 8) Architecture integrity — any higher-level owner /
+contract / source-of-truth simplification skipped? 9) Verification — exact
+commands? 10) Dual-track, decision hygiene, and ADR/baseline-sync signals
 preserved where needed?
 
 Fix issues inline. Re-review is not needed — just fix and move on.
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After saving the plan, render the `Execution Readiness View` when the handoff
+criteria above apply. Then offer execution choice:
 
 **"Plan complete and saved to `docs/aegis/plans/<filename>.md`. Two execution options:**
 
@@ -243,5 +398,7 @@ After saving the plan, offer execution choice:
 ## Planning Boundaries
 
 - A plan can define implementation slices, verification, rollback surface, and retirement expectations
+- `Execution Readiness View` can make implementation start conditions,
+  verification obligations, and drift / rewind rules visible before execution
 - A plan cannot grant authoritative completion
 - A plan should prepare runtime-ready execution, not pretend to be runtime authority

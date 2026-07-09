@@ -1,0 +1,12 @@
+[project]
+name = "reviewable-html-workbench"
+version = "1.18.1"
+description = "Shared scripts for reviewable HTML generation and feedback ingestion."
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["html_review_workbench"]
+package-dir = {"" = "scripts"}
+
+[project.scripts]
+html-review-workbench = "html_review_workbench.cli:main"

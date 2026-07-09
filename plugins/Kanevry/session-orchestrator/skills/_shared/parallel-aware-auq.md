@@ -36,7 +36,7 @@ AskUserQuestion({
 });
 ```
 
-### Codex CLI / Cursor IDE fallback (numbered Markdown list)
+### Codex CLI / Cursor IDE / Pi fallback (numbered Markdown list)
 
 ```
 Parallel-Exclusive conflict — an exclusive session is active in this repository.
@@ -79,7 +79,7 @@ AskUserQuestion({
 });
 ```
 
-### Codex CLI / Cursor IDE fallback (numbered Markdown list)
+### Codex CLI / Cursor IDE / Pi fallback (numbered Markdown list)
 
 ```
 Worktree-Promotion offer — a compatible parallel session is active in this worktree.
@@ -118,4 +118,4 @@ PRD §3 P1 row 5 specifies this is a hard guarantee — read-only modes never pr
 - `parallel-aware-preamble.md` — the preamble that fires these AUQs
 - `.claude/rules/ask-via-tool.md` — AUQ-001 through AUQ-005 (always use the tool, not prose)
 - `.claude/rules/parallel-sessions.md` — PSA-001/PSA-002 (overlap-check discipline)
-- `docs/prd/2026-05-26-parallel-aware-sessions.md` § 3 P1 — Gherkin rows 2, 3, 5 that these AUQs satisfy
+- "Parallel-Aware Sessions" (#568; archived in the private Meta-Vault) § 3 P1 — Gherkin rows 2, 3, 5 that these AUQs satisfy

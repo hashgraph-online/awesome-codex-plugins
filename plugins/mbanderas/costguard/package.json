@@ -1,0 +1,84 @@
+{
+  "name": "@costguard/costguard-mcp",
+  "version": "0.1.0",
+  "description": "Audit your repos and cloud providers for CI and infrastructure cost leaks. Ships a CLI and an MCP server for AI coding agents (Claude Code, Codex, any MCP host).",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "author": "Mark Laursen",
+  "homepage": "https://github.com/mbanderas/costguard#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbanderas/costguard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mbanderas/costguard/issues"
+  },
+  "keywords": [
+    "cost",
+    "cost-optimization",
+    "finops",
+    "ci",
+    "github-actions",
+    "cloud-cost",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude-code",
+    "audit"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "costguard": "./dist/cli/index.js",
+    "costguard-mcp": "./dist/mcp/server.js"
+  },
+  "files": [
+    "dist/",
+    "knowledge/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".agents/plugins/marketplace.json",
+    "commands/",
+    "skills/",
+    "integrations/",
+    "scripts/install.cjs",
+    "costguard.config.example.json"
+  ],
+  "scripts": {
+    "build": "node scripts/bundle.mjs && node scripts/bundle-mcp.mjs",
+    "build:mcp": "node scripts/bundle-mcp.mjs",
+    "check:dist": "node scripts/check-dist.cjs",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:dist",
+    "ci:docker": "gh act workflow_dispatch -j checks",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --quiet",
+    "dev": "tsx src/cli/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^15",
+    "cron-parser": "^5",
+    "diff": "^9.0.0",
+    "js-yaml": "^4",
+    "yaml": "^2.9.0",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10",
+    "@types/js-yaml": "^4",
+    "@types/node": "^25",
+    "esbuild": "0.28.1",
+    "eslint": "^10",
+    "tsx": "^4",
+    "typescript": "^6",
+    "typescript-eslint": "^8",
+    "vitest": "^2"
+  }
+}

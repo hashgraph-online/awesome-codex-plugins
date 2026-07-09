@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Crate Publishing Readiness"
+  short_description: "Prepare crates for publishing"
+  default_prompt: "Use $rust-crate-publishing-readiness to prepare this Rust crate for a safe cargo publish dry-run."

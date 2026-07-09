@@ -6,11 +6,15 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from argparse import ArgumentParser
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
 
-def _resolve_artifact_targets(root: Path) -> str:
+def _resolve_artifact_targets(root: Path, cli_artifacts: str = "") -> str:
+    if cli_artifacts.strip():
+        return cli_artifacts.strip()
+
     configured = os.environ.get("DOCKER_TO_SEALOS_ARTIFACTS", "").strip()
     if configured:
         return configured
@@ -28,6 +32,16 @@ def _resolve_artifact_targets(root: Path) -> str:
 def _allow_empty_artifacts() -> bool:
     value = os.environ.get("DOCKER_TO_SEALOS_ALLOW_EMPTY_ARTIFACTS", "").strip().lower()
     return value in {"1", "true", "yes", "on"}
+
+
+def parse_args(argv: Sequence[str] | None = None):
+    parser = ArgumentParser(description="Run docker-to-sealos quality checks.")
+    parser.add_argument(
+        "--artifacts",
+        default="",
+        help="Comma-separated template artifact paths. Overrides DOCKER_TO_SEALOS_ARTIFACTS.",
+    )
+    return parser.parse_args(argv)
 
 
 def validate_artifact_targets(artifacts: str, allow_empty: bool) -> Tuple[bool, str]:
@@ -97,9 +111,10 @@ def build_commands(root: Path, artifacts: str) -> List[Tuple[str, Sequence[str]]
     ]
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_args(argv)
     root = Path(__file__).resolve().parent.parent
-    artifacts = _resolve_artifact_targets(root)
+    artifacts = _resolve_artifact_targets(root, args.artifacts)
     ok, message = validate_artifact_targets(artifacts, _allow_empty_artifacts())
     if message:
         print(message)

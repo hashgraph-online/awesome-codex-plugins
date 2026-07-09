@@ -20,4 +20,6 @@ Each probe category has typical confidence factors. Use these as guidance when s
 
 **Session probes:** Hallucination checks score high (objective, commit-verifiable). Stale issues with no priority label score low. Gap analysis on planned items scores high.
 
+**Feature probes:** Doc claims with exact enforcement-token matches score high (objective, grep-verifiable); heuristic keyword-to-token guesses score low. Flag-name pattern matches in generated/vendored files score low; hits on exported/public routes score higher.
+
 ---

@@ -35,11 +35,12 @@ Use this as the source-of-truth for Ralph alignment in AgentOps orchestration sk
 
 | Ralph concept | AgentOps implementation |
 |---|---|
-| Fresh context per loop | New workers/teams per wave in `$swarm`; fresh phase context in `ao rpi phased` |
-| Main context as scheduler | Mayor/lead orchestration in `$swarm` and `$crank` |
+| Fresh context per loop | New workers/teams per wave in `/swarm`; fresh operating-loop context per worker or NTM pane |
+| Main context as scheduler | Mayor/lead orchestration in `/swarm` and `/crank` |
+| Plan file as state | `bd` issue graph, TaskList state, plan artifacts in `.agents/plans/` |
 | One task per pass | One issue per worker assignment in swarm/crank waves |
-| Backpressure | `$vibe`, task validation hooks, tests/lint gates, push/pre-mortem gates |
-| Outer loop restart | Wave loop in `$crank`; phase loop in `ao rpi phased` |
+| Backpressure | `/validate`, task validation hooks, tests/lint gates, push/pre-mortem gates |
+| Outer loop restart | Wave loop in `/crank`; NTM/Agent Mail substrate for out-of-session loop restarts |
 
 ## Implementation Notes
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Idempotent Workflows"
+  short_description: "Make Rust workflows safe for retries"
+  default_prompt: "Make this Rust workflow idempotent and safe under retries."

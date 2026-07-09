@@ -30,6 +30,16 @@
 | Operation | Pattern | Failure Handling | Repair Path |
 | --- | --- | --- | --- |
 
+## Time, Clock, And Ordering
+
+| Path | Clock Source | Skew Bound | Leap/DST Behavior | Lease/TTL Rule | Logical Clock Needed? |
+| --- | --- | --- | --- | --- | --- |
+
+## At-Rest Data Quality
+
+| Data Class | Golden Record | Reconciliation Cadence | Anomaly Signal | Repair Owner |
+| --- | --- | --- | --- | --- |
+
 ## Correctness Verification
 
 | Invariant | Check | Cadence | Repair |

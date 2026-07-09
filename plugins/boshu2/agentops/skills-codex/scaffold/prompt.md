@@ -1,6 +1,6 @@
 # scaffold
 
-Project scaffolding, component generation, and boilerplate setup. Triggers: "scaffold", "new project", "init project", "bootstrap", "create project", "generate component", "setup project", "starter", "boilerplate".
+Stamp project/component/CI scaffolds — but reach for it mainly for the repo-specific domain-slice binding (generic trees a frontier model needs no skill for). Triggers: "scaffold", "create project component or boilerplate".
 
 ## Instructions
 

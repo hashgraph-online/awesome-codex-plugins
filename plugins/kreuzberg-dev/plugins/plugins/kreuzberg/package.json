@@ -1,0 +1,42 @@
+{
+  "name": "@kreuzberg/opencode-kreuzberg",
+  "version": "0.2.2",
+  "description": "OpenCode tools for local document extraction with the kreuzberg CLI.",
+  "type": "module",
+  "main": ".opencode/plugins/kreuzberg.js",
+  "exports": {
+    ".": "./.opencode/plugins/kreuzberg.js"
+  },
+  "files": [
+    ".opencode/",
+    "assets/",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kreuzberg-dev/plugins.git",
+    "directory": "plugins/kreuzberg"
+  },
+  "homepage": "https://github.com/kreuzberg-dev/plugins/tree/main/plugins/kreuzberg",
+  "bugs": {
+    "url": "https://github.com/kreuzberg-dev/plugins/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "document-intelligence",
+    "extraction",
+    "ocr",
+    "pdf"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.17.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

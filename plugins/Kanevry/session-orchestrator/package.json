@@ -1,15 +1,18 @@
 {
   "name": "session-orchestrator",
-  "version": "3.8.0",
+  "version": "3.12.0",
   "description": "Session Orchestrator — Claude Code plugin for structured development sessions",
   "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "test": "vitest --run",
-    "test:coverage": "vitest --run --coverage",
-    "test:watch": "vitest",
+    "test": "node scripts/check-package-manager.mjs && vitest --run",
+    "test:coverage": "node scripts/check-package-manager.mjs && vitest --run --coverage",
+    "test:watch": "node scripts/check-package-manager.mjs && vitest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "node scripts/typecheck.mjs",
@@ -35,14 +38,28 @@
     "@vitest/coverage-v8": "^4.1.5",
     "eslint": "^10.2.1",
     "husky": "^9.1.7",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.2.0",
     "lint-staged": "^15.2.10",
     "prettier": "^3.0.0",
     "vitest": "^4.1.5"
+  },
+  "overrides": {
+    "vite": "^8.0.16"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kanevry/session-orchestrator.git"
+  },
+  "pi": {
+    "extensions": [
+      "./pi/extensions/session-orchestrator.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./pi/prompts/*.md"
+    ]
   }
 }

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "xedit": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/plugins/bgs-modding-superpowers/tools/xedit-mcp/dist/index.js"]
+    },
+    "bgs_kb": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/plugins/bgs-modding-superpowers/tools/bgs-kb-mcp/dist/index.js"]
+    },
+    "mo2": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/plugins/bgs-modding-superpowers/tools/mo2-mcp/dist/index.js"]
+    }
+  }
+}

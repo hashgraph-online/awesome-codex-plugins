@@ -7,7 +7,7 @@
     <a href="https://github.com/GanyuanRan/Aegis/actions/workflows/ci.yml" alt="CI">
         <img src="https://img.shields.io/github/actions/workflow/status/GanyuanRan/Aegis/ci.yml?branch=main&label=CI" /></a>
     <a href="https://github.com/GanyuanRan/Aegis/releases/latest" alt="Latest Release">
-        <img src="https://img.shields.io/github/v/release/GanyuanRan/Aegis?display_name=release&label=Latest%20Release" /></a>
+        <img src="https://badgen.net/github/release/GanyuanRan/Aegis?label=Latest%20Release" /></a>
 </p>
 
 <p align="center">
@@ -50,7 +50,7 @@ architecture boundary, or verification path is clear.
 Give this prompt to your AI coding agent:
 
 ```text
-Read https://github.com/GanyuanRan/Aegis, identify my current AI coding host, and install Aegis globally using the correct host guide. Restart or reload the host if needed, then run complete-install verification from the installed Aegis method-pack root. Do not run the doctor command from the target project directory. First locate `<aegis-method-pack-root>`, then run `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`. Treat the install as complete only if the JSON includes `"ok": true`, `"workspaceSupport": "available"`, and `"configStatus": "configured"`; if the host uses a separate skill discovery directory, also verify it with `--discovery-root <path>`.
+Read https://github.com/GanyuanRan/Aegis, identify my current AI coding host, and install Aegis globally using the correct host guide. Restart or reload the host if needed, then run complete-install verification from the installed Aegis method-pack root. Do not run the doctor command from the target project directory. First locate `<aegis-method-pack-root>`, then run `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`. Treat the install as complete only if the JSON includes `"ok": true`, `"workspaceSupport": "available"`, and `"configStatus": "configured"`; if the host uses a separate skill discovery directory, also verify it with `--discovery-root <path>`; if the host guide declares a skill directory name prefix, also pass `--discovery-name-prefix <prefix>`.
 ```
 
 ## Updating Aegis
@@ -90,14 +90,18 @@ python scripts/aegis-doctor.py activation-mode explicit
 Restart the host after changing activation mode. Details and host caveats live
 in [docs/current/AEGIS_ACTIVATION_MODE.md](docs/current/AEGIS_ACTIVATION_MODE.md).
 
-TDD mode defaults to `auto`: Aegis chooses strict TDD only when risk warrants,
-uses light verification for tiny edits, and skips TDD where it does not fit. To
-disable automatic TDD routing without disabling completion verification:
+TDD mode defaults to `off`: Aegis does not automatically require TDD, and
+completion verification still applies. To enable automatic TDD routing when you
+want Aegis to choose strict, light, or skipped by task risk:
 
 ```bash
 cd <aegis-method-pack-root>
-python scripts/aegis-doctor.py tdd-mode off
+python scripts/aegis-doctor.py tdd-mode auto
 ```
+
+You can also request strict TDD directly in a query with explicit markers such
+as `TDD Route: strict`, `strict TDD`, `test-first`, or
+`RED / GREEN / REFACTOR`.
 
 Details live in [docs/current/AEGIS_TDD_MODE.md](docs/current/AEGIS_TDD_MODE.md).
 
@@ -108,9 +112,9 @@ Aegis keeps a multi-host, plugin-installable distribution goal.
 | Host group | Current status | Start here |
 | --- | --- | --- |
 | `Codex`, `OpenCode` | Fresh evidence exists for the current method-pack scope | [Codex](docs/README.codex.md), [OpenCode](docs/README.opencode.md) |
-| `Claude Code`, `CodeBuddy`, `DeepSeek-TUI`, `Trae`, `GitHub Copilot`, `Qoder` | Install guides exist; release-level fresh host smoke is still pending | [Claude Code](docs/README.claude-code.md), [CodeBuddy](docs/README.codebuddy.md), [DeepSeek-TUI](docs/README.deepseek-tui.md), [Trae](docs/README.trae.md), [GitHub Copilot](docs/README.copilot.md), [Qoder](docs/README.qoder.md) |
+| `Claude Code`, `CodeBuddy`, `DeepSeek-TUI`, `Trae`, `GitHub Copilot`, `Qoder`, `Kimi Code CLI`, `ZCode` | Install guides exist; release-level fresh host smoke is still pending | [Claude Code](docs/README.claude-code.md), [CodeBuddy](docs/README.codebuddy.md), [DeepSeek-TUI](docs/README.deepseek-tui.md), [Trae](docs/README.trae.md), [GitHub Copilot](docs/README.copilot.md), [Qoder](docs/README.qoder.md), [Kimi Code CLI](docs/README.kimi-code.md), [ZCode](docs/README.zcode.md) |
 | `CC GUI (JetBrains IDEA)` | Structural IDE plugin layer support for Claude Code / OpenAI-GPT provider paths; release-level fresh host smoke is still pending | [CC GUI](docs/README.cc-gui.md) |
-| `Antigravity CLI`, `Antigravity IDE`, `Antigravity App` | Structural targets; release-level fresh host smoke is still pending | [Antigravity](docs/README.antigravity.md) |
+| `Antigravity CLI`, `Antigravity IDE`, `Antigravity App` | `Antigravity CLI` is the current active closeout target; `IDE/App` remain structural targets and release-level fresh host smoke is still pending | [Antigravity](docs/README.antigravity.md) |
 | `Pi CLI`, `OpenClaw`, `Hermes Agent` | Structural Agent Skills / `SKILL.md` skill-host adaptations; release-level fresh host smoke is still pending | [Pi CLI](docs/README.pi.md), [OpenClaw](docs/README.openclaw.md), [Hermes Agent](docs/README.hermes-agent.md) |
 | `Gemini CLI` | Transitional compatibility surface while Antigravity support matures | [Compatibility Matrix](docs/current/AEGIS_HOST_COMPATIBILITY_MATRIX_SNAPSHOT.md) |
 
@@ -157,6 +161,15 @@ Aegis routes work by complexity:
 The core discipline is:
 
 - **Baseline first**: read current project authority before substantial changes.
+- **Code necessity before edits**: before adding any source-code path, Aegis
+  naturally states why a non-code path is insufficient, what the minimum change
+  boundary is, and then enters `code-change`; non-trivial source edits use the
+  fuller `Change Necessity` slot.
+- **Visible governance, on-demand trace**: Aegis naturally exposes the risk it
+  helped control at key governance points. When auditability is requested, it
+  can output a `Trace Digest` summarizing execution trace, evidence chain, rule
+  effects, skill stability, and verification chain without exposing raw internal
+  reasoning.
 - **Evidence before claims**: no completion claim without fresh verification.
 - **Repair plus retirement**: fix the owner and state what old path remains or retires.
 - **Workflow Quality**: keep simple tasks cheap and expand only when risk demands it.

@@ -1,6 +1,6 @@
 ---
 name: research
-description: 'Explore and write findings.'
+description: "Investigate repo facts and prior art."
 ---
 
 # Research Skill
@@ -13,7 +13,7 @@ ao codex ensure-start 2>/dev/null || true
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
-**CLI dependencies:** ao (knowledge injection — optional). If ao is unavailable, skip prior knowledge search and proceed with direct codebase exploration.
+**CLI dependencies:** ao (knowledge retrieval via `ao lookup` — optional). If ao is unavailable, skip prior knowledge search and proceed with direct codebase exploration.
 
 ## Flags
 
@@ -32,7 +32,7 @@ mkdir -p .agents/research
 
 ### Step 2: Check Prior Art
 
-**First, search and inject existing knowledge (if ao available):**
+**First, retrieve existing knowledge with `ao lookup` (if ao available):**
 
 ```bash
 # Pull relevant prior knowledge for this topic
@@ -61,7 +61,7 @@ Also look for:
 
 **Search ALL local knowledge locations by content (not just filename):**
 
-Use Grep to search every knowledge directory for the topic. This catches learnings from `$retro`, brainstorms, and plans — not just research artifacts.
+Use Grep to search every knowledge directory for the topic. This catches learnings from `$post-mortem`, brainstorms, and plans — not just research artifacts.
 
 ```bash
 # Search all knowledge locations by content
@@ -121,6 +121,18 @@ Tier 1 — Code-Map (fastest, authoritative):
   Read docs/code-map/{feature}.md → get exact paths and function names
   Skip if: no docs/code-map/ directory
 
+Tier 1b — Graphify structural map (optional; the freshest queryable structure):
+  When `graphify` is installed, query the codebase STRUCTURE instead of broad grep —
+  the AST layer rebuilds in ~13s, free, no LLM (measured on a ~2,500-file Go/Python repo):
+    graphify <repo> --update              # refresh first; never query a stale graph
+    graphify explain "<symbol>"           # what a node IS + its calls/defines/connections
+    graphify path "<A>" "<B>"             # how A reaches B — across files AND languages
+    graphify query "<expanded tokens>"    # ranked neighborhood (vocab-expand REQUIRED — see recipe)
+  Use BEFORE Tier 3 grep for "what is X / where / what's connected / cross-file links".
+  Bound: maps STRUCTURE (calls/connections), not in-body logic — read the file (Tier 4) for logic.
+  Skip if: `graphify` not installed (graceful — fall through to the tiers below).
+  Recipe + the REQUIRED vocab-expansion step: references/structural-graph-navigation.md
+
 Tier 2 — Semantic Search (conceptual matches):
   mcp__smart-connections-work__lookup query="<topic>" limit=10
   Skip if: MCP not connected
@@ -131,7 +143,7 @@ Tier 2.5 — Git History (recent changes and decision context):
   git blame <key-file> | grep -i "<topic>" | head -20  # cap 20 lines
   Skip if: not a git repo, no relevant history, or <topic> too broad (>100 matches)
   NEVER: git log on full repo without -- path filter (same principle as Tier 3 scoping)
-  NOTE: This is git commit history, not session history. For session/handoff history, use $trace.
+  NOTE: This is git commit history, not session history. For session/handoff history, use $recover.
 
 Tier 3 — Scoped Search (keyword precision):
   Grep("<topic>", path="<specific-dir>/")   # ALWAYS scope to a directory
@@ -368,3 +380,4 @@ For onboarding-style research ("what does this do?", new repo orientation), foll
 - [../shared/references/ralph-loop-contract.md](../shared/references/ralph-loop-contract.md)
 - [references/codebase-archaeology.md](references/codebase-archaeology.md) — Systematic codebase exploration for onboarding
 - [references/software-research.md](references/software-research.md) — Research tools via source code, GitHub, and web
+- [references/structural-graph-navigation.md](references/structural-graph-navigation.md) — graphify Tier 1b recipe + the REQUIRED vocab-expansion step

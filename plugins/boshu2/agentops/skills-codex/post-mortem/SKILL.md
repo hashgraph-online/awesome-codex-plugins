@@ -1,12 +1,14 @@
 ---
 name: post-mortem
-description: 'Review completed work and learn.'
+description: "Review completed work and learn."
 ---
 # Post-Mortem Skill
 
 > **Purpose:** Wrap up completed work — validate it shipped correctly, extract learnings, process the knowledge backlog, activate high-value insights, and retire stale knowledge.
 >
-> **Runtime note:** Hook-driven closeout is runtime-dependent. Claude/OpenCode can wire Phase 2-5 maintenance through lifecycle hooks. Codex does not expose that hook surface, so Codex sessions should finish closeout with `ao codex ensure-stop`.
+> **Runtime note:** Hook-driven closeout is runtime-dependent. Claude/OpenCode can wire Phase 2-5 maintenance through lifecycle hooks. Codex post-mortem closeout uses the default AgentOps session/flywheel commands, not the archived Codex lifecycle shims: finish with `ao session close --auto-extract` and `ao flywheel close-loop --quiet`.
+
+S6 loop-closure: a lesson is durable only when the NEXT loop consumes it. When a gate/adversary caught a defect a green test missed, append the dimension to `docs/gate/findings-ledger.md` — the ledger `$behavior-first-planning` reads to ratchet its Standing Review Dimensions — so the catch closes back into the next loop's planning; a membrane escape compiles into a mechanical check.
 
 Six phases:
 1. **Council** — Did we implement it correctly?
@@ -36,11 +38,11 @@ $post-mortem --skip-checkpoint-policy epic-123  # skip ratchet chain validation
 In Codex hookless mode, run these after the post-mortem workflow writes learnings and next work:
 
 ```bash
-ao codex ensure-stop --auto-extract
-ao codex status
+ao session close --auto-extract
+ao flywheel close-loop --quiet
 ```
 
-`ao codex ensure-stop` is idempotent for the current Codex thread. It uses the latest transcript or history fallback to queue/persist learnings and run close-loop maintenance without runtime hooks.
+`ao session close --auto-extract` resolves the current transcript, forges the session, extracts lightweight learnings, and reports flywheel impact. `ao flywheel close-loop --quiet` runs the supported close-loop maintenance. If transcript discovery needs to be explicit, use `ao forge transcript <path-or-glob> --queue` before `ao flywheel close-loop --quiet`.
 
 ---
 
@@ -154,7 +156,7 @@ PM_START=$(date +%s)
 **If no ID:** Find recently completed work:
 ```bash
 # Check for closed beads
-bd list --status closed --since "7 days ago" 2>/dev/null | head -5
+br list --status closed --since "7 days ago" 2>/dev/null | head -5
 
 # Or check recent git activity
 git log --oneline --since="7 days ago" | head -10
@@ -168,7 +170,7 @@ Read `.agents/rpi/rpi-state.json` and extract session ID, phase, verdicts, and s
 
 Before invoking council, load the original plan for comparison:
 
-1. **If epic/issue ID provided:** `bd show <id>` to get the spec/description
+1. **If epic/issue ID provided:** `br show <id>` to get the spec/description
 2. **Search for plan doc:** `ls .agents/plans/ | grep <target-keyword>`
 3. **Check git log:** `git log --oneline | head -10` to find the relevant bead reference
 
@@ -210,7 +212,7 @@ If available, use the phase-2 summary to understand what was implemented, how ma
 Compare the original plan scope against what was actually delivered:
 
 1. Read the plan from `.agents/plans/` (most recent)
-2. Compare planned issues against closed issues (`bd children <epic-id>`)
+2. Compare planned issues against closed issues (`br dep tree <epic-id>` and `br list --status closed`)
 3. Note any scope additions, removals, or modifications
 4. Include scope delta in the post-mortem findings
 
@@ -220,7 +222,7 @@ Read `references/closure-integrity-audit.md` for the full procedure. Mechanicall
 
 1. **Evidence precedence per child** — every closed child resolves on the strongest available evidence in this order: `commit`, then `staged`, then `worktree`
 2. **Phantom bead detection** — flags children with generic titles ("task") or empty descriptions
-3. **Orphaned children** — beads in `bd list` but not linked to parent in `bd show`
+3. **Orphaned children** — beads in `br list` but not linked to parent in `br dep tree`
 4. **Multi-wave regression detection** — for crank epics, checks if a later wave removed code added by an earlier wave
 5. **Stretch goal audit** — verifies deferred stretch goals have documented rationale
 
@@ -236,7 +238,7 @@ Read `references/metadata-verification.md` for the full verification procedure. 
 
 **Skip if `--quick` or `--skip-sweep`.**
 
-Before council runs, dispatch a deep audit sweep to systematically discover issues across all changed files. This uses the same protocol as `$vibe --deep` — see the deep audit protocol in the vibe skill (`skills/vibe/`) for the full specification.
+Before council runs, dispatch a deep audit sweep to systematically discover issues across all changed files. This uses the same protocol as `$validate --deep` — see the deep audit protocol in the vibe skill (`skills/validate/`) for the full specification.
 
 In summary:
 
@@ -311,7 +313,7 @@ Inline extraction of learnings from the completed work (formerly delegated to th
 git log --oneline -20 --since="7 days ago"
 
 # Epic children (if epic ID provided)
-bd children <epic-id> 2>/dev/null | head -20
+br dep tree <epic-id> 2>/dev/null | head -20
 
 # Recent plans and research
 ls -lt .agents/plans/ .agents/research/ 2>/dev/null | head -10
@@ -488,6 +490,20 @@ This must be the LAST action in Phase 4.
 
 **Phases 3-6 (Maintenance):** Read `references/maintenance-phases.md` for backlog processing, activation, retirement, and harvesting phases. Load when `--process-only` flag is set or when running full post-mortem.
 
+### Absorbed mining surface (`$curate`, 2026-07-07)
+
+The retired curate/compile/flywheel skill trio's user surface lives here: post-mortem's
+extract → process → activate steps ARE the mining half (curate declared itself their
+superset; the audit executed the collapse — docs/audits/skills-audit-2026-07-06.md §3.2).
+Fires for their triggers — "curate skills from sessions", "mine transcripts", "compile
+the knowledge wiki", "check flywheel health". The mechanical corpus surfaces stay on the
+CLI, not skills: `ao compile` (wiki build), `ao flywheel status` (health), `ao lookup`
+(retrieval). Deep session-history mining beyond this session's arc → the `cass` skill.
+
+### Close the ms outcome loop (optional)
+
+If `ms` is installed (`command -v ms`), grade each skill whose guidance this session **actually used** (genuinely consulted, not merely trigger-matched): `ms outcome <skill> --success` (helped) or `ms outcome <skill> --failure` (misled/didn't apply) — only real consultations, an honest empty set beats a padded one. Skip silently if `ms` is not present.
+
 ### Step 7: Report to User
 
 Tell the user:
@@ -534,7 +550,7 @@ $pre-mortem (council on plan)
 $implement
     |
     v
-$vibe (council on code)
+$validate (council on code)
     |
     v
 Ship it
@@ -634,7 +650,7 @@ should change. See `skills/goals/SKILL.md`.
 ## See Also
 
 - `skills/council/SKILL.md` — Multi-model validation council
-- `skills/vibe/SKILL.md` — Council validates code (`$vibe` after coding)
+- `skills/validate/SKILL.md` — Council validates code (`$validate` after coding)
 - `skills/pre-mortem/SKILL.md` — Council validates plans (before implementation)
 
 

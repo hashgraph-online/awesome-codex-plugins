@@ -1,0 +1,45 @@
+---
+name: loop-detect
+description: "Identify and model growth loops. Use when: detecting viral, content, or paid loops, modeling effectiveness, proposing new loops."
+---
+
+# /digital-marketing-pro:loop-detect
+
+## Purpose
+
+Detect, model, and optimize growth loops in the business. Identify existing compounding loops — viral (users invite users), content (content attracts users who create content), data (more users improve the product which attracts more users), paid (revenue funds ads that generate more revenue), ecosystem (integrations attract users who build integrations), and community (members attract members who contribute value). Model each loop's effectiveness with amplification factors and cycle times, find bottlenecks that limit compounding, and propose new loops based on the business model and current strengths.
+
+## Input Required
+
+The user must provide (or will be prompted for):
+
+- **Business metrics**: Key growth and engagement data — user acquisition numbers (signups, activations, sources), content production volume (blog posts, UGC, social mentions), revenue figures (MRR, ARPU, LTV), referral data (invites sent, referral conversions, viral coefficient), engagement metrics (DAU/MAU, session frequency, feature adoption), and retention rates (weekly, monthly, annual). Historical data across at least 3 months preferred for trend detection
+- **Business model**: The company's primary business model — SaaS (subscription software), eCommerce (product sales), marketplace (connecting buyers and sellers), media (content and advertising), B2B services (consulting, agency), developer tools (API/platform), community/social (network effects), or hybrid. This determines which loop archetypes are most relevant and what amplification factors to expect
+- **Known growth drivers**: What the user already knows about what drives growth — "most customers come from organic search", "referral program drives 30% of signups", "our API marketplace is growing", "content marketing is our main channel". Helps prioritize which loops to model first and calibrate the detection algorithm
+- **Growth goals (optional)**: Target growth rate or specific metrics the user wants to achieve — "double MRR in 12 months", "reach 10K DAU", "reduce CAC by 40%". If provided, loop proposals and investment recommendations are optimized toward these goals
+- **Constraints (optional)**: Budget limits, team size, technical constraints, or channel restrictions that affect which loops are feasible — "engineering team is 5 people", "marketing budget is $20K/month", "can't do paid social due to industry regulations"
+
+## Process
+
+1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply business model, industry benchmarks, known channels, and audience characteristics to calibrate loop detection thresholds and benchmark amplification factors. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
+2. **Detect existing growth loops**: Analyze the provided metrics via `python "${CLAUDE_PLUGIN_ROOT}/scripts/growth-loop-modeler.py" --action detect-loops --brand {slug}` to identify active compounding loops. Look for viral loops (referral rate > 0 with consistent invite-to-conversion flow), content loops (organic traffic growth correlated with content production), data loops (product improvement metrics correlated with user growth), paid loops (positive ROAS reinvestment patterns), ecosystem loops (integration or marketplace growth driving user acquisition), and community loops (member growth correlated with community contribution). Each detected loop is assigned a confidence score based on data strength.
+3. **Model each detected loop**: For every identified loop, calculate the key parameters — amplification factor (how much output each cycle produces relative to input, e.g., each user invites 0.3 users who convert = 0.3x viral coefficient), cycle time (how long one complete loop iteration takes, from input to amplified output — days for viral loops, weeks for content loops, months for ecosystem loops), decay rate (how quickly the loop's effectiveness diminishes without maintenance or investment), and sustainability assessment (whether the loop can compound indefinitely, plateau at a natural limit, or decay without continued investment).
+4. **Identify bottlenecks**: For each loop, find the step that most constrains the amplification factor. In a viral loop, the bottleneck might be invite send rate, invite acceptance rate, or activation of referred users. In a content loop, the bottleneck might be content production capacity, SEO ranking velocity, or content-to-signup conversion. Quantify the impact of removing each bottleneck — how much the amplification factor would increase if that step improved by 2x.
+5. **Propose new loops**: Based on the business model, current strengths, and detected loop gaps, propose new growth loops that the business could activate. For each proposal, define the loop mechanics (step-by-step flow), estimated amplification factor based on industry benchmarks, required investment to activate (budget, engineering, content, partnerships), expected time to first cycle completion, and prerequisites that must be in place. Prioritize proposals that leverage existing strengths and complement active loops.
+6. **Compare loops by 12-month projection**: Run forward projections for all detected and proposed loops via `python "${CLAUDE_PLUGIN_ROOT}/scripts/growth-loop-modeler.py" --action compare-loops --brand {slug}` — model 12 months of compounding at current (or estimated) amplification factors and cycle times. Show cumulative output per loop, relative contribution to total growth, and how loops interact (e.g., content loop feeds the viral loop by increasing the user base available for referrals).
+7. **Generate investment recommendations**: Rank all loops (existing and proposed) by projected 12-month ROI considering required investment, activation effort, and compounding potential. Recommend where to invest for maximum compound growth — which existing loops to optimize (and specifically which bottleneck to address), which new loops to activate, and which loops to deprioritize. Factor in the user's growth goals and constraints if provided.
+
+## Output
+
+- **Detected growth loops with health assessment**: Each active loop identified with its type (viral, content, data, paid, ecosystem, community), detection confidence, current health status (thriving, stable, declining, or stalling), and a plain-language description of how the loop works in this specific business
+- **Loop models with 12-month projections**: For each detected loop, the full model — amplification factor, cycle time, decay rate, sustainability rating, and 12-month forward projection showing cumulative output and month-over-month growth contribution with confidence intervals
+- **Bottleneck analysis per loop**: The constraining step in each loop with quantified impact — current metric at the bottleneck, estimated improvement if the bottleneck is addressed (2x scenario), and specific actions to relieve the constraint
+- **New loop proposals**: Proposed growth loops ranked by feasibility and projected impact — each with complete loop mechanics, estimated parameters, required investment, time to activate, prerequisites, and 12-month projection assuming successful activation
+- **Investment priority ranking**: All loops (existing and proposed) ranked by 12-month projected ROI — showing required investment, expected return, confidence level, and strategic rationale. Top recommendations highlighted with specific next steps
+- **Loop comparison table**: Side-by-side comparison of all loops — type, amplification factor, cycle time, 12-month projection, investment required, bottleneck, and priority score — for quick decision-making
+- **Implementation roadmap**: Sequenced action plan for the top-priority recommendations — what to do in weeks 1-2 (quick bottleneck fixes), month 1 (loop optimization), months 2-3 (new loop activation), and months 4-12 (scaling and compounding) with milestones and check-in points
+
+## Agents Used
+
+- **marketing-strategist** — Strategic growth loop assessment with business model alignment, new loop proposal generation based on competitive analysis and industry patterns, investment prioritization considering business goals and resource constraints, implementation roadmap sequencing, and cross-loop interaction analysis identifying how loops reinforce or cannibalize each other
+- **marketing-scientist** — Quantitative loop modeling with amplification factor calculation, cycle time estimation, and decay rate analysis, Monte Carlo projections for 12-month forward modeling with confidence intervals, bottleneck identification with quantified impact analysis, ROI calculations for investment recommendations, and loop comparison scoring using multi-factor ranking

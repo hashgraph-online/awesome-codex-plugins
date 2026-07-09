@@ -1,0 +1,82 @@
+{
+  "name": "x-developer",
+  "version": "2.4.16",
+  "description": "Xquik X Twitter scraper API skill and X API alternative for tweet search, follower export, social listening, REST, MCP, SDKs, webhooks, exports, 33x cheaper tweet reads, and gated actions.",
+  "author": {
+    "name": "Xquik",
+    "url": "https://docs.xquik.com"
+  },
+  "license": "MIT",
+  "homepage": "https://docs.xquik.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xquik-dev/x-twitter-scraper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Xquik-dev/x-twitter-scraper/issues"
+  },
+  "keywords": [
+    "twitter",
+    "x-api",
+    "twitter-api",
+    "twitter-api-alternative",
+    "x-api-alternative",
+    "twitter-scraper-api",
+    "twitter-data-api",
+    "x-data-api",
+    "tweet-search-api",
+    "tweet-analytics",
+    "twitter-monitoring",
+    "twitter-follower-export",
+    "x-twitter-scraper",
+    "social-listening",
+    "sentiment-analysis",
+    "competitor-monitoring",
+    "mcp",
+    "mcp-server",
+    "x-mcp",
+    "agent-skill",
+    "skills",
+    "ai-agent",
+    "claude-code",
+    "codex",
+    "cursor",
+    "copilot",
+    "gemini-cli",
+    "windsurf",
+    "data-extraction",
+    "twitter-scraper",
+    "social-media",
+    "webhooks",
+    "monitoring",
+    "giveaway",
+    "usage-estimates",
+    "rest-api",
+    "scraper"
+  ],
+  "files": [
+    ".codex-plugin",
+    ".claude-plugin",
+    ".mcp.json",
+    "assets",
+    "commands",
+    "context7.json",
+    "logo.png",
+    "server.json",
+    "scripts",
+    "skills",
+    "!skills/_artifacts",
+    "skills.sh.json",
+    "openclaw.plugin.json",
+    "start.sh",
+    "stub-server.mjs",
+    "task-guides"
+  ],
+  "scripts": {
+    "check-versions": "node scripts/check-versions.mjs",
+    "prepublishOnly": "node scripts/check-versions.mjs"
+  },
+  "devDependencies": {
+    "@tanstack/intent": "0.0.40"
+  }
+}

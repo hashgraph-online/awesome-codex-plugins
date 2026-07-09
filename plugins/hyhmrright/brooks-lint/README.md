@@ -10,10 +10,16 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+  <strong>English</strong> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja.md">日本語</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="README.es.md">Español</a>
 </p>
 
 <p align="center">
+  <a href="#quick-start">Quick Start</a> •
   <a href="#the-six-decay-risks">The Six Decay Risks</a> •
   <a href="#what-it-looks-like">What It Looks Like</a> •
   <a href="#benchmark">Benchmark</a> •
@@ -21,11 +27,19 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.4.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License">
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-blueviolet.svg" alt="Claude Code Plugin">
   <img src="https://img.shields.io/badge/Codex_CLI-Skill-orange.svg" alt="Codex CLI Skill">
   <img src="https://img.shields.io/github/stars/hyhmrright/brooks-lint?style=social" alt="GitHub Stars">
+</p>
+
+<p align="center">
+  <a href="https://trendshift.io/repositories/47738" target="_blank"><img src="https://trendshift.io/api/badge/trendshift/repositories/47738/daily?language=JavaScript" alt="#2 JavaScript Repository of the Day | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+</p>
+
+<p align="center">
+  <img src="assets/banner-en.svg" alt="Your code → 12 classics → 12 decay risks → cited findings" width="900">
 </p>
 
 <p align="center">
@@ -47,6 +61,30 @@ Most code quality tools count lines and cyclomatic complexity. **brooks-lint** g
 
 For the full source-to-skill mapping, including exceptions and false-positive guards, see
 [`skills/_shared/source-coverage.md`](skills/_shared/source-coverage.md).
+
+## Quick Start
+
+```bash
+# Claude Code
+/plugin marketplace add hyhmrright/brooks-lint
+/plugin install brooks-lint@brooks-lint-marketplace
+
+# Any other Agent Skills platform — Cursor · Codex · Gemini · Copilot · Windsurf · OpenCode · Kiro · …
+curl -fsSL https://raw.githubusercontent.com/hyhmrright/brooks-lint/main/scripts/install.sh | bash -s -- <platform>
+```
+
+Then just ask ("review this PR", "audit the architecture") — or run a command:
+
+| Command | What it does |
+|---------|--------------|
+| `/brooks-review` | Review a PR or diff |
+| `/brooks-audit` | Audit architecture (+ Mermaid dependency graph) |
+| `/brooks-debt` | Prioritized tech-debt roadmap |
+| `/brooks-test` | Test-suite quality review |
+| `/brooks-health` | Health dashboard across all dimensions |
+| `/brooks-sweep` | Sweep every dimension and auto-fix findings |
+
+Every finding comes back as **Symptom → Source → Consequence → Remedy** with a book citation and a 0–100 Health Score. Full install options (8 more platforms), per-command usage, and CI/CD setup are [below](#installation).
 
 ## The Twelve Books
 
@@ -179,6 +217,26 @@ Tested across 3 real-world scenarios (PR review, architecture audit, tech debt a
 
 The gap isn't what Claude *can* find — it's what it *consistently* finds, with traceable evidence and actionable remedies every time.
 
+### Reproducible benchmarks
+
+The table above is illustrative. These numbers are **deterministic and you can reproduce them locally**:
+
+**Parser fidelity** — SARIF export and the CI gates depend on parsing the model's Markdown report correctly. Against a **frozen corpus of 30 real, model-generated reports** spanning all six modes (`evals/benchmark-corpus.json`), each paired with an **independently graded** finding inventory (a separate model pass, spot-checked by hand), the shipped parser scores — run `npm run benchmark`:
+
+| Metric (n = 30, frozen corpus) | Result |
+|---|:---:|
+| Exact severity-count match (parser vs. graded truth) | 30 / 30 |
+| Risk-code precision / recall | 100% / 100% (56 finding-level codes, 0 FP / 0 FN) |
+| Valid SARIF 2.1.0 emitted | 30 / 30 |
+
+Because the parser is deterministic and the corpus is frozen, `npm run benchmark` gives everyone the same result, and `npm test` guards it as a regression. The corpus deliberately includes 9 false-positive / tradeoff reports (e.g. a ports-and-adapters design that *looks* like a dependency cycle) that must stay clean.
+
+**Scoring determinism** — for a fixed finding set (2 Critical / 3 Warning / 1 Suggestion), the strictness presets produce exactly the scores their `common.md` table predicts: strict **34**, balanced **54**, legacy-friendly **74** — and only `legacy-friendly` leads with the top-three fixes.
+
+**Model quality** — whether the model finds the *right* risks on real code is measured by the **57-scenario eval suite** (`evals/evals.json`): `npm run evals` (structural) and `npm run evals:live` (live, needs `ANTHROPIC_API_KEY`).
+
+> Scope & honesty: the parser numbers are deterministic and exactly reproducible. The strictness and eval-suite figures are single-run live measurements against the model and vary slightly run to run. The parser benchmark measures report-parsing fidelity (does the tooling read every finding the report states?), not whether a given finding is "correct." The severity-count match is the fully independent signal; risk-code agreement also reflects the shared canonical name→code legend.
+
 ## How It Compares
 
 | | brooks-lint | ESLint / Pylint | GitHub Copilot Review | Plain Claude |
@@ -226,9 +284,10 @@ cp -r skills/* ~/.claude/skills/brooks-lint/
 
 #### Manual Install
 ```bash
-mkdir -p ~/.gemini/skills/brooks-lint
-cp -r skills/* ~/.gemini/skills/brooks-lint/
+mkdir -p ~/.gemini/skills
+cp -r skills/* ~/.gemini/skills/      # flat — Gemini discovers skills only one level deep
 ```
+> Or simply: `./scripts/install.sh gemini`
 
 ### Codex CLI
 
@@ -246,9 +305,81 @@ python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-githu
 #### Manual Install
 ```bash
 git clone https://github.com/hyhmrright/brooks-lint.git /tmp/brooks-lint
-mkdir -p ~/.codex/skills/brooks-lint
-cp -r /tmp/brooks-lint/skills/* ~/.codex/skills/brooks-lint/
+mkdir -p ~/.codex/skills
+cp -r /tmp/brooks-lint/skills/* ~/.codex/skills/   # flat — matches the skill-installer layout
 ```
+> Or simply: `./scripts/install.sh codex`
+
+### More platforms — OpenCode · Cursor · Windsurf · Antigravity · pi · Copilot · Kiro · Factory Droid
+
+brooks-lint ships as standard [Agent Skills](https://agentskills.io). **Any agent that loads Agent
+Skills runs all six modes with no conversion** — one command installs them:
+
+```bash
+# pick your platform; --project installs into the current repo instead of your global config
+curl -fsSL https://raw.githubusercontent.com/hyhmrright/brooks-lint/main/scripts/install.sh | bash -s -- <platform>
+#   <platform> = opencode · cursor · windsurf · antigravity · pi · kiro · copilot · droid · gemini · codex · agents
+```
+
+The installer copies the skills **flat** into the right folder for your platform, so the shared
+framework (`../_shared/`) always resolves — you can't get the layout wrong. Then just ask
+("review this PR", "audit the architecture") and the matching skill auto-triggers from its
+`description`. New to skills, or using another agent? See **[docs/getting-started.md](docs/getting-started.md)**.
+
+<details><summary><b>OpenCode</b></summary>
+
+`./scripts/install.sh opencode` → `~/.config/opencode/skills` (also reads `~/.claude/skills` and
+`AGENTS.md`). Full guide: [docs/opencode-setup.md](docs/opencode-setup.md).
+</details>
+
+<details><summary><b>Cursor</b> (2.4+)</summary>
+
+`./scripts/install.sh cursor` → `~/.cursor/skills` (also `.agents/skills`; reads `AGENTS.md`).
+Full guide: [docs/cursor-setup.md](docs/cursor-setup.md).
+</details>
+
+<details><summary><b>Windsurf</b> (Cascade)</summary>
+
+`./scripts/install.sh windsurf` → `~/.codeium/windsurf/skills` (reads `AGENTS.md`).
+Full guide: [docs/windsurf-setup.md](docs/windsurf-setup.md).
+</details>
+
+<details><summary><b>Antigravity</b> (Google)</summary>
+
+`./scripts/install.sh antigravity --project` → `.agent/skills` (reads `AGENTS.md` / `GEMINI.md`).
+Full guide: [docs/antigravity-setup.md](docs/antigravity-setup.md).
+</details>
+
+<details><summary><b>pi</b> (earendil-works)</summary>
+
+`./scripts/install.sh pi` → `~/.pi/agent/skills`, or point pi's `skills` setting at a clone.
+Full guide: [docs/pi-setup.md](docs/pi-setup.md).
+</details>
+
+<details><summary><b>GitHub Copilot</b></summary>
+
+`./scripts/install.sh copilot --project` → `.github/skills` (also auto-detects `.claude/skills`; reads
+`AGENTS.md`). Full guide: [docs/copilot-setup.md](docs/copilot-setup.md).
+</details>
+
+<details><summary><b>Kiro</b> (AWS)</summary>
+
+`./scripts/install.sh kiro` → `~/.kiro/skills` (auto-registers `/brooks-review`; reads `AGENTS.md`).
+Full guide: [docs/kiro-setup.md](docs/kiro-setup.md).
+</details>
+
+<details><summary><b>Factory Droid</b></summary>
+
+`./scripts/install.sh droid` → `~/.factory/skills` (registers `/brooks-review`; reads `AGENTS.md`).
+Full guide: [docs/factory-droid-setup.md](docs/factory-droid-setup.md).
+</details>
+
+> **🧪 Verification status.** Claude Code, Gemini CLI, and Codex CLI are maintainer-verified. The eight
+> platforms above are documented from each tool's official skill spec and verified at the file-layout
+> level (the installer is tested), but not yet end-to-end run by the maintainer on every platform. Tried
+> one — working **or** broken? [Open an issue](https://github.com/hyhmrright/brooks-lint/issues/new) with
+> the platform, version, and what you saw. Another Agent-Skills agent? It almost certainly works the same
+> way — tell us and we'll add it.
 
 ## Slash Commands
 
@@ -286,6 +417,13 @@ cp -r /tmp/brooks-lint/skills/* ~/.codex/skills/brooks-lint/
 | `$brooks-sweep` | Full sweep — analyse all dimensions and auto-fix findings |
 
 The skills also trigger automatically when you discuss code quality, architecture, maintainability, or test health.
+
+### OpenCode · Cursor · Antigravity · pi
+
+These platforms invoke Agent Skills automatically from each skill's `description` — just ask
+("review this PR", "audit the architecture", "where's our worst tech debt?") and the matching mode
+runs. For explicit invocation, use the platform's skill-command syntax (e.g. pi registers each skill
+as `/skill:brooks-review`; Cursor and OpenCode expose `/brooks-review` once the skill is discovered).
 
 ## Usage
 
@@ -356,6 +494,8 @@ Place a `.brooks-lint.yaml` in your project root to customize review behavior:
 ```yaml
 version: 1
 
+strictness: balanced   # strict | balanced (default) | legacy-friendly — softer scoring for legacy code
+
 disable:
   - T5   # skip coverage metrics check — we don't enforce coverage
 
@@ -365,6 +505,9 @@ severity:
 ignore:
   - "**/*.generated.*"
   - "**/vendor/**"
+
+# custom_risks:   # define project-specific Cx codes — see skills/_shared/custom-risks-guide.md
+# suppress:       # downgrade specific findings by risk + path (e.g. accepted legacy debt)
 ```
 
 Copy [`.brooks-lint.example.yaml`](.brooks-lint.example.yaml) as a starting point.
@@ -372,10 +515,13 @@ All settings are optional — omit the file entirely for default behavior.
 
 | Setting | Description |
 |---------|-------------|
+| `strictness` | Scoring preset: `strict`, `balanced` (default), or `legacy-friendly` (lighter deductions, leads with top fixes) |
 | `disable` | Risk codes to skip (`R1`–`R6`, `T1`–`T6`) |
 | `severity` | Override severity tier (`critical` / `warning` / `suggestion`) |
 | `ignore` | Glob patterns for files to exclude |
 | `focus` | Evaluate only these risk codes (cannot combine with `disable`) |
+| `custom_risks` | Define project-specific risk codes (`C1`, `C2`, …) — see [`custom-risks-guide.md`](skills/_shared/custom-risks-guide.md) |
+| `suppress` | Downgrade specific findings by risk + path (optional `expires:` date) |
 
 ---
 
@@ -464,11 +610,24 @@ See [`docs/github-action-example.yml`](docs/github-action-example.yml) for the f
 
 The action posts the review as a PR comment and optionally fails the check if the Health Score drops below a threshold. If `.brooks-lint-history.json` is committed to your repo, the comment also includes a trend delta (e.g., "85 → 82 (−3) over last 3 runs").
 
+**Quality gates and Code Scanning.** Beyond `fail-below`, the action exposes:
+
+```yaml
+        with:
+          mode: review
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          fail-on: critical            # fail on any Critical finding (none | warning | critical)
+          fail-on-regression: true     # fail if the Health Score dropped vs the last run
+          sarif-file: brooks-lint.sarif  # also upload findings to GitHub Code Scanning
+```
+
+`fail-on-regression` reads `.brooks-lint-history.json`, so commit that file to enforce "no new regressions". Setting `sarif-file` makes findings appear inline on the PR's **Files changed** tab and requires `security-events: write` permission on the job.
+
 **Cost:** ~$0.05–0.15 per PR run depending on diff size and model. Recommend running on `pull_request` events only.
 
 ## Roadmap
 
-> **Current state (v1.0):** 12-book foundation, 6 production decay risks (R1–R6) + 6 test decay risks (T1–T6), 5 skills — PR Review, Architecture Audit, Tech Debt, Test Quality, Health Dashboard. Earlier entries below describe historical milestones, not the current feature set.
+> **Current state (v1.4):** 12-book foundation, 6 production decay risks (R1–R6) + 6 test decay risks (T1–T6), 6 skills — PR Review, Architecture Audit, Tech Debt, Test Quality, Health Dashboard, Full Sweep — plus CI quality gates, SARIF output for GitHub Code Scanning, strictness presets, and a reproducible parser-fidelity benchmark. Earlier entries below describe historical milestones, not the current feature set.
 
 - [x] **v0.2**: Plugin infrastructure (`.claude-plugin/`, hooks, slash commands)
 - [x] **v0.3**: Eight Brooks dimensions, documentation completeness scoring
@@ -479,6 +638,10 @@ The action posts the review as a PR comment and optionally fails the check if th
 - [x] **v0.8**: Independent skill architecture with namespaced commands
 - [x] **v0.9**: Step validation, auto-diff scope, `/brooks-health` dashboard, trend tracking, triage mode, `--fix` remedies, onboarding report, GitHub Action
 - [x] **v1.0**: Eval automation (`run-evals-live.mjs`), custom risk extension (`Cx` codes)
+- [x] **v1.1**: Full Sweep skill (`brooks-sweep`) — unified multi-dimension auto-fix
+- [x] **v1.2**: Autonomous sweep pipeline, `npm run bump` version propagation
+- [x] **v1.3**: Codex marketplace metadata, one-command installer for multiple agent platforms, bilingual README + landing site
+- [x] **v1.4**: SARIF output for GitHub Code Scanning, CI severity + regression gates, strictness presets (strict/balanced/legacy-friendly), 57-scenario eval suite, reproducible parser-fidelity benchmark (`npm run benchmark`)
 
 Want to help? The best contributions right now are new eval test cases and improved decay risk symptom patterns. See [CONTRIBUTING.md](CONTRIBUTING.md).
 

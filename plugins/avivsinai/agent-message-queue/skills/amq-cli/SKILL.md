@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.34.1
+version: 0.41.0
 description: >-
   Coordinate agents via the AMQ CLI for file-based inter-agent messaging. Use
   this skill whenever you need to send messages to another agent (codex, claude,
@@ -47,11 +47,13 @@ The reason: `coop exec` sets `AM_ROOT` and `AM_ME` precisely for the session. Pa
 **Outside `coop exec`** — resolve the root from config, don't hardcode it:
 ```bash
 eval "$(amq env --me claude)"          # reads .amqrc chain, sets both vars
+eval "$(amq env --session auth --me claude --export)"  # pin this terminal to one session
 
 # Or pin per-command without polluting the shell (useful in scripts):
 AM_ME=claude AM_ROOT=$(amq env --json | jq -r .root) amq send --to codex --body "hello"
 ```
 Why not hardcode? The root path depends on the config chain (project `.amqrc` → `AMQ_GLOBAL_ROOT` → `~/.amqrc`). Hardcoding skips this and breaks when the project moves or config changes.
+Use `--export` only when the whole terminal should stay pinned; it exports `AM_BASE_ROOT` for session roots and prints a stderr note. Treat it as one terminal, one session.
 
 **Global fallback**: Orchestrator-spawned agents often start outside the repo root where no project `.amqrc` exists. Set `AMQ_GLOBAL_ROOT` or `~/.amqrc` so `amq env` and `amq doctor` still resolve the correct queue.
 
@@ -90,6 +92,8 @@ amq coop exec codex -- --dangerously-bypass-approvals-and-sandbox  # Terminal 2
 ```
 
 Without `--session` or `--root`, `coop exec` defaults to `--session collab`.
+
+Add `--no-gitignore` when `coop exec` should auto-initialize the project without changing `.gitignore`.
 
 ## Statusline (Claude Code)
 
@@ -196,6 +200,8 @@ Add `project` and `peers` to your `.amqrc`:
 
 Both projects must register each other as peers for round-trip messaging.
 
+**Use `--project`/`--session` to route, not a raw `--root`.** A direct `--root` selects which tree to operate on; it carries no sender-origin metadata, so the recipient can't reply (a naive reply loops back into their own tree). `amq send` therefore **refuses** an explicit `--root` that crosses into a different base tree than your active session (`AM_ROOT`/`AM_BASE_ROOT`) when no `--project`/`--session`/`--from-session` is given. To message another project replyably, register the peer and use `--project` (or inline `@project`). If a send is genuinely local, set the target as your `AM_ROOT` instead of passing `--root`.
+
 ### Sending cross-project
 
 ```bash
@@ -296,7 +302,10 @@ amq list --new                                    # Peek without side effects
 amq send --to codex --subject "Review" --kind review_request --body @file.md
 amq send --to codex --priority urgent --kind question --body "Blocked on API"
 amq send --to codex --labels "bug,parser" --context '{"paths": ["src/"]}' --body "Found issue"
+echo "evidence: tests green" | amq send --to codex --subject "done" --body -   # - reads stdin
 ```
+
+**Body is fail-closed.** `--body -` (or `--body @-`, or omitting `--body`) reads stdin; a literal string or `@file` is used as-is. A send whose resolved body is empty/whitespace is **rejected** with a usage error instead of delivering a blank message — so `--body -` with nothing piped fails loudly rather than shipping an empty body. Pass `--allow-empty` only when you truly want a blank body (subject carries everything).
 
 **Send file paths, not file contents.** When attaching source code, configs, or large text for review, send the file path in the message body, not the contents inline. The receiver can open the file with their local tools. If the receiver cannot access that worktree, send a short diff instead of the full source.
 
@@ -306,6 +315,63 @@ amq list --new --priority urgent
 amq list --new --from codex --kind review_request
 amq list --new --label bug
 ```
+
+## Operator Gates
+
+Almost all coordination is agent-to-agent. Occasionally the **next required actor is a human**: an approval, a manual test, a deploy only a person can run, or sign-off that a goal is complete. AMQ has no separate "gate" feature. You represent this **structurally**: address a message to the human's mailbox instead of describing the wait in prose to another agent.
+
+The single invariant AMQ relies on here is **recipient-as-next-actor**: a message addressed to the human handle means a human is who must act next. Everything else below (the `gate/<topic>` thread name and the `APPROVAL:` / `DONE:` subject prefixes) is a **naming convention** that downstream tools like amq-noc watch for. AMQ routing and message classification do **not** special-case thread names or subject text; those are plain strings, useful only because humans and tooling agree to read them. They are conventions, not core AMQ semantics.
+
+### The human handle is `user`
+
+By convention the human/operator mailbox is `user`. AMQ reserves this handle for validation in configured projects, so `--to user` is accepted wherever the project has a configured agent list. New co-op projects include `user` in the default agent set. For explicit `amq init --agents ...` projects or older roots, initialize the mailbox layout before relying on human drain/receipt/DLQ ergonomics:
+
+```bash
+# Seed the human mailbox alongside the agents (one-time, per project)
+amq init --root .agent-mail --agents claude,codex,user
+# or, for a coop project:
+amq coop init --agents claude,codex,user
+```
+
+Throughout this section, `user` means "the conventional human handle." In configured projects it is warning-free for strict handle validation; in older or explicitly seeded roots, make sure the `agents/user/` mailbox exists before expecting a human to drain and reply from it.
+
+### Raising a gate
+
+Use a stable `gate/<topic>` thread so a gate and its resolution stay together:
+
+```bash
+# Approval / choice / manual test a human must perform
+amq send --to user --thread gate/<topic> --kind question \
+  --subject "APPROVAL: <decision>" \
+  --body "<what you need a human to approve or run, and why>"
+
+# Human closeout of a completed goal (sign-off that the goal is done)
+amq send --to user --thread gate/<topic> --kind decision \
+  --subject "DONE: <goal>" \
+  --body "<what was completed; what the human should confirm or close>"
+```
+
+The human answers on the **same** thread from their own terminal or client, e.g. `amq send --me user --to <agent> --thread gate/<topic> --kind answer --subject "APPROVED: <decision>" --body "<approval / answer text>"` (use `DENIED:` or `ANSWER:` for a rejection or a plain answer). Reusing the `gate/<topic>` thread is what lets a watcher pair the answer with the open gate and clear it.
+
+### When NOT to raise a gate
+
+Keep ordinary coordination agent-to-agent. Do **not** send to `user` for:
+
+- FYIs and status updates -> `status` on a normal thread
+- Acknowledgements
+- Routine code review between agents -> `review_request` / `review_response`
+- Agent-owned blockers (waiting on another agent, a build, or a flaky test)
+
+If the escalation owner is a lead/CTO agent, **they** decide whether to escalate, and that decision is agent-to-agent. But once a human action is actually required, it still becomes a `to:user` gate so tooling can observe it.
+
+### Anti-pattern
+
+Prose like `operator-held`, `pending operator`, or `manual approval` **inside an agent-to-agent message is not a gate**. It is body text a human or tool has to guess at. If a human must act, address the human.
+
+### What a gate is, and is not
+
+- **It is an observability / handoff signal, not authorization or security.** AMQ sender identity is local convention, not authenticated approval. A `to:user` gate records that a human is the next actor; it does **not** grant permission or prove a human approved anything. Do not treat it as an access-control boundary.
+- **Cross-session / cross-project gates must be intentional.** Default examples target the human mailbox in the **current** session/project. Routing a gate to another session's or project's `user` is a deliberate act (`--session` / `--project`), never the default. Gate-clearing is a consumer/orchestrator convention unless AMQ later adds explicit gate state.
 
 ## Priority Handling
 

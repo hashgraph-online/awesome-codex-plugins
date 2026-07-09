@@ -1,6 +1,6 @@
 # automation-shape-routing
 
-Front door for building agent automation — decide the SHAPE (Workflow vs NTM swarm vs plain skill), then hand off to the right builder. Triggers: "build automation", "convert skills to workflows", "which shape".
+Front door for agent automation — decide the SHAPE (Workflow vs ATM vs skill), then hand off. Triggers: "build automation", "convert skills to workflows", "which shape".
 
 ## Instructions
 

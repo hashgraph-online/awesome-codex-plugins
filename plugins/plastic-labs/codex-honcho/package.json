@@ -1,0 +1,50 @@
+{
+  "name": "@honcho-ai/codex-honcho",
+  "version": "0.1.0",
+  "description": "Persistent memory for OpenAI Codex sessions using Honcho by Plastic Labs",
+  "type": "module",
+  "keywords": [
+    "codex",
+    "openai",
+    "honcho",
+    "memory",
+    "context",
+    "ai",
+    "llm"
+  ],
+  "author": "Plastic Labs",
+  "license": "MIT",
+  "homepage": "https://honcho.dev",
+  "repository": "https://github.com/plastic-labs/codex-honcho",
+  "bin": {
+    "codex-honcho": "./dist/codex-honcho.mjs"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "src",
+    "skills",
+    "install.sh",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "node build.mjs",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@honcho-ai/sdk": "^2.1.0",
+    "@modelcontextprotocol/sdk": "^1.26.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.0.0"
+  }
+}

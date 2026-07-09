@@ -1,6 +1,6 @@
 {
   "name": "staff-engineer-mode",
-  "version": "1.11.0",
+  "version": "2.1.0",
   "type": "module",
   "main": ".opencode/plugins/staff-engineer-mode.js",
   "description": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",

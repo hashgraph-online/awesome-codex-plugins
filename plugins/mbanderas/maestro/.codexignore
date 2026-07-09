@@ -1,0 +1,21 @@
+# Files excluded from the Codex plugin bundle.
+
+# Dependencies and VCS
+node_modules/
+.git/
+
+# Secrets and local env
+.env
+.env.*
+.npmrc
+
+# Logs and scratch/checkpoint files
+*.log
+_*
+
+# Self-hosted CI runner (never bundled)
+/actions-runner/
+.github/workflows/*.bak
+
+# Repo tooling not part of the installed plugin
+scripts/downstream.txt

@@ -1,0 +1,523 @@
+{
+  "task_id": "task-example",
+  "target_identifier": "example-system",
+  "authorization": {
+    "requester": "example-requester",
+    "scope_statement": "Authorized example clean-room source-to-implementation task.",
+    "allowed_actions": [
+      "read authorized source",
+      "produce clean implementation artifacts",
+      "write clean implementation code"
+    ],
+    "prohibited_actions": [
+      "move source excerpts into clean artifacts"
+    ],
+    "evidence_handling": "Retain source evidence only in the contaminated workspace."
+  },
+  "source_acquisition_basis": "Authorized local source access.",
+  "license_contract_notes": "No legal conclusion recorded.",
+  "preflight_goal_ref": "preflight-goal.json",
+  "preflight_goal_sha256": "a168b62605d5e3e262ba388e9fc75d99b1413450cd8aa0d96861e6d6496e9420",
+  "source_index_ref": "source-index.json",
+  "run_state": {
+    "generation": 1,
+    "started_at": "2024-01-01T00:00:00Z",
+    "restart_reason": "user-requested"
+  },
+  "initialization_snapshot": {
+    "config_id": "init-example",
+    "captured_at": "2024-01-01T00:00:00Z",
+    "artifact_base_root": "~/Documents/CleanRoom/task-example",
+    "target_profile": "speckit-feature-folder",
+    "clean_isolation_mode": "clean-workspace",
+    "model_preferences": {
+      "default_model": "runtime-default",
+      "domain_overrides": {
+        "clean": "runtime-clean-model"
+      },
+      "role_overrides": [
+        {
+          "role": "clean-qa-editor",
+          "model": "runtime-high-reasoning-model"
+        }
+      ]
+    },
+    "user_rules": {
+      "clean_safe": [
+        "Use concise acceptance criteria."
+      ],
+      "contaminated_only": [
+        "Source-specific private notes stay on the contaminated side."
+      ]
+    },
+    "effective_roots": {
+      "source_roots": [
+        "/authorized/source"
+      ],
+      "contaminated_artifact_roots": [
+        "contaminated-artifacts/"
+      ],
+      "clean_root": "clean-artifacts/",
+      "implementation_roots": [
+        "implementation/"
+      ],
+      "quarantine_root": "quarantine/",
+      "approved_public_reference_roots": [
+        "public-refs/"
+      ]
+    },
+    "reconfiguration_policy": {
+      "root_changes_require_confirmation": true,
+      "schema_changes_require_confirmation": true,
+      "model_changes_require_confirmation": true,
+      "artifact_root_changes_start_new_generation": true
+    }
+  },
+  "source_scope": {
+    "workspace_id": "source-workspace",
+    "description": "Authorized source workspace.",
+    "path_policy": "Clean roles must not read this workspace."
+  },
+  "clean_scope": {
+    "workspace_id": "clean-workspace",
+    "description": "Clean artifact and implementation workspace.",
+    "path_policy": "Contaminated roles must not write here."
+  },
+  "trust_boundary": {
+    "contaminated_domain": "source-workspace",
+    "clean_domain": "clean-workspace",
+    "separation_controls": [
+      "separate workspace paths",
+      "separate profiles",
+      "schema validation",
+      "leakage review"
+    ]
+  },
+  "controller_policy": {
+    "mode": "attended",
+    "stop_conditions": [
+      "authorization-missing",
+      "scope-change",
+      "contamination-suspected",
+      "schema-validation-failed",
+      "leakage-scan-failed",
+      "unit-blocked",
+      "implementation-complete",
+      "coverage-complete",
+      "spec-slice-complete",
+      "spec-delta-required",
+      "no-progress-detected",
+      "repeated-unit-selection",
+      "clean-room-returned"
+    ],
+    "notes": "Missing controller policy defaults to attended mode."
+  },
+  "loop_context": {
+    "parent_loop_kind": "spec-development",
+    "child_loop_kind": "clean-room",
+    "parent_loop_ref": "spec-dev-loop:example",
+    "spec_slice_ref": "behavior-spec:unit-foundation",
+    "foundation_unit_ref": "unit-foundation",
+    "approved_scope_refs": [
+      "unit-foundation"
+    ],
+    "acceptance_refs": [
+      "AC-example"
+    ],
+    "public_surface_refs": [
+      "public-contract:example"
+    ],
+    "return_to": "outer-spec-loop",
+    "outer_iteration": 1,
+    "inner_iteration": 0,
+    "max_inner_iterations": 10
+  },
+  "format_selection": {
+    "mode": "canonical-plus-target",
+    "selection_basis": "user-choice",
+    "target_profile": "speckit-feature-folder",
+    "native_artifacts": [
+      ".specify/memory/constitution.md - shared project constitution",
+      "specs/<feature-id>/spec.md - feature specification",
+      "specs/<feature-id>/plan.md - technical plan",
+      "specs/<feature-id>/tasks.md - executable work items"
+    ],
+    "formatting_rules": [
+      "Render a numbered feature folder under specs/<feature-id>/.",
+      "Use prioritized user stories with Given/When/Then acceptance scenarios in spec.md.",
+      "Use plan.md and tasks.md for technical plan and executable work items."
+    ]
+  },
+  "agent_pipeline": {
+    "agent_0": {
+      "role": "contaminated-manager-verifier",
+      "responsibility": "Manage scope, assign agents, verify coverage, and receive only terminal Agent 3 implementation reports plus configured Agent 4 polish reports.",
+      "trust_domain": "contaminated"
+    },
+    "agent_1": {
+      "role": "contaminated-source-analyst",
+      "responsibility": "Read authorized source and generate neutral draft source units, task slices, and behavior specs.",
+      "trust_domain": "contaminated"
+    },
+    "agent_1_5": {
+      "role": "contaminated-handoff-sanitizer",
+      "responsibility": "Review draft specs from a source-denied contaminated context and approve only sanitized handoff candidates.",
+      "trust_domain": "contaminated"
+    },
+    "agent_2": {
+      "role": "clean-architect",
+      "responsibility": "Plan clean implementation from approved handoff artifacts and the clean destination foundation without reading source or contaminated ledgers.",
+      "trust_domain": "clean"
+    },
+    "agent_3": {
+      "role": "clean-qa-editor",
+      "responsibility": "Implement the clean plan in the clean implementation root, record verification status, and emit one terminal report for Agent 0.",
+      "trust_domain": "clean"
+    },
+    "agent_4": {
+      "role": "clean-polish-reviewer",
+      "responsibility": "Perform final clean polish review, repository hygiene, verification review, and constrained implementation-root commit before Agent 0 coverage verification.",
+      "trust_domain": "clean"
+    },
+    "handoff_rules": {
+      "allowed_inputs": [
+        "clean-run-context.json",
+        "approved behavior-spec.json",
+        "handoff-package.json",
+        "abstract coverage summaries",
+        "abstract delta tickets"
+      ],
+      "allowed_outputs": [
+        "behavior-spec.json",
+        "skeleton-manifest.json",
+        "implementation-plan.json",
+        "implementation-report.json",
+        "polish-report.json",
+        "qc-report.json",
+        "abstract-delta-ticket"
+      ],
+      "blocked_material": [
+        "source excerpts",
+        "raw diffs",
+        "private identifiers",
+        "source-shaped pseudocode",
+        "contaminated ledgers in clean inputs"
+      ],
+      "report_back_to": "agent_0",
+      "agent0_to_clean_roles": "durable-sanitized-artifacts-only",
+      "agent3_to_agent0": "terminal-report-only",
+      "interim_agent3_reporting": false
+    }
+  },
+  "handoff_sequence": [
+    {
+      "stage": "preflight",
+      "producer": "controller",
+      "required_inputs": [],
+      "required_outputs": [
+        "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/preflight-goal.json"
+      ],
+      "next": "source-destination-discovery"
+    },
+    {
+      "stage": "source-destination-discovery",
+      "producer": "controller",
+      "required_inputs": [
+        "preflight-goal.json"
+      ],
+      "required_outputs": [
+        "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/init-config.json",
+        "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/source-index.json"
+      ],
+      "next": "agent-0-decomposition"
+    },
+    {
+      "stage": "agent-0-decomposition",
+      "producer": "contaminated-manager-verifier",
+      "required_inputs": [
+        "preflight-goal.json",
+        "source-index.json"
+      ],
+      "required_outputs": [
+        "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/task-manifest.json",
+        "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/neutral-sanitizer-brief.json"
+      ],
+      "next": "agent-1-analysis"
+    },
+    {
+      "stage": "agent-1-analysis",
+      "producer": "contaminated-source-analyst",
+      "required_inputs": [
+        "assigned-unit",
+        "preflight-goal.json"
+      ],
+      "required_outputs": [
+        "draft-behavior-spec.json"
+      ],
+      "next": "agent-1-5-sanitization"
+    },
+    {
+      "stage": "agent-1-5-sanitization",
+      "producer": "contaminated-handoff-sanitizer",
+      "required_inputs": [
+        "neutral-sanitizer-brief.json",
+        "draft-behavior-spec.json"
+      ],
+      "required_outputs": [
+        "handoff-package.json",
+        "approved-behavior-spec.json"
+      ],
+      "next": "clean-handoff"
+    },
+    {
+      "stage": "clean-handoff",
+      "producer": "controller",
+      "required_inputs": [
+        "handoff-package.json",
+        "approved-behavior-spec.json",
+        "clean-run-context.json"
+      ],
+      "required_outputs": [
+        "clean-workspace-ready"
+      ],
+      "next": "clean-planning"
+    },
+    {
+      "stage": "clean-planning",
+      "producer": "clean-architect",
+      "required_inputs": [
+        "clean-run-context.json",
+        "handoff-package.json",
+        "approved-behavior-spec.json"
+      ],
+      "required_outputs": [
+        "CLEAN_ROOM_CLEAN_ROOTS/implementation-plan.json"
+      ],
+      "next": "clean-implementation-qc"
+    },
+    {
+      "stage": "clean-implementation-qc",
+      "producer": "clean-qa-editor",
+      "required_inputs": [
+        "clean-run-context.json",
+        "implementation-plan.json"
+      ],
+      "required_outputs": [
+        "CLEAN_ROOM_CLEAN_ROOTS/implementation-report.json",
+        "CLEAN_ROOM_CLEAN_ROOTS/qc-report.json"
+      ],
+      "next": "clean-polish-review"
+    },
+    {
+      "stage": "clean-polish-review",
+      "producer": "clean-polish-reviewer",
+      "required_inputs": [
+        "clean-run-context.json",
+        "implementation-plan.json",
+        "implementation-report.json",
+        "qc-report.json"
+      ],
+      "required_outputs": [
+        "CLEAN_ROOM_CLEAN_ROOTS/polish-report.json"
+      ],
+      "next": "agent-0-coverage-verification"
+    },
+    {
+      "stage": "agent-0-coverage-verification",
+      "producer": "contaminated-manager-verifier",
+      "required_inputs": [
+        "implementation-report.json",
+        "qc-report.json",
+        "polish-report.json",
+        "coverage-ledger.json"
+      ],
+      "required_outputs": [
+        "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/clean-room-result.json"
+      ],
+      "next": null
+    }
+  ],
+  "required_profiles": [
+    {
+      "role": "contaminated-manager-verifier",
+      "profile_id": "contaminated-manager-profile",
+      "profile_purpose": "controller",
+      "workspace_id": "source-workspace"
+    },
+    {
+      "role": "contaminated-source-analyst",
+      "profile_id": "contaminated-analyst-profile",
+      "profile_purpose": "source-analysis",
+      "workspace_id": "source-workspace"
+    },
+    {
+      "role": "contaminated-handoff-sanitizer",
+      "profile_id": "contaminated-sanitizer-profile",
+      "profile_purpose": "handoff-sanitization",
+      "workspace_id": "contaminated-artifact-workspace"
+    },
+    {
+      "role": "clean-architect",
+      "profile_id": "clean-architect-profile",
+      "profile_purpose": "clean-planning",
+      "workspace_id": "clean-workspace"
+    },
+    {
+      "role": "clean-qa-editor",
+      "profile_id": "clean-qa-profile",
+      "profile_purpose": "report-review",
+      "workspace_id": "clean-workspace"
+    },
+    {
+      "role": "clean-qa-editor",
+      "profile_id": "clean-qa-implementation-profile",
+      "profile_purpose": "implementation",
+      "workspace_id": "implementation-workspace"
+    },
+    {
+      "role": "clean-polish-reviewer",
+      "profile_id": "clean-polish-review-profile",
+      "profile_purpose": "final-polish",
+      "workspace_id": "implementation-workspace"
+    }
+  ],
+  "artifact_paths": {
+    "contaminated_artifacts": "contaminated-artifacts/",
+    "contaminated_artifact_roots": [
+      "contaminated-artifacts/"
+    ],
+    "clean_artifacts": "clean-artifacts/",
+    "implementation_roots": [
+      "implementation/"
+    ],
+    "quarantine": "quarantine/"
+  },
+  "handoff_policy": {
+    "allowed_artifacts": [
+      "clean-run-context",
+      "behavior-spec",
+      "handoff-package",
+      "implementation-plan",
+      "implementation-report",
+      "polish-report",
+      "abstract-delta-ticket"
+    ],
+    "blocked_material": [
+      "source excerpts",
+      "raw diffs",
+      "private identifiers"
+    ],
+    "one_way_handoff": true,
+    "notes": "Only structured clean-approved artifacts cross the wall."
+  },
+  "tool_policy": [
+    "Run source indexing only as controller preflight before clean-room role sessions.",
+    "Use read-only source tools in contaminated roles.",
+    "Use source-denied reads for the contaminated handoff sanitizer.",
+    "Use write tools only in contaminated artifact roots for contaminated roles.",
+    "Agent 2 writes only clean artifacts and reads the clean implementation foundation.",
+    "Agent 3 writes implementation code only under CLEAN_ROOM_IMPLEMENTATION_ROOTS and writes reports under CLEAN_ROOM_CLEAN_ROOTS.",
+    "Agent 3 may run verification shell commands only with CLEAN_ROOM_ALLOW_AGENT3_SHELL=1 and cwd under CLEAN_ROOM_IMPLEMENTATION_ROOTS.",
+    "Agent 4 writes only CLEAN_ROOM_CLEAN_ROOTS polish artifacts and implementation-root hygiene changes, and may commit only through agent4-polish-runner.py with CLEAN_ROOM_ALLOW_AGENT4_SHELL=1."
+  ],
+  "model_policy": [
+    "Use the initialization snapshot default model plus clean and contaminated overrides.",
+    "Use separate profiles for contaminated and clean roles."
+  ],
+  "retention_policy": "Retain clean artifacts; keep contaminated evidence separate.",
+  "implementation_status": {
+    "state": "not-started",
+    "plan_ref": "implementation-plan.json",
+    "report_ref": "implementation-report.json",
+    "notes": "Agent 3 has not started implementation in this example."
+  },
+  "roles": [
+    {
+      "role": "contaminated-manager-verifier",
+      "trust_domain": "contaminated",
+      "allowed_access": [
+        "source-workspace",
+        "contaminated-artifacts"
+      ]
+    },
+    {
+      "role": "contaminated-source-analyst",
+      "trust_domain": "contaminated",
+      "allowed_access": [
+        "source-workspace",
+        "contaminated-artifacts"
+      ]
+    },
+    {
+      "role": "contaminated-handoff-sanitizer",
+      "trust_domain": "contaminated",
+      "allowed_access": [
+        "contaminated-artifacts",
+        "schema-assets",
+        "approved-public-reference-roots"
+      ]
+    },
+    {
+      "role": "clean-architect",
+      "trust_domain": "clean",
+      "allowed_access": [
+        "clean-workspace",
+        "implementation-workspace-read-only"
+      ]
+    },
+    {
+      "role": "clean-qa-editor",
+      "trust_domain": "clean",
+      "allowed_access": [
+        "clean-workspace",
+        "implementation-workspace-read-write"
+      ]
+    },
+    {
+      "role": "clean-polish-reviewer",
+      "trust_domain": "clean",
+      "allowed_access": [
+        "clean-workspace",
+        "implementation-workspace-read-write"
+      ]
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "unit-foundation",
+      "unit_kind": "foundation",
+      "description": "Foundation inventory for target stack, package boundaries, public manifest surfaces, test entrypoints, dependency policy, and destination constraints.",
+      "status": "pending",
+      "source_index_refs": [
+        "source-index:batch-0001"
+      ],
+      "notes": "Must be covered before non-foundation behavior slices are approved."
+    },
+    {
+      "unit_id": "unit-example-flow",
+      "unit_kind": "behavior",
+      "description": "Example observable flow.",
+      "status": "pending",
+      "source_index_refs": [
+        "source-index:batch-0001"
+      ],
+      "notes": "Neutral unit id."
+    }
+  ],
+  "expected_artifacts": [
+    "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/init-config.json",
+    "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/preflight-goal.json",
+    "CLEAN_ROOM_CLEAN_ROOTS/clean-run-context.json",
+    "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/source-index.json",
+    "CLEAN_ROOM_CLEAN_ROOTS/behavior-spec.json",
+    "CLEAN_ROOM_CLEAN_ROOTS/skeleton-manifest.json",
+    "CLEAN_ROOM_CLEAN_ROOTS/implementation-plan.json",
+    "CLEAN_ROOM_CLEAN_ROOTS/implementation-report.json",
+    "CLEAN_ROOM_CLEAN_ROOTS/polish-report.json",
+    "CLEAN_ROOM_CLEAN_ROOTS/qc-report.json",
+    "CLEAN_ROOM_CONTAMINATED_ARTIFACT_ROOTS/clean-room-result.json"
+  ],
+  "audit_log_refs": [
+    "audit-log:example"
+  ]
+}

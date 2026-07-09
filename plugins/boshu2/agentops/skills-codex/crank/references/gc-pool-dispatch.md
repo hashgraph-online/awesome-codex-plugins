@@ -22,7 +22,7 @@ if [[ "$GC_POOL_AVAILABLE" == "true" ]]; then
     done
     # Poll until all wave issues are closed
     while true; do
-        OPEN=$(bd ready 2>/dev/null | wc -l)
+        OPEN=$(ao beads exec ready 2>/dev/null | wc -l)
         [[ "$OPEN" -eq 0 ]] && break
         sleep 30
     done

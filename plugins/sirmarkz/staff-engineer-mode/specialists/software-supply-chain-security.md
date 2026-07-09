@@ -56,7 +56,7 @@ Production should run artifacts whose source, build, dependencies, and confirmat
 8. **Standardize secure pipelines.** Use reusable pipeline modules for production paths so scanning, integrity checks, dependency inventories, user confirmations, and secure compute are not optional per repository.
 9. **Control deployment.** Verify artifact integrity/provenance at admission and keep environment promotion traceable.
 10. **Constrain automation.** Use least-privilege, short-lived credentials and secret scanning across source/build paths.
-11. **Screen common attack classes.** Check for dependency confusion, typo or name-squatting, compromised package publishing, build-cache poisoning, unchecked install hooks, and compromised automation credentials.
+11. **Screen common attack classes.** Check for dependency confusion, typo or name-squatting, compromised package publishing, build-cache poisoning, unchecked install hooks, and compromised automation credentials. Pin dependencies to exact versions and integrity digests via a committed lockfile, and claim/scope internal namespaces and pin the resolution source so a public package cannot shadow an internal one. Target a graduated provenance maturity: post-facto record, then signed provenance, then hermetic-builder-backed provenance verified at admission.
 12. **Route vulnerability intake.** Define where security reports about dependencies, build artifacts, or release integrity enter triage, then hand deployed-risk decisions to `vulnerability-management` with artifact, exposure, and provenance details.
 
 ## Synthesized Default
@@ -100,6 +100,7 @@ Use accepted source, controlled production pipelines, isolated builds, provenanc
 - Source-to-deploy supply-chain map.
 - Control matrix for source, build, artifact, registry, deployment, and automation.
 - Provenance and artifact integrity plan with minimum fields: artifact identity, source revision, accepted change, builder identity, dependency inputs, build time, confirmation path, verification location, and reader compatibility for metadata type or schema changes.
+- Dependency-pinning and namespace-scoping plan, and the target provenance maturity tier (record / signed / hermetic-verified-at-admission).
 - Structured dependency inventory policy with producer, consumer, retention, and vulnerability checkpoint.
 - Build and deployment credential hardening plan.
 - Secret scanning and exposure response plan.
@@ -113,6 +114,7 @@ Use accepted source, controlled production pipelines, isolated builds, provenanc
 - `provenance_check`: production artifacts have source/build provenance or a tracked exception.
 - `provenance_compatibility`: provenance metadata changes validate old and new readers, displays, policy checks, and audit consumers before deprecation.
 - `integrity_check`: deployment path verifies artifact integrity before promotion/admission.
+- `dependency_pinning`: dependencies are pinned to exact versions and digests in a committed lockfile, with internal namespaces claimed and the resolution source pinned.
 - `credential_check`: automation credentials are least privilege, short lived where possible, and secret-scanned.
 
 ## Red Flags - Stop And Rework

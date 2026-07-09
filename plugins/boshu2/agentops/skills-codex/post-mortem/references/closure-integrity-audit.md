@@ -6,7 +6,7 @@ This audit catches four failure modes discovered in production:
 
 1. **Multi-wave regressions** — A later wave's worker removes code that an earlier wave added. Each wave passes tests independently, but the net result is incomplete.
 2. **Phantom closures** — Beads closed with generic/empty descriptions ("task"), no spec, no git evidence.
-3. **Orphaned children** — Child beads exist in `bd list` but aren't linked to parent in `bd show <parent>`.
+3. **Orphaned children** — Child beads exist in `br list` but aren't linked to parent in `br show <parent>`.
 4. **Stretch goals closed without work** — Items marked "stretch" bulk-closed when epic closes, with no implementation or documented deferral rationale.
 
 For **evidence-only closures** that intentionally do not produce a code delta, require a proof artifact at `.agents/releases/evidence-only-closures/<target-id>.json` (or, for legacy artifacts, `.agents/council/evidence-only-closures/<target-id>.json`). The artifact is written with `bash skills/post-mortem/scripts/write-evidence-only-closure.sh` and gives later audits something durable to validate besides bead notes.
@@ -45,7 +45,7 @@ When a CLOSED bead has **every** scoped file under `.agents/brainstorm/`, `.agen
 - a durable evidence-only closure packet for the bead
 - a `.agents/plans/` or `.agents/findings/` file referenced in the bead text that exists on disk
 - any non-discovery file path referenced in the bead description or close reason that has real git history
-- a substantive `Close reason:` line (≥ 24 chars) written at `bd close` time
+- a substantive close reason (≥ 24 chars) written at `br close` time
 
 Beads with scoped files OUTSIDE the discovery-phase prefixes that lack evidence still hard-fail as `timing_miss`. The downgrade applies only when discovery seeds are the only scoped files.
 
@@ -53,7 +53,7 @@ Beads with scoped files OUTSIDE the discovery-phase prefixes that lack evidence 
 
 - **Step 2.3** of post-mortem (Reconcile Plan vs Delivered Scope)
 - After `/crank` completes (before closing epic)
-- During `/retro` when reviewing multi-wave epics
+- During `$post-mortem` when reviewing multi-wave epics
 
 ## Audit Procedure
 
@@ -74,13 +74,13 @@ For each closed child bead, verify evidence in precedence order: `commit`, then 
 EPIC_ID="<epic-id>"
 FAILURES=""
 
-# Get all children
-for child in $(bd children "$EPIC_ID" 2>/dev/null | grep -oE '[a-z]{2}-[a-z0-9]+\.[0-9]+' | sort -u); do
+# Get all children (parent-child dependents; br has no `children` subcommand)
+for child in $(ao beads exec children "$EPIC_ID" 2>/dev/null | sort -u); do
   # 1. Commit evidence: strongest path
   COMMITS=$(git log --oneline --all --grep="$child" 2>/dev/null | wc -l | tr -d ' ')
 
   if [ "$COMMITS" -eq 0 ]; then
-    CHILD_DESC=$(bd show "$child" 2>/dev/null)
+    CHILD_DESC=$(ao beads exec show "$child" --json 2>/dev/null | jq -r '.[0].description // ""')
     FILES_IN_SCOPE=$(echo "$CHILD_DESC" | grep -oP '`[^`]+\.(go|py|ts|sh|md|yaml)`' | tr -d '`')
 
     if [ -z "$FILES_IN_SCOPE" ]; then
@@ -183,9 +183,9 @@ Minimum `repo_state` fields:
 Flag children with no meaningful description or title.
 
 ```bash
-for child in $(bd children "$EPIC_ID" 2>/dev/null | grep -oE '[a-z]{2}-[a-z0-9]+\.[0-9]+' | sort -u); do
-  TITLE=$(bd show "$child" 2>/dev/null | head -1 | sed 's/^.*· //' | sed 's/ \[.*$//')
-  DESC=$(bd show "$child" 2>/dev/null | sed -n '/^DESCRIPTION$/,/^$/p' | tail -n +2)
+for child in $(ao beads exec children "$EPIC_ID" 2>/dev/null | sort -u); do
+  TITLE=$(ao beads exec show "$child" --json 2>/dev/null | jq -r '.[0].title // ""')
+  DESC=$(ao beads exec show "$child" --json 2>/dev/null | jq -r '.[0].description // ""')
 
   # Generic titles: "task", "fix", "update", single word
   if echo "$TITLE" | grep -qP '^(task|fix|update|todo|item|work)$'; then
@@ -204,19 +204,19 @@ done
 
 ### Check 3: Orphaned Children
 
-Verify all children in `bd list` are linked to parent.
+Verify all children in `br list` are linked to parent.
 
 ```bash
-# Children from parent's perspective
-PARENT_CHILDREN=$(bd show "$EPIC_ID" 2>/dev/null | grep '↳' | grep -oP '\w+-\w+\.\d+')
+# Children from parent's perspective (parent-child dependents)
+PARENT_CHILDREN=$(ao beads exec children "$EPIC_ID" 2>/dev/null)
 
-# Children from list (matching prefix)
-LIST_CHILDREN=$(bd list --all 2>/dev/null | grep "^. ${EPIC_ID}\." | grep -oP '\w+-\w+\.\d+')
+# Children from the full list (ids that namespace under the epic prefix)
+LIST_CHILDREN=$(ao beads exec list --all --json 2>/dev/null | jq -r --arg e "$EPIC_ID" '.issues[] | .id | select(startswith($e + "."))')
 
 # Find orphans (in list but not in parent)
 for child in $LIST_CHILDREN; do
   if ! echo "$PARENT_CHILDREN" | grep -q "^${child}$"; then
-    FAILURES="${FAILURES}\n- ORPHAN: $child — exists in bd list but not linked to $EPIC_ID"
+    FAILURES="${FAILURES}\n- ORPHAN: $child — exists in br list but not linked to $EPIC_ID"
   fi
 done
 ```
@@ -227,7 +227,7 @@ For multi-wave epics (crank), compare each wave's additions against the next wav
 
 ```bash
 # Get wave commits from crank notes
-WAVE_COMMITS=$(bd show "$EPIC_ID" 2>/dev/null | grep 'CRANK_WAVE' | grep -oP 'at \K\S+')
+WAVE_COMMITS=$(ao beads exec show "$EPIC_ID" --json 2>/dev/null | jq -r '.[0].description, (.[0].comments[]?.text // empty)' | grep 'CRANK_WAVE' | grep -oP 'at \K\S+')
 
 # For each consecutive pair, check if Wave N+1 deleted lines Wave N added
 PREV_COMMIT=""
@@ -257,10 +257,10 @@ For each closed child, read the bead's `Acceptance:` text and check whether it h
 
 ```bash
 for child in $CLOSED_CHILDREN; do
-  ACCEPT=$(bd show "$child" 2>/dev/null \
+  ACCEPT=$(ao beads exec show "$child" --json 2>/dev/null | jq -r '.[0].description // ""' \
            | awk '/^Acceptance:/,/^[A-Z][A-Z]+:|^---/' | head -50)
-  CLOSE_NOTE=$(bd show "$child" 2>/dev/null \
-               | awk '/COMMENTS/,0' | tail -30)
+  CLOSE_NOTE=$(ao beads exec show "$child" --json 2>/dev/null \
+               | jq -r '(.[0].close_reason // ""), (.[0].comments[]?.text // empty)' | tail -30)
   GATE_REFS=$(printf '%s\n' "$ACCEPT" \
               | grep -oE '(scripts/check-[a-z0-9-]+\.sh|check-[a-z0-9-]+|pre-push-gate|ci-local-release)' \
               | sort -u)
@@ -288,9 +288,15 @@ Origin: v2.41-evolve-run cycle 182. `soc-w6vh.4` acceptance: "`check-no-tracked-
 For children tagged "stretch" that were closed, verify either implementation exists or deferral is documented.
 
 ```bash
-for child in $(bd children "$EPIC_ID" 2>/dev/null | grep -i 'stretch' | grep -oE '[a-z]{2}-[a-z0-9]+\.[0-9]+' | sort -u); do
-  STATUS=$(bd show "$child" 2>/dev/null | grep -oP 'CLOSED')
-  CLOSE_REASON=$(bd show "$child" 2>/dev/null | grep 'Close reason:')
+# Enumerate children via `ao beads exec children` (works for bd AND br); filter to
+# "stretch" by each child's own title. Do NOT enumerate via `show <epic> --json |
+# jq '.dependents[]'` — bd's `show` omits dependents[] (the ao canonicalizer injects
+# an empty []), so that path enumerates ZERO children on bd and the audit fails OPEN.
+for child in $(ao beads exec children "$EPIC_ID" 2>/dev/null | sort -u); do
+  CHILD_TITLE=$(ao beads exec show "$child" --json 2>/dev/null | jq -r '.[0].title // ""')
+  echo "$CHILD_TITLE" | grep -qi 'stretch' || continue
+  STATUS=$(ao beads exec show "$child" --json 2>/dev/null | jq -r 'if (.[0].status // "") == "closed" then "CLOSED" else "" end')
+  CLOSE_REASON=$(ao beads exec show "$child" --json 2>/dev/null | jq -r '.[0].close_reason // ""')
   COMMITS=$(git log --oneline --all --grep="$child" 2>/dev/null | wc -l | tr -d ' ')
 
   if [ -n "$STATUS" ] && [ "$COMMITS" -eq 0 ]; then

@@ -1,39 +1,118 @@
 # Thermal-Fluid Research Workflow Plugin
 
-**A cross-agent research workflow plugin for thermal-fluid mechanical engineering research, proposal development, technical writing, data analysis, research coding, presentations, and AI-assisted workflows.**
+[English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-This repository packages the `mechanical-engineering-research` skill as a lightweight workflow plugin. The skill remains the domain judgment layer; the plugin adds cleaner install targets and reusable workflow prompts for common research tasks.
+**A domain-rigor layer for thermal-fluid mechanical engineering research with AI agents.**
 
-**Works with:** OpenAI Codex plugins/skills and Claude Code plugins/skills
+Generic research agents can summarize papers and draft prose. This plugin helps them do the harder mechanical-engineering work: check heat-transfer and fluid-flow assumptions, catch invalid correlation use, question CFD validation, protect uncertainty analysis, explain mechanisms, and turn evidence into decision-ready research artifacts.
 
-[![Plugin](https://img.shields.io/badge/Codex-Plugin-blue?style=for-the-badge)](.codex-plugin/plugin.json)
+Use it when a thermal-fluid answer needs to be physically defensible, not just well written.
+
+[![Version](https://img.shields.io/badge/version-v0.2.0-blue?style=for-the-badge)](CHANGELOG.md)
+[![Codex Plugin](https://img.shields.io/badge/Codex-Plugin-blue?style=for-the-badge)](.codex-plugin/plugin.json)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple?style=for-the-badge)](.claude-plugin/plugin.json)
 [![Skill](https://img.shields.io/badge/Codex-Skill-teal?style=for-the-badge)](skills/mechanical-engineering-research/SKILL.md)
-[![Domain](https://img.shields.io/badge/Domain-Thermal--Fluids-orange?style=for-the-badge)](#capabilities)
-[![Validation](https://img.shields.io/badge/Plugin-Validated-brightgreen?style=for-the-badge)](#validation)
+[![Domain](https://img.shields.io/badge/Domain-Thermal--Fluids-orange?style=for-the-badge)](#what-it-catches)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/hanhuark/mechanical-engineering-research-skill?style=for-the-badge)](https://github.com/hanhuark/mechanical-engineering-research-skill/stargazers)
 
----
+If this helps your research workflow, please star the repo so other mechanical-engineering researchers can find it.
 
-## What Is This?
+Want the fastest path? Start with [`QUICKSTART.md`](QUICKSTART.md).
 
-This repository is now a plugin-style distribution for a single canonical skill:
+## Two-Minute Demo
 
-```text
-skills/mechanical-engineering-research/
-```
-
-The plugin is designed around a simple principle:
+Paste a prompt like this after installing the skill:
 
 ```text
-academic research workflow = process scaffold
-mechanical-engineering-research = thermal-fluid domain judgment layer
+Use the mechanical-engineering-research skill to review this claim:
+
+"The CFD model proves that the new microchannel heat sink is optimal because
+the average Nusselt number is 40% higher than the baseline. The simulation used
+k-epsilon turbulence, a coarse wall mesh, constant water properties, and three
+flow rates between Re = 350 and 900. Pressure drop is not discussed."
 ```
 
-Use it to help Codex reason more carefully about thermal-fluid research: source quality, physical assumptions, literature synthesis, methodology detail, data-analysis logic, figure discussion, proposal significance, reproducible code, and AI/ML tools connected back to physics.
+Expected style of response:
 
----
+```text
+Bottom line: The claim is overconfident. The result may indicate better heat
+transfer in the tested cases, but it does not prove optimality.
+
+Key issues:
+- Re = 350-900 may be laminar or transitional for the stated geometry, so a
+  k-epsilon turbulence model needs justification.
+- A coarse wall mesh weakens confidence in wall heat flux and Nusselt number.
+- Constant water properties may be acceptable only over a small temperature
+  range; the temperature span must be stated.
+- A 40% Nusselt increase is incomplete without pressure drop, pumping power,
+  and thermal resistance.
+- "Optimal" requires a design space, objective function, constraints, and
+  uncertainty or grid-independence evidence.
+
+Next checks: compare against laminar correlations or a conjugate heat-transfer
+baseline, report y+ or wall treatment, run mesh independence, include pressure
+drop and pumping power, and rewrite the claim as evidence from a limited CFD
+study rather than proof of global optimality.
+```
+
+## Workflow
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Inter, Segoe UI, Arial, sans-serif", "primaryColor": "#ecfeff", "primaryTextColor": "#0f172a", "primaryBorderColor": "#0f766e", "lineColor": "#475569", "secondaryColor": "#fff7ed", "tertiaryColor": "#f8fafc", "clusterBkg": "#ffffff", "clusterBorder": "#cbd5e1", "edgeLabelBackground": "#ffffff"}}}%%
+flowchart TB
+    A["Research Request"]:::input
+    B["Plugin Router"]:::core
+
+    C["Academic Scaffold"]:::scaffold
+    D["ME Judgment Layer"]:::core
+
+    A --> B
+    C -. "process" .-> B
+    B --> D
+
+    D --> E{"Mode"}:::gate
+
+    E --> F1["Literature Map"]:::lane
+    E --> F2["Analysis + DOE"]:::lane
+    E --> F3["CFD + Tests"]:::lane
+    E --> F4["Writing + Proposals"]:::lane
+    E --> F5["Code + AI/ML"]:::lane
+    E --> F6["Slides + IP"]:::lane
+
+    F1 --> G
+    F2 --> G
+    F3 --> G
+    F4 --> G
+    F5 --> G
+    F6 --> G
+
+    G["Rigor Gate"]:::gate
+    H["Decision Output"]:::output
+    I["Reusable Artifact"]:::artifact
+
+    G --> H --> I
+
+    classDef input fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#0f172a;
+    classDef core fill:#ccfbf1,stroke:#0f766e,stroke-width:3px,color:#0f172a;
+    classDef scaffold fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#0f172a;
+    classDef lane fill:#fff7ed,stroke:#f97316,stroke-width:2px,color:#0f172a;
+    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:3px,color:#0f172a;
+    classDef output fill:#ecfdf5,stroke:#16a34a,stroke-width:3px,color:#0f172a;
+    classDef artifact fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#0f172a;
+```
+
+Editable Mermaid source: [`assets/workflow.mmd`](assets/workflow.mmd).
+
+## What It Catches
+
+- Correlations used outside their Reynolds, Prandtl, geometry, roughness, orientation, or phase-change validity range.
+- CFD claims without mesh independence, wall treatment, convergence, boundary-condition, property-model, or validation evidence.
+- Experiment plans missing sensor calibration, uncertainty propagation, repeatability, heat-loss correction, or flow-development checks.
+- AI/ML workflows with leakage across videos, surfaces, experiments, geometries, pressures, or simulation families.
+- Literature reviews that list papers chronologically instead of synthesizing mechanisms, methods, gaps, and benchmark evidence.
+- Proposal sections that describe ambitious methods but do not connect barrier, capability, validation, metrics, risk, and impact.
+- Results discussions that report trends without explaining the dominant physics.
 
 ## Quick Install
 
@@ -51,253 +130,107 @@ If your Codex environment does not yet support community plugin installation fro
 Install the Codex skill from GitHub repo hanhuark/mechanical-engineering-research-skill, path skills/mechanical-engineering-research.
 ```
 
-or:
-
-```text
-Install the Codex skill from https://github.com/hanhuark/mechanical-engineering-research-skill/tree/main/skills/mechanical-engineering-research
-```
-
-Do not ask Codex to install only `mechanical-engineering-research-skill` as a curated skill name. That is the repository name, not a curated Codex skill name.
-
-### Manual Skill Installation
-
-Clone the repository:
+Manual install on Windows:
 
 ```powershell
 git clone https://github.com/hanhuark/mechanical-engineering-research-skill.git
 cd mechanical-engineering-research-skill
-```
-
-Copy the skill into your Codex skills directory:
-
-```powershell
 Copy-Item -Recurse .\skills\mechanical-engineering-research "$env:USERPROFILE\.codex\skills\mechanical-engineering-research" -Force
 ```
 
-Restart Codex if the skill is not discovered immediately.
-
 ### Claude Code
 
-Claude Code can use the same repository as a plugin because it includes:
-
-```text
-.claude-plugin/plugin.json
-skills/mechanical-engineering-research/SKILL.md
-commands/*.md
-```
-
-For local testing, clone the repository and launch Claude Code with the plugin directory:
+Clone the repository and launch Claude Code with the plugin directory:
 
 ```bash
 git clone https://github.com/hanhuark/mechanical-engineering-research-skill.git
 claude --plugin-dir ./mechanical-engineering-research-skill
 ```
 
-Then invoke the skill or workflow prompts through the plugin namespace:
+Then invoke one of the workflow prompts, for example:
 
 ```text
-/thermal-fluid-research-workflow:mechanical-engineering-research
-/thermal-fluid-research-workflow:me-lit-review
-/thermal-fluid-research-workflow:me-write-section
-/thermal-fluid-research-workflow:me-data-analysis
-/thermal-fluid-research-workflow:me-build-slides
-/thermal-fluid-research-workflow:me-code-review
+/thermal-fluid-research-workflow:me-cfd-review
+/thermal-fluid-research-workflow:me-correlation-check
+/thermal-fluid-research-workflow:me-figure-discussion
 ```
 
-Claude Code should also discover the skill automatically when a task involves thermal-fluid research, mechanical-engineering literature review, manuscript writing, proposal development, research coding, plotting, or presentation planning.
+## Use With Generic Academic Workflows
 
----
-
-## Capabilities
-
-| Area | What The Plugin Helps With | Reference |
-|---|---|---|
-| Research workflow | Source-aware thermal-fluid research, assumptions, correlations, trade studies, validation | [`SKILL.md`](skills/mechanical-engineering-research/SKILL.md) |
-| Literature review | Critical review, seminal-work tracing, citation past/future, review figures, benchmark tables | [`literature-review.md`](skills/mechanical-engineering-research/references/literature-review.md) |
-| Paper writing style | Preferred journal-paper structure, abstract pattern, figure-led results, conclusions, AI/ML paper style | [`paper-writing-style.md`](skills/mechanical-engineering-research/references/paper-writing-style.md) |
-| Technical writing | Introduction logic, methodology detail, modeling assumptions, results discussion | [`technical-writing-analysis.md`](skills/mechanical-engineering-research/references/technical-writing-analysis.md) |
-| Proposal development | DOE/NSF/NASA-style proposal narratives, solicitation alignment, review criteria, preliminary results, milestones | [`proposal-development.md`](skills/mechanical-engineering-research/references/proposal-development.md) |
-| Data analysis | Baseline case analysis, hypothesis-driven DOE, plotting, figure interpretation | [`technical-writing-analysis.md`](skills/mechanical-engineering-research/references/technical-writing-analysis.md) |
-| Research coding | Reproducible scripts, notebooks, data pipelines, plotting code, simulation automation, code review | [`research-coding.md`](skills/mechanical-engineering-research/references/research-coding.md) |
-| Presentations | Slide logic, graphics-first storytelling, speaker notes, videos/animations, backup slides | [`presentation-slides.md`](skills/mechanical-engineering-research/references/presentation-slides.md) |
-| AI/ML tools | BubbleID, SeqReg, CFDTwin, DataDroid-LAM, sensor fusion, surrogate modeling | [`ai-tools-thermal-fluids.md`](skills/mechanical-engineering-research/references/ai-tools-thermal-fluids.md) |
-| Toolchain | Overleaf, VS Code, GitHub, git, releases, archival workflow, reproducibility hygiene | [`research-toolchain.md`](skills/mechanical-engineering-research/references/research-toolchain.md) |
-| Innovation | Invention disclosure, patent-support packets, commercialization briefs, non-confidential summaries | [`innovation-commercialization.md`](skills/mechanical-engineering-research/references/innovation-commercialization.md) |
-| Briefs | Concise research brief structure for decision-ready engineering summaries | [`brief-template.md`](skills/mechanical-engineering-research/references/brief-template.md) |
-
----
-
-## Plugin Structure
+This plugin does not replace broad academic-research tools. Use generic academic workflows for process scaffolding: outline, citation management, drafting sequence, peer-review loop, and finalization. Use this plugin when the work depends on thermal-fluid validity: regimes, assumptions, correlations, property variation, scaling, CFD credibility, experiment design, uncertainty, and engineering tradeoffs.
 
 ```text
-mechanical-engineering-research-skill/
-  .codex-plugin/
-    plugin.json
-  .claude-plugin/
-    plugin.json
-  commands/
-    me-build-slides.md
-    me-code-review.md
-    me-data-analysis.md
-    me-lit-review.md
-    me-proposal.md
-    me-write-section.md
-  skills/
-    mechanical-engineering-research/
-      SKILL.md
-      agents/
-        openai.yaml
-      references/
-        ai-tools-thermal-fluids.md
-        brief-template.md
-        innovation-commercialization.md
-        literature-review.md
-        paper-writing-style.md
-        presentation-slides.md
-        proposal-development.md
-        research-coding.md
-        research-toolchain.md
-        technical-writing-analysis.md
+academic research workflow = process scaffold
+mechanical-engineering-research = thermal-fluid domain judgment layer
 ```
-
----
 
 ## Workflow Prompts
 
-The `commands/` folder contains reusable workflow prompts that can be copied into Codex or adapted into future slash commands:
-
 | Prompt | Use |
 |---|---|
-| [`me-lit-review.md`](commands/me-lit-review.md) | Critical literature review and gap synthesis; Claude command `/thermal-fluid-research-workflow:me-lit-review` |
-| [`me-proposal.md`](commands/me-proposal.md) | Solicitation-aligned proposal development, figure planning, preliminary-results integration, milestones, and risk mitigation; Claude command `/thermal-fluid-research-workflow:me-proposal` |
-| [`me-write-section.md`](commands/me-write-section.md) | Manuscript, proposal, report, or thesis-section drafting; Claude command `/thermal-fluid-research-workflow:me-write-section` |
-| [`me-data-analysis.md`](commands/me-data-analysis.md) | Baseline-first analysis and hypothesis-driven DOE; Claude command `/thermal-fluid-research-workflow:me-data-analysis` |
-| [`me-build-slides.md`](commands/me-build-slides.md) | Graphics-first research presentations; Claude command `/thermal-fluid-research-workflow:me-build-slides` |
-| [`me-code-review.md`](commands/me-code-review.md) | Reproducible research code review and refactoring; Claude command `/thermal-fluid-research-workflow:me-code-review` |
+| [`me-correlation-check.md`](commands/me-correlation-check.md) | Check whether equations, correlations, and dimensionless groups are being used within valid limits. |
+| [`me-cfd-review.md`](commands/me-cfd-review.md) | Review CFD setup, mesh, wall treatment, convergence, validation, and claim strength. |
+| [`me-experiment-plan.md`](commands/me-experiment-plan.md) | Plan thermal-fluid experiments around instrumentation, calibration, uncertainty, repeatability, and safety. |
+| [`me-lit-matrix.md`](commands/me-lit-matrix.md) | Build a mechanism-based literature matrix with methods, metrics, validity limits, and gaps. |
+| [`me-figure-discussion.md`](commands/me-figure-discussion.md) | Turn a figure into a physical explanation with claims, comparisons, and limitations. |
+| [`me-proposal-aims.md`](commands/me-proposal-aims.md) | Rewrite aims around barrier, hypothesis, approach, metrics, risk, and impact. |
+| [`me-code-sanity.md`](commands/me-code-sanity.md) | Review research code for units, reproducibility, leakage, baselines, and physics checks. |
+| [`me-lit-review.md`](commands/me-lit-review.md) | Develop a critical thermal-fluid literature review and gap synthesis. |
+| [`me-proposal.md`](commands/me-proposal.md) | Develop or revise a solicitation-aligned research proposal. |
+| [`me-write-section.md`](commands/me-write-section.md) | Draft or revise manuscript, proposal, report, or thesis sections. |
+| [`me-data-analysis.md`](commands/me-data-analysis.md) | Plan baseline-first thermal-fluid data analysis and hypothesis-driven DOE. |
+| [`me-build-slides.md`](commands/me-build-slides.md) | Build graphics-first research presentations and speaker notes. |
+| [`me-code-review.md`](commands/me-code-review.md) | Review and refactor reproducible thermal-fluid research code. |
 
----
+## Showcase
 
-## Usage Examples
+The examples are synthetic, public-safe artifacts designed to show the plugin's expected behavior:
 
-### Literature Review
+| Artifact | What it demonstrates |
+|---|---|
+| [`cfd-review-memo.md`](examples/showcase/cfd-review-memo.md) | How to downshift overclaimed CFD evidence into a defensible review memo. |
+| [`heat-exchanger-design-matrix.md`](examples/showcase/heat-exchanger-design-matrix.md) | How to compare design options by mechanism, pressure drop, manufacturability, and risk. |
+| [`boiling-literature-matrix.md`](examples/showcase/boiling-literature-matrix.md) | How to synthesize a boiling literature review by mechanism rather than paper order. |
+| [`proposal-aims-rewrite.md`](examples/showcase/proposal-aims-rewrite.md) | How to convert vague proposal aims into reviewer-ready technical aims. |
+| [`figure-discussion-before-after.md`](examples/showcase/figure-discussion-before-after.md) | How to rewrite a weak results paragraph into a physical explanation. |
 
-```text
-Use the mechanical-engineering-research skill to develop a critical literature review on this thermal-fluid research topic. Synthesize the main theories, methods, limitations, unresolved challenges, and future directions instead of writing a paper-by-paper summary.
-```
+## Capabilities
 
-### Federal Proposal Development
-
-```text
-Use the mechanical-engineering-research skill to expand this DOE EPSCoR pre-application into a full proposal narrative. Follow the solicitation structure, map the narrative to review criteria, integrate preliminary results under each thrust, add quantifiable milestones, and cite seminal, recent, and team-relevant papers.
-```
-
-Or use the proposal workflow command:
-
-```text
-/thermal-fluid-research-workflow:me-proposal
-```
-
-### Data Analysis Plan
-
-```text
-Use the mechanical-engineering-research skill to design a hypothesis-driven DOE for these experiments or simulations. Start from a baseline case, identify the mechanism being tested, and choose cases that can support or refute the hypothesis.
-```
-
-### Figure Discussion
-
-```text
-Use the mechanical-engineering-research skill to write the results discussion for this figure. Follow description, observation, physical explanation, and comparison with existing work.
-```
-
-### Research Coding
-
-```text
-Use the mechanical-engineering-research skill to write a reproducible Python analysis pipeline for this experiment. Start with one baseline case, preserve raw data, make units explicit, and generate publication-quality plots.
-```
-
-### Research Presentation
-
-```text
-Use the mechanical-engineering-research skill to create a 12-slide conference talk outline from this paper, with graphics-first slides and complementary speaker notes.
-```
-
-### AI For Thermal Fluids
-
-```text
-Use the mechanical-engineering-research skill to plan a BubbleID/SeqReg workflow for extracting boiling interface dynamics and predicting heat flux from videos and acoustic signals.
-```
-
----
-
-## Update Workflow
-
-Use this repository as the canonical source for future improvements.
-
-```powershell
-cd mechanical-engineering-research-skill
-git pull
-```
-
-Edit files under:
-
-```text
-skills/mechanical-engineering-research/
-```
-
-Validate the skill:
-
-```powershell
-python "$env:USERPROFILE\.codex\skills\.system\skill-creator\scripts\quick_validate.py" ".\skills\mechanical-engineering-research"
-```
-
-Validate the plugin:
-
-```powershell
-python "$env:USERPROFILE\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py" "."
-```
-
-Commit and push:
-
-```powershell
-git add .codex-plugin .claude-plugin commands skills README.md CONTRIBUTING.md
-git commit -m "Improve thermal-fluid research workflow plugin"
-git push
-```
-
-Copy the updated skill into your local Codex skills directory when you want to use the latest skill version directly:
-
-```powershell
-Copy-Item -Recurse .\skills\mechanical-engineering-research "$env:USERPROFILE\.codex\skills\mechanical-engineering-research" -Force
-```
-
----
+| Area | What the plugin helps with | Reference |
+|---|---|---|
+| Research workflow | Source-aware thermal-fluid research, assumptions, correlations, trade studies, validation | [`SKILL.md`](skills/mechanical-engineering-research/SKILL.md) |
+| Literature review | Critical review, seminal-work tracing, citation path, review figures, benchmark tables | [`literature-review.md`](skills/mechanical-engineering-research/references/literature-review.md) |
+| Paper writing style | Abstracts, methods, figure-led results, conclusions, AI/ML paper style | [`paper-writing-style.md`](skills/mechanical-engineering-research/references/paper-writing-style.md) |
+| Technical writing | Methodology detail, modeling assumptions, results discussion | [`technical-writing-analysis.md`](skills/mechanical-engineering-research/references/technical-writing-analysis.md) |
+| Proposal development | DOE/NSF/NASA-style narratives, solicitation alignment, milestones, risks | [`proposal-development.md`](skills/mechanical-engineering-research/references/proposal-development.md) |
+| Research coding | Reproducible scripts, notebooks, plotting, simulation automation, code review | [`research-coding.md`](skills/mechanical-engineering-research/references/research-coding.md) |
+| Presentations | Graphics-first research talks, slide logic, speaker notes, backup slides | [`presentation-slides.md`](skills/mechanical-engineering-research/references/presentation-slides.md) |
+| AI/ML tools | BubbleID, SeqReg, CFDTwin, DataDroid-LAM, sensor fusion, surrogate modeling | [`ai-tools-thermal-fluids.md`](skills/mechanical-engineering-research/references/ai-tools-thermal-fluids.md) |
+| Toolchain | Overleaf, VS Code, GitHub, git, releases, reproducibility hygiene | [`research-toolchain.md`](skills/mechanical-engineering-research/references/research-toolchain.md) |
+| Innovation | Invention disclosure, patent-support packets, commercialization briefs | [`innovation-commercialization.md`](skills/mechanical-engineering-research/references/innovation-commercialization.md) |
 
 ## Validation
 
-Validate the skill:
+Run repository validation:
+
+```powershell
+python scripts\validate_repo.py
+```
+
+Optional local Codex/plugin validation:
 
 ```powershell
 python "$env:USERPROFILE\.codex\skills\.system\skill-creator\scripts\quick_validate.py" ".\skills\mechanical-engineering-research"
-```
-
-Validate the plugin:
-
-```powershell
 python "$env:USERPROFILE\.codex\skills\.system\plugin-creator\scripts\validate_plugin.py" "."
 ```
 
-Expected result:
+The CI workflow in [`.github/workflows/validate.yml`](.github/workflows/validate.yml) runs the repository validation script and checks the thermal-fluid eval fixtures.
 
-```text
-Skill is valid!
-Plugin is valid!
-```
+## Release Notes
 
----
+See [`CHANGELOG.md`](CHANGELOG.md). The `v0.2.0` release line adds the public-positioning refresh, workflow diagram, showcase examples, micro-workflows, validation fixtures, CI, and bilingual README files.
 
-## Related Tools And References
-
-The AI/ML guidance references several thermal-fluid and mechanical-engineering tools:
+## Related Tools
 
 | Tool | Use |
 |---|---|
@@ -307,49 +240,10 @@ The AI/ML guidance references several thermal-fluid and mechanical-engineering t
 | [DataDroid-LAM](https://github.com/spier16/DataDroid-LAM) | Lab analysis and automation tooling |
 | [MEEG-54403](https://github.com/hanhuark/MEEG-54403) | Machine Learning for Mechanical Engineers course material |
 
----
-
-## FAQ
-
-**Is this still a Codex skill?**
-
-Yes. The canonical skill now lives at [`skills/mechanical-engineering-research`](skills/mechanical-engineering-research/). The plugin wraps it with metadata and workflow prompts.
-
-**Why convert it to a plugin?**
-
-The plugin form gives the project a clearer install target, room for workflow prompts, and a path toward future commands, scripts, assets, or additional skills.
-
-**Does the plugin replace academic-research workflow tools?**
-
-No. For full papers and proposals, use academic-research workflow tools as the process scaffold when available. Use this plugin as the thermal-fluid/mechanical-engineering judgment layer.
-
-**Can I use this with Claude Code, Cursor, or other agents?**
-
-Yes for Claude Code. This repository includes `.claude-plugin/plugin.json` and the standard `skills/<skill-name>/SKILL.md` structure. Claude Code users can load it with `claude --plugin-dir` or install it through a compatible Claude Code marketplace if listed there. Other agents can adapt the markdown skill manually.
-
-**How should I contribute improvements?**
-
-Add reusable guidance, not one-off facts. Keep `SKILL.md` concise and put detailed workflows in `references/`. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
----
-
 ## Contributing
 
-Contributions are welcome. Good contributions improve reusable research practice:
-
-- clearer thermal-fluid research workflows
-- stronger literature-review synthesis methods
-- proposal development and review-criteria guidance
-- technical writing and results-discussion guidance
-- data-analysis, plotting, and DOE practices
-- reproducible research coding practices
-- presentation design patterns
-- AI/ML workflows for mechanical engineering
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
-
----
+Contributions are welcome when they improve reusable thermal-fluid research practice: stronger validity checks, better examples, clearer workflows, more robust eval fixtures, or better installation documentation. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
-MIT License. See [`LICENSE`](LICENSE) for details.
+MIT License. See [`LICENSE`](LICENSE).

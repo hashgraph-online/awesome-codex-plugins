@@ -1,14 +1,14 @@
 interface:
-  display_name: "Runtype Admin"
-  short_description: "Operate live Runtype accounts safely"
-  brand_color: "#6D5EF7"
-  default_prompt: "Use $runtype-admin to inspect my Runtype account and debug a failed run."
+  display_name: 'Runtype Admin'
+  short_description: 'Operate live Runtype accounts safely'
+  brand_color: '#6D5EF7'
+  default_prompt: 'Use $runtype-admin to inspect my Runtype account and debug a failed run.'
 dependencies:
   tools:
-    - type: "mcp"
-      value: "runtype"
-      description: "Hosted Runtype MCP server for live account reads, mutations, logs, traces, and evals"
-      transport: "streamable_http"
-      url: "https://api.runtype.com/v1/mcp/protocol"
+    - type: 'mcp'
+      value: 'runtype'
+      description: 'Hosted Runtype MCP server for live account reads, mutations, logs, traces, and evals'
+      transport: 'streamable_http'
+      url: 'https://api.runtype.com/v1/mcp/protocol'
 policy:
   allow_implicit_invocation: true

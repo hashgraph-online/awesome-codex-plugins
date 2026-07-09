@@ -14,6 +14,12 @@ Do not replace `brainstorming`, `systematic-debugging`, `writing-plans`,
 `requesting-code-review`, or `verification-before-completion`. Use it to clean
 the decision surface those skills will act on.
 
+When this review materially changes the direction, surface `Aegis Visibility`
+in natural prose: name the first principle, dropped assumption, smallest
+sufficient path, or owner / retirement falsifier that changed the decision.
+Keep it advisory and task-specific; do not turn the lens into approval
+authority or a generic skill trace.
+
 ## Use When
 
 - The user asks for first principles, first-principles thinking, or Occam's

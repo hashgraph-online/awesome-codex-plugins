@@ -1,0 +1,4 @@
+interface:
+  display_name: "Color Math Accessibility"
+  short_description: "Accessible color math workflows"
+  default_prompt: "Use $color-math-accessibility to audit this palette for contrast and create accessible light and dark mode tokens."

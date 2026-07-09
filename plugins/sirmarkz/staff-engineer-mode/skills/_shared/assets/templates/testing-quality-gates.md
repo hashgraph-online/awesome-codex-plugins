@@ -30,6 +30,16 @@
 | Lane | p95 Runtime Source | Budget | Action When Exceeded |
 | --- | --- | --- | --- |
 
+## Gate Integrity Under Cost Pressure
+
+| Slow/Costly Check | Preserved Coverage | Lane Split Or Placement | Bypass Prevention | Owner |
+| --- | --- | --- | --- | --- |
+
+## Build/Test Cache Correctness
+
+| Cache | Behavior-Changing Inputs | Key/Invalidation Rule | Stale-Output Failure Mode | Verification |
+| --- | --- | --- | --- | --- |
+
 ## Composition And Coverage
 
 | Layer | Count/Ratio | Rationale | Meaningful Coverage Signal |

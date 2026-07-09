@@ -3,11 +3,11 @@ name: runtype-build-product
 description: >-
   Use when building, designing, validating, or deploying Runtype AI products with agents,
   flows, tools, surfaces, records, secrets, schedules, evals, orchestration, webhooks,
-  Slack/email/SMS/Telegram/Discord/WhatsApp/iMessage/messaging/chat/API/MCP/A2A surfaces,
-  commerce tools, or hosted product generation. Always fetch current MCP build
+  Slack/email/SMS/Telegram/Discord/WhatsApp/iMessage/messaging/chat/API/MCP/A2A/hosted-page
+  surfaces, commerce tools, agent skills, or hosted product generation. Always fetch current MCP build
   instructions before creating resources.
 user-invocable: true
-argument-hint: "[product idea or build task]"
+argument-hint: '[product idea or build task]'
 ---
 
 # Runtype Build Product
@@ -31,7 +31,9 @@ Then fetch only the docs needed for the current design:
 - `get_platform_documentation(topic="types-fpo")`
 - `get_platform_documentation(topic="types-flow-steps")`
 - `get_platform_documentation(topic="types-entities")`
+- `get_platform_documentation(topic="types-surface-configs")`
 - `get_platform_documentation(topic="builtin-tools")`
+- `get_platform_documentation(topic="agent-skills")`
 - `get_platform_documentation(topic="orthogonal-tools")`
 - `get_platform_documentation(topic="external-tools")`
 - `get_platform_documentation(topic="models")`
@@ -42,8 +44,8 @@ Then fetch only the docs needed for the current design:
 - `get_platform_documentation(topic="sdk-reference")`
 
 Also read MCP resources directly when available for richer coverage:
-`runtype://types/fpo-template`, `runtype://types/surface-configs`,
-`runtype://guide/subagent-delegation`, `runtype://catalog/provider-native-search`, and
+`runtype://types/fpo-template`, `runtype://guide/subagent-delegation`,
+`runtype://catalog/skills`, `runtype://catalog/provider-native-search`, and
 `runtype://catalog/ucp-commerce`.
 
 ## Design Policy
@@ -55,7 +57,7 @@ Answer these before building:
   schedule, or A2A?
 - What is the capability: agent, flow, existing agent, existing flow, or external agent?
 - What tools and state does it need: built-ins, Orthogonal tools, MCP servers, external
-  HTTP tools, custom code, local SDK tools, records, secrets?
+  HTTP tools, custom code, local SDK tools, WebMCP page tools, records, secrets?
 
 Start with an agent unless the work is a fixed sequence. Use flows for deterministic
 pipelines, indexing, batch processing, artifact rendering, and hot paths that should be
@@ -70,6 +72,9 @@ finding, and ask whether to use UCP or the traditional commerce path before proc
    `list_tools`, `list_model_configs`, and product-scoped `list_surfaces` when relevant.
 2. Pick surfaces from the live `surface-types` docs. Include `messaging` as the generic
    multi-channel surface, and prefer dedicated surfaces when channel constraints matter.
+   For browser-side WebMCP tools, use a `chat` surface with `behavior.webmcp` rather
+   than an `mcp` surface. For the WebMCP mechanics and the advanced non-Persona
+   raw-`/v1/dispatch` `clientTools[]` path, use `runtype-persona`.
 3. Prefer first-party/built-in tools, then Orthogonal tools, then MCP servers, then custom
    HTTP/JS tools.
 4. Validate before creating: `validate_product`, `validate_flow`, `validate_product_flow`,
@@ -88,6 +93,9 @@ finding, and ask whether to use UCP or the traditional commerce path before proc
 - Read before update; preserve fields the user did not ask to change.
 - Treat `update_agent` as wholesale replacement unless live docs say otherwise.
 - Surface-level evals catch orchestration and formatting issues that per-agent evals miss.
+- If a product needs deeper or newer platform rules than this skill names, fetch
+  `platform-catalog` and focused direct resources instead of appending feature
+  notes here.
 
 If the umbrella `runtype` skill is installed alongside this focused skill, its durable
 references provide deeper fallback notes. This skill must still work when installed by

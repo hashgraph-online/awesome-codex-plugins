@@ -43,10 +43,21 @@ Stages:
 
 Active Lock: dev
 Last Event: stage_verified (implement) — fail, attempt 2
+Attempt: implement-dev-a1 | thread_id: <codex-thread-id>
+Last heartbeat: 12s ago | idle budget: 14m 48s remaining
+Wall budget: 47m remaining | stop reason: (none)
 ```
 
 The progress view includes elapsed times per stage, the current
 verify attempt if applicable, and the most recent event for context.
+When `governance.adoption` is present, include the high-signal governance
+items in the readable status: open follow-ups/escalations, recorded tripwire
+blocks or warnings, gate rejections, and criteria overrides. Do not ask the
+user to inspect raw `.agenteam/governance` files for these summary facts.
+For an active or interrupted attempt, always include `thread_id` (or
+"unavailable"), last heartbeat and age, idle budget and wall budget remaining,
+attempt/retry counts, PID liveness when known, and stop reason. Treat a stale
+heartbeat as `AT RISK`, not as proof that the role failed.
 
 ### 3. No Active Run
 

@@ -65,6 +65,11 @@
 | Permission Or Event | Audit Event | Recertification Cadence | Owner |
 | --- | --- | --- | --- |
 
+## Audit Store Integrity
+
+| Record Class | Tamper-Evident Or Append-Only Mechanism | Completeness-Under-Load Check | Access Control | Retention |
+| --- | --- | --- | --- | --- |
+
 ## Cryptography Decision
 
 | Use | Algorithm/Key Type | Decision | Rotation/Transition Note |

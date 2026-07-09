@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-400_passing-emerald)](https://github.com/avansaber/tailtest-codex)
-[![Version](https://img.shields.io/badge/version-4.9.0-blue)](https://github.com/avansaber/tailtest-codex/releases/latest)
+[![Version](https://img.shields.io/badge/version-4.9.1-blue)](https://github.com/avansaber/tailtest-codex/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-macOS_%7C_Linux-lightgrey)](https://tailtest.com/platform/agent-edits/)
 [![Codex CLI](https://img.shields.io/badge/Codex_CLI-0.129.0%2B-purple)](https://developers.openai.com/codex)
 

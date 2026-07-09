@@ -1,0 +1,41 @@
+{
+  "name": "maestro",
+  "version": "1.14.0",
+  "description": "Maestro Frontier orchestration, Codex skills, and lifecycle hooks.",
+  "author": {
+    "name": "Mark Laursen",
+    "url": "https://github.com/mbanderas"
+  },
+  "homepage": "https://github.com/mbanderas/maestro#readme",
+  "repository": "https://github.com/mbanderas/maestro",
+  "license": "MIT",
+  "keywords": [
+    "frontier",
+    "multi-agent",
+    "codex",
+    "hooks",
+    "skills"
+  ],
+  "skills": "./codex-skills/",
+  "interface": {
+    "displayName": "Maestro",
+    "shortDescription": "Frontier orchestration, Codex skills, and lifecycle hooks",
+    "longDescription": "Install Maestro in Codex as a plugin: direct /maestro slash hub, bundled skills, trusted hooks, and the local Frontier fusion engine.",
+    "developerName": "Mark Laursen",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mbanderas/maestro",
+    "brandColor": "#5B82D6",
+    "composerIcon": "./assets/icon.png",
+    "defaultPrompt": [
+      "/maestro frontier fusion chatgpt-duo",
+      "/maestro frontier fusion budget-trio",
+      "/maestro frontier roster",
+      "/maestro frontier status",
+      "/maestro frontier off"
+    ]
+  }
+}
