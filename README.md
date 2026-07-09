@@ -312,6 +312,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Yandex Direct](https://github.com/nebelov/yandex-direct-for-all) - GitHub-ready Codex plugin bundle for Yandex Direct, Wordstat, Metrika, and Roistat.
 - [Zotero Research Tools](https://github.com/summer521521/Zotero_Research_plugin) - Connects Codex to Zotero Desktop for local-library search, citation export, collection and tag inspection, and research workflow support.
 
+- [linkedin-skills](https://github.com/Linked-API/linkedin-skills/tree/main/linkedin) - Fetch LinkedIn profiles, search people and companies, send messages, manage connections, create posts, react, comment, and run custom LinkedIn workflows from Claude Code, Codex, Cursor, and Windsurf.
 ## Plugin Development
 
 ### Getting Started
