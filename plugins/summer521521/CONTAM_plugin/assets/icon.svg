@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>CONTAM Tools</title>
+  <rect width="512" height="512" rx="96" fill="#7c3aed"/>
+  <path d="M128 144h256v224H128z" fill="#ffffff"/>
+  <path d="M176 192h160v32H176zm0 64h160v32H176zm0 64h96v32h-96z" fill="#7c3aed"/>
+  <path d="M352 144v224h32V144z" fill="#c4b5fd"/>
+</svg>

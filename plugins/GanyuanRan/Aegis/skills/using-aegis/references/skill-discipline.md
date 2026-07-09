@@ -141,8 +141,9 @@ Before implementation, classify the task:
 
 - **Low complexity:** one local owner, clear behavior, small bug/doc/config
   change. Use TDD Route after concise intent, authority/baseline check, and
-  verification target. In auto mode, the route may be strict, light, or
-  skipped; in off mode, do not automatically require TDD.
+  verification target. TDD Mode defaults to off, so do not automatically
+  require TDD unless auto mode is enabled or the user/project explicitly asks
+  for TDD. In auto mode, the route may be strict, light, or skipped.
 - **Medium complexity:** multi-file or multi-module work, user-visible
   behavior, routing/state flow, API/contract touch, compatibility boundary, or
   multiple acceptance checks. Create a baseline read-set, plan, and atomic tasks
@@ -154,7 +155,7 @@ Before implementation, classify the task:
 
 TDD is the implementation discipline for approved atomic tasks, not the first
 entrypoint for medium- or high-complexity work. TDD Mode controls test-first
-discipline, not completion evidence.
+discipline, not completion evidence, and its default is off.
 
 ## Project Baseline Bootstrap
 

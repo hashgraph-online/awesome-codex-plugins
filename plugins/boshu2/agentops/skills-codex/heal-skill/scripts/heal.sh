@@ -20,14 +20,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Find repo root (location of skills/ directory)
+# Find repo root (location of skills/ directory). HEAL_REPO_ROOT overrides for
+# fixture-driven tests (tests/scripts/heal-dispositions.bats); production derives
+# it from the script location.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+REPO_ROOT="${HEAL_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 SKILLS_ROOT="$REPO_ROOT/skills"
 
-# If no targets, scan all skill dirs
+# If no targets, scan all skill dirs (skills/ and skills-codex/)
 if [[ ${#TARGETS[@]} -eq 0 ]]; then
   for d in "$REPO_ROOT"/skills/*/; do
+    [[ -d "$d" ]] && TARGETS+=("${d%/}")
+  done
+  for d in "$REPO_ROOT"/skills-codex/*/; do
     [[ -d "$d" ]] && TARGETS+=("${d%/}")
   done
 else
@@ -244,6 +249,17 @@ for skill_dir in "${TARGETS[@]}"; do
     fi
   fi
 
+  # Check 2b: Missing metadata.tier
+  if [[ "$skill_dir" != "$REPO_ROOT"/skills-codex/* ]] && ! grep -q '^\s*tier:' "$skill_md"; then
+    report "MISSING_TIER" "$skill_dir" "No metadata.tier in frontmatter"
+  fi
+
+  # Check 2c: Invalid metadata.stability
+  stability_val="$(awk '/^[[:space:]]*stability:/{sub(/^[[:space:]]*stability:[[:space:]]*/,""); gsub(/^["'"'"']|["'"'"']$/,""); print; exit}' "$skill_md" 2>/dev/null || true)"
+  if [[ -n "$stability_val" && "$stability_val" != "experimental" && "$stability_val" != "stable" ]]; then
+    report "H010" "$skill_dir" "Invalid metadata.stability '$stability_val' (must be 'experimental' or 'stable')"
+  fi
+
   # Check 3: Name mismatch
   if [[ -n "$name" && "$name" != "$dirname" ]]; then
     report "NAME_MISMATCH" "$skill_dir" "Frontmatter name '$name' != directory '$dirname'"
@@ -252,7 +268,7 @@ for skill_dir in "${TARGETS[@]}"; do
     fi
   fi
 
-  # Check 4: Unlinked references
+  # Check 4: Unlinked references (.md files — strict markdown-link / Read form)
   if [[ -d "$skill_dir/references" ]]; then
     for ref_file in "$skill_dir"/references/*.md; do
       [[ -f "$ref_file" ]] || continue
@@ -266,6 +282,53 @@ for skill_dir in "${TARGETS[@]}"; do
       fi
     done
   fi
+
+  # Check 4b: Unreferenced non-.md references (.feature, .json, .txt, etc.)
+  #
+  # Mirrors the Go contract test TestSkillContract_ReferencesLinkedInSKILLMD
+  # (cli/cmd/ao/skill_contract_test.go): EVERY top-level file in references/
+  # (any extension, excluding dotfiles and subdirectories) must have its
+  # basename appear somewhere in SKILL.md. The Go test gates go-build, which is
+  # path-filtered to cli/** — so a skills-only PR that adds an unreferenced
+  # .feature file (e.g. PRs #504/#505) skipped go-build and merged the breakage
+  # onto main, only surfacing on the next cli/ PR (soc-oemfm).
+  #
+  # heal.sh (skill-integrity job) runs on skills/** changes, so checking the
+  # same invariant here closes the gap on the right trigger. The rule mirrors
+  # the Go test's permissive basename containment (NOT the stricter markdown-link
+  # form used for .md above) so this gate and the Go test agree exactly.
+  if [[ -d "$skill_dir/references" ]]; then
+    for ref_file in "$skill_dir"/references/*; do
+      [[ -f "$ref_file" ]] || continue
+      ref_basename="$(basename "$ref_file")"
+      # Skip dotfiles and .md files (.md handled by Check 4 above).
+      [[ "$ref_basename" == .* ]] && continue
+      [[ "$ref_basename" == *.md ]] && continue
+      ref_rel="references/$ref_basename"
+      # Mirror the Go test: basename must appear anywhere in SKILL.md.
+      if ! grep -qF "$ref_basename" "$skill_md" 2>/dev/null; then
+        report "UNREFERENCED_REF" "$skill_dir" "$ref_rel not referenced in SKILL.md"
+      fi
+    done
+  fi
+
+  # Check 5b: Malformed ..$X links (shell variable artifacts in markdown)
+  if grep -qE '\.\.\$[A-Za-z]' "$skill_md"; then
+    report "MALFORMED_LINK" "$skill_dir" "Contains ..\$X link artifact (should be ../X)"
+  fi
+
+  # Check 5c: Duplicate reference links within a single listing section.
+  # A reference appearing in BOTH "Reference Documents" AND "Local Resources" is fine.
+  # Only flag duplicates within the SAME section.
+  for _heading in "Reference Documents" "Local Resources"; do
+    ref_section="$(awk -v h="$_heading" '/^## /{if(index($0,h)>0){found=1; next} else if(found){exit}} found' "$skill_md")"
+    if [[ -n "$ref_section" ]]; then
+      dupes="$(echo "$ref_section" | grep -oE '\]\(references/[^)]+\)' | sort | uniq -d || true)"
+      if [[ -n "$dupes" ]]; then
+        report "DUPLICATE_REF" "$skill_dir" "Duplicate reference links in $_heading section: $dupes"
+      fi
+    fi
+  done
 
   # Check 6: Dead references (SKILL.md mentions references/ files that don't exist)
   # Strip fenced code blocks before scanning to avoid false positives from examples
@@ -297,8 +360,29 @@ for skill_dir in "${TARGETS[@]}"; do
   commands_md="$REPO_ROOT/cli/docs/COMMANDS.md"
   if [[ -f "$commands_md" ]]; then
     ao_cmds="$(
-      grep -E '^### `ao [^`]+`' "$commands_md" 2>/dev/null \
-        | sed -E 's/^### `ao ([^` ]+).*$/\1/' \
+      awk '
+        /^### `ao [^`]+`/ {
+          line=$0
+          sub(/^### `ao /, "", line)
+          sub(/`.*$/, "", line)
+          split(line, parts, " ")
+          print parts[1]
+          next
+        }
+        /^\*\*Aliases:\*\*/ {
+          in_aliases=1
+          next
+        }
+        in_aliases && /^[[:space:]]*[a-z][a-z,-]+/ {
+          gsub(/,/, " ")
+          for (i = 1; i <= NF; i++) print $i
+          in_aliases=0
+          next
+        }
+        in_aliases && /^### / {
+          in_aliases=0
+        }
+      ' "$commands_md" 2>/dev/null \
         | sort -u || true
     )"
   fi
@@ -329,6 +413,10 @@ for skill_dir in "${TARGETS[@]}"; do
     case "$ref" in
       dev|tmp|usr|bin|etc|opt|var|home|proc|sys|path|null|dev/null|skill-name) continue ;;
       agents|hooks|mcp|memory|output-style|permissions|allowed-tools|approved-tools|health|healthz|readyz|name) continue ;;
+      # Built-in CLI / Codex slash-commands that are deliberately NOT AgentOps
+      # skills: /clear (Claude built-in), /goal (Codex --codex-goal flow), /skill
+      # (the generic Skill tool). Referencing them is correct, not a dead xref.
+      clear|goal|skill|help|compact) continue ;;
     esac
     if [[ ! -d "$SKILLS_ROOT/$ref" ]]; then
       report "DEAD_XREF" "$skill_dir" "references /$ref but skill directory not found"
@@ -337,21 +425,10 @@ for skill_dir in "${TARGETS[@]}"; do
 
 done
 
-# Check 10: Catalog completeness (global, not per-skill)
-if [[ -f "$SKILLS_ROOT/using-agentops/SKILL.md" ]]; then
-  for skill_check in "$SKILLS_ROOT"/*/SKILL.md; do
-    [[ -f "$skill_check" ]] || continue
-    check_dir="$(dirname "$skill_check")"
-    check_name="$(basename "$check_dir")"
-    # Skip internal/non-invocable skills
-    if grep -q 'user-invocable: false' "$skill_check" 2>/dev/null; then continue; fi
-    if grep -q 'internal: true' "$skill_check" 2>/dev/null; then continue; fi
-    # Check if skill appears in catalog
-    if ! grep -q "$check_name" "$SKILLS_ROOT/using-agentops/SKILL.md" 2>/dev/null; then
-      report "CATALOG_MISSING" "$SKILLS_ROOT/using-agentops" "$check_name is user-invocable but missing from catalog"
-    fi
-  done
-fi
+# Check 10 (CATALOG_MISSING) was removed: it only ran when
+# skills/using-agentops/SKILL.md existed, and that skill no longer exists, so
+# the check was permanently dead. Catalog completeness is gated by Check 12
+# (MISSING_DISPOSITION) against docs/contracts/skill-dispositions.yaml.
 
 # Check 11: skill_api_version presence (global, not per-skill)
 for skill_check in "$SKILLS_ROOT"/*/SKILL.md; do
@@ -376,6 +453,25 @@ for skill_check in "$SKILLS_ROOT"/*/SKILL.md; do
     fi
   fi
 done
+
+# Check 12: Dispositions coverage (global, not per-skill). Every user-invocable
+# skills/<n> must have a row in docs/contracts/skill-dispositions.yaml. This is
+# the gate that silently passed when /burndown (ag-3yl8 #600) was added, costing
+# a CI round — heal --strict now catches it locally (ag-cw2y item 1).
+DISPOSITIONS_FILE="$REPO_ROOT/docs/contracts/skill-dispositions.yaml"
+if [[ -f "$DISPOSITIONS_FILE" ]]; then
+  for skill_check in "$SKILLS_ROOT"/*/SKILL.md; do
+    [[ -f "$skill_check" ]] || continue
+    check_dir="$(dirname "$skill_check")"
+    check_name="$(basename "$check_dir")"
+    # Skip internal/non-invocable skills (same exemptions as catalog check).
+    if grep -q 'user-invocable: false' "$skill_check" 2>/dev/null; then continue; fi
+    if grep -q 'internal: true' "$skill_check" 2>/dev/null; then continue; fi
+    if ! grep -qE "^[[:space:]]*-[[:space:]]+skill:[[:space:]]+${check_name}[[:space:]]*$" "$DISPOSITIONS_FILE" 2>/dev/null; then
+      report "MISSING_DISPOSITION" "$check_dir" "user-invocable but has no row in docs/contracts/skill-dispositions.yaml"
+    fi
+  done
+fi
 
 if [[ $FINDINGS -gt 0 ]]; then
   echo ""

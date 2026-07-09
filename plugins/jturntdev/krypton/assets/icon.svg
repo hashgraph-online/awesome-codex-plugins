@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Krypton</title>
+  <desc id="desc">Geometric purple shield icon for the Krypton Codex plugin.</desc>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <path d="M256 54 401 116v121c0 101-60 178-145 221-85-43-145-120-145-221V116z" fill="#7C3AED"/>
+  <path d="M256 94 366 141v95c0 78-44 138-110 176-66-38-110-98-110-176v-95z" fill="#F8FAFC"/>
+  <path d="M198 145h56v92l82-92h66L291 267l118 156h-69l-86-116v116h-56z" fill="#111827"/>
+  <path d="M256 94v318c66-38 110-98 110-176v-95z" fill="#EDE9FE" opacity=".72"/>
+  <path d="M254 237 336 145h66L291 267l118 156h-69l-86-116z" fill="#1F2937"/>
+</svg>

@@ -1,6 +1,6 @@
 {
   "name": "pi-casefile",
-  "version": "1.2.3",
+  "version": "1.3.8",
   "description": "Offensive security case tracker for pi and Codex — bug bounties, CTFs, security audits",
   "keywords": [
     "pi-package",
@@ -27,6 +27,7 @@
     ".mcp.json",
     "index.ts",
     "ledger.ts",
+    "poc-runner.ts",
     "mcp",
     "skills",
     "tsconfig.json",
@@ -40,7 +41,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^4.4.3"
+    "@sinclair/typebox": "^0.32.34",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
@@ -49,7 +51,6 @@
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*",
-    "typebox": "*"
+    "@earendil-works/pi-tui": "*"
   }
 }

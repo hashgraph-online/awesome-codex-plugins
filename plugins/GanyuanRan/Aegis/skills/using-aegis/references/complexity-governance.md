@@ -42,7 +42,10 @@ Complexity Budget:
 
 Typical pressure signals:
 
-- 800+ line maintained source or maintained test file
+- 800+ line maintained source or maintained test file as a soft pressure
+  signal, not an automatic edit ban
+- 1200+ line maintained artifact, or a touched artifact in the largest
+  5-10% of the target project, as a strong pressure signal
 - touched cohesive block over roughly 80 lines
 - deep nesting or mixed reasons to change
 - generic owner receiving another responsibility
@@ -63,6 +66,17 @@ Planning / pre-edit:
   add-in-place growth.
 - Revise the boundary, add governance work, split the task, or explicitly mark
   the slice as requiring follow-up.
+- If the target edit file is over-budget or mixed-purpose, classify edit intent
+  before non-trivial source edits:
+  `wiring-only`, `move-out / extract-first`,
+  `local-fix-without-new-responsibility`, `new-responsibility`, or
+  `emergency / compatibility patch`.
+- `new-responsibility` must not be added in place to an over-budget or
+  mixed-purpose owner by default. Reuse or extract the correct owner, split the
+  task, or pause for plan review.
+- `move-out / extract-first` is allowed when the overloaded owner gets thinner
+  or clearer. `wiring-only` and local fixes are allowed when they do not add a
+  responsibility.
 
 Completion:
 
@@ -76,6 +90,10 @@ Complexity Closure:
 
 - If `Complexity Closure` is `exceeded-unresolved`, Aegis must not claim the
   task is complete.
+- If completion-time complexity is over budget, classify the repair decision as
+  `govern-now`, `follow-up-required`, or `not-complete`. `govern-now` may
+  continue only inside the current authorized slice with a clear verification
+  boundary; otherwise report follow-up or downgrade completion.
 
 ## Major Complexity Follow-up
 

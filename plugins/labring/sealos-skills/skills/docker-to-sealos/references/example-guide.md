@@ -266,6 +266,7 @@ spec:
       containers:
         - name: ${{ defaults.app_name }}
           image: yidadaa/chatgpt-next-web:v2.12.4
+          imagePullPolicy: IfNotPresent
           env:
             - name: OPENAI_API_KEY
               value: ${{ inputs.OPENAI_API_KEY }}
@@ -1510,11 +1511,11 @@ The CRD itself will be fully migrated according to the template format and field
 
 #### Resource Labels
 
-For all resources deployed through the template marketplace, including system resources such as `deploy`, `service` as well as custom resources such as `app`, `kb database`, etc., a unified label will be added to all of them: `cloud.sealos.io/deploy-on-sealos: $app_name`.
+The template marketplace may attach a rendered deployment label such as `cloud.sealos.io/deploy-on-sealos: $app_name` to deployed resources.
 
 Where `app_name` is the name of the application deployed by the user, which by default ends with a random number, such as `fastgpt-zu1n048s`.
 
-For application `StatefulSet` resources that define `spec.volumeClaimTemplates`, also set `cloud.sealos.io/deploy-on-sealos: ${{ defaults.app_name }}` on every `volumeClaimTemplates[].metadata.labels`. Preserve component labels such as `app` so legacy component-level PVC cleanup remains possible.
+Generated application `StatefulSet` resources that define `spec.volumeClaimTemplates` keep `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and leave `cloud.sealos.io/deploy-on-sealos` out of both StatefulSet metadata labels and claim template metadata labels.
 
 ## Part 3: `Rendering Process Details`
 

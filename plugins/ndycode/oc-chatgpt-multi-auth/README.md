@@ -175,9 +175,12 @@ If browser launch is blocked, use the alternate login paths in [docs/getting-sta
 | --- | --- |
 | `codex-list` | Which accounts are saved and which one is active? |
 | `codex-switch` | How do I move to a different saved account? |
+| `codex-warm` | How do I start every account's usage window now (stagger quota cooldowns)? |
 | `codex-status` | Which account, model family, and routing state are active? |
 | `codex-limits` | What quota or rate-limit state is visible now? |
 | `codex-dashboard` | Can I manage accounts from one interactive surface? |
+
+Most of these also run as a **direct CLI** with no agent/model involvement (no token cost) — e.g. `oc-codex-multi-auth warm`, `oc-codex-multi-auth status`, or `npx -y oc-codex-multi-auth@latest warm`. Use `oc-codex-multi-auth warm` to open every enabled account's usage window at the start of a session and stagger the rolling quota cooldowns. Add `--json` for scriptable output.
 
 ### Account management
 

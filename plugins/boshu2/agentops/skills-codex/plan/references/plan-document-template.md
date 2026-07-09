@@ -190,6 +190,10 @@ In `path/to/file.go`:
 | PR-005: Process Gates First | PASS / N-A | [justification] |
 | PR-006: Cross-Layer Consistency | PASS / N-A | [justification] |
 | PR-007: Phased Rollout | PASS / N-A | [justification] |
+| PR-008: Pre-Decomposition Symbol Verify | PASS / N-A | [justification] |
+| PR-009: Mechanical Count Verification | PASS / N-A | [justification] |
+| PR-010: Small Batches + Refactor Separation | PASS / N-A | [justification] |
+| PR-011: Test Thoroughness Matched to Stakes | PASS / N-A | [justification] |
 
 Unchecked rules: 0
 

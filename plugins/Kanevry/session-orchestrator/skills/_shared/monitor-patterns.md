@@ -104,10 +104,21 @@ tail -f .orchestrator/metrics/autopilot.jsonl | jq -r --line-buffered '
 ```
 
 **Coverage.** Emits on three event kinds: per-iteration progress,
-kill-switch firings (the eight tracked in `scripts/lib/autopilot.mjs`),
-and the loop-end record. A silent autopilot run means autopilot is not
-actually writing to the JSONL — that itself is a signal worth surfacing
-manually. Use `TaskStop` to cancel.
+kill-switch firings (the ten tracked in
+`scripts/lib/autopilot/kill-switches.mjs`), and the loop-end record. A
+silent autopilot run means autopilot is not actually writing to the
+JSONL — that itself is a signal worth surfacing manually.
+
+**Detachment seam (Spike #640).** A headless autopilot run detached via
+Bash `run_in_background` (`node scripts/autopilot.mjs --headless … &`)
+is observed through the returned **task-id**, its **output-file**
+(`.../tasks/<id>.output`), and the **completion notification** — never
+through `TaskList` / `claude agents`, which lists nested *agent* sessions
+only and returns "No tasks found" for a Bash-backgrounded process even
+while the run is healthy. This JSONL tail is therefore the **primary live
+view** once a run is detached, not a supplementary one. Stop a detached
+run with `TaskStop(task_id)`, not the in-session `/tasks`/`/stop` slash
+commands.
 
 ---
 
@@ -222,4 +233,7 @@ never advances and the watcher keeps emitting the stale-SHA line every
   `/loop` vs Routines)
 - `.claude/loop.md` — bare-`/loop` body that delegates to Monitor where
   appropriate
+- "Background Detachment Test" (#640; archived in the private Meta-Vault) — empirical
+  verification of the Bash `run_in_background` + `TaskStop` detachment
+  seam behind Pattern 3
 - Anthropic Monitor tool reference (in-session)

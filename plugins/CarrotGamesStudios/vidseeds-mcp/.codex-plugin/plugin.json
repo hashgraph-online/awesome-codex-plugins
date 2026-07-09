@@ -1,7 +1,7 @@
 {
   "name": "vidseeds",
   "version": "1.9.2",
-  "description": "VidSeeds.ai connector — pre-upload video SEO/metadata optimization + multi-platform publishing (222 tools). Workflow skills for efficient MCP use. Paid connector with a 14-day free trial. Requires a free Personal Access Token from https://vidseeds.ai/settings/mcp-settings.",
+  "description": "VidSeeds.ai connector for pre-upload video SEO/metadata optimization + multi-platform publishing (247 tools). Workflow skills for efficient MCP use. Paid connector with a 14-day free trial. Requires a free Personal Access Token from https://vidseeds.ai/settings/mcp-settings.",
   "author": {
     "name": "VidSeeds.ai",
     "url": "https://vidseeds.ai"
@@ -27,7 +27,7 @@
     "type": "cli",
     "displayName": "VidSeeds.ai",
     "shortDescription": "Pre-upload video SEO/metadata optimization and multi-platform publishing.",
-    "longDescription": "VidSeeds.ai analyzes your existing video and generates optimized titles, descriptions, tags, thumbnails, and chapters for YouTube, TikTok, Instagram, Facebook, LinkedIn, and X — then publishes. Hosted MCP connector (222 tools) with workflow skills and a 14-day free trial; requires a free Personal Access Token from https://vidseeds.ai/settings/mcp-settings.",
+    "longDescription": "VidSeeds.ai analyzes your existing video and generates optimized titles, descriptions, tags, thumbnails, and chapters for YouTube, TikTok, Instagram, Facebook, LinkedIn, and X, then publishes. Hosted MCP connector (247 tools) with workflow skills and a 14-day free trial; requires a free Personal Access Token from https://vidseeds.ai/settings/mcp-settings.",
     "developerName": "VidSeeds.ai",
     "category": "Productivity",
     "capabilities": [
@@ -35,6 +35,12 @@
       "Write"
     ],
     "websiteURL": "https://vidseeds.ai",
-    "composerIcon": "./assets/icon.png"
+    "privacyPolicyURL": "https://vidseeds.ai/privacy-policy",
+    "termsOfServiceURL": "https://vidseeds.ai/terms-of-service",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/icon.png"
+    ]
   }
 }

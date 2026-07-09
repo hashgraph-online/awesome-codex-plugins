@@ -1,5 +1,8 @@
 # 🎭 Generative Media Skills for AI Agents
 
+[![Powered by MuAPI](https://img.shields.io/badge/Powered%20by-MuAPI-6366f1?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMSAxNHYtNGgtMnYtMmg0djZoLTJ6bTAtOFY2aDJ2MmgtMnoiLz48L3N2Zz4=)](https://muapi.ai?utm_source=github&utm_medium=badge&utm_campaign=generative-media-skills)
+
+
 **The Ultimate Multimodal Toolset for Claude Code, Cursor, Gemini CLI, and OpenCode.**
 A high-performance, schema-driven architecture for AI agents to generate, edit, and display professional-grade images, videos, and audio — powered by the [muapi-cli](https://github.com/SamurAIGPT/muapi-cli).
 
@@ -13,6 +16,7 @@ A high-performance, schema-driven architecture for AI agents to generate, edit, 
 - [Open-Generative-AI](https://github.com/Anil-matcha/Open-Generative-AI) — Free self-hosted AI media studio — GUI alternative to these skills for the same model set
 - [Awesome-GPT-Image-2-API-Prompts](https://github.com/Anil-matcha/Awesome-GPT-Image-2-API-Prompts) — Curated GPT-Image-2 prompts to use with these skills
 - [Awesome-Gemini-Omni-API-Prompts](https://github.com/Anil-matcha/Awesome-Gemini-Omni-API-Prompts) — Curated Gemini Omni prompts for video generation
+- [AI-Voice-Agent](https://github.com/Anil-matcha/AI-Voice-Agent) — Self-hosted AI voice agent for real-time voice conversations, sales calls, and customer support
 
 ## ✨ Key Features
 
@@ -141,7 +145,7 @@ muapi auth configure
 # Or pass directly
 muapi auth configure --api-key "YOUR_MUAPI_KEY"
 
-# Get your key at https://muapi.ai/dashboard
+# Get your key at https://muapi.ai/dashboard?utm_source=github&utm_medium=readme&utm_campaign=generative-media-skills
 ```
 
 ### 3. Install the Skills

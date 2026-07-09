@@ -1,6 +1,6 @@
 {
   "name": "team-skills-platform",
-  "version": "2.3.0",
+  "version": "2.5.4",
   "description": "开源角色化 Team Skills 平台，含 ECC harness skeleton、前端工程与 UI/UX 治理能力",
   "skills": "./skills/",
   "interface": {

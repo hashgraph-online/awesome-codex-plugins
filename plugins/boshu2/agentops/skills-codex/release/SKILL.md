@@ -1,6 +1,6 @@
 ---
 name: release
-description: "Run release."
+description: "Run release readiness validation."
 ---
 # Release Skill
 

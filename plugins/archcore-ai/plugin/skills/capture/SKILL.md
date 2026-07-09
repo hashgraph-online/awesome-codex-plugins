@@ -28,13 +28,13 @@ Given `$ARGUMENTS` and conversation context, classify what the user needs:
 
 | Signal | Route | Documents |
 |---|---|---|
-| User describes a **component contract** or interface | → `spec` | Single spec |
+| User describes **behavior others rely on** — an API/interface/schema/protocol boundary, or a feature/subsystem with states, field-driven rules, and invariants | → `spec` | Single spec |
 | User describes **reference material** (registry, glossary, lookup) | → `doc` | Single doc |
 | User describes **how-to instructions** or procedures | → `guide` | Single guide |
-| User describes a **module comprehensively** ("document everything about X") | → `adr` + `spec` + `guide` | Multiple docs with relations |
-| Ambiguous | → ask one question | "Is this primarily a decision, a technical contract, reference material, or instructions?" |
+| User describes a **module comprehensively** ("document everything about X") | → `adr` + `guide` (+ `spec` if others rely on the module's behavior) | Multiple docs with relations |
+| Ambiguous | → ask one question | "Is this primarily a decision, a contract/behavior spec, reference material, or instructions?" |
 
-Default: if still unclear after one question, create an `adr` (the most common documentation need).
+Default: if still unclear after one question, create an `adr` (the most common documentation need) — unless others rely on the subject's behavior, in which case create a `spec`.
 
 ## Execution
 
@@ -42,9 +42,11 @@ Default: if still unclear after one question, create an `adr` (the most common d
 
 `mcp__archcore__list_documents` — scan for existing documents on this topic. Prevent duplicates.
 
+If a match is a global document (`global: true` / `read_only: true` / `source_kind: "global"`), load `skills/_shared/globals.md`: it is read-only org-wide context, not editable here. Create the local document (a refinement/override) and do not modify it or call `add_relation` referencing the global. Absent any global match, proceed as usual.
+
 ### Step 2: Route
 
-Apply the routing table above. If `$ARGUMENTS` clearly signals a type, proceed. If ambiguous, use `AskUserQuestion` to ask: "Is this primarily a decision, a technical contract, reference material, or instructions?"
+Apply the routing table above. If `$ARGUMENTS` clearly signals a type, proceed. If ambiguous, use `AskUserQuestion` to ask: "Is this primarily a decision, a contract/behavior spec, reference material, or instructions?"
 
 ### Step 3: Create documents
 
@@ -56,8 +58,9 @@ For each document determined by routing:
 - `mcp__archcore__create_document(type="adr")`
 
 **If spec:**
-- Ask: "What is the contract surface? What are the key constraints?"
-- Compose content covering Purpose, Scope, Subject, Contract Surface, Normative Behavior, Constraints.
+- Read `skills/_shared/precision-rules.md` and `skills/_shared/spec-contract.md` once before composing — the contract defines what a spec is (behavior others rely on right now), the routing gate against `prd`, and the notation.
+- Ask: "Who depends on this, and what is its surface — the interface, or the parts/states/fields that drive behavior? What are the key constraints, invariants, and failure behaviors?"
+- Compose the six sections defined in `spec-contract.md`: Purpose & Scope, Surface, Normative Behavior (EARS clauses + BCP 14 keywords), Constraints & Invariants, Failure Behavior, Conformance.
 - `mcp__archcore__create_document(type="spec")`
 
 **If doc:**

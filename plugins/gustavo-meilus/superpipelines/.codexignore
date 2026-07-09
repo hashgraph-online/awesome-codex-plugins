@@ -1,0 +1,8 @@
+.git/
+.github/
+.claude/
+.codex/
+.worktrees/
+.aiboarding/
+node_modules/
+*.log

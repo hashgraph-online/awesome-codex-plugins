@@ -1,0 +1,19 @@
+# Post-Mortem: {{PRODUCT_NAME}}
+
+- Date: {{DATE}}
+- Output dir: `{{OUTPUT_DIR}}`
+
+## What Worked
+
+- Docs sitemap inventory (when available) produced a mechanically checkable slug set.
+- Registry-first mapping kept claims grounded.
+
+## What Didn’t
+
+- Any parts that relied only on strings/symbol heuristics without anchors.
+
+## Follow-Ups
+
+- Add anchors for key feature groups.
+- Add a safe fuzz harness (only if already present).
+

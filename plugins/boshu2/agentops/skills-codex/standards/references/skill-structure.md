@@ -2,7 +2,7 @@
 
 **Version:** 2.0.0
 **Last Updated:** 2026-02-20
-**Source:** Codex official documentation (https://code.claude.com/docs/en/skills)
+**Source:** Claude Code official documentation (https://code.claude.com/docs/en/skills)
 **Purpose:** Defines the required structure, frontmatter, and quality standards for all AgentOps skills.
 
 ---
@@ -24,7 +24,8 @@
 ```
 skill-name/
 ├── SKILL.md              # Required — exact case, no variations
-├── scripts/              # Optional — executable code
+├── SELF-TEST.md          # Optional — trigger and behavior self-test
+├── scripts/              # Optional — helper code
 ├── references/           # Optional — progressive disclosure docs
 └── assets/               # Optional — templates, fonts, icons
 ```
@@ -36,7 +37,8 @@ skill-name/
 | Entry point | `SKILL.md` (exact case) | `skill.md`, `SKILL.MD`, `Skill.md` |
 | Folder name | kebab-case (`bug-hunt`) | spaces, underscores, capitals |
 | Name match | Folder name = `name:` field | Mismatch between folder and frontmatter |
-| README | None inside skill folder | `README.md` in skill directories |
+| README | None inside repo-runtime skill folders unless an external package profile explicitly allows it | Accidental `README.md` drift in normal AgentOps skill directories |
+| Self-test | `SELF-TEST.md` for market-facing execution, judgment, and product skills | User-facing publishable skill with no trigger/behavior test |
 | Reserved | Any valid kebab-case name | `claude-*` or `anthropic-*` prefixes |
 
 ---
@@ -54,7 +56,7 @@ description: 'What it does. When to use it. Trigger phrases.'
 
 Only `description` is technically required (recommended). If `name` is omitted, the directory name is used.
 
-### All Codex Frontmatter Fields
+### All Claude Code Frontmatter Fields
 
 | Field | Required | Purpose |
 |-------|----------|---------|
@@ -159,7 +161,9 @@ The description is the **most critical field** — it determines when Claude loa
 
 ### Requirements
 
-- Under 1024 characters
+- Target under 120 characters; hard limit 180 characters for the repo catalog
+- Converter adapters may still enforce their own external hard caps, but repo
+  skills should stay far below those caps so all descriptions fit the always-loaded catalog
 - MUST include trigger phrases users would actually say
 - MUST explain what the skill does (not just when)
 - No XML tags
@@ -168,10 +172,10 @@ The description is the **most critical field** — it determines when Claude loa
 
 ```yaml
 # Specific + actionable + triggers
-description: 'Investigate suspected bugs with git archaeology and root cause analysis. Triggers: "bug", "broken", "doesn''t work", "failing", "investigate bug".'
+description: 'Investigate bugs or audit code with repro evidence, root cause analysis, and fixes.'
 
 # Clear value prop + multiple triggers
-description: 'Comprehensive code validation. Runs complexity analysis then multi-model council. Answer: Is this code ready to ship? Triggers: "vibe", "validate code", "check code", "review code", "is this ready".'
+description: 'Validate code readiness with complexity checks and council or inline review.'
 ```
 
 ### Bad Examples
@@ -192,7 +196,7 @@ description: Implements the Project entity model with hierarchical relationships
 Library/background/meta skills that are auto-loaded (not user-invoked) may describe their loading mechanism instead of user triggers:
 
 ```yaml
-description: 'Auto-loaded by $validate, $implement based on file types.'
+description: 'Auto-loaded by /validate, /implement based on file types.'
 ```
 
 ---
@@ -275,15 +279,16 @@ Skills use three levels:
 - [ ] Folder name matches `name:` field
 - [ ] Folder name is kebab-case
 - [ ] Description includes WHAT + WHEN (triggers)
-- [ ] Description under 1024 characters
+- [ ] Description under 180 characters, preferably under 120
 - [ ] No XML tags in frontmatter
 - [ ] No `claude`/`anthropic` in name
 - [ ] `metadata.tier` is set and valid
 - [ ] SKILL.md under 5,000 words
 - [ ] User-facing skills have examples section
 - [ ] User-facing skills have troubleshooting section
+- [ ] Market-facing user skills have `SELF-TEST.md`
 - [ ] Detailed docs in references/, not inlined
-- [ ] No README.md in skill folder
+- [ ] No README.md in repo-runtime skill folder unless an external package profile explicitly permits it
 
 ### Trigger Testing
 
@@ -295,7 +300,7 @@ Skills use three levels:
 
 ## AgentOps Extensions
 
-These are AgentOps-specific patterns not in the Codex spec:
+These are AgentOps-specific patterns not in the Claude Code spec:
 
 ### Tier System
 
@@ -311,4 +316,17 @@ Full taxonomy at `skills/SKILL-TIERS.md`.
 
 ### Standards Loading
 
-Language standards loaded JIT by `$validate`, `$implement` — see `references/standards-index.md`.
+Language standards loaded JIT by `/validate`, `/implement` — see `references/standards-index.md`.
+
+### Marketplace Export Profile
+
+A marketplace-facing package shape differs from AgentOps' repo-runtime shape:
+
+- Published package candidates should pass the target marketplace validator before release.
+- Package-clean skills should stay at or under a 50-file validator limit.
+- Mega skills above that limit should be split or handled as an explicit product-bundle profile.
+- Exported `scripts/` files should be non-executable for marketplace validation, even if repo-native AgentOps scripts remain executable.
+- Strong market-facing skills should include `SELF-TEST.md`.
+- Large skills should keep `SKILL.md` as a routing kernel and move expensive context into `references/`, `scripts/`, `assets/`, and, when justified, `subagents/`.
+
+Use `docs/reference/skill-quality-rubric.md` for scoring against this profile.

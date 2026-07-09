@@ -898,7 +898,7 @@ bkt pr list [flags]
 
 Merge a pull request. The source branch is closed by default (use
 --close-source=false to keep it). An optional merge strategy can be specified
-(e.g. fast-forward, squash) and a custom merge commit message can be provided.
+(e.g. fast_forward, squash) and a custom merge commit message can be provided.
 
 Works on both Data Center and Cloud. On Data Center, the current PR version
 is used for optimistic locking.
@@ -917,7 +917,7 @@ bkt pr merge <id> [flags]
 | `--message` |  | Merge commit message override |
 | `--project` |  | Bitbucket project key override |
 | `--repo` |  | Repository slug override |
-| `--strategy` |  | Merge strategy ID (e.g., fast-forward) |
+| `--strategy` |  | Merge strategy ID (e.g., rebase_fast_forward) |
 | `--workspace` |  | Bitbucket Cloud workspace override |
 
 ### Inherited Flags
@@ -940,8 +940,8 @@ bkt pr merge <id> [flags]
   # Merge with a custom commit message
   bkt pr merge 42 --message "Release v1.2.0"
 
-  # Merge using fast-forward strategy and keep source branch
-  bkt pr merge 42 --strategy fast-forward --close-source=false
+  # Merge using rebase fast-forward strategy and keep source branch
+  bkt pr merge 42 --strategy rebase_fast_forward --close-source=false
 ```
 
 ## bkt pr publish

@@ -1,6 +1,6 @@
 ---
 name: status
-description: "Run status."
+description: "Show AgentOps project status."
 ---
 # $status — Workflow Dashboard
 
@@ -17,7 +17,27 @@ description: "Run status."
 ```bash
 $status              # Full dashboard
 $status --json       # Machine-readable JSON output
+$status --recover    # Post-compaction recovery mode (absorbed $recover)
 ```
+
+---
+
+## Post-compaction recovery mode (absorbed `$recover`, 2026-07-07)
+
+Fires for the retired `$recover` skill's triggers — "recover", "recover session
+context", post-compaction re-orientation. Same gather as the dashboard plus the
+continuation surfaces, in this order:
+
+1. Run the full dashboard gather (Step 1 below).
+2. Read the newest `.agents/handoff/*.md` (the write-side counterpart — see the
+   handoff skill) and `.agents/rpi/execution-packet.json` if present.
+3. Re-read `AGENTS.md` before resuming any claimed bead (two-correction rule
+   applies after compaction).
+4. Report: what was in flight, the exact next action, and any claimed-but-unfinished
+   beads (`ao beads exec list --status in_progress`).
+
+The old skill's deep-recovery walkthrough survives at
+`references/recovery-playbook.md` (mirrored from the source skill).
 
 ---
 
@@ -62,17 +82,17 @@ fi
 
 **Call 2 — Beads / Epic State:**
 ```bash
-if br ready --json >/dev/null 2>&1 && br list --type epic --status open --json >/dev/null 2>&1; then
+if ao beads exec ready --json >/dev/null 2>&1 && ao beads exec list --type epic --status open --json >/dev/null 2>&1; then
   echo "=== EPIC ==="
-  br list --type epic --status open 2>/dev/null | head -5
+  ao beads exec list --type epic --status open 2>/dev/null | head -5
   echo "=== IN_PROGRESS ==="
-  br list --status in_progress 2>/dev/null | head -5
+  ao beads exec list --status in_progress 2>/dev/null | head -5
   echo "=== READY ==="
-  br ready 2>/dev/null | head -5
+  ao beads exec ready 2>/dev/null | head -5
   echo "=== TOTAL ==="
-  br list 2>/dev/null | wc -l
+  ao beads exec list 2>/dev/null | wc -l
 else
-  echo "BR_DEGRADED_OR_UNAVAILABLE"
+  echo "AO_DEGRADED_OR_UNAVAILABLE"
 fi
 ```
 
@@ -200,8 +220,8 @@ QUICK COMMANDS
   $pre-mortem   Validate plan before coding
   $implement    Execute a single issue
   $crank        Autonomous epic execution
-  $validate   Full close-out and learnings
-  $validate         Targeted code review
+  $post-mortem  Full close-out and learnings
+  $validate     Targeted code review
 ══════════════════════════════════════════════════
 ```
 
@@ -307,7 +327,7 @@ Render this with a single code block. No visual dashboard when `--json` is activ
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Shows "BR_DEGRADED_OR_UNAVAILABLE" or "AO_UNAVAILABLE" | CLI tools not installed or not in PATH | Install or expose `br` (beads_rust) or `ao`. Skill gracefully degrades by showing available state only. |
+| Shows "AO_DEGRADED_OR_UNAVAILABLE" or "AO_UNAVAILABLE" | `ao` CLI not installed or not in PATH | Install `ao` (it resolves the bead tracker — br/beads_rust — via `ao beads exec`). Skill gracefully degrades by showing available state only. |
 | Ratchet phase shows stale data | Old chain.jsonl not cleaned up | Check timestamp of `.agents/ao/chain.jsonl`. If stale, delete it or run `$validate` to complete cycle and reset state. |
 | Suggested action doesn't match intent | State-aware rules didn't capture edge case | Review priority table in Step 3. May need to refine conditions. Use `--json` to inspect raw state and debug rule matching. |
 | JSON output malformed | Parallel bash calls returned unexpected format | Check each bash call individually. Ensure jq parsing works on actual data. Validate JSON structure with `jq .` before returning to user. |

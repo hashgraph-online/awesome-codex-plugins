@@ -1,6 +1,6 @@
 ---
 name: amq-spec
-version: 0.36.0
+version: 0.41.0
 description: >-
   Parallel-research-then-converge design workflow between two agents. Use this
   skill when the user wants two agents to independently think through a design
@@ -121,13 +121,16 @@ If you receive a message labeled `workflow:spec`, your action depends on the pha
 | `phase:discuss` | Reply with your analysis, continue discussion until aligned |
 | `phase:draft` | Review the plan and send feedback as `review_response` + `phase:review`. Your job here is review, not implementation — the plan needs to survive scrutiny before anyone builds it. |
 | `phase:review` | Revise plan if needed, or confirm alignment |
-| `phase:decision` | Stop. Only the user can authorize implementation. The initiator presents the plan to the user; you wait until the initiator confirms approval and assigns you work. |
+| `phase:decision` | Stop. A `phase:decision` message is agent-to-agent alignment, **not** user approval, so do **not** implement from a spec decision alone. Only the human authorizes implementation, recorded as a structural gate to the initialized human handle (conventionally `user`; see the Operator Gates section in /amq-cli). Wait until the initiator confirms the human approved on the gate thread and assigns you work. |
 
 **Why the partner doesn't implement**: The spec workflow is a design process.
 The initiator owns the relationship with the user and presents the final plan.
 If the partner implements without approval, the user loses control over what
-gets built. Implementation starts only after the initiator explicitly tells
-you the user approved and assigns work.
+gets built. The agent-to-agent `phase:decision` message is alignment, not
+authorization: human approval is a structural gate to the initialized human
+handle, and partner agents must not implement from a spec decision alone.
+Implementation starts only after the initiator explicitly tells you the human
+approved and assigns work.
 
 ## Protocol Discipline
 
@@ -138,7 +141,7 @@ These rules exist because violations silently break the workflow's value proposi
 - **Don't skip phases** — each phase builds on the previous. Collapsing directly to a finished spec skips the discussion where misunderstandings surface.
 - **Use `spec/<topic>` threads and the label convention** — this is how both agents (and the tooling) know which phase the conversation is in. Without consistent labels, the receiver-side protocol table above breaks.
 - **Don't enter plan mode during research** if it blocks tool usage — you need tools to explore the codebase.
-- **Present the final plan to the user before executing** — the initiator owns the user relationship. After the decision phase, present the plan in chat and wait for explicit approval. Only then assign implementation work to agents.
+- **Present the final plan to the user before executing, and raise a structural gate**. The initiator owns the user relationship. After the decision phase, present the plan in chat AND raise a structural human gate using the initialized human handle (conventionally `user`) on a stable `gate/<topic>` thread, then wait for explicit approval on that thread. The agent-to-agent `phase:decision` message is alignment only; partner agents must not implement from it. See the Operator Gates section in /amq-cli for canonical mechanics, seeding, and guardrails.
 
 ## Reference
 

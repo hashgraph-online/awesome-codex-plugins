@@ -1,0 +1,7 @@
+interface:
+  display_name: "htmx Foundations"
+  short_description: "Plan htmx server-driven apps"
+  icon_small: "./assets/icons8-code.svg"
+  icon_large: "./assets/icons8-code.svg"
+  brand_color: "#424E5C"
+  default_prompt: "Use $htmx-foundations to plan a server-driven htmx app workflow."

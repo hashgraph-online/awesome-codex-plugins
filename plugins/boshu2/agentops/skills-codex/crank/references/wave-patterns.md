@@ -20,7 +20,7 @@ Crank follows FIRE for each wave:
 ### Beads Mode
 
 ```
-Wave 1: br ready → [issue-1, issue-2, issue-3]
+Wave 1: ao beads exec ready → [issue-1, issue-2, issue-3]
         ↓
         ↓
         $swarm → spawns 3 fresh-context agents
@@ -31,7 +31,7 @@ Wave 1: br ready → [issue-1, issue-2, issue-3]
         ↓
         bd update --status closed for completed
 
-Wave 2: br ready → [issue-4, issue-3-retry]
+Wave 2: ao beads exec ready → [issue-4, issue-3-retry]
         ↓
         ↓
         $swarm → spawns 2 fresh-context agents
@@ -81,12 +81,15 @@ IMPL WAVE (standard, enhanced with GREEN mode)
   Output: implementation code
   Gate: GREEN confirmation — ALL tests must PASS + wave acceptance check
                     ↓
-[Optional] REFACTOR WAVE
+REFACTOR WAVE (refactor-under-green — the load-bearing quality move, not optional)
   Workers: 1 per changed file group
   Input: passing tests + implementation
-  Output: diff-only cleanup
-  Gate: All tests still PASS
+  Output: diff-only cleanup, as its own commit
+  Gate: All tests still PASS *and the diff changed NO test file* — a refactor
+        that edits a test changed behavior; that is a new slice, not a refactor.
 ```
+
+Refactor-after-green is where the quality actually comes from (test-first *ordering* alone contributed nothing measurable — `skills/standards/references/agentic-workflow-evidence.md`); a pipeline that defers or skips it lands in the worst-performing cluster.
 
 ### Category-Based Skip
 
@@ -135,7 +138,7 @@ But do NOT read implementation details of the specific feature being specified.
 
 ## Wave Acceptance Check (MANDATORY)
 
-> **Principle:** Verify each wave meets acceptance criteria before advancing. Uses lightweight inline judges — no skill invocations, no context explosion.
+> **Principle:** Verify each wave meets acceptance criteria before advancing. The orchestrator reads the actual wave diff itself (Step 3.5, the anti-green-washing check) and *also* spawns lightweight inline judges (Step 4) — the orchestrator's own diff-read is distinct from the delegated sub-judges, and a green promise + passing evidence JSON is never sufficient on its own. No skill invocations, no context explosion.
 
 **After closing all beads in a wave, before advancing to the next wave:**
 
@@ -150,7 +153,7 @@ But do NOT read implementation details of the specific feature being specified.
 2. **Load acceptance criteria** for all issues closed in this wave:
    ```bash
    # For each closed issue in the wave:
-   bd show <issue-id>  # extract ACCEPTANCE CRITERIA section
+   ao beads exec show <issue-id>  # extract ACCEPTANCE CRITERIA section
    ```
 
 3. **Validate worker result evidence (FAIL-CLOSED):**
@@ -168,6 +171,17 @@ But do NOT read implementation details of the specific feature being specified.
    - schema validation failure
    - missing required evidence
    - required evidence check with `FAIL` verdict
+
+3.5. **Orchestrator's own diff-read (MANDATORY — the anti-green-washing check):**
+
+   > **The orchestrator itself reads `WAVE_DIFF` before counting any slice — distinct from the delegated sub-judges in Step 4.** A green `<promise>DONE</promise>` plus a passing evidence JSON is a *claim*, not proof of scope: a worker can emit a clean evidence file while its diff touches files outside the slice's declared boundary. The roll-up of verdicts does not catch this; only reading the actual diff does.
+
+   For each issue closed in the wave, the orchestrator (not a sub-judge) attributes the files THAT slice touched **from its evidence** — the per-issue result (`.agents/swarm/results/<issue-id>.json`, already validated in Step 3) records the slice's touched-file list, the authoritative attribution. **Do NOT use `git log --grep "<issue-id>"`** — a slice that omits the id from its commit message yields an empty changeset and passes vacuously. Then check each slice's claim + write-scope:
+- **Scope match (per-slice, evidence-attributed):** every file in *this slice's recorded touched-file list* falls inside *its* declared write scope. This catches a slice writing OUTSIDE its boundary — including into **another** slice's file (it is in THIS slice's evidence but not its scope → FAIL; another slice owning that path does not excuse it). Do NOT compare the full `WAVE_DIFF` against one slice's scope — multi-slice waves touch disjoint files, which would false-flag every valid parallel slice.
+- **Wave coverage (union):** every file in the full `WAVE_DIFF` appears in *some* slice's recorded touched-file list. A file in **no** slice's evidence is unclaimed drift — the case that caught the Codex pawl-embed + `validate.yml` drift (files touched that no slice owns). (A diff file absent from every slice's evidence also means the evidence is incomplete, which Step 3 already fails on.)
+- **Claim match:** each slice's diff actually does what it claims (not an empty or unrelated change behind a green promise).
+
+   If a slice's evidence-files fall outside *its* scope, OR any wave file is in *no* slice's evidence, OR a claim doesn't match, the slice/wave is **flagged** — set the wave verdict to **FAIL** (do not silently count it) and surface the offending file list to the operator. This is a hard gate, evaluated before the delegated judges run.
 
 4. **Spawn 2 inline judges** (Task agents, NOT skill invocations):
 
@@ -206,6 +220,7 @@ But do NOT read implementation details of the specific feature being specified.
 
 5. **Aggregate verdicts:**
    - If Step 3 fails evidence validation → **FAIL**
+   - If Step 3.5 flags an out-of-scope or claim-mismatched diff → **FAIL**
    - Else, both judges PASS → **PASS**
    - Else, any judge FAIL → **FAIL**
    - Otherwise → **WARN**
@@ -215,7 +230,7 @@ But do NOT read implementation details of the specific feature being specified.
    | Verdict | Action |
    |---------|--------|
    | **PASS** | Record verdict in epic notes. Advance to next wave. |
-   | **WARN** | Create fix beads as children of the epic (`br create`). Execute fixes inline (small) or as wave N.5 via swarm. Re-run acceptance check. If PASS on re-check, advance. If still WARN after 2 attempts, treat as FAIL. WARN is only for non-critical review gaps after evidence is complete. |
+   | **WARN** | Create fix beads as children of the epic (`ao beads exec create`). Execute fixes inline (small) or as wave N.5 via swarm. Re-run acceptance check. If PASS on re-check, advance. If still WARN after 2 attempts, treat as FAIL. WARN is only for non-critical review gaps after evidence is complete. |
    | **FAIL** | Record verdict in epic notes. Output `<promise>BLOCKED</promise>` and exit. Human review required. Includes missing mandatory evidence. |
 
    ```bash
@@ -291,5 +306,5 @@ When the gate fails, surface a concise summary to the operator:
 ### Why this gate exists
 
 - Commit `c587b361 ci(reconcile): wire factory-claim-ledger-strict into summary + AGENTS parity` is the manual fix that motivated this gate (soc-lmww1 drift). PR-F (this gate) is the formalization of `finding-2026-05-07-ci-parity-as-wave-acceptance`.
-- The validator (`scripts/validate-ci-policy-parity.sh`) is also wired into `scripts/pre-push-gate.sh`. Wave acceptance hits the same gate earlier — at wave-close time — so drift never escapes a wave.
+- The validator (`scripts/validate-ci-policy-parity.sh`) is also in the Go gate registry as `ci.policy-parity` (with legacy bash-gate coverage). Wave acceptance hits the same gate earlier — at wave-close time — so drift never escapes a wave.
 - Narrow trigger keeps the gate cheap and prevents false positives from CODEOWNERS, README, or non-workflow YAML changes.

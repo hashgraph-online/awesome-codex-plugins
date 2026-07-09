@@ -19,6 +19,22 @@
 
 1. Ensure `.orchestrator/metrics/` directory exists: `mkdir -p .orchestrator/metrics`
 
+1-pre. **`memory_cleanup_at` always-stamp (#699)** — Before emitting the record, if `/memory-cleanup` ran THIS session in any mode (dry-run, apply-pending, OR healthy no-op), stamp `memory_cleanup_at = completed_at` on the record using `stampMemoryCleanup()` from `scripts/lib/memory-cleanup-stamp.mjs`:
+
+   ```js
+   import { stampMemoryCleanup } from '../../scripts/lib/memory-cleanup-stamp.mjs';
+
+   // ranCleanup: true when /memory-cleanup ran this session (ANY outcome)
+   metricsEntry = stampMemoryCleanup(metricsEntry, {
+     ranCleanup: ranMemoryCleanupThisSession, // boolean
+     completedAt: metricsEntry.completed_at,
+   });
+   ```
+
+   **Contract:** A no-op run (MEMORY.md already healthy, no files mutated) is still a cleanup — `memory_cleanup_at` MUST be stamped. This advances `readDreamSignals` → `lastCleanupAt` in `auto-dream.mjs` so `shouldDispatchAutoDream` does not fire a false nudge. When `/memory-cleanup` did not run, omit the field entirely (do NOT set null). The helper is no-throw and pure — it returns the record unchanged on bad inputs.
+
+   > **#701.2 DOC NOTE — `completed_at >= started_at` guard:** This invariant is enforced mechanically by `scripts/emit-session.mjs`. The writer applies `clampTimestampsMonotonic()` (from `scripts/lib/session-schema/timestamps.mjs`) before `validateSession()`, clamping any inversion of `completed_at < started_at` to `started_at` and recording forensics in `_clamped: true` / `_original_completed_at`. Previously-inverted entries (e.g. `main-2026-06-21-session-4`) are already corrected. **No per-session coordinator action is needed** — the writer enforces the invariant at write time. Do not add defensive clamping logic here; the canonical guard lives in `emit-session.mjs`.
+
 1a. **Token Rollup (#644)** — before emitting the JSONL record, aggregate token usage from `subagents.jsonl` and merge the three token fields onto the in-memory `$METRICS_ENTRY` JSON object. The join key is the session's UUID (`session_id` / `parent_session_id` on subagents.jsonl — the UUID form, not the semantic slug).
 
    **Semantics:** `null` totals mean "no token data was captured for this session" — this is NOT the same as zero cost. Do NOT coerce null to 0 when displaying or summing across sessions.
@@ -104,12 +120,14 @@
      # site is a read-only consumer.
      VM_QUALITY_NARRATIVE=$(echo "$CONFIG" | jq -r '."vault-mirror".quality."min-narrative-chars" // 400')
      VM_QUALITY_CONFIDENCE=$(echo "$CONFIG" | jq -r '."vault-mirror".quality."min-confidence" // 0.5')
+     VM_VAULT_NAME=$(echo "$CONFIG" | jq -r '."vault-integration"."vault-name" // empty')
 
      VM_OUTPUT=$(node "$PLUGIN_ROOT/scripts/vault-mirror.mjs" \
        --vault-dir "$VM_DIR" \
        --source .orchestrator/metrics/sessions.jsonl \
        --kind session \
        --session-id "$SESSION_ID" \
+       ${VM_VAULT_NAME:+--vault-name "$VM_VAULT_NAME"} \
        --quality-min-narrative-chars "$VM_QUALITY_NARRATIVE" \
        --quality-min-confidence "$VM_QUALITY_CONFIDENCE" 2>&1)
      VM_EXIT=$?
@@ -142,8 +160,56 @@
          echo "vault-mirror: ${VM_QUALITY_SKIP} entry/entries skipped by quality gate (set vault-mirror.quality.min-narrative-chars / min-confidence to tune)"
        fi
      fi
+
+     # ── Durable Narrative Mirror (#675) ────────────────────────────────────
+     # Sibling of the session-mirror above, gated on the SAME vault-integration
+     # gate ($VM_ENABLED / $VM_MODE checked at the top of this block). Reads this
+     # repo's `.claude/STATE.md`, extracts the DURABLE narrative — `## Wave History`,
+     # `## Deviations`, `## What Not To Retry`, plus the mission-status rollup — and
+     # idempotently writes a generator-owned per-repo file at
+     # `<vault-dir>/01-projects/<repo-slug>/_session-narrative.md`, so a reviewer
+     # or stand-in can read PER REPO what was done, what failed, and what not to
+     # retry WITHOUT opening the repo.
+     #
+     # Idempotent + safe: NEVER touches `_overview.md` or any hand-authored file
+     # (marker-guarded via `session-orchestrator-vault-status-narrative@1`). A
+     # re-run with no STATE.md change returns `skipped-noop`; an existing
+     # non-generator file returns `skipped-handwritten`; absent STATE.md returns
+     # `skipped-no-statemd`. The helper ALSO self-no-ops (`skipped-vault-disabled`)
+     # when vault-integration is off — this gate is defense-in-depth, not the sole
+     # gate. Non-blocking: a failure surfaces a warning and never blocks close,
+     # using the same strict/warn degradation idiom as the vault-mirror step above.
+     NM_OUTPUT=$(node -e "
+       import('$PLUGIN_ROOT/scripts/lib/vault-status/narrative-mirror.mjs').then(async (m) => {
+         const r = await m.mirrorNarrative({ repoRoot: process.cwd() });
+         process.stdout.write(JSON.stringify(r));
+       }).catch((e) => { process.stderr.write(String(e && e.message || e)); process.exit(3); });
+     " 2>&1)
+     NM_EXIT=$?
+
+     if [[ $NM_EXIT -ne 0 ]]; then
+       if [[ "$VM_MODE" == "strict" ]]; then
+         echo "ERROR: narrative-mirror failed (exit $NM_EXIT) — session close blocked (vault-integration.mode=strict): $NM_OUTPUT"
+         echo "Fix the narrative mirror issue or set vault-integration.mode: warn to downgrade to a warning."
+         exit 1
+       else
+         # mode: warn (default) — surface warning but do not block
+         echo "WARNING: narrative-mirror exited $NM_EXIT — durable per-repo narrative was NOT mirrored to the vault. Set vault-integration.mode: strict to block on this error."
+       fi
+     else
+       # Surface the JSON result so the operator can see skipped-* / written outcomes.
+       NM_ACTION=$(echo "$NM_OUTPUT" | jq -r '.action // empty' 2>/dev/null)
+       NM_PATH=$(echo "$NM_OUTPUT" | jq -r '.path // empty' 2>/dev/null)
+       if [[ "$NM_ACTION" == "written" && -n "$NM_PATH" ]]; then
+         echo "Mirrored durable session narrative to $NM_PATH"
+       elif [[ -n "$NM_ACTION" ]]; then
+         echo "narrative-mirror: $NM_ACTION${NM_PATH:+ ($NM_PATH)}"
+       fi
+     fi
    fi
    ```
+
+   > **Repo name** is derived internally: `mirrorNarrative` defaults the per-repo slug + frontmatter `repo:` field to `path.basename(repoRoot)` when `repo` is omitted, so the call needs only `repoRoot: process.cwd()` — no shell-var plumbing. (Pass an explicit `repo:` only to override the derived basename.) The narrative mirror shares vault-dir resolution with `mirrorNarrative` itself (it reads Session Config internally), so no separate `--vault-dir` plumbing is needed here.
 
    **Behaviour matrix:**
 
@@ -154,4 +220,4 @@
    | `true` | `warn`  | Run mirror; on failure surface a warning but do NOT block close |
    | `true` | `strict` | Run mirror; on failure block session close with an error message |
 
-   > **Hand-written note protection:** `vault-mirror.mjs` checks for a `_generator: session-orchestrator-vault-mirror@1` marker before overwriting any existing file. When it skips an existing hand-written note it emits a JSON line `{"action":"skipped-handwritten","path":"<path>","kind":"<kind>","id":"<id>"}` — the step above surfaces this output so the user can see the result. Action names: `created`, `updated`, `skipped-noop`, `skipped-handwritten`, `skipped-collision-resolved`, `skipped-invalid` (entry failed required-field validation), `skipped-quality-low` (entry failed quality gate — PRD F1.2; line carries a `reason` field).
+   > **Hand-written note protection:** `vault-mirror.mjs` checks for a `_generator: session-orchestrator-vault-mirror@1` marker before overwriting any existing file. When it skips an existing hand-written note it emits a JSON line `{"action":"skipped-handwritten","path":"<path>","kind":"<kind>","id":"<id>"}` — the step above surfaces this output so the user can see the result. Action names: `created`, `updated`, `skipped-noop`, `skipped-handwritten`, `skipped-collision-resolved`, `skipped-invalid` (entry failed required-field validation, or the mapper crashed rendering an otherwise-parseable record — the latter case carries `reason: "mapper-crash"`, #718), `skipped-quality-low` (entry failed quality gate — PRD F1.2; line carries a `reason` field).

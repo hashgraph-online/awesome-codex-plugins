@@ -1,0 +1,44 @@
+{
+  "name": "agentguards-codex",
+  "description": "LLM security guardrails for OpenAI Codex — jailbreak detection, prompt-injection and web-content scanning, data-exfiltration blocking, and destructive-command authorization. Bundles enforcing hooks plus the AgentGuards MCP server.",
+  "version": "0.2.3",
+  "author": {
+    "name": "AgentGuards",
+    "email": "support@agentguards.co",
+    "url": "https://agentguards.co"
+  },
+  "homepage": "https://agentguards.co",
+  "repository": "https://github.com/alelaguard/agentguards-plugins",
+  "license": "MIT",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json",
+  "keywords": [
+    "security",
+    "guardrails",
+    "llm-security",
+    "prompt-injection",
+    "jailbreak",
+    "codex"
+  ],
+  "interface": {
+    "displayName": "AgentGuards",
+    "shortDescription": "LLM security guardrails for Codex",
+    "longDescription": "AgentGuards screens what Codex does — every prompt and every shell command — and surfaces anything risky for approval before it runs. Enforcing hooks provide jailbreak and prompt-injection detection, web-content scanning, data-exfiltration blocking, and destructive-command authorization, backed by the AgentGuards MCP tools. Fail-closed by default; switch to fail-open with a single environment variable.",
+    "developerName": "AgentGuards",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://agentguards.co",
+    "privacyPolicyURL": "https://agentguards.co/privacy",
+    "termsOfServiceURL": "https://agentguards.co/terms",
+    "brandColor": "#4F46E5",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png",
+    "defaultPrompt": [
+      "Confirm AgentGuards guardrails are active and the service is healthy.",
+      "Screen this input with AgentGuards before I act on it:"
+    ]
+  }
+}

@@ -47,11 +47,11 @@ metadata.
 
 ## Waves Are Formed By Dependencies
 
-- Issues with no blockers -> Wave 1 and appear in `br ready` immediately.
+- Issues with no blockers -> Wave 1 and appear in `ao beads exec ready` immediately.
 - Issues blocked by Wave 1 -> Wave 2 once Wave 1 closes.
 - Issues blocked by Wave 2 -> Wave 3, and so on.
 
-`br ready` returns the current executable wave: all unblocked issues that can
+`ao beads exec ready` returns the current executable wave: all unblocked issues that can
 run in parallel.
 
 ## Step 7b: Verify Validation Blocks
@@ -60,10 +60,10 @@ After creating all br issues, verify that every issue body contains a fenced
 validation block. Missing validation blocks weaken the plan-to-crank pipeline.
 
 ```bash
-if command -v br &>/dev/null && [[ -n "$EPIC_ID" ]]; then
+if command -v ao &>/dev/null && [[ -n "$EPIC_ID" ]]; then
     MISSING_VALIDATION=()
     for ISSUE_ID in $ALL_CREATED_ISSUES; do
-        if ! br show "$ISSUE_ID" 2>/dev/null | grep -q '```validation'; then
+        if ! ao beads exec show "$ISSUE_ID" 2>/dev/null | grep -q '```validation'; then
             MISSING_VALIDATION+=("$ISSUE_ID")
         fi
     done

@@ -50,7 +50,7 @@ Install the plugin for your agent, then invoke skills through that agent's nativ
 | [setup](skills/setup) | Add Biome, Husky, commitlint, lint-staged, GitLeaks, and TypeScript to JS/TS projects |
 | [project-structure](skills/project-structure) | Audit project directory structure for colocation, grouping, and anti-pattern detection |
 | [naming-format](skills/naming-format) | Audit and fix filename and export naming conventions for consistency |
-| [update-project](skills/update-project) | Update and maintain CLAUDE.md, README.md, agents, skills, and rules to match current project state |
+| [update-project](skills/update-project) | Update and maintain CLAUDE.md, AGENTS.md, README.md, agents, skills, and rules to match current project state |
 
 ## Agents
 

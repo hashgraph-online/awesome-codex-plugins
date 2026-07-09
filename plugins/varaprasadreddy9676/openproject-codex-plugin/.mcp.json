@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "openproject_codex": {
+      "command": "python3",
+      "args": ["./scripts/run_openproject_mcp.py"],
+      "cwd": ".",
+      "env": {
+        "OPENPROJECT_BASE_URL": "https://your-openproject.example.com",
+        "OPENPROJECT_DEFAULT_PROJECT": "",
+        "OPENPROJECT_API_TOKEN_FILE": "~/.codex/secrets/openproject-api-token"
+      }
+    }
+  }
+}

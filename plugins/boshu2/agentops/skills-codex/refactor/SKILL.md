@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: "Run refactor."
+description: Execute safe refactors.
 ---
 # Refactor Skill
 
@@ -30,6 +30,25 @@ Find and fix complexity hotspots across a directory, package, or entire project.
 - A directory path (`cli/internal/`)
 - A package name (`goals`)
 - `all` (entire project -- use with caution)
+
+#### Folded trigger (ag-s43tg wave 1): `complexity` routes here
+
+**`complexity` → sweep mode's analysis half.** Use when you need to find
+focused refactor hotspots — analyzing code complexity to identify refactoring
+targets is built into sweep mode, no separate skill required:
+
+- **Python:** `radon cc <path> -a -s` (cyclomatic complexity) and `radon mi <path> -s`
+  (maintainability index). Install: `pip install radon`.
+- **Go:** `gocyclo -over 10 <path>`. Install:
+  `go install github.com/fzipp/gocyclo/cmd/gocyclo@latest`.
+- **No path given?** Scope to recent changes:
+  `git diff --name-only HEAD~5 | grep -E '\.(py|go)$'`.
+
+Interpret cyclomatic complexity (CC) grades: 1-5 simple (A), 6-10 manageable (B),
+11-20 should refactor (C), 21-30 must refactor (D), 31+ critical — refactor now (F).
+Produce a focused hotspot list ranked by CC descending, optionally written to
+`.agents/complexity/YYYY-MM-DD-<target>.md`, then work the worst offenders first
+(Step 1, Sweep mode below).
 
 ### 3. Extract Mode
 
@@ -417,9 +436,11 @@ explicitly excluded with `--exclude` and justified in the closeout.
 - `complexity` -- analyze code complexity metrics
 - `$standards` -- language-specific conventions
 - `$validate` -- validate code quality post-refactor
-- `$review` -- if refactoring uncovers bugs
+- `/review` -- if refactoring uncovers bugs
 - `$implement` -- if refactoring requires new code
 
 ## Reference Documents
+
+- [references/refactor.feature](references/refactor.feature) — Executable spec: one transformation/one test/one commit, target + hotspot (complexity-first) modes, revert on test fail (soc-qk4b)
 
 - [references/behavior-preserving-simplification.md](references/behavior-preserving-simplification.md)

@@ -37,6 +37,18 @@
 
 {{1-2 paragraphs elaborating on primary persona}}
 
+## User Stories
+
+> Optional intent layer — emitted only when the Wave-1 story toggle is "yes". Leave blank or delete this section if §5/§5.A acceptance criteria already capture the intent. Stories are the "who/why"; acceptance criteria are the "verify".
+
+### US-1 (→ {{Feature Area}})
+**Als** {{Persona}} **möchte ich** {{Capability}}, **damit** {{Nutzen}}.
+- ↳ AC: {{§5 / §5.A reference to ≥1 acceptance criterion}}
+
+### US-2 (→ {{Feature Area}})
+**Als** {{Persona}} **möchte ich** {{Capability}}, **damit** {{Nutzen}}.
+- ↳ AC: {{§5 / §5.A reference to ≥1 acceptance criterion}}
+
 ## 4. Solution & Scope
 
 ### In-Scope (MVP)

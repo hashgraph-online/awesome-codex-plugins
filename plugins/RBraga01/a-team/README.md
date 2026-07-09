@@ -2,9 +2,9 @@
   <img src="assets/ATeam_full.png" alt="A Team logo" width="200">
 </p>
 
- # A Team — A Complete Engineering Team in One Folder v1.2.0
+ # A Team — A Complete Engineering Team in One Folder v1.3.0
 
-Not a marketplace of agents you configure. A pre-configured, pre-enforced engineering team of 26 specialists — with a lead orchestrator, hard quality gates, and a Pipeline Auditor that verifies work was actually done, not just reported. Drop one folder into any project and it's operational from the first keystroke. Works on Claude Code, Codex CLI, Cursor, and OpenCode.
+Not a marketplace of agents you configure. A pre-configured, pre-enforced engineering team of 26 specialists — with a lead orchestrator, hard quality gates, and a Pipeline Auditor that verifies work was actually done, not just reported. Drop one folder into any project and it's operational from the first keystroke. Works on Claude Code, Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI.
 
 > **Born from the community.** A Team was built by studying, using, and needing to personalise several excellent open-source agent projects. The architecture combines the best patterns from each into a single, portable baseline. See [Acknowledgments](#acknowledgments) for the projects that made this possible.
 
@@ -83,7 +83,7 @@ git clone --filter=blob:none --sparse --depth 1 \
   https://github.com/RBraga01/a-team.git
 
 cd a-team
-git sparse-checkout set .claude skills hooks templates scripts INIT_TEMPLATE.md
+git sparse-checkout set .claude skills hooks templates scripts
 
 # Copy into your project
 cp -r .claude skills hooks templates scripts ../your-project/
@@ -98,7 +98,7 @@ git clone --filter=blob:none --sparse --depth 1 `
   https://github.com/RBraga01/a-team.git
 
 cd a-team
-git sparse-checkout set .claude skills hooks templates scripts INIT_TEMPLATE.md
+git sparse-checkout set .claude skills hooks templates scripts
 
 Copy-Item -Recurse .claude,skills,hooks,templates,scripts ..\your-project\
 Copy-Item INIT_TEMPLATE.md ..\your-project\INIT.md
@@ -147,7 +147,7 @@ Open `INIT.md` and tick the checkboxes for your project:
 - Primary languages (Go, Python, Kotlin, Swift, etc.)
 - Tech stack (database, infra, CI/CD)
 - Compliance scope (GDPR, PCI-DSS, etc.)
-- Which AI platforms are active (Claude Code, Codex, Cursor, OpenCode)
+- Which AI platforms are active (Claude Code, Codex, Cursor, OpenCode, GitHub Copilot CLI)
 
 Takes about 5 minutes.
 
@@ -203,6 +203,7 @@ A Team/
 │
 ├── .cursor-plugin/            ← Cursor IDE integration
 ├── .codex-plugin/             ← Codex CLI integration
+├── .copilot-plugin/           ← GitHub Copilot CLI integration
 ├── .opencode/                 ← OpenCode integration
 │
 └── tests/                     ← Harness test suite for A Team itself
@@ -488,6 +489,7 @@ A Team is designed to run on one CLI or several simultaneously. Each platform re
 | **Claude Code** | `.claude/agents/` | `skills/` | `.claude/rules/` | `settings.json` hooks | `.claude/commands/` |
 | **Codex CLI** | `.claude/agents/` (via agentsPath) | `skills/` | `.claude/rules/` | `onSessionStart` hook | — |
 | **Cursor** | `.claude/agents/` (via agentsPath) | `skills/` | `.claude/rules/` | `onSessionStart` hook | — |
+| **GitHub Copilot CLI** | `.claude/agents/` (via `agents` path) | `skills/` | `.claude/rules/` | `SessionStart` / `PreToolUse` / `PostToolUse` / `SessionEnd` hooks | — |
 | **OpenCode** | — | `skills/` | — | — | `.opencode/commands/` |
 
 ### Running multiple CLIs on the same project
@@ -496,7 +498,7 @@ All CLIs share `.agent-sync/` (DAILY.md, ROUTING.md, TEAM.md, results/). This me
 
 - The orchestrator's state is visible regardless of which CLI triggered it.
 - File Claims are written once and honoured by any CLI reading ROUTING.md.
-- Hooks are **not** propagated across platforms — configure `onSessionStart` in each plugin manifest separately (already done in `.codex-plugin/` and `.cursor-plugin/`).
+- Hooks are **not** propagated across platforms — configure session-start hooks in each plugin manifest separately (already done in `.codex-plugin/`, `.cursor-plugin/`, and `.copilot-plugin/`).
 
 ### Platform-specific behaviour
 
@@ -507,6 +509,14 @@ All CLIs share `.agent-sync/` (DAILY.md, ROUTING.md, TEAM.md, results/). This me
 **Cursor** loads agents and skills. Its rule injection depends on the `.cursor-plugin/` manifest's `rulesPath`. Slash commands are not available; use the skill invocation pattern instead.
 
 **OpenCode** has command aliases in `.opencode/commands/` mapping to the same workflows. It does not have native agent or hook support — skills are invoked manually.
+
+**GitHub Copilot CLI** loads agents, skills, and hooks via the `.copilot-plugin/plugin.json` manifest. It supports the A Team session, tool-use, post-edit, and session-end gates through Copilot CLI hooks, so enforcement parity is full — not partial.
+
+Install:
+
+```bash
+copilot plugin install RBraga01/a-team:.copilot-plugin
+```
 
 ---
 

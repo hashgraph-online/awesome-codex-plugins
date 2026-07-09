@@ -1,0 +1,15 @@
+interface:
+  display_name: "Superloopy Doctor"
+  short_description: "Diagnose Superloopy install and bootstrap health"
+  search_terms:
+    - "superloopy doctor"
+    - "doctor"
+    - "health"
+    - "install"
+    - "bootstrap"
+    - "wrapper"
+    - "agents"
+    - "plugin cache"
+    - "marketplace"
+    - "stale"
+  default_prompt: "Use superloopy-doctor to diagnose this Superloopy install or bootstrap problem without mutating local state."

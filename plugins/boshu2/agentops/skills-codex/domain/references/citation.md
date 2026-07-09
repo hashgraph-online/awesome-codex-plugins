@@ -52,9 +52,9 @@ Two forms:
 ## Example in this codebase
 
 Every `see-also:` line in this corpus's frontmatter is a Citation. The
-deprecated `ao inject` command (`cli/cmd/ao/inject.go:153`) records citation
-events to `.agents/ao/citations.jsonl` — the same idea applied to the
-existing learnings/patterns corpus.
+`ao lookup` command (`cli/cmd/ao/lookup.go`) records citation events to
+`.agents/ao/citations.jsonl` — the same idea applied to the existing
+learnings/patterns corpus.
 
 ## See also
 

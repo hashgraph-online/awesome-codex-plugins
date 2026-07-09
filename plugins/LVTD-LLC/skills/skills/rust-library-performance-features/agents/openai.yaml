@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Library Performance Features"
+  short_description: "Benchmark Rust library features"
+  default_prompt: "Use $rust-library-performance-features to add benchmarks and validate this crate's Cargo feature matrix."

@@ -1,0 +1,154 @@
+[project]
+name = "waggle-mcp"
+version = "0.0.1"
+description = "MCP server that gives LLMs persistent graph-structured memory"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [
+  { name = "Abhigyan Shekhar" }
+]
+keywords = ["mcp", "knowledge-graph", "memory", "llm", "context"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "anthropic>=0.75.0",
+  "anyio>=4.4.0",
+  "cryptography>=45.0.0",
+  "google-api-python-client>=2.170.0",
+  "google-auth>=2.40.0",
+  "google-genai>=1.56.0",
+  "mcp>=1.0.0",
+  "networkx>=3.2.1",
+  "numpy>=1.26.0",
+  "openai>=2.14.0",
+  "portkey-ai>=2.1.0",
+  "pydantic>=2.7.0",
+  "python-dotenv>=1.2.1",
+  "python-louvain>=0.16",
+  "pyvis>=0.3.2",
+  "requests>=2.32.5",
+  "rich>=13.0.0",
+  "sentence-transformers>=2.6.0",
+  "starlette>=0.37.2",
+  "uvicorn>=0.30.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Abhigyan-Shekhar/Waggle-mcp"
+Repository = "https://github.com/Abhigyan-Shekhar/Waggle-mcp"
+Documentation = "https://github.com/Abhigyan-Shekhar/Waggle-mcp#readme"
+Changelog = "https://github.com/Abhigyan-Shekhar/Waggle-mcp/blob/main/CHANGELOG.md"
+Issues = "https://github.com/Abhigyan-Shekhar/Waggle-mcp/issues"
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.27.0",
+  "mypy>=1.10.0",
+  "pytest>=8.2.0",
+  "pytest-asyncio>=0.23.7",
+  "ruff>=0.4.0",
+]
+neo4j = [
+  "neo4j>=5.20.0",
+]
+code-analysis = [
+  "tree-sitter>=0.21.0",
+  "tree-sitter-language-pack>=0.2.0",
+]
+rlm-ipython = [
+  "dill>=0.3.7",
+  "ipykernel>=6.0.0",
+  "ipython>=8.0.0",
+  "jupyter_client>=8.0.0",
+]
+rlm-modal = [
+  "dill>=0.3.7",
+  "modal>=0.73.0",
+]
+rlm-e2b = [
+  "dill>=0.3.7",
+  "e2b-code-interpreter>=0.0.11",
+]
+rlm-daytona = [
+  "daytona>=0.128.1",
+  "dill>=0.3.7",
+]
+rlm-prime = [
+  "dill>=0.3.7",
+  "prime-sandboxes>=0.2.0",
+]
+
+[project.scripts]
+waggle-mcp = "waggle.server:main"
+waggle = "waggle.server:main"
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+waggle = ["py.typed", "static/graph/*", "static/graph/chunks/*", "static/graph/assets/*"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# ── Ruff: linting + formatting ────────────────────────────────────────────
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes (undefined names, unused imports, etc.)
+    "I",    # isort (import ordering)
+    "UP",   # pyupgrade (modern Python idioms)
+    "B",    # flake8-bugbear (likely bugs / design issues)
+    "C4",   # flake8-comprehensions
+    "PIE",  # flake8-pie (misc lints)
+    "SIM",  # flake8-simplify
+    "RUF",  # Ruff-specific rules
+]
+ignore = [
+    "E501",   # line-length — handled by formatter
+    "B008",   # function call in default arg (common in FastAPI / Pydantic)
+    "B904",   # raise-without-from — flagged too aggressively in MCP handlers
+    "SIM102", # nested if → collapsible (sometimes less readable)
+    "SIM108", # ternary operator preference (sometimes harder to read)
+    "RUF012", # mutable class var default — Pydantic handles this
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["waggle", "rlm"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/rlm/**/*.py" = ["RUF001", "RUF005", "RUF013", "SIM105", "SIM118"]
+"tests/test_demo.py" = ["E402"]
+"tests/test_hooks.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# ── Mypy: static type checking ────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.11"
+# Start permissive so new contributors aren't blocked; tighten incrementally.
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_return_any = false
+disallow_untyped_defs = false

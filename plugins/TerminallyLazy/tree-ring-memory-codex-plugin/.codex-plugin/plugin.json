@@ -1,0 +1,46 @@
+{
+  "name": "tree-ring-memory",
+  "version": "0.1.0",
+  "description": "Lifecycle-aware local memory guidance for Codex agents using Tree Ring Memory.",
+  "author": {
+    "name": "TerminallyLazy",
+    "url": "https://github.com/TerminallyLazy"
+  },
+  "homepage": "https://github.com/TerminallyLazy/Tree-Ring-Memory",
+  "repository": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "memory",
+    "agent-memory",
+    "local-first",
+    "recall",
+    "sqlite",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tree Ring Memory",
+    "shortDescription": "Local-first memory lifecycle guidance for Codex agents.",
+    "longDescription": "Tree Ring Memory gives Codex a lifecycle-aware memory practice for project recall, durable decisions, evidence-backed lessons, explicit forgetting, and privacy-safe memory capture using the open-source Tree Ring Memory CLI.",
+    "developerName": "TerminallyLazy",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/TerminallyLazy/Tree-Ring-Memory",
+    "privacyPolicyURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Use Tree Ring Memory to recall durable project context before editing.",
+      "Use Tree Ring Memory to capture this validated lesson without storing a transcript.",
+      "Use Tree Ring Memory to audit stale or sensitive memory before closeout."
+    ],
+    "brandColor": "#2F7D5C",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": []
+  }
+}

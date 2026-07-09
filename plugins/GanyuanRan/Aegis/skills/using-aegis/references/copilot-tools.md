@@ -27,7 +27,7 @@ Copilot CLI's `task` tool accepts an `agent_type` parameter:
 |-------------------|----------------------|
 | `general-purpose` | `"general-purpose"` |
 | `Explore` | `"explore"` |
-| Named plugin agents (e.g. `aegis:code-reviewer`) | Discovered automatically from installed plugins |
+| Reviewer prompt templates | Dispatch `task` with the filled skill-local template, such as `skills/requesting-code-review/code-reviewer.md` |
 
 ## Async shell sessions
 

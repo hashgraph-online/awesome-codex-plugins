@@ -33,7 +33,7 @@ The loop keeps running as long as post-mortem keeps finding follow-up work. Each
 **Priority cascade:**
 ```
 next-work.jsonl (harvested / queued work)    → exact repo first, then `*`, then legacy
-Open beads (br ready)                        → durable tracked backlog
+Open beads (ao beads exec ready)                        → durable tracked backlog
 GOALS.yaml directives and failing goals      → explicit fitness gaps
 Testing improvements                         → synthesize coverage / regression-test work
 Validation + bug-hunt passes                 → tighten gates, discover real defects
@@ -45,3 +45,22 @@ kill switch                                  → immediate stop
 ```
 
 The loop does NOT stop just because goals are met or the current queue is empty. It re-reads harvested work after every `$rpi` cycle, runs generator layers when queues are empty, and only stops after repeated empty queue + generator passes. Idle cycles are NOT committed to git — only appended locally. The idle streak is re-derived from disk at each session start, while `session-state.json` carries pending claim/generator resume state. Use the kill switch for intentional stops.
+
+## Compounding is a tracked hypothesis, not a settled property (added 2026-07-07)
+
+> **Provenance:** age-skills-audit-fable-l6ic.4 evolve hard-trim. Absorbed from the SKILL.md
+> tagline, which formerly promised "Measure. Fix. Measure. **Compound.**" as fact.
+
+The two mechanisms above describe *how* a cycle could get smarter. Whether those cycles
+**compound into a durable knowledge moat** is DEMOTED to an unproven hypothesis facing a
+structural data-starvation headwind: a *competent* membrane catches at review, so escapes
+(a CONFIRMED verdict later proved wrong) are structurally rare — measured 0 escapes across
+130 real production verdicts — which makes self-improvement *anti-correlated* with membrane
+quality. See
+[ADR-0004](../../../docs/adr/ADR-0004-corpus-moat-unproven-position-on-the-system.md) and
+[ADR-0011](../../../docs/adr/ADR-0011-escape-corpus-compounding-unproven-structural-starvation.md).
+
+**Posture for this skill:** the proven product is the per-cycle verification (**no verdict =
+not done**); compounding is the *tracked hypothesis*, not the promise. Mechanical corpus
+surfaces live on the CLI (`ao compile`, `ao flywheel status`), harvested into the loop by
+`$post-mortem` — the retired curate/compile/flywheel skills folded into it (2026-07-07 wave).

@@ -1,0 +1,33 @@
+# NTM environment — drop into `.envrc` (direnv) or source from shell profile.
+
+# Project resolution — session name must equal directory basename under this dir
+export NTM_PROJECTS_BASE="$HOME/Developer"
+
+# Robot mode — TOON is ~60% cheaper than JSON for LLM consumers
+export NTM_ROBOT_FORMAT=toon
+export NTM_ROBOT_VERBOSITY=default
+
+# CAAM rotation on rate-limit (pairs well with --robot-smart-restart)
+export NTM_ACCOUNTS_AUTO_ROTATE=true
+export NTM_ROTATION_ENABLED=true
+
+# Auto-inject recovery context on spawn, cap at 4k tokens
+export NTM_RECOVERY_AUTO_INJECT=true
+export NTM_RECOVERY_MAX_TOKENS=4000
+export NTM_RECOVERY_INCLUDE_AGENT_MAIL=true
+export NTM_RECOVERY_INCLUDE_BEADS=true
+
+# CASS context injection on spawn — but skip if pane already has big context
+export NTM_CASS_CONTEXT_ENABLED=true
+export NTM_CASS_MIN_RELEVANCE=0.6
+export NTM_CASS_SKIP_IF_CONTEXT_ABOVE=50000
+export NTM_CASS_PREFER_SAME_PROJECT=true
+
+# Approval audit trail
+export NTM_USER="${USER}"
+
+# Put wrappers ahead of system binaries so `ntm safety` wrappers intercept
+case ":$PATH:" in
+  *":$HOME/.ntm/bin:"*) ;;
+  *) export PATH="$HOME/.ntm/bin:$PATH" ;;
+esac

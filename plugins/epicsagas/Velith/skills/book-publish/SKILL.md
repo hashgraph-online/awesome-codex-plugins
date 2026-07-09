@@ -16,9 +16,9 @@ description: "Phase 5: Publishing. Convert to EPUB/PDF/MOBI/TXT/Markdown, cover 
 
 **Titles**: 22+ candidates across 5 categories (descriptive, emotional, question, metaphor, provocative).
 
-**Agents**: `cover-designer` → concepts + image prompts. `marketing-expert` → personas, channels, 12-week calendar, launch checklist.
+**Agents**: `cover-designer` → concepts + image prompts. `illustrator` → interior illustration plan (see `/book-illustrate`). `marketing-expert` → personas, channels, 12-week calendar, launch checklist.
 
-Output: `publish/` directory with all formats + metadata + title-candidates.md + cover/concepts.md + marketing-plan.md.
+Output: `publish/` directory with all formats + metadata + title-candidates.md + cover/concepts.md + illustrations/plan.md + marketing-plan.md.
 
 Gate: EPUB + PDF generated, metadata complete, 22+ titles, cover concepts, marketing plan.
 

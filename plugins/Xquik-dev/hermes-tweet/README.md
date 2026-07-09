@@ -117,6 +117,7 @@ runtime locally.
 | Hermes surface guide | [`docs/HERMES_SURFACES.md`](docs/HERMES_SURFACES.md) |
 | Integration patterns | [`docs/INTEGRATION_PATTERNS.md`](docs/INTEGRATION_PATTERNS.md) |
 | Submission readiness | [`docs/SUBMISSION_READINESS.md`](docs/SUBMISSION_READINESS.md) |
+| Merge enablement | [`docs/MERGE_ENABLEMENT.md`](docs/MERGE_ENABLEMENT.md) |
 
 Hermes Tweet also ships source-native `.codex-plugin` metadata, a root
 security policy, a local composer icon, and a HOL Plugin Scanner workflow for

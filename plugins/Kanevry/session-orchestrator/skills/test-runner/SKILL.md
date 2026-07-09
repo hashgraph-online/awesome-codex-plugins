@@ -331,7 +331,7 @@ Test Runner complete: run_id=<runId> findings=[total] issues_created=[N] duratio
 - **DO NOT** invoke Playwright or Peekaboo directly from the coordinator prompt — always dispatch via the wrapper skills (`skills/playwright-driver/SKILL.md`, `skills/peekaboo-driver/SKILL.md`).
 - **DO NOT** inline AX-tree dumps or screenshots into coordinator or agent prompt context — artifacts go to disk under `${RUN_DIR}`.
 - **DO NOT** re-file existing findings — fingerprint-based dedup via `issue-reconcile.mjs` is mandatory every run.
-- **DO NOT** use `@playwright/mcp` for browser drive — R5 hard-gate enforced by `scripts/lib/test-runner/check-playwright-mcp-canary.mjs` (4× token cost per Microsoft benchmark).
+- **DO NOT** use `@playwright/mcp` for browser drive — R5 hard-gate enforced by `scripts/lib/validate/check-playwright-mcp-canary.mjs` (4× token cost per Microsoft benchmark).
 - **DO NOT** call `glab` or `gh` directly — always go through `scripts/lib/test-runner/issue-reconcile.mjs` (execFile + binary allowlist + arg-validation, per ADR-364 §C5).
 - **DO NOT** write JSONL via `appendFileSync` — use `appendJsonlAtomic` from `scripts/lib/autopilot/telemetry.mjs`.
 

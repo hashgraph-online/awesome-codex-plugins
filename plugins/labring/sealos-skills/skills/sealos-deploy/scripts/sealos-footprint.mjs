@@ -91,13 +91,50 @@ function itemMatches(item, app) {
   );
 }
 
+function conditionStatus(item, type) {
+  return item.status?.conditions?.find((condition) => condition.type === type)?.status ?? null;
+}
+
+function podContainerReadiness(item) {
+  const statuses = item.status?.containerStatuses || [];
+  if (statuses.length === 0) {
+    return null;
+  }
+  const ready = statuses.filter((status) => status.ready).length;
+  return `${ready}/${statuses.length}`;
+}
+
+function workloadReadyCount(type, item) {
+  if (type === "daemonset") {
+    return item.status?.numberReady ?? 0;
+  }
+  return item.status?.readyReplicas ?? item.status?.availableReplicas ?? 0;
+}
+
+function workloadDesiredCount(type, item) {
+  if (type === "daemonset") {
+    return item.status?.desiredNumberScheduled ?? 0;
+  }
+  if (type === "job") {
+    return item.spec?.completions ?? 1;
+  }
+  return item.spec?.replicas ?? item.status?.replicas ?? 1;
+}
+
 function summarizeItem(type, item) {
+  const isPod = type === "pod";
+  const ready = isPod ? conditionStatus(item, "Ready") : workloadReadyCount(type, item);
+  const desired = isPod ? 1 : workloadDesiredCount(type, item);
   return {
     type,
     name: item.metadata?.name,
     phase: item.status?.phase,
-    ready: item.status?.readyReplicas ?? item.status?.numberReady ?? item.status?.availableReplicas,
-    desired: item.spec?.replicas ?? item.status?.replicas,
+    ready,
+    desired,
+    readiness: isPod ? conditionStatus(item, "Ready") : `${ready}/${desired}`,
+    containersReady: isPod ? podContainerReadiness(item) : null,
+    updated: item.status?.updatedReplicas ?? item.status?.updatedNumberScheduled,
+    available: item.status?.availableReplicas ?? item.status?.numberAvailable,
     labels: item.metadata?.labels || {},
     ageTimestamp: item.metadata?.creationTimestamp,
   };

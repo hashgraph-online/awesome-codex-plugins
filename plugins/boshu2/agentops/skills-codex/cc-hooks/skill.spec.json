@@ -1,0 +1,64 @@
+{
+  "name": "cc-hooks",
+  "skill_api_version": 1,
+  "form": "A",
+  "quality_score": 0.92,
+  "sections": [
+    { "id": "title",       "title": "Claude Code Hooks",     "type": "intro",       "priority": "required" },
+    { "id": "quickstart",  "title": "Quick Start",           "type": "procedure",   "priority": "required" },
+    { "id": "events",      "title": "Hook Events",           "type": "table",       "priority": "required" },
+    { "id": "matchers",    "title": "Matchers",              "type": "overview",    "priority": "required" },
+    { "id": "exitcodes",   "title": "Exit Codes",            "type": "table",       "priority": "required" },
+    { "id": "blocking",    "title": "Blocking a Tool",       "type": "procedure",   "priority": "required" },
+    { "id": "modifying",   "title": "Modifying Input",       "type": "procedure",   "priority": "standard" },
+    { "id": "dcgrch",      "title": "Real-World: DCG + RCH",  "type": "examples",    "priority": "standard" },
+    { "id": "writing",     "title": "Writing Your Own Hook", "type": "procedure",   "priority": "required" },
+    { "id": "envvars",     "title": "Environment Variables", "type": "table",       "priority": "standard" },
+    { "id": "stophook",    "title": "Stop Hook (Force Continue)", "type": "procedure", "priority": "standard" },
+    { "id": "antipattern", "title": "Anti-Patterns",         "type": "constraints", "priority": "required" },
+    { "id": "debugging",   "title": "Debugging",             "type": "procedure",   "priority": "standard" },
+    { "id": "references",  "title": "References",            "type": "routing",     "priority": "required" }
+  ],
+  "references": [
+    { "file": "references/HOOK-EVENTS.md", "topic": "all hook events with full input/output schemas" },
+    { "file": "references/DCG-RCH.md",     "topic": "production examples (dcg, rch) wired as PreToolUse hooks" },
+    { "file": "references/SKILL-FIRST-COORDINATION-GUARD.md", "topic": "opt-in skill-first coordination guard recipe + hook context-budget doctrine" },
+    { "file": "references/PATTERNS.md",    "topic": "auto-format, logging, notification hook patterns" },
+    { "file": "references/JSON-OUTPUT.md", "topic": "hook response JSON schemas" }
+  ],
+  "metadata": {
+    "tier": "execution",
+    "stability": "stable",
+    "dependencies": ["dcg", "rch"],
+    "hexagonal_role": "supporting",
+    "context_window": "inherit",
+    "practices": ["pragmatic-programmer"],
+    "triggers": [
+      "cc-hooks",
+      "Claude Code hooks",
+      "PreToolUse",
+      "PostToolUse",
+      "Stop hook",
+      "Notification hook",
+      "block a command",
+      "auto-format on edit",
+      "custom permissions",
+      "write a hook"
+    ],
+    "token_estimate": {
+      "minimal": 60,
+      "overview": 220,
+      "standard": 650,
+      "full": 1200
+    }
+  },
+  "output_contract": "A hooks block in ~/.claude/settings.json or .claude/settings.json (matcher + command entries), or a hook script that reads tool JSON on stdin and signals allow/deny/ask via exit codes (0/2) or hookSpecificOutput JSON. Stop hooks must guard stop_hook_active against infinite loops.",
+  "evidence": {
+    "sources": [
+      "skills/cc-hooks/SKILL.md",
+      "skills/cc-hooks/references/HOOK-EVENTS.md",
+      "skills/cc-hooks/references/DCG-RCH.md",
+      "skills/cc-hooks/references/JSON-OUTPUT.md"
+    ]
+  }
+}

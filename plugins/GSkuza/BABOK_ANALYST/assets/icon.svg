@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BABOK Analyst">
+  <rect width="512" height="512" rx="96" fill="#1e3a5f"/>
+  <rect x="128" y="88" width="256" height="336" rx="28" fill="#f8fafc"/>
+  <rect x="168" y="148" width="176" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="168" y="188" width="144" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="168" y="228" width="160" height="16" rx="8" fill="#cbd5e1"/>
+  <rect x="168" y="268" width="120" height="16" rx="8" fill="#cbd5e1"/>
+  <circle cx="360" cy="360" r="72" fill="#0d9488"/>
+  <path d="M332 360 L352 380 L392 332" fill="none" stroke="#f8fafc" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,6 +1,6 @@
 # Metamorphic Testing
 
-Use this reference when `$test` needs stronger evidence than example-based
+Use this reference when `/test` needs stronger evidence than example-based
 assertions can provide, especially for ranking, transforms, parsers, planners,
 and other behavior where one exact expected answer is too narrow.
 

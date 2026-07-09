@@ -1,85 +1,94 @@
 ---
 name: using-atm
-description: "Run using ATM."
+description: Use ATM as the out-of-session substrate
 ---
-
 # Using ATM as the Out-of-Session Substrate
 
 AgentOps 3.0 runs its loops **in session** and ships **no** daemon, scheduler, or
 overnight runner. To run the loop **unattended** — always-on, scheduled,
 queue-driven — you hand it to an orchestration **substrate**. The reference
-substrate is **ATM + Agent Mail (`am`) + managed-agents**; this skill covers the **ATM leg**: a
-local Named Tmux Manager swarm of Claude/Codex agent panes. ATM is an adopted
-external tool (`atm` on `PATH`), **not** an AgentOps-owned surface.
+substrate is **ATM + Agent Mail (`am`) + managed-agents**; this skill covers the **ATM leg**:
+a local [Named Tmux Manager](https://github.com/) swarm of Claude/Codex agent
+panes. ATM is an adopted external tool (`atm` on `PATH`), **not** an
+AgentOps-owned surface — AgentOps adopts it, it does not vendor it.
 ATM is Bo's fork/alias of upstream NTM: `atm` points at
 `~/dev/ntm/dist/atm-darwin-arm64` and keeps the upstream `ntm` command surface.
 
 > **Skills are the runtime, not the CLI.** The substrate dispatches a *whole
-> loop* by spawning an agent that **runs the $rpi or $evolve skill** — it does
-> **not** shell out to a retired CLI subprocess. Those terminal
-> wrappers are retired; the loop lives as a skill an agent executes. The seam is
-> **ATM pane → agent → $rpi <bead>**, one bead dispatched as one invocable unit.
+> loop* by spawning an agent that **runs the `rpi` or `evolve` skill** — it
+> does **not** shell out to retired RPI/evolve CLI subprocesses. The loop
+> lives as a skill an agent executes. The seam is
+> **ATM pane → agent → `$rpi <bead>` skill**, one bead dispatched as one
+> invocable unit.
 
-## When to use / when to skip
+## When to use this skill / when to skip
 
 **Use it when:** you want a bead queue worked unattended out of session; you're
 standing up or tending an ATM swarm that runs AgentOps loops; a pane is stuck,
 rate-limited, or wedged; you need to know whether the swarm has converged.
 
-**Skip it when:** the work fits a single in-session run (run $rpi or $evolve
-yourself); you want in-session parallel fan-out across worktrees (use $swarm);
-you're choosing between automation shapes (start at $automation-shape-routing).
+**Skip it when:** the work fits a single in-session run (just run `rpi` or
+`evolve` yourself); you want in-session parallel fan-out across worktrees (use
+[`$swarm`](../swarm/SKILL.md)); you're choosing between automation shapes at all
+(start at [`$automation-shape-routing`](../automation-shape-routing/SKILL.md),
+which routes Workflow vs ATM swarm vs plain skill).
 
 This skill does **not** re-document the full `atm` command surface — run
-`atm help`. It covers the **AgentOps substrate contract**: how to dispatch and
-tend AgentOps loops on an ATM swarm.
+`atm help` for that. It covers the **AgentOps substrate contract**: how to
+dispatch and tend AgentOps loops on an ATM swarm.
+
+**Instrument lane (before spawn):** run `ao orchestrate preflight --profile <name> --json`
+and `ao orchestrate verify` after spawn (the orchestrate route/preflight/verify lane is
+folded into this skill; profiles: `docs/contracts/orchestration-profiles.yaml`).
+
+## When to use ATM vs AM (the 4-case matrix)
+
+**ATM and AM are separate escalations on different axes — never a package.** ATM
+(this skill, the out-of-session substrate) answers a **durability/wall-clock**
+need: work must outlive your session, run unattended, or survive a pane death.
+AM ([`agent-mail`](../agent-mail/SKILL.md), coordination) answers a **contention**
+need: ≥2 writers can touch the same path. You reach for either *alone*.
+
+| Reach for | When (observable trigger) |
+|---|---|
+| **Neither** (default) | One writer, fits this session/context, no unattended wait, no shared hot path. Single-agent-first ([operating-loop principle 8](../../docs/architecture/operating-loop.md#governing-principles)). |
+| **AM only** (no ATM) | ≥2 live writable lanes share the repo (you + a peer, `$swarm`, review+impl pair) **and** any could touch the same file/glob, generated registry, schema, CLI docs, gate script, port, or build slot. The common case — needs no panes. |
+| **ATM only** (no AM) | Unattended/scheduled wall-clock work over a **file-disjoint** (or single-lane) bead queue: overnight grind, CI-green-while-away. Beads are the queue; git serializes pushes; reserving against yourself is ceremony. |
+| **Both** | ≥2 **unattended** panes that genuinely contend on shared surfaces. Rare core. `atm spawn … --reserve` with real paths, never "the repo". |
+
+**Inflection points (escalate only on a real trigger):** context-window pressure that *survives* a fresh handoff+reload; N≥3 provably file-disjoint units; estimated runtime > your remaining attention window; a partition that's genuinely impossible (every lane touches one generated file → AM). **Cross-family verification is a [`council`](../council/SKILL.md) gate, NOT an ATM trigger** — spin an ephemeral judge, don't stand up a swarm.
+
+**Asymmetry guardrail (bounds the de-mandate):** the de-mandate removes the
+single-writer **session-start tax**, not the **collision guard**. Cost of an
+*unneeded* AM call = one command; cost of a *missing* one = two panes silently
+clobber a shared file and the merge looks like ordinary conflict cleanup while the
+design forked. So the **`≥2-writers → reserve` reflex stays non-negotiable.**
+
+**Partition before you lock:** if you *can* cut the write-sets disjoint, do that
+(no AM) instead of reserving. Locks are the fallback when partition fails — not the
+default. (This skill applied to itself: when a lane overlaps another's hot path,
+prefer re-cutting the write-set to a sole-writer surface over a shared lease.)
 
 ## The dispatch contract
 
 1. **One bead = one whole-loop skill invocation.** A pane's agent runs
-   `$rpi <bead>` (one cycle) or `$evolve` (the outer loop). The substrate never
-   decomposes the loop into per-phase steps — whoever owns the loop owns its
-   invariants, and AgentOps owns the loop. Dispatch the skill; don't reimplement it.
+   `$rpi <bead> --auto` (one cycle) or `$evolve --auto` (the outer loop). The
+   substrate never decomposes the loop into per-phase steps — whoever owns the
+   loop owns its invariants, and AgentOps owns the loop. Re-expressing `rpi` as
+   substrate-side steps duplicates the loop shape and pits the substrate's retry
+   machinery against the ratchet rules. Dispatch the skill; don't reimplement it.
 2. **Agents inherit the skills via overlay.** Each pane is a Claude or Codex
-   agent with the AgentOps Codex skills installed, so `$rpi`, `$evolve`,
-   `$validate` resolve in-pane.
-3. **The bead queue is the work source.** A lead runs `br ready`, picks the next
-   bead, and dispatches it to a free worker pane.
+   agent with the AgentOps skills installed, so `rpi`, `evolve`, `$validate`,
+   etc. resolve in-pane.
+3. **The bead queue is the work source.** A lead (operator or a lead pane) runs
+   `ao beads exec ready`, picks the next bead, and dispatches it to a free worker pane.
 4. **Green CI is the merge gate.** Each worker drives its bead to a green PR from
-   a per-bead worktree; the operator stays *on* the loop (intent + stop), not *in* it.
+   a per-bead worktree (orchestrator-merge model); the operator stays *on* the
+   loop (intent + stop), not *in* it (per-PR approval).
 
-### Fresh Claude/Codex Peer Duels
+### Fresh Claude/Codex peer duels
 
-When the operator asks for "a fresh Claude and Codex", "fresh peer models", a
-"duel", or a cross-family opinion, the default substrate is **ATM panes**, not
-headless one-shot CLIs. Spawn the requested model families, give both panes the
-same bounded prompt, verify engagement, collect pane output, and kill the
-temporary session.
-
-Do not use print-mode CLIs for the other-family pane; use an interactive pane.
-Use headless `codex exec` only when the operator explicitly asks for a headless
-run or when there is no pane/TUI requirement.
-
-Minimal bounded pattern:
-
-```bash
-atm spawn agentops --label navi-duel --no-user --cc=1:opus --cod=1:gpt-5.5 \
-  --no-cass-context --ready-timeout=2m --json
-
-atm send agentops--navi-duel --pane=1 --file prompt.md \
-  --no-cass-check --force-non-interactive --json
-
-atm codex preflight --session agentops--navi-duel --pane 2 --json
-atm send agentops--navi-duel --pane=2 --codex-goal --file prompt.md \
-  --no-cass-check --force-non-interactive --json
-atm codex wait-goal-engaged --session agentops--navi-duel --pane 2 --json
-
-atm kill agentops--navi-duel --json
-```
-
-If a requested alias resolves to a nearby installed model (for example `opus`
-resolving to the available Opus build), report the actual pane model in the
-verdict.
+A cross-family duel ("a fresh Claude and Codex") runs on **ATM panes**, not headless CLIs (never `claude -p`). Bounded spawn → send (codex via `--codex-goal`) → prove-engaged → collect → `atm kill` recipe: [`references/pane-mechanics.md`](references/pane-mechanics.md).
 
 ## Quick start
 
@@ -96,8 +105,13 @@ atm spawn agentops --cc=2 --cod=1 --reserve "cli/ tests/"
 # no reservation, so you can catch an uncoordinated lane before it collides.
 
 # 2. Dispatch a whole loop to a pane — the SKILL, not a CLI subprocess.
-atm send agentops --pane=1 "$rpi ag-1234"
-atm send agentops --pane=2 "$evolve --beads-only"
+#    Pane 1 = the USER/controller pane; workers start at pane 2 (unless --no-user).
+#    --pane=N is the tmux PANE index; --agent=N is the agent ORDINAL — they
+#    differ by the user-pane offset (--pane=2 == --agent=1 in a default session).
+atm send agentops --pane=2 "$rpi ag-1234 --auto"
+atm send agentops --pane=3 "$evolve --beads-only --auto"
+# For codex panes, drive the /goal flow with --codex-goal (a bare slash-command
+# send may not fire): atm send agentops --codex-goal --pane=2 --file packet.txt
 
 # 3. Watch / attach.
 atm activity agentops          # per-pane agent state
@@ -108,61 +122,69 @@ atm doctor                     # validate the ATM ecosystem
 atm deps                       # required agent CLIs present
 ```
 
-Scheduled cadence (e.g. a nightly $evolve pass) is driven by host-OS timing (a
-systemd user timer or cron) that runs `atm send … "$evolve"`, or by a
+Scheduled cadence (e.g. a nightly `evolve` pass) is driven by host-OS timing (a
+systemd user timer or cron) that runs `atm send … "$evolve --auto"`, or by a
 managed-agent driver — **not** an AgentOps daemon.
 
-## Tending the swarm (operator loop)
+## Tending, continuity, and observing — doctrine owned by `ntm`
 
-Run one tick at a time; take the first action whose trigger fires:
+Tending doctrine (nudge/restart/stop/converged, meter-LIES, two-tick) is owned by the ntm skill — see [`../ntm/SKILL.md`](../ntm/SKILL.md); the extracts here are ATM-specific deltas only.
 
-- **Peer gate request** (`ACTION NEEDED`, `Hey! Listen!`, merge-gate,
-  unblock-condition, verdict/dry-run before merge/close) → interrupt broad
-  watching, run the named verifier, and answer in a channel the peer can read.
-  If AM reads are degraded, use a bead note, PR comment, or tmux relay with
-  `C-m` plus capture evidence; mail-send alone is not delivery.
-- **Rate-limited / auth-expired pane** → rotate the account / relaunch, re-send its bead.
-- **Wedged pane** (no output, not at a prompt) → nudge once; if still wedged, kill + relaunch + re-dispatch.
-- **Context-saturated pane** (forgetting, repeating) → have it write a handoff, relaunch fresh, re-dispatch.
-- **Worker finished** (PR merged, bead closed) → dispatch the next `br ready` bead.
-- **Many review beads open, few closing** → flip to review-only, drain the backlog.
-- **Otherwise** → observe; do not nudge a healthy working pane.
+- [`references/tending-loop.md`](references/tending-loop.md) — operator loop (renewal tick, first-trigger-wins action ladder), convergence/shutdown, and the single-writer / merged-before-close close discipline (gate cp-hxp6).
+- [`references/continuity-and-meter.md`](references/continuity-and-meter.md) — renewal-tick + two-tick stall rule (`.agents/continuity/state.json`) and **the meter LIES**: the `atm codex preflight` / `wait-goal-engaged`, `atm save`, `ps` CPU% read paths that beat the frozen context-% / `atm activity` signals.
 
-## Observing lanes (the meter LIES)
+## Raw tmux key injection (last resort)
 
-The wedged-vs-working call depends on reading the pane right — the `atm` meter misleads:
-
-- **`atm status` context-% + `atm activity` are UNRELIABLE for codex panes** — freeze ~4K/256K showing WAITING/available while the lane works. Never conclude wedged from the meter alone.
-- **See real content: `atm save <session>`** → `./outputs/<session>_<pane>_<ts>.txt`; read those (`atm copy` to clipboard). No `atm capture`/`atm read` exists.
-- **Confirm by ARTIFACT, not meter:** bead assignee, worktree/branch, PR, output file (`git ls-remote --heads origin 'task/*'`, `gh pr list`).
-- **Diagnose before `atm respawn`** (it kills + restarts) — read the `atm save` dump first; respawn only on a confirmed wedge (error / login prompt / frozen transcript).
-- **Dispatch:** `atm send --pane=N` delivers DIRECT prompts; slash-commands may not fire on codex panes (`--codex-goal` is the tell). Prefer self-contained instructions; verify engagement via `atm save` + artifacts.
-- **Raw tmux last resort:** submit with `tmux send-keys ... C-m` and capture
-  the pane. Text still sitting in the input box is not delivery.
+Fall back to raw `tmux send-keys` only when `atm send` / `atm codex …` can't express the action; submit with `C-m`, verify from `capture-pane` that the line cleared, never fire-and-forget. Pattern: [`references/pane-mechanics.md`](references/pane-mechanics.md).
 
 ## Coordination (the Agent Mail leg)
 
-- **Beads (`bd`)** — shared work queue + state source: `br ready`, `bd update --claim`, `bd close`.
-- **Agent Mail (`am`)** (its own daemon at `127.0.0.1:8765` — the `am` CLI, **not** an `ao` subcommand; old "MCP Agent Mail" name retired) — register with `am macros start-session`, then cross-pane messages + **file reservations** (reserve before edit, release on commit).
-- **Worktree-per-bead** is mandatory: no pane edits the shared checkout.
+ATM panes coordinate through the other substrate legs, not bespoke glue:
 
-## Convergence + shutdown
+- **Beads** is the shared work queue and the source of truth for state —
+  `ao beads exec ready` to pick, `ao beads exec update <id> --claim` to claim,
+  `ao beads exec close <id>` when merged. (`ao beads exec` resolves the tracker —
+  bd or br — and its ledger for you; no manual `BEADS_DIR`, and it works from
+  linked worktrees that don't carry `_beads`.)
+- **Agent Mail (`am`)** (its own daemon at `127.0.0.1:8765` — the `am` CLI,
+  **not** an `ao` subcommand) carries cross-pane **messages** and
+  **file reservations** — the swarm's defense against two panes editing the same
+  path. Each pane registers once with `am macros start-session`, reserves before
+  editing (`am file_reservations reserve <proj> <agent> "<path>"`), releases on
+  commit, and **messages other panes with `am mail send --from <me> --to <agent> --subject … --body …`**
+  (read with `am mail inbox`). The CLI form works from any shell even when the
+  MCP tool surface (`send_message` etc.) isn't wired into the session. **Trap:**
+  the verb is `am mail send`, **not** `am send` (which doesn't exist), and the
+  `mail` group isn't in `am --help` — see br cp-jgcl. List addressable agents
+  with `am robot agents --project <proj>`.
+- **Worktree-per-bead** is mandatory: no pane edits the shared checkout. See
+  [../swarm/references/shared-checkout-discipline.md](../swarm/references/shared-checkout-discipline.md).
 
-Done when `br ready` is empty, no pane has an in-flight bead, and the last few CI
-runs are green. Confirm with `atm activity` (all idle) + `br ready` (empty) before
-`atm kill <session>`. Don't shut down on a transient quiet patch — a rate-limited
-pane also looks idle.
+## Convergence, shutdown + close discipline
+
+Terminal-state conditions and the **single-writer / merged-before-close** durability policy (gate cp-hxp6; read canonical, never a stale shared `main`) live in [`references/tending-loop.md`](references/tending-loop.md).
 
 ## Anti-patterns
 
-- ❌ Shelling out to a retired CLI; dispatch the `$rpi` / `$evolve` skill instead.
-- ❌ Decomposing the loop into substrate steps — dispatch the whole loop as one invocable unit.
-- ❌ Editing the shared checkout from a pane — worktree-per-bead, always.
-- ❌ Treating ATM as AgentOps-owned — it is an adopted external substrate; a managed-agents driver (`ao agent`) or a plain in-session run are equally valid legs. Choose via $automation-shape-routing.
+- ❌ **Shelling out to retired RPI/evolve CLI subprocesses.**
+  Dispatch the `rpi` / `evolve` **skill** to an agent pane instead.
+- ❌ **Decomposing the loop into substrate steps.** Dispatch the whole loop as
+  one invocable unit; never re-express `rpi`'s phases as ATM-side orchestration.
+- ❌ **Editing the shared checkout from a pane.** Worktree-per-bead, always.
+- ❌ **Treating ATM as AgentOps-owned.** It is an adopted external substrate; a
+  managed-agents driver (`ao agent`) or a plain in-session run are equally valid
+  legs. Choose via [`$automation-shape-routing`](../automation-shape-routing/SKILL.md).
+- ❌ **Closing a bead before the branch is merged.** Closed-but-unmerged is
+  protection-off. Require merge confirmation before `ao beads exec close`.
+- ❌ **Reading state from a stale shared `main`.** Read canonical from the bead's
+  worktree branch or after merge; stale reads are the other half of the split-brain.
 
 ## Related skills
 
-- $automation-shape-routing — decide Workflow vs ATM swarm vs plain skill before standing up a swarm.
-- $swarm — in-session parallel fan-out across worktrees (the in-session sibling).
-- $agent-native — `ao agent bundle` produces the loop definition a managed-agents substrate runs.
-- $rpi · $evolve — the loops the substrate dispatches.
+- [`$automation-shape-routing`](../automation-shape-routing/SKILL.md) — decide Workflow vs ATM swarm vs plain skill *before* standing up a swarm.
+- [`$swarm`](../swarm/SKILL.md) — in-session parallel fan-out across worktrees (the in-session sibling of this out-of-session substrate).
+- [`ntm`](../ntm/SKILL.md) — the in-session **tending decision layer** (when to nudge / restart / converge, the OC/AP cards, the liveness truth stack; the former vibing-with-ntm tending doctrine is folded into `ntm`). This skill is the **substrate runner** (spawn, dispatch loops, born-into-coordination); reach for `ntm` once panes are live and you're deciding what to do tick-by-tick.
+- [`$agent-native`](../agent-native/SKILL.md) — `ao agent bundle` produces the loop definition a managed-agents substrate runs (the managed-agents leg).
+- [`codex-exec`](../codex-exec/SKILL.md) — the **headless** codex lane (`codex exec`, stdin/positional) vs an ATM codex **TUI pane** here (keystroke / `--codex-goal` flow, `atm codex` readiness gates). Different dispatch mechanics, same auth/sub rules.
+- [`rpi`](../rpi/SKILL.md) · [`evolve`](../evolve/SKILL.md) — the loops the substrate dispatches.
+- **Fork maintenance** (not a skill) — `atm` is Bo's fork of upstream `ntm`. Pull upstream fixes via `make fork-status` → `make fork-preview` → `make fork-sync` in `~/dev/ntm` (see its `AGENTS.md` § "Upstream sync"; never rebase main directly). Divergence facts are owned by **FORKS-MAP F-1**.

@@ -52,6 +52,6 @@ const details = await xquikFetch(`/draws/${draw.id}`);
 const exportUrl = `${BASE}/draws/${draw.id}/export?format=csv`;
 ```
 
-## Cost
+## Usage
 
-1 credit per participant entry.
+Metered per participant entry.

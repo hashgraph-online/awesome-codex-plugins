@@ -1,6 +1,6 @@
 ---
 name: rpi
-description: "Run RPI."
+description: "Run discovery, crank, and validation."
 ---
 
 # $rpi - Full Lifecycle Orchestrator
@@ -8,10 +8,12 @@ description: "Run RPI."
 > Quick ref: `$discovery` -> `$crank` -> `$validate`, then report.
 
 **Execute this workflow. Do not only describe it.** RPI is autonomous unless
-`--interactive` is set. The user touchpoint is after validation, or after a
+`--interactive` is set. Each slice runs the narrow-waist micro-cycle: acceptance test RED -> green -> refactor-under-green (its own step, never changes a test — the load-bearing quality move; test-first ordering alone is not the lever), then the membrane verdict, then mine lessons back into the next loop. The user touchpoint is after validation, or after a
 real blocked state exhausts retries. Read
 [references/autonomous-execution.md](references/autonomous-execution.md) when
 you need the full autonomy contract.
+
+**`--auto` means *pivot autonomously*, NOT *execute the initial plan to the letter*.** Autonomy is agility, not waterfall: between waves the orchestrator re-plans the remaining work and changes course on its own — refactoring, inserting, dropping, reordering waves as evidence arrives — without the operator saying so (touched only at the terminal objective or a circuit-breaker trip). See [Agile Re-Plan Loop](#agile-re-plan-loop-the-anti-waterfall-rule).
 
 When an external executor fails but the code surface may still be valid, read
 [references/codex-executor.md](references/codex-executor.md) and recover through
@@ -44,6 +46,37 @@ The transport may be a daemon job, process runner, or subagent wrapper, but it
 must execute the declared phase skill contract rather than doing phase work
 directly. See [references/isolation-contract.md](references/isolation-contract.md).
 
+## Phase Receipt Contract
+
+RPI cannot rely on memory or a final narrative to prove delegated skills ran.
+Every execution packet and phase summary MUST carry compact receipts for the
+orchestrator and the delegated phase skill. JSON artifacts use canonical skill
+slugs without `$` sigils:
+
+```json
+{
+  "skills_loaded": [
+    {"name": "rpi", "reason": "orchestrator"},
+    {"name": "discovery", "reason": "phase-1"}
+  ],
+  "phase_receipts": [
+    {
+      "phase": "discovery",
+      "skill": "discovery",
+      "status": "DONE",
+      "artifact": ".agents/rpi/phase-1-summary.md"
+    }
+  ]
+}
+```
+
+Markdown phase summaries include `## Skill Receipts` with one bullet per
+loaded skill, the phase it served, and the artifact/verdict it produced.
+Receipts do not replace transcript/runtime proof. They make `$discovery`,
+`$crank`, and `$validate` delegation auditable from disk when the transcript is
+unavailable and give validation or pre-land review a deterministic surface to
+reject missing phase execution.
+
 ## Context Density Rule
 
 At every phase boundary, preserve only context that carries intent, boundary,
@@ -67,7 +100,7 @@ boundary as the objective crosses `shape_intent`, `persist_intent`,
    - default, `research`, `plan`, `pre-mortem`, `brainstorm` -> discovery
    - `implementation` or `crank` -> implementation
    - `validation`, `vibe`, or `post-mortem` -> validation
-3. If the input is a bead and `--from` is absent, resolve it with `br show`:
+3. If the input is a bead and `--from` is absent, resolve it with `ao beads exec show`:
    - epic -> implementation with that epic
    - child with parent -> implementation with the parent epic
 4. Classify complexity:
@@ -103,20 +136,36 @@ Enter at the routed phase and run every phase after it.
    through phase-isolated skill transport. Pass `--test-first` or
    `--no-test-first` through. On DONE, record `ao ratchet record implement
    2>/dev/null || true` and continue. On PARTIAL or BLOCKED, retry the same
-   objective up to 3 total attempts.
+   objective up to 3 total attempts. **Before counting a slice/wave as accepted,
+   the orchestrator reads the actual diff itself** (scope + claim match) — not
+   only the `<promise>DONE</promise>` and evidence JSON. This is the orchestrator's
+   own diff-read, distinct from the delegated sub-judges; `$crank` enforces it as
+   the anti-green-washing check in Wave Acceptance
+   ([crank wave-patterns.md, Step 3.5](../crank/references/wave-patterns.md)).
 3. **Validation:** invoke `$validate <epic-id> --complexity=<level>` when an
    epic exists; otherwise invoke `$validate --complexity=<level>`, directly
    or through phase-isolated skill transport. Add `--strict-surfaces` when
    `--quality` is set. On FAIL, extract findings, re-run `$crank` on the same
    objective, then re-run `$validate`, up to 3 total validation attempts. On
    DONE, record `ao ratchet record vibe 2>/dev/null || true`.
-4. **Report:** summarize phase verdicts and epic status using
-   [references/report-template.md](references/report-template.md). With
-   `--loop`, restart from discovery on FAIL while `cycle < max_cycles`. With
+4. **Re-plan (mandatory between waves; the loop's hinge).** When the objective
+   has remaining waves/slices, do NOT proceed straight to the next one. Run the
+   [Agile Re-Plan Loop](#agile-re-plan-loop-the-anti-waterfall-rule): a
+   post-mortem/discovery delta over what this wave proved or broke, which MAY
+   mutate the remaining plan (refactor / insert / drop / reorder / re-scope)
+   before the next wave runs. Under `--auto` this is autonomous. A single
+   isolated objective with no remaining waves skips straight to Report.
+5. **Report:** summarize phase verdicts, the re-plan deltas taken, and epic
+   status using [references/report-template.md](references/report-template.md).
+   With `--loop`, restart from discovery on FAIL while `cycle < max_cycles`. With
    `--spawn-next`, read `.agents/rpi/next-work.jsonl` and suggest the next
    command without invoking it. Before emitting the report, apply the Context
    Density Rule: every line should carry intent, boundary, evidence, decision,
    constraint, or next action.
+
+## Agile Re-Plan Loop (the anti-waterfall rule)
+
+The initial plan is a **hypothesis**; each wave is an experiment whose evidence re-plans the rest. At every wave boundary (and after validation): **reflect** (a bounded `$post-mortem` + `$discovery` re-plan delta over what shipped/broke) → **re-plan the REMAINING waves** (refactor / insert / drop / reorder / re-scope / escalate, persisting the mutated plan so the next wave reads the *current* one) → **proceed**. Under `--auto` this is autonomous, bounded by the run's circuit breakers (budget / attempt cap / oscillation detection) and the ≥5-ship post-mortem checkpoint; the operator is touched only at the terminal objective or a breaker trip. `$crank` and `$validate` surface findings UP for re-planning (never a silent local retry); `$discovery` is the re-plan engine. Anti-patterns: **waterfall**, **retry-not-replan**, **permission-seeking**. **Full detail:** [references/agile-replan-loop.md](references/agile-replan-loop.md).
 
 ## Phase Data Contract
 
@@ -149,7 +198,7 @@ schemas and archive paths.
 |------|---------|---------|
 | `--from=<phase>` | discovery | Start at discovery, implementation, or validation |
 | `--interactive` | off | Human gates in discovery/validate |
-| `--auto` | on | Fully autonomous default |
+| `--auto` | on | Fully autonomous default — **pivots between waves on its own** (re-plans remaining work; not a fixed-plan/waterfall executor). See [Agile Re-Plan Loop](#agile-re-plan-loop-the-anti-waterfall-rule) |
 | `--loop --max-cycles=<n>` | off / 3 | Iterate when validation fails |
 | `--spawn-next` | off | Surface follow-up work after reporting |
 | `--test-first` | on | Pass strict-quality preference to `$crank` |
@@ -171,6 +220,12 @@ Use full council gates across the lifecycle.
 
 Read [references/examples.md](references/examples.md) for resume,
 interactive, and loop examples.
+
+## Output Specification
+
+**Format:** a markdown report to stdout ([report-template](references/report-template.md)) — phase verdicts, re-plan deltas, and epic status.
+**Files:** reads/updates `.agents/rpi/execution-packet.json` (+ `runs/<id>/`) and `.agents/rpi/next-work.jsonl` (with `--spawn-next`); records `ao ratchet record` per phase.
+**Exit signal:** the per-phase verdict roll-up; `<promise>PARTIAL</promise>` from `$crank` means retry Phase 2 on the same objective.
 
 ## Troubleshooting
 

@@ -1,0 +1,159 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"session:start\" \"scripts/hooks/session-start.js\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Load pipeline context and previous session state on startup",
+        "id": "session:start"
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"session:resume\" \"scripts/hooks/session-resume.js\"",
+            "timeout": 10
+          }
+        ],
+        "description": "List unfinished pipelines on session resume",
+        "id": "session:resume"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"pre:write:artifact-guard\" \"scripts/hooks/pre-tool-write.js\" \"standard,strict\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Protect execution.json and validate stage status before artifact writes",
+        "id": "pre:write:artifact-guard"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"pre:bash:dangerous-cmd-guard\" \"scripts/hooks/pre-tool-bash.js\" \"standard,strict\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Intercept dangerous shell commands (rm -rf, git push --force, DROP TABLE, etc.)",
+        "id": "pre:bash:dangerous-cmd-guard"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"post:write:artifact-track\" \"scripts/hooks/post-tool-write.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Auto-track artifacts to execution.json after Write operations",
+        "id": "post:write:artifact-track"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"post:bash:context\" \"scripts/hooks/post-tool-bash.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Capture gate/harness/test command execution context",
+        "id": "post:bash:context"
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"subagent:start\" \"scripts/hooks/subagent-start.js\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Inject pipeline stage context into subagents",
+        "id": "subagent:start"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"subagent:stop\" \"scripts/hooks/subagent-stop.js\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Log subagent execution to agent-log.jsonl",
+        "id": "subagent:stop"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"post:stage:wip-checkpoint\" \"scripts/hooks/wip-checkpoint.js\"",
+            "timeout": 15
+          }
+        ],
+        "description": "Auto WIP checkpoint after agent completes work",
+        "id": "post:stage:wip-checkpoint"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"stop:pipeline-guard\" \"scripts/hooks/on-stop.js\" \"standard,strict\"",
+            "timeout": 30
+          }
+        ],
+        "description": "Block premature exit when pipeline stages are still running",
+        "id": "stop:pipeline-guard"
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"notification:log\" \"scripts/hooks/on-notification.js\"",
+            "async": true,
+            "timeout": 5
+          }
+        ],
+        "description": "Async notification logging to notifications.jsonl",
+        "id": "notification:log"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "boss hooks run \"session:end\" \"scripts/hooks/session-end.js\"",
+            "timeout": 10
+          }
+        ],
+        "description": "Save session state and generate summary report",
+        "id": "session:end"
+      }
+    ]
+  }
+}

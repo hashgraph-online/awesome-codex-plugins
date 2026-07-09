@@ -10,7 +10,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# SKILL_BUILDER_REPO_ROOT overrides root discovery for fixture-driven tests
+# (tests/integration/test_skill_builder.bats scaffolds into a scratch repo copy
+# so no in-repo surface — skills/, the dispositions ledger, the codex catalog —
+# is ever mutated by a test run). Mirrors HEAL_REPO_ROOT in heal.sh. Production
+# derives the root from the script location.
+REPO_ROOT="${SKILL_BUILDER_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 TEMPLATE_REF="$REPO_ROOT/skills/skill-builder/references/skill-template.md"
 
 [[ -f "$TEMPLATE_REF" ]] || { echo "init.sh: missing $TEMPLATE_REF" >&2; exit 1; }
@@ -154,7 +159,7 @@ output_contract: "TODO: path to schema or output description"
 
 ## See Also
 
-- [skill-auditor](../skill-auditor/SKILL.md) — audit this skill before declaring stable
+- [heal-skill](../heal-skill/SKILL.md) — deep audit (audit.sh) this skill before declaring stable
 EOF
 
 # --- Mode-specific content injection -------------------------------------
@@ -176,7 +181,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"
-exec bash "$REPO_ROOT/skills/skill-auditor/scripts/audit.sh" "$SKILL_DIR"
+exec bash "$REPO_ROOT/skills/heal-skill/scripts/audit.sh" "$SKILL_DIR"
 EOF
 chmod +x "$NEW_DIR/scripts/validate.sh"
 chmod +x "$NEW_DIR" 2>/dev/null || true
@@ -252,6 +257,36 @@ cat > "$BUILD_REPORT" <<EOF
 }
 EOF
 
+# --- New-skill plumbing (ag-cw2y): make the scaffold one-shot-green ----------
+# The local/CI gates that silently tripped /burndown #600 are pre-empted here:
+# 1. Dispositions row — else heal.sh Check 12 (MISSING_DISPOSITION).
+if [[ -f "$REPO_ROOT/scripts/append-skill-disposition.sh" ]]; then
+  bash "$REPO_ROOT/scripts/append-skill-disposition.sh" "$SKILL_NAME" "$REPO_ROOT" \
+    || echo "init.sh: WARN could not append dispositions row — add one manually" >&2
+fi
+# 2. Narrative skill counts — --fix-counts bumps the "N checked-in skills" tokens
+#    in the domain-map + bdd Gherkin so the new skill doesn't trip registry-drift.
+if [[ -x "$REPO_ROOT/scripts/check-registry-drift.sh" ]]; then
+  bash "$REPO_ROOT/scripts/check-registry-drift.sh" --fix-counts >/dev/null 2>&1 \
+    || echo "init.sh: WARN registry-drift --fix-counts could not run — bump counts manually" >&2
+fi
+# 3. Codex override catalog entry — else validate-codex-override-coverage fails
+#    ("source skill missing from Codex catalog"). Default parity_only (derived).
+if [[ -f "$REPO_ROOT/scripts/append-codex-override-entry.sh" ]]; then
+  bash "$REPO_ROOT/scripts/append-codex-override-entry.sh" "$SKILL_NAME" "$REPO_ROOT" \
+    || echo "init.sh: WARN could not add codex override catalog entry — add one manually" >&2
+fi
+# 4. registry.json SKU catalog — else contracts-sync + correctness(ubuntu) BOTH
+#    fail ("registry.json is stale" / "SKU_CATALOG: DRIFT"). This is the 5th
+#    one-shot-green surface ag-cw2y missed; it cost /burndown #600 a 2nd
+#    fix-and-repush (ag-ekyq). MUST run last — it scans the whole skills/ tree,
+#    so the new skeleton must already exist on disk.
+if [[ -f "$REPO_ROOT/scripts/generate-registry.sh" ]]; then
+  bash "$REPO_ROOT/scripts/generate-registry.sh" >/dev/null 2>&1 \
+    || echo "init.sh: WARN could not regen registry.json — run scripts/generate-registry.sh manually" >&2
+fi
+
 echo "init.sh: created skill skeleton at $NEW_DIR"
 echo "init.sh: codex parity at $CODEX_DIR"
 echo "init.sh: build report at $BUILD_REPORT"
+echo "init.sh: dispositions row + narrative counts scaffolded (refine the placeholder row)"

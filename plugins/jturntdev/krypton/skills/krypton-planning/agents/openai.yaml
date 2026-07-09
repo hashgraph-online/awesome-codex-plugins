@@ -1,0 +1,4 @@
+interface:
+  display_name: "Krypton Planning"
+  short_description: "Plan goal-based work with proof gates"
+  default_prompt: "Use Krypton Planning to turn this request into a goal package with PLAN.md, GOAL.md, EVIDENCE.md, truth owner, contract boundary, cutover, displaced path, kill criteria, and acceptance evidence."

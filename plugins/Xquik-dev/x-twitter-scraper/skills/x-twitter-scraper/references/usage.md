@@ -8,7 +8,7 @@ The skill may:
 
 - read the current credit balance with `GET /credits`
 - call estimate endpoints before bulk jobs, draws, monitors, or write actions
-- show whether a requested operation is metered, free, or blocked by account state
+- show whether a requested operation is metered, included, or blocked by account state
 - explain how to keep a request bounded before sending it
 
 The skill must not:

@@ -576,7 +576,7 @@ subjects:
 
 The following specifications are consistent with the database upgrade documentation:
 
-- Database connection fields (`endpoint`/`host`/`port`/`username`/`password`) in application containers must be obtained via `secretKeyRef`; Redis host/port may use the Sealos Redis Service FQDN plus `6379` when the secret only exposes credentials, and MongoDB URLs may use the Sealos MongoDB Service FQDN plus `27017` when the secret only exposes credentials
+- Database connection fields (`endpoint`/`host`/`port`/`username`/`password`) in application containers must be obtained via `secretKeyRef`; Redis host/port may use the Sealos Redis Service FQDN plus `6379` when the secret only exposes credentials, and MongoDB host/port or URLs may use the Sealos MongoDB Service FQDN plus `27017` when the secret only exposes credentials
 - PostgreSQL Cluster uses `postgresql-16.4.0` and includes `kb.io/database`, `disableExporter: true`, `enabledLogs: [running]`
 - Secret naming upgrades:
   - `xxx-redis-conn-credential` -> `xxx-redis-redis-account-default`
@@ -613,6 +613,8 @@ PostgreSQL/MySQL/MongoDB/Kafka secrets usually contain:
 Redis default account secrets usually contain:
 - `username`
 - `password`
+
+Redis and MongoDB account secrets can appear after the first component pods report progress. During deployment validation, wait for the KubeBlocks Cluster to reach `Running`/Ready and then poll for the expected account Secret before judging application initialization. For Redis, the Sentinel component may become ready before the primary `redis` component and `${{ defaults.app_name }}-redis-redis-account-default`; validate the final Redis Service FQDN `${{ defaults.app_name }}-redis-redis-redis.${{ SEALOS_NAMESPACE }}.svc.cluster.local` plus business registration/login behavior. For MongoDB, poll `${{ defaults.app_name }}-mongo-mongodb-account-root` or the matching `${{ defaults.app_name }}-mongodb-mongodb-account-root` name when the Cluster uses the `mongodb` suffix.
 
 ### Environment Variable Configuration Examples
 

@@ -1,0 +1,13 @@
+﻿{
+  "name": "odw-codex",
+  "version": "0.1.0",
+  "description": "open-dynamic-workflows adapter for OpenAI Codex CLI: plugin bundle, ODW/ultracode skills, MCP, and daemon bridge scripts.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node ../../scripts/run-node-tests.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

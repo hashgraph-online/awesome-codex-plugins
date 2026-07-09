@@ -3,7 +3,7 @@
 > **Source:** `anthropics/financial-services` @ commit `bb4a2b3e53cf27f8900b33ed6a2d95ed32e57f1d` (cloned 2026-05-06). Re-extract diff if upstream restructures.
 > **Methodology:** Combines content discipline from financial-services (front-loaded constraints, verification checkpoints, output spec, quality rubric) with AgentOps' structured frontmatter (skill_api_version, context, metadata, output_contract).
 
-This is the canonical template `skill-builder` materializes and `skill-auditor` validates against. Two artifacts in one document because both skills need identical truth.
+This is the canonical template `skill-builder` materializes and the heal-skill deep audit validates against. Two artifacts in one document because both skills need identical truth.
 
 ---
 

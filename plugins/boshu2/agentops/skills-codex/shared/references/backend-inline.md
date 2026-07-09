@@ -2,6 +2,7 @@
 
 Degraded single-agent mode when no multi-agent primitives are detected. The current agent performs all work sequentially in its own context.
 
+**When detected:** No `spawn_agent`, no `TeamCreate`, no `Task` tool available — or `--quick` flag was explicitly set.
 
 ---
 
@@ -28,9 +29,11 @@ Output format is identical — same file paths, same verdict schema. Downstream 
 Instead of parallel workers, execute each task sequentially:
 
 ```
+1. TaskList() — find unblocked tasks
 2. For each unblocked task (in order):
    a. Execute the task directly
    b. Write result to .agents/swarm/results/<task-id>.json
+   c. TaskUpdate(taskId="<id>", status="completed")
 3. Check for newly-unblocked tasks
 4. Repeat until all tasks complete
 ```
