@@ -1,0 +1,23 @@
+{
+  "name": "haunt-api",
+  "interface": {
+    "displayName": "Haunt API"
+  },
+  "plugins": [
+    {
+      "name": "haunt-mcp",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL",
+        "products": [
+          "codex"
+        ]
+      },
+      "category": "tools-integrations"
+    }
+  ]
+}

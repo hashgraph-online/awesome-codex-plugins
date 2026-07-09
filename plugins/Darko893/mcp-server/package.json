@@ -1,6 +1,6 @@
 {
   "name": "@hauntapi/mcp-server",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "mcpName": "com.hauntapi/haunt",
   "description": "MCP web extraction for permitted public pages: no-key demo plus live URL-to-JSON and Markdown output with honest blocked-page errors",
   "main": "index.js",

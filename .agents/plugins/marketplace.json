@@ -138,6 +138,21 @@
       "icon": "./plugins/fr33dr4g0n/agentry-public/assets/icon.png"
     },
     {
+      "name": "ai-mobile",
+      "displayName": "AI Mobile",
+      "source": {
+        "source": "local",
+        "path": "./plugins/comprono/Ai-Mobile-Codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Mobile-started Codex bridge for low-RAM Antigravity CLI, Antigravity desktop UI, and Claude Code workers on Windows, with model checks and compact bridge-job artifacts.",
+      "icon": "./plugins/comprono/Ai-Mobile-Codex-plugin/assets/icon.svg"
+    },
+    {
       "name": "agiflow-ai-plugin",
       "displayName": "AgiFlow",
       "source": {
@@ -608,6 +623,20 @@
       "description": "Full token-saving stack in one plugin - output compression, global rules, RTK hook, Caveman ultra, GitNexus config. Detects existing setup, installs only what's missing. Works on Claude Code and Codex."
     },
     {
+      "name": "haunt-mcp",
+      "displayName": "Haunt MCP",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Darko893/mcp-server"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Web extraction MCP for permitted public pages. Returns clean JSON, Markdown, article fields, metadata, and usage with clear blocked-page errors."
+    },
+    {
       "name": "frappe-agent",
       "displayName": "Frappe Agent",
       "source": {
@@ -621,20 +650,6 @@
       "category": "Development & Workflow",
       "description": "Frappe and ERPNext coding, customization, bench, and review intelligence for Codex.",
       "icon": "./plugins/Dkm0315/frappe-agent/assets/frappe-agent-icon.svg"
-    },
-    {
-      "name": "Haunt MCP",
-      "displayName": "Haunt MCP",
-      "source": {
-        "source": "github",
-        "repo": "Darko893/mcp-server"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Web extraction MCP for permitted public pages. Returns clean JSON, Markdown, article fields, metadata, and usage with clear blocked-page errors."
     },
     {
       "name": "gcf-proxy",
