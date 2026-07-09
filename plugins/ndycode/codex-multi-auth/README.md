@@ -179,6 +179,7 @@ For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
 | --- | --- |
 | `codex-multi-auth list` | Which accounts are saved and which one is active? |
 | `codex-multi-auth switch <index>` | How do I move to a different saved account? |
+| `codex-multi-auth-codex --account <index\|email\|id>` | How do I force one account for a single wrapper session without changing my default? |
 | `codex-multi-auth forecast --live` | Which account looks best for the next session? |
 
 ### Repair
@@ -383,7 +384,8 @@ codex-multi-auth doctor --json
 
 ## Release Notes
 
-- Current stable: [docs/releases/v2.3.3.md](docs/releases/v2.3.3.md) — install via `npm i -g codex-multi-auth`
+- Current stable: [docs/releases/v2.4.0.md](docs/releases/v2.4.0.md) — install via `npm i -g codex-multi-auth`
+- Previous stable: [docs/releases/v2.3.3.md](docs/releases/v2.3.3.md)
 - Previous stable: [docs/releases/v2.3.2.md](docs/releases/v2.3.2.md)
 - Previous stable: [docs/releases/v2.3.1.md](docs/releases/v2.3.1.md)
 - Previous stable: [docs/releases/v2.3.0.md](docs/releases/v2.3.0.md)

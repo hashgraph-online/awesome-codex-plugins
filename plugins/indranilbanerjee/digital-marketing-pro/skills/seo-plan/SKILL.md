@@ -246,7 +246,7 @@ Every `PLAN.md` this skill produces must pass these gates before being declared 
 | **kpi_attached** | `08-kpi-dashboard.md` lists ≥3 lagging + ≥3 leading metrics |
 | **drift_re-measure_scheduled** | The KPI dashboard includes a recurring `seo-drift` cadence (default: quarterly) |
 
-If any gate fails, the script that orchestrates the dispatcher must surface the failure in `PLAN.md` rather than silently shipping.
+If any gate fails, surface the failure prominently in `PLAN.md` rather than silently shipping. (The dispatcher is skill-driven — there is no separate orchestrator script; the gate check is part of assembling `PLAN.md`.)
 
 ## Chain handoffs
 

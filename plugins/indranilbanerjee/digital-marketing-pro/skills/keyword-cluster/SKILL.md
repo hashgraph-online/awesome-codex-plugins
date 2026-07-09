@@ -23,7 +23,7 @@ Heavy skill. **Grep before Read** any referenced file, then `Read` only matched 
 - Staging programmatic SEO across hundreds of variants (use this once per topic family)
 - Reorganising an existing site's internal-link graph
 
-**Don't use** when you just need keyword *expansion* (use `/digital-marketing-pro:keyword-research`) or when you need *ranking* analysis (use `/digital-marketing-pro:rank-monitor` / `/digital-marketing-pro:serp-tracker`).
+**Don't use** when you just need keyword *expansion* (use `/digital-marketing-pro:keyword-research`) or when you need *ranking* / SERP-feature analysis (use `/digital-marketing-pro:rank-monitor`, with `--features` for SERP features).
 
 ## Brand context (auto-applied)
 
@@ -54,7 +54,7 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/keyword-cluster/{YYYY-MM-DD
 4. **`03-serps.json`** — fetch top-10 SERP URLs per keyword via the connected rank-tracker (skip if SERPs already provided). **Budget guard**: if estimated cost > 500 credits, surface the cost and ask "Continue? (y/N — default N)" before fetching.
 5. **`04-cluster-run.json`** — run the script:
    ```bash
-   python "scripts/keyword_cluster.py" \
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/keyword_cluster.py" \
        --keywords "${CLAUDE_PLUGIN_DATA}/{brand}/seo/keyword-cluster/{date}/02-filtered.csv" \
        --serps "${CLAUDE_PLUGIN_DATA}/{brand}/seo/keyword-cluster/{date}/03-serps.json" \
        --overlap 0.4 \
@@ -121,7 +121,7 @@ This skill is a producer in the chain:
 - **The priority score isn't a ranking** — it's a starting build order. A cluster with `priority_score: 0.3` may still be your highest-conversion opportunity if it maps to a high-margin product line. Use the brand profile's `business_goals` to override mechanically.
 - **Don't run this on raw GSC query exports** without filtering first. GSC dumps thousands of long-tail variants of the same query — they'll all cluster together and produce a single mega-cluster.
 - **Pillar-only clusters are valid** — they represent distinct intents that simply lack spoke candidates in your seed set. Add seeds via Step 2 expansion if you want spokes.
-- **The internal-link map is suggestions, not commands.** Final anchor text should be reviewed for brand voice (apply `skills/context-engine/brand-voice-controls.md`).
+- **The internal-link map is suggestions, not commands.** Final anchor text should be reviewed for brand voice (apply the brand profile's voice fields + `skills/context-engine/guidelines-framework.md`).
 
 ## Agents used
 

@@ -33,6 +33,8 @@ references that other skills load based on file types being processed.
 | Test Pyramid | `references/test-pyramid.md` | plan, pre-mortem, implement, crank, validation, post-mortem |
 | SKILL.md Tier-Caps | `references/skill-tier-caps.md` | validate (skill line-cap audits), doc, plan |
 | External-Source Attribution | `references/external-source-attribution.md` | doc (when absorbing external corpora), heal-skill |
+| Migration-Owner Discipline | `references/migration-owner.md` | implement, plan, review, pre-mortem (when writing a breaking migration / retirement / `--fix`) |
+| Agentic-Workflow Evidence | `references/agentic-workflow-evidence.md` | plan, implement, review, pre-mortem (empirical basis — Finster 2026 — for the workflow discipline) |
 
 ## How It Works
 
@@ -153,4 +155,4 @@ Skills that use standards:
 - [references/yaml.md](references/yaml.md)
 - [references/skill-tier-caps.md](references/skill-tier-caps.md)
 - [references/external-source-attribution.md](references/external-source-attribution.md)
-- [references/migration-owner.md](references/migration-owner.md)
+- [references/migration-owner.md](references/migration-owner.md) — One fail-closed owner per breaking migration: warn→alias→hard-error staging, atomic format-preserving `--fix`, refuse ambiguous both-forms-present, marker-last ledger writes

@@ -494,7 +494,7 @@ The European Commission published **draft implementing guidelines for Article 50
 
 ## Section 5: Accessibility Requirements
 
-### 5.1 WCAG 2.1 AA — Marketing Content Requirements
+### 5.1 WCAG 2.2 AA — Marketing Content Requirements
 
 | Criterion | Requirement | Marketing Application |
 |---|---|---|
@@ -522,10 +522,10 @@ The European Commission published **draft implementing guidelines for Article 50
 
 | Requirement | Detail |
 |---|---|
-| **Legal Basis** | Title III of the Americans with Disabilities Act. DOJ has confirmed that websites of public accommodations must be accessible. No specific technical standard is codified, but courts consistently reference WCAG 2.1 AA as the benchmark. |
+| **Legal Basis** | Title III of the Americans with Disabilities Act. DOJ has confirmed that websites of public accommodations must be accessible. No specific technical standard is codified, but courts consistently reference WCAG 2.2 AA as the benchmark. |
 | **Who Is Covered** | Any business that is a "place of public accommodation" (virtually all commercial websites, including e-commerce, SaaS, services, media). |
 | **Enforcement** | Private lawsuits (ADA Title III does not provide damages in federal court but does in some states, notably California's Unruh Act: $4,000 minimum per violation per visit). DOJ enforcement actions. Demand letters are common. |
-| **Marketing Implications** | All landing pages, microsites, campaign pages, and promotional web content must be WCAG 2.1 AA compliant. Pop-ups and modals must be keyboard-accessible and screen-reader-compatible. Video content needs captions. PDFs (whitepapers, ebooks) must be tagged for accessibility. Forms must have labels, error handling, and keyboard access. |
+| **Marketing Implications** | All landing pages, microsites, campaign pages, and promotional web content must be WCAG 2.2 AA compliant. Pop-ups and modals must be keyboard-accessible and screen-reader-compatible. Video content needs captions. PDFs (whitepapers, ebooks) must be tagged for accessibility. Forms must have labels, error handling, and keyboard access. |
 | **Auto-Applied Rules** | Flag landing pages without accessibility review. Require alt text on all images. Require caption files for video content. Flag color contrast issues in design assets. Require keyboard-accessible interactive elements. Flag PDF deliverables without accessibility tagging. |
 
 ### 5.3 Email Accessibility Standards
@@ -552,7 +552,7 @@ When the context engine evaluates marketing content, apply rules in this priorit
 2. **Industry regulation** — Identify the advertiser's industry and apply sector-specific restrictions
 3. **FTC advertising rules** — Apply to all US-targeted content regardless of industry
 4. **Platform policies** — Apply the specific platform's rules for the distribution channel
-5. **Accessibility** — Apply WCAG 2.1 AA and email accessibility standards to all outputs
+5. **Accessibility** — Apply WCAG 2.2 AA and email accessibility standards to all outputs
 
 When rules conflict, apply the **most restrictive** standard. When jurisdiction is unknown, default to **GDPR + CPRA + FTC** as the baseline.
 

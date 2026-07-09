@@ -48,7 +48,7 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/gsc-ai-performance/{YYYY-MM
 00-input.md                  brand domain, GSC access status, UK-cohort flag, date range
 01-access-check.md           verification result; if no access, instructions for adding the user
 02-export.csv                raw CSV export from GSC (preserved for reproducibility)
-03-script-output.json        gsc-ai-performance.py summary (impressions, pages, countries, devices)
+03-script-output.json        gsc-ai-performance.py parsed output (impressions, pages, countries, devices)
 04-reconciliation.md         vs aeo-audit synthetic probe results — gap analysis
 05-opt-out-decision.md       y/n on the in-SC opt-out toggle, with rationale
 06-quality-scorecard.md      the gates below
@@ -78,7 +78,15 @@ If the brand isn't in the UK rollout yet, the gate framework still applies but `
 
 1. **Access check** — confirm the user has Google Search Console verified access for the brand's domain. If the brand is in the UK rollout cohort, the report is live; otherwise it will appear when global rollout reaches them.
 2. **Locate the report** — Search Console → left nav → **Performance** → switch tab to **Search results** → look for the new **AI Overviews & AI Mode** tab (the tab title may vary slightly during rollout; Google's working name during testing was "Search Generative AI"). On rollouts pre-tab, the data may also surface under the existing Performance report with an AI Features filter.
-3. **Run baseline export** — set the date range to "last 28 days" (or maximum available since rollout), export to CSV/Sheets via Search Console's export button. Capture: impressions, pages, country mix, device mix, top queries (if available in your cohort).
+3. **Run baseline export** — set the date range to "last 28 days" (or maximum available since rollout), export to CSV/Sheets via Search Console's export button. Capture: impressions, pages, country mix, device mix, top queries (if available in your cohort). Then parse and archive it with the helper script:
+   ```bash
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/gsc-ai-performance.py" \
+       --brand {slug} \
+       --csv "${CLAUDE_PLUGIN_DATA}/{brand}/seo/gsc-ai-performance/{date}/02-export.csv" \
+       --format json \
+       --archive
+   ```
+   Real flags only: `--brand` (required), `--csv` (path to the GSC export), `--api` (best-effort; Google has not published an AI-report API yet), `--site`, `--format text|json`, `--archive`. There is **no** `summary` subcommand — the script reads the CSV and emits the parsed metrics.
 4. **Reconcile against `aeo-audit`** — synthetic queries from `/digital-marketing-pro:aeo-audit` test what AI engines *might* surface; the GSC report shows what they *actually* surfaced. Significant gaps either way are signals:
    - GSC shows much more than aeo-audit found → your test query set is too narrow; expand it
    - aeo-audit found brand in synthetic results but GSC shows few impressions → low query volume for those topics; redirect AEO effort to higher-volume topics

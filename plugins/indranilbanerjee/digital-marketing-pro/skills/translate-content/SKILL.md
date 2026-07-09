@@ -27,8 +27,8 @@ The user must provide (or will be prompted for):
 ## Process
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Extract language configuration — `do_not_translate` term list, `translation_preferences` (preferred services per language pair, formality defaults, glossary), and `locale_formatting` rules (date formats, number separators, currency symbols). Load compliance rules for target markets from `skills/context-engine/compliance-rules.md`. Check for guidelines at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load voice-and-tone rules (these inform brand voice scoring of the translation). Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
-2. **Detect source language**: If the source language was not specified, run `python scripts/language-router.py --action detect --text "{content_or_path}"` to identify the source language with confidence score. Report the detected language to the user for confirmation if confidence is below 95%.
-3. **Route to optimal translation service**: For each target language, run `python scripts/language-router.py --action route --source "{source_lang}" --target "{target_lang}"` to select the best translation service. The router considers language pair quality, service specialization (Sarvam AI for Indic languages, DeepL for European languages with formality support, Google Cloud for broad coverage), and any brand-level service preferences. Report the selected service to the user.
+2. **Detect source language**: If the source language was not specified, run `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action detect --text "{content_or_path}"` to identify the source language with confidence score. Report the detected language to the user for confirmation if confidence is below 95%.
+3. **Route to optimal translation service**: For each target language, run `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action route --source "{source_lang}" --target "{target_lang}"` to select the best translation service. The router considers language pair quality, service specialization (Sarvam AI for Indic languages, DeepL for European languages with formality support, Google Cloud for broad coverage), and any brand-level service preferences. Report the selected service to the user.
 4. **Analyze content for transcreation needs**: Scan the source content for elements that resist literal translation — idioms and colloquialisms, wordplay or puns, humor and sarcasm, emotional CTAs and slogans, cultural references and analogies, rhyme or rhythm patterns, double meanings. If the transcreation flag is set or the content contains significant transcreation-requiring elements, prepare a transcreation brief using the methodology defined in `skills/context-engine/transcreation-framework.md`. For each flagged element, document the original intent, emotional tone, and desired audience response to guide creative adaptation.
 5. **Execute translation**: Call the routed translation MCP server for each target language:
    - For DeepL: Use the `deepl` MCP server with formality parameter, glossary entries, and tag handling for HTML/XML preservation
@@ -36,7 +36,7 @@ The user must provide (or will be prompted for):
    - For Google Cloud: Use the `google-cloud-translation` MCP server with model selection (NMT) and glossary
    - For Lara Translate: Use the `lara-translate` MCP server with domain-specific model selection
    - Pass do-not-translate terms (merged from brand profile and user-provided list), formality settings, glossary entries, and any formatting preservation flags (HTML tags, placeholders like {{first_name}}, Markdown syntax)
-6. **Score translation quality**: Run `python scripts/language-router.py --action score --source "{source}" --target "{target}" --original "{source_content}" --translated "{translated_content}"` to assess quality across dimensions:
+6. **Score translation quality**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/language-router.py" --action score --source "{source}" --target "{target}" --original "{source_content}" --translated "{translated_content}"` to assess quality across dimensions:
    - Length ratio (translated vs. source — flags unusual expansion or compression)
    - Formatting preservation (HTML tags, Markdown, placeholders intact)
    - Key term consistency (do-not-translate terms respected, glossary terms applied correctly)
@@ -49,7 +49,7 @@ The user must provide (or will be prompted for):
    - Intent-preservation score (how well the original marketing intent carries through)
    - Cultural fit notes (why this adaptation works for the target market)
    - Tone alignment assessment (formal/playful/urgent matches the original tone)
-9. **Run brand voice check**: Execute `python scripts/brand-voice-scorer.py --brand {slug} --text "{translated_content}"` to assess whether the translated content maintains brand voice characteristics. Flag any voice drift with specific examples and suggestions.
+9. **Run brand voice check**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/brand-voice-scorer.py" --brand {slug} --text "{translated_content}"` to assess whether the translated content maintains brand voice characteristics. Flag any voice drift with specific examples and suggestions.
 10. **Present translated content with quality metrics**: Deliver the final translated content alongside all quality data, formatted for easy review and approval.
 
 ## Output

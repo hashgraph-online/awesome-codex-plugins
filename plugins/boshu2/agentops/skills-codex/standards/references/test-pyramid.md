@@ -422,6 +422,33 @@ After L0–L3 coverage is complete, run bug-finding levels:
 
 **Pre-mortem / checklist flag:** when reviewing a plan or diff that adds a skip/dedup/consumed/idempotency guard test, FLAG any fixture built only from an in-memory constructor or that sets the guard marker at item-level when the persisted artifact marks it at batch-level. Require the fixture to round-trip the real persisted shape before the test counts as coverage. (See `.claude/rules/go.md` → "Guard-test fixtures must use the real persisted shape.")
 
+## Match thoroughness to task stakes — the over-testing tax
+
+> **Empirical (Finster 2026, `agentic-workflow-evidence.md`):** in a controlled study of agent-run
+> workflows, the highest mutation-score arms (0.93–0.98) *lost* on both cost and changeability —
+> the extra thoroughness cost multiples of the price and produced code that was harder to change
+> later. On small-to-medium tasks, coverage saturated near 100% across every workflow regardless,
+> so chasing higher coverage/mutation bought nothing measurable and cost multiples.
+
+Bug-finding thoroughness (mutation ≥80%, BF1–BF9) is not free and is not linearly good. It is a
+dial to set against the stakes and blast radius of the change, not a floor to always maximize:
+
+- **Small, fully-specified change, low blast radius** → L2 + L1 regression guards are usually
+  enough. Do **not** run full mutation or the BF corpus; coverage is already saturated and the
+  marginal test costs more than the bug it would find. Over-testing here also ossifies the code
+  against the next change.
+- **Critical module (auth, state, error handling, security boundary), high blast radius, or a
+  format external consumers depend on** → this is where BF3 (mutation on the top 3–5 modules),
+  BF4 (chaos), BF8 (backward-compat), and BF9 (security) earn their cost. Spend thoroughness where
+  a miss is expensive, not everywhere.
+
+The load-bearing quality move is **refactor-after-every-green**, not maximal test count: the same
+study found that stripping refactoring out of TDD erased its entire quality advantage, while
+test-first *ordering* alone contributed nothing measurable. Keep the suite green, refactor after
+each green, and **never let a refactor step change a test** (a test change during refactor means
+behavior changed — that is a new slice, not a refactor). Caveats and full numbers:
+`agentic-workflow-evidence.md`.
+
 ## Coverage Assessment Template
 
 Used by `/post-mortem` and `/validate` to assess test shape health:

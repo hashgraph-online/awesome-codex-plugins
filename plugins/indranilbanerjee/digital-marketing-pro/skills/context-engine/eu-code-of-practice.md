@@ -1,10 +1,17 @@
 # EU Code of Practice on AI-Generated Content — context for marketing teams
 
-**Status as of June 2026:** the European Commission's AI Office published the **second draft** of the voluntary **Code of Practice on Marking and Labelling of AI-generated content** on **5 March 2026**. Stakeholder feedback closed **30 March 2026**; the **final code is expected to be published in June 2026**, ahead of the **2 August 2026** applicability date for **AI Act Article 50 transparency obligations**.
+**Status as of July 2026:** the European Commission's AI Office published the **second draft** of the voluntary **Code of Practice on Marking and Labelling of AI-generated content** on **5 March 2026**; stakeholder feedback closed **30 March 2026**. The final Code had been signalled for June 2026, but **June passed without the final text being confirmed published** — as of early July 2026, treat the **second draft (5 March 2026) as the operative reference** and re-check the AI Office library for the final Code, which is still expected ahead of the **2 August 2026** applicability date for **AI Act Article 50 transparency obligations**. (Re-verify this status line at each release — the timeline is moving.)
 
 Source: [EU Digital Strategy — second draft of the Code of Practice on Marking and Labelling of AI-generated content](https://digital-strategy.ec.europa.eu/en/library/commission-publishes-second-draft-code-practice-marking-and-labelling-ai-generated-content) (5 March 2026).
 
 This document is the canonical reference for any DMP skill that produces, validates, or distributes AI-generated marketing content into EU markets.
+
+### July 2026 verification notes (re-check before each release)
+
+- **Final EU Code of Practice** — not confirmed published as of early July 2026. When it lands, update the citations, adopt the **standardized EU disclosure icon** from the annex, and refresh the disclosure-language templates (see the checklist at the end of this doc).
+- **Standardized EU disclosure icon** — the second-draft annex illustrates a proposed icon but it is not yet final. Monitor the annex; do not hard-code an icon asset until the final Code confirms it.
+- **FTC endorsement guidance (May 2026)** — the US FTC's updated endorsement/testimonial guidance covers AI-generated testimonials and synthetic-creator content. Verify the current text against ftc.gov and fold specifics into `skills/influencer-creator/ftc-compliance.md` and `skills/c2pa-metadata/SKILL.md`.
+- **New York synthetic-performer disclosure law (effective June 2026)** — applies to synthetic influencers and AI-generated endorsements ($1K–$5K per violation, $10K repeat). Verify scope/effective date against a primary source before relying on the figures.
 
 ## What Article 50 actually requires
 
@@ -63,10 +70,10 @@ DMP, ContentForge, and SocialForge are all **deployers**, not providers. Article
 ### Mandatory disclosure paths used by the plugins
 
 1. **Machine-readable mark** — embed a C2PA manifest with the `c2pa.ai-disclosure` assertion (spec 2.4, April 2026). Use `/digital-marketing-pro:c2pa-metadata` or SocialForge `/socialforge:c2pa-sign`. **This satisfies the Section 1 secured-metadata requirement automatically.** Note: the Code Section 1 also requires a watermarking layer — this is a *provider* obligation, but if you're stitching together outputs from multiple providers (e.g., Nano Banana Pro images composited with SocialForge), verify the marks survive your post-processing pipeline.
-2. **Visible deepfake disclosure** — for any AI-generated image/video/audio that resembles a real person, place, or object: visible icon/label/disclaimer on the asset OR in the adjacent caption / alt text / publication metadata. DMP's content pipeline auto-adds this when `c2pa_auto_sign: true` is on for the brand and the generator emitted `ai-claim: ai-generated-content`. **Anticipate the standardized EU icon** — when the final Code publishes (June 2026), DMP will update the icon used.
+2. **Visible deepfake disclosure** — for any AI-generated image/video/audio that resembles a real person, place, or object: visible icon/label/disclaimer on the asset OR in the adjacent caption / alt text / publication metadata. DMP's content pipeline auto-adds this when `c2pa_auto_sign: true` is on for the brand and the generator emitted `ai-claim: ai-generated-content`. **Anticipate the standardized EU icon** — when the final Code publishes (expected mid-2026; as of July 2026 not yet confirmed), DMP will adopt the standardized EU disclosure icon from the annex.
 3. **Editorial-review proof for AI-generated text** — if you're publishing long-form AI-written articles (ContentForge pipeline) to inform the public on matters of public interest, the editorial-review exception applies only if a human editor signed off with editorial responsibility. ContentForge's quality-gate logs serve as evidence; **archive them for at least 3 years** (typical regulatory retention).
 
-## When the Code is published in final form (expected June 2026)
+## When the Code is published in final form (expected 2026 — not yet published as of July 2026)
 
 The skills `c2pa-metadata` (DMP), `c2pa-sign` (SocialForge), `check` (DMP pre-publish gate), `contentforge` pipeline (CF), and any future regulatory-compliance skill should be updated to:
 

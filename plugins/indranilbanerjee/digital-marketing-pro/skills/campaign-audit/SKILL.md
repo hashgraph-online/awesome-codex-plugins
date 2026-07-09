@@ -18,7 +18,7 @@ This skill produces a single document describing **everything currently running 
 
 ## Context efficiency
 
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List the brand's data dir (`~/.claude-marketing/brands/{slug}/`, or `$CLAUDE_PLUGIN_DATA/digital-marketing-pro/brands/{slug}/` when that env var is set) before opening files. On re-invocation mid-session, skip files already in context.
 
 Use this skill:
 
@@ -66,7 +66,7 @@ If `--brand <slug>` was supplied, use it. Otherwise use the active brand. If nei
 
 If `--channels <list>` was supplied (e.g. `paid_search,email,seo`), restrict to those. Otherwise audit every channel for which a connector is configured.
 
-If `--quick` was supplied, run only the channel-level inventory pass (skip the historical performance pull and the AEO/GEO check) — useful for a 10-minute "what's live" snapshot.
+If `--quick` was supplied, run only the channel-level inventory pass (skip the historical performance pull and the AEO/GEO check) — useful for a fast "what's live" snapshot.
 
 ### Step 2 — Inventory each channel
 
@@ -74,33 +74,33 @@ For each in-scope channel, call the relevant data-pull script with `--read-only`
 
 ```bash
 # Paid search
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand "{brand}" \
     --channel google_ads --action inventory --read-only
 
 # Paid social
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand "{brand}" \
     --channel meta_ads --action inventory --read-only
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand "{brand}" \
     --channel linkedin_ads --action inventory --read-only
 
 # Email
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand "{brand}" \
     --channel email --action automations --read-only
 
 # Organic + SEO
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/seo-executor.py --brand "{brand}" --action audit-current
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/seo-executor.py" --brand "{brand}" --action audit-current
+python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand "{brand}" \
     --channel organic_social --action cadence
 
-# AEO / GEO (unless --quick)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ai-visibility-checker.py --brand "{brand}" \
+# AEO / GEO (skip for a fast audit)
+python "${CLAUDE_PLUGIN_ROOT}/scripts/ai-visibility-checker.py" --brand "{brand}" \
     --mode api --competitors "{auto-from-profile or --competitors arg}"
 
 # CRM + automation health
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py --brand "{brand}" --action audit-workflows
+python "${CLAUDE_PLUGIN_ROOT}/scripts/crm-sync.py" --brand "{brand}" --action audit-workflows
 
 # Web analytics health
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py --brand "{brand}" \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py" --brand "{brand}" \
     --channel ga4_health --action diagnostic
 ```
 
@@ -121,7 +121,7 @@ A red flag is anything that meets ANY of: (a) measurable monthly waste > $X (def
 
 ### Step 4 — Compose the audit document
 
-Write the audit to `~/.claude-marketing/{brand}/audits/campaign-audit-{YYYY-MM-DD}.md` AND publish a user-visible copy to `~/Documents/DigitalMarketingPro/{brand}/audits/{YYYY-MM-DD}-campaign-audit.md` (mirroring the ContentForge dual-copy pattern from v3.12.3). The document structure:
+Write the audit to `~/.claude-marketing/brands/{slug}/audits/campaign-audit-{YYYY-MM-DD}.md` AND publish a user-visible copy to `~/Documents/DigitalMarketingPro/{brand}/audits/{YYYY-MM-DD}-campaign-audit.md` (mirroring the ContentForge dual-copy pattern). The document structure:
 
 ```markdown
 # Current-State Campaign Audit — {brand_name}
@@ -188,7 +188,7 @@ Bulleted list. Each item: channel · why it's missing · what minimum viable act
 
 ### Step 5 — Update the brand's audit history
 
-Append a short entry to `~/.claude-marketing/{brand}/audit-history.json`:
+Append a short entry to `~/.claude-marketing/brands/{slug}/audit-history.json`:
 
 ```json
 {
@@ -235,7 +235,7 @@ In the conversation, print:
 2. **One channel failure ≠ full audit failure.** A failing connector becomes a finding in the "Channels skipped" list, not an exception that aborts the whole skill.
 3. **Concrete numbers, not adjectives.** "Wasting $X/month" beats "spending inefficiently." If a number is unavailable, say "unknown — {connector} didn't return it" instead of fabricating one.
 4. **Quote primary sources for compliance findings.** Never cite Wikipedia, blog posts, or LLM output as the source for "X regulation requires Y." Use the entries in `skills/context-engine/compliance-rules.md`, and if a jurisdiction isn't covered there, mark the finding as `compliance_basis: unverified` rather than guessing.
-5. **Dual-copy the report.** Internal (tracking) under `~/.claude-marketing/{brand}/audits/`; user-visible under `~/Documents/DigitalMarketingPro/{brand}/audits/` (or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR` if set). Mirrors the ContentForge v3.12.3 pattern so the user can find the file without spelunking dotfolders.
+5. **Dual-copy the report.** Internal (tracking) under `~/.claude-marketing/brands/{slug}/audits/`; user-visible under `~/Documents/DigitalMarketingPro/{brand}/audits/` (or `$DIGITAL_MARKETING_PRO_PUBLISH_DIR` if set). Mirrors the ContentForge dual-copy pattern so the user can find the file without spelunking dotfolders.
 
 ## Arguments
 
@@ -259,4 +259,4 @@ In the conversation, print:
 - [`performance-check`](../performance-check/SKILL.md) — lighter metrics-only snapshot
 - [`competitor-analysis`](../competitor-analysis/SKILL.md) — pairs naturally with the AEO/GEO section
 - [`aeo-audit`](../aeo-audit/SKILL.md) — deeper AI-engine visibility audit if Section 5 raises concerns
-- `scripts/performance-monitor.py` — underlying data pulls
+- `${CLAUDE_PLUGIN_ROOT}/scripts/performance-monitor.py` — underlying data pulls

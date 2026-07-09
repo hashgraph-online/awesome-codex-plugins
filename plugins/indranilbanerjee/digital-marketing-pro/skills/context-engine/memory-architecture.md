@@ -16,6 +16,8 @@ The plugin uses a **5-layer memory architecture**. Each layer serves a different
 | 4 | Universal Agent Memory | Permanent, cloud-hosted | Supermemory API key | Cross-agent knowledge sharing, institutional learning |
 | 5 | Knowledge Base | Permanent, human-editable | Notion or Google Drive credentials | Team documentation, style guides, SOPs |
 
+> **MCP package reality check (verify before `npx`).** Only some of the packages named below are verified-real on npm as of this release. **Verified-real:** `@pinecone-database/mcp` (Layer 2), `mcp-google-drive` (Layer 5). **Unverified / no known official npm package** — do NOT assume these exist; search npm first, and remember `npx` executes remote code, so verify any package before running it (prefer `/digital-marketing-pro:add-integration` for a custom MCP path): `mcp-server-qdrant` (a package by that name exists but is a likely name-squat — the official Qdrant MCP server ships as Python/`uvx`, not npm), `graphiti-mcp` (Layer 3), `@supermemoryai/supermemory-mcp` (Layer 4), and `@notionhq/mcp-server` (Layer 5 — Notion instead ships a hosted HTTP MCP at `https://mcp.notion.com/mcp`). **DMP bundles no memory MCP** — Layer 1 always works locally; Layers 2-5 only work if you connect your own server.
+
 ---
 
 ## Layer 1: Session Context (Always Available)
@@ -78,9 +80,9 @@ Examples:
 
 **Storage via:**
 ```bash
-python memory-manager.py --brand {slug} --action prepare-store --type campaign-learning --data '{"content": "...", "tags": [...]}'
+python "${CLAUDE_PLUGIN_ROOT}/scripts/memory-manager.py" --brand {slug} --action prepare-store --data '{"content": "...", "content_type": "campaign-learning", "tags": [...]}'
 ```
-The script prepares the payload, then the MCP store call writes it to the vector database.
+The script prepares the payload, then the MCP store call writes it to the vector database. (Put `content_type` inside `--data`; the `--type` flag is a filter for read actions and is ignored by `prepare-store`.)
 
 ---
 
@@ -128,8 +130,9 @@ Examples:
 
 **Storage via:**
 ```bash
-python memory-manager.py --brand {slug} --action prepare-graph --entity-type campaign --data '{"name": "...", "relationships": [...]}'
+python "${CLAUDE_PLUGIN_ROOT}/scripts/memory-manager.py" --brand {slug} --action prepare-graph --data '{"entity_type": "campaign", "name": "...", "relationships": [...]}'
 ```
+(There is no `--entity-type` flag — put `entity_type` inside `--data`.)
 
 ---
 
@@ -158,7 +161,7 @@ Examples:
 
 **Setup:** Set `SUPERMEMORY_API_KEY` in `.env`.
 
-**Shared across:** All 25 agents. When one agent learns something, every other agent can retrieve it.
+**Shared across:** All 24 agents. When one agent learns something, every other agent can retrieve it.
 
 ---
 

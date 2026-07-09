@@ -9,8 +9,8 @@
 - [ ] Primary keyword in meta description
 - [ ] Primary keyword in at least one image alt text
 - [ ] Secondary keywords in H2/H3 subheadings
-- [ ] Keyword density 1-3% (natural usage, not stuffing)
-- [ ] LSI/related terms used naturally throughout content
+- [ ] Primary keyword placed in title, intro, ≥2 H2s, and the conclusion (density is not a target — write naturally and cover the topic; keyword-density percentages are a discredited metric, not a ranking factor)
+- [ ] Related and co-occurring terms used naturally where the topic calls for them (there is no "LSI keyword" ranking signal — this is about genuinely covering the subject, not hitting a term list)
 - [ ] Long-tail variations included in body text
 
 ---

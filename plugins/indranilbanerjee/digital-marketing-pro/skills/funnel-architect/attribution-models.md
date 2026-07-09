@@ -39,9 +39,10 @@ BUSINESS MODEL OVERRIDES:
 ### Google Analytics 4 (GA4)
 
 - **Default**: Data-driven attribution (cross-channel)
-- **Setup**: Admin → Attribution Settings → Choose model and lookback window
+- **Configurable models**: Since 2023, GA4's Admin → Attribution Settings exposes **only `data-driven` and `last-click` (paid & organic channels)** — the old menu of linear / time-decay / position-based / first-click was removed. To apply linear, time-decay, position-based, or any custom credit rule, model it in your **warehouse / BI layer** (BigQuery export + SQL, or a BI tool) — not in GA4's UI.
 - **Lookback windows**: 30 days for acquisition, 90 days for other conversions
-- **Reports**: Advertising → Attribution → Model comparison
+- **Reports**: Advertising → Attribution → Model comparison (compares the two available models)
+- **AI Assistant channel**: GA4's default channel grouping now includes an **"AI Assistant"** channel that isolates referral traffic from AI assistants (ChatGPT, Gemini, Copilot, Perplexity, etc.). Include it in channel breakdowns so AI-sourced conversions are not misfiled under "Referral" or "Direct".
 - **Limitation**: Only tracks Google-visible touchpoints, cannot see all walled garden data
 
 ### Meta (Facebook) Attribution

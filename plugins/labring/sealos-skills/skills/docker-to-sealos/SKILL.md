@@ -69,9 +69,11 @@ Apply field-level mappings from `references/conversion-mappings.md`, including:
 - TLS offload normalization for Sealos Ingress: when a business service exposes both 80 and 443, drop 443 from workload/service ports and remove in-container TLS certificate mounts (for example `/etc/nginx/ssl`, `/etc/ssl`, `/certs`) unless official Kubernetes docs explicitly require HTTPS backend-to-service traffic
 - multi-service web normalization: expose the verified browser entry in the App resource, expose API/gateway/docs only when they are intended public surfaces, and keep workers private with no Service/Ingress
 - URL topology: browser-facing env vars must use public HTTPS URLs, while server-to-server env vars must use Kubernetes Service FQDNs unless the app explicitly requires public callbacks
+- WebSocket ingress normalization: when the public entry is `ws://`, `wss://`, CDP/Chrome DevTools, a game socket, or a WebSocket-named port/service, expose it with WebSocket nginx ingress annotations
 - prefer `scripts/compose_to_template.py --kompose-mode always` as deterministic conversion entrypoint (require `kompose` for reproducible workload shaping)
 - when official Kubernetes installation docs/manifests exist, perform a dual-source merge: use Compose as baseline topology, then align app-runtime semantics with official Kubernetes guidance
 - when official compose/docs define a multi-component runtime bundle, keep runtime-required components, entry routes, critical env vars, and component image versions aligned to one official release/compose source
+- before converting a host directory mount to persistent storage, verify whether the image already ships required files at that target path; avoid hiding image-bundled manifests, dependency lists, or config defaults behind a fresh empty PVC
 
 ### Step 5: Apply database strategy
 
@@ -142,6 +144,7 @@ For login-gated web applications, live validation must prove the real credential
 - Root-path `Ingress` resources (`pathType: Prefix`, `path: /`) must use the same component name across `metadata.name`, `metadata.labels.cloud.sealos.io/app-deploy-manager`, and backend `service.name`; non-root or non-Prefix Ingress rules may route to a different backend service.
 - Service `spec.ports[*].name` must be explicitly set (required for multi-port services).
 - HTTP Ingress must include required nginx annotations (`kubernetes.io/ingress.class`, `nginx.ingress.kubernetes.io/proxy-body-size`, `nginx.ingress.kubernetes.io/server-snippet`, `nginx.ingress.kubernetes.io/ssl-redirect`, `nginx.ingress.kubernetes.io/backend-protocol`, `nginx.ingress.kubernetes.io/client-body-buffer-size`, `nginx.ingress.kubernetes.io/proxy-buffer-size`, `nginx.ingress.kubernetes.io/proxy-send-timeout`, `nginx.ingress.kubernetes.io/proxy-read-timeout`, `nginx.ingress.kubernetes.io/configuration-snippet`) with expected defaults.
+- WebSocket Ingress must include required nginx annotations (`kubernetes.io/ingress.class`, `nginx.ingress.kubernetes.io/proxy-body-size`, `nginx.ingress.kubernetes.io/proxy-read-timeout`, `nginx.ingress.kubernetes.io/proxy-send-timeout`, `nginx.ingress.kubernetes.io/backend-protocol`, `nginx.ingress.kubernetes.io/ssl-redirect`) with `backend-protocol: WS` and `3600` read/send timeouts.
 - CronJob resources must define labels `cloud.sealos.io/cronjob`, `cronjob-launchpad-name`, and `cronjob-type`; `cloud.sealos.io/cronjob` must equal `metadata.name`, `cronjob-launchpad-name` must be `""`, and `cronjob-type` must be `image`.
 - When official application health checks are available, managed workloads must define `livenessProbe`, `readinessProbe`, and (for slow bootstrap apps) `startupProbe`, aligned with official endpoints/commands.
 - For public images that are verified to run as a non-root UID, managed app workloads and init Jobs should set restricted-compatible security context (`runAsNonRoot`, `runAsUser`, `runAsGroup`, `fsGroup`, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`) unless the image requires root or extra capabilities.
@@ -212,6 +215,7 @@ For login-gated web applications, live validation must prove the real credential
 - Redis cluster must follow upgraded structure (`componentDef: redis-7`, `componentDef: redis-sentinel-7`, `serviceVersion: 7.2.7`, main data PVC `1Gi`, topology `replication`).
 - Database cluster component resources must use `limits(cpu=500m,memory=512Mi)` and `requests(cpu=50m,memory=51Mi)` unless source docs explicitly require otherwise.
 - All managed workload container resources must use the Sealos resource ladder: `limits.cpu` only `100m/200m/500m/1/2/3/4/8`, `limits.memory` only `128Mi/256Mi/512Mi/1024Mi/2048Mi/4096Mi/8192Mi/16384Mi`, and `requests` must be derived from `limits` by dropping the last numeric digit (`500m→50m`, `512Mi→51Mi`, `1→100m`, `1024Mi→102Mi`, `4096Mi→409Mi`). Do not invent non-ladder values, and never use `2G/4G/8G/16G` because Sealos Template API quota preview can parse bare `G` memory as 0.
+- Do not add, delete, or change existing `ephemeral-storage` resource fields during existing-template updates unless runtime evidence identifies ephemeral storage pressure; preserve the original requests/limits values while tuning CPU and memory.
 - Secret naming:
   - MongoDB: `${{ defaults.app_name }}-mongo-mongodb-account-root` (or `${{ defaults.app_name }}-mongodb-mongodb-account-root` when the MongoDB cluster name uses `-mongodb`)
   - Redis: `${{ defaults.app_name }}-redis-redis-account-default` (legacy `${{ defaults.app_name }}-redis-account-default` may be accepted for backward compatibility)
@@ -336,6 +340,7 @@ Load only needed references for current task:
 - Prefer square/circular icon-first logo assets (app icon/favicon/avatar) and avoid rectangular wordmark/text logos.
 - Prefer Sealos-managed ingress over bundled edge proxies: if a Traefik gateway is only acting as ingress/front-proxy and at least one business service exists, do not emit Traefik workload resources.
 - Prefer gateway TLS termination in Sealos Ingress over in-container TLS: for dual-port HTTP/HTTPS workloads, keep HTTP service port and remove redundant HTTPS/certificate mounts unless official docs require HTTPS backend.
+- Prefer WebSocket Ingress for public `ws://`, `wss://`, CDP/Chrome DevTools, game socket, and WebSocket-named ports/services; use `backend-protocol: WS` with `3600` read/send timeouts.
 - Never create `template/<app-name>/README.md` or `template/<app-name>/README_zh.md`; only keep README URL references inside `index.yaml` when required by the template schema.
 - Prefer fixing references/examples over adding exceptions when conflicts appear.
 - If official Kubernetes installation docs/manifests exist for the target app, do not ignore them; use them to refine runtime semantics beyond Compose defaults.

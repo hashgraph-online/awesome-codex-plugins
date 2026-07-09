@@ -81,12 +81,15 @@ IMPL WAVE (standard, enhanced with GREEN mode)
   Output: implementation code
   Gate: GREEN confirmation — ALL tests must PASS + wave acceptance check
                     ↓
-[Optional] REFACTOR WAVE
+REFACTOR WAVE (refactor-under-green — the load-bearing quality move, not optional)
   Workers: 1 per changed file group
   Input: passing tests + implementation
-  Output: diff-only cleanup
-  Gate: All tests still PASS
+  Output: diff-only cleanup, as its own commit
+  Gate: All tests still PASS *and the diff changed NO test file* — a refactor
+        that edits a test changed behavior; that is a new slice, not a refactor.
 ```
+
+Refactor-after-green is where the quality actually comes from (test-first *ordering* alone contributed nothing measurable — `skills/standards/references/agentic-workflow-evidence.md`); a pipeline that defers or skips it lands in the worst-performing cluster.
 
 ### Category-Based Skip
 

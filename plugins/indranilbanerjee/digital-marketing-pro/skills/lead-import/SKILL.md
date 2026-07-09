@@ -1,7 +1,7 @@
 ---
 name: lead-import
 description: "Import leads into CRM. Use when: loading leads from forms, CSV, or manual entry with deduplication and scoring."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[source-file or URL]"
 ---
 
@@ -12,6 +12,13 @@ argument-hint: "[source-file or URL]"
 Import leads into the brand's CRM with data validation, deduplication, lead scoring, and proper consent tracking. Supports CSV files, JSON arrays, and manual entry with automatic source attribution. Ensures every imported lead is clean, scored, deduplicated, and compliant before it reaches the sales team — eliminating the manual data hygiene work that slows down lead-to-opportunity conversion. Integrates with the marketing-automation lead scoring framework to classify leads on import, so high-value prospects are routed to sales immediately while lower-scoring leads enter nurture sequences automatically.
 
 Use this command for leads specifically — it applies scoring, lifecycle staging, and nurture enrollment. For general CRM data syncing (contacts, deals, campaigns) without lead scoring, use `/digital-marketing-pro:crm-sync` instead.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 

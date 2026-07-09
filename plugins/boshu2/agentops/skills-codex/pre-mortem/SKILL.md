@@ -10,6 +10,8 @@ description: "Stress-test plans before work."
 
 Run `$council validate` on a plan or spec to get multi-model judgment before committing to implementation.
 
+Narrow-waist slice checks (FAIL the plan if any fails): one behavior per slice (S1 — reject multi-behavior slices, send back to `$plan`); each slice names a runnable acceptance test authored to fail RED before code (S3 — no failing test = no contract = FAIL); refactor is separated from feature and never changes a test (S4).
+
 ---
 
 ## Quick Start

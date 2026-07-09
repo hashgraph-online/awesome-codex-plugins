@@ -20,13 +20,13 @@ This skill is the canonical pre-publish gate for marketing content. It wraps the
 
 ## Context efficiency
 
-Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List `${CLAUDE_PLUGIN_DATA}/<brand>/` before opening files. On re-invocation mid-session, skip files already in context.
+Heavy skill. **Grep before Read** any referenced file, then `Read` only matched ranges with `offset` + `limit`. List the brand's workspace at `~/.claude-marketing/brands/{slug}/` (or `$CLAUDE_PLUGIN_DATA/digital-marketing-pro/brands/{slug}/` when that env var is set) before opening files. On re-invocation mid-session, skip files already in context.
 
 Use this skill **before publishing any marketing content** — blog posts, ad copy, emails, social posts, landing pages, press releases, or any branded copy.
 
 ## Why this skill exists
 
-In v3.0 and earlier, a global PreToolUse hook auto-ran a hallucination + brand-compliance check on every Write/Edit operation in every project. v3.1 removed that hook because it fired globally across all plugins and projects (Slack writes, GitHub PRs, code edits — all of it), causing friction in non-marketing work.
+An earlier version shipped a global PreToolUse hook that auto-ran a hallucination + brand-compliance check on every Write/Edit operation in every project. That hook was removed because it fired globally across all plugins and projects (Slack writes, GitHub PRs, code edits — all of it), causing friction in non-marketing work.
 
 `/digital-marketing-pro:check` replaces that automatic gate with an **explicit user-invoked gate**. The work is the same; the trigger is intentional.
 
@@ -40,6 +40,7 @@ The check delegates to `scripts/eval-runner.py` (the master eval orchestrator) w
 | **Claims** | `claim-verifier.py` (when `--evidence` provided) | Cross-checks specific claims against a user-provided evidence file |
 | **Brand voice** | `brand-voice-scorer.py` (when `--brand` provided) | Scores content against the active brand's voice profile (formality, energy, humor, authority, prefer/avoid words) |
 | **Structure** | `output-validator.py` (when `--schema` provided) | Validates content matches expected schema (blog_post, email, ad_copy, social_post, landing_page, press_release, content_brief, campaign_plan) |
+| **C2PA provenance** (compliance) | `embed-c2pa.py` (presence check) | When the brand's `target_markets` include an EU/EEA jurisdiction AND an accompanying asset is AI-generated: verifies a C2PA provenance manifest is present and valid. Missing or invalid manifest → **CRITICAL / BLOCKED** (EU AI Act Article 50, applies from 2 Aug 2026) |
 
 Plus content quality and readability scoring (always run).
 
@@ -143,6 +144,17 @@ Decision: PASS — safe to publish but address WARNINGs first
 
 If any CRITICAL issue is found, decision = **BLOCKED** and the user is asked to fix before publishing.
 
+## EU AI Act Article 50 — C2PA provenance gate
+
+The check gains a compliance dimension for AI-generated assets in EU-targeted campaigns. It fires when **both** conditions hold:
+
+1. The active (or `--brand`) profile's `target_markets` include any EU/EEA jurisdiction, **and**
+2. An accompanying asset is declared AI-generated — either the file metadata says so, or the `--evidence` JSON declares `ai_generated: true` for it.
+
+When both hold, the gate runs a C2PA manifest presence check on the asset via `embed-c2pa.py` (presence/verify mode — it does not modify the asset). A **missing or invalid C2PA provenance manifest is a CRITICAL issue → decision = BLOCKED.** Article 50 applies from **2 Aug 2026** (penalty up to EUR 15M or 3% of global turnover). To embed a compliant manifest, run `/digital-marketing-pro:c2pa-metadata`.
+
+If `embed-c2pa.py` is not present in the script inventory or the asset cannot be resolved, surface the dimension as SKIPPED with a warning (never silently PASS an EU AI-asset check).
+
 ## How the skill operates
 
 The skill follows this flow:
@@ -152,7 +164,7 @@ The skill follows this flow:
 3. **Build the eval-runner command.** Choose action: `run-quick` (default), `run-full` (with `--full`), `run-compliance` (with `--compliance`).
 4. **Execute via Bash.**
    ```
-   python ${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py --action run-quick --file <input> [--brand <slug>] [--evidence <path>] [--schema <name>]
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py" --action run-quick --file <input> [--brand <slug>] [--evidence <path>] [--schema <name>]
    ```
 5. **Parse the JSON output.** Extract composite score, grade, dimension scores, alerts, auto-reject decision.
 6. **Format for the user.** Present the human-readable report shown above. Lead with the decision (PASS / WARN / BLOCKED).
@@ -167,6 +179,7 @@ The skill follows this flow:
 - `scripts/output-validator.py` — invoked by eval-runner if `--schema` provided
 - `scripts/content-scorer.py` — invoked by eval-runner
 - `scripts/readability-analyzer.py` — invoked by eval-runner
+- `scripts/embed-c2pa.py` — presence/verify check for the EU AI Act Article 50 C2PA gate (only when an EU-targeted brand has an AI-generated asset)
 
 All scripts use stdlib only (except brand-voice-scorer which optionally uses nltk). No external API calls, no internet required.
 
@@ -179,7 +192,7 @@ User: /digital-marketing-pro:check drafts/q2-launch-blog.md
 
 Skill:
 1. Read drafts/q2-launch-blog.md
-2. Run python scripts/eval-runner.py --action run-quick --file drafts/q2-launch-blog.md
+2. Run python "${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py" --action run-quick --file drafts/q2-launch-blog.md
 3. Parse JSON output:
    composite_score: 81.2, grade: B+, auto_rejected: false
    hallucination: 92/100 pass, content_quality: 76/100 pass, readability: 84/100 pass
@@ -211,7 +224,7 @@ User: /digital-marketing-pro:check drafts/healthcare-ad.md --full --brand health
 
 Skill:
 1. Read drafts/healthcare-ad.md
-2. Run python scripts/eval-runner.py --action run-full --file drafts/healthcare-ad.md --brand healthfirst --evidence facts/q2-claims.json --schema ad_copy
+2. Run python "${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py" --action run-full --file drafts/healthcare-ad.md --brand healthfirst --evidence facts/q2-claims.json --schema ad_copy
 3. Parse JSON output. Composite: 58.4, grade: D+, auto_rejected: true
 4. Format report with CRITICAL issues highlighted
 5. Decision: BLOCKED. Two unattributed health claims need substantiation before this can publish.
@@ -224,7 +237,7 @@ User: /digital-marketing-pro:check drafts/financial-services-landing.md --compli
 
 Skill:
 1. Read content
-2. Run python scripts/eval-runner.py --action run-compliance --file drafts/financial-services-landing.md --brand finadvisor --evidence facts/finra-disclosures.json
+2. Run python "${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py" --action run-compliance --file drafts/financial-services-landing.md --brand finadvisor --evidence facts/finra-disclosures.json
 3. Output prioritises hallucination + claim verification + brand voice + structure
 4. Returns decision with FINRA-relevant issues highlighted
 ```
@@ -270,7 +283,7 @@ Skill:
 
 - `/digital-marketing-pro:engagement growth-plan` — produces Part 8 deliverable; should be checked with `/digital-marketing-pro:check --full --schema content_brief` before client delivery
 - `/digital-marketing-pro:content-engine` — produces marketing content; recommended workflow is `/digital-marketing-pro:content-engine` → review → `/digital-marketing-pro:check` → publish
-- `/digital-marketing-pro:eval-content` — older legacy alias that will route to this skill in v3.2+
+- `/digital-marketing-pro:eval-content` — legacy alias that routes to this skill
 
 ## Related references
 

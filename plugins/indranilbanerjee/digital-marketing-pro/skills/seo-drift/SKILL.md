@@ -53,7 +53,7 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/seo-drift/{YYYY-MM-DD}/`.
 3. **`02-current.csv`** — copy current export here
 4. **`03-drift-run.json`** — run the script:
    ```bash
-   python "scripts/seo_drift.py" \
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/seo_drift.py" \
        --baseline "${CLAUDE_PLUGIN_DATA}/{brand}/seo/seo-drift/{date}/01-baseline.csv" \
        --current  "${CLAUDE_PLUGIN_DATA}/{brand}/seo/seo-drift/{date}/02-current.csv" \
        --top 30 --noise 5 \

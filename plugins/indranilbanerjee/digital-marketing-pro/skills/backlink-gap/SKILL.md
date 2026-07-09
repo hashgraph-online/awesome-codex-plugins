@@ -53,13 +53,16 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/backlink-gap/{YYYY-MM-DD}/`
 4. **`03-comp-{competitor}.csv`** — one CSV per competitor (raw)
 5. **`04-gap-run.json`** — run the script:
    ```bash
-   python "scripts/backlink_gap.py" \
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/backlink_gap.py" \
        --ours "${CLAUDE_PLUGIN_DATA}/{brand}/seo/backlink-gap/{date}/02-ours.csv" \
-       --competitors "${CLAUDE_PLUGIN_DATA}/{brand}/seo/backlink-gap/{date}/03-comp-*.csv" \
+       --competitors \
+         "${CLAUDE_PLUGIN_DATA}/{brand}/seo/backlink-gap/{date}/03-comp-competitor1.csv" \
+         "${CLAUDE_PLUGIN_DATA}/{brand}/seo/backlink-gap/{date}/03-comp-competitor2.csv" \
        --min-dr {brand.profile.min_link_dr or 20} \
        --top 100 \
        --out "${CLAUDE_PLUGIN_DATA}/{brand}/seo/backlink-gap/{date}/04-gap-run.json"
    ```
+   `--competitors` takes an explicit space-separated list of CSV paths (`nargs="+"`) — **enumerate each `03-comp-*.csv` file; the script does not expand a `*` glob**, so a quoted `03-comp-*.csv` would fail with FileNotFoundError. List one path per competitor.
 6. **`05-quality-scorecard.md`** — read `quality_scorecard` from `04-gap-run.json`. If `status: needs_review`, diagnose:
    - `data_freshness: fail` → input CSV(s) older than 90 days. Re-pull data; backlink graphs decay fast.
    - `sample_size: fail` → any input < 50 unique referring domains. Either the domain is too new or the export was truncated. Re-export with no row limit.
@@ -67,7 +70,7 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/backlink-gap/{YYYY-MM-DD}/`
    - `link_overlap_signal: fail` → fewer than 5 referring domains link to ≥2 competitors. Either competitors are poorly chosen (they don't share a content space with each other) or the data is incomplete. Re-choose competitors.
 7. **`06-prospect-shortlist.md`** — top 30 prospects, formatted for outreach handoff: domain, DR, link count across competitors, suggested outreach angle (guest post, broken-link, resource-page mention)
 8. **`07-broken-link-candidates.md`** — subset where one or more competitor links return 4xx (run a quick HTTP HEAD pass on competitor backlink URLs — use the brand's connected web-fetch MCP). These are "easy wins" — pitch your URL as the replacement.
-9. **`08-outreach-templates.md`** — three template variants: (a) cold-pitch resource-page, (b) broken-link replacement, (c) competitor mention. Each pre-filled with brand voice from `skills/context-engine/brand-voice-controls.md`.
+9. **`08-outreach-templates.md`** — three template variants: (a) cold-pitch resource-page, (b) broken-link replacement, (c) competitor mention. Each pre-filled with brand voice from the brand profile's voice fields + `skills/context-engine/guidelines-framework.md`.
 10. **`PLAN.md`** — single-page summary: stats + scorecard + top 10 prospects with outreach angle + recommended cadence (3-5 pitches/week for sustainable outreach quality).
 
 ## Output format
@@ -126,7 +129,7 @@ This skill is a producer in a longer chain:
 - **DR/DA from different exporters aren't comparable.** Don't mix an Ahrefs export with a Moz export — the script doesn't know to normalise across exporters. Pick one provider per audit.
 - **Topical relevance is the weakest signal in most exports** because few exporters provide it well. The script defaults to 0.5 if absent, which is the right neutral. Override only if you have a curated topical-relevance score.
 - **Don't outreach 100 prospects in one week.** The output is a backlog, not a queue. Sustainable cadence: 3-5 highly personalised pitches per week per outreach lead.
-- **Broken-link candidates have the highest hit rate** (often 30-60% reply rate vs 5-15% for cold pitches) — always work the `07-broken-link-candidates.md` list first.
+- **Broken-link candidates tend to have the highest hit rate** (broken-link replacement pitches typically out-reply cold pitches by a wide margin — the "30-60% vs 5-15%" figures are an illustrative rule of thumb, not measured; validate against your own outreach data) — always work the `07-broken-link-candidates.md` list first.
 - **Re-run quarterly,** not monthly. Backlink data moves slowly enough that monthly runs mostly produce noise.
 - **YMYL industries** (health, finance, legal) should set `--min-dr 40` to filter out low-authority publishers that could damage E-E-A-T.
 

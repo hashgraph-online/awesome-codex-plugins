@@ -1,7 +1,7 @@
 ---
 name: live-dashboard
 description: "Create live Looker Studio dashboards. Use when: connecting marketing data sources with auto-configured visualizations."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[data-source or dashboard-type]"
 ---
 
@@ -10,6 +10,15 @@ argument-hint: "[data-source or dashboard-type]"
 ## Purpose
 
 Create and configure a live Google Looker Studio dashboard connected to the brand's marketing data sources. Auto-selects appropriate metrics, dimensions, and chart types based on the business model (SaaS, eCommerce, B2B, agency). Provides always-current visibility into marketing performance without manual data pulls. Eliminates the need for recurring report generation by giving stakeholders a self-service, real-time view of the metrics that matter most to their business model, with drill-down capability and date range controls built in.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+By default this skill produces a dashboard **specification** for review. It must NOT create, publish, share, or connect a live data source to any external dashboard without passing this gate first:
+
+1. Present the full spec — data sources, connected accounts, sharing scope, refresh cadence — as an **Execution Summary**.
+2. The user must type `yes` (or an equivalent explicit approval) before any external dashboard is created or shared. ANY other input — ambiguous, implied, partial, or absent approval — cancels; the spec is saved but nothing is created externally.
+3. Never proceed on ambiguous input. Never auto-retry a failed creation.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"medium","summary":"..."}'` **before** creating, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after it verifies.
 
 ## Input Required
 
@@ -28,7 +37,7 @@ The user must provide (or will be prompted for):
 3. **Map data sources to dashboard widgets**: For each widget in the layout, identify which connected MCP provides the required data — Google Analytics MCP for traffic and behavior metrics, Google Ads MCP for paid search data, Meta MCP for paid social data, CRM MCP for pipeline and deal metrics, email MCP for campaign performance. Flag any widgets that require data sources not yet connected and provide connection guidance.
 4. **Generate Looker Studio configuration**: Produce the complete dashboard specification — data source connection parameters (account IDs, property IDs, date ranges), calculated field formulas (blended ROAS across platforms, weighted conversion rates, custom KPI calculations), chart specifications (chart type, dimensions, metrics, sort order, conditional formatting), filter controls (date range selector, channel filter, campaign filter, audience segment filter), and page layout with widget positioning and sizing.
 5. **Create dashboard setup instructions**: Generate step-by-step guidance for implementing the dashboard in Looker Studio — how to create each data source connection, how to build each page and widget matching the specification, how to configure calculated fields with exact formulas, how to set up filter controls and their interactions, and how to apply brand theming (colors, fonts, logo placement). Include screenshots or visual references where helpful.
-6. **Provide dashboard template link or export configuration**: If Looker Studio MCP supports direct dashboard creation, execute it to produce a live dashboard link. Otherwise, export the complete configuration as a structured specification document that can be implemented manually, with each widget fully defined and data source mappings documented.
+6. **Provide dashboard template link or export configuration**: No Looker Studio MCP server ships with this plugin (there is no `google-looker-studio` connector in the registry). By default, export the complete configuration as a structured specification document that can be implemented manually, with each widget fully defined and data source mappings documented. Only if the user has independently connected a Looker Studio MCP server may direct creation be attempted — and only after the Execution gate above passes.
 
 ## Output
 
@@ -44,4 +53,4 @@ A structured dashboard delivery containing:
 ## Agents Used
 
 - **analytics-analyst** — Metric selection based on business model and industry benchmarks, dashboard layout design with information hierarchy optimized for the target audience, data source mapping to identify which connected MCPs feed which widgets, and visualization best practices including chart type selection, dimension and metric pairing, conditional formatting thresholds, and drill-down path design
-- **execution-coordinator** — Looker Studio configuration generation via `google-looker-studio` MCP including data source setup, calculated field creation, widget specification, and filter control configuration, plus dashboard theming with brand colors and export of setup instructions or live dashboard link
+- **execution-coordinator** — Looker Studio configuration generation (the `google-looker-studio` MCP is NOT shipped — export a spec by default; direct creation only if the user has connected their own Looker Studio MCP), including data source setup, calculated field creation, widget specification, and filter control configuration, plus dashboard theming with brand colors and export of setup instructions or live dashboard link

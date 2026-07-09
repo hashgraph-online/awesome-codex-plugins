@@ -49,7 +49,7 @@ The user must provide (or will be prompted for):
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand voice and compliance rules. Check for brand guidelines — especially restrictions on competitor mentions.
 2. **Research competitors**: Gather feature data, pricing, positioning from public sources. Verify all claims.
 3. **Generate comparison structure**: Feature matrix, content outline, section order
-4. **Apply schema markup**: Product, SoftwareApplication, AggregateRating, or ItemList JSON-LD depending on page type
+4. **Apply schema markup**: Product, SoftwareApplication, or ItemList JSON-LD depending on page type (via `schema-generator.py --type <Type>` — `AggregateRating` is not a standalone `--type`; it is a nested field inside `Product`, as shown in the Product template below)
 5. **Optimize for conversion**: CTA placement strategy, social proof sections, pricing highlights
 6. **Apply fairness guidelines**: Accuracy verification, source citations, affiliation disclosure
 7. **Keyword optimization**: Primary and secondary keyword targeting, title tag formulas, H1 patterns

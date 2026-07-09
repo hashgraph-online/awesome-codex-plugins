@@ -1,7 +1,7 @@
 ---
 name: segment-audience
 description: "Create audience segments. Use when: building or updating CRM or email platform segments for campaign targeting."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[segment-name or criteria]"
 ---
 
@@ -13,6 +13,13 @@ Create or update audience segments in the brand's CRM or email platform based on
 
 Use this command to build targeting audiences before campaign launches. For importing new contacts into the CRM first, use `/digital-marketing-pro:lead-import`.
 For exporting segment member data to external tools, use `/digital-marketing-pro:data-export` after segment creation.
+
+## Execution gate (MANDATORY — cannot be skipped)
+
+1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
+2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
+3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
+4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
 
 ## Input Required
 

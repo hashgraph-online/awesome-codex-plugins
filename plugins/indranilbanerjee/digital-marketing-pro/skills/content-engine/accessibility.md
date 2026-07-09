@@ -1,4 +1,4 @@
-# Accessibility — WCAG 2.1 AA Content Guide
+# Accessibility — WCAG 2.2 AA Content Guide
 
 ## Text Content
 - [ ] Reading level appropriate for audience (B2C: grade 6-8, B2B: grade 10-12)
