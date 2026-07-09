@@ -21,7 +21,7 @@ ls .agents/research/*$ARGUMENTS* 2>/dev/null
 ### If No Argument
 
 ```bash
-bd list --status closed | head -10
+br list --status closed | head -10
 ```
 
 ---

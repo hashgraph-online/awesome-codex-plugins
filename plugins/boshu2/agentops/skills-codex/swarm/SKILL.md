@@ -1,6 +1,6 @@
 ---
 name: swarm
-description: 'Dispatch parallel agents.'
+description: "Dispatch parallel agent lanes."
 ---
 # $swarm
 
@@ -52,7 +52,7 @@ Fall back to serial execution within the current session.
 ### Step 1: Ensure Tasks Exist
 
 Tasks come from one of:
-- `bd ready` output
+- `br ready` output
 - An explicit task list from `$crank`
 - A user-provided description that you decompose first
 
@@ -85,7 +85,7 @@ When tasks come from bd and `scripts/bd-cluster.sh` exists, run `scripts/bd-clus
 
 ### Step 2: Pre-Spawn Conflict Check
 
-**Pre-Spawn Friction Gates:** Before spawning workers, execute all 5 friction gates (base sync, file manifest, dependency graph, misalignment breaker, wave cap). See `references/pre-spawn-friction-gates.md`.
+**Pre-Spawn Friction Gates:** Before spawning workers, execute all 5 friction gates (base sync, file manifest, dependency graph, misalignment breaker, wave cap). See `references/pre-spawn-friction-gates.md`. The wave-validity rows themselves are owned by `$crank` (its wave-start hard gate + `../crank/references/parallel-wave-isolation.md`) — swarm cites them, never restates.
 
 ```text
 wave_tasks = [tasks with status=pending and no blockers]
@@ -206,6 +206,14 @@ for task in wave_tasks:
 
 This is slower but functionally identical.
 
+## Worktree Reaping (teardown)
+
+THIS repo lands by direct push to `main`, so reap a worker's worktree on the bead's **commit landing on trunk**, not on PR state. After a worker's slice is confirmed landed — its feat commit is an ancestor of `origin/main` (`git fetch origin main && git merge-base --is-ancestor <feat-sha> origin/main`) — the ancestor check is MANDATORY; a CLOSED bead alone is tracker state, never proof of landing — reap it: `git worktree remove <path> --force` then `git worktree prune`. Leave un-landed worktrees intact; target zero orphans, bounding the live count to in-flight beads. *(External-repo variant: where the land is a PR, gate reaping on `gh pr view --json state` = `MERGED` instead.)*
+
+## Related skills
+
+- $using-atm — out-of-session ATM substrate when a swarm needs persistent panes and human attach/steer.
+
 ## Reference Documents
 
 - [references/conflict-recovery.md](references/conflict-recovery.md)
@@ -220,3 +228,5 @@ This is slower but functionally identical.
 - [references/pre-spawn-friction-gates.md](references/pre-spawn-friction-gates.md)
 - [references/scope-escape-template.md](references/scope-escape-template.md)
 - [references/worker-pre-task-checks.md](references/worker-pre-task-checks.md)
+- [references/shared-checkout-discipline.md](references/shared-checkout-discipline.md)
+- [references/worktree-isolation.md](references/worktree-isolation.md)

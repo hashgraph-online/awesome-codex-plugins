@@ -1,0 +1,4 @@
+interface:
+  display_name: "Krypton Execution"
+  short_description: "Execute plans without ownership drift"
+  default_prompt: "Use Krypton Execution to run this approved Krypton goal package with bounded tasks, review gates, cutover discipline, and acceptance evidence recorded in EVIDENCE.md."

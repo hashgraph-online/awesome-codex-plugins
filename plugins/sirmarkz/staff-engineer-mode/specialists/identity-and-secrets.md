@@ -46,6 +46,7 @@ Identity is the control plane for human and workload power.
 - Authorization decision service capacity, minimum safe task counts, grow/shrink command semantics, review evidence for capacity changes, and fail-closed blast radius.
 - Secrets, tokens, keys, certificates, storage locations, owner metadata, delivery interface, rotation cadence, expiry, signer/verifier rollout order, deletion protection, and consumers.
 - Service-call authentication coverage, credential expiry signals, rotation lead time, and response path when expiry approaches.
+- Audit-store integrity needs: append-only or tamper-evident storage, write completeness under load, access control, and investigation retention.
 - Authentication dependency cycles where a control plane, identity provider, policy store, or feature-state store depends on another component that also needs it to serve.
 - Encryption needs, key responsibility, key separation, data classification, and long-lived confidentiality requirements.
 - Activity logs, log retention, alerting, access recertification cadence, and revocation path.
@@ -65,9 +66,10 @@ Identity is the control plane for human and workload power.
 11. **Protect secrets and keys.** Keep them out of source, logs, images, and broad config; separate key administration from data access where risk warrants it.
 12. **Validate secret delivery contracts.** When a runtime, control plane, or sidecar injects secrets into workloads, test delivery shape, naming, version selection, refresh behavior, multi-secret cases, and rollback from the consumer's perspective before rollout.
 13. **Protect secret-bearing resources from cleanup errors.** Before deleting, retiring, or reassigning a resource that stores or authorizes credentials, verify owner metadata, recent and batch usage, dependent integrations, stakeholder review, deletion guard, and restore path.
-14. **Design break-glass controls.** Require strong authentication, limited duration, justification, audit, and post-use verification.
-15. **Use vetted cryptography.** Prefer standard protocols and managed primitives; do not invent algorithms or key-handling schemes.
-16. **Audit and verify.** Emit access, privilege change, secret access, key use, and admin events with a user-visible verification path.
+14. **Protect audit-store integrity.** Make high-risk audit records append-only or tamper-evident, preserve completeness under load, restrict audit-store access, and define retention for investigation.
+15. **Design break-glass controls.** Require strong authentication, limited duration, justification, audit, and post-use verification.
+16. **Use vetted cryptography.** Prefer standard protocols and managed primitives; do not invent algorithms or key-handling schemes.
+17. **Audit and verify.** Emit access, privilege change, secret access, key use, and admin events with a user-visible verification path.
 
 ## Synthesized Default
 
@@ -121,6 +123,7 @@ Use zero-trust access with explicit identity, least privilege, workload identity
 - Authentication dependency-cycle check for control planes and identity, policy, or feature-state stores.
 - Break-glass and just-in-time access process.
 - Audit event and access-recertification requirements.
+- Audit-store integrity plan: append-only or tamper-evident mechanism, completeness-under-load behavior, access controls, and retention.
 - Cryptography decision record.
 - Migration plan for overbroad or long-lived credentials.
 
@@ -134,6 +137,7 @@ Use zero-trust access with explicit identity, least privilege, workload identity
 - `authorization_freshness`: identity or policy-store recovery has a stale-state signal, resync target, and serve-or-hold gate for privileged decisions.
 - `authorization_capacity`: fail-closed authorization decisions have minimum safe capacity, capacity-change review evidence, separate grow/shrink operations, and tested reroute or recovery.
 - `credential_lifetime`: secrets and tokens have storage, expiry, rotation, and revocation plan.
+- `audit_store_integrity`: audit records cannot be silently modified or dropped under load, and audit-store access is controlled.
 - `secret_delivery_contract`: secret delivery changes verify consumer-visible shape, naming, refresh, multi-secret behavior, and rollback before rollout.
 - `secret_resource_deletion`: resources that store or authorize credentials have owner metadata, usage evidence, dependency review, deletion guard, and restore path before cleanup or retirement.
 - `signer_verifier_compatibility`: verifiers receive new key material before signers use it, overlap is explicit, and mixed-version paths are tested.
@@ -148,6 +152,7 @@ Use zero-trust access with explicit identity, least privilege, workload identity
 - Production access depends on network location alone.
 - Long-lived shared secrets have no rotation plan or check path.
 - Break-glass access is permanent or unaudited.
+- Audit logs are mutable, droppable under load, or readable by the same actors they are meant to hold accountable.
 - Access cleanup removes inherited, nested, or still-in-use permissions without current-use evidence and rollback.
 - Secrets can appear in logs, build output, images, or client-visible config.
 - First-admin or ownership-verification flows can leave a new tenant/domain with no usable administrator.
@@ -165,3 +170,4 @@ Use zero-trust access with explicit identity, least privilege, workload identity
 | Rotating signers before verifiers | Roll out verification material first, keep old/new overlap, and test mixed-version token paths. |
 | Deleting unused-looking credential resources | Verify owners, active use, dependents, deletion guard, and restore path first. |
 | Logging everything | Audit access without leaking secrets or sensitive data. |
+| Trusting mutable audit logs | Protect audit storage with tamper evidence, completeness checks, and separate access controls. |

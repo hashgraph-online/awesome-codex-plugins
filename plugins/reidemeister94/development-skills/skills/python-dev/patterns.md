@@ -60,7 +60,7 @@ User confirmation validates the decision to proceed; the analysis stays your res
 
 - **WHY, not WHAT.** Identifiers and structure explain WHAT. Comments explain why the code looks unusual: a hidden constraint, a workaround for an upstream bug, an invariant that isn't obvious from the call sites.
 - **Delete archaeological comments.** "Changed to 400 to be consistent with X", "no longer needed here", "note: this used to be Y" — that's PR-description material and rots into noise.
-- **No multi-paragraph rationales in code.** One line in the source is the cap; if a reader needs more, link out (`see chronicle 00xx`, `see docs/...`).
+- **Scale the WHY to the flow's intricacy.** Trivial code earns no comment; an obscure or tangled flow earns a fuller WHY — a few lines spelling out the reasoning is right when the logic genuinely demands it. Cap multi-paragraph rationale: link out (`see chronicle 00xx`, `see docs/...`) past a short block.
 
 ### 9. Tests mirror production
 
@@ -429,6 +429,15 @@ Exception: when the intermediate result is needed for other logic, or must be lo
 ### Transactions
 
 `async with conn.transaction():` for multi-statement units of work. Single-statement reads do not need an explicit transaction (asyncpg manages it).
+
+### Advisory locks — cross-process mutual exclusion
+
+For cross-process / cross-worker mutual exclusion on a domain resource (e.g. one writer must drain readers before mutating shared tables). NOT for single-transaction races (use `SERIALIZABLE`) nor intra-process (use `asyncio.Lock`). Derive the lock id from a string key, never a raw int: `sha256(key)[:16]` as hex to int, minus `2**63`, to land in signed-bigint range. Two scopes:
+
+- **Transaction-scoped (default)** — `async with conn.transaction(): await conn.execute("SELECT pg_advisory_xact_lock($1)", lock_id)`; auto-released at COMMIT/ROLLBACK. Use when the critical region is one transaction.
+- **Session-scoped** — hold ONE dedicated connection (kept out of normal pool use) for the whole region: `pg_advisory_lock($1)` (exclusive) / `pg_advisory_lock_shared($1)` (many readers); release every lock at once with `pg_advisory_unlock_all()` after a `ROLLBACK` (clears any aborted-tx state a `lock_timeout` left). Closing the connection also auto-releases. Use when the region spans multiple transactions.
+
+`pg_try_advisory_lock[_shared]` is the non-blocking variant — returns false on contention so you fail fast instead of queueing. Acquire multiple keys in SORTED order to avoid deadlock across overlapping lock sets. Wrap acquire+release in one async context manager so release is leak-free.
 
 ### PostgreSQL conventions
 
@@ -829,7 +838,7 @@ Commit prefixes: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `p
 
 ### Function length
 
-70-80 lines. Beyond that, extract a helper. The extracted helper uses a normal name (no underscore prefix unless intentionally private).
+~50-60 lines (soft guide, not a hard cap). Beyond that, the function is usually doing too much — extract a well-named helper (normal name, no underscore prefix unless intentionally private). Cohesion beats line-counting.
 
 ---
 
@@ -927,5 +936,6 @@ Always `.copy()` a DataFrame before mutation. Silent caller mutation is a regres
 | `MagicMock()` without `spec=` | `MagicMock(spec=Class)` — catches renames |
 | Forgotten `dependency_overrides.clear()` | Autouse fixture clears between tests |
 | Instrumentation `instrument_fastapi(app)` in `lifespan` | Call in `create_app` AFTER middleware wiring |
+| `import` inside a function / method | All imports at module top |
 | Comment that restates the next line | Delete it |
 | Archaeological comment ("changed to X to be consistent...") | Delete; the diff is the history |

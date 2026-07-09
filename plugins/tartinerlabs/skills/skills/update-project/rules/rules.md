@@ -4,7 +4,7 @@ impact: MEDIUM
 tags: rules, claude-rules, documentation
 ---
 
-**Rule**: Keep `.claude/rules/*.md` files current by verifying they match the actual project conventions and structure.
+**Rule**: Keep project rule files current by verifying they match the actual project conventions and structure. Rules live under `.claude/rules/*.md` (Claude Code) and `.agents/rules/*.md` (cross-agent convention).
 
 ### Rules File Format
 
@@ -30,5 +30,5 @@ Each rule file has optional YAML frontmatter with a `paths` field (list of glob 
 
 - Don't delete rules without confirming the convention is truly abandoned
 - Don't weaken security or quality rules without explicit justification
-- Don't merge rules into CLAUDE.md — rules files exist for modular, targeted enforcement
+- Don't merge rules into the agent instruction file (CLAUDE.md / AGENTS.md) — rules files exist for modular, targeted enforcement
 - Don't break symlinked rules shared across projects

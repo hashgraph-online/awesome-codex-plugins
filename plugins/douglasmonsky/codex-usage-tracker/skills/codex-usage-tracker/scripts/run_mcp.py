@@ -15,12 +15,13 @@ from pathlib import Path
 
 PACKAGE_SPEC = os.environ.get(
     "CODEX_USAGE_TRACKER_PACKAGE_SPEC",
-    "git+https://github.com/douglasmonsky/codex-usage-tracker.git@21740923d11eea03ed1eab30603aa1362b528d3b",
+    "codex-usage-tracking==0.17.0",
 )
-RUNTIME_VERSION = "0.2.0"
+RUNTIME_VERSION = "0.17.0"
+PACKAGE_SPEC_MARKER = ".codex-usage-tracker-package-spec"
 MODULE_CHECK = (
     "import importlib.metadata; "
-    "importlib.metadata.version('codex-usage-tracker'); "
+    "importlib.metadata.version('codex-usage-tracking'); "
     "importlib.metadata.version('mcp')"
 )
 MODULE_ARGS = ["-m", "codex_usage_tracker.mcp_server"]
@@ -30,9 +31,12 @@ def main() -> int:
     plugin_root = Path(__file__).resolve().parents[3]
     runtime_python = _runtime_python()
 
-    for candidate in _candidate_pythons(plugin_root, runtime_python):
+    for candidate in _local_candidate_pythons(plugin_root):
         if candidate.exists() and _can_import_server(candidate):
             _exec_server(candidate)
+
+    if _can_use_runtime(runtime_python):
+        _exec_server(runtime_python)
 
     _ensure_runtime(runtime_python)
     if not _can_import_server(runtime_python):
@@ -45,13 +49,12 @@ def main() -> int:
     return 1
 
 
-def _candidate_pythons(plugin_root: Path, runtime_python: Path) -> list[Path]:
+def _local_candidate_pythons(plugin_root: Path) -> list[Path]:
     candidates: list[Path] = []
     override = os.environ.get("CODEX_USAGE_TRACKER_MCP_PYTHON")
     if override:
         candidates.append(Path(override).expanduser())
     candidates.append(plugin_root / ".venv" / _python_bin())
-    candidates.append(runtime_python)
     return candidates
 
 
@@ -71,6 +74,20 @@ def _python_bin() -> Path:
 
 def _venv_root(python_path: Path) -> Path:
     return python_path.parents[1]
+
+
+def _package_spec_marker(python_path: Path) -> Path:
+    return _venv_root(python_path) / PACKAGE_SPEC_MARKER
+
+
+def _can_use_runtime(python_path: Path) -> bool:
+    if not python_path.exists() or not _can_import_server(python_path):
+        return False
+    marker = _package_spec_marker(python_path)
+    try:
+        return marker.read_text(encoding="utf-8").strip() == PACKAGE_SPEC
+    except OSError:
+        return False
 
 
 def _can_import_server(python_path: Path) -> bool:
@@ -97,6 +114,7 @@ def _ensure_runtime(python_path: Path) -> None:
         [str(python_path), "-m", "pip", "install", "--upgrade", PACKAGE_SPEC],
         check=True,
     )
+    _package_spec_marker(python_path).write_text(PACKAGE_SPEC + "\n", encoding="utf-8")
 
 
 def _exec_server(python_path: Path) -> None:

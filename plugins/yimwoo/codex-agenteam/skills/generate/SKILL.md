@@ -24,6 +24,10 @@ python3 <runtime>/agenteam_rt.py roles list
 
 If this fails, the config has errors — show them and stop.
 
+Role models should normally inherit the platform default. For any explicit pin,
+compare it with `codex debug models`; warn about unavailable or deprecated
+entries without rejecting values solely because a static AgenTeam list is old.
+
 ### 2. Generate Agents
 
 ```bash
@@ -51,6 +55,7 @@ If custom roles were included, highlight them:
 
 Optionally show a summary of each generated agent's key fields
 (name, model, can_write, participates_in) for user verification.
+Display an omitted model as `platform default`, not as a missing setting.
 
 If the user regenerated agents because roles are missing from the `@` picker,
 tell them to confirm the files now exist under `.codex/agents/` in the current

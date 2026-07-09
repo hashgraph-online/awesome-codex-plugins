@@ -91,7 +91,7 @@ ls .agents/research/ | grep -i "<topic>"
 ```bash
 # Start
 gt hook              # Check assigned work
-bd ready             # What's available
+br ready             # What's available
 
 # Work
 $research <topic>    # Creates artifact, saves context

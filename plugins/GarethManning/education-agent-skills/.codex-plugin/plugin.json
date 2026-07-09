@@ -1,13 +1,34 @@
 {
   "name": "education-agent-skills",
   "version": "2.1.0",
-  "description": "131 evidence-based education skills for curriculum design, lesson planning, assessment, and AI-assisted teaching — built on the Agent Skills open standard.",
+  "description": "165 evidence-based education skills for curriculum design, lesson planning, assessment, and AI-assisted teaching — built on the Agent Skills open standard.",
   "repository": "https://github.com/GarethManning/education-agent-skills",
   "license": "CC-BY-SA-4.0",
-  "skills": "./skills/",
+  "skills": [
+    "./skills/ai-learning-science",
+    "./skills/ai-literacy",
+    "./skills/curriculum-alignment",
+    "./skills/curriculum-assessment",
+    "./skills/eal-language-development",
+    "./skills/environmental-experiential-learning",
+    "./skills/explicit-instruction",
+    "./skills/global-cross-cultural-pedagogies",
+    "./skills/historical-thinking",
+    "./skills/inclusive-design",
+    "./skills/literacy-critical-thinking",
+    "./skills/memory-learning-science",
+    "./skills/montessori-alternative-approaches",
+    "./skills/original-frameworks",
+    "./skills/professional-learning",
+    "./skills/questioning-discussion",
+    "./skills/self-regulated-learning",
+    "./skills/student-learning",
+    "./skills/systems-thinking",
+    "./skills/wellbeing-motivation-agency"
+  ],
   "interface": {
     "displayName": "Education Agent Skills",
-    "shortDescription": "131 evidence-based skills for curriculum design, lesson planning, and assessment",
+    "shortDescription": "165 evidence-based skills for curriculum design, lesson planning, and assessment",
     "composerIcon": "./assets/education-agent-skills-icon.svg"
   }
 }

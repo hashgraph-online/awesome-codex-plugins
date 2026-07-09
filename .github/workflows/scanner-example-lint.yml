@@ -1,0 +1,17 @@
+name: HOL Plugin Scanner — Lint
+on:
+  pull_request:
+    branches: [main, master]
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: HOL Plugin Linter
+        uses: hashgraph-online/ai-plugin-scanner-action@v1
+        with:
+          plugin_dir: "plugins/x4cc3/casefile"
+          mode: lint
+          fail_on_severity: high

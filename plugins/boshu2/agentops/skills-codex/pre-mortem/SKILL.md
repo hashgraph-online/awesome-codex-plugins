@@ -1,12 +1,12 @@
 ---
 name: pre-mortem
-description: 'Stress-test plans before work.'
+description: "Stress-test plans before work."
 ---
 # Pre-Mortem Skill
 
 > **Purpose:** Is this plan/spec good enough to implement?
 
-> **Mandatory for 3+ issue epics.** Pre-mortem is enforced by hook when `$crank` is invoked on epics with 3+ child issues. 6/6 consecutive positive ROI. Bypass: `--skip-pre-mortem` flag or `AGENTOPS_SKIP_PRE_MORTEM_GATE=1`.
+> **Mandatory doctrine for 3+ issue epics.** Run pre-mortem before `$crank` on epics with 3+ child issues — operating doctrine, not a hook (AgentOps 3.0 is hookless). 6/6 consecutive positive ROI. Bypass: `--skip-pre-mortem` flag or `AGENTOPS_SKIP_PRE_MORTEM_GATE=1`.
 
 Run `$council validate` on a plan or spec to get multi-model judgment before committing to implementation.
 
@@ -108,6 +108,17 @@ ao metrics cite "<finding-path>" --type retrieved 2>/dev/null || true # loaded b
 In `--quick` mode, skip Steps 1a and 1b as standalone pre-processing phases. If `PRODUCT.md` exists, Step 1b's product context is still loaded inline during the quick review. The mandatory `ao lookup` retrieval in Step 1.4 and compiled prevention load in Step 1.4b still run in quick mode. `--deep`, `--mixed`, `--debate`, and `--explorers` add the dedicated product perspective and wider council fan-out.
 
 To escalate to full multi-judge council, use `--deep` (4 judges) or `--mixed` (cross-vendor).
+
+### Step 1.5.1: Reversibility self-check — size the gate to the stakes (Mandatory)
+
+Before selecting gate depth, **state the plan's blast radius and reversibility in one sentence.** If the plan is
+reversible (content recoverable, deletion non-destructive, no shared schema/CLI/contract/migration surface), **say so and
+default to the lightest gate** — inline `--quick` plus a single blind sub-agent for the no-self-grading floor (Step 2.9).
+Escalate to `--deep` / `--mixed` / full council **only on a named irreversible surface** — a one-way door per the
+blast-radius rule (schema migration, public API, architecture fork, security posture, deletion, mutate-shared-trunk).
+This is the de-escalation dual of Step 2.10's escalation rule: 2.10 says *add* rigor for one-way doors; this says *notice
+and drop* rigor when the op is reversible. Running a cross-family duel on a reversible doc/refactor is the waterfall the
+ratchet exists to avoid.
 
 ### Step 1.6: Scope Mode Selection
 
@@ -342,6 +353,34 @@ The pre-mortem verdict must NOT be graded by the plan's own author. A verdict pr
 
 **Enforcement:** `ao turn verify <bead>` evaluates the `author_neq_validator` predicate from the turn-input file's `author_id`/`judge_id` and fails the Evidenced-Turn DoD on a self-graded verdict unless `--allow-self` is passed.
 
+### Step 2.10: Pre-Registered Decision Rule (strategy / experiment / one-way-door plans)
+
+When the plan under review is a **strategy**, **experiment-driven** plan, or a **one-way-door** decision (irreversible: schema migration, public API change, architecture fork, security posture change, data deletion), the pre-mortem MUST require and record a **pre-registered decision rule** — defined BEFORE the council judges deliberate.
+
+A pre-registered decision rule answers three questions:
+
+1. **What result changes the decision?** Name the specific finding, metric, or evidence that would cause the plan to be rejected or materially altered. (Not "if judges say FAIL" — that's tautological.)
+2. **What threshold or CI gate kills the claim?** Name a concrete, mechanically verifiable condition: a test that must pass, a metric that must stay within bounds, a property that must hold. If no such gate exists, the plan is unfalsifiable — FAIL.
+3. **What negative result redirects?** Name what happens on a real negative: pivot to alternative X, defer to next cycle, escalate to human. "Try harder" is not a redirect.
+
+Record the decision rule in the council packet frontmatter as `decision_rule:` before judges deliberate. Judges evaluate the plan AGAINST the decision rule — not just "is this plan good" but "does this plan survive its own kill conditions."
+
+**Why:** without a pre-registered decision rule, pre-mortem degenerates into "does this plan seem reasonable" — a question the author already answered yes to. The decision rule makes the pre-mortem falsifiable. Surfaced by a cross-family (Codex) pre-mortem that found real problems an inline review missed because the inline review had no kill conditions to test against.
+
+### Step 2.11: Plan-Pawl Duel Checklist (the cross-family invariant)
+
+No-self-grading + cross-family judging is **one invariant** — *a plan's acceptance verdict must come from an independent, cross-family adversary, against pre-registered kill conditions.* It has **two delivery forms of the same thing**, not two gates:
+
+- **`$pre-mortem --mixed`** (this skill) — a cross-vendor council judges the plan artifact.
+- **The discovery plan-pawl duel** ([discovery](../discovery/SKILL.md) STEP 3.5 → `ao plan-pawl decide`, the [`plan-pawl` row](../../docs/contracts/pawls.md)) — two distinct-family judge panes duel over the `SynthesisPacket`; that duel verdict **IS** the pre-mortem verdict for fanout-class discovery (do not run a second council).
+
+For fanout class the duel **satisfies no-self-grading by construction**: the two judges are fresh, context-isolated, distinct-family panes, so `author_id != judge_id` and `judge_family != author_family` hold automatically. Before accepting ANY plan acceptance verdict (either form), check:
+
+- [ ] **Independent judge** — `judge_id` != `author_id` (no inline self-review; `--allow-self` waives only for the no-subagent fallback, and stamps the verdict self-graded).
+- [ ] **Cross-family for one-way doors** — strategy / experiment / irreversible plan => `judge_family` != `author_family` (>=2 distinct roster families; the duel quorum floor).
+- [ ] **Pre-registered decision rule** — kill conditions recorded BEFORE deliberation; judges evaluate the plan against them, not just "is this plan good".
+- [ ] **Not a behavior substitute** — the plan-pawl gates plan SHAPE; it never replaces the acceptance-test layer (2026-06-12 auth-bypass learning).
+
 ### Step 3: Interpret Council Verdict
 
 | Council Verdict | Pre-Mortem Result | Action |
@@ -353,6 +392,8 @@ The pre-mortem verdict must NOT be graded by the plan's own author. A verdict pr
 ### Step 4: Write Pre-Mortem Report
 
 **Write to:** `.agents/council/YYYY-MM-DD-pre-mortem-<topic>.md`
+
+The generated report must preserve the exact Council Verdict heading because downstream validators and ledger readers extract verdicts with a regex anchored to it.
 
 ```markdown
 ---
@@ -436,7 +477,7 @@ After the registry update, if `hooks/finding-compiler.sh` exists, run:
 bash hooks/finding-compiler.sh --quiet 2>/dev/null || true
 ```
 
-Every reusable finding write must include `dedup_key` and refresh compiled findings with `finding-compiler.sh` when that hook exists.
+Every reusable finding write must include `dedup_key` and refresh compiled findings by running `finding-compiler.sh` when it is available.
 
 This refreshes `.agents/findings/*.md`, `.agents/planning-rules/*.md`, `.agents/pre-mortem-checks/*.md`, and draft constraint metadata in the same session. `session-end-maintenance.sh` remains the idempotent backstop.
 
@@ -548,7 +589,7 @@ $pre-mortem                    ← You are here
 
 - `../council/SKILL.md` — Multi-model validation council
 - `../plan/SKILL.md` — Create implementation plans
-- `../vibe/SKILL.md` — Validate code after implementation
+- `../validate/SKILL.md` — Validate code after implementation
 
 ## Reference Documents
 

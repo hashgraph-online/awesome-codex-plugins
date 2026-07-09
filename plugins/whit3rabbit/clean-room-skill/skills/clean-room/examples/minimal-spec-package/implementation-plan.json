@@ -1,0 +1,103 @@
+{
+  "plan_id": "implementation-plan-example",
+  "task_id": "task-example",
+  "created_at": "2024-01-01T00:00:00Z",
+  "planner_role": "clean-architect",
+  "implementation_root_refs": [
+    "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]"
+  ],
+  "source_artifacts": [
+    "behavior-spec.json",
+    "skeleton-manifest.json"
+  ],
+  "architecture_manifest_ref": "skeleton-manifest.json",
+  "foundation_summary": "Example clean implementation foundation is available through the configured implementation root.",
+  "code_hygiene_policy": {
+    "max_lines_per_code_file": 500,
+    "max_lines_per_test_file": 800,
+    "max_files_per_iteration": 12,
+    "split_large_files_by": [
+      "module boundary",
+      "public type",
+      "feature area"
+    ],
+    "exceptions": [
+      "fixtures",
+      "snapshots",
+      "generated files"
+    ],
+    "forbidden_patterns": [
+      "god file",
+      "source-shaped layout"
+    ]
+  },
+  "work_items": [
+    {
+      "work_item_id": "work-example-flow",
+      "status": "planned",
+      "summary": "Implement the example observable flow.",
+      "spec_ids": [
+        "spec-example-flow"
+      ],
+      "architecture_area_refs": [
+        "area-example-flow"
+      ],
+      "public_contract_refs": [],
+      "implementation_root_ref": "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]",
+      "target_paths": [
+        "src/example-flow.js"
+      ],
+      "test_paths": [
+        "test/example-flow.test.js"
+      ],
+      "local_patterns": [
+        "Follow existing destination project test naming and module boundaries."
+      ],
+      "constraints": [
+        "Do not use source-derived names or source-shaped pseudocode."
+      ],
+      "risks": [],
+      "verification_commands": [
+        {
+          "command": [
+            "npm",
+            "test"
+          ],
+          "cwd": "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]",
+          "purpose": "Run destination project tests.",
+          "run_type": "verify",
+          "container_profile": "node22",
+          "network": "off",
+          "dependency_mode": "locked",
+          "timeout_seconds": 120
+        }
+      ],
+      "acceptance_criteria": [
+        "The behavior in spec-example-flow is implemented and covered by a destination test."
+      ]
+    }
+  ],
+  "planned_refactors": [],
+  "verification_strategy": [
+    {
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]",
+      "purpose": "Verify the clean implementation.",
+      "run_type": "verify",
+      "container_profile": "node22",
+      "network": "off",
+      "dependency_mode": "locked",
+      "timeout_seconds": 120
+    }
+  ],
+  "implementation_forbidden_material": [
+    "source_excerpt",
+    "raw_diff",
+    "private_identifier",
+    "source_shaped_pseudocode"
+  ],
+  "open_decisions": []
+}

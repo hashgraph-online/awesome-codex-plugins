@@ -164,8 +164,6 @@ curl --proto '=https' --tlsv1.2 -LsSf \
   https://github.com/epicsagas/alcove/releases/latest/download/install.sh | sh
 ```
 
-> **Note**: Pre-built binaries are available for macOS Apple Silicon only. Linux and Windows users can use the one-line installers above.
-
 ### Linux (x86_64 / ARM64)
 
 ```bash
@@ -194,11 +192,12 @@ alcove setup   # run once after plugin install
 ### Via Rust toolchain
 
 ```bash
-cargo binstall alcove   # pre-built binary (fast)
-cargo install alcove    # build from source
+cargo binstall alcove   # pre-built binary, includes hybrid search
+cargo install alcove --features full-macos   # build from source (macOS)
+cargo install alcove --features full-cross   # build from source (Linux/Windows)
 ```
 
-> **Note**: Pre-built binaries are available for Linux (x86\_64), macOS (Apple Silicon & Intel), and Windows.
+> **Note**: `cargo binstall` downloads a pre-built binary with hybrid search (vector + BM25) included. When building from source, `--features full-macos` or `--features full-cross` is required for hybrid search support. Without features, only BM25 (keyword) search is available.
 
 ### First-time setup (required)
 
@@ -394,6 +393,7 @@ alcove promote      Bring a file from an external vault into your doc-repo
 alcove index        Update the search index (incremental — only changed files)
 alcove rebuild      Rebuild the search index from scratch (use after schema changes)
 alcove search       Search docs from the terminal
+alcove bench        Search quality benchmark [--corpus] (precision, latency, regression detection)
 alcove index-code   Generate code structure index from source [--language LANG] [--source PATH]
 alcove token        Print the bearer token (for background server auth)
 alcove uninstall    Remove skills, config, and legacy files
@@ -483,6 +483,43 @@ alcove promote ~/my-brain/Projects/auth-notes.md --mv
 
 Files with no matching project land in `inbox/` for manual review.
 
+### Benchmark
+
+Measure and track search quality with built-in IR metrics and regression detection.
+
+**Isolated corpus mode** (`--corpus`) uses a self-contained test dataset (19 synthetic documents, 25 queries) for fast, reproducible CI benchmarks — no real docs needed, completes in under 60 seconds.
+
+```bash
+# Run against the built-in eval corpus (recommended for CI)
+alcove bench --corpus --baseline benches/corpus/baseline.json
+
+# Update the corpus baseline after intentional changes
+alcove bench --corpus --save-baseline benches/corpus/baseline.json
+
+# Run against your real docs (50 queries across 10 categories)
+alcove bench --metrics precision
+
+# Save as baseline for future comparison
+alcove bench --output json --save-baseline benches/baseline.json
+
+# Compare against baseline — detect regressions in CI
+alcove bench --baseline benches/baseline.json
+
+# Markdown report
+alcove bench --output markdown --output-file bench-report.md
+```
+
+| Metric | What it measures |
+|--------|-----------------|
+| Precision@K | Fraction of top-K results that are relevant |
+| Recall@K | Fraction of relevant docs found in top-K |
+| NDCG@K | Ranking quality with position discounting |
+| MAP@K | Mean average precision across queries |
+| MRR | Reciprocal rank of first relevant result |
+| Chunk accuracy | Whether retrieved chunks fall within correct sections |
+
+**Regression thresholds**: precision >5%, latency >20%, throughput >15%. Warnings at half the threshold.
+
 ### Background Server
 
 Running a persistent background server eliminates cold-start latency on every new agent session. **`alcove setup` enables this by default** (macOS login item).
@@ -511,7 +548,7 @@ During `alcove setup`, you can choose an embedding model and download it immedia
 
 ```bash
 # Set and download an embedding model
-alcove model set MultilingualE5Small
+alcove model set ArcticEmbedXS
 alcove model download
 
 # Check model status
@@ -520,21 +557,25 @@ alcove model status
 
 #### Choosing a model
 
-| Model | Disk | Dim | Tokens | Pooling | Prefix | Languages | Best for | Peak RAM |
-|-------|------|-----|--------|---------|--------|-----------|----------|----------|
-| `AllMiniLML6V2` | 90 MB | 384 | 256 | Mean | — | English | Smallest footprint, fast English-only indexing | ~400 MB |
-| **`MultilingualE5Small`** | **235 MB** | **384** | **512** | **Mean** | **`query:`/`passage:`** | **100+** | **Default — multilingual / mixed-language projects** | **~700 MB** |
-| `MultilingualE5Base` | 555 MB | 768 | 512 | Mean | `query:`/`passage:` | 100+ | Better multilingual quality | ~2 GB |
-| `MultilingualE5Large` | 2.2 GB | 1024 | 512 | Mean | `query:`/`passage:` | 100+ | Maximum multilingual quality | ~7 GB |
-| `BGEM3` | 2.3 GB | 1024 | 8192 | CLS | — | 100+ | State-of-the-art multilingual | ~8 GB |
-| `ArcticEmbedXS` | 90 MB | 384 | 512 | CLS | `Represent…` | English | Snowflake — best quality at 384 dim | ~400 MB |
-| `ArcticEmbedS` | 130 MB | 384 | 512 | CLS | `Represent…` | English | Snowflake — improved retrieval at small size | ~500 MB |
-| `ArcticEmbedM` | 430 MB | 768 | 512 | CLS | `Represent…` | English | Snowflake — workhorse retrieval quality | ~1.5 GB |
-| `ArcticEmbedL` | 1.3 GB | 1024 | 512 | CLS | `Represent…` | English | Snowflake — competitive with closed-source APIs | ~5 GB |
+| Model | Disk | Dim | Context | Languages | Best for | Peak RAM |
+|-------|------|-----|---------|-----------|----------|----------|
+| **`ArcticEmbedXS`** (default) | **90 MB** | **384** | **512** | **Multilingual** | **Best default — size/quality** | **~400 MB** |
+| `ArcticEmbedXSQ` | 90 MB | 384 | 512 | Multilingual | Quantized, smaller download | ~400 MB |
+| `MultilingualE5Small` | 470 MB | 384 | 512 | 100+ langs | Best Korean/CJK support | ~1.2 GB |
+| `BGEM3` | 600 MB | 1024 | 8192 | 100+ langs | Premium — Dense+Sparse+ColBERT | ~2 GB |
+| `ArcticEmbedMLong` | 430 MB | 768 | 8192 | Multilingual | Long documents | ~1.5 GB |
+| `JinaEmbeddingsV2BaseCode` | 550 MB | 768 | 8192 | Code+English | Code-optimized | ~1.5 GB |
 
-**Key:** *Tokens* = max input sequence length. *Pooling* = how the final embedding is extracted (CLS = first token, Mean = mask-weighted average). *Prefix* = automatic input prefix prepended for asymmetric retrieval (queries vs documents).
+The default model is **ArcticEmbedXS** (90 MB, multilingual). It offers the best balance of size and quality for most projects.
 
-Chunk sizes are automatically derived from the model's token limit (~2 chars/token for CJK, 75% utilization). No manual tuning required.
+Embedding models are provided by [fastembed-rs](https://github.com/Anush008/fastembed-rs) (ONNX Runtime) and run entirely locally. To use a different model, set it in `config.toml`:
+
+```toml
+[embedding]
+model = "BGEM3"    # any Variable name from the model docs
+```
+
+For the full list of 40+ supported models with dimensions, context length, and language coverage, see **[EMBEDDING_MODELS.md](docs/EMBEDDING_MODELS.md)**.
 
 Once a model is downloaded and ready, Alcove will automatically use Hybrid Search for both CLI search and agent-based MCP tools. This is particularly effective for multilingual projects and complex semantic queries.
 
@@ -566,8 +607,8 @@ Understanding when to run `alcove index` vs `alcove rebuild`:
 alcove index            # builds full-text index (no model needed)
 
 # Step 2: Enable Hybrid Search (optional)
-alcove model set MultilingualE5Small
-alcove model download   # ~235 MB download
+alcove model set ArcticEmbedXS
+alcove model download   # ~90 MB download
 
 # Step 3: Build vector index for all existing docs
 alcove rebuild          # one-time full rebuild with embeddings
@@ -585,7 +626,7 @@ alcove rebuild                            # required: vectors are model-specific
 ```
 
 **Memory during rebuild:**
-Peak RAM varies by model — see the "Peak RAM" column in the table above. Larger models (BGEM3, MultilingualE5Large, ArcticEmbedL) can use 5–10 GB during rebuild. After rebuild completes, steady-state drops to ~50–200 MB depending on your `[memory]` config. You can reduce steady-state further with lower `max_hnsw_cache` and shorter `model_unload_secs`.
+Peak RAM varies by model — see the "Peak RAM" column in the table above. Larger models (BGEM3, ArcticEmbedMLong) can use 1.5–2 GB during rebuild. After rebuild completes, steady-state drops to ~50–200 MB depending on your `[memory]` config. You can reduce steady-state further with lower `max_hnsw_cache` and shorter `model_unload_secs`.
 
 ### Global search
 
@@ -742,7 +783,7 @@ ALCOVE_LANG=ko alcove setup
 | Homebrew | `brew upgrade alcove` |
 | curl installer | Re-run the install script above |
 | cargo binstall | `cargo binstall alcove@latest` |
-| cargo install | `cargo install alcove@latest` |
+| cargo install | `cargo install alcove@latest --features full-macos` |
 | Claude Code Plugin | `claude plugin update epicsagas/alcove` |
 
 ```bash
@@ -851,7 +892,7 @@ No — they serve different purposes. Agent config files (CLAUDE.md, AGENTS.md) 
 
 ### Why Rust?
 
-Single binary, no runtime dependency. Tantivy is best-in-class BM25. candle-transformers gives us local vector embeddings without ONNX or Python. One `cargo install` or curl — no Docker, no Node.js, no virtualenv.
+Single binary, no runtime dependency. Tantivy is best-in-class BM25. fastembed (ONNX Runtime) gives us local vector embeddings without Python. One `cargo install` or curl — no Docker, no Node.js, no virtualenv.
 
 ### What about context windows getting bigger?
 

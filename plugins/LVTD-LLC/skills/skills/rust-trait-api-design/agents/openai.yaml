@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Trait API Design"
+  short_description: "Design idiomatic Rust traits, generics, and conversion APIs"
+  default_prompt: "Review this Rust API and improve its trait bounds, conversion traits, and dispatch model."

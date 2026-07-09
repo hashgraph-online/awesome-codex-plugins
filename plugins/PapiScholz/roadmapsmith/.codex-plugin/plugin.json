@@ -1,0 +1,54 @@
+{
+  "name": "roadmapsmith",
+  "version": "0.11.2",
+  "description": "Evidence-backed ROADMAP.md workflows for AI coding agents — two commands: init and update.",
+  "author": {
+    "name": "PapiScholz"
+  },
+  "homepage": "https://github.com/PapiScholz/roadmapsmith#readme",
+  "repository": "https://github.com/PapiScholz/roadmapsmith",
+  "license": "MIT",
+  "keywords": [
+    "roadmap",
+    "planning",
+    "agent",
+    "cli",
+    "validation",
+    "sync",
+    "task-tracking",
+    "evidence-based",
+    "deterministic",
+    "monorepo",
+    "claude-code",
+    "ai-agent",
+    "project-management",
+    "coding-agents",
+    "agent-skills",
+    "roadmap-generator",
+    "task-validation",
+    "developer-tools",
+    "markdown",
+    "agent-workflow"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RoadmapSmith",
+    "shortDescription": "Evidence-backed roadmap workflows for AI coding agents",
+    "longDescription": "Install RoadmapSmith in Codex to expose the shared skills bundle for zero-mode onboarding, existing-repo maintenance, roadmap discovery, evidence-backed validation, and compatibility-aware host readiness while keeping the CLI and Claude bundle surfaces aligned.",
+    "developerName": "PapiScholz",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/PapiScholz/roadmapsmith#readme",
+    "defaultPrompt": [
+      "Help me bootstrap or maintain this repository roadmap with RoadmapSmith."
+    ],
+    "brandColor": "#2B6CB0",
+    "composerIcon": "./assets/palette.png",
+    "logo": "./assets/roadmapsmith-logo.png",
+    "screenshots": []
+  }
+}

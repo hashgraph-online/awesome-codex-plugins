@@ -93,9 +93,27 @@ Extract learnings from session history.
 - Sort by `completed_at` descending (most recent first)
 - If no sessions found, abort: "No session data available. Complete at least one session before running evolve."
 
+### Step 3.1b: Read Extra Sources (#638)
+
+When `evolve.extra-sources` is configured in Session Config (default `[]` ⇒ this step is a no-op), `/evolve` consumes OUT-OF-BAND domain measurement sidecars to surface `domain-regression` learnings.
+
+**READ-ONLY contract:** `/evolve` NEVER runs the domain measurement. The measurement (e.g. an eval-learn regression harness) runs elsewhere and writes a sidecar JSON; this step only READS that sidecar's output. Never shell out to produce the sidecar from here.
+
+For each configured `extra-sources` entry `{path, kind, learning-type}`:
+
+1. **Read the sidecar** at `path` (parser-validated as repo-relative, with absolute paths and `..` escape segments dropped before this step, then resolved against the repo root). If the file is missing or unreadable, **skip with a WARN** (`evolve: extra-source not found: <path>`) — do not abort the whole run.
+2. **Schema-gate** the sidecar against the `kind`'s expected shape. For `kind: regression-flags` the schema is `{ flags: [ { metric, baseline, recent, delta } ] }`. If the parsed JSON does not match (missing `flags` array, or a flag missing a required field), **skip with a WARN** (`evolve: extra-source <path> failed regression-flags schema gate`) — never guess at a different shape.
+3. **Emit one `domain-regression` learning candidate per flag that is PERSISTENT** — i.e. the same `metric` regressed across ≥2 consecutive sessions (cross-reference prior sessions' sidecar reads or the existing learnings store for the same `subject`). A one-off flag is noise; only a persistent regression earns a candidate.
+   - `type`: `learning-type` from the entry (registered enum value `domain-regression`)
+   - `subject`: the flag's `metric`
+   - `insight`: a human-readable regression statement (e.g. "metric `<metric>` regressed: baseline <baseline> → recent <recent> (delta <delta>) persisting across ≥2 sessions")
+   - `evidence`: `baseline → recent` (the concrete data points from the sidecar)
+   - `confidence` / `expires_at`: derived via the existing confidence + decay infrastructure (Step 3.5), exactly as for the built-in learning types. `domain-regression` carries a 60-day TTL (`LEARNING_TTL_DAYS`).
+4. Candidates flow into the SAME Step 3.4 AskUserQuestion confirmation + Step 3.5 write path as the built-in learning types — there is no separate write path.
+
 ### Step 3.2: Pattern Extraction
 
-For each of the 8 learning types, apply these heuristics:
+For each of the 9 built-in analyzer learning types, apply these heuristics:
 
 #### 1. fragile-file (type: `fragile-file`)
 
@@ -170,9 +188,20 @@ For each of the 8 learning types, apply these heuristics:
 - Confidence starts at 0.5 like other learning types; lifecycle ±0.15 / -0.20 via the existing dedupe-and-update infrastructure in Step 3.3 — no special-casing.
 - Each candidate is piped through `candidateToLearning()` → `validateLearning()` exactly like the other types. Default `scope` is `private` (autopilot RUN data is per-host until the user opts in to share). (refs #298)
 
+#### 9. autonomy-verdict (type: `autonomy-verdict`)
+
+> **Dispatcher Autonomy / P3.5 (issue #683).** Synthesizes per-repo or per-scope autonomy readiness from autopilot run outcomes plus advisory skill-judge signals. Complements `autopilot-effectiveness`: type 8 asks whether autopilot preserves quality by mode; this type asks whether a repo/scope is ready for more dispatcher autonomy.
+
+- Read `.orchestrator/metrics/autopilot.jsonl`, `.orchestrator/metrics/sessions.jsonl`, and `.orchestrator/metrics/skill-judgments.jsonl`. All are optional — missing files produce no candidates.
+- Invoke `scripts/lib/evolve/autonomy-verdict.mjs` → `analyze(autopilotRuns, sessions, skillJudgments, { repo | scope })`. The analyzer reuses the type-8 mode rollups and combines them with counted skill-judge `applied`/`completed` signals.
+- **Data-gating contract:** the analyzer requires **≥1 autopilot run and ≥1 canonical advisory skill-judge judgment** (`schema_version: 1`, `event: "judged"`, `advisory: true`) before emitting a candidate. Below that threshold it returns `[]` so `/evolve analyze` stays quiet during cold-start.
+- Subject convention: `<repo-or-scope>-autonomy-readiness` (e.g., `session-orchestrator-autonomy-readiness`).
+- Insight frames the readiness verdict (`ready`, `watch`, or `not-ready`), the combined score, and the signal counts. Evidence includes the normalized scope, verdict, autopilot summary, and skill-judge summary.
+- Confidence is derived in the analyzer from signal volume, judge confidence, and score separation, then flows through the existing dedupe-and-update infrastructure in Step 3.3. Default `scope` is `private` because autopilot and skill-judge data are host/session-local. (refs #683)
+
 ### Step 3.2b: Zero Patterns Check
 
-If no patterns were extracted across all 8 types, report: "No patterns found in session history. This can happen with very few sessions or sessions that lack detailed wave/agent data." and skip to end (do not proceed to AskUserQuestion).
+If no patterns were extracted across all built-in analyzers and configured extra sources, report: "No patterns found in session history. This can happen with very few sessions or sessions that lack detailed wave/agent data." and skip to end (do not proceed to AskUserQuestion).
 
 ### Step 3.3: Deduplicate Against Existing Learnings
 
@@ -218,19 +247,19 @@ For confirmed learnings, use atomic rewrite strategy:
 2. Apply confidence updates for confirmed existing learnings:
    - Increment confidence by +0.15
    - Cap at 1.0
-   - Reset `expires_at` to current date + `learning-expiry-days` (default: 30)
+   - Reset `expires_at` using `deriveExpiresAt(now, type)` unless the candidate supplies a more specific expiry
 3. Apply confidence decrements for contradicted learnings (-0.2) — do NOT reset `expires_at` for contradicted learnings (let them decay naturally)
 4. Append new learnings with the **canonical schema_version:1 shape** — every field is required (#303):
    - `schema_version`: **1** (integer, ALWAYS — never omit)
    - `id`: UUID v4 string generated via `node -e "const {randomUUID}=require('crypto');process.stdout.write(randomUUID())"` or `uuidgen | tr '[:upper:]' '[:lower:]'`. MUST be a non-empty UUID string. **Never omit** — missing `id` causes 100% mirror-skip (#303).
-   - `type`: one of `fragile-file`, `effective-sizing`, `recurring-issue`, `scope-guidance`, `deviation-pattern`, `stagnation-class-frequency`, `hardware-pattern`, `autopilot-effectiveness`
+   - `type`: one of `fragile-file`, `effective-sizing`, `recurring-issue`, `scope-guidance`, `deviation-pattern`, `stagnation-class-frequency`, `hardware-pattern`, `autopilot-effectiveness`, `autonomy-verdict`, `domain-regression` (#638 — only when sourced from `evolve.extra-sources`, see Step 3.1b)
    - `subject`: the pattern subject
    - `insight`: human-readable description of the pattern. **MUST be `insight`** — do NOT use `description` or `recommendation` (legacy alias keys that vault-mirror cannot read; see #303).
    - `evidence`: specific data points that support the pattern
-   - `confidence`: 0.5 for new learnings
+   - `confidence`: use the candidate's derived confidence when supplied (e.g., `autonomy-verdict`); otherwise 0.5 for new learnings
    - `source_session`: **non-empty kebab-slug string** identifying the session from which the pattern was extracted (e.g. `main-2026-04-27-1942`). MUST be a string — never an object, array, number, or null. If multiple sessions contributed, use the earliest. If unknown, use `"unknown"` (the string). **Never** pass `String(<object>)` — that yields `"[object Object]"` and breaks the YAML mirror downstream (#307). Optional pre-write validation: `jq -e 'select(.source_session | type == "string" and length > 2)'`.
    - `created_at`: current ISO 8601 date
-   - `expires_at`: current date + `learning-expiry-days` (default: 30) (ISO 8601)
+   - `expires_at`: preserve the candidate's derived expiry when supplied; otherwise derive from `LEARNING_TTL_DAYS[type]` via `deriveExpiresAt()` (falling back to the schema default) rather than hard-coding a 30-day horizon
 5. **Verify write**: Read back the first line of the written file to confirm valid JSON. If read-back fails or is not valid JSON, report error to user.
 6. **Prune:** remove entries where `expires_at` < current date OR `confidence` <= 0.0
 7. **Consolidate duplicates (NULL-SUBJECT SAFE):** if same `type` + `subject` appears more than once
@@ -246,14 +275,16 @@ For confirmed learnings, use atomic rewrite strategy:
 
    b. Resolve the vault directory: use `$CONFIG."vault-integration"."vault-dir"` if non-null, otherwise fall back to the `$VAULT_DIR` environment variable. If neither is set, emit a warning and skip.
 
-   c. Invoke the mirror script. Derive a synthetic `EVOLVE_SESSION_ID` so the vault-mirror auto-commit phase (#31) produces a traceable commit subject (`chore(vault): mirror evolve-<date> — N learnings + 0 sessions`):
+   c. Invoke the mirror script. Derive a synthetic `EVOLVE_SESSION_ID` so the vault-mirror auto-commit phase (#31) produces a traceable commit subject (`chore(vault): mirror evolve-<date> — N learnings + 0 sessions`). Pass `--vault-name` when `vault-integration.vault-name` is set in Session Config:
       ```bash
       EVOLVE_SESSION_ID="evolve-$(date -u +%Y-%m-%d-%H%M)"
+      EVOLVE_VAULT_NAME=$(echo "$CONFIG" | jq -r '."vault-integration"."vault-name" // empty')
       node "$PLUGIN_ROOT/scripts/vault-mirror.mjs" \
         --vault-dir "<vault-dir>" \
         --source .orchestrator/metrics/learnings.jsonl \
         --kind learning \
-        --session-id "$EVOLVE_SESSION_ID"
+        --session-id "$EVOLVE_SESSION_ID" \
+        ${EVOLVE_VAULT_NAME:+--vault-name "$EVOLVE_VAULT_NAME"}
       ```
 
    d. Handle the exit code according to `mode`:
@@ -263,6 +294,29 @@ For confirmed learnings, use atomic rewrite strategy:
    e. On success (exit 0), report: "Mirrored N learnings to `<vault-dir>/40-learnings/`."
 
 Report: "Saved N new learnings, updated M existing. Total active: K."
+
+### Step 3.6: C2 Auto-Repair Feeder (opt-in — #647)
+
+> **Default OFF (advisory-only).** With no `skill-evolution:` block in Session Config, this step surfaces repair candidates as ADVICE only — it applies nothing and opens no MR. This mirrors the opt-in precedent of `slopcheck` (#520) and `verification-auto-fix` (#521): the engine is dark unless explicitly enabled.
+
+After confirmed learnings are written (Step 3.5), the actionable subset can feed the C2 tiered auto-repair engine (Epic #643 / issue #647). This is a pointer section — the modules own the logic; do not duplicate it here.
+
+**`skill-evolution:` is a DISTINCT sibling of the pre-existing `evolve:` block.** `evolve:` (`extra-sources`) tunes learning EXTRACTION (Step 3.1b); `skill-evolution:` tunes repair AUTONOMY. They are parsed by different modules and never share keys — do not conflate them. The `skill-evolution:` block is parsed by `scripts/lib/config/skill-evolution.mjs` (`_parseSkillEvolution`) and surfaced at `$CONFIG['skill-evolution']` (wired in `scripts/lib/config.mjs`). Shape: `{ autonomy: 'off'|'advisory'|'autonomous-gated', 'evidence-floor': number, judge: boolean }`, default `autonomy: 'off'`. Do NOT add `skill-evolution:` as a column-0 key to any consolidated Session Config parity block — it is a standalone top-level block (claude-md-drift-check Check-6 enforces parity only on the `## Session Config` keys).
+
+**Candidate intake.** Pass the post-Step-3.5 learnings (and, when available, the `claude-md-drift-check` result) to `extractCandidates({ learnings, driftResult, evidenceFloor: $CONFIG['skill-evolution']['evidence-floor'], now })` from `scripts/lib/skill-evolution/candidate-intake.mjs`. It is a pure transform — only actionable, non-expired learnings whose `confidence ≥ evidence-floor` AND whose insight is prescriptive AND resolves to a repo-relative path become `RepairCandidate`s.
+
+**Gate per artifact type.** Each candidate's `target_path` is classified by `classifyTarget(target_path, { repoRoot })` from `scripts/lib/skill-evolution/blast-radius-classifier.mjs` (the heart of the design; path-traversal-safe, fail-closed):
+
+| Target type | Gate | Posture |
+|---|---|---|
+| plugin-skill (`skills/…`) | none | **always-mr** — never autonomous |
+| local-skill (`.claude/skills/…`) | none | **always-mr** — never autonomous |
+| local-config (ROOT `CLAUDE.md` / `AGENTS.md` Session Config) | config-validation | **autonomous-gated** |
+| anything else | none | always-mr (fail-closed) |
+
+Only ROOT-instruction Session Config edits are eligible for autonomous apply, and only when ALL of: `runConfigValidationGate({ repoRoot })` (`scripts/lib/skill-evolution/config-validation-gate.mjs`) is GREEN (parse-config + config-schema + claude-md-drift-check) **AND** `evidence ≥ evidence-floor` **AND** `autonomy: autonomous-gated`. Skill repairs are MR-only by construction.
+
+**Invocation contract (this foundation slice = ADVISORY surfacing).** The single orchestrator that ties intake → classify → gate → route → stamp together is `runRepairEngine({ repoRoot, config, learnings, driftResult, dryRun })` from `scripts/lib/skill-evolution/engine.mjs` — it returns `{ outcomes, summary }` and applies the full gate-per-artifact-type decision matrix internally (`autonomy: off` ⇒ every outcome is advisory-only). In the default/advisory posture, `/evolve` SURFACES candidates and their classification only — it does not apply or open MRs. Apply is gated on the config-validation gate above; MR-opening (`openRepairMr({ candidate, diff, repoRoot, dryRun })` from `scripts/lib/skill-evolution/mr-opener.mjs`) is gated on `autonomy != off`. Candidate de-dup / `processed_at` lifecycle is owned by `scripts/lib/skill-evolution/idempotency.mjs`. When `autonomy: off` (default), report the surfaced candidates as advice and stop.
 
 ---
 
@@ -278,19 +332,33 @@ Interactive management of existing learnings.
 
 ### Step 4.2: Display Learnings
 
-Present a formatted table grouped by type:
+Present a formatted table grouped by type. Include the **Effective** column — the
+recency-decayed surfacing score (#670) — so stale high-confidence entries are visible
+as decay candidates next to their static confidence:
 
 ```
 ## Active Learnings
 
-| # | Type | Subject | Confidence | Expires | Insight |
-|---|------|---------|------------|---------|---------|
-| 1 | fragile-file | src/lib/auth.ts | 0.80 | 2026-07-05 | Changed in 4 of last 5 sessions |
-| 2 | effective-sizing | feature-session-sizing | 0.65 | 2026-06-20 | Feature sessions work well with 3 agents/wave |
-| ... | ... | ... | ... | ... | ... |
+| # | Type | Subject | Confidence | Effective | Expires | Insight |
+|---|------|---------|------------|-----------|---------|---------|
+| 1 | fragile-file | src/lib/auth.ts | 0.80 | 0.78 | 2026-07-05 | Changed in 4 of last 5 sessions |
+| 2 | effective-sizing | feature-session-sizing | 0.65 | 0.61 | 2026-06-20 | Feature sessions work well with 3 agents/wave |
+| ... | ... | ... | ... | ... | ... | ... |
 
 Summary: N active learnings (M high confidence, K expiring soon)
 ```
+
+> **Effective (decayed) score — #670.** Retrieval/surfacing ranks by an
+> `effectiveScore = max(confidence × 0.5^(ageDays / halfLifeDays), confidence × floorFactor)`
+> blend, NOT raw confidence. `ageDays` derives from `last_reinforced` / `last_accessed` /
+> `updated_at` when present, else `created_at`. So a stale high-confidence learning ranks
+> below a fresh mid-confidence one, while the `floorFactor` (default 0.1) guarantees a
+> durable learning never collapses to ~0. Tuned under the existing `evolve:` Session Config
+> block (`decay-enabled: true`, `decay-half-life-days: 90`, `decay-floor-factor: 0.1` — all
+> conservative defaults; set `decay-enabled: false` to restore pure-confidence ordering).
+> Implemented in `scripts/lib/learnings/surface.mjs` (`effectiveScore` + `surfaceTopN`).
+> The confidence FILTER (`> 0.3`) is unchanged — decay re-ranks survivors, it does not
+> change eligibility.
 
 ### Step 4.3: Interactive Management
 
@@ -462,7 +530,7 @@ Cross-reference: PRD #506 AC1-AC4 + EARS gates. Vault Integration: dialectic doe
 - **NEVER** skip the deduplication check — duplicates degrade the intelligence system
 - **NEVER** write learnings without user confirmation — always present via AskUserQuestion first (on Codex CLI where AskUserQuestion is unavailable, present as a numbered Markdown list)
 - **ALWAYS** use uuid-v4 for new learning IDs (generate via `uuidgen` or equivalent bash command)
-- **ALWAYS** set `expires_at` to current date + `learning-expiry-days` from config (default: 30) for new learnings
+- **ALWAYS** preserve a candidate-supplied `expires_at`; otherwise derive it from `LEARNING_TTL_DAYS[type]` via `deriveExpiresAt()` rather than hard-coding `learning-expiry-days`
 - **ALWAYS** present findings to user before writing — no silent writes
 - **ALWAYS** use atomic rewrite (read all, modify, write all with `>`) — never append with `>>`
 - **ALWAYS** cap confidence at 1.0 — never exceed

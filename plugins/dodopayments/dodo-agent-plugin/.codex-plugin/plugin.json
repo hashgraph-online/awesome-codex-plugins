@@ -21,6 +21,7 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
+    "composerIcon": "./assets/icon.svg",
     "displayName": "Dodo Payments",
     "shortDescription": "Payments, billing, subscriptions - integrated into Codex.",
     "longDescription": "Official Dodo Payments plugin. Bundles eight integration skills (checkout, subscriptions, webhooks, usage-based billing, credits, license keys, billing SDK, best practices) plus two MCP servers: a live API server and a documentation search server.",

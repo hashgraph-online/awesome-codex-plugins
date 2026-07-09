@@ -1,0 +1,66 @@
+{
+  "name": "beads-bv",
+  "form": "A",
+  "skill_api_version": 1,
+  "summary": "Graph-aware task triage with bv and br. Prioritize work, find bottlenecks, and track dependencies by treating the backlog as a directed graph — PageRank finds what everything depends on, betweenness finds chokepoints. Robot-mode only.",
+  "sections": [
+    { "id": "title", "title": "beads-bv — Graph-Aware Triage", "type": "header", "priority": "high" },
+    { "id": "robot-mode", "title": "CRITICAL: Robot Mode Only", "type": "constraints", "priority": "critical" },
+    { "id": "commands", "title": "Commands", "type": "reference-table", "priority": "high" },
+    { "id": "workflow", "title": "Workflow", "type": "quickstart", "priority": "high" },
+    { "id": "scoping", "title": "Scoping & Filtering", "type": "reference", "priority": "medium" },
+    { "id": "key-metrics", "title": "Key Metrics", "type": "reference-table", "priority": "high" },
+    { "id": "br-essentials", "title": "br Essentials", "type": "reference", "priority": "medium" },
+    { "id": "troubleshooting", "title": "Troubleshooting", "type": "troubleshooting", "priority": "medium" },
+    { "id": "validation", "title": "Validation", "type": "reference", "priority": "medium" },
+    { "id": "references", "title": "References", "type": "routing", "priority": "low" }
+  ],
+  "references": [
+    { "path": "references/COMMANDS.md", "intent": "read", "description": "All robot commands + flags." },
+    { "path": "references/METRICS.md", "intent": "read", "description": "All graph metrics explained." },
+    { "path": "references/RECIPES.md", "intent": "read", "description": "jq recipes, morning-triage patterns." }
+  ],
+  "scripts": [],
+  "metadata": {
+    "tier": "execution",
+    "stability": "stable",
+    "user_invocable": false,
+    "hexagonal_role": "supporting",
+    "dependencies": ["beads-br"],
+    "consumes": [],
+    "produces": [],
+    "context_rel": [
+      { "kind": "peer-of", "with": "beads-br" }
+    ],
+    "triggers": [
+      "what should I work on",
+      "triage with bv",
+      "find bottlenecks",
+      "prioritize work",
+      "bv --robot-triage",
+      "parallel execution tracks",
+      "graph health",
+      "priority misalignment",
+      "track dependencies across projects"
+    ],
+    "token_estimate": {
+      "minimal": 110,
+      "overview": 350,
+      "standard": 900,
+      "full": 1400
+    }
+  },
+  "produces": [],
+  "consumes": [],
+  "context_rel": [
+    { "kind": "peer-of", "with": "beads-br" }
+  ],
+  "quality_score": 0.88,
+  "evidence": {
+    "sources": [
+      "skills/beads-bv/SKILL.md",
+      "skills/beads-bv/references/COMMANDS.md",
+      "skills/beads-bv/references/METRICS.md"
+    ]
+  }
+}

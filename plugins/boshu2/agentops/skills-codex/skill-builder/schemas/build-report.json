@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Skill Build Report",
+  "description": "Output contract for skill-builder. Reports what mode ran, which files were created, and whether the post-build self-audit passed.",
+  "type": "object",
+  "required": ["mode", "skill_name", "files_created", "audit_pass"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["from-scratch", "from-template", "absorb-external", "from-pattern"],
+      "description": "Which builder mode produced this skill. from-pattern is alpha (passthrough to ao flywheel close-loop)."
+    },
+    "skill_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Lowercase-hyphen slug for the new skill (matches directory name)."
+    },
+    "files_created": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Absolute or repo-relative paths of files written during this build."
+    },
+    "audit_pass": {
+      "type": "boolean",
+      "description": "Did the immediate post-build self-audit (heal-skill deep audit) emit VERDICT: PASS or VERDICT: WARN? (False if FAIL.)"
+    },
+    "audit_report_path": {
+      "type": "string",
+      "description": "Where the self-audit report was written (typically .agents/audits/<skill>-build.md)."
+    },
+    "warnings": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Non-fatal issues surfaced during build (e.g., template SHA pin mismatch, missing optional sections)."
+    },
+    "source": {
+      "type": "object",
+      "description": "Mode-specific provenance.",
+      "properties": {
+        "external_path": {"type": "string", "description": "For absorb-external: source SKILL.md path"},
+        "template_skill": {"type": "string", "description": "For from-template: skill copied from"},
+        "flywheel_run_id": {"type": "string", "description": "For from-pattern: ao flywheel close-loop run id"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

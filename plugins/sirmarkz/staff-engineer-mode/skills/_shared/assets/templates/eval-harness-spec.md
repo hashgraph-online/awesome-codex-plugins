@@ -17,15 +17,22 @@
 | Behavior | Risk If Wrong | Owner | Blocking? |
 | --- | --- | --- | --- |
 
+## Eval Unit And Pipeline
+
+Use only the rows that match the requested workflow; do not force agent trace evidence onto non-agent evals.
+
+| Mode | Eval Unit | Inputs | Expected Output Or State | Trace Evidence |
+| --- | --- | --- | --- | --- |
+
 ## Cases
 
-| Case Set | Source | Slice | Expected Behavior | Negative/Adversarial Coverage | Blocking |
-| --- | --- | --- | --- | --- | --- |
+| Case Set | Source | Slice | Expected Behavior | Required Trace Or State Check | Negative/Adversarial Coverage | Blocking |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Scoring
 
-| Metric | Calculation | Threshold | Regression Action |
-| --- | --- | --- | --- |
+| Metric | Calculation | Evidence Source | Threshold | Regression Action |
+| --- | --- | --- | --- | --- |
 
 ## Grader Rubric
 

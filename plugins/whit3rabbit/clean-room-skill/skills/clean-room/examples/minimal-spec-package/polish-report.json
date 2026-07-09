@@ -1,0 +1,56 @@
+{
+  "report_id": "polish-report-example",
+  "task_id": "task-example",
+  "spec_slice_ref": "behavior-spec:unit-example-flow",
+  "unit_id": "unit-example-flow",
+  "reviewer_role": "clean-polish-reviewer",
+  "reviewed_at": "2024-01-01T00:00:00Z",
+  "reviewed_artifacts": [
+    "implementation-plan.json",
+    "implementation-report.json",
+    "qc-report.json"
+  ],
+  "changed_paths": [
+    {
+      "path": "AGENTS.md",
+      "kind": "repo-hygiene",
+      "action": "created",
+      "reason": "Recorded clean implementation commands and gotchas."
+    },
+    {
+      "path": ".gitignore",
+      "kind": "repo-hygiene",
+      "action": "updated",
+      "reason": "Ignored generated local verification output."
+    }
+  ],
+  "verification_results": [
+    {
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "CLEAN_ROOM_IMPLEMENTATION_ROOTS[0]",
+      "status": "passed",
+      "output_summary": "Destination tests passed."
+    }
+  ],
+  "findings": [],
+  "git": {
+    "repository_status": "initialized",
+    "commit_required": true,
+    "commit_status": "committed",
+    "include_paths": [
+      "src/example-flow.js",
+      "test/example-flow.test.js",
+      "AGENTS.md",
+      ".gitignore"
+    ],
+    "commit_message": "Complete clean-room spec slice behavior-spec:unit-example-flow",
+    "commit_hash": "0123456789abcdef0123456789abcdef01234567",
+    "status_summary": "Committed listed implementation-root paths only."
+  },
+  "residual_risks": [],
+  "abstract_delta_tickets": [],
+  "final_status": "passed"
+}

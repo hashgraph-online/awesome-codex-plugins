@@ -61,6 +61,26 @@ restore the existing baseline.
 6. Run Baseline Sync Closure.
 7. If writing files, preserve local ADR conventions and verify structure.
 
+## Helper-Backed Write Path
+
+When the chosen owner surface is a target project's `docs/aegis/adr/`, use the
+shared workspace helper instead of ad-hoc file creation:
+
+- `create` -> `<aegis-workspace-helper> new-adr --root <target-project-root> ...`
+- `amend` -> `<aegis-workspace-helper> amend-adr --root <target-project-root> --path docs/aegis/adr/ADR-####-<slug>.md ...`
+- `supersede` -> `<aegis-workspace-helper> supersede-adr --root <target-project-root> --path docs/aegis/adr/ADR-####-<slug>.md ...`
+
+After helper-backed writeback, run:
+
+- `<aegis-workspace-helper> check --root <target-project-root>`
+
+The helper owns file shape, ADR numbering, supersession markers, and
+`INDEX.md` coverage only. It does not decide architecture truth, whether the
+ADR gate passed, or whether baseline sync is semantically sufficient.
+
+If the ADR gate or owner-surface decision says `skip`, do not create or amend
+ADR files just because the helper exists.
+
 ## Baseline Sync Closure
 
 If the ADR action is create, amend, or supersede, baseline sync must be checked.
@@ -86,6 +106,9 @@ Never leave baseline sync implicit after create, amend, or supersede.
 ## Compact Output Contract
 
 ```text
+Aegis Visibility:
+- Why executed-decision filtering, ADR gate, owner surface, or baseline sync matters now:
+
 Decision Candidate:
 - Summary:
 - Evidence source:

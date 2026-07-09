@@ -1,6 +1,6 @@
 ---
 name: status
-description: 'Show AgentOps work status.'
+description: "Show AgentOps project status."
 ---
 # $status — Workflow Dashboard
 
@@ -8,7 +8,7 @@ description: 'Show AgentOps work status.'
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
-**CLI dependencies:** bd, ao, gt — all optional. Shows what's available, skips what isn't.
+**CLI dependencies:** br, ao, gt — all optional. Shows what's available, skips what isn't.
 
 ---
 
@@ -17,7 +17,27 @@ description: 'Show AgentOps work status.'
 ```bash
 $status              # Full dashboard
 $status --json       # Machine-readable JSON output
+$status --recover    # Post-compaction recovery mode (absorbed $recover)
 ```
+
+---
+
+## Post-compaction recovery mode (absorbed `$recover`, 2026-07-07)
+
+Fires for the retired `$recover` skill's triggers — "recover", "recover session
+context", post-compaction re-orientation. Same gather as the dashboard plus the
+continuation surfaces, in this order:
+
+1. Run the full dashboard gather (Step 1 below).
+2. Read the newest `.agents/handoff/*.md` (the write-side counterpart — see the
+   handoff skill) and `.agents/rpi/execution-packet.json` if present.
+3. Re-read `AGENTS.md` before resuming any claimed bead (two-correction rule
+   applies after compaction).
+4. Report: what was in flight, the exact next action, and any claimed-but-unfinished
+   beads (`ao beads exec list --status in_progress`).
+
+The old skill's deep-recovery walkthrough survives at
+`references/recovery-playbook.md` (mirrored from the source skill).
 
 ---
 
@@ -33,7 +53,7 @@ ao codex ensure-start 2>/dev/null || true
 
 `ao codex ensure-start` is the single startup guard for Codex skills. It records
 startup once per thread and skips duplicate startup automatically. Leave
-`ao codex ensure-stop` to dedicated closeout skills such as `$validation`,
+`ao codex ensure-stop` to dedicated closeout skills such as `$validate`,
 `$post-mortem`, or `$handoff`.
 
 ---
@@ -62,17 +82,17 @@ fi
 
 **Call 2 — Beads / Epic State:**
 ```bash
-if bd ready --json >/dev/null 2>&1 && bd list --type epic --status open --json >/dev/null 2>&1; then
+if ao beads exec ready --json >/dev/null 2>&1 && ao beads exec list --type epic --status open --json >/dev/null 2>&1; then
   echo "=== EPIC ==="
-  bd list --type epic --status open 2>/dev/null | head -5
+  ao beads exec list --type epic --status open 2>/dev/null | head -5
   echo "=== IN_PROGRESS ==="
-  bd list --status in_progress 2>/dev/null | head -5
+  ao beads exec list --status in_progress 2>/dev/null | head -5
   echo "=== READY ==="
-  bd ready 2>/dev/null | head -5
+  ao beads exec ready 2>/dev/null | head -5
   echo "=== TOTAL ==="
-  bd list 2>/dev/null | wc -l
+  ao beads exec list 2>/dev/null | wc -l
 else
-  echo "BD_DEGRADED_OR_UNAVAILABLE"
+  echo "AO_DEGRADED_OR_UNAVAILABLE"
 fi
 ```
 
@@ -154,7 +174,7 @@ ACTIVE EPIC
   In Progress: <list in-progress issues, max 3>
 
 READY TO WORK
-  <top 3 unblocked issues from bd ready>
+  <top 3 unblocked issues from br ready>
   <or "No ready issues — create work with $plan">
 
 RECENT VALIDATIONS
@@ -200,8 +220,8 @@ QUICK COMMANDS
   $pre-mortem   Validate plan before coding
   $implement    Execute a single issue
   $crank        Autonomous epic execution
-  $validation   Full close-out and learnings
-  $vibe         Targeted code review
+  $post-mortem  Full close-out and learnings
+  $validate     Targeted code review
 ══════════════════════════════════════════════════
 ```
 
@@ -211,15 +231,15 @@ Evaluate state top-to-bottom. Use the FIRST matching condition:
 
 | Priority | Condition | Suggestion |
 |----------|-----------|------------|
-| 1 | No ratchet chain exists | "Start with `$quickstart` or `$research` to begin a workflow" |
+| 1 | No ratchet chain exists | "Start with `quickstart` or `$research` to begin a workflow" |
 | 2 | Research done, no plan | "Run `$plan` to decompose research into actionable issues" |
 | 3 | Plan done, no pre-mortem | "Run `$pre-mortem` to validate the plan before coding" |
 | 4 | Issues in-progress | "Continue working: `$implement <issue-id>` or `$crank` for autonomous execution" |
 | 5 | Ready issues available | "Pick up next issue: `$implement <first-ready-id>`" |
-| 6 | Uncommitted changes | "Review recent work: `$validation`" |
-| 7 | Implementation done, no vibe | "Run `$validation` for final close-out" |
-| 8 | Recent WARN/FAIL verdict | "Address findings in `<report-path>`, then re-run `$validation`" |
-| 10 | Vibe passed, no post-mortem | "Run `$validation` to complete closeout and extract learnings" |
+| 6 | Uncommitted changes | "Review recent work: `$validate`" |
+| 7 | Implementation done, no vibe | "Run `$validate` for final close-out" |
+| 8 | Recent WARN/FAIL verdict | "Address findings in `<report-path>`, then re-run `$validate`" |
+| 10 | Vibe passed, no post-mortem | "Run `$validate` to complete closeout and extract learnings" |
 | 11 | Pending knowledge items | "Promote learnings: `ao pool list --status pending --json`, then `ao pool stage <id>` and `ao pool promote <id>`" |
 | 12 | Clean state, nothing pending | "All clear. Start with `$research` or `$plan` to find new work" |
 
@@ -307,8 +327,8 @@ Render this with a single code block. No visual dashboard when `--json` is activ
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Shows "BD_UNAVAILABLE" or "AO_UNAVAILABLE" | CLI tools not installed or not in PATH | Install missing tools: `brew install bd` or `brew install ao`. Skill gracefully degrades by showing available state only. |
-| Ratchet phase shows stale data | Old chain.jsonl not cleaned up | Check timestamp of `.agents/ao/chain.jsonl`. If stale, delete it or run `$validation` to complete cycle and reset state. |
+| Shows "AO_DEGRADED_OR_UNAVAILABLE" or "AO_UNAVAILABLE" | `ao` CLI not installed or not in PATH | Install `ao` (it resolves the bead tracker — br/beads_rust — via `ao beads exec`). Skill gracefully degrades by showing available state only. |
+| Ratchet phase shows stale data | Old chain.jsonl not cleaned up | Check timestamp of `.agents/ao/chain.jsonl`. If stale, delete it or run `$validate` to complete cycle and reset state. |
 | Suggested action doesn't match intent | State-aware rules didn't capture edge case | Review priority table in Step 3. May need to refine conditions. Use `--json` to inspect raw state and debug rule matching. |
 | JSON output malformed | Parallel bash calls returned unexpected format | Check each bash call individually. Ensure jq parsing works on actual data. Validate JSON structure with `jq .` before returning to user. |
 

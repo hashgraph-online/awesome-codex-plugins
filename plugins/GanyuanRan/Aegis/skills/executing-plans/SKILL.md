@@ -11,15 +11,33 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
+For non-trivial plan execution, include `Aegis Visibility` in natural prose:
+name why Aegis is keeping the current slice tied to the approved plan,
+checkpoint, drift check, pre-edit governance, or verification boundary. This
+visibility belongs to the active execution workflow; do not replace it with a
+generic used-skills log.
+
+When execution reaches completion, do not invent a separate final report shape
+for this workflow. Pass plan adherence, checkpoint/drift status, verification,
+complexity, and residual risk into `verification-before-completion` so the
+user-facing closeout uses the unified Aegis impact/safety receipt.
+
 **Note:** Tell your human partner that Aegis works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use aegis:subagent-driven-development instead of this skill.
 
 ## The Process
 
 ### Step 1: Load and Review Plan
 1. Read plan file
-2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create TodoWrite and proceed
+2. If the plan or active checkpoint includes an `Execution Readiness View`,
+   read it before implementation and compare the plan against its intent lock,
+   scope fence, baseline lock, owner / contract constraints, compatibility
+   boundary, retirement boundary, test obligations, review gates, drift /
+   rewind rules, and evidence required before completion.
+3. Review critically - identify any questions or concerns about the plan
+4. If the view contradicts the plan, baseline, or current worktree evidence,
+   return to plan review or refresh the advisory handoff before editing.
+5. If concerns: Raise them with your human partner before starting
+6. If no concerns: Create TodoWrite and proceed
 
 ### Step 1.5: Long-Task Checkpoint Setup
 
@@ -42,20 +60,69 @@ If the plan has multiple tasks, may span sessions, or includes architecture / co
 For each task:
 1. Mark as in_progress
 2. Follow each step exactly (plan has bite-sized steps)
-3. Before any non-trivial source edit, run the plan's
-   `Pre-Edit Complexity Check` or create a compact one:
+3. Before any new source-code path is added by a task, restate the plan's
+   `Change Necessity` or create a compact one if the plan failed to carry it
+   forward. Plan approval is not by itself proof that a new helper, small guard,
+   new branch, fallback, adapter, or owner is necessary.
 
    ```text
+   Change Necessity:
+   - User-visible need:
+   - No-change / non-code option:
+   - Why code change is necessary:
+   - Minimum change boundary:
+   - Decision: no-change | docs/config-only | code-change | needs-clarification
+   ```
+
+   If the decision is not `code-change`, pause execution and return to plan
+   review instead of editing. If the decision is `code-change`, carry the
+   minimum boundary into the edit and verification scope.
+4. Before any non-trivial source edit, run the plan's
+   `Pre-Edit Complexity Check` or create a compact one:
+
+   Use `using-aegis/references/complexity-governance.md` for shared artifact
+   classes, pressure signals, and `over-budget` handling.
+
+   ```text
+   Complexity Budget:
+   - Artifact class:
+   - Target files / artifacts:
+   - Current pressure:
+   - Projected post-change pressure:
+   - Budget result: within-budget | at-risk | over-budget
+   - Planned governance:
+
    Pre-Edit Complexity Check:
+   - Target edit file:
+   - Existing pressure signal:
+   - Safer edit boundary:
+   - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
+
+   Pre-Edit Owner-Fit Decision:
+   - Edit intent: wiring-only | move-out / extract-first | local-fix-without-new-responsibility | new-responsibility | emergency / compatibility patch
+   - Owner fit:
    - Safer edit boundary:
    - Decision: edit-in-place | extract helper | add owner file | split task | pause for plan update
    ```
 
    If the check contradicts the plan's file boundary, pause and return to plan
-   review instead of silently stuffing logic into an overloaded owner.
-4. Run verifications as specified
-5. Update `TodoCheckpointDraft` and `DriftCheckDraft` before marking the task completed
-6. Mark as completed
+   review instead of silently stuffing logic into an overloaded owner. If the
+   budget result is `over-budget` and the task does not also govern that
+   overrun, stop execution and return to plan review rather than pushing the
+   task through as if it were still atomic.
+   When the target edit file is over-budget or mixed-purpose,
+   `new-responsibility` must not be added in place by default. `wiring-only`,
+   `move-out / extract-first`, and `local-fix-without-new-responsibility` may
+   proceed only when they do not add a new responsibility and the verification
+   boundary is clear. `emergency / compatibility patch` requires residual risk
+   and a retirement trigger.
+5. Run verifications as specified
+6. Update `TodoCheckpointDraft` and `DriftCheckDraft` before marking the task completed.
+   When an `Execution Readiness View` exists, the drift check must explicitly
+   compare the active slice against the view's intent lock, scope fence,
+   baseline lock, compatibility boundary, retirement boundary, test
+   obligations, and review gates.
+7. Mark as completed
 
 ### Step 3: Complete Development
 

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Contamination Incident",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "incident_id",
+    "detected_at",
+    "artifact",
+    "blocked_material_type",
+    "action",
+    "clean_context_invalidated",
+    "reported_by_role",
+    "notes"
+  ],
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artifact": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocked_material_type": {
+      "enum": [
+        "source_excerpt",
+        "raw_diff",
+        "private_identifier",
+        "source_shaped_pseudocode",
+        "other"
+      ]
+    },
+    "action": {
+      "enum": [
+        "quarantined",
+        "deleted",
+        "regenerated"
+      ]
+    },
+    "clean_context_invalidated": {
+      "type": "boolean"
+    },
+    "reported_by_role": {
+      "enum": [
+        "contaminated-manager-verifier",
+        "contaminated-source-analyst",
+        "contaminated-handoff-sanitizer",
+        "clean-architect",
+        "clean-qa-editor"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

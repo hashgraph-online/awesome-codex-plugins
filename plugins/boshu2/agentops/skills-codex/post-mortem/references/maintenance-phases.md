@@ -74,6 +74,26 @@ Phase 3 (Process Backlog) Summary:
 - N flagged stale
 ```
 
+#### Step BP.7: Two-Strikes Membrane Triage
+
+The backlog is where recurring **catches** ratchet, not just learnings. Run the
+membrane triage over the catch corpus:
+
+```bash
+ao membrane triage
+```
+
+For any class with **HitCount >= 2** that no existing gate covers, open a compile
+bead naming the class and the strongest feasible binding layer — **gate >
+discovery checklist > prose** (bind as high as the failure allows). The
+two-strikes rule (noticed once → handoff; repeats → promote; must-never-regress →
+gate) is the admission bar: one hit stays a handoff, two hits earns a compile bead.
+
+> **UNMEASURED (prose/workflow-tier):** this triage step is itself a workflow-tier
+> instruction, not a mechanical gate, so its behavioral effect is unproven pending
+> the age-e508.1 probe — and any prose-tier compile target it opens is UNMEASURED
+> until that probe lands. Prefer a gate binding whenever feasible.
+
 ### Phase 4: Activate
 
 Promote high-value learnings and feed downstream systems. Read `references/activation-policy.md` for detailed promotion thresholds and procedures.
@@ -436,7 +456,7 @@ if command -v ao &>/dev/null; then
   echo "Session closed, flywheel loop triggered"
 else
   # Learnings are already in .agents/learnings/ from Phase 2.
-  # Without ao CLI, grep-based search in /research and /inject
+  # Without ao CLI, grep-based search in /research
   # will find them directly — no copy to pending needed.
 
   # Feedback-loop fallback: update confidence for cited learnings

@@ -9,7 +9,7 @@ description: >-
   generic LLM chat, unrelated AI frameworks, or non-AI infrastructure unless Runtype is
   explicitly part of the request.
 user-invocable: true
-argument-hint: "[Runtype goal or setup question]"
+argument-hint: '[Runtype goal or setup question]'
 ---
 
 # Runtype
@@ -52,13 +52,13 @@ also a good setup path for agent clients.
 
 Use this routing table instead of loading every Runtype detail into context:
 
-| User intent | Use |
-|---|---|
-| Build, deploy, or validate a product with agents, flows, tools, surfaces, records, secrets, schedules, or evals | `runtype-build-product` |
-| Inspect or modify a live account, debug failures, read logs/traces, compare evals, manage resources | `runtype-admin` |
-| Embed or theme a Persona chat widget, build fullscreen assistant layouts, use client tokens or browser-side local tools | `runtype-persona` |
-| Package a product as a distributable FPO template, handle pending secrets, validate import readiness | `runtype-templates` |
-| Use the TypeScript/Python SDK, CLI, Marathon, playbooks, sandboxes, or code-first stored/upsert/virtual workflows | `runtype-sdk-marathon` |
+| User intent                                                                                                                               | Use                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Build, deploy, or validate a product with agents, flows, tools, surfaces, records, secrets, schedules, or evals                           | `runtype-build-product` |
+| Inspect or modify a live account, debug failures, read logs/traces, compare evals, manage resources                                       | `runtype-admin`         |
+| Embed or theme a Persona chat widget, build fullscreen assistant layouts, use client tokens, or configure WebMCP/browser-side local tools | `runtype-persona`       |
+| Package a product as a distributable FPO template, handle pending secrets, validate import readiness                                      | `runtype-templates`     |
+| Use the TypeScript/Python SDK, CLI, Marathon, playbooks, sandboxes, or code-first stored/upsert/virtual workflows                         | `runtype-sdk-marathon`  |
 
 ## Mental Model
 
@@ -70,7 +70,7 @@ Use this routing table instead of loading every Runtype detail into context:
   custom code, local SDK tools, flows, or subagents.
 - Surface: where users or machines reach the product, including `chat`, `api`, `mcp`,
   `mcp_code`, `webhook`, `email`, `slack`, `schedule`, `sms`, `imessage`, `discord`,
-  `whatsapp`, `telegram`, `messaging`, and `a2a`.
+  `whatsapp`, `telegram`, `messaging`, `a2a`, and `hosted-page`.
 - Record: Runtype state and memory. It is not a replacement for the user's business
   database.
 - Eval: surface-level or capability-level comparison. Prefer surface/product evals when
@@ -97,6 +97,9 @@ These local references are fallback context only. Prefer live MCP docs when avai
 ## Do Not Do
 
 - Do not invent payload shapes. Fetch live docs or validate first.
+- Do not let this router grow into platform docs. If more detail is needed, fetch
+  `get_platform_documentation(topic="platform-catalog")` or a focused topic, then
+  read the relevant direct MCP resources when the docs point to them.
 - Do not inline secret values. Use `{{secret:KEY}}` and pending-secret intake.
 - Do not store all customer data in records; keep the source of truth where it belongs.
 - Do not use Runtype for generic one-off LLM chat unless the user wants to ship a

@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: 'Write compact session handoffs.'
+description: "Write compact continuation handoffs."
 ---
 # Handoff Skill
 
@@ -9,6 +9,25 @@ description: 'Write compact session handoffs.'
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
 Create a handoff document that enables seamless session continuation.
+
+## Handoff is the write-side of the self-healing context loop
+
+Handoff is the **write-side of the `handoff → clear → rehydrate` loop** that keeps
+a long-running agent (or peer orchestrator) healthy against context bloat. The
+natural pre-`/clear` step is to hand off: capture the working state to durable
+state *first*, then clear, then rehydrate from the artifact. **Handoff before
+clear, always** — clearing without a current handoff loses the thread. The handoff
+must be complete enough to rehydrate the lane to exactly where it was (goal,
+claimed bead(s), held reservations, peer/comms topology, working-thread pointer).
+The structured artifact is `ao session handoff` → `.agents/handoff/` (`--no-kill` writes
+without the tmux restart).
+
+## Every handoff is a compounding artifact
+
+A handoff is a first-class node in the compounding artifact graph — it feeds the
+llm-wiki / knowledge corpus, gets mined and measured (`consumed`/`consumed_by`
+hooks), and each cycle should make the next handoff better. Context, code, and
+markdown are all artifacts to be fed back. Write handoffs dense and honest.
 
 ## Execution Steps
 
@@ -29,8 +48,8 @@ mkdir -p .agents/handoff
 # Recent commits
 git log --oneline -5 --format="%s" | head -1
 
-# Check current issue
-bd current 2>/dev/null | head -1
+# Check current issue (ao beads exec resolves the br/beads_rust tracker)
+ao beads exec list --status in_progress 2>/dev/null | head -1
 
 # Check ratchet state
 ao ratchet status 2>/dev/null | head -3
@@ -59,7 +78,7 @@ ls -lt .agents/research/*.md 2>/dev/null | head -3
 ls -lt .agents/plans/*.md 2>/dev/null | head -3
 
 # Issues closed
-bd list --status closed --since "2 hours ago" 2>/dev/null | head -5
+ao beads exec list --status closed --since "2 hours ago" 2>/dev/null | head -5
 ```
 
 ### Step 4: Identify Pause Point
@@ -73,7 +92,7 @@ Determine where we stopped:
 
 Check for in-progress work:
 ```bash
-bd list --status in_progress 2>/dev/null | head -5
+ao beads exec list --status in_progress 2>/dev/null | head -5
 ```
 
 ### Step 5: Identify Key Files to Read
@@ -207,6 +226,10 @@ git log --oneline --since="2 hours ago" 2>/dev/null | wc -l
 **If ≥3 commits:** Suggest running `$post-mortem --quick` to extract learnings.
 **If <3 commits:** Handoff alone is sufficient; learnings are likely minimal.
 
+### Step 8.5: Grade Skills Used (ms outcome, optional)
+
+If `ms` is installed (`command -v ms`), grade each skill whose guidance this session **actually used** (genuinely consulted, not merely trigger-matched): `ms outcome <skill> --success` or `ms outcome <skill> --failure`, so ranking is fed by real usage. Honest only — the skills you truly leaned on, not every match. Skip if `ms` is not present.
+
 ### Step 9: Report to User
 
 Tell the user:
@@ -295,7 +318,7 @@ If ao CLI not available:
 
 **What happens:**
 1. Agent detects recent commits (5 commits in last 2 hours, auth-related)
-2. Agent checks in-progress work with `bd list` (issue #42 still open)
+2. Agent checks in-progress work with `ao beads exec list` (issue #42 still open)
 3. Agent identifies pause point: "Completed token generation, about to start refresh logic"
 4. Agent lists key files: auth.go, token.go, research doc, plan doc
 5. Agent writes handoff document with accomplishments and pause state
@@ -346,8 +369,7 @@ If ao CLI not available:
 
 ## See Also
 
-- `../post-mortem/SKILL.md` — Full validation + knowledge lifecycle (council + extraction + activation + retirement)
-- `../retro/SKILL.md` — Quick-capture a learning
+- `../post-mortem/SKILL.md` — Full validation + knowledge lifecycle (council + extraction + activation + retirement); `--quick` quick-captures a single learning (folded the retired `$retro`)
 
 ## Local Resources
 

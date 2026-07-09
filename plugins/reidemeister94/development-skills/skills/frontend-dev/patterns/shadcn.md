@@ -40,6 +40,12 @@ This ensures `onClose` fires only on close, not on every open/close transition. 
 
 ---
 
+## `Skeleton` — the content-loading primitive
+
+shadcn ships `<Skeleton>` (`components/ui/skeleton.tsx`) — the building block for the content-loading pattern. Compose copies of it into a shape that **mirrors the layout it replaces**, rendered while a region's data fetches. WHEN to reach for it: [react.md](react.md) (*Async content loading*). Visual rules: the `visual-design-principles` skill (design-skills plugin). Generate it with the shadcn CLI under the detected package manager if the project doesn't have it yet.
+
+---
+
 ## What NOT to Do
 
 | Anti-Pattern | Instead |

@@ -17,7 +17,7 @@ Identify which skills, agents, and commands in the plugin surface are still earn
 
 The walker — `scripts/lib/sunset/walker.mjs` — is **read-only** and was built against the following grep-verified telemetry facts. Do not override them:
 
-1. **Agent dispatch telemetry is reliable; skill/command invocation telemetry does NOT exist.** `subagents.jsonl` records agent dispatches, but there is no skill-invocation or command-invocation event anywhere. Agents are assessed by telemetry; **skills and commands are assessed by static reference scanning only.**
+1. **Both agent dispatch and skill-invocation telemetry are now consumed.** `subagents.jsonl` records agent dispatches; `skill-invocations.jsonl` records Skill tool selection events (L1 telemetry, epic #645). Agents are assessed by agent-dispatch counts; **skills are assessed by real selection counts from `skill-invocations.jsonl`, supplemented by static reference scanning.** Commands still have no invocation telemetry and are assessed by static reference scanning only. Skills with zero invocations in the window receive a zero-count (not null), so the low-coverage guard still applies and can downgrade Retire → Investigate when the telemetry window is short.
 2. **Only `event === "start"` records count.** `agent_type` is `null` on every `stop` event. A stop event must never mark an agent cold. The walker filters to start events.
 3. **Telemetry only spans ~18 days.** A 90-day window cannot be satisfied by 18 days of data. **MANDATORY GUARDRAIL:** when `coverageDays < windowDays`, every `Retire` verdict is downgraded to `Investigate` and `meta.lowConfidence` is set true. Retiring on sub-window data is unsafe — treat any cold finding as "investigate", not "delete".
 4. **Zero ≠ near-zero.** A never-dispatched agent (e.g. `memory-proposal-collector`, a by-design reference doc) is a Retire candidate; a once-dispatched agent (`db-specialist`, `ui-developer` at n=1) is a Demote candidate. The walker distinguishes them.
@@ -67,6 +67,12 @@ mkdir -p .orchestrator/metrics
 ```
 
 The sidecar is the durable record; the Markdown is the readable summary.
+
+**Skill Health (advisory)** — render a per-skill health advisory block into the report.
+- **Source:** per-skill verdicts come from `scoreSkillHealth()` in `scripts/lib/skill-health/score.mjs`, computed over the L2 join (`scripts/lib/skill-health/join.mjs`) plus any optional L3 judgments — the same telemetry the walker already surfaces on `item.signals.judge`. The mechanical/CI surface for this data is harness-audit `category9` ("Skill-Health Surfacing").
+- **Rendering:** add a `## Skill Health` section to the Markdown report. List each skill that has sufficient samples with its `verdict` (`insufficient signal` | `trigger description unclear` | `instructions wrong`) and its `diagnosis` string. Skills below the sample threshold (`MIN_SAMPLES_FOR_VERDICT`, ~20) are NOT scored per-skill — collapse them into a single line: "Insufficient signal (N skills)".
+- **Firewall (MANDATORY):** the health advisory NEVER edits any skill file and NEVER pushes a skill toward Retire or Demote on health data alone. It may only annotate the existing verdict, or trigger the existing Active→Investigate downgrade the walker already applies — never an escalation. This mirrors the walker's advisory-only judge firewall: annotate or downgrade-to-Investigate, never escalate toward Retire/Demote.
+- **Default-empty:** when telemetry is absent or insufficient (the common case today), render exactly "Skill Health: insufficient signal across all skills (no action)". This is a healthy state, not a finding — do not surface it as a candidate.
 
 ### Phase 5 — Cadence note (the SKILL writes last-run, NOT the walker)
 - Sunset review runs **quarterly**. The walker is stateless and writes no runtime file — recording the last-run timestamp is **this skill's** responsibility, so a session-start nudge can fire when a quarter has elapsed.

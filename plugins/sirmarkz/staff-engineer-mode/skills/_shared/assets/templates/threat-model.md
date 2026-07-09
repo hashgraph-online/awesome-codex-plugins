@@ -22,6 +22,11 @@
 | Threat | Control | Verification | Detection | Response Path | Residual Risk |
 | --- | --- | --- | --- | --- | --- |
 
+## Audit Store Integrity
+
+| High-Risk Record | Tamper-Evident Or Append-Only Mechanism | Completeness-Under-Load Check | Access Control |
+| --- | --- | --- | --- |
+
 ## Security Requirements
 
 | Requirement | Applies To | Evidence | Owner |

@@ -13,7 +13,8 @@ dispatches your specialists.
 
 ### 1. Auto-Init Guard
 
-Check for `.agenteam/config.yaml` (or legacy `agenteam.yaml`) in the project root. If missing:
+Check for `.agenteam/config.yaml`, `.agenteam.team/config.yaml`, or legacy
+`agenteam.yaml` in the project root. If all are missing:
 - Create config dir: `mkdir -p .agenteam`
 - Copy the template: `cp <plugin-dir>/templates/agenteam.yaml.template .agenteam/config.yaml`
 - Set the team name to the project directory name
@@ -544,10 +545,15 @@ For each stage in the ordered stage list:
           python3 <runtime>/agenteam_rt.py scope-audit \
             --run-id <run_id> --stage <stage> --baseline $BASELINE
        6. If audit fails:
-          - git reset --hard $BASELINE
-          - Log: "Scope containment violation. Falling back to serial."
-          - Re-dispatch entire stage serially (flat dispatch, one at a time)
-          - Break out of group loop
+          - Save the complete diff as
+            `.agenteam/runs/<run_id>/<stage>/scope-violation.patch` before
+            taking any recovery action.
+          - Log: "Scope containment violation. Preserved evidence and stopped
+            the stage; no checkout content was reset."
+          - Do not modify or discard the dirty checkout. A serial replay must
+            start in a new clean branch/worktree from `$BASELINE`.
+          - Ask before creating that replay because it may duplicate
+            non-idempotent role work. Break out of the group loop.
      - The agent file is at the path in the dispatch plan (e.g.,
        .codex/agents/architect.toml)
      - Pass the task description and any outputs from previous stages
@@ -641,17 +647,25 @@ For each stage in the ordered stage list:
        Go back to verify
      - If failed and attempts >= max_retries (or no legal repair role):
        Log "Verification failed after N attempts."
-       Offer rollback:
+       Offer non-destructive recovery:
          result = agenteam_rt.py stage-baseline --run-id <run_id> \
            --stage <stage> --action rollback
          If result.allowed:
            Show: git diff --stat <baseline>..HEAD
-           Ask: "Rollback to pre-stage state? (yes/skip)"
-           If yes: git reset --hard <baseline>
-           Log: "Rolled back stage <stage>"
+           Save the current diff to
+           `.agenteam/runs/<run_id>/<stage>/failed-attempt.patch`.
+           Ask: "Create a clean recovery branch/worktree from the baseline?"
+           Never discard the current checkout automatically. Recovery runs in
+           the new isolated workspace, and the preserved patch remains reviewable.
          If not result.allowed (isolation:none):
            Log: "Rollback not available in scoped parallel mode."
        Show failure output to user. Do NOT advance.
+
+  **Long-running harness invariant:** Treat runtime state as authoritative.
+  Persist the active attempt, `thread_id`, last heartbeat, wall/idle budgets,
+  retry count, and stop reason. Emit `status --progress` at least once per
+  heartbeat interval. After controller interruption, invoke `$ateam:resume`;
+  do not silently launch a replacement agent.
 
   f. Gate criteria check (if stage has criteria):
      result = agenteam_rt.py gate-eval --run-id <run_id> --stage <stage>

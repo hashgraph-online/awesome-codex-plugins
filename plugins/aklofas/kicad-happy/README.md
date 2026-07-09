@@ -452,6 +452,10 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 | KiCad 6  | Full                          | Full | Full   |
 | KiCad 5  | Full (legacy `.sch` + `.lib`) | Full | Full   |
 
+## v1.3.2 — Bug fix
+
+- Fix `format-report.py` full-report crash on dict-shaped protocol `devices` (#22). The full report's Protocol Compliance section raised `TypeError` when schematic findings carried enriched `{ref, value, lib_id}` device entries (e.g. boards with named I2C buses); it now coerces them the same way the short report already did. Thanks to @krisztiankurucz.
+
 ## v1.3.1 — Bug fixes + Connectivity
 
 - Fix `format-report.py` crash on dict-shaped `power_rails` (issues #16, #20).

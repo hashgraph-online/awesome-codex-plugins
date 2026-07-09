@@ -25,6 +25,7 @@ High availability is the ability to keep serving through expected failures witho
 - A design says it is active-active, active-passive, partitioned, shuffle-sharded, or multi-location.
 - A launch or PRR needs HA details.
 - The work changes topology, failover, load balancing, placement, or blast radius.
+- DNS, resolver, naming, TTL, or negative-cache behavior affects failover or availability.
 
 ## When Not To Use
 
@@ -33,6 +34,7 @@ High availability is the ability to keep serving through expected failures witho
 - The main question is planning a chaos experiment, game day, or fault injection drill; use `resilience-experiments` instead.
 - The work is only unit, integration, or CI testing.
 - The request is about generic uptime targets; define SLOs first via `slo-and-error-budgets`.
+- Failure-behavior requirements and non-functional targets before code exist belong to `resilience-requirements`; SLO math belongs to `slo-and-error-budgets`.
 
 ## Info To Gather
 
@@ -46,6 +48,7 @@ High availability is the ability to keep serving through expected failures witho
 - Return-to-normal, drain or undrain, repair, startup, management, identity, observability, and support dependencies that are required during recovery.
 - Protective modes during partial failure, including whether read-only, fail-closed, or safety states still allow internal coordination, metadata writes, repair, and safe override.
 - Existing failover tests, incidents, game days, chaos experiments, and rollback procedures.
+- Name-resolution chain: authoritative zones, resolvers, provider or control-plane dependencies, TTLs, negative caches, delegated names, and failover steering behavior.
 
 ## Workflow
 
@@ -56,10 +59,11 @@ High availability is the ability to keep serving through expected failures witho
 5. **Choose topology deliberately.** Decide whether a single-location, location-redundant, multi-location, active-passive, active-active, stamp, or partition model is justified by the survival target.
 6. **Bound blast radius.** Use partitions, stamps, shards, shuffle sharding, tenant isolation, or location boundaries when one failure could otherwise affect the whole fleet. Operational actions should not affect multiple independent fault domains at once unless the user explicitly accepts the emergency risk.
 7. **Remove hidden coupling.** Find global locks, shared queues, shared caches, control-plane calls, cross-location synchronous writes, central config coupling, shared health-check or control-loop resource pools, health-report fanout that can overload control planes, and outside-hosted artifacts in the serving, deploy, scale, and startup paths.
-8. **Define failover behavior.** Specify automatic/manual trigger, traffic drain or shift, data consistency, split-brain prevention, client behavior, rollback to normal, and when the shift path was last validated. Treat partial or gray failures as first-class triggers; a domain that is still serving but too slow, crash-looping, or capacity-starved may need the same traffic shift as a hard outage.
-9. **Test protective modes.** If a support layer enters read-only, fail-closed, quarantine, or other safety state, verify it still permits required internal coordination, metadata writes, repair actions, and controlled override without violating the durability or security contract.
-10. **Validate return-to-normal.** Test or document drain, undrain, repair, startup, management, identity, observability, and support paths under degraded capacity; restoration can be riskier than the initial failover.
-11. **Bound validation risk.** Define the validation objective, then route detailed fault-injection or game-day planning to resilience experiments when that is the main work.
+8. **Design name-resolution reliability.** Check resolver and zone availability, single-provider or single-control-plane dependencies, TTL and negative-cache strategy, failover steering, and client behavior while names converge.
+9. **Define failover behavior.** Specify automatic/manual trigger, traffic drain or shift, data consistency, split-brain prevention, client behavior, rollback to normal, and when the shift path was last validated. Treat partial or gray failures as first-class triggers; a domain that is still serving but too slow, crash-looping, or capacity-starved may need the same traffic shift as a hard outage.
+10. **Test protective modes.** If a support layer enters read-only, fail-closed, quarantine, or other safety state, verify it still permits required internal coordination, metadata writes, repair actions, and controlled override without violating the durability or security contract.
+11. **Validate return-to-normal.** Test or document drain, undrain, repair, startup, management, identity, observability, and support paths under degraded capacity; restoration can be riskier than the initial failover.
+12. **Bound validation risk.** Define the validation objective, then route detailed fault-injection or game-day planning to resilience experiments when that is the main work.
 
 ## Synthesized Default
 
@@ -105,6 +109,7 @@ Use fault-domain independence, static stability, and explicit fault-domain isola
 - Fault-domain independence and hidden-coupling exception list.
 - Blast-radius analysis and partition/shard/tenant isolation recommendation.
 - Hidden dependency and control-plane risk list.
+- DNS and name-resolution reliability table: authoritative source, resolver path, TTL, negative-cache behavior, failover behavior, and single-provider exceptions.
 - Failover decision record with trigger, authority, data behavior, and rollback.
 - Return-to-normal plan for drain, undrain, repair, startup, management, identity, observability, and support dependencies.
 - Protective-mode behavior and override criteria for safety states that can block recovery work.
@@ -119,6 +124,7 @@ Use fault-domain independence, static stability, and explicit fault-domain isola
 - `blast_radius_bound`: a single fault cannot exceed the documented partition, tenant, shard, or location impact boundary.
 - `failover_behavior`: trigger, authority, data consistency, traffic behavior, and rollback are written down.
 - `per_domain_signals`: each critical fault domain has health signals that can identify hard outages and gray failures such as elevated latency, stuck work, crash loops, or capacity loss.
+- `name_resolution`: resolver, zone, TTL, negative-cache, and name-steering behavior preserve availability during failover or document the exception.
 - `shift_path`: moving traffic away from an unhealthy domain has an automatic or manual path and a last validation result.
 - `protective_mode`: read-only, fail-closed, quarantine, or other safety states preserve required internal coordination and have controlled override criteria.
 - `return_to_normal`: drain, undrain, repair, startup, management, identity, observability, and support paths are validated or marked unknown.
@@ -133,6 +139,7 @@ Use fault-domain independence, static stability, and explicit fault-domain isola
 - A deploy, scale-up, startup, or recovery path depends on artifacts or control planes unavailable during the named fault.
 - A safety state preserves durability or security but blocks the metadata writes or coordination needed to recover.
 - One operational action can damage multiple locations, deployment units, partitions, or shards at once.
+- Name resolution depends on one unavailable provider, resolver, zone, or stale negative cache during failover.
 - Failover works, but return-to-normal depends on untested repair, drain, startup, access, or support tooling.
 - Resilience experiments are proposed without blast-radius limits or abort criteria.
 
@@ -145,3 +152,4 @@ Use fault-domain independence, static stability, and explicit fault-domain isola
 | Testing only the happy failover path | Test detection, partial failure, rollback, and return-to-normal. |
 | Waiting for a domain to be fully down | Shift on validated gray-failure signals before slow partial failure exhausts regional capacity. |
 | Ignoring operator dependencies | Include identity, access, dashboards, deploy, and config systems in the map. |
+| Treating names as static | Model resolver, TTL, negative-cache, and failover steering behavior. |

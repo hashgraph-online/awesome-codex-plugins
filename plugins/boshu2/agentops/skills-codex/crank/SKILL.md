@@ -1,6 +1,6 @@
 ---
 name: crank
-description: 'Execute epics through waves.'
+description: "Execute implementation waves."
 ---
 # $crank - Autonomous Epic Execution (Codex Native)
 
@@ -13,7 +13,7 @@ description: 'Execute epics through waves.'
 ```text
 Crank (lead agent)
     |
-    +-> bd ready (current wave)
+    +-> ao beads exec ready (current wave)
     |
     +-> Build a wave task packet
     |
@@ -21,7 +21,7 @@ Crank (lead agent)
     |
     +-> wait_agent for all worker ids
     |
-    +-> Validate results + bd update
+    +-> Validate results + ao beads exec update
     |
     +-> Loop until epic DONE
 ```
@@ -67,6 +67,8 @@ After each wave, output one of:
 
 Never claim completion without the marker.
 
+**Feed the orchestrator's re-plan loop — don't swallow findings into a silent retry.** When run under `$rpi`, surface what a wave proved or broke UP to the orchestrator. A failed or surprising wave (a `PARTIAL`/`BLOCKED` marker) is *re-plan input*, not just a retry target: per the [`$rpi` Agile Re-Plan Loop](../rpi/SKILL.md#agile-re-plan-loop-the-anti-waterfall-rule), the *remaining* waves may be refactored, inserted, dropped, or reordered before the next runs. Re-cranking the same objective forever instead of letting the remaining plan change is the waterfall anti-pattern.
+
 ## Node Repair Operator
 
 When a task fails during wave execution, classify as **RETRY** (transient — re-add with adjustment, max 2), **DECOMPOSE** (too complex — split into sub-issues, terminal), or **PRUNE** (blocked — escalate immediately). Budget: 2 per task.
@@ -93,7 +95,7 @@ fi
 ### Step 0.5: Detect Tracking Mode
 
 ```bash
-if bd ready --json >/dev/null 2>&1 && bd list --type epic --status open --json >/dev/null 2>&1; then
+if ao beads exec ready --json >/dev/null 2>&1 && ao beads exec list --type epic --status open --json >/dev/null 2>&1; then
     TRACKING_MODE="beads"
 else
     TRACKING_MODE="tasklist"
@@ -161,7 +163,7 @@ log_plan_mutation() {
 
 **Beads mode:**
 - If epic ID provided: use it directly
-- If no epic ID: `bd list --type epic --status open 2>/dev/null | head -5`
+- If no epic ID: `ao beads exec list --type epic --status open 2>/dev/null | head -5`
 
 **Execution-packet/file mode:**
 - If the input is `.agents/rpi/execution-packet.json`, read `objective`, `epic_id`, `tracker_mode`, `done_criteria`, and `validation_commands`
@@ -178,22 +180,22 @@ Before wave-1 commit, refuse to crank on `main`/`master`. Cut `crank/<epic-id>` 
 **Beads mode:**
 
 ```bash
-bd show <epic-id> 2>/dev/null
+br show <epic-id> 2>/dev/null
 ```
 
 **Execution-packet/file mode:**
 - Read the packet or plan file into local state for the current objective
-- Preserve the same objective across retries; do not narrow to one slice from `bd ready`
+- Preserve the same objective across retries; do not narrow to one slice from `ao beads exec ready`
 
 ### Step 3: List Ready Work for the Current Wave
 
 **Beads mode:**
 
 ```bash
-bd ready 2>/dev/null
+br ready 2>/dev/null
 ```
 
-`bd ready` returns all unblocked issues - these can run in parallel.
+`ao beads exec ready` returns all unblocked issues - these can run in parallel.
 
 **Execution-packet/file mode:**
 - Read remaining tasks from `.agents/rpi/execution-packet.json` or the plan file
@@ -203,8 +205,8 @@ bd ready 2>/dev/null
 
 1. Verify there are ready issues. Empty list is an error unless the epic is already complete.
 2. If 3+ issues are ready, check `.agents/council/` for pre-mortem evidence.
-3. If tracking mode is `beads` and `scripts/bd-audit.sh` exists, run the backlog audit before spawning workers.
-4. If bd-audit flags backlog hygiene issues, stop and clean them up before continuing. Use `--skip-audit` only when you intentionally want to bypass that gate.
+3. If tracking mode is `beads` and the legacy-named `scripts/bd-audit.sh` exists, run the backlog audit before spawning workers.
+4. If the backlog audit flags hygiene issues, stop and clean them up before continuing. Use `--skip-audit` only when you intentionally want to bypass that gate.
 5. For every string being modified, grep the codebase for stale cross-references.
 
 ### Step 3b: Language Standards Injection
@@ -354,8 +356,9 @@ Update beads with evidence:
 ```bash
 COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null | head -10 | tr '\n' ' ' | sed 's/ $//')
-bd close "$issue_id" --reason "commit:${COMMIT_SHA} files:[${CHANGED_FILES}]" 2>/dev/null
-bd update "$issue_id" --status blocked --append-notes "Wave $wave FAIL: $reason" 2>/dev/null
+br close "$issue_id" --reason "commit:${COMMIT_SHA} files:[${CHANGED_FILES}]" 2>/dev/null
+br update "$issue_id" --status blocked 2>/dev/null
+br comments add "$issue_id" "Wave $wave FAIL: $reason" 2>/dev/null
 ```
 
 ### Step 5.5: Wave Acceptance Check
@@ -364,7 +367,8 @@ After all workers complete:
 1. Compute `git diff` for the wave.
 2. Run project-level tests appropriate to the wave.
 3. If tests fail, identify which worker's changes broke things and requeue only that work.
-4. **CI-Policy Parity Gate (conditional).** If the wave diff touches `.github/workflows/*.yml`, run `bash scripts/validate-ci-policy-parity.sh`; on non-zero exit treat the wave verdict as **FAIL** and surface the drift report. Trigger pattern (narrow — workflow YAML only):
+4. **Orchestrator's own diff-read (mandatory anti-green-washing check).** Before counting a slice/wave as accepted, the orchestrator itself reads the actual wave diff and compares it with each closed slice's declared scope and claim. A green `<promise>DONE</promise>` plus passing evidence JSON is a claim, not proof; an out-of-scope or claim-mismatched diff sets the wave verdict to **FAIL** and surfaces the file list. See [references/wave-patterns.md](references/wave-patterns.md) "Wave Acceptance Check" Step 3.5.
+5. **CI-Policy Parity Gate (conditional).** If the wave diff touches `.github/workflows/*.yml`, run `bash scripts/validate-ci-policy-parity.sh`; on non-zero exit treat the wave verdict as **FAIL** and surface the drift report. Trigger pattern (narrow — workflow YAML only):
    ```bash
    if git diff --name-only "$WAVE_START_SHA" HEAD -- | grep -qE '^\.github/workflows/.*\.ya?ml$'; then
        bash scripts/validate-ci-policy-parity.sh || exit 1
@@ -467,6 +471,19 @@ done
 git commit -m "feat(<scope>): wave $wave - $COMPLETED_COUNT issues completed"
 ```
 
+### Step 6.5: Land to main (direct-main + pawl)
+
+THIS repo lands by **direct push to main** — PR-per-bead is retired (external-repo variant below). Land each bead from its own worktree:
+
+1. **Gate:** `ao gate check --fast --scope head` — the local cockpit gate (also the pre-push hook; run it manually to fail fast).
+2. **Review:** `REVIEWER=agy bash scripts/pawl-review.sh <bead> --scope head --author-family codex` — the cross-family refuter against the commit. Codex-runtime authors need BOTH halves: `--author-family codex` (default is `claude`; omitting it silently permits a same-family codex bind) AND a non-codex `REVIEWER` (the default reviewer IS codex, which the declared family then excludes — without the override the script exits 2). **CONFIRMED (exit 0) writes the commit-bound verdict the pre-push gate requires; no CONFIRMED verdict ⇒ the bead does NOT land** (no verdict = not done). **REFUTED (exit 3) -> AUTO-REDO** the named defects and re-gate; escalate to a human only on a circuit-breaker trip (max-attempts / time / cost / oscillation), door stays closed.
+3. **Land:** `bash scripts/pawl-land.sh <bead>` — fetch + rebase onto `origin/main`, restamp the verdict onto the post-rebase feat, single-shot push.
+4. **Close on landed-only:** `ao beads exec close` a child bead ONLY after its commit is an ancestor of `origin/main` (`git fetch origin main && git merge-base --is-ancestor <feat-sha> origin/main`), never on a log line or batch `br --json` query. Never close a parent epic before EVERY child is landed (`scripts/check-epic-children-closed.sh <epic>`).
+
+**Multi-lane serialization + by-hand land.** When several lanes land onto a hot `main` at once, or when you land by hand via the `ao pawl review` CLI (which sets `PAWL_UNTRUSTED_REPO=1` and SKIPS auto-bind, so the sealed bind is manual), follow the serialized land-token discipline + the exact `[feat, #trivial-bind]` command sequence in [references/land-protocol.md](references/land-protocol.md) — one land at a time across lanes, `ao provenance emit-verdict` for the sealed bind (never a hand-appended ledger edge), and `git merge-base --is-ancestor` before every `ao beads exec close`.
+
+**External-repo variant (PR flow).** When targeting an external repo where you cannot push `main`, the land half becomes a PR: prepare it with `$pr-prep`, then reconcile with `scripts/reconcile-pr.sh <pr> <bead> [--epic <epic>]` (verifies the CONFIRMED pawl verdict via `scripts/pawl-verdict.sh check`, merges `gh pr merge --squash --admin`, closes on confirmed `MERGED`). External targets only — never for landing AgentOps' own beads.
+
 ### Step 7: Loop or Complete
 
 ```bash
@@ -478,16 +495,16 @@ if [[ $wave -ge 50 ]]; then
     exit 1
 fi
 
-REMAINING=$(bd ready 2>/dev/null | wc -l)
+REMAINING=$(ao beads exec ready 2>/dev/null | wc -l)
 if [[ $REMAINING -eq 0 ]]; then
-    ALL_CLOSED=$(bd children "$EPIC_ID" 2>/dev/null | grep -c "CLOSED" || echo 0)
-    ALL_TOTAL=$(bd children "$EPIC_ID" 2>/dev/null | wc -l || echo 0)
+    OPEN_TOTAL=$(ao beads exec list --status open 2>/dev/null | wc -l || echo 0)
+    IN_PROGRESS_TOTAL=$(ao beads exec list --status in_progress 2>/dev/null | wc -l || echo 0)
 
-    if [[ $ALL_CLOSED -eq $ALL_TOTAL ]]; then
+    if [[ $((OPEN_TOTAL + IN_PROGRESS_TOTAL)) -eq 0 ]]; then
         echo "<promise>DONE</promise>"
     else
         echo "<promise>BLOCKED</promise>"
-        echo "No ready issues but $((ALL_TOTAL - ALL_CLOSED)) issues remain unclosed."
+        echo "No ready issues but $((OPEN_TOTAL + IN_PROGRESS_TOTAL)) issues remain open or in progress."
     fi
 else
     # Continue to next wave - return to Step 3
@@ -499,7 +516,7 @@ fi
 When the epic is DONE:
 
 ```bash
-$vibe validate the completed epic
+$validate validate the completed epic
 ```
 
 ### Step 8.5: Archive Shared Task Notes
@@ -518,7 +535,7 @@ fi
 
 - Max 2 retries per issue across all waves
 - On third failure: mark BLOCKED and continue with remaining issues
-- Track retries with `bd comments add "$issue_id" "retry $N: $reason"`
+- Track retries with `br comments add "$issue_id" "retry $N: $reason"`
 
 ## Failure Recovery
 
@@ -529,6 +546,16 @@ fi
 | All workers fail | `<promise>BLOCKED</promise>` with diagnostics |
 | File conflict detected | Split into sub-waves, re-run |
 
+## Output Specification
+
+**Format:** committed code plus a markdown progress/closeout summary to stdout; per-slice [slice-validation](../../docs/templates/slice-validation.md) roll-ups.
+**Files:** reads `.agents/rpi/execution-packet.json`; writes wave/slice results under `.agents/swarm/results/`; closes beads via `ao beads exec close` in the resolved bead ledger.
+**Exit signal:** `<promise>DONE</promise>` (all slices accepted) · `<promise>PARTIAL</promise>` (retry the same objective) · `<promise>BLOCKED</promise>` (manual intervention).
+
+## Related skills
+
+- $using-atm — out-of-session ATM substrate for long-running $crank waves over a bead queue.
+
 ## Reference Documents
 
 - [references/de-sloppify.md](references/de-sloppify.md) - cleanup pass after implementation waves
@@ -538,6 +565,7 @@ fi
 - [references/commit-strategies.md](references/commit-strategies.md) - per-task vs wave-batch commits
 - [references/contract-template.md](references/contract-template.md) - contract template for worker specs
 - [references/failure-recovery.md](references/failure-recovery.md) - escalation and retry logic
+- [references/land-protocol.md](references/land-protocol.md) - serialized multi-lane land protocol: land-token, the [feat, #trivial-bind] sequence, stale-bind drop, failure playbook
 - [references/failure-taxonomy.md](references/failure-taxonomy.md) - failure classification
 - [references/fire.md](references/fire.md) - FIRE loop specification
 - [references/ralph-loop-contract.md](references/ralph-loop-contract.md) - Ralph Wiggum loop contract
@@ -552,5 +580,6 @@ fi
 - [references/gc-pool-dispatch.md](references/gc-pool-dispatch.md) - gc pool worker dispatch
 - [references/wave1-spec-consistency-checklist.md](references/wave1-spec-consistency-checklist.md) - Wave 1 spec consistency checklist
 - [references/worktree-per-worker.md](references/worktree-per-worker.md) - worktree isolation pattern
+- [references/ship-loop-anti-patterns.md](references/ship-loop-anti-patterns.md) - absorbed ship-loop anti-pattern catalog (ag-s43tg)
 
 <!-- Lifecycle integration wired: 2026-03-28. See skills/crank/SKILL.md for canonical -->

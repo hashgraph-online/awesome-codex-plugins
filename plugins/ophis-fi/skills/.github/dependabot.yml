@@ -1,0 +1,11 @@
+# Scanner-visibility mirror of the repo-root .github/dependabot.yml.
+# GitHub only reads Dependabot config at the repository root, so this nested
+# copy never runs and never opens duplicate PRs. It exists so the HOL plugin
+# scanner, which resolves operational files relative to the plugin dir
+# (plugins/ophis), can credit update automation. Keep it in sync with the root.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,6 +1,6 @@
 {
   "name": "nullcost-plugin",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Nullcost plugin and local MCP server for DB-backed free-tier developer tool discovery.",
   "type": "module",
   "license": "Apache-2.0",

@@ -1,0 +1,19 @@
+{
+  "skill_name": "influence-audit",
+  "evals": [
+    {
+      "id": 1,
+      "name": "fake-urgency-audit",
+      "prompt": "Audit this checkout section: 'Only 3 seats left. This offer expires in 10 minutes. 14 founders bought today.' Identify Influence principles, manipulation risks, evidence needed, and ethical rewrites.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "sales-email-pressure",
+      "prompt": "This sales email feels pushy. Find which Influence principles it uses and rewrite it to keep legitimate value while removing pressure tactics.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

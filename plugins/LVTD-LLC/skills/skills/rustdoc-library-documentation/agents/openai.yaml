@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rustdoc Library Documentation"
+  short_description: "Write tested Rust crate docs"
+  default_prompt: "Use $rustdoc-library-documentation to improve this Rust crate's public API docs and doctests."

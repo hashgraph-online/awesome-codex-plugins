@@ -7,232 +7,91 @@ allowed-tools: Glob, Grep, Read, Bash, Task, AskUserQuestion, Edit, Write, Skill
 
 # Brainstorming — Conversational Design
 
-<HARD-GATE>
-No code, scaffold, or implementation action until design is presented AND user-approved. Every non-trivial task. A long prior artifact (audit, RFC, plan, ticket) is a *stronger* trigger, not an exemption. *"This is too simple"* / *"the audit already decided"* / *"this is just execution"* → STOP, display the design, gate. Meta-rule (`../../shared/iron-rules.md`): spirit beats letter.
-</HARD-GATE>
+**Task:** $ARGUMENTS — if empty, ask *"What would you like me to brainstorm?"* and STOP.
 
-Interview the user relentlessly about every aspect of the plan until you reach shared understanding. Walk down each branch of the design tree, resolving dependencies one-by-one. For each question, attach your reasoned guess. Optionally delegate web research. Write a plan to disk, gate before handing off to `core-dev`.
+Interview the user relentlessly about every aspect of the plan until you reach a shared understanding and remove all the ambiguity. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer. Then sketch approaches, evaluate, write a plan, gate, hand off to `core-dev`.
 
-## YOUR TASK
+## 0 — Hypothesis
 
-**Task:** $ARGUMENTS
-
-If `$ARGUMENTS` is empty: ask *"What would you like me to brainstorm?"* and STOP.
-
----
-
-## STEP 0 — Hypothesis + Confidence
-
-Before any question, declare your read of what the user wants:
+Before any question, declare your read:
 
 ```
 HYPOTHESIS: <one-sentence read of the intent>
 CONFIDENCE: <0-100>%
 ```
 
-Calibration: *if you can't predict the user's reaction to the next 3 questions you would ask, the confidence number is wrong.* Honest 30% beats false 80%.
+If you can't predict the user's reaction to the next 3 questions you'd ask, the number is wrong. Honest 30% beats false 80%.
 
----
+## 1 — Codebase scan
 
-## STEP 1 — Codebase Scan
+Glob + Grep + Read of entry points, similar features, related modules → `CODEBASE_FINDINGS`. Do this before any technical question.
 
-Lightweight: Glob + Grep + Read of entry points, similar features, related modules. Build a `CODEBASE_FINDINGS` mental note.
+## 2 — Q&A
 
-Do this **before** any technical question. Never ask the user something a 60-second look at the codebase would answer.
+Lock `WHY → scope → WHAT → quality bars → HOW → definition of done`. One topic at a time, resolve one branch before opening another.
 
----
+- **Definition of done is a hard lock.** Before you finish, BOTH the problem/specs AND the 0-ambiguity verification procedure (the check that definitively says DONE/NOT-DONE) must be explicit — ask the user; if either is unclear, reach it via more Q&A + analysis of reality (codebase, docs, live database/logs). [`../../shared/definition-of-done.md`](../../shared/definition-of-done.md). It becomes the gate's **Success** line and the plan's **Verification strategy**.
+- **Q + GUESS per question.** Every question carries your reasoned hypothesis — the user reacts faster to a wrong guess than to generating an answer cold. Format: `Q: <question> · GUESS: <hypothesis + reasoning> · CONFIDENCE: <0-100>%`. The number forces honesty.
+- **WHY / scope / priority / trade-off can never be derived from the codebase** — always ask if missing.
+- **95% stop test:** stop when you can predict the user's reaction to the next 3 questions you'd ask, or on *"enough"* / *"just propose"*. Three rounds without confidence rising → reframe.
+- **Want vs. should-want rescue.** When an answer pattern-matches buzzwords (*"scalable"*, *"modern"*, *"the standard approach"*, *"I should probably…"*), ask: *"If you didn't have to justify this to anyone, what would you actually want?"* Often surfaces more than the previous five questions.
 
-## STEP 2 — Q&A (Walk the Design Tree)
+Use `AskUserQuestion`, up to 4 logically-related questions per call (dependent questions in separate calls). Recommended answer = first option, label `"[option] (Recommended)"`. End turn, wait.
 
-**Goal:** lock `WHY → scope → WHAT → quality bars → HOW`, parent decisions before children.
+## 3 — Approach sketch
 
-**Rules:**
+Sketch 2-3 candidates, recommended first: each 1-2 sentence description · complexity LOW/MEDIUM/HIGH · key trade-off.
 
-1. **One topic at a time.** Resolve one branch before opening another.
-2. **Q + GUESS per question.** Every question carries your reasoned hypothesis for the answer. *"The user reacts faster to a wrong guess than to generating an answer from scratch."* Format: `Q: <question> · GUESS: <hypothesis + reasoning> · CONFIDENCE: <0-100>%`. The number forces honesty.
-3. **Multiple choice when possible**; open-ended only when no good options exist.
-4. **Hard rule:** WHY / scope / priority / trade-off can never be derived from the codebase. Always ask if missing.
-5. **95% stop test:** stop when you can predict the user's reaction to the next 3 questions you would ask. Or when the user says *"enough"* / *"just propose"*. Three rounds without confidence rising → step back and reframe.
-6. **Anti-pattern:** do not infer or rationalize *"the user said X so probably means Y"*. When in doubt, ask.
-7. **Want vs. should-want rescue.** When an answer pattern-matches buzzwords (*"scalable"*, *"modern"*, *"the standard approach"*, *"I should probably…"*), ask: *"If you didn't have to justify this to anyone, what would you actually want?"* Often surfaces more than the previous five questions.
+- **UI-surface task?** Give each approach a visual/UX dimension (the design-level trade-offs like modal vs inline belong in approach selection), and when the project ships a design system prefer composing its components — build-on-vs-hand-roll is itself an approach dimension.
+- **Interface / API / module design?** Optionally invoke `references/design-it-twice.md`.
 
-Use `AskUserQuestion`. Up to 4 logically-related questions per call (answers don't reframe each other). Dependent questions in separate calls. Recommended answer = first option, label `"[option] (Recommended)"`.
+## 4 — Optional research
 
-End your turn. Wait for the user's reply.
+If approaches need external best practices, official docs, or unfamiliar tech, delegate to the research subagent. Skip if internal-only, well-known, or the codebase already shows the pattern.
 
----
+Pick `NNNN` = highest existing prefix in `docs/plans/` + 1 (or `0001`); `SLUG` = kebab-case topic. Both reused in Step 7.
 
-## STEP 3 — Approach Sketch
+Dispatch via `Task`, `subagent_type: general-purpose`, `model: opus`. Read `../../shared/agents/research-agent.md`, fill `{TASK}`, `{RESEARCH_TARGETS}`, `{CODEBASE_FINDINGS}`, `{EXISTING_RESEARCH_FILE}` (usually `"none"`), `{NNNN}`, `{SLUG}`. The subagent writes `docs/plans/{NNNN}__research__{SLUG}.md` and returns `RESEARCH_PATH::<path>` + digest. **Read** the file after; pull the selected approach, anti-patterns, reusable patterns into context.
 
-Based on locked WHAT/WHY/scope, sketch **2-3 candidate approaches**:
+## 5 — Critical evaluation (always)
 
-- Each: 1-2 sentence description · complexity LOW/MEDIUM/HIGH · key trade-off.
-- Lead with the recommended one.
+Read `critical-analysis.md` and apply it to every approach. Verdict per approach: **PROCEED / PROCEED WITH CHANGES / RECONSIDER / STOP**. If `RECONSIDER` or `STOP`, surface the reason and re-enter Step 2 or end.
 
-**Interface / API / module design?** Optionally invoke `references/design-it-twice.md` — Ousterhout's technique: generate 2-3 radically different shapes with orthogonal constraints, compare, synthesize.
+## 6 — Approach selection
 
----
+`AskUserQuestion`, 1 question, options = approaches + `"Just analysis"` + `"Modify"`. Wait.
 
-## STEP 4 — Optional Research
+- **Selected** → Step 7.
+- **"Modify"** → ask what; simple edit re-present, fundamental re-enter Step 2.
+- **"Just analysis"** → research file (if Step 4 ran) is already saved; end without a plan.
 
-If approaches involve external best practices, official docs, or unfamiliar tech, delegate to the research subagent. Skip if internal-only, well-known, or the codebase already shows the pattern.
+## 7 — Write plan file
 
-Pick `NNNN` = highest existing prefix in `docs/plans/` + 1 (or `0001`). Pick `SLUG` = kebab-case topic. Both reused in Step 7.
+Read `../../shared/templates/plan-template.md` (canonical schema). Write to `docs/plans/{NNNN}__YYYY-MM-DD__implementation_plan__{SLUG}.md` with the `NNNN`/`SLUG` from Step 4. Set `Status: In Progress`, `Current Phase: 1 (Research + Plan)`. WORKFLOW STATE MUST reference the research file path (if any) and include a Brainstorming Summary block. Phase 1 picks this file up.
 
-Dispatch via `Task`, `subagent_type: general-purpose`, `model: opus`. Read `../../shared/agents/research-agent.md`, fill `{TASK}`, `{RESEARCH_TARGETS}` (approaches to evaluate), `{CODEBASE_FINDINGS}`, `{EXISTING_RESEARCH_FILE}` (usually `"none"`), `{NNNN}`, `{SLUG}`. Pass as prompt.
+## 8 — Gate + route
 
-The subagent writes `docs/plans/{NNNN}__research__{SLUG}.md` and returns `RESEARCH_PATH::<path>` + a 5-line digest.
+HARD-GATE: no code or scaffold until the design is presented AND user-approved — a long prior artifact is a stronger trigger, never an exemption (iron-rules P2). Display in chat first:
 
-After return, **Read** the research file. Pull the selected approach, anti-patterns, and reusable codebase patterns into your context.
-
----
-
-## STEP 5 — Critical Evaluation (always performed)
-
-Read `critical-analysis.md`. Run the Simplicity Audit (Iron Rules Principle 3) for every approach. Score complexity (0-10). Apply MINIMAL (0-5) / MID (6-7) / FULL (8-10) framework. **No SKIP** — even score-0 gets a 2-line risk-and-mitigation.
-
-Verdict: **PROCEED / PROCEED WITH CHANGES / RECONSIDER / STOP**. An approach that fails the Simplicity Audit is `RECONSIDER` regardless of other strengths. If `RECONSIDER` or `STOP`, surface the reason and re-enter Step 2 or end the flow.
-
----
-
-## STEP 6 — Approach Selection
-
-Present the candidates via `AskUserQuestion` — 1 question, options = approaches + `"Just analysis"` + `"Modify"`.
-
-Wait for user reply.
-
-- **Approach selected:** continue to Step 7.
-- **"Modify":** ask what. Simple edit → re-present. Fundamental → re-enter Step 2.
-- **"Just analysis":** if Step 4 ran, the research file is already saved. End without writing a plan.
-
----
-
-## STEP 7 — Write Plan File
-
-Read `../../shared/templates/plan-template.md` — the canonical schema. Write to:
-
-`docs/plans/{NNNN}__YYYY-MM-DD__implementation_plan__{SLUG}.md`
-
-Use the same `NNNN` and `SLUG` from Step 4. Set `Status: In Progress`, `Current Phase: 1 (Research + Plan)`. The WORKFLOW STATE section MUST reference the research file path (if Step 4 ran) and include a Brainstorming Summary block.
-
-The plan file is the artifact Phase 1 will pick up and extend with HOW-level locks.
-
----
-
-## STEP 8 — Hard Gate + Route
-
-**MANDATORY before invoking `core-dev`. No exceptions.**
-
-Display the gate summary in chat. Two parts: the canonical **6-line restate** (the kernel — keeps misalignment surfaced) AND the **detailed implementation outline** (plan-mode style — gives the user enough concrete detail to approve with confidence without opening the plan file). Both required. The plan file path is announced at the top so the user can open it for full detail.
-
-### Restate (canonical 6 lines)
+1. The canonical **6-line restate** — the misalignment kernel:
 
 ```
 - Outcome:      <one line>
 - User:         <one line — who benefits>
 - Why now:      <one line — what changed>
-- Success:      <one line — how we know it worked>
+- Success:      <one line — the 0-ambiguity verification procedure that says DONE>
 - Constraint:   <one line — the binding limit>
 - Out of scope: <one line — what we're explicitly NOT doing>
 ```
 
 *"Out of scope" is non-negotiable* — half of misalignment is silent disagreement about what is NOT being built.
 
-### Implementation outline (plan-mode style)
+2. A plan-mode-style outline pulled from the plan file (announce its path): recommended approach + why-over-alternatives, files to modify, vertical-slice tasks with verification, key risks, out of scope. Enough for confident approval without opening the file; condense long sections with an explicit `...N more in the plan file`, never silently.
 
-Render the outline in chat as a structured markdown plan — closer to what Claude writes in plan mode than to the 6-line restate. Pull directly from the plan file you wrote in Step 7. The user should be able to approve with confidence from this alone, without opening the plan file; the file path is announced so they can open it for full detail.
+Gate via `AskUserQuestion` (always selectable — never ask the user to type approval): *"Approve the design and proceed to implementation?"* — `"Approve (Recommended)"`, `"Edit"`, `"Chat about"`. (`AskUserQuestion` auto-adds an "Other" free-text choice.)
 
-Template (fill every section; omit a section ONLY if it's genuinely empty, never omit silently):
+**Non-yes detection (especially Codex):** *"Sounds good"*, *"Whatever you think"*, *"Sure let's go"*, silence-then-*"okay"* are NOT approval — they are ambiguity, delegation, or giving up. Ask what they'd refine, or reframe. Spirit beats letter.
 
-```markdown
-**Plan file:** `docs/plans/{NNNN}__YYYY-MM-DD__implementation_plan__{SLUG}.md`
-
-#### Recommended approach: [name]
-
-[2-4 sentences explaining WHY this approach over the alternatives. Reference each alternative by name and the trade-off that pushed the decision. Anchor in the codebase scan + research findings.]
-
-#### Alternatives considered (rejected)
-
-- **[Alternative A name]** — [1 sentence on what it was] · Rejected because: [1 sentence on the dealbreaker].
-- **[Alternative B name]** — [...]. Rejected because: [...].
-
-#### Files to modify
-
-- `path/to/file.ext` — [what changes, 1-2 lines; name the function / section / behavior changed]
-- `path/to/another.ext` — [...]
-- *(New)* `path/to/new-file.ext` — [purpose]
-- *(Delete)* `path/to/obsolete.ext` — [why obsolete]
-
-#### Implementation tasks (vertical slices)
-
-Each task leaves the project in a working state. Order matters — earlier tasks lay groundwork for later ones; flag any ordering constraint explicitly.
-
-1. **[Task 1 name]** — [1 sentence describing the task]
-   - Files: `path/...`, `path/...`
-   - Verification: `<command>` (or `<assertion>` if not command-driven)
-   - Risk: [one line or `none`]
-2. **[Task 2 name]** — [...]
-   - Files: `path/...`
-   - Verification: `<command>`
-   - Risk: [...]
-3. ...
-
-#### Verification strategy
-
-[2-3 sentences. What evidence proves it works end-to-end? Tests / lint / manual smoke? Coverage target if applicable? Regression baseline if applicable? Each task's local verification ladders up to this overall strategy.]
-
-#### Key risks (highest-leverage)
-
-| Risk | Severity | Mitigation |
-|------|----------|-----------|
-| [risk] | CRITICAL/HIGH/MEDIUM | [mitigation, one line] |
-| [risk] | ... | [...] |
-| [risk] | ... | [...] |
-
-#### Out of scope (explicit)
-
-- [item NOT being built or changed in this task]
-- [item]
-- [item]
-
-#### Open questions (if any)
-
-- [unknown that may surface during implementation] — [how it will be resolved if it surfaces]
-- *(or `none`)*
-```
-
-**Anti-pattern guard.** Do not dump the full plan body into chat. If the outline naturally exceeds 60 lines of markdown, condense by:
-1. Show the first 5-7 tasks + a final line `...N more tasks in the plan file`.
-2. Show top 3 risks only.
-3. Keep Approach / Verification strategy / Out of scope at full detail (load-bearing).
-
-Never truncate silently. Never replace any of {Approach, Files, Tasks, Verification, Risks, Out of scope} with a hand-wave — those are the load-bearing fields. *"...details in the plan file"* is acceptable as an explicit terminator on a section that ran long, never as a substitute for a section the user hasn't seen.
-
-### Gate
-
-Then ask via `AskUserQuestion`: *"Approve the design and proceed to implementation?"* — options: `"Approve and proceed (Recommended)"`, `"Modify"`.
-
-**Non-yes detection (especially Codex fallback):** these are NOT yes:
-
-- *"Sounds good"* → ambiguous. Ask: *"Anything you'd refine?"*
-- *"Whatever you think"* → delegation, not decision. Re-present options.
-- *"Sure, let's go"* → polite exit. Ask: *"Approve, or skip this?"*
-- Silence then *"okay let's start"* → gave up, not converged. Reframe.
-
-**Spirit beats letter** (meta-rule). A skipped gate, a hedged confirmation, an inferred "yes" — each violates it.
-
-If user picks `"Modify"`: ask what, edit the plan file, re-restate, re-gate.
-
-On approval, append to the plan file:
-
-```markdown
-## Approach Decision
-
-**Selected:** [name]
-**User modifications:** [None / changes]
-**Confirmed:** [YYYY-MM-DD]
-```
-
-Announce: *"Approach confirmed: [name]. Routing to core-dev."*
-
-Invoke `development-skills:core-dev` via the Skill tool, no arguments. `core-dev`'s Step 1 detects `Status: In Progress` and proceeds without re-triggering brainstorming.
+- **Approve** → invoke `development-skills:core-dev` via Skill (no args) — its Step 1 detects `Status: In Progress` and proceeds without re-triggering brainstorming.
+- **Edit** → ask what to change, edit the plan, re-restate, re-gate.
+- **Chat about** → discuss without deciding (re-enter Step 2 as needed), then re-restate and re-gate.

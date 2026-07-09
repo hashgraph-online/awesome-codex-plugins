@@ -1,6 +1,6 @@
 {
   "name": "oc-codex-multi-auth",
-  "version": "6.2.0",
+  "version": "6.5.0",
   "description": "Install and operate oc-codex-multi-auth for OpenCode with ChatGPT Plus/Pro OAuth, Codex/GPT-5 routing, multi-account rotation, account switching, health checks, diagnostics, quota status, and recovery tools.",
   "skills": "./skills/",
   "interface": {

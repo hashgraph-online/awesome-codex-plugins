@@ -1,0 +1,1401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Task Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "target_identifier",
+    "authorization",
+    "source_acquisition_basis",
+    "preflight_goal_ref",
+    "preflight_goal_sha256",
+    "source_scope",
+    "clean_scope",
+    "trust_boundary",
+    "format_selection",
+    "agent_pipeline",
+    "handoff_sequence",
+    "required_profiles",
+    "artifact_paths",
+    "handoff_policy",
+    "tool_policy",
+    "model_policy",
+    "retention_policy",
+    "implementation_status",
+    "roles",
+    "units",
+    "expected_artifacts",
+    "audit_log_refs"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requester",
+        "scope_statement",
+        "allowed_actions",
+        "prohibited_actions"
+      ],
+      "properties": {
+        "requester": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prohibited_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence_handling": {
+          "type": "string"
+        }
+      }
+    },
+    "source_acquisition_basis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "license_contract_notes": {
+      "type": "string"
+    },
+    "source_index_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "visual_index_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preflight_goal_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preflight_goal_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "run_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation",
+        "started_at",
+        "restart_reason"
+      ],
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "previous_generation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "restart_reason": {
+          "enum": [
+            "user-requested",
+            "contamination",
+            "scope-change",
+            "invalid-state"
+          ]
+        }
+      }
+    },
+    "initialization_snapshot": {
+      "$ref": "#/$defs/initialization_snapshot"
+    },
+    "source_scope": {
+      "$ref": "#/$defs/workspace_scope"
+    },
+    "clean_scope": {
+      "$ref": "#/$defs/workspace_scope"
+    },
+    "trust_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contaminated_domain",
+        "clean_domain",
+        "separation_controls"
+      ],
+      "properties": {
+        "contaminated_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clean_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "separation_controls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "format_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "selection_basis",
+        "target_profile",
+        "native_artifacts",
+        "formatting_rules"
+      ],
+      "properties": {
+        "mode": {
+          "const": "canonical-plus-target"
+        },
+        "selection_basis": {
+          "const": "user-choice"
+        },
+        "target_profile": {
+          "enum": [
+            "openspec-delta",
+            "gsd-planning-package",
+            "speckit-feature-folder",
+            "kiro-spec-folder"
+          ]
+        },
+        "native_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "formatting_rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "agent_pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_0",
+        "agent_1",
+        "agent_1_5",
+        "agent_2",
+        "agent_3",
+        "handoff_rules"
+      ],
+      "properties": {
+        "agent_0": {
+          "$ref": "#/$defs/agent_0_stage"
+        },
+        "agent_1": {
+          "$ref": "#/$defs/agent_1_stage"
+        },
+        "agent_1_5": {
+          "$ref": "#/$defs/agent_1_5_stage"
+        },
+        "agent_2": {
+          "$ref": "#/$defs/agent_2_stage"
+        },
+        "agent_3": {
+          "$ref": "#/$defs/agent_3_stage"
+        },
+        "agent_4": {
+          "$ref": "#/$defs/agent_4_stage"
+        },
+        "handoff_rules": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "allowed_inputs",
+            "allowed_outputs",
+            "blocked_material",
+            "report_back_to",
+            "agent0_to_clean_roles",
+            "agent3_to_agent0",
+            "interim_agent3_reporting"
+          ],
+          "properties": {
+            "allowed_inputs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "allowed_outputs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "blocked_material": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "report_back_to": {
+              "const": "agent_0"
+            },
+            "agent0_to_clean_roles": {
+              "const": "durable-sanitized-artifacts-only"
+            },
+            "agent3_to_agent0": {
+              "const": "terminal-report-only"
+            },
+            "interim_agent3_reporting": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "handoff_sequence": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/handoff_sequence_legacy"
+        },
+        {
+          "$ref": "#/$defs/handoff_sequence_with_polish"
+        }
+      ]
+    },
+    "controller_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "stop_conditions"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "attended",
+            "unattended"
+          ]
+        },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_units_per_iteration": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "stop_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "authorization-missing",
+              "scope-change",
+              "contamination-suspected",
+              "schema-validation-failed",
+              "leakage-scan-failed",
+              "unit-blocked",
+              "implementation-complete",
+              "coverage-complete",
+              "iteration-limit-reached",
+              "spec-slice-complete",
+              "spec-slice-blocked",
+              "spec-delta-required",
+              "no-progress-detected",
+              "repeated-unit-selection",
+              "clean-room-returned"
+            ]
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "unattended"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "max_iterations"
+            ]
+          }
+        }
+      ]
+    },
+    "loop_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_loop_kind",
+        "child_loop_kind",
+        "parent_loop_ref",
+        "spec_slice_ref",
+        "foundation_unit_ref",
+        "approved_scope_refs",
+        "acceptance_refs",
+        "public_surface_refs",
+        "return_to",
+        "outer_iteration",
+        "inner_iteration",
+        "max_inner_iterations"
+      ],
+      "properties": {
+        "parent_loop_kind": {
+          "const": "spec-development"
+        },
+        "child_loop_kind": {
+          "const": "clean-room"
+        },
+        "parent_loop_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spec_slice_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "foundation_unit_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approved_scope_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "acceptance_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "public_surface_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "return_to": {
+          "const": "outer-spec-loop"
+        },
+        "outer_iteration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "inner_iteration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_inner_iterations": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "context_management": {
+      "$ref": "#/$defs/context_management"
+    },
+    "required_profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "profile_id",
+          "workspace_id"
+        ],
+        "properties": {
+          "role": {
+            "$ref": "#/$defs/role"
+          },
+          "profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "profile_purpose": {
+            "enum": [
+              "controller",
+              "source-analysis",
+              "handoff-sanitization",
+              "clean-planning",
+              "report-review",
+              "implementation",
+              "verification",
+              "final-polish"
+            ]
+          },
+          "workspace_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "artifact_paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contaminated_artifacts",
+        "contaminated_artifact_roots",
+        "clean_artifacts",
+        "implementation_roots",
+        "quarantine"
+      ],
+      "properties": {
+        "contaminated_artifacts": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contaminated_artifact_roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "clean_artifacts": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "quarantine": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "handoff_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_artifacts",
+        "blocked_material",
+        "one_way_handoff"
+      ],
+      "properties": {
+        "allowed_artifacts": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "clean-run-context",
+              "behavior-spec",
+              "handoff-package",
+              "skeleton-manifest",
+              "implementation-plan",
+              "implementation-report",
+              "qc-report",
+              "polish-report",
+              "coverage-ledger-summary",
+              "open-questions",
+              "test-plan",
+              "abstract-delta-ticket"
+            ]
+          }
+        },
+        "blocked_material": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "one_way_handoff": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "tool_policy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "model_policy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "retention_policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "implementation_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "plan_ref",
+        "report_ref"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "not-started",
+            "planning",
+            "implementing",
+            "partial",
+            "complete",
+            "blocked",
+            "quarantined"
+          ]
+        },
+        "plan_ref": {
+          "type": "string"
+        },
+        "report_ref": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "trust_domain",
+          "allowed_access"
+        ],
+        "properties": {
+          "role": {
+            "$ref": "#/$defs/role"
+          },
+          "trust_domain": {
+            "enum": [
+              "contaminated",
+              "clean"
+            ]
+          },
+          "allowed_access": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "units": {
+      "type": "array",
+      "minItems": 1,
+      "contains": {
+        "type": "object",
+        "required": [
+          "unit_kind"
+        ],
+        "properties": {
+          "unit_kind": {
+            "const": "foundation"
+          }
+        }
+      },
+      "minContains": 1,
+      "maxContains": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "unit_kind",
+          "description",
+          "status"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit_kind": {
+            "enum": [
+              "foundation",
+              "behavior"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "in-progress",
+              "complete",
+              "out-of-scope",
+              "blocked"
+            ]
+          },
+          "source_index_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "visual_index_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "expected_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "audit_log_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "context_management": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "enforcement",
+        "fresh_context_required",
+        "budgets"
+      ],
+      "properties": {
+        "mode": {
+          "const": "role-session-briefs"
+        },
+        "enforcement": {
+          "enum": [
+            "advisory",
+            "strict"
+          ]
+        },
+        "fresh_context_required": {
+          "const": true
+        },
+        "budgets": {
+          "$ref": "#/$defs/context_budgets"
+        }
+      }
+    },
+    "context_budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_prompt_chars",
+        "max_brief_chars",
+        "max_artifact_refs",
+        "max_referenced_artifact_bytes"
+      ],
+      "properties": {
+        "max_prompt_chars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_brief_chars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_artifact_refs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_referenced_artifact_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "role": {
+      "enum": [
+        "contaminated-manager-verifier",
+        "contaminated-source-analyst",
+        "contaminated-handoff-sanitizer",
+        "clean-architect",
+        "clean-qa-editor",
+        "clean-polish-reviewer"
+      ]
+    },
+    "agent_0_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "responsibility",
+        "trust_domain"
+      ],
+      "properties": {
+        "role": {
+          "const": "contaminated-manager-verifier"
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trust_domain": {
+          "const": "contaminated"
+        }
+      }
+    },
+    "agent_1_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "responsibility",
+        "trust_domain"
+      ],
+      "properties": {
+        "role": {
+          "const": "contaminated-source-analyst"
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trust_domain": {
+          "const": "contaminated"
+        }
+      }
+    },
+    "agent_1_5_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "responsibility",
+        "trust_domain"
+      ],
+      "properties": {
+        "role": {
+          "const": "contaminated-handoff-sanitizer"
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trust_domain": {
+          "const": "contaminated"
+        }
+      }
+    },
+    "agent_2_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "responsibility",
+        "trust_domain"
+      ],
+      "properties": {
+        "role": {
+          "const": "clean-architect"
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trust_domain": {
+          "const": "clean"
+        }
+      }
+    },
+    "agent_3_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "responsibility",
+        "trust_domain"
+      ],
+      "properties": {
+        "role": {
+          "const": "clean-qa-editor"
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trust_domain": {
+          "const": "clean"
+        }
+      }
+    },
+    "agent_4_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "responsibility",
+        "trust_domain"
+      ],
+      "properties": {
+        "role": {
+          "const": "clean-polish-reviewer"
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trust_domain": {
+          "const": "clean"
+        }
+      }
+    },
+    "handoff_stage_base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "producer",
+        "required_inputs",
+        "required_outputs",
+        "next"
+      ],
+      "properties": {
+        "stage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_inputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "handoff_sequence_legacy": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/handoff_preflight_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_source_destination_discovery_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_0_decomposition_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_1_analysis_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_1_5_sanitization_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_clean_handoff_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_clean_planning_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_clean_implementation_qc_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_0_coverage_verification_stage"
+        }
+      ],
+      "items": false
+    },
+    "handoff_sequence_with_polish": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/handoff_preflight_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_source_destination_discovery_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_0_decomposition_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_1_analysis_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_1_5_sanitization_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_clean_handoff_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_clean_planning_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_clean_implementation_qc_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_clean_polish_review_stage"
+        },
+        {
+          "$ref": "#/$defs/handoff_agent_0_coverage_verification_stage"
+        }
+      ],
+      "items": false
+    },
+    "handoff_preflight_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "preflight"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_source_destination_discovery_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "source-destination-discovery"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_agent_0_decomposition_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "agent-0-decomposition"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_agent_1_analysis_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "agent-1-analysis"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_agent_1_5_sanitization_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "agent-1-5-sanitization"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_clean_handoff_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "clean-handoff"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_clean_planning_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "clean-planning"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_clean_implementation_qc_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "clean-implementation-qc"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_clean_polish_review_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "clean-polish-review"
+            }
+          }
+        }
+      ]
+    },
+    "handoff_agent_0_coverage_verification_stage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/handoff_stage_base"
+        },
+        {
+          "properties": {
+            "stage": {
+              "const": "agent-0-coverage-verification"
+            }
+          }
+        }
+      ]
+    },
+    "workspace_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "description",
+        "path_policy"
+      ],
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "initialization_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "config_id",
+        "captured_at",
+        "artifact_base_root",
+        "target_profile",
+        "clean_isolation_mode",
+        "model_preferences",
+        "user_rules",
+        "effective_roots",
+        "reconfiguration_policy"
+      ],
+      "properties": {
+        "config_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "artifact_base_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+        },
+        "project_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_profile": {
+          "enum": [
+            "openspec-delta",
+            "gsd-planning-package",
+            "speckit-feature-folder",
+            "kiro-spec-folder"
+          ]
+        },
+        "clean_isolation_mode": {
+          "const": "clean-workspace"
+        },
+        "model_preferences": {
+          "$ref": "#/$defs/model_preferences"
+        },
+        "user_rules": {
+          "$ref": "#/$defs/initialization_rules"
+        },
+        "effective_roots": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_roots",
+            "contaminated_artifact_roots",
+            "clean_root",
+            "implementation_roots",
+            "quarantine_root",
+            "approved_public_reference_roots"
+          ],
+          "properties": {
+            "source_roots": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "contaminated_artifact_roots": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "clean_root": {
+              "type": "string",
+              "minLength": 1
+            },
+            "implementation_roots": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "quarantine_root": {
+              "type": "string",
+              "minLength": 1
+            },
+            "approved_public_reference_roots": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "reconfiguration_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "root_changes_require_confirmation",
+            "schema_changes_require_confirmation",
+            "model_changes_require_confirmation",
+            "artifact_root_changes_start_new_generation"
+          ],
+          "properties": {
+            "root_changes_require_confirmation": {
+              "const": true
+            },
+            "schema_changes_require_confirmation": {
+              "const": true
+            },
+            "model_changes_require_confirmation": {
+              "const": true
+            },
+            "artifact_root_changes_start_new_generation": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "model_preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_model"
+      ],
+      "properties": {
+        "default_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contaminated": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clean": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "role_overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "model"
+            ],
+            "properties": {
+              "role": {
+                "$ref": "#/$defs/role"
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "initialization_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clean_safe",
+        "contaminated_only"
+      ],
+      "properties": {
+        "clean_safe": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "contaminated_only": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

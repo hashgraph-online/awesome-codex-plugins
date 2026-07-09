@@ -1,7 +1,7 @@
 # villagesql-skills
 
 Agent skills for working with [VillageSQL](https://villagesql.com). Skills run
-in Claude Code, Gemini CLI, agy, Codex, Cursor, Amp, and Kiro.
+in Claude Code, Gemini CLI, agy, Codex, Cursor, Amp, Kiro, OpenCode, and OpenClaw.
 
 ## Skills
 
@@ -20,8 +20,8 @@ curl -sSL https://villagesql.com/skills | bash
 ```
 
 Detects which agents are installed and configures each one. Supports Claude
-Code, Gemini CLI, agy, Codex, Cursor, Amp, and Kiro. Re-running updates
-in place.
+Code, Gemini CLI, agy, Codex, Cursor, Amp, Kiro, OpenCode, and OpenClaw.
+Re-running updates in place.
 
 Override locations with env vars:
 
@@ -63,6 +63,22 @@ ln -s ~/code/villagesql-skills ~/.gemini/antigravity-cli/plugins/villagesql
 ```
 
 agy reads `plugin.json` and discovers skills from the `skills/` subdirectory.
+
+#### OpenCode
+
+```bash
+git clone https://github.com/villagesql/villagesql-skills.git ~/code/villagesql-skills
+mkdir -p ~/.config/opencode/skills
+ln -s ~/code/villagesql-skills/skills/vsql-extension-builder ~/.config/opencode/skills/vsql-extension-builder
+```
+
+#### OpenClaw
+
+```bash
+git clone https://github.com/villagesql/villagesql-skills.git ~/code/villagesql-skills
+mkdir -p ~/.openclaw/workspace/skills
+ln -s ~/code/villagesql-skills/skills/vsql-extension-builder ~/.openclaw/workspace/skills/vsql-extension-builder
+```
 
 To update later (all agents share the same clone):
 

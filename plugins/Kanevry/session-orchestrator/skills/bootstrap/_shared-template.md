@@ -24,9 +24,10 @@ Shell:
 ```bash
 mkdir -p "$REPO_ROOT/.claude/rules"
 cp "$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md" "$REPO_ROOT/.claude/rules/parallel-sessions.md"
+cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"
 ```
 
-Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155.
+Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155. The `loop.md` vendor gives bare `/loop` a repo-aware maintenance prompt (issue #633 Hebel 3).
 
 Note: This step runs before the baseline-fetch step (S99/D99). If that step executes and fetches a newer version of `parallel-sessions.md` from the baseline, the baseline version wins (S99 overwrites by design — acceptable).
 
@@ -96,7 +97,8 @@ vault:
 This step is OPT-IN and only executes when ALL of the following are true:
 - `baseline-ref` is present in Session Config (e.g., `baseline-ref: main`)
 - `GITLAB_TOKEN` env var is set
-- The session-orchestrator plugin includes `scripts/lib/fetch-baseline.sh`
+- The session-orchestrator plugin includes `scripts/lib/fetch-baseline.mjs`
+- A GitLab host is resolvable (`gitlab-host` Session Config key or `GITLAB_HOST` env)
 
 When triggered, this step pulls the canonical `.claude/rules/*.md` and (optionally) `.claude/agents/*.md` files directly from the baseline GitLab project (project 52 by default) into the new repo, then writes `.claude/.baseline-fetch.lock` recording the fetch.
 
@@ -108,9 +110,12 @@ Without this step, rules arrive in the repo via Clank's weekly baseline sync MRs
 BASELINE_REF=$(echo "$CONFIG" | jq -r '."baseline-ref" // empty')
 BASELINE_PROJECT_ID=$(echo "$CONFIG" | jq -r '."baseline-project-id" // "52"')
 
-if [[ -n "$BASELINE_REF" && -n "${GITLAB_TOKEN:-}" && -f "$PLUGIN_ROOT/scripts/lib/fetch-baseline.sh" ]]; then
-  source "$PLUGIN_ROOT/scripts/lib/fetch-baseline.sh"
+# The .mjs fetcher requires a GitLab host (it fails closed with no private default).
+# Resolve it from Session Config (`gitlab-host`) or the GITLAB_HOST env var — never a hardcoded default.
+GITLAB_HOST_CFG=$(echo "$CONFIG" | jq -r '."gitlab-host" // empty')
+export GITLAB_HOST="${GITLAB_HOST:-$GITLAB_HOST_CFG}"
 
+if [[ -n "$BASELINE_REF" && -n "${GITLAB_TOKEN:-}" && -n "${GITLAB_HOST:-}" && -f "$PLUGIN_ROOT/scripts/lib/fetch-baseline.mjs" ]]; then
   # Default rule manifest — superset will harmlessly 404 individual files
   # if the baseline ever drops one (cache will keep last-known-good).
   RULES_MANIFEST=$(mktemp)
@@ -134,25 +139,49 @@ if [[ -n "$BASELINE_REF" && -n "${GITLAB_TOKEN:-}" && -f "$PLUGIN_ROOT/scripts/l
 MANIFEST
 
   echo "Fetching canonical rules from baseline (project $BASELINE_PROJECT_ID, ref $BASELINE_REF)…"
-  # fetch_baseline_files_batch writes successful paths to $BASELINE_FETCH_SUCCESS_LOG.
-  # Default location is $RULES_MANIFEST.success — override only if you need a custom path.
-  if fetch_baseline_files_batch "$BASELINE_PROJECT_ID" "$BASELINE_REF" "$RULES_MANIFEST" "$REPO_ROOT"; then
-    SUCCESS_LOG="${BASELINE_FETCH_SUCCESS_LOG:-${RULES_MANIFEST}.success}"
-    if [[ -s "$SUCCESS_LOG" ]]; then
-      FETCHED_JSON=$(jq -R . < "$SUCCESS_LOG" | jq -s .)
-      write_baseline_fetch_lock "$REPO_ROOT/.claude/.baseline-fetch.lock" \
-        "$BASELINE_PROJECT_ID" "$BASELINE_REF" "$FETCHED_JSON"
-      echo "Wrote .claude/.baseline-fetch.lock ($(wc -l < "$SUCCESS_LOG" | tr -d ' ') files)"
+  # The .mjs CLI is single-file: it prints ONE file body to stdout, exit 0 on success
+  # (1=auth, 2=404, 3=network). There is no batch and no lock-write in the CLI — the
+  # bootstrap layer orchestrates the per-rule loop and writes the lock itself.
+  SUCCESS_LOG=$(mktemp)
+  while IFS= read -r rule_path; do
+    [[ -z "$rule_path" ]] && continue
+    mkdir -p "$REPO_ROOT/$(dirname "$rule_path")"
+    if node "$PLUGIN_ROOT/scripts/lib/fetch-baseline.mjs" \
+         "$BASELINE_PROJECT_ID" "$rule_path" "$BASELINE_REF" > "$REPO_ROOT/$rule_path"; then
+      printf '%s\n' "$rule_path" >> "$SUCCESS_LOG"
     else
-      echo "WARNING: batch reported success but produced empty success log; lock not written" >&2
+      # A 404 (or any error) for one rule must not abort the batch — drop the empty
+      # target the redirect created and continue with the next manifest line.
+      rm -f "$REPO_ROOT/$rule_path"
     fi
-    rm -f "$SUCCESS_LOG"
+  done < "$RULES_MANIFEST"
+
+  if [[ -s "$SUCCESS_LOG" ]]; then
+    FETCHED_JSON=$(jq -R . < "$SUCCESS_LOG" | jq -s .)
+    LOCK_FILE="$REPO_ROOT/.claude/.baseline-fetch.lock"
+    mkdir -p "$REPO_ROOT/.claude"
+    FETCHED_JSON="$FETCHED_JSON" BASELINE_PROJECT_ID="$BASELINE_PROJECT_ID" \
+      BASELINE_REF="$BASELINE_REF" LOCK_FILE="$LOCK_FILE" \
+      node --input-type=module -e "
+      import { writeFileSync } from 'node:fs';
+      const files = JSON.parse(process.env.FETCHED_JSON);
+      const lock = {
+        version: 1,
+        project_id: Number(process.env.BASELINE_PROJECT_ID),
+        baseline_ref: process.env.BASELINE_REF,
+        fetched_at: new Date().toISOString().replace(/\.\d{3}Z\$/, 'Z'),
+        files,
+      };
+      writeFileSync(process.env.LOCK_FILE, JSON.stringify(lock, null, 2) + '\n');
+    "
+    echo "Wrote .claude/.baseline-fetch.lock ($(wc -l < "$SUCCESS_LOG" | tr -d ' ') files)"
   else
-    echo "WARNING: baseline fetch failed; rules will arrive via Clank sync MRs (legacy path)" >&2
+    echo "WARNING: baseline fetch produced no files; rules will arrive via Clank sync MRs (legacy path)" >&2
   fi
+  rm -f "$SUCCESS_LOG"
   rm -f "$RULES_MANIFEST"
 else
-  echo "Skipping baseline fetch: baseline-ref not configured or GITLAB_TOKEN unset (legacy Clank-sync path)"
+  echo "Skipping baseline fetch: baseline-ref / GITLAB_TOKEN / GITLAB_HOST not configured (legacy Clank-sync path)"
 fi
 ```
 

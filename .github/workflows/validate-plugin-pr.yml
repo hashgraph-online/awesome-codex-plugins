@@ -6,6 +6,7 @@ on:
       - "plugins/**"
       - ".agents/plugins/marketplace.json"
       - "plugins.json"
+      - "README.md"
 
 permissions:
   contents: read

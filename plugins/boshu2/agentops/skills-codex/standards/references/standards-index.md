@@ -6,20 +6,20 @@ JIT loading map for validation agents. Load only what you need based on file typ
 
 | Extension | Standard File | Size |
 |-----------|---------------|------|
-| `.py` | `skills/vibe/references/python-standards.md` | 32k |
-| `.go` | `skills/vibe/references/go-standards.md` | 28k |
-| `.rs` | `skills/vibe/references/rust-standards.md` | 40k |
-| `.ts`, `.tsx` | `skills/vibe/references/typescript-standards.md` | 24k |
-| `.sh`, `.bash` | `skills/vibe/references/shell-standards.md` | 20k |
-| `.yaml`, `.yml` | `skills/vibe/references/yaml-standards.md` | 16k |
-| `.json` | `skills/vibe/references/json-standards.md` | 12k |
-| `.md` | `skills/vibe/references/markdown-standards.md` | 8k |
+| `.py` | `skills/validate/references/python-standards.md` | 32k |
+| `.go` | `skills/validate/references/go-standards.md` | 28k |
+| `.rs` | `skills/validate/references/rust-standards.md` | 40k |
+| `.ts`, `.tsx` | `skills/validate/references/typescript-standards.md` | 24k |
+| `.sh`, `.bash` | `skills/validate/references/shell-standards.md` | 20k |
+| `.yaml`, `.yml` | `skills/validate/references/yaml-standards.md` | 16k |
+| `.json` | `skills/validate/references/json-standards.md` | 12k |
+| `.md` | `skills/validate/references/markdown-standards.md` | 8k |
 
 ## Universal Standards (Always Load)
 
 | Standard | File | Purpose |
 |----------|------|---------|
-| **Vibe-Coding** | `skills/vibe/references/vibe-coding.md` | Trust calibration, metrics, failure patterns |
+| **Vibe-Coding** | `skills/validate/references/vibe-coding.md` | Trust calibration, metrics, failure patterns |
 | **Common Standards** | `skills/standards/references/common-standards.md` | Cross-language patterns: error handling, testing, security, docs, organization |
 | **Behavioral Discipline** | `skills/standards/references/behavioral-discipline.md` | Assumptions, simplicity bias, blast-radius control, verification discipline |
 | **Skill Structure** | `skills/standards/references/skill-structure.md` | Anthropic-compliant skill structure, frontmatter, quality checklist |
@@ -30,9 +30,9 @@ JIT loading map for validation agents. Load only what you need based on file typ
 
 | Pattern Type | File | When to Load |
 |--------------|------|--------------|
-| Go patterns | `skills/vibe/references/go-patterns.md` | Go architecture review |
-| General patterns | `skills/vibe/references/patterns.md` | Design review |
-| Report format | `skills/vibe/references/report-format.md` | Writing vibe reports |
+| Go patterns | `skills/validate/references/go-patterns.md` | Go architecture review |
+| General patterns | `skills/validate/references/patterns.md` | Design review |
+| Report format | `skills/validate/references/report-format.md` | Writing vibe reports |
 | Codex skill standard | `skills/standards/references/codex-skill.md` | Codex skill files, converter output, `skills-codex/` |
 
 ## JIT Loading Pattern for Agents
@@ -46,10 +46,11 @@ Scan the target files to identify languages:
 
 ## Step 2: Load Relevant Standards
 
-For each language detected, read the matching standard:
+For each language detected, use Read tool:
 
-Read `skills/vibe/references/<language>-standards.md` with the available file
-read or shell tool.
+Tool: Read
+Parameters:
+  file_path: "skills/validate/references/<language>-standards.md"
 
 Only load standards for languages actually present in the review.
 
@@ -65,9 +66,9 @@ Cite specific sections: "Per python-standards.md section 3.2..."
 Files detected: src/main.py, pkg/handler.go, scripts/deploy.sh
 
 Load (3 standards only):
-1. `skills/vibe/references/python-standards.md`
-2. `skills/vibe/references/go-standards.md`
-3. `skills/vibe/references/shell-standards.md`
+1. Read("skills/validate/references/python-standards.md")
+2. Read("skills/validate/references/go-standards.md")
+3. Read("skills/validate/references/shell-standards.md")
 
 Skip: typescript, yaml, json, markdown (not present)
 ```
@@ -87,4 +88,4 @@ Keep agents lean. Load only what's needed.
 2. **common-standards.md** (universal — cross-language error handling, testing, security, docs, organization)
 3. **behavioral-discipline.md** (universal — assumptions, simplicity, scope control, verification)
 4. **Language standards** (per detected extensions)
-5. **Pattern files** (if architecture/design review)
+5. **Pattern files** (if architecture/discovery review)

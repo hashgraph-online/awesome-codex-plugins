@@ -1,6 +1,6 @@
 ---
 name: security
-description: 'Run repository security scans.'
+description: "Run security review and fixes."
 ---
 # Security Skill
 
@@ -77,14 +77,14 @@ Actions:
 
 ## Notes
 
-- For OWASP A06 dependency vulnerability scanning, run `$deps vuln` to complement static analysis with dependency-level checks.
+- For OWASP A06 dependency vulnerability scanning, run `deps vuln` to complement static analysis with dependency-level checks.
 - Use this as the canonical security runbook instead of ad-hoc scanner commands.
 - Keep workflow wiring aligned with this contract in:
   - `.github/workflows/validate.yml`
   - `.github/workflows/nightly.yml`
   - `.github/workflows/release.yml`
 - For binary/internal black-box assurance plus offline repo-surface redteam, use:
-  - `skills/security-suite/SKILL.md` (includes `security_suite.py` and `prompt_redteam.py`)
+  - `skills/security/scripts/security_suite.py` and `skills/security/scripts/prompt_redteam.py` (folded in from the retired `security-suite`)
 
 ## Examples
 
@@ -120,7 +120,7 @@ Actions:
 
 ## See Also
 
-- [deps](../deps/SKILL.md) — Dependency audit, vulnerability scanning, and license compliance
+- deps — Audit dependency risks and updates: vulnerability scanning and license compliance (absorbed into this skill)
 
 ## Local Resources
 
@@ -128,5 +128,4 @@ Actions:
 
 - `scripts/security-gate.sh`
 - `scripts/validate.sh`
-
 

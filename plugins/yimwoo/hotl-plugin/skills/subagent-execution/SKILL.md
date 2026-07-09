@@ -9,6 +9,8 @@ description: Delegated step runner over the HOTL execution state machine — del
 
 This is a **delegation profile** over the HOTL execution state machine defined in `skills/loop-execution/SKILL.md`. It follows the same resolve → preflight → lint → execute → verify → loop → gate → summarize flow, but eligible steps are delegated to fresh subagents instead of running inline.
 
+When selected by `governed-execution`, the controller uses the chosen driver for all durable transitions and remains responsible for ownership, action gates and effect outcomes, budgets, verification, receipts, and recovery. Native or background-agent success is never sufficient by itself.
+
 **Core principle:** delegation is allowed; governance is not delegated.
 
 ## When to Use
@@ -21,13 +23,18 @@ This is a **delegation profile** over the HOTL execution state machine defined i
 
 Follow the **HOTL Execution State Machine** in `skills/loop-execution/SKILL.md` for the full execution flow (workflow resolution, interrupted run detection, branch/worktree preflight, structural lint, execution state persistence, typed verification, loop rules, gate rules, completion).
 
-The controller owns all `hotl-rt` runtime calls. The controller calls `hotl-rt init`, `hotl-rt step N start/verify/retry/block`, `hotl-rt gate N`, and `hotl-rt finalize` from the resolved `execution_root` and pins every call to the captured `run_id` (`--run-id <run-id>` or `HOTL_RUN_ID=<run-id>`). Subagents never call the runtime directly. The runtime-managed `.hotl/state/<run-id>.json` and `.hotl/reports/<run-id>.md` are the source of truth; delegated workers do implementation only. After execution is finalized, use `hotl:finishing-a-development-branch` to decide what happens to the execution branch/worktree.
+The controller owns all `hotl-rt` runtime calls. It initializes with `--require-owner`, runs `owner claim`, retains the one-time token only in `HOTL_OWNER_TOKEN`, and runs `owner heartbeat` before dispatch, after a worker returns, and at safe transition boundaries. It calls `hotl-rt step N start/verify/retry/block`, `hotl-rt gate N`, sensitive-action lifecycle commands, budget checks, `hotl-rt finalize`, and `hotl-rt finish` from the resolved `execution_root`, pinning every call to the captured `run_id` (`--run-id <run-id>` or `HOTL_RUN_ID=<run-id>`). Subagents never receive the owner token and never call the runtime directly. The runtime-managed `.hotl/state/<run-id>.json` and `.hotl/reports/<run-id>.md` are the source of truth; delegated workers do implementation only.
+
+Host background subagents, goals, handoffs, hooks, and agent dashboards provide scheduling and liveness only. The controller must persist every transition. Stable host features may be used when available; preview or experimental agent views/teams remain opt-in.
+
+Sensitive effects stay controller-owned: run `action request` with a stable idempotency key and human `action decide`; persist `action begin` before the external operation and `action complete` with evidence afterward. If a worker or controller is interrupted around the effect, inspect the target and run `action reconcile`; never ask another worker to replay an `in_progress` or `uncertain` effect.
 
 The only difference is **how each step body runs:**
 
 1. Announce the step
 2. Decide whether to delegate or run inline (see Delegation Rules below)
 3. If delegated:
+   - Run `owner heartbeat` immediately before dispatch and after the worker returns; if the lease cannot remain renewable, stop at a durable boundary instead of leaving an unowned mutation path
    - Dispatch a fresh subagent with the full step text, the relevant files, and the success condition
    - Do not make the subagent infer the plan from scratch — provide the step directly
    - Require the delegated worker to return one of the statuses defined below
@@ -44,6 +51,7 @@ Every delegated implementation prompt must include:
 - The success condition in plain language
 - A reminder that the worker is not alone in the codebase and must not revert unrelated changes
 - A reminder that the worker must not call `hotl-rt`, mark workflow checkboxes, run gates, or finalize the run
+- A reminder that the worker must never receive, request, log, or infer `HOTL_OWNER_TOKEN`
 - The required report format:
 
 ```
@@ -77,6 +85,8 @@ These rules apply regardless of delegation decisions:
 3. **No nested delegation** — subagents cannot spawn other subagents
 4. **No parallel write-heavy steps** — do not run multiple implementation subagents in parallel against the same workflow
 5. **Controller owns stop conditions** — on repeated verify failure, the controller stops and reports; it does not let the subagent retry silently
+6. **Controller owns sensitive effects** — workers may prepare local inputs, but the controller performs the `action begin` / effect / `action complete` sequence and uses `action reconcile` after uncertainty
+7. **Completion requires disposition** — successful `hotl-rt finalize` produces `ready_to_finish`; only explicit `finish` produces `completed` and a sufficient receipt
 
 ## Delegation Rules
 
@@ -123,6 +133,8 @@ A final review is required unless the most recent review already covers all curr
 4. If fixes after the last review changed scope, constraints, or risk_level, request a scoped follow-up review before completing
 
 Review happens after step verification, before `verification-before-completion`, before `hotl-rt finalize`.
+
+After finalize returns `ready_to_finish`, use `hotl:finishing-a-development-branch` with the same run id and owner token. After explicit finish, release ownership and require a sufficient receipt before claiming completion.
 
 ## Reporting
 

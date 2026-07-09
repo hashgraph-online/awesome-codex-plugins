@@ -35,19 +35,21 @@ Render a prepared tmux layout for *operator-side observability* of the session's
 /tmux-layout --json                 # machine-readable output (no attach)
 /tmux-layout --session-name my-ws   # custom tmux session name
 /tmux-layout --force                # replace existing session (PSA-003 escape hatch)
+/tmux-layout --with-status-pane     # add a 5th pane tailing agent-status telemetry (#565)
 /tmux-layout --help                 # full CLI usage
 ```
 
 The skill prints a one-line tmux command. Paste it into a SECOND terminal (do not run it where /tmux-layout was invoked). That second terminal becomes the layout. Your original terminal (the coordinator chat) stays where it is.
 
-## Default Layout (4 panes)
+## Default Layout (4 panes; 5 with `--with-status-pane`)
 
 | Pane | Content | Command |
 |---|---|---|
 | 1 | **Shell** (operator scratch — NOT claude) | `bash` (interactive) |
 | 2 | STATE.md tail | `tail -F <state-dir>/STATE.md` |
 | 3 | CI watch (poll-loop wrapper) | `while true; do clear; glab ci status --pipeline-id LATEST --output json \| jq ...; sleep 15; done` |
-| 4 | events.jsonl wave/gate filter | `tail -F .orchestrator/metrics/events.jsonl \| jq --line-buffered 'select(.event \| test("wave\|gate\|spiral"))'` |
+| 4 | events.jsonl wave/gate filter | `tail -F .orchestrator/metrics/events.jsonl \| jq --unbuffered 'select(.event \| test("wave\|gate\|spiral"))'` |
+| 5 | agent-status telemetry (#565, only with `--with-status-pane`) | `while true; do clear; jq . .orchestrator/runtime/agent-status-current.json 2>/dev/null \|\| echo ...; sleep 2; done` |
 
 `<state-dir>` is resolved via `resolveStateDir()` from `scripts/lib/platform.mjs` (`.claude/`, `.codex/`, or `.cursor/`).
 Pane 3 command is vcs-aware (`glab` for gitlab, `gh pr checks` for github, informational `echo` fallback when no CLI).

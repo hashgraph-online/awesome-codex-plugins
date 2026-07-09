@@ -21,7 +21,7 @@ Use `langfuse-mcp` from Claude Code, Codex, Cursor, or any MCP client to query t
 
 - [Quick Start](#quick-start)
 - [Agent Skill](#agent-skill)
-- [Tools](#tools-37-total)
+- [Tools](#tools-48-total)
 - [Selective Tool Loading](#selective-tool-loading)
 - [Read-Only Mode](#read-only-mode)
 - [Other Clients](#other-clients)
@@ -30,20 +30,20 @@ Use `langfuse-mcp` from Claude Code, Codex, Cursor, or any MCP client to query t
 
 Langfuse is where your traces live. `langfuse-mcp` makes that telemetry directly usable by agents that need to answer questions like "what failed?", "why was this slow?", "which prompt version ran?", or "what happened in this user's session?"
 
-Comparison with [official Langfuse MCP](https://github.com/langfuse/mcp-server-langfuse) (as of Jan 2026):
+Positioning relative to the [native Langfuse MCP](https://langfuse.com/docs/api-and-data-platform/features/mcp-server) (as of June 2026):
 
-| | langfuse-mcp | Official |
-|-|--------------|----------|
-| **Traces & Observations** | Yes | No |
-| **Sessions & Users** | Yes | No |
-| **Exception Tracking** | Yes | No |
-| **Prompt Management** | Yes | Yes |
-| **Dataset Management** | Yes | No |
-| **Annotation Queues** | Yes | No |
-| **Scores (v2)** | Yes | No |
-| **Selective Tool Loading** | Yes | No |
+| | langfuse-mcp | Native Langfuse MCP |
+|-|--------------|---------------------|
+| **Primary fit** | Local, debugging-first MCP server + agent skill | Hosted, zero-install endpoint backed by Langfuse |
+| **Deployment** | Local `stdio` or HTTP, via the Langfuse Python SDK | Native streamable HTTP at `/api/public/mcp` |
+| **Trace / session / exception tools** | First-class | Observation/API-oriented access |
+| **Route-decision tools** | Yes | No |
+| **Token & output control** | Compact summaries, truncation, file-dump mode, tool-group gating | Depends on the hosted tool response + client |
+| **Metrics & dataset runs** | Yes | Yes |
+| **Prompt, dataset, queue & score reads** | Yes | Yes |
+| **Score writes, comments, models, media** | Not yet | Yes |
 
-This project provides a **full observability toolkit** — traces, observations, sessions, exceptions, prompts, datasets, annotation queues, and scores — while the official MCP focuses on prompt management.
+This project does not mirror every native Langfuse MCP tool. It focuses on agent debugging ergonomics — compact trace inspection, exception triage, session analysis, routing-decision workflows, local tool-group gating, and an included skill with ready-made investigation playbooks. Use the native MCP for the broad hosted API surface; use `langfuse-mcp` as a local, token-disciplined layer.
 
 ## Quick Start
 
@@ -104,7 +104,7 @@ why was this user's session slow?
 
 The MCP server provides the tools; the skill provides the agent-facing workflow. See [`skills/langfuse/SKILL.md`](skills/langfuse/SKILL.md), [`skills/langfuse/references/setup.md`](skills/langfuse/references/setup.md), and [`skills/langfuse/references/tool-reference.md`](skills/langfuse/references/tool-reference.md).
 
-## Tools (41 total)
+## Tools (48 total)
 
 | Category | Tools |
 |----------|-------|
@@ -114,9 +114,10 @@ The MCP server provides the tools; the skill provides the agent-facing workflow.
 | Sessions | `fetch_sessions`, `get_session_details`, `get_user_sessions` |
 | Exceptions | `find_exceptions`, `find_exceptions_in_file`, `get_exception_details`, `get_error_count` |
 | Prompts | `list_prompts`, `get_prompt`, `get_prompt_unresolved`, `create_text_prompt`, `create_chat_prompt`, `update_prompt_labels` |
-| Datasets | `list_datasets`, `get_dataset`, `list_dataset_items`, `get_dataset_item`, `create_dataset`, `create_dataset_item`, `delete_dataset_item` |
+| Datasets | `list_datasets`, `get_dataset`, `list_dataset_items`, `get_dataset_item`, `create_dataset`, `create_dataset_item`, `delete_dataset_item`, `list_dataset_runs`, `get_dataset_run`, `list_dataset_run_items`, `create_dataset_run_item`, `delete_dataset_run` |
 | Annotation Queues | `list_annotation_queues`, `create_annotation_queue`, `get_annotation_queue`, `list_annotation_queue_items`, `get_annotation_queue_item`, `create_annotation_queue_item`, `update_annotation_queue_item`, `delete_annotation_queue_item`, `create_annotation_queue_assignment`, `delete_annotation_queue_assignment` |
 | Scores | `list_scores_v2`, `get_score_v2` |
+| Metrics | `query_metrics`, `get_metrics_schema` |
 | Schema | `get_data_schema` |
 
 ## Dataset Item Updates (Upsert)
@@ -132,6 +133,22 @@ create_dataset_item(
 )
 ```
 
+## Metrics Queries
+
+`query_metrics` aggregates telemetry server-side (cost, latency, tokens, counts, score values) so agents can answer "what did inference cost?" or "what's p95 latency by model?" without pulling raw traces. Call `get_metrics_schema` for the full view/dimension/measure catalog.
+
+```python
+query_metrics(
+  view="observations",
+  metrics=[{"measure": "totalCost", "aggregation": "sum"},
+           {"measure": "latency", "aggregation": "p95"}],
+  dimensions=["providedModelName"],
+  age=1440,  # last 24h; or pass from_timestamp / to_timestamp
+)
+```
+
+High-cardinality fields (`id`, `traceId`, `userId`, `sessionId`) must be used in `filters`, not `dimensions`. The v2 metrics endpoint is Langfuse Cloud-only; self-hosted instances may return 404.
+
 ## Selective Tool Loading
 
 Load only the tool groups you need to reduce token overhead:
@@ -140,7 +157,7 @@ Load only the tool groups you need to reduce token overhead:
 langfuse-mcp --tools traces,prompts
 ```
 
-Available groups: `traces`, `observations`, `routing`, `sessions`, `exceptions`, `prompts`, `datasets`, `annotation_queues`, `scores`, `schema`
+Available groups: `traces`, `observations`, `routing`, `sessions`, `exceptions`, `prompts`, `datasets`, `annotation_queues`, `scores`, `metrics`, `schema`
 
 The `routing` group is router-neutral. It reads Langfuse span observations with
 `metadata.schema_version: "mcp.route_decision.v1"` and filters on route-decision
@@ -157,7 +174,7 @@ langfuse-mcp --read-only
 LANGFUSE_MCP_READ_ONLY=true langfuse-mcp
 ```
 
-This disables: `create_text_prompt`, `create_chat_prompt`, `update_prompt_labels`, `create_dataset`, `create_dataset_item`, `delete_dataset_item`, `create_annotation_queue`, `create_annotation_queue_item`, `update_annotation_queue_item`, `delete_annotation_queue_item`, `create_annotation_queue_assignment`, `delete_annotation_queue_assignment`
+This disables: `create_text_prompt`, `create_chat_prompt`, `update_prompt_labels`, `create_dataset`, `create_dataset_item`, `delete_dataset_item`, `create_dataset_run_item`, `delete_dataset_run`, `create_annotation_queue`, `create_annotation_queue_item`, `update_annotation_queue_item`, `delete_annotation_queue_item`, `create_annotation_queue_assignment`, `delete_annotation_queue_assignment`
 
 ## Default Output Mode
 
@@ -256,6 +273,7 @@ silent fallback to a different project.
 | Variable | Default | Description |
 |---|---|---|
 | `LANGFUSE_MAX_AGE_DAYS` | `7` | Caps the lookback window for time-based tools (`fetch_traces`, `fetch_observations`, etc.). Set to match your Langfuse instance's data retention — e.g. `30` if your retention is 30 days. |
+| `LANGFUSE_MCP_TRACE_TIMEOUT_SECONDS` | `120` | Per-request read timeout (seconds) for single-trace fetches (`fetch_trace`). Raise it if large traces with `include_observations=True` time out. Must be a positive integer. |
 
 ## Development
 

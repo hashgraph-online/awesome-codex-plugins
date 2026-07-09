@@ -23,7 +23,7 @@ Produces a per-route token and latency budget table, a cache strategy spec for p
 
 - The user is designing, building, or operating a route, agent, or background job that calls a hosted or self-served language model.
 - Spend on model inference is rising faster than traffic and the cause is unclear.
-- p95 or p99 latency on an LLM-backed path is unacceptable to users and you is choosing between caching, batching, smaller models, streaming, or removing calls.
+- p95 or p99 latency on an LLM-backed path is unacceptable to users and you are choosing between caching, batching, smaller models, streaming, or removing calls.
 - A model provider had an outage or degraded response and the route had no fallback.
 - You need a token budget per request before launching a feature that calls the model in a loop, in a tool-use pattern, or per item in a list.
 - Prompt cache hit rate, embedding reuse, or response cache invalidation rules need to be defined.
@@ -33,6 +33,7 @@ Produces a per-route token and latency budget table, a cache strategy spec for p
 ## When Not To Use
 
 - The risk is prompt injection, tool-call exfiltration, retrieval-boundary leakage, or unsafe sinks; use `llm-application-security`.
+- Deliberate cost/usage abuse (denial of wallet) is also an `llm-application-security` adversarial scenario; coordinate the cost ceiling there.
 - The work is dataset construction, graders, regression thresholds, or eval checks; use `llm-evaluation`.
 - The model is a custom-trained or fine-tuned production ML model with training/serving skew, drift, and rollback as the dominant concern; use `ml-reliability-and-evaluation`.
 - The conversation is generic backend latency, queueing, or saturation with no model-specific behavior; use `performance-and-capacity`.

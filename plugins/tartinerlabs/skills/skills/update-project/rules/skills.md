@@ -4,7 +4,7 @@ impact: MEDIUM
 tags: skills, claude-skills, documentation
 ---
 
-**Rule**: Keep project-scoped skills at `.claude/skills/<name>/SKILL.md` current by verifying they reflect the actual project state.
+**Rule**: Keep project-scoped skills current by verifying they reflect the actual project state. Skills live at `<name>/SKILL.md` under `.claude/skills/` (Claude Code), `.agents/skills/`, or `.opencode/skills/` (cross-agent and OpenCode discovery paths).
 
 ### Skill File Format
 
@@ -33,4 +33,4 @@ Each skill directory contains a `SKILL.md` with YAML frontmatter (`name`, `descr
 - Don't change a skill's `name` — it's the invocation identifier (e.g., `/skill-name`)
 - Don't remove skills that are still in use
 - Don't alter skill instructions in ways that change their intended behaviour without understanding the full scope
-- Don't duplicate instructions already covered by CLAUDE.md, agents, or project rules
+- Don't duplicate instructions already covered by the agent instruction file (CLAUDE.md / AGENTS.md), agents, or project rules

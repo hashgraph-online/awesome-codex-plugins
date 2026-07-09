@@ -57,10 +57,10 @@ Fleet upgrades are compatibility projects spread across runtimes, control planes
 4. **Communicate support deadlines.** Tell affected consumers when old versions leave support, what action they must take, and when reminders, follow-up, or enforcement start.
 5. **Find breaking changes.** Check behavior, config, interfaces, data formats, pending/pre-reboot state, post-upgrade startup, reboot, sign-in, unlock, or session re-entry under representative local dependency, managed-policy, and local-state conditions, tooling, management reachability, self-healing, and operational assumptions.
 6. **Check compatibility.** Test mixed-version paths, upgrade order, downgrade or roll-forward behavior, and representative workloads.
-7. **Batch rollout.** Move low-risk cohorts first, then critical paths with checks, user confirmation, and monitoring.
+7. **Batch rollout.** Move low-risk cohorts first, then critical paths with checks, user confirmation, and monitoring. Bound fleet-wide concurrent disruption to a capacity/quorum floor, and auto-abort the whole rollout (not just one wave) on fleet-health regression. Require persisted-state read/write compatibility across the skew window, beyond request compatibility.
 8. **Manage exceptions.** Track blockers with expiry, risk, compensating control, and the local details needed to close them using the shared risk-register and compensating-control formats.
 9. **Update operations.** Refresh runbooks, alerts, dashboards, and local operating procedures for the new version.
-10. **Close old paths.** Remove compatibility shims, stale versions, and exceptions after adoption is verified; keep baselines current enough that available fixes do not linger unnoticed.
+10. **Close old paths.** Remove compatibility shims, stale versions, and exceptions after adoption is verified; keep baselines current enough that available fixes do not linger unnoticed. Require adoption-completion evidence before retiring old versions, and block new deployments from landing on the retired or end-of-life version (no-new-old-version backsliding control).
 
 ## Synthesized Default
 
@@ -126,6 +126,9 @@ Use a support-window inventory, explicit version-skew policy, compatibility matr
 - `startup_reboot_check`: upgraded clients, hosts, or devices can reboot, start, sign in, unlock, and re-enter active sessions under representative local dependency, policy, and local-state conditions, or a rollback/reset path is documented.
 - `remediation_reachability`: staged or partially upgraded nodes preserve management, self-healing, rollback, or reset reachability, or the gap is accepted with a compensating control.
 - `rollout_responsibility`: every batch has user confirmation, check, and halt criteria.
+- `disruption_budget`: concurrent draining/rebooting nodes stay within a capacity/quorum floor; the rollout auto-aborts on fleet-health regression.
+- `state_skew`: persisted-state read/write compatibility holds across the supported skew window.
+- `adoption_complete`: old-version retirement requires adoption-completion evidence and a no-new-old-version gate.
 - `exception_expiry`: blocked components have risk, compensating control, expiry, and closure note using the shared risk-register and compensating-control formats.
 
 ## Red Flags - Stop And Rework

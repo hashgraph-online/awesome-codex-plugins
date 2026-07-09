@@ -6,11 +6,11 @@
 
 ---
 
-## Phase 1: Requirement Gathering (3 waves, 15 questions)
+## Phase 1: Requirement Gathering (3 waves, 16 questions)
 
-Three waves of 5 questions each. Before each wave, dispatch 2-3 Explore agents in parallel to pre-research options. Synthesize agent results into AskUserQuestion calls (max 4 questions per call, so split 4+1 or 3+2 per wave).
+Wave 1 has 6 questions (incl. the User-Story toggle); Waves 2-3 have 5 each. Before each wave, dispatch 2-3 Explore agents in parallel to pre-research options. Synthesize agent results into AskUserQuestion calls (max 4 questions per call, so split 4+1 or 3+2 per wave). Wave 1 carries the 6th User-Story toggle question, so split it 3+3.
 
-### Wave 1 — Core Decisions (5 questions)
+### Wave 1 — Core Decisions (6 questions)
 
 **Pre-wave agents (dispatch in a single message):**
 
@@ -36,8 +36,9 @@ Agent({ subagent_type: "Explore", description: "Check ecosystem for conflicts",
 1. **Project archetype** — Options from `$BASELINE_PATH/templates/` directory. Present agent findings. Choices: Dynamically list directories in $BASELINE_PATH/templates/. Present each as an option via AskUserQuestion.
 2. **Visibility** — internal (GitLab private), private (+ optional GitHub mirror), public/OSS (+ GitHub public + license).
 3. **Target audience** — Options informed by market research agent. User selects or provides custom.
-4. **Core problem being solved** — Open-ended. Claude suggests structure if answer is vague.
-5. **GitLab group** — Discover available groups dynamically. Run `ls $BASELINE_PATH/templates/` for project types, and check for a groups config in `$BASELINE_PATH/config/` or use `glab group list` to discover GitLab groups. Present findings via AskUserQuestion.
+4. **User-Story-Schicht** — "User-Story-Schicht für dieses Feature erzeugen?" Immer fragen (kein Audience-Heuristik-Gate). Bei "ja" emittiert die PRD eine optionale ## User Stories Sektion (Als/möchte/damit, je Story ein ↳ AC-Pointer); bei "nein" byte-identisches Status-quo-Verhalten.
+5. **Core problem being solved** — Open-ended. Claude suggests structure if answer is vague.
+6. **GitLab group** — Discover available groups dynamically. Run `ls $BASELINE_PATH/templates/` for project types, and check for a groups config in `$BASELINE_PATH/config/` or use `glab group list` to discover GitLab groups. Present findings via AskUserQuestion.
 
 ### Wave 2 — Technical Details (5 questions, dynamic per archetype)
 
@@ -99,9 +100,10 @@ Agent({ subagent_type: "Explore", description: "Research success benchmarks",
 1. Read `prd-full-template.md` from this skill directory.
 2. Fill all 8 sections with gathered answers:
    - **Section 1 (Executive Summary):** Synthesize core problem + audience + archetype into a concise project pitch.
-   - **Section 2 (Problem & Context):** From Wave 1 Q3-Q4 answers. Include market research findings.
+   - **Section 2 (Problem & Context):** From Wave 1 Q3 + Q5 (core problem) answers. Include market research findings.
    - **Section 3 (Target Audience):** From Wave 1 Q3 + research agent output. Define 1-3 personas.
    - **Section 4 (Solution & Scope):** From Wave 3 Q1 (appetite) + Wave 2 tech decisions. Explicit **In-Scope MVP** and **Out-of-Scope** lists. This section drives issue creation in Phase 4.
+   - **## User Stories (conditional):** Emit only when the User-Story-Schicht toggle = yes; one story per persona-goal (from Section 3 personas) in Als/möchte/damit form, each linking ≥1 acceptance criterion. Omit the section entirely when toggle = no (byte-for-byte status quo).
    - **Section 5 (Success Criteria):** From Wave 3 Q2. SMART table format: Metric | Target | Method | Deadline.
    - **Section 6 (Technical Architecture):** From Wave 1 Q1 (archetype) + Wave 2 (tech stack, integrations). Include schema sketch if DB is involved.
    - **Section 7 (Risks & Dependencies):** From Wave 3 Q3 + Q5. Table format: Risk | Probability | Impact | Mitigation.

@@ -1,0 +1,61 @@
+{
+  "name": "x-twitter-scraper",
+  "version": "2.4.16",
+  "description": "Xquik X Twitter scraper API skill and X API alternative for tweet search, follower export, social listening, MCP, SDKs, webhooks, exports, 33x cheaper tweet reads, and gated actions.",
+  "author": {
+    "name": "Xquik",
+    "url": "https://github.com/Xquik-dev"
+  },
+  "homepage": "https://docs.xquik.com",
+  "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
+  "license": "MIT",
+  "keywords": [
+    "twitter",
+    "x-api",
+    "x-api-alternative",
+    "twitter-api-alternative",
+    "twitter-scraper-api",
+    "twitter-data-api",
+    "x-data-api",
+    "tweet-search-api",
+    "tweet-analytics",
+    "twitter-monitoring",
+    "social-listening",
+    "sentiment-analysis",
+    "competitor-monitoring",
+    "mcp-server",
+    "x-mcp",
+    "data-extraction",
+    "monitoring",
+    "webhooks",
+    "scraper",
+    "twitter-api",
+    "social-media",
+    "ai-agent"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "X Twitter Scraper",
+    "shortDescription": "Use Xquik for X data, MCP, SDKs, exports, and gated actions",
+    "longDescription": "Use the X Twitter Scraper skill to guide agents through Xquik REST API, MCP, SDK, webhook, extraction, monitoring, export, social listening, follower export, high-throughput read, 33x cheaper tweet-read workflows, and confirmation-gated action workflows for X data automation.",
+    "developerName": "Xquik",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.svg",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://docs.xquik.com",
+    "privacyPolicyURL": "https://xquik.com/privacy",
+    "termsOfServiceURL": "https://xquik.com/terms",
+    "defaultPrompt": [
+      "Search recent X posts with Xquik",
+      "Set up the Xquik MCP server",
+      "Create a gated X monitoring workflow"
+    ],
+    "brandColor": "#0F172A",
+    "screenshots": []
+  }
+}

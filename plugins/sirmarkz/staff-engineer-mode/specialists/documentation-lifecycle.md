@@ -23,7 +23,7 @@ Engineering documentation is useful only when it is findable, maintained, curren
 
 - The user is designing, restructuring, or lifecycle-managing engineering docs, runbooks, design docs, decision records, onboarding guides, operational references, or documentation standards that need ownership, source-of-truth, freshness, archive, or operational-accuracy rules.
 - The user asks to inventory stale docs or decide ownership, source of truth, freshness rules, verification cadence, or archive criteria.
-- Documentation is stale, duplicated, missing hard to find, or disconnected from code and operations.
+- Documentation is stale, duplicated, missing, hard to find, or disconnected from code and operations.
 - A launch, migration, incident, or deprecation needs docs that remain accurate after the change lands.
 - You need lifecycle rules beyond copy editing.
 
@@ -58,7 +58,7 @@ Engineering documentation is useful only when it is findable, maintained, curren
 
 ## Synthesized Default
 
-Use a lightweight documentation lifecycle: classify by user job, assign define source of truth, tie updates to system changes, add freshness signals, and archive stale material. Critical runbooks and launch docs should be checked as part of delivery, not after outages show they were wrong.
+Use a lightweight documentation lifecycle: classify by user job, define the source of truth, tie updates to system changes, add freshness signals, and archive stale material. Critical runbooks and launch docs should be checked as part of delivery, not after outages show they were wrong.
 
 
 

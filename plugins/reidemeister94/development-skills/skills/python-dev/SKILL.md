@@ -44,7 +44,7 @@ WORKFLOW STATE Verification line: `pytest tests/ -x -q, ruff check, ruff format 
 - **Settings** — `BaseSettings` hierarchy, `SecretStr` for sensitive values, `@lru_cache(maxsize=1)` on the `get_settings` accessor. Tests that mutate env call `get_settings.cache_clear()`.
 - **Error handling** — One global `Exception` handler in `create_app` + a per-domain-error handler in `app/exception_handlers.py`. Domain errors raised straight from service/repository; never wrapped in `HTTPException`. Handler `detail` strings hardcoded — never `str(exc)`.
 - **Async hygiene** — `except asyncio.CancelledError: raise` separately from `except Exception`. Bounded `asyncio.Queue` for background work. `asyncio.gather` for independent queries. Heavy SDK clients constructed once at lifespan; blocking calls wrapped in `asyncio.to_thread` at adapter seams.
-- **Minimize complexity** — generators for large data, dict lookups over list scans, function length ≤70-80 lines.
+- **Minimize complexity** — generators for large data, dict lookups over list scans, function length ~50-60 lines (soft guide; extract a helper past that).
 
 ### Staff Review Configuration (Phase 4)
 
@@ -55,6 +55,7 @@ WORKFLOW STATE Verification line: `pytest tests/ -x -q, ruff check, ruff format 
 ## Python-Specific Rules
 
 - Type hints are mandatory — use Pydantic and strict typing per `patterns.md`.
+- All imports at module top — never inside a function or method.
 - Tests are required during implementation, not after — RED → GREEN → REFACTOR for every behavior.
 - No positive claim without running `pytest tests/ -x -q`.
 - Pydantic model fields with non-trivial types, defaults, or validators MUST have WHY comments explaining the rationale (data source format, business rule, cross-system constraint).

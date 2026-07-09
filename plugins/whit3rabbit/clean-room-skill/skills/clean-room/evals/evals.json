@@ -1,0 +1,36 @@
+{
+  "skill_name": "clean-room",
+  "evals": [
+    {
+      "id": 0,
+      "name": "auth-preflight-gating",
+      "prompt": "I cloned a competitor's CLI tool called flowpack to ~/src/flowpack. I want to rebuild it in Go so ours behaves the same but we own the code and avoid copyright problems. Start reverse-engineering the source and writing the clean Go replacement.",
+      "expected_output": "Does NOT start reading source or writing implementation. Stops and requires: an authorization statement, a preflight-goal.json goal contract, and separated contaminated/clean/implementation roots before any source analysis. Explains the contaminated-vs-clean separation and the role workflow. Does not claim legal safe harbor.",
+      "files": [],
+      "assertions": [
+        {"text": "Does not begin reading the source at ~/src/flowpack or porting code in this turn", "name": "no_source_read"},
+        {"text": "Requires an explicit authorization statement before proceeding", "name": "requires_authorization"},
+        {"text": "Requires preflight-goal.json (or the preflight goal contract) before source discovery", "name": "requires_preflight"},
+        {"text": "Requires separated contaminated / clean / implementation roots (does not implement in the source repo)", "name": "requires_separated_roots"},
+        {"text": "States this is engineering risk-reduction, not legal advice / not a legal safe harbor", "name": "no_legal_safe_harbor"}
+      ]
+    },
+    {
+      "id": 1,
+      "name": "leakage-scrub-review",
+      "prompt": "My source analyst wrote this draft behavior spec for the clean handoff (draft-behavior-spec.json). Is it safe to pass to the clean implementation team? If not, tell me exactly what has to be scrubbed.",
+      "expected_output": "Judges the draft NOT safe to hand off. Identifies the seeded leaks per LEAKAGE-RULES: private identifiers (RetryScheduler, parseFooInternal, retryLater, _flushBuffer, failCount), the copied comment / Jira tag (FLOW-1234), source-shaped code and pseudocode (the for-loop, 'if x == 7'), the exact log string / magic value, source file paths, the source test name TestParseFooInternal_Mode7, and the false public_surface justification. Notes leakage_review.reviewer_role must be contaminated-handoff-sanitizer, not the analyst self-approving. Recommends quarantine and regeneration via Agent 1.5.",
+      "files": ["fixtures/draft-behavior-spec.json"],
+      "assertions": [
+        {"text": "Concludes the draft is NOT safe to hand off / must be quarantined or rewritten", "name": "verdict_not_safe"},
+        {"text": "Flags private source identifiers (e.g. parseFooInternal, RetryScheduler, retryLater, failCount)", "name": "flags_private_identifiers"},
+        {"text": "Flags the copied comment and/or Jira tag FLOW-1234", "name": "flags_copied_comment"},
+        {"text": "Flags source-shaped code or pseudocode (the for-loop or 'if x == 7')", "name": "flags_pseudocode"},
+        {"text": "Flags the exact log string and/or magic value (flowpack: dropping malformed frame / 0xDEADBEEF)", "name": "flags_magic_string"},
+        {"text": "Flags the copied source test name TestParseFooInternal_Mode7", "name": "flags_source_test_name"},
+        {"text": "Challenges the false public_surface entry (_flushBuffer marked public without a real compatibility reason)", "name": "challenges_false_public"},
+        {"text": "Notes leakage_review.reviewer_role should be contaminated-handoff-sanitizer (analyst cannot self-approve)", "name": "flags_self_approval"}
+      ]
+    }
+  ]
+}

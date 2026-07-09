@@ -1,0 +1,111 @@
+[project]
+name = "agentpack-cli"
+version = "0.3.39"
+description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "AGPL-3.0-only"}
+keywords = ["ai-coding-agents", "coding-agent", "ai-agent", "claude-code", "developer-tools", "repo-analysis", "repo-context", "context-engine", "mcp-context-engine", "context-router", "context-packing", "prompt-context", "task-focused-context", "reduce-token-usage", "local-first", "repo-map", "mcp", "ci", "codex", "cursor", "windsurf", "antigravity", "ai", "llm", "context", "packing"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+  "typer>=0.12.0",
+  "rich>=13.0.0",
+  "pathspec>=0.12.1",
+  "pydantic>=2.0.0",
+  "tomli-w>=1.0.0",
+  "tiktoken>=0.7.0",
+  "watchdog>=4.0.0",
+  "tomli>=2.0.0; python_version < '3.11'"
+]
+
+[project.urls]
+Homepage = "https://github.com/vishal2612200/agentpack"
+Documentation = "https://vishal2612200.github.io/agentpack/"
+Repository = "https://github.com/vishal2612200/agentpack"
+Issues = "https://github.com/vishal2612200/agentpack/issues"
+Changelog = "https://github.com/vishal2612200/agentpack/blob/main/CHANGELOG.md"
+
+[project.scripts]
+agentpack = "agentpack.cli:app"
+
+[project.optional-dependencies]
+watch = [
+  "watchdog>=4.0.0"
+]
+
+mcp = [
+  "mcp>=1.0.0"
+]
+
+all = [
+  "watchdog>=4.0.0",
+  "mcp>=1.0.0"
+]
+
+dev = [
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "ruff",
+  "mypy",
+  "tomli>=2.0.0; python_version < '3.11'"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.mypy]
+python_version = "3.10"
+files = [
+  "src/agentpack/core/e2e_benchmark.py",
+  "src/agentpack/core/modes.py",
+  "src/agentpack/router/models.py",
+  "src/agentpack/analysis/",
+]
+
+# tomllib is stdlib only on Python 3.11+; on 3.10 the code falls back to the
+# third-party ``tomli`` shim. Neither is resolvable at the configured
+# python_version, so treat the optional TOML backends as untyped imports.
+[[tool.mypy.overrides]]
+module = ["tomllib", "tomli"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = [
+  "src/agentpack/core",
+  "src/agentpack/analysis",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentpack"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+# no shared data needed; package data is included via include-package-data
+
+[tool.hatch.build]
+include = [
+  "src/agentpack/**",
+]

@@ -1,0 +1,10 @@
+# Dependabot: track GitHub Actions versions only.
+# npm ecosystem omitted — repo is zero-dependency (no deps, no lockfile).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore

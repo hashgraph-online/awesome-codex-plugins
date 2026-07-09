@@ -32,8 +32,11 @@ Surface these fields before presenting options:
 - `execution_root`
 - `worktree_path`
 - `finish.disposition` (if already recorded)
+- controller owner/status and receipt reasons
 
 If `finish.disposition` is already set, stop and tell the user the run is already finished.
+
+A successful execution must be `ready_to_finish` before merge or publish. `ready_to_finish` means execution evidence is complete but the run is not yet `completed`. Keep the existing controller lease active and retain `HOTL_OWNER_TOKEN`; if a different controller is finishing, use explicit owner handoff/takeover rules from `resuming` first. Run `owner heartbeat` before a long finish operation.
 
 ## Step 2: Present The 4 Finish Options
 
@@ -52,7 +55,13 @@ Use these options:
 
 Explain the target branch explicitly when merge or PR target is inferred from `source_branch`.
 
-## Step 3: Execute Via The Helper
+## Step 3: Authorize External Effects
+
+For publish/PR, record one bounded `external_write` with the exact target `publish <branch> to <remote>` (append ` and create PR against <target-branch>` when `--create-pr` is used), pass `--idempotency-key <stable-key>`, obtain human `action decide ... approved --mode human`, and pass the returned action id and key to the helper. If a merge is classified as `production_change`, use the exact target `merge <branch> into <target-branch>`. The helper verifies kind, target, key, approval, and not-started status; it then performs `action begin` immediately before the effect and `action complete` with observed evidence before recording finish.
+
+Approval is not effect evidence. If the helper stops after a push, PR attempt, or merge may have started, leave the action unresolved, inspect the target, and use `action reconcile`. Never rerun the helper while the effect is `in_progress` or `uncertain`.
+
+## Step 4: Execute Via The Helper
 
 Use the repo-owned helper:
 
@@ -67,9 +76,9 @@ Mappings:
 - Publish / PR → `--mode publish [--remote origin] [--target-branch <branch>] [--create-pr]`
 - Discard → `--mode discard --confirm discard`
 
-The helper records the finish disposition with `hotl-rt finish ...` and enforces safety checks around branch switching, merging, cleanup, and destructive discard.
+For an approved merge/publish effect, also pass `--effect-action-id <id> --idempotency-key <key>`. The helper records intent with `action begin`, executes the bounded effect, persists `action complete` evidence, then records the finish disposition with `hotl-rt finish ...`. It enforces safety checks around branch switching, merging, cleanup, and destructive discard. `HOTL_OWNER_TOKEN` must remain in the helper environment.
 
-## Step 4: Report The Outcome
+## Step 5: Report The Outcome
 
 After the helper succeeds, show:
 
@@ -77,6 +86,8 @@ After the helper succeeds, show:
 - Target branch / PR URL if applicable
 - Whether the execution worktree was kept or removed
 - Where the durable report lives
+
+Then run `owner release` and derive a fresh receipt. Claim completion only when the run is `completed` and `sufficiency.sufficient` is true. A failed helper must leave finish unset; use `action reconcile` before another attempt when an external effect may have occurred.
 
 Important behavior:
 
@@ -90,4 +101,4 @@ Important behavior:
 - Do not auto-delete work without explicit user confirmation
 - Do not create a PR unless the user chose the publish/PR path
 - If merge conflicts occur, stop and leave the execution branch/worktree intact
-- If `gh` is unavailable, fall back to pushing the branch and report that PR creation was skipped
+- If a chosen PR operation cannot run because `gh` is unavailable or fails after push, do not silently downgrade the approved target. Leave finish unset, reconcile the observed push, and ask whether the user wants a new bounded push-only action.

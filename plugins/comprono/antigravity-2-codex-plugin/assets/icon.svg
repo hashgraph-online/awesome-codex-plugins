@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Antigravity 2.0 Codex Plugin</title>
+  <desc id="desc">A local bridge icon showing a terminal linked to an Antigravity orb.</desc>
+  <defs>
+    <linearGradient id="bg" x1="64" x2="448" y1="448" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="0.58" stop-color="#164E63"/>
+      <stop offset="1" stop-color="#14B8A6"/>
+    </linearGradient>
+    <linearGradient id="orb" x1="176" x2="384" y1="140" y2="348" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="0.48" stop-color="#A7F3D0"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <path fill="#E2E8F0" fill-opacity="0.18" d="M96 336c0-91.7 74.3-166 166-166h88c15.5 0 28 12.5 28 28s-12.5 28-28 28h-88c-60.8 0-110 49.2-110 110 0 15.5-12.5 28-28 28s-28-12.5-28-28Z"/>
+  <circle cx="318" cy="218" r="104" fill="url(#orb)"/>
+  <circle cx="318" cy="218" r="62" fill="#0F172A" fill-opacity="0.82"/>
+  <path fill="#F8FAFC" d="M320 150c8.8 31.6 25.1 47.9 56 56-30.9 8.1-47.2 24.4-56 56-8.8-31.6-25.1-47.9-56-56 30.9-8.1 47.2-24.4 56-56Z"/>
+  <rect x="82" y="288" width="236" height="116" rx="24" fill="#020617" fill-opacity="0.88"/>
+  <path fill="#14B8A6" d="m130 326 44 34-44 34v-31l22-17-22-17v-3Z"/>
+  <rect x="190" y="369" width="82" height="14" rx="7" fill="#E2E8F0"/>
+  <path fill="#E2E8F0" fill-opacity="0.9" d="M336 320h54c15.5 0 28-12.5 28-28s-12.5-28-28-28h-28a128.6 128.6 0 0 1-26 56Z"/>
+</svg>

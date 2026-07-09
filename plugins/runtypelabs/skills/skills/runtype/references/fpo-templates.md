@@ -3,6 +3,19 @@
 FPO Templates are Runtype's **distribution format**. A template wraps a `FullProductObject` with import-time variables that get substituted on import, producing a ready-to-run product.
 
 Use templates when you want to ship a Runtype product to someone else's workspace — internal team distribution, customer-shippable starters, marketplace listings.
+Prefer live `runtype://types/fpo-template` and `runtype://types/fpo` when available.
+
+## Contents
+
+- [The TypeScript shape](#the-typescript-shape)
+- [How import works](#how-import-works)
+- [Validity](#validity)
+- [Secrets: the right pattern](#secrets-the-right-pattern)
+- [Template variables — when to use them](#template-variables--when-to-use-them)
+- [Authoring workflow](#authoring-workflow)
+- [Validation tools](#validation-tools)
+- [Anti-patterns](#anti-patterns)
+- [Why this format exists](#why-this-format-exists)
 
 ## The TypeScript shape
 
@@ -28,6 +41,11 @@ export interface FpoTemplateVariable {
 }
 ```
 
+The template wrapper version is separate from `productObject.version`. New product
+objects should normally use FPO `version: "2.0"`, whose inline agents put runtime
+fields under `agent.config`. Use `"1.0"` / `"1.1"` product objects only when editing
+legacy flat-agent templates.
+
 ## How import works
 
 1. User opens the template in the Runtype UI (or via MCP `import_*` flow).
@@ -39,6 +57,7 @@ export interface FpoTemplateVariable {
 ## Validity
 
 A template is valid if it declares **at least one of**:
+
 - A template variable (something the importer fills in), or
 - A tool with `auth.setupRequired: true` and a non-empty `auth.secrets` array.
 
@@ -75,7 +94,11 @@ Declare the secret on the target tool's `auth.secrets` array in the wrapped `pro
         "auth": {
           "setupRequired": true,
           "secrets": [
-            { "key": "OPENAI_KEY", "label": "OpenAI API Key", "description": "Your OpenAI org's API key" }
+            {
+              "key": "OPENAI_KEY",
+              "label": "OpenAI API Key",
+              "description": "Your OpenAI org's API key"
+            }
           ]
         },
         "config": {
@@ -89,6 +112,7 @@ Declare the secret on the target tool's `auth.secrets` array in the wrapped `pro
 ```
 
 On import:
+
 - Platform sees `setupRequired: true` and the `auth.secrets` declaration.
 - It creates placeholder secret bindings with `status: 'needs_configuration'`.
 - It prompts the user to fill them via the intake flow.
@@ -121,13 +145,13 @@ Substitution happens at import time via `{{key}}`. Use these in any text field i
 
 ## Validation tools
 
-| Tool | Purpose |
-|---|---|
-| `validate_product` | Full product object — run before distributing |
-| `validate_product_tool` | A tool definition inside the FPO |
-| `validate_product_flow` | A flow definition |
-| `validate_product_agent` | An agent definition |
-| `validate_product_surface` | A surface definition |
+| Tool                       | Purpose                                       |
+| -------------------------- | --------------------------------------------- |
+| `validate_product`         | Full product object — run before distributing |
+| `validate_product_tool`    | A tool definition inside the FPO              |
+| `validate_product_flow`    | A flow definition                             |
+| `validate_product_agent`   | An agent definition                           |
+| `validate_product_surface` | A surface definition                          |
 
 These catch schema problems before the template lands in someone else's workspace.
 

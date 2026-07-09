@@ -11,6 +11,14 @@ Use this skill when the task is tied to OrgX execution state rather than just lo
 
 1. Orient before editing:
 - Call the OrgX workspace or initiative summary tools first.
+- For broad status/reporting questions, prefer `get_operator_chronicle` first
+  when available; it is the canonical decision, artifact, PR, goal, gap, and
+  priority readout.
+- If the hosted OrgX MCP bootstrap advertises `get_operator_chronicle` but the
+  active AI client session has a stale callable tool list, immediately use
+  `orgx_recommend` or `_orgx_recommend` with `mode: "morning_brief"` and report
+  the returned `reportingNarrative.briefMarkdown`. Do not wait for the client to
+  reconnect before answering the operator.
 - If an initiative, workstream, task, blocker, or decision is named, treat OrgX as the source of truth for current status.
 
 2. Reuse existing context before creating new structure:

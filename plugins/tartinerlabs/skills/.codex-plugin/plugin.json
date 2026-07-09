@@ -1,6 +1,6 @@
 {
   "name": "tartinerlabs",
-  "version": "1.21.0",
+  "version": "1.22.2",
   "description": "Agent skills for git workflows, GitHub automation, security audits, code refactoring, and project tooling",
   "author": {
     "name": "Tartiner Labs",
@@ -29,6 +29,7 @@
     "shortDescription": "Git, GitHub, security, refactor, and project tooling skills.",
     "developerName": "Tartiner Labs",
     "category": "Coding",
-    "websiteURL": "https://github.com/tartinerlabs/skills"
+    "websiteURL": "https://github.com/tartinerlabs/skills",
+    "composerIcon": "./assets/icon.svg"
   }
 }

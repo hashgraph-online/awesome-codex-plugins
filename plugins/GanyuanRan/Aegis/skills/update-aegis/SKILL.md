@@ -32,6 +32,12 @@ python scripts/aegis-update.py status --json
 If the registry is missing, register the current host before updating. Use the
 host's install guide and actual discovery path rather than guessing.
 
+If `~/.config/aegis/config.toml` already declares `method_pack_root`, prefer
+that canonical root when registering additional hosts. Host-specific discovery
+paths, copied skill directories, plugin caches, or adapter payloads should be
+treated as generated / host-managed views into the same Aegis body, not as
+separate editable checkouts.
+
 Codex example:
 
 ```bash
@@ -51,6 +57,31 @@ python scripts/aegis-update.py register \
   --discovery-root ~/.codebuddy/skills \
   --reload-hint "restart CodeBuddy"
 ```
+
+Prefixed direct-child host example:
+
+```bash
+python scripts/aegis-update.py register \
+  --host copilot \
+  --sync-mode junction \
+  --discovery-shape direct-child \
+  --discovery-root <target-repo>/.github/skills \
+  --discovery-name-prefix aegis- \
+  --reload-hint "restart Copilot session or reopen the repository"
+```
+
+Kimi Code CLI direct-child host example:
+
+```bash
+python scripts/aegis-update.py register \
+  --host kimi-code \
+  --sync-mode junction \
+  --reload-hint "restart Kimi Code CLI"
+```
+
+When `--discovery-root` is omitted for `kimi`, `kimi-code`, or
+`kimi-code-cli`, the updater uses `$KIMI_CODE_HOME/skills` or, when
+`KIMI_CODE_HOME` is unset, `~/.kimi-code/skills`.
 
 Plugin-managed hosts can be registered, but the updater reports that the host
 plugin manager owns the update path:
@@ -94,9 +125,15 @@ python scripts/aegis-update.py update --host <host> --stash --json
 Treat the update as complete only when the updater reports the selected host and
 the post-update doctor verification succeeds. For link-based discovery roots
 (`junction`, `symlink`, or `repo-only`), the updater passes `discoveryRoot`
-through to `aegis-doctor.py --discovery-root`. For copy-based hosts, it verifies
-that copied Aegis skill directories exist after the copy step, then runs doctor
-against the method-pack root.
+through to `aegis-doctor.py --discovery-root`; when a registered direct-child
+view declares `discoveryNamePrefix`, the updater also passes
+`--discovery-name-prefix`. For copy-based hosts, it verifies that copied Aegis
+skill directories exist after the copy step, then runs doctor against the
+method-pack root.
+
+When multiple registered hosts share the same `methodPackRoot`, the updater now
+reuses a single method-pack checkout update and then refreshes each host's
+exposure or verification path separately.
 
 Report:
 

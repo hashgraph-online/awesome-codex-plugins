@@ -143,6 +143,7 @@ codex_rewrite_text() {
     s{\$HOME/.claude/}{\$HOME/.codex/}g;
     s{/.claude/}{/.codex/}g;
     s{\.claude/}{.codex/}g;
+    s/backend-claude-teams\.md/backend-codex-subagents.md/g;
     s/\bclaude agents\b/codex agents/g;
     # Map Claude tools to Codex tools
     s/\bthe Read tool\b/read_file/g;

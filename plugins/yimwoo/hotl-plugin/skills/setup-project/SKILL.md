@@ -31,7 +31,7 @@ Generate the right config files so every code assistant on your team follows HOT
 | Tool | File Generated | Location |
 |---|---|---|
 | Claude Code | `CLAUDE.md` | Project root |
-| Codex | `AGENTS.md` | Project root |
+| Codex | `AGENTS.md`; optional `.codex/agents/*.toml` | Project root |
 | Cline | `.clinerules` | Project root |
 | Cursor | `.cursor/rules/hotl.md` | Project root |
 | GitHub Copilot | `.github/copilot-instructions.md` | Project root |
@@ -43,7 +43,26 @@ Generate the right config files so every code assistant on your team follows HOT
    - Risk level guidelines
    - What always requires human review
 
-5. **If the user opted in to initiative support in step 2**, invoke the scaffolder to create `.hotl/config.yml`, the six `docs/<tier>/` directories, and the four initiative-tier templates under `docs/prompts/`. The scaffolder should configure `docs/designs/` as the canonical design-doc home and `docs/plans/` as the canonical workflow home.
+5. **If Codex was selected**, ask whether to install HOTL Codex custom agent templates. Default: yes. These templates make the bundled reviewer, architect, researcher, QA, dev, and PM roles available to the target project as Codex project-scoped custom agents.
+
+   Resolve `hotl-install-codex-agents.sh` using the same six-location install-path order as the initiative scaffolder below:
+
+   1. If you are working in the `hotl-plugin` repo itself, use `scripts/hotl-install-codex-agents.sh`
+   2. Codex native-skills install: `~/.codex/hotl/scripts/hotl-install-codex-agents.sh`
+   3. Codex plugin install: `~/.codex/plugins/hotl-source/scripts/hotl-install-codex-agents.sh`
+   4. Codex plugin cache fallback: `~/.codex/plugins/cache/codex-plugins/hotl/*/scripts/hotl-install-codex-agents.sh`
+   5. Cline install fallback: `~/.cline/hotl/scripts/hotl-install-codex-agents.sh`
+   6. Claude Code plugin fallback: `~/.claude/plugins/hotl/scripts/hotl-install-codex-agents.sh`
+
+   **Invoke the installer from the project root:**
+
+   ```bash
+   bash <resolved-hotl-install-codex-agents.sh>
+   ```
+
+   The installer creates `.codex/agents/` and copies the tracked HOTL templates from `adapters/codex-agents/` into it. Existing agent files are preserved by default and emitted as `SKIP:` lines. Only use `--force` when the user explicitly approves overwriting existing project agent files.
+
+6. **If the user opted in to initiative support in step 2**, invoke the scaffolder to create `.hotl/config.yml`, the six `docs/<tier>/` directories, and the four initiative-tier templates under `docs/prompts/`. The scaffolder should configure `docs/designs/` as the canonical design-doc home and `docs/plans/` as the canonical workflow home.
 
    **Resolve `hotl-init-initiative.sh`** using the same six-location order as `document-lint.sh` and `hotl-config.sh` (see `skills/document-review/SKILL.md`):
 
@@ -64,11 +83,13 @@ Generate the right config files so every code assistant on your team follows HOT
 
    **Only invoke the scaffolder when the user answered yes in step 2.** If the user answered no (the default), skip this step entirely.
 
-6. Commit all generated files:
+7. Commit all generated files:
 
 ```bash
 git add AGENTS.md .clinerules .cursor/ .github/ CLAUDE.md
-# If initiative support was scaffolded in step 5, also add:
+# If Codex custom agents were installed, also add:
+#   .codex/agents/
+# If initiative support was scaffolded in step 6, also add:
 #   .hotl/config.yml docs/
 git commit -m "chore: add HOTL adapter files for [tool list]"
 ```

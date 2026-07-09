@@ -1,15 +1,15 @@
 # Plan To Beads Workflow
 
-Use this reference when a prose plan, design note, or research artifact needs to become executable bd work.
+Use this reference when a prose plan, design note, or research artifact needs to become executable br work.
 
 ## Conversion Loop
 
 1. Identify the smallest independently verifiable outcomes.
-2. Create one bd issue per outcome, not per file and not per vague phase.
+2. Create one br issue per outcome, not per file and not per vague phase.
 3. Add dependency edges for true sequencing only.
 4. Put validation commands and expected artifacts in each issue body.
 5. Add parent-child links for epics and broad follow-up work.
-6. Re-read `bd ready --json` after creation and fix any issue that is not actionable.
+6. Re-read `ao beads exec ready --json` after creation and fix any issue that is not actionable.
 
 ## Issue Quality Bar
 

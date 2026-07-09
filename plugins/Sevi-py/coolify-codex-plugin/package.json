@@ -1,0 +1,26 @@
+{
+  "name": "coolify-codex-plugin",
+  "version": "0.1.0",
+  "description": "Codex plugin for controlling Coolify Cloud and self-hosted Coolify instances.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "Severin Hilbert",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sevi-py/coolify-codex-plugin.git"
+  },
+  "homepage": "https://github.com/Sevi-py/coolify-codex-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/Sevi-py/coolify-codex-plugin/issues"
+  },
+  "scripts": {
+    "setup": "node ./scripts/setup.js",
+    "start": "node ./src/server.js",
+    "check": "node --check ./src/server.js",
+    "inspect:openapi": "node ./scripts/inspect-openapi.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -171,10 +171,12 @@ At the end of preflight, explicitly tell the user:
 - which items are ready
 - which items are warnings only
 - which later path each warning would block
+- whether Phase 0.5 template fast path can run from the resolved GitHub repo metadata
 
 Example:
 - "Docker is not ready. This will block Phase 4 local build, but we can still continue to detect whether an existing image can be reused."
 - "`kubectl` is missing. Fresh deploy can continue, but UPDATE mode and rollout verification will be blocked until it is installed."
+- "Template fast path will check configured GitHub repo → Sealos template mappings before source analysis."
 
 ## Step 3: Project Context
 
@@ -319,7 +321,7 @@ If it still fails, fall back to curl (see below). **Once you switch to curl, use
 The script will:
 1. `POST <region>/api/auth/oauth2/device` with the `client_id` from `config.json`
 2. Output a verification URL and user code to stderr
-3. Auto-open the browser for the user
+3. Try to auto-open the browser for the user with host-appropriate browser commands
 4. Poll `POST <region>/api/auth/oauth2/token` every 5s until approved
 5. Exchange access_token for regional token via `POST <region>/api/auth/regionToken`
 6. Save kubeconfig to `~/.sealos/kubeconfig` (mode 0600)
@@ -327,12 +329,13 @@ The script will:
 
 **Important — AI must always show the clickable URL to the user:**
 Even though the script attempts to auto-open the browser, it may fail (e.g., headless environment, SSH session, sandbox restrictions).
-After running the script, YOU (the AI) must extract the verification URL from stderr output and display it as a clickable link to the user:
+If stderr includes `manual_authorization_required`, immediately extract the verification URL and display it as a clickable link to the user while the script continues polling in the background:
 ```
 Please click the link below to authorize:
 <verification_uri_complete>
 Authorization code: <user_code>
 ```
+If the script reports `Browser opened automatically`, still show the same clickable URL in the chat for remote, web, ACP, SSH, and headless agent hosts because the browser may have opened in the wrong environment.
 This ensures the user can always complete authorization regardless of whether auto-open succeeded.
 
 Stdout outputs JSON result: `{ "kubeconfig_path": "...", "region": "...", "workspace": "ns-xxx" }`
