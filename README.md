@@ -367,6 +367,20 @@ You can embed a trust badge in your plugin's README:
 
 Replace `OWNER%2FREPO` with your plugin's GitHub owner and repo name (URL-encoded slash). Metrics available: `trust`, `security`. Styles: `flat`, `flat-square`, `plastic`, `for-the-badge`, `social`.
 
+### HOL Guard Protection Badge
+
+Show that your plugin repo is protected by [HOL Guard](https://hol.org/guard):
+
+```
+[![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fguard%2FOWNER%2FREPO%3Fstyle%3Dflat-square)](https://hol.org/guard)
+```
+
+The badge checks your repo for HOL Guard adoption (config files, CI workflows, dependencies) and displays `Protected` (green) or `Unprotected` (grey). To get the badge:
+
+1. Install HOL Guard: `pipx install hol-guard && hol-guard init`
+2. Or add the scanner to CI: `uses: hashgraph-online/ai-plugin-scanner-action@v1`
+3. Add the badge markdown to your README (replace `OWNER/REPO`)
+
 ## Plugin Quality
 
 If you received a scanner report on your repo, check the [Scanner Guide](SCANNER_GUIDE.md) for setup instructions, common fixes, and CI setup.
