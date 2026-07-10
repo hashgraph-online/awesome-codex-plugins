@@ -1,0 +1,46 @@
+name: Sync Scanner Version
+
+on:
+  schedule:
+    # Every 6 hours — hol-guard releases 5-10×/day
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync plugin-scanner version in contributing.md
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync scanner version
+        id: sync
+        run: |
+          python3 scripts/sync_scanner_version.py
+          if git diff --quiet -- contributing.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "contributing.md is already up to date"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- contributing.md
+          fi
+
+      - name: Commit and push
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add contributing.md
+          git commit -m "chore: sync plugin-scanner version in contributing.md
+
+          Auto-synced from the latest PyPI release.
+          
+          [skip release publish]"
+          git push
