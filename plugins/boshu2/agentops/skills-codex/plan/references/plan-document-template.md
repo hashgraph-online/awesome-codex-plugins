@@ -14,7 +14,7 @@ id: plan-YYYY-MM-DD-<goal-slug>
 type: plan
 date: YYYY-MM-DD
 source: "[[.agents/research/YYYY-MM-DD-<research-slug>]]"
-intent_issue: "<path to filled-in docs/templates/intent-issue.md, or bd issue id>"
+intent_issue: "<path to filled-in docs/templates/intent-issue.md, or br issue id>"
 ---
 
 # Plan: <Goal>
@@ -29,7 +29,7 @@ Applied findings:
 
 > The upstream BDD intent issue this plan decomposes. Plan is move 3 of the [operating loop](../../docs/architecture/operating-loop.md): it consumes a [BDD intent issue](../../docs/templates/intent-issue.md) and turns its acceptance examples into vertical slices. If no intent issue exists yet, write one before planning non-trivial work.
 
-- **Intent issue:** `<path to filled-in intent-issue.md, or bd issue id>`
+- **Intent issue:** `<path to filled-in intent-issue.md, or br issue id>`
 - **Bounded context:** `<from intent issue — the BC this work lands in>`
 - **Domain terms:** `<key ubiquitous-language terms the slices use>`
 
@@ -190,6 +190,10 @@ In `path/to/file.go`:
 | PR-005: Process Gates First | PASS / N-A | [justification] |
 | PR-006: Cross-Layer Consistency | PASS / N-A | [justification] |
 | PR-007: Phased Rollout | PASS / N-A | [justification] |
+| PR-008: Pre-Decomposition Symbol Verify | PASS / N-A | [justification] |
+| PR-009: Mechanical Count Verification | PASS / N-A | [justification] |
+| PR-010: Small Batches + Refactor Separation | PASS / N-A | [justification] |
+| PR-011: Test Thoroughness Matched to Stakes | PASS / N-A | [justification] |
 
 Unchecked rules: 0
 

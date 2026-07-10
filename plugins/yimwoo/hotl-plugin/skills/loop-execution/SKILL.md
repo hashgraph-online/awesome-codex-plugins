@@ -9,6 +9,8 @@ description: Use when executing an existing HOTL workflow file — reads steps, 
 
 Execute an existing HOTL workflow file autonomously. Canonical workflows live at `docs/plans/YYYY-MM-DD-<slug>-workflow.md`, with legacy root `hotl-workflow-<slug>.md` still accepted during migration. Loop on steps with success criteria. Auto-approve low-risk gates. Always pause for high-risk gates.
 
+`governed-execution` is the preferred new router for host-native or fallback runs. This skill remains the canonical autonomous state machine and a supported explicit compatibility profile. When invoked through the router, use the selected driver for lifecycle calls and require a sufficient evidence receipt before completion.
+
 **Announce:** "Starting HOTL loop execution. Looking for workflow file..."
 
 ## Workflow File Resolution
@@ -117,13 +119,15 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
 2. Parse frontmatter: intent, risk_level, auto_approve, branch, worktree
 3. Run Branch/Worktree Preflight (see above)
 4. Capture preflight metadata and change into `execution_root`
-5. Initialize run via runtime:
-   - Run: `hotl-rt init <workflow-file> --executor-mode loop --repo-root <repo-root> --execution-root <execution-root> --source-workflow-path <source-workflow-path> --source-branch <source-branch|null> --source-head <source-head|null> --worktree-path <worktree-path|null> --branch <branch>`
+5. Initialize and claim the run via runtime:
+   - Run: `hotl-rt init <workflow-file> --require-owner --executor-mode loop --repo-root <repo-root> --execution-root <execution-root> --source-workflow-path <source-workflow-path> --source-branch <source-branch|null> --source-head <source-head|null> --worktree-path <worktree-path|null> --branch <branch>`
    - This parses the workflow, creates .hotl/state/<run-id>.json with all steps, and initializes .hotl/reports/<run-id>.md
    - Capture the run_id from stdout
-   - For every later `hotl-rt step`, `hotl-rt gate`, `hotl-rt finalize`, `scripts/show-codex-current-step.sh`, and `scripts/finalize-codex-summary.sh` call, pass `--run-id <run-id>` or set `HOTL_RUN_ID=<run-id>`
+   - Immediately run `hotl-rt owner claim --owner <stable-controller-id> --lease-seconds <bounded-lease> --run-id <run-id>`. Parse the one-time `token` from its JSON response, retain it only in the controller, export it as `HOTL_OWNER_TOKEN`, and clear any temporary response variable. Never write the raw token to chat, reports, prompts, or committed files.
+   - Run `hotl-rt owner heartbeat --lease-seconds <bounded-lease> --run-id <run-id>` before and after long actions and at safe transition boundaries. Use explicit `owner handoff`, `owner release`, or reviewed `owner takeover`; timestamp age alone never grants ownership.
+   - For every later mutating `hotl-rt step`, `hotl-rt gate`, `hotl-rt action`, `hotl-rt budget`, `hotl-rt finalize`, `hotl-rt finish`, and owner call, keep `HOTL_OWNER_TOKEN` in the controller environment. Pass `--run-id <run-id>` or set `HOTL_RUN_ID=<run-id>` for all runtime and helper calls.
    - Never let the runtime silently choose "the newest run" when multiple runs exist
-   - Only after init succeeds should chat output or native plan/progress UI show anything
+   - Only after init and `owner claim` succeed should chat output or native plan/progress UI show anything
 
 6. For each step in order:
 
@@ -135,6 +139,10 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
    b. Announce: "→ Step N: [name]"
 
    c. Execute the action (agent implements the work)
+      - Heartbeat immediately before starting and after returning from any action that may run for a meaningful fraction of the lease.
+      - Host goals, automations, background sessions, handoffs, and hooks are scheduling and liveness only. The controller must still persist every transition through HOTL. Preview and experimental host continuation features are opt-in.
+      - For `external_write`, `production_change`, or `secret_access`, first run `hotl-rt action request <kind> --target <bounded-target> --idempotency-key <stable-key> --run-id <run-id>`, obtain the required human decision with `action decide`, then persist intent with `action begin <action-id> --idempotency-key <stable-key> --run-id <run-id>` before performing the effect.
+      - After observing the effect, run `action complete <action-id> <succeeded|failed|cancelled> --evidence-ref <reference> --run-id <run-id>`. If execution was interrupted or the outcome is uncertain, inspect the target and use `action reconcile`; never replay an `in_progress` or `uncertain` effect blindly.
 
    d. Verify via runtime:
       - Run: `hotl-rt step N verify --run-id <run-id>`
@@ -143,6 +151,7 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
       - For type: browser — `hotl-rt` downgrades to a paused human-review request when browser tooling is unavailable inside the runtime. If the controller has platform browser tooling, perform the browser check before approving or rejecting that pause.
       - For type: human-review — the runtime returns a `human review required: ...` block reason and sets the run status to `paused`; ALWAYS pause for human (never auto-approve)
       - For type: artifact — runtime checks path exists and evaluates assert; for `matches-glob`, `path` must be the directory and `value` must be a filename glob only, so `src/*` is invalid and should be authored as `path: src`
+      - Runtime transitions enforce step order, per-step `max_iterations`, aggregate attempt and elapsed-time limits, and configured budget pauses. Run `hotl-rt budget check --run-id <run-id>` when external agent or cost telemetry was recorded or before launching another costly/long action.
 
    e. If verify fails (runtime returns non-zero):
 
@@ -192,15 +201,17 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
       → Run: `hotl-rt gate N approved --mode auto --run-id <run-id>`
       → always continue, log "⚡ Auto-approved: Step N gate"
 
-6. All steps complete:
+7. All steps complete:
    → Run review checkpoint (see Review Checkpoints below)
    → Invoke hotl:verification-before-completion skill
    → For Codex final summaries, run: `scripts/finalize-codex-summary.sh <run-id>` (or set `HOTL_RUN_ID`)
    → For Claude Code/Cline, run: `hotl-rt finalize --json --run-id <run-id>`, write the payload to a temp file, then render it with: `scripts/render-execution-summary.sh --platform <claude|cline> <summary-json-file>`
+   → Successful finalize sets status to `ready_to_finish`, not `completed`. It proves step/gate/effect/budget readiness but does not invent a branch disposition.
    → Do not freehand the final summary when the renderer is available
-   → The rendered summary must be shown as visible chat output in the final response; do not paraphrase it away
-   → After rendering the final summary, if the run used git isolation or the user asks what to do with the execution checkout, invoke `hotl:finishing-a-development-branch` with the same `run_id`
+   → Invoke `hotl:finishing-a-development-branch` with the same `run_id` and retain `HOTL_OWNER_TOKEN`. Even non-git runs require an explicit `kept` disposition before completion.
    → Never silently merge, publish, keep, or discard the execution branch/worktree
+   → After `hotl-rt finish` moves a successful run from `ready_to_finish` to `completed`, run `owner release`, then require `hotl-rt receipt <run-id> --json` to report `sufficiency.sufficient: true`.
+   → Only then show the rendered summary as visible chat output in the final response; do not paraphrase it away or claim completion earlier.
 ```
 
 ## Execution State Persistence
@@ -208,18 +219,18 @@ This is the canonical HOTL execution state machine. Other execution modes (e.g.,
 All state persistence is handled by the `hotl-rt` shared runtime (`runtime/hotl-rt`). Agents do not manage state files directly.
 
 The runtime owns:
-- `.hotl/state/<run-id>.json` — authoritative machine state (created by `hotl-rt init`, updated by `hotl-rt step/gate/finalize`)
+- `.hotl/state/<run-id>.json` — authoritative machine state (created by `hotl-rt init`, updated by owner/step/gate/action/budget/finalize/finish transitions)
 - `.hotl/reports/<run-id>.md` — durable Markdown report (initialized at init, updated incrementally, finalized at finalize)
 
 The sidecar also records the execution location for the run: `repo_root`, `execution_root`, `workflow_path`, `source_workflow_path`, `worktree_path`, and `executor_mode`.
 
-Run ID format: `<slug>-<YYYYMMDDTHHMMSSZ>` (e.g., `add-auth-20260320T212315Z`).
+Run ID format: `<slug>-<YYYYMMDDTHHMMSSZ>-<12-hex-nonce>` (e.g., `add-auth-20260320T212315Z-a1b2c3d4e5f6`). The entropy suffix prevents collisions across independent execution roots; legacy timestamp-only IDs remain readable.
 
 Workflow checkboxes (`- [x]`) are a human-visible mirror updated by the agent on step completion. The sidecar is the source of truth.
 
 Operational rule: `hotl-rt` calls happen before the corresponding chat log or Codex native plan/progress update. Native progress UI is never a substitute for the runtime-managed artifacts.
 
-Concurrency rule: after `hotl-rt init` returns a run id, pin every later runtime/helper call to that run id. Do not rely on "latest file in .hotl/state" when more than one run exists.
+Concurrency rule: after `hotl-rt init` returns a run id, claim the renewable controller and pin every later runtime/helper call to that run id with `HOTL_OWNER_TOKEN`. Do not rely on "latest file in .hotl/state" when more than one run exists, and do not use file age as takeover authority.
 
 See `skills/resuming/SKILL.md` for the full sidecar schema, stale run detection, and verify-first resume flow.
 

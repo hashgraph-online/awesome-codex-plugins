@@ -10,17 +10,23 @@ Full feature lifecycle: requirements, formal specification, implementation plan,
 
 If related documents already exist (e.g., a PRD without a spec), pick up where the chain left off — don't recreate.
 
+For small, well-understood features, compress the flow — a short feature-scoped prd (or skip straight to the spec when the "why" is already recorded upstream) → spec → plan. Vary the weight, never the types.
+
 ## Step 3: PRD
 
 Use `AskUserQuestion` to ask: "What problem does this solve? What are the success metrics?"
 
 Compose content covering **Vision**, **Problem Statement**, **Goals and Success Metrics**, **Requirements**. Create via `mcp__archcore__create_document(type="prd")`.
 
+**Scope rule:** a prd covers one unit of product decision — a whole product OR a single feature. Size never changes type: for a small feature write the same four sections, compressed (target ≤ 40 lines). A product-level prd links its feature-scoped prds via `add_relation`.
+
 ## Step 4: Spec
 
-Use `AskUserQuestion` to ask: "What is the technical contract? What is the API surface?"
+Read `skills/_shared/spec-contract.md` once before composing — it defines what a spec is (behavior others rely on right now), the routing gate against `prd`, and the notation.
 
-Compose content covering **Purpose**, **Scope**, **Authority**, **Subject**, **Contract Surface**, **Normative Behavior**, **Constraints**, **Invariants**, **Error Handling**, **Conformance**. Create via `mcp__archcore__create_document(type="spec")`.
+Use `AskUserQuestion` to ask: "Who depends on this, and what is its surface — the interface, or the parts/states/fields that drive behavior? What are the key constraints, invariants, and failure behaviors?"
+
+Compose the six sections defined in `spec-contract.md`: **Purpose & Scope**, **Surface**, **Normative Behavior** (EARS clauses + BCP 14 keywords), **Constraints & Invariants**, **Failure Behavior**, **Conformance**. Create via `mcp__archcore__create_document(type="spec")`.
 
 Add relation: `mcp__archcore__add_relation` — spec `implements` prd.
 

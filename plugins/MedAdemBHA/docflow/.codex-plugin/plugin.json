@@ -1,0 +1,46 @@
+{
+  "name": "docflow",
+  "version": "0.3.0",
+  "description": "Lightweight documentation memory with readiness checks for AI coding agents.",
+  "author": {
+    "name": "Mohamed Adem Bel Hadj Amor",
+    "url": "https://github.com/MedAdemBHA"
+  },
+  "homepage": "https://github.com/MedAdemBHA/docflow",
+  "repository": "https://github.com/MedAdemBHA/docflow",
+  "license": "MIT",
+  "keywords": [
+    "documentation",
+    "changelog",
+    "adr",
+    "knowledge-base",
+    "codex",
+    "onboarding"
+  ],
+  "skills": "./skills",
+  "scripts": "./scripts",
+  "interface": {
+    "displayName": "Docflow",
+    "shortDescription": "Check and scaffold lean living docs",
+    "longDescription": "A low-token docs system for AI coding agents: readiness checks, a 7-category docs tree, validation gates, and monthly changelog memory.",
+    "developerName": "Mohamed Adem Bel Hadj Amor",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Workflow"
+    ],
+    "websiteURL": "https://github.com/MedAdemBHA/docflow",
+    "brandColor": "#1F6FEB",
+    "composerIcon": "./assets/icon.svg",
+    "defaultPrompt": [
+      "Check whether DocFlow is ready in this repo",
+      "Initialize docflow in this repo",
+      "Inspect this repo with docflow doctor",
+      "Validate docflow docs before finishing",
+      "Adopt existing docs into docflow",
+      "Route this question to the right project doc",
+      "Add this shipped work to the monthly changelog"
+    ]
+  }
+}

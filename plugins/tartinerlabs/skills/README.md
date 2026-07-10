@@ -37,7 +37,7 @@ Install the plugin for your agent, then invoke skills through that agent's nativ
 
 | Skill | Description |
 |-------|-------------|
-| [deps](skills/deps) | Harden npm supply chain with .npmrc flags, version pinning, Renovate config, and CI audit workflows |
+| [deps](skills/deps) | Harden npm supply chain with .npmrc flags, version pinning, and Renovate config |
 | [refactor](skills/refactor) | Audit and refactor TypeScript/JavaScript code for dead code, deep nesting, type assertions, and design patterns |
 | [security](skills/security) | OWASP Top 10 security audit with GitLeaks secret detection and dependency vulnerability scanning |
 | [tailwind](skills/tailwind) | Audit and fix Tailwind CSS v4 anti-patterns for spacing, 8px grid, mobile-first, and GPU animations |
@@ -50,7 +50,7 @@ Install the plugin for your agent, then invoke skills through that agent's nativ
 | [setup](skills/setup) | Add Biome, Husky, commitlint, lint-staged, GitLeaks, and TypeScript to JS/TS projects |
 | [project-structure](skills/project-structure) | Audit project directory structure for colocation, grouping, and anti-pattern detection |
 | [naming-format](skills/naming-format) | Audit and fix filename and export naming conventions for consistency |
-| [update-project](skills/update-project) | Update and maintain CLAUDE.md, README.md, agents, skills, and rules to match current project state |
+| [update-project](skills/update-project) | Update and maintain CLAUDE.md, AGENTS.md, README.md, agents, skills, and rules to match current project state |
 
 ## Agents
 

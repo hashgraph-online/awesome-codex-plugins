@@ -15,7 +15,7 @@ Automatic complexity detection determines the level of validation ceremony appli
 ## Detection
 
 Complexity is auto-detected after plan completes (Phase 2) by examining:
-- Issue count: `bd children <epic-id> | wc -l`
+- Issue count: `ao beads exec children <epic-id> | wc -l`
 - Wave count: derived from dependency depth
 
 ## Flag Precedence (explicit always wins)

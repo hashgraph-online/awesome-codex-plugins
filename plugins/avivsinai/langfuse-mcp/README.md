@@ -273,6 +273,7 @@ silent fallback to a different project.
 | Variable | Default | Description |
 |---|---|---|
 | `LANGFUSE_MAX_AGE_DAYS` | `7` | Caps the lookback window for time-based tools (`fetch_traces`, `fetch_observations`, etc.). Set to match your Langfuse instance's data retention — e.g. `30` if your retention is 30 days. |
+| `LANGFUSE_MCP_TRACE_TIMEOUT_SECONDS` | `120` | Per-request read timeout (seconds) for single-trace fetches (`fetch_trace`). Raise it if large traces with `include_observations=True` time out. Must be a positive integer. |
 
 ## Development
 

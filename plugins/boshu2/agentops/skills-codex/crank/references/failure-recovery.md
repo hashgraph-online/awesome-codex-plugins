@@ -46,7 +46,7 @@ Do NOT proceed with empty issue list - this produces false "epic complete" statu
 
 ## Final Batched Validation
 
-When all issues complete, check whether a full $vibe is needed:
+When all issues complete, check whether a full $validate is needed:
 
 ```bash
 # Check wave checkpoint verdicts — skip final vibe if ALL waves passed clean
@@ -61,7 +61,7 @@ done
 ```
 
 **If ALL waves passed acceptance check with PASS verdict (no WARNs, no retries):**
-Skip the final $vibe — per-wave acceptance checks already validated acceptance criteria. Proceed directly to Step 8 (learnings extraction).
+Skip the final $validate — per-wave acceptance checks already validated acceptance criteria. Proceed directly to Step 8 (learnings extraction).
 
 **If ANY wave had WARN, FAIL, or missing verdicts:**
 Run ONE comprehensive vibe on recent changes:

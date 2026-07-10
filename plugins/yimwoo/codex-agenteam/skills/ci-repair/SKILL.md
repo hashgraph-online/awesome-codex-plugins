@@ -9,7 +9,23 @@ Fix a CI failure on a pull request. Fetches the failure context from
 GitHub Actions, dispatches the dev role with bounded logs, verifies
 the fix locally, and pushes only if verification passes.
 
-GitHub Actions only. One repair cycle per invocation. Manual trigger.
+GitHub Actions only. The workflow is a bounded, resumable
+monitor → diagnose → repair → verify loop.
+
+## Loop Contract
+
+- Defaults: `max_repair_cycles: 3`, `max_elapsed_minutes: 90`, and a
+  five-minute CI polling interval. User-supplied lower budgets win.
+- Persist every cycle in `.agenteam/ci-repair/pr-<pr_number>.json`, keyed by
+  `head_sha`. Record the run ID, failed jobs, repair attempt, local verification,
+  pushed SHA, last heartbeat, and stop reason.
+- Emit a heartbeat while waiting for a role or CI. If the host cannot remain
+  active, schedule a follow-up/automation and stop cleanly instead of holding a
+  silent blocking wait.
+- Before replaying a repair after restart, compare the checkpoint head SHA and
+  current PR head. Never repeat a completed repair for the same SHA.
+- Stop explicitly on success, exhausted cycle/elapsed budget, changed PR head,
+  unavailable evidence, or required human approval.
 
 ## Process
 
@@ -59,8 +75,10 @@ Check the **latest run for this exact commit**:
 - **`failure`** → proceed to fetch context (step 4)
 - **`success`** → "CI is passing on the current head commit. No
   repair needed." Stop.
-- **`in_progress`** or **`queued`** → "CI is still running. Wait
-  for it to complete, then retry." Stop.
+- **`in_progress`** or **`queued`** → Persist the run ID and heartbeat, then
+  monitor it within the elapsed budget. Poll no more frequently than the
+  configured interval. If this invocation cannot keep monitoring, arrange a
+  follow-up and stop with reason `ci_wait_scheduled`.
 - **No runs found** → "No CI runs found for commit `<head_sha>`.
   Push or re-run CI, then retry." Stop.
 
@@ -178,6 +196,10 @@ configured).
 
 Only if local verify passed (or user confirmed unverified push):
 
+Always re-read `headRefOid` immediately before committing and pushing. It must equal
+the checkpoint's expected head SHA; otherwise stop with `head_changed` so a
+concurrent contributor's update is never overwritten.
+
 ```bash
 # Commit only files changed since repair baseline
 git diff --name-only $REPAIR_BASELINE | xargs git add
@@ -198,6 +220,11 @@ CI repair pushed to <pr_branch>.
 - PR: <pr_url>
 - CI will re-run automatically.
 ```
+
+After pushing, store the new head SHA and return to step 3. Continue the bounded
+loop until CI succeeds or `max_repair_cycles`/`max_elapsed_minutes` is reached.
+Each new failing SHA gets its own diagnostic and repair record; the same SHA is
+never repaired twice after a successful local verification and push.
 
 **Failure report (local verify failed):**
 ```

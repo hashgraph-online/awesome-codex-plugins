@@ -1,0 +1,24 @@
+{
+  "name": "babok-analyst",
+  "version": "2.2.8",
+  "description": "BABOK Analyst — root workspace and plugin marketplace distribution",
+  "private": true,
+  "type": "module",
+  "author": {
+    "name": "Grzegorz Skuza",
+    "url": "https://github.com/GSkuza"
+  },
+  "homepage": "https://github.com/GSkuza/BABOK_ANALYST",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GSkuza/BABOK_ANALYST.git"
+  },
+  "license": "MIT",
+  "keywords": ["babok", "business-analysis", "claude-plugin", "mcp"],
+  "scripts": {
+    "test": "node --test tests/unit/project.test.js tests/unit/journal.test.js tests/unit/two-key-gate.test.js tests/unit/scoring.test.js tests/unit/validation.test.js tests/unit/templates.test.js tests/integration/cli-workflow.test.js tests/plugin-manifest.test.cjs tests/hooks.test.cjs tests/uninstall.test.cjs",
+    "test:plugin": "node --test tests/plugin-manifest.test.cjs tests/hooks.test.cjs tests/uninstall.test.cjs",
+    "check-versions": "node scripts/check-versions.cjs",
+    "sync-codex-plugin": "node scripts/sync-codex-plugin.cjs"
+  }
+}

@@ -75,7 +75,7 @@ That cycle-history entry transformed an absence (no council ran) into a positive
 
 - `skills/post-mortem/SKILL.md` — the post-mortem skill this checkpoint invokes
 - `skills/council/SKILL.md` — the council skill `--deep` runs against
-- `skills/ship-loop/SKILL.md` — the soc-waxr session-scope doctrine source
+- `skills/crank/SKILL.md` — the soc-waxr session-scope doctrine source
 - `scripts/session-pr-scope.sh` — canonical session-PR count source (the pre-creation hook was **removed** in #511; re-author as an opt-in hook via hooks-authoring)
 - `CLAUDE.md` § "Autonomous-session scope" — top-level doctrine reference
 - `.agents/council/2026-05-20-evolve-204-208-postmortem/verdict.md` — the derivation council (local; gitignored)

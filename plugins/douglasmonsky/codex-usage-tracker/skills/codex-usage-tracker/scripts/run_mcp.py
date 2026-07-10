@@ -15,13 +15,13 @@ from pathlib import Path
 
 PACKAGE_SPEC = os.environ.get(
     "CODEX_USAGE_TRACKER_PACKAGE_SPEC",
-    "git+https://github.com/douglasmonsky/codex-usage-tracker.git@be2a14fb090c29cafc089a202329b6386480e72b",
+    "codex-usage-tracking==0.17.2",
 )
-RUNTIME_VERSION = "0.2.0"
+RUNTIME_VERSION = "0.17.2"
 PACKAGE_SPEC_MARKER = ".codex-usage-tracker-package-spec"
 MODULE_CHECK = (
     "import importlib.metadata; "
-    "importlib.metadata.version('codex-usage-tracker'); "
+    "importlib.metadata.version('codex-usage-tracking'); "
     "importlib.metadata.version('mcp')"
 )
 MODULE_ARGS = ["-m", "codex_usage_tracker.mcp_server"]

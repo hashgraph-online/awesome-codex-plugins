@@ -37,6 +37,7 @@ The `session-type: none` + `status: idle` combination is used only for bootstrap
 | `## Wave History` | Completed wave records | wave-executor (post-wave) |
 | `## Deviations` | Plan adaptation log | wave-executor (step 3) |
 | `## What Not To Retry` | Failed/abandoned approaches not to repeat (#623) | session-end (Phase 1.6) |
+| `## Open Questions` | Unresolved user-facing questions (agent → gate → next session) | wave-executor (inter-wave) + session-end (marks answered) |
 
 Wave History lines MAY include a `→ issue #NNN` suffix (or `→ existing #NNN` when a duplicate was detected) for SPIRAL/FAILED agents, linking to the auto-created carryover issue (#261). This is optional and backward-compatible; readers that do not recognize the notation can skip it. Session-end Phase 1.6 uses the presence of this suffix to decide whether to retro-file a carryover as a fallback safety net.
 
@@ -48,8 +49,10 @@ A log of failed or abandoned approaches that future sessions should NOT re-attem
 ## What Not To Retry
 
 - **<approach>** (<session_id>, <date>)
-  - why: <why_failed>
+  - why: <SPIRAL|FAILED> — <one-line context> (evidence: <file:line or path>)
 ```
+
+`why_failed` MUST cite at least one concrete file (and line, if applicable) that grounds the failure — a bare narrative reason without a file reference is not acceptable.
 
 - **Writer:** session-end Phase 1.6 — for every SPIRAL/FAILED agent it appends one entry via `appendWhatNotToRetryOnDisk(repoRoot, entry)`; the coordinator MAY also add a free-text entry through the same helper.
 - **Reader:** session-start Phase 6.5.1 — surfaces the section as a forced-read block wrapped in the HISTORICAL guard banner (`scripts/lib/historical-guard.mjs`). It is a READER only and never mutates the slot.
@@ -58,14 +61,61 @@ A log of failed or abandoned approaches that future sessions should NOT re-attem
 
 Helpers: `appendWhatNotToRetry` (pure), `readWhatNotToRetry` (pure), `appendWhatNotToRetryOnDisk` (lock-guarded write) — all exported from `scripts/lib/state-md.mjs`.
 
+### `## Open Questions` (Close Handover-Alignment-Gate, PRD 2026-07-07)
+
+A log of unresolved, user-facing questions surfaced by wave agents during a session, collected at inter-wave checkpoints, and (optionally) marked answered by session-end or a later Handover-Alignment-Gate run. Each entry has the shape `{question, source, priority, answered, answer?}` and renders as:
+
+```markdown
+## Open Questions
+
+- [ ] <question> (source: <source>, prio: <high|medium|low>)
+- [x] <question> (source: <source>, prio: <p>) → Antwort: <answer>
+```
+
+- **Writer:** wave-executor — at each inter-wave checkpoint, collects deduped `OPEN-QUESTIONS:` lines from the wave's agent reports and appends one entry per question via `appendOpenQuestionOnDisk(repoRoot, entry)`. session-end MAY flip an entry to answered via `markOpenQuestionAnsweredOnDisk(repoRoot, question, answer)` when the gate resolves it during close.
+- **Reader:** the Handover-Alignment-Gate (session-end / session-start) reads unanswered entries via `readOpenQuestions` to decide what to surface to the operator across the session boundary.
+- **Cap:** at most `MAX_OPEN_QUESTIONS_STORED` (20) entries, pruned FIFO (oldest dropped) on each append — a storage cap, distinct from the gate's own `max-open-questions` config (which caps how many questions are ASKED per gate run, not how many are stored).
+- **Idle-Reset preservation (load-bearing):** **`## Open Questions` SURVIVES the completed-branch Idle Reset** — unlike per-session `## Deviations` (which is emptied) and `## Wave History` (which is demoted into `## Previous Session`). Unanswered questions are exactly the ones that need to reach the NEXT session's operator, so session-start's Idle Reset MUST NOT clear, demote, or drop it — mirroring `## What Not To Retry` above (#623).
+
+Helpers: `readOpenQuestions` (pure), `appendOpenQuestion` (pure), `markOpenQuestionAnswered` (pure), `appendOpenQuestionOnDisk` (lock-guarded write), `markOpenQuestionAnsweredOnDisk` (lock-guarded write) — all exported from `scripts/lib/state-md.mjs`.
+
+## CCU-009 — Status = Index, Never History (#730/H6)
+
+> Adopted from an external-repo fleet-mining finding (2026-07-02): narrative
+> status content accreting into a project's primary instruction file, never
+> routed to a durable history channel.
+
+**The convention:** any status-bearing document — STATE.md, a CLAUDE.md
+"Current State" section, a dashboard file — MUST hold only the CURRENT
+(and optionally the immediately-PRIOR) state, never an append-only narrative
+log. This is not new here: `## Wave History` demotion to `## Previous Session`
+on Idle-Reset, the preserved single-slot `## What Not To Retry`, and session
+memory files already implement the split — CCU-009 is the explicit NAME of
+the pattern so it can be checked for, not just followed by convention.
+
+**Where narrative belongs instead (durable-history channels):**
+`.orchestrator/metrics/sessions.jsonl` (per-session record), session memory
+(`~/.claude/projects/<project>/memory/`), and vault-mirror `50-sessions/`
+notes. A CLAUDE.md "Current State" or STATE.md free-text block that keeps
+growing across sessions is the CCU-009 anti-pattern.
+
 ## Ownership Model
 
 | Skill | Access | Operations |
 |-------|--------|------------|
-| **wave-executor** | Read + Write (owner) | Creates STATE.md (Pre-Wave 1b), updates after each wave (current-wave, Wave History, Deviations) |
-| **session-end** | Read + Status-only write | Reads for metrics extraction (Phase 1.7), sets `status: completed` (Phase 3.4). Exception: only field modified is `status` in frontmatter. |
-| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. Surfaces `## What Not To Retry` as a forced-read HISTORICAL block (Phase 6.5.1). May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations` — but PRESERVES `## What Not To Retry` (cross-session continuity, #623). Never resets on `active` or `paused` (those paths are user-interactive). |
+| **wave-executor** | Read + Write (owner) | Creates STATE.md (Pre-Wave 1b), updates after each wave (current-wave, Wave History, Deviations); appends deduped `## Open Questions` at inter-wave checkpoints via `appendOpenQuestionOnDisk` (see `wave-loop.md` § 3e + Post-Wave step 6). |
+| **session-end** | Read + Status-only write | Reads for metrics extraction (Phase 1.7), sets `status: completed` (Phase 3.4). Exception: only fields modified are `status` in frontmatter and marking entries answered in `## Open Questions` via `markOpenQuestionAnsweredOnDisk` (Close Handover-Alignment-Gate). |
+| **session-start** | Read + conditional reset | Reads for continuity checks (Phase 1.5): inspects `status` field to detect crashed/paused sessions. Surfaces `## What Not To Retry` as a forced-read HISTORICAL block (Phase 6.5.1). May reset STATE.md to idle at the boundary between a completed session and a new session — only when prior `status: completed`. The reset clears `current-wave` (→ 0), sets `status: idle`, demotes `## Wave History` into `## Previous Session`, and empties `## Deviations` — but PRESERVES `## What Not To Retry` (cross-session continuity, #623) and `## Open Questions` (Close Handover-Alignment-Gate, PRD 2026-07-07). Never resets on `active` or `paused` (those paths are user-interactive). |
 | **evolve** | Read-only | Reads `## Deviations` section for deviation pattern extraction (Step 2.2, pattern 5) |
+
+### Shared-File Single-Writer Rule (`isolation: none` waves)
+
+The Ownership Model above resolves *STATE.md* specifically, but the same discipline generalizes to any file more than one dispatched agent could plausibly need to touch inside a single `isolation: none` wave (STATE.md, CLAUDE.md / AGENTS.md — the Codex CLI alias, central Session Config, other cross-cutting configs). Such a file MUST NEVER be given two writers in the same wave — the wave plan picks exactly one of:
+
+- **Designated single-writer agent** — one agent in the wave owns the file in its declared file-scope; every other agent that would otherwise touch it is scoped away from it and reports its intended change (if any) back to the coordinator instead of editing directly.
+- **Coordinator-direct defer** — no agent in the wave touches the file at all; the coordinator applies the accumulated edits itself at the inter-wave checkpoint, after all agents report.
+
+This is the wave-plan-time analog of PSA-007 (subagents never race the shared git index) applied one layer up, to shared *files* rather than the git index — see [`../../.claude/rules/parallel-sessions.md`](../../.claude/rules/parallel-sessions.md) § PSA-007.
 
 ## Guards
 
@@ -91,6 +141,17 @@ The `schema-version` field enables future migration. Current version: `1`. If a 
 STATE.md is NOT safe for concurrent access. Only one session should be active per branch at a time. If session-start detects `status: active`, it prompts the user to resume or start fresh (which overwrites the stale STATE.md).
 
 - **Discovery grep-verification** — distributional claims in W1 outputs (e.g., "N of M callers", "100% adopt pattern X") MUST quote the executed grep + file scope + count. See [`../../.claude/rules/parallel-sessions.md`](../../.claude/rules/parallel-sessions.md) § PSA-006.
+
+## STATE.md Write-Size Guard (#739)
+
+Every STATE.md disk write routes through `writeStateMd()` (`scripts/lib/state-md/frontmatter-mutators.mjs`), the lock-guarded read-transform-write helper. Before committing a write, `writeStateMd()` runs `evaluateSizeCeiling(before, after)` and REFUSES the write (WARN to `process.stderr`, no throw by default, prior on-disk contents left intact as last-known-good) when either:
+
+- **Absolute:** `after` byte-size exceeds `DEFAULT_STATE_MD_SIZE_CEILING_BYTES` (256 KB), or
+- **Ratio:** `after` byte-size exceeds `STATE_MD_SIZE_CEILING_RATIO` (5×) the prior on-disk (`before`) size — skipped on first-writes (`before === ''`), since there is no prior size to ratio against.
+
+This is the mechanical backstop against the 6.3 MB frontmatter-balloon incident class. Callers may opt into `opts.throwOnCeiling: true` for a thrown `Error` (`.code === 'STATE_MD_SIZE_CEILING'`) instead of the default no-op-with-WARN.
+
+It is a **symptom-level backstop, not the root-cause fix** — the underlying `yaml-parser` parse/serialize asymmetry that produced the balloon remains a tracked follow-up (a stricter round-trip-verification gate was evaluated and deliberately NOT shipped, because it false-positived on legitimate operator-authored scalars containing literal quote characters). Reinforces the existing guidance: mutate STATE.md via the structured writers (`scripts/lib/state-md.mjs`, `writeStateMd()`) or literal writes — never regex over the frontmatter block, which is the class of edit that produced the original balloon.
 
 ## Worktree-Auto-Promotion (#574, Epic #568 P3.1)
 
@@ -144,6 +205,16 @@ isAlive = (Date.now() - Date.parse(last_heartbeat)) < ttl_hours * 3600 * 1000
 ```
 
 This replaces the v1 PID-liveness check (`process.kill(pid, 0)`) which was fundamentally broken because the recorded `pid` belongs to the ephemeral hook subprocess (dies in <1s), not the long-lived Claude coordinator process. The PostgreSQL pattern — use a heartbeat timestamp rather than PID to establish liveness — is the authoritative reference (see W1-D4 best-practices §1.5).
+
+### #744 — heartbeat is the SOLE active gate (incident + fix)
+
+Despite the v2 liveness rule above existing since Epic #583, `acquire()`'s conflict classifier (`scripts/lib/session-lock.mjs`, the `classifyExisting()` closure) and `checkStale()` still let `pidAlive`/TTL-age act as an independent veto — which let an external `/close` observe the lock's recorded `pid` (the ephemeral hook subprocess / `node -e acquire()` PID, routinely dead within <1s) as dead and misclassify a live, actively-heartbeating session as `stale-pid-dead`, hijacking it mid-wave. Fixed in #744:
+
+- `classifyExisting()` now checks `isLockLive(existing)` **first** and unconditionally returns `{ reason: 'active' }` when true — a dead recorded `pid` can never veto a fresh `last_heartbeat`.
+- Only once `isLockLive()` is false does `pidAlive` pick the stale variant: `stale-pid-dead` when `pidAlive === false` (same-host, confirmed dead), else `stale-pid-alive` — which also covers `pidAlive === null` (cross-host locks, `host !== os.hostname()`, never a confirmable dead PID, so cross-host locks can never land on `stale-pid-dead`).
+- `checkStale()` surfaces the same `isLockLive()` result as an additive `isLive` field alongside the legacy `ttlExpired`/`pidAlive` signals, so recovery-flow diagnostics can observe when the two diverge.
+
+Net: `pid` (field notes above) stays forensic-only; `last_heartbeat` freshness is the sole determinant of "is this session still active" everywhere in `session-lock.mjs`.
 
 ### Schema v1 → v2 backward-compat
 

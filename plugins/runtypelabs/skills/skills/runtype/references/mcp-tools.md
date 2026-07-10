@@ -202,17 +202,16 @@ Schema feedback here is far more useful than waiting for create errors.
 
 ## Models
 
-| Tool                         | Use                                                                    |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `list_available_models`      | Platform-wide model catalog                                            |
-| `list_model_configs`         | Workspace's configured models                                          |
-| `list_model_configs_grouped` | Grouped by base model                                                  |
-| `create_model_config`        | Add a model with provider key                                          |
-| `update_model_config`        | Update provider key or settings                                        |
-| `delete_model_config`        | Remove                                                                 |
-| `toggle_model_config`        | Enable/disable                                                         |
-| `set_default_model_config`   | Set provider default                                                   |
-| `run_prompt`                 | One-shot prompt against an LLM (useful for quick tests outside a flow) |
+| Tool                         | Use                             |
+| ---------------------------- | ------------------------------- |
+| `list_available_models`      | Platform-wide model catalog     |
+| `list_model_configs`         | Workspace's configured models   |
+| `list_model_configs_grouped` | Grouped by base model           |
+| `create_model_config`        | Add a model with provider key   |
+| `update_model_config`        | Update provider key or settings |
+| `delete_model_config`        | Remove                          |
+| `toggle_model_config`        | Enable/disable                  |
+| `set_default_model_config`   | Set provider default            |
 
 ## Persona widget tokens
 
@@ -245,8 +244,9 @@ Schema feedback here is far more useful than waiting for create errors.
 Useful documentation topics include `platform-catalog`, `surface-types`, `flow-step-types`, `models`, `product-schema`, `types-fpo`, `types-flow-steps`, `types-entities`, `types-surface-configs`, `orthogonal-tools`, `builtin-tools`, `agent-skills`, `external-tools`, `dashboard-links`, `mock-ecommerce`, `persona-embed`, `persona-fullscreen-assistant`, and `sdk-reference`.
 
 For WebMCP page tools, read `persona-embed` and `types-surface-configs`. Configure
-`behavior.webmcp` on a `chat` surface; do not create an `mcp` surface unless you
-want to expose Runtype capabilities to external MCP clients. See
+widget `config.webmcp.enabled` and `behavior.webmcp` on a `chat` surface; do not
+create an `mcp` surface unless you want to expose Runtype capabilities to
+external MCP clients. See
 `persona-widget.md` for the full WebMCP setup and the advanced non-Persona
 direct-`/v1/dispatch` `clientTools[]` path.
 
@@ -255,8 +255,9 @@ Useful MCP resources include `runtype://catalog/platform`, `runtype://catalog/su
 ## Quick selection guide
 
 > "I want to test a single tool" → `execute_tool`
-> "I want to test an agent without committing" → `run_prompt` (truly one-shot) or `execute_agent` (against an existing agent)
-> "I want to test a flow with input" → `dispatch`
+> "I want to test an agent without committing" → `execute_agent` (against an existing agent)
+> "I want to run a one-shot prompt" → `dispatch` (inline virtual flow with a single prompt step)
+> "I want to test an existing (multi-step) flow with input" → `dispatch` / `run_flow` against the stored flow id
 > "I want to run a flow over a record set" → `submit_batch`
 > "I want to compare two prompts" → `submit_eval` + `compare_eval`
 > "Something failed — what happened?" → `trace_execution` → if not enough, `list_logs` with the execution id

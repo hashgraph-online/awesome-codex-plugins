@@ -2,8 +2,9 @@
 name: autopilot
 description: >
   Use this skill when running an autonomous session-orchestration loop. Chains session-start → session-plan →
-  wave-executor → session-end for N iterations with kill-switches (SPIRAL, FAILED
-  wave, carryover > 50%, max-hours, sub-threshold confidence). Reads Mode-Selector
+  wave-executor → session-end for N iterations with all 10 kill-switches (SPIRAL, FAILED
+  wave, carryover > 50%, max-hours, max-sessions, resource-overload, token-budget,
+  stall-timeout, sub-threshold confidence, user-abort). Reads Mode-Selector
   output (Phase B) to decide auto-execute vs. fallback. Writes one autopilot.jsonl
   record per loop run. Phase C scaffold (issue #277); implementation lives in
   scripts/lib/autopilot.mjs (Phase C-1 follow-up).
@@ -32,11 +33,15 @@ On any non-PASS_THROUGH outcome that does not result in immediate exit, append a
 ## Status
 
 **Phase C-1.b complete (2026-04-25, issues #295 + #300).** Runtime at
-`scripts/lib/autopilot.mjs` enforces all 8 kill-switches:
+`scripts/lib/autopilot/kill-switches.mjs:18-32` (the frozen `KILL_SWITCHES` enum is
+SSOT) enforces all 10 kill-switches:
 
-- **Pre-iteration (5, #295):** `max-sessions-reached`, `max-hours-exceeded`,
+- **Pre-iteration (6, #295 + #355):** `max-sessions-reached`, `max-hours-exceeded`,
   `resource-overload`, `low-confidence-fallback` (with iter-1-fallback /
-  iter-2+-exit asymmetry), `user-abort`.
+  iter-2+-exit asymmetry), `user-abort`, `token-budget-exceeded` (cumulative tokens
+  ≥ `--max-tokens`).
+- **Post-iteration (1, ADR-364 §3):** `stall-timeout` — no progress marker in
+  `autopilot.jsonl` within the threshold (default 600s; missing file → no kill).
 - **Post-session (3, #300):** `spiral`, `failed-wave`, `carryover-too-high`.
   Read schema-canonical fields off the `sessionRunner` return shape:
   `agent_summary.{spiral, failed}` (numeric counts) and `effectiveness.{carryover,
@@ -90,8 +95,14 @@ invokes session lifecycle.
 state := { iterations_completed: 0, started_at: now(), kill_switch: null, sessions: [] }
 
 WHILE state.iterations_completed < max-sessions:
+  # Pre-iteration kill-switches (6)
+  IF aborted: kill_switch := 'user-abort'; break
+  IF state.iterations_completed >= max-sessions:
+    kill_switch := 'max-sessions-reached'; break
   IF (now() - state.started_at) > max-hours:
     kill_switch := 'max-hours-exceeded'; break
+  IF cumulative_tokens_used >= max-tokens:
+    kill_switch := 'token-budget-exceeded'; break
   IF resource_verdict() == 'critical' AND peer_count() > autopilot-peer-abort:
     kill_switch := 'resource-overload'; break
 
@@ -108,6 +119,9 @@ WHILE state.iterations_completed < max-sessions:
   session_result := run_session(mode=recommendation.mode, agents_per_wave_cap=cap)
   state.sessions.append(session_result.session_id)
 
+  # Post-iteration kill-switch (1)
+  IF stalled(autopilot.jsonl) >= stall-timeout: kill_switch := 'stall-timeout'; break
+  # Post-session kill-switches (3)
   IF session_result.spiral_detected: kill_switch := 'spiral'; break
   IF session_result.failed_waves > 0: kill_switch := 'failed-wave'; break
   IF session_result.carryover_ratio > 0.50: kill_switch := 'carryover-too-high'; break
@@ -124,16 +138,21 @@ abort sessions mid-flight; kill-switches are checked AFTER each session complete
 
 ## Kill-Switches
 
-| Kill-switch | Trigger | Recovery hint |
-|-------------|---------|---------------|
-| `spiral` | wave-executor spiral detection fires | Triage the spiraling wave manually; autopilot will not retry. |
-| `failed-wave` | Any wave reports `agent_summary.failed > 0` | Investigate failure mode (test contract drift, env issue). Re-run after fix. |
-| `carryover-too-high` | `carryover_ratio > 0.50` | Last session under-delivered. Reduce scope or split issues before resuming. |
-| `max-hours-exceeded` | Wall-clock exceeds `--max-hours` | Re-run with higher `--max-hours` or address slow waves. |
-| `max-sessions-reached` | `iterations_completed == --max-sessions` | Graceful — not an error. |
-| `resource-overload` | `verdict==critical AND peers > autopilot-peer-abort` | Wait for peer sessions to complete or close them. |
-| `low-confidence-fallback` | `confidence < threshold` (iteration 2+) | Re-run with lower `--confidence-threshold` or run next session manually. |
-| `user-abort` | Ctrl+C / Esc | Re-run when ready. |
+All 10 kill-switches, grouped by check phase (mirrors the `KILL_SWITCHES` enum in
+`scripts/lib/autopilot/kill-switches.mjs:18-32`):
+
+| Kill-switch | Phase | Trigger | Recovery hint |
+|-------------|-------|---------|---------------|
+| `max-sessions-reached` | pre-iteration | `iterations_completed >= --max-sessions` | Graceful — not an error. |
+| `max-hours-exceeded` | pre-iteration | Wall-clock exceeds `--max-hours` | Re-run with higher `--max-hours` or address slow waves. |
+| `resource-overload` | pre-iteration | `verdict==critical AND peers > autopilot-peer-abort` | Wait for peer sessions to complete or close them. |
+| `low-confidence-fallback` | pre-iteration | `confidence < threshold` (iteration 2+) | Re-run with lower `--confidence-threshold` or run next session manually. |
+| `user-abort` | pre-iteration | Ctrl+C / Esc (AbortSignal) | Re-run when ready. |
+| `token-budget-exceeded` | pre-iteration | `cumulative_tokens >= --max-tokens` (#355) | Re-run with a higher `--max-tokens` budget or split the work. |
+| `stall-timeout` | post-iteration | No progress marker in `autopilot.jsonl` within threshold (ADR-364 §3; default 600s) | Inspect the stalled iteration; missing telemetry file is NOT a kill. |
+| `spiral` | post-session | wave-executor spiral detection fires (`agent_summary.spiral > 0`) | Triage the spiraling wave manually; autopilot will not retry. |
+| `failed-wave` | post-session | Any wave reports `agent_summary.failed > 0` | Investigate failure mode (test contract drift, env issue). Re-run after fix. |
+| `carryover-too-high` | post-session | `carryover/planned > 0.50` | Last session under-delivered. Reduce scope or split issues before resuming. |
 
 ## Resource-Adaptive Concurrency
 
@@ -249,10 +268,55 @@ sessions.jsonl tail, learnings, or backlog). Confidence at 0.0 with all four sou
 populated is a Mode-Selector heuristic bug (file as `[Mode-Selector v1.x quirk]` issue),
 not an autopilot bug.
 
+## Pre-Loop Verdict Gate (dispatcher → autopilot handoff — #682)
+
+When the cross-repo dispatcher (`skills/dispatcher/SKILL.md`) routes into an autopilot
+launch, a **pre-loop suitability verdict** decides whether the launch may proceed WITHOUT
+per-selection operator confirmation. This is distinct from — and runs BEFORE — the loop's
+10 kill-switches:
+
+- **The verdict gate is a PRE-LAUNCH decision.** It is computed ONCE, at the
+  dispatcher → `runLoop` handoff, before the first iteration starts. It answers "may I
+  launch this repo autonomously, or must I ask first?" — NOT "should I stop the running
+  loop?"
+- **The 10 kill-switches are PER-ITERATION and reused UNCHANGED.** Once `runLoop` starts,
+  the frozen `KILL_SWITCHES` enum (`scripts/lib/autopilot/kill-switches.mjs:18-32`)
+  governs when the loop stops, exactly as documented above. The verdict gate adds NO new
+  kill-switch, modifies NONE of the existing 10, and does not re-implement any of them.
+- **The gate engine is `computeSuitabilityVerdict(deps)`** from
+  `scripts/lib/autonomy/suitability.mjs` — a pure four-gate AND (confidence ≥ floor;
+  kill-switch fired-rate < 0.2 over the recent runs, omitted below 5 runs; CI ≠ red;
+  resource ≠ critical). The dispatcher gathers every signal and passes it in (DI); the
+  engine reads no files.
+- **Kill-switch history feeds G2 via `readRecentAutopilotRuns`** from
+  `scripts/lib/autopilot/recent-runs.mjs`, which reads THIS repo's
+  `.orchestrator/metrics/autopilot.jsonl` (newest-last, never throws). The verdict's G2
+  gate counts those records and reads each one's persisted `kill_switch` field — it never
+  re-enumerates or re-derives the switches; it reads the history the loop already wrote.
+- **FAIL-CLOSED launch wiring:** the dispatcher launches without confirmation ONLY when
+  `autonomy === 'autonomous-gated'` AND `verdict.suitable === true`. Every other case
+  (any non-`autonomous-gated` dial, a CI-red / resource-critical / low-confidence verdict)
+  informs the operator and asks before launch. `resolveDispatcherAutonomy` defaults to
+  `'off'` when unconfigured, so an absent config forces inform + ask. See
+  `skills/dispatcher/SKILL.md § Phase 1.5` for the full sourcing table and invariant.
+- **`null` signals are honest, not failures (NICE-b).** On a CI-fetch or resource-probe
+  failure the dispatcher passes `ci = null` / `resourceVerdict = null` (not a synthesized
+  `{ status: undefined }` or a fabricated `'green'`). Each `null` ⇒ the gate passes + warns
+  — it surfaces a warning the operator sees, it does not block on its own.
+- **forcedFail is reachable end-to-end (NICE-c).** When CI is red OR resource is critical,
+  `verdict.suitable === false` REGARDLESS of confidence (the engine words the rationale
+  `FORCED: CI red` / `FORCED: resource critical`), so even under `autonomous-gated` the launch
+  falls to inform + ask. Reachability depends on the dispatcher wiring the live signals
+  through (CI wrapped as `{ status }`, the real resource verdict string) rather than masking
+  them — see `skills/dispatcher/SKILL.md § Phase 1.5`.
+
+This gate does NOT change the loop. Autopilot remains opt-in, and the kill-switch contract
+is unchanged — the verdict gate only governs HOW the loop is entered (auto vs. confirm).
+
 ## Telemetry
 
 One record per `/autopilot` invocation, written to `.orchestrator/metrics/autopilot.jsonl`
-via atomic tmp + rename. See `docs/prd/2026-04-25-autopilot-loop.md` § Output for the
+via atomic tmp + rename. See "Autopilot Loop" (#277; archived in the private Meta-Vault) § Output for the
 full schema.
 
 Each iteration's `sessions.jsonl` entry gets an additional optional field
@@ -330,7 +394,7 @@ Controls whether `autopilot --multi-story` creates a per-story git worktree befo
 
 ## References
 
-- PRD: `docs/prd/2026-04-25-autopilot-loop.md`
+- PRD: "Autopilot Loop" (#277; archived in the private Meta-Vault)
 - Implementation (Phase C-1 + C-1.b): `scripts/lib/autopilot.mjs` — exports `runLoop`, `parseFlags`, `writeAutopilotJsonl`, `KILL_SWITCHES`, `FLAG_BOUNDS`, `SCHEMA_VERSION`, `DEFAULT_PEER_ABORT_THRESHOLD`, `DEFAULT_JSONL_PATH`, `DEFAULT_CARRYOVER_THRESHOLD`
 - Tests (Phase C-1 + C-1.b): `tests/lib/autopilot.test.mjs`
 - Command file: `commands/autopilot.md`
@@ -339,10 +403,11 @@ Controls whether `autopilot --multi-story` creates a per-story git worktree befo
 - Session registry: `scripts/lib/session-registry.mjs`
 - Wave-executor return shape: `skills/wave-executor/SKILL.md § Return Shape Contract`
 - Sessions.jsonl writer: `skills/session-end/session-metrics-write.md`
+- Pre-loop verdict gate (#682): `scripts/lib/autonomy/suitability.mjs` (`computeSuitabilityVerdict`) · `scripts/lib/config/dispatcher-autonomy.mjs` (`resolveDispatcherAutonomy`) · `scripts/lib/autopilot/recent-runs.mjs` (`readRecentAutopilotRuns`) · `skills/dispatcher/SKILL.md § Phase 1.5`
 - Epic: [#271 v3.2 Autopilot — Autonomous Session Orchestration](https://github.com/Kanevry/session-orchestrator/issues/271)
 - Issues: [#277 Phase C scaffold](https://github.com/Kanevry/session-orchestrator/issues/277), [#295 Phase C-1 runtime](https://github.com/Kanevry/session-orchestrator/issues/295), [#300 Phase C-1.b follow-up](https://github.com/Kanevry/session-orchestrator/issues/300)
-- Phase A PRD: `docs/prd/2026-04-24-state-md-recommendations-contract.md`
-- Phase B PRD: `docs/prd/2026-04-25-mode-selector.md`
+- Phase A PRD: "STATE.md Recommendations Contract" (#271; archived in the private Meta-Vault)
+- Phase B PRD: "Mode Selector" (#276; archived in the private Meta-Vault)
 
 ## Open Questions (Phase C-1 to resolve)
 

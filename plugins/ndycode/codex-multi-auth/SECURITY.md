@@ -82,6 +82,10 @@ Security override rationale (`package.json` -> `overrides`):
 - `hono`: pinned to `4.12.21` to keep builds out of the vulnerable `<4.12.21` range reported in `GHSA-3hrh-pfw6-9m5x`, `GHSA-2gcr-mfcq-wcc3`, `GHSA-xrhx-7g5j-rcj5`, and `GHSA-f577-qrjj-4474` (Set-Cookie injection, `app.mount()` path-decoding, IPv6 IP-restriction bypass, and JWT scheme-acceptance advisories).
 - `rollup`: pinned to `^4.59.0` to keep the Vite and Vitest transitive graph above the vulnerable `<4.59.0` range surfaced by `npm audit`.
 
+Runtime dependency pin rationale (`package.json` -> `dependencies`):
+
+- `undici`: pinned exactly to `6.25.0`. It is the only runtime HTTP dependency (proxy `ProxyAgent` dispatch and the fetch fallback in the local bridge), it drives the published `engines.node >=18.17.0` floor, and its dispatcher behavior is part of the rotation proxy's tested surface — so version movement is taken deliberately via an explicit bump, never silently through a range. Moving to the undici `7.x` line is deferred until Node 18 support is dropped, since `7.x` raises the runtime floor to Node 20.
+
 Before release and after dependency changes:
 
 ```bash

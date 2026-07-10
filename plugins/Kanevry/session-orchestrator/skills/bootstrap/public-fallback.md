@@ -73,7 +73,15 @@ fi
 CLAUDE_INIT_STATUS=$?
 ```
 
-If `claude init` exits 0 and produces a non-empty `CLAUDE.md`, it is the base. Proceed to inject the Session Config block.
+If `claude init` exits 0 and produces a non-empty `CLAUDE.md`, it is the base. Proceed to inject the Harte Regeln block, then the Session Config block.
+
+**Inject `## Harte Regeln` section** — append the canonical hard-rules content BEFORE the Session Config block, if the section is absent:
+
+```bash
+if ! grep -q "^## Harte Regeln" "$REPO_ROOT/CLAUDE.md" 2>/dev/null; then
+  cat "$PLUGIN_ROOT/templates/_shared/harte-regeln.md" >> "$REPO_ROOT/CLAUDE.md"
+fi
+```
 
 **Inject `## Session Config` section** — append after the last line of the generated CLAUDE.md if the section is absent:
 
@@ -117,6 +125,7 @@ Use the minimal template to synthesize `CLAUDE.md` (for Claude Code/Cursor) or `
    | `{{CMD_BUILD}}` | `pnpm build` / "N/A" / "TBD" |
    | `{{CMD_LINT}}` | `pnpm lint` / `uv run ruff check .` / "TBD" |
    | `{{CONVENTIONS}}` | Pull 3–5 lines from `git log -n 5 --oneline` if available, else "Follow existing project conventions." |
+   | `{{HARD_RULES_TABLE}}` | Verbatim content of `templates/_shared/harte-regeln.md` (rules list, minus the provenance comment line) |
    | `{{VCS}}` | See VCS detection below |
    | `{{PROJECT_NAME}}` | `$REPO_NAME` |
    | `{{PLAN_BASELINE_PATH}}` | Omit this entire line (remove the `plan-baseline-path: ...` line from output) |

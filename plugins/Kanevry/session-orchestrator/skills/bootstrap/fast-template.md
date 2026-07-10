@@ -47,6 +47,12 @@ if grep -q "^## Session Config" CLAUDE.md; then
   echo "Session Config block confirmed."
 else
   # Sentinel absent — claude init did NOT populate the file (or wrote minimal content).
+  # Fall back to plugin-template generation: append canonical Harte-Regeln block
+  # BEFORE the Session Config block (pattern: the templates/_shared/... cp steps
+  # in Step 3a below).
+  if ! grep -q "^## Harte Regeln" CLAUDE.md 2>/dev/null; then
+    cat "$PLUGIN_ROOT/templates/_shared/harte-regeln.md" >> CLAUDE.md
+  fi
   # Fall back to plugin-template generation: append canonical Session Config block
   # (issue #182: 7 mandatory fields enforced by scripts/lib/config-schema.mjs).
   cat >> CLAUDE.md <<'EOF'
@@ -64,6 +70,8 @@ typecheck-command: <detect>
 lint-command: <detect>
 recent-commits: 20
 stale-branch-days: 7
+skill-evolution:
+  autonomy: off            # off | advisory | autonomous-gated — opt-in self-evolution (default off)
 EOF
 fi
 ```
@@ -74,6 +82,19 @@ If `## Session Config` is present, confirm the 7 mandatory fields (per issue #18
 - Claude Code → `CLAUDE.md`
 - Codex CLI → `AGENTS.md`
 - Cursor IDE → `CLAUDE.md`
+
+**Step 2c: CLAUDE.md budget lint.** After Step 2b confirms/repairs the Session Config block, run the raw-file-property lint against the freshly written instruction file:
+
+```bash
+node "$PLUGIN_ROOT/scripts/lib/claude-md-budget-lint.mjs" --repo-root "$REPO_ROOT" --require-provenance --mode warn --json
+```
+
+`--mode warn` is deliberate at Anlage-time — the lint informs, the operator decides; it never blocks the scaffold. Interpret the JSON `violations[]`:
+- `max-lines` — the instruction file is already over the lean-root ceiling (150 lines default). Recommend trimming to pointers per the lean-root convention (delegate detail to `README.md` / `.orchestrator/steering/` / `.claude/rules/*.md` — see this plugin's own `CLAUDE.md` for a worked example of the pointer pattern — note it predates the lint and currently exceeds the 150-line ceiling itself).
+- `max-line-chars` — a single line exceeds the char ceiling (400 default); surface the line number for a quick manual wrap.
+- `provenance-header` — line 1 lacks a `<!-- source: ...` attribution. On the `claude init` path (Public Fast Tier, Claude Code) this is a WARN only, never a hard failure — `claude init` output is not plugin-authored and has no reason to carry the plugin's provenance convention.
+
+Report any violations to the user as part of the bootstrap summary; do not block or retry on them.
 
 ## Step 3: Generate .gitignore
 
@@ -154,9 +175,10 @@ Shell:
 ```bash
 mkdir -p "$REPO_ROOT/.claude/rules"
 cp "$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md" "$REPO_ROOT/.claude/rules/parallel-sessions.md"
+cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"
 ```
 
-Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155.
+Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155. The `loop.md` vendor gives bare `/loop` a repo-aware maintenance prompt (issue #633 Hebel 3).
 
 ## Step 4: Generate README.md
 

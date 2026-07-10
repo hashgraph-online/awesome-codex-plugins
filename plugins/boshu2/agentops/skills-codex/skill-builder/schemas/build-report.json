@@ -22,7 +22,7 @@
     },
     "audit_pass": {
       "type": "boolean",
-      "description": "Did the immediate post-build self-audit (skill-auditor) emit VERDICT: PASS or VERDICT: WARN? (False if FAIL.)"
+      "description": "Did the immediate post-build self-audit (heal-skill deep audit) emit VERDICT: PASS or VERDICT: WARN? (False if FAIL.)"
     },
     "audit_report_path": {
       "type": "string",

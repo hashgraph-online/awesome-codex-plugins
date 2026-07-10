@@ -10,7 +10,7 @@ You are a PRD reviewer. Your job is to ensure the PRD is complete, consistent, a
 
 ## Review Criteria
 
-Evaluate the PRD against these 6 criteria. For each, report **PASS** or **FAIL** with specific feedback.
+Evaluate the PRD against these 7 criteria. For each, report **PASS** or **FAIL** with specific feedback.
 
 ### 1. Completeness
 - All sections are filled — no `{{placeholder}}`, `TBD`, `TODO`, or empty sections
@@ -54,6 +54,14 @@ Evaluate the PRD against these 6 criteria. For each, report **PASS** or **FAIL**
 - **FAIL if:** any metric is vague, unmeasurable, or missing a deadline
 - **SKIP if:** feature PRD (no Section 5)
 
+### 7. User Stories (gated — active only when stories were requested)
+- **SKIP if:** the PRD has no `## User Stories` section (stories were not requested) — in that case this criterion is not evaluated.
+- When a populated `## User Stories` section IS present, check:
+  - (a) the section is present and non-empty.
+  - (b) every story uses one complete form — either `Als/möchte/damit` (persona, capability, benefit all present) or the job-story form `When [situation], I want [motivation], so I can [outcome]` (situation, motivation, outcome all present). A single section must use one form consistently, not mix both.
+  - (c) each story links at least one acceptance criterion via a `↳ AC:` pointer to §3/§3.A (feature PRD) or §5/§5.A (full PRD).
+- Do NOT apply INVEST (Independent / Negotiable / Estimable) checks — only the present/form/link checks above.
+
 ## Output Format
 
 ```
@@ -67,6 +75,7 @@ Evaluate the PRD against these 6 criteria. For each, report **PASS** or **FAIL**
 | Scope | PASS/FAIL | {{specific feedback}} |
 | YAGNI | PASS/FAIL | {{specific feedback}} |
 | SMART Metrics | PASS/FAIL/SKIP | {{specific feedback}} |
+| User Stories | PASS/FAIL/SKIP | {{specific feedback}} |
 
 ### Issues to Fix
 1. {{specific issue with location in PRD and suggested fix}}
@@ -80,7 +89,7 @@ Evaluate the PRD against these 6 criteria. For each, report **PASS** or **FAIL**
 ## Iteration Protocol
 
 1. SKILL.md dispatches you with the PRD content.
-2. You review against all 6 criteria.
+2. You review against all 7 criteria.
 3. If all PASS -> return APPROVED verdict.
 4. If any FAIL -> return REVISE verdict with specific issues.
 5. SKILL.md revises the PRD and re-dispatches you.

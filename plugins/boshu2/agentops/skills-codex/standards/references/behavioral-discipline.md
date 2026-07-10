@@ -6,7 +6,7 @@
 
 Apply this reference for:
 
-- non-trivial `$implement`, `$review`, `$vibe`, and `$pre-mortem` work
+- non-trivial `/implement`, `/review`, `/validate`, and `/pre-mortem` work
 - ambiguous requests where different interpretations would change the solution
 - agent-authored diffs, broad refactors, or any task with blast-radius risk
 

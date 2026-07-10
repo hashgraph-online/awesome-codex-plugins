@@ -1,9 +1,9 @@
 # AgiFlow AI Plugin
 
-Official AgiFlow plugin for AI coding clients. Drive AgiFlow project management — planning,
-grooming, execution, and review — directly from your AI coding tool.
+Official AgiFlow plugin for AI clients. Drive AgiFlow project management, including planning,
+grooming, execution, and review, directly from your AI tool.
 
-Works with **Claude Code**, **Codex**, **Cursor**, **Antigravity**, and **Gemini CLI**.
+Works with **ChatGPT**, **Claude Code**, **Codex**, **Cursor**, **Antigravity**, and **Gemini CLI**.
 
 ## Installation
 
@@ -37,7 +37,7 @@ Antigravity reads the root `plugin.json` marker, the `skills/`, and `mcp_config.
 ### Cursor
 
 Add manually in **Cursor Settings → MCP / Plugins**, pointing at this folder. Cursor's stable surface
-is MCP config — the bundled `.mcp.json` provides it.
+is MCP config. The bundled `.mcp.json` provides it.
 
 ### Codex
 
@@ -63,6 +63,24 @@ gemini extensions install <your-remote>/agiflow-ai-plugin
 
 The bundled `gemini-extension.json` connects the AgiFlow MCP server via `mcp-remote`.
 
+### ChatGPT
+
+OpenAI Platform plugins are submitted from the production AgiFlow MCP server. This public repository
+provides the reusable Agent Skills used by that plugin, but does not contain Platform dashboard IDs,
+submission evidence, reviewer credentials, or other private operational data.
+
+The ChatGPT-safe workflow set is:
+
+- `getting-started`
+- `project-plan`
+- `refine-task`
+- `backlog-grooming`
+- `daily-standup`
+- `triage`
+
+The coding-agent workflows `orchestrate`, `run-task`, `run-work`, and `review-work` remain available
+to coding clients but are not part of the ChatGPT submission bundle.
+
 ## How to develop
 
 ```bash
@@ -79,20 +97,20 @@ claude --plugin-dir ./agiflow-ai-plugin
 This plugin connects to the AgiFlow MCP server (`https://agiflow.io/api/v1/mcp`) and exposes AgiFlow
 tools across these categories:
 
-- **Projects** — create, inspect, and update projects and their statuses
-- **Tasks** — create, list, get, update, reorder, and batch-create tasks
-- **Work units** — group tasks into deliverable features/epics and track progress
-- **Workflows** — acquire/release locks and coordinate multi-agent runs
-- **Members** — list and assign agent members to work
-- **Comments** — document decisions and progress on tasks
-- **Vault** — read and set scoped configuration entries
+- **Projects**: create, inspect, and update projects and their statuses
+- **Tasks**: create, list, get, update, reorder, and batch-create tasks
+- **Work units**: group tasks into deliverable features or epics and track progress
+- **Workflows**: acquire and release locks and coordinate multi-agent runs
+- **Members**: list and assign agent members to work
+- **Comments**: document decisions and progress on tasks
+- **Vault**: read and set scoped configuration entries
 
 ### Bundled skills
 
 The plugin ships 10 workflow skills that mirror AgiFlow's scrum pipeline. Your AI client loads them on
-demand when your request matches their description — you generally don't invoke them by name:
+demand when your request matches their description. You generally do not invoke them by name:
 
-| Skill | Phase | Use it to… |
+| Skill | Phase | Use it to |
 | --- | --- | --- |
 | `getting-started` | orient | get coached on where to start and which workflow fits |
 | `project-plan` | Planning | break requirements into vertical-slice tasks (Planning status) |

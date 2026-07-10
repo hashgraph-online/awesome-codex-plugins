@@ -1,6 +1,6 @@
 ---
 name: domain
-description: "Run domain."
+description: Ubiquitous language for human-AI software
 ---
 # Domain Skill — Ubiquitous Language for Human-AI Software Building
 
@@ -32,7 +32,7 @@ structural primitives without operator consent.
 2. Load only the entries relevant to the current work. Do not preload the
    whole corpus — that defeats the JIT purpose.
 3. When applying an entry, cite it: include the entry slug in your output, plan,
-   commit message, or `bd` issue body so future sessions can trace the
+   commit message, or `br` issue body so future sessions can trace the
    reasoning.
 4. When you find a concept missing or misnamed, add a draft entry under
    `references/` and update `INDEX.md`. Promotion from `draft` to `canonical`
@@ -42,6 +42,7 @@ structural primitives without operator consent.
 
 Structural primitives (the architecture):
 
+- [references/domain.feature](references/domain.feature) — Executable spec: load-on-demand corpus, draft→canonical ratchet, vocabulary root (soc-qk4b)
 - [`references/entry.md`](references/entry.md) — Entry: the atomic concept doc
 - [`references/index-primitive.md`](references/index-primitive.md) — Index: the discovery surface (concept)
 - [`references/citation.md`](references/citation.md) — Citation: how Entries reference each other and how agents claim use
@@ -59,10 +60,41 @@ Test entry:
 Operating discipline:
 
 - [`references/context-density-rule.md`](references/context-density-rule.md) — Context Density Rule: every context token carries intent, boundary, evidence, decision, constraint, or next action
+- [`references/behavior-shaping.md`](references/behavior-shaping.md) — Behavior Shaping: the ABC register (antecedent/behavior/consequence/reinforcement/extinction/shaping); building agent capability is operant conditioning, not specification
+- [`references/primitive-selection.md`](references/primitive-selection.md) — Primitive Selection: when to use a Skill vs CLI subcommand vs runtime hook vs local cockpit gate vs CI backstop (CLI is the deterministic core; gates are trigger surfaces that call it)
+- [`references/reach.md`](references/reach.md) — Reach: the blast-radius tier of a knowledge entry (`bead`/`pull`/`always`), orthogonal to maturity; `always` is computed from verification-earned canon, never authored
+
+Loop family (the operating loop — "one loop body, two drivers, one inner tick, one config"; doctrine in `docs/architecture/canonical-loop-model.md`):
+
+- [`references/loop.md`](references/loop.md) — Loop: the umbrella; the same five-beat tick at every scale
+- [`references/evolve.md`](references/evolve.md) — Evolve: the in-session driver (AgentOps-shipped, zero-dependency)
+- [`references/factory.md`](references/factory.md) — Factory: the out-of-session driver (substrate-owned; AgentOps deleted its daemon)
+- [`references/rpi.md`](references/rpi.md) — RPI: the inner tick, one research-plan-implement-validate cycle over one bead
+- [`references/autodev.md`](references/autodev.md) — Autodev: the config/intent layer the loop reads each tick (NOT a loop; the standalone /autodev skill is retired — contract management is absorbed into [`$evolve`](../evolve/SKILL.md), the CLI surface stays ao autodev, shipped in legacy-tagged `ao` builds)
+- [`references/context-compiler.md`](references/context-compiler.md) — Context-Compiler: turns the corpus into the working set and absorbs the tick's exhaust
+
+Verification membrane:
+
+- [`references/silent-contract-violation.md`](references/silent-contract-violation.md) — Silent Contract Violation: tool-use code that runs clean, raises no exception, and is still wrong (wrong routing / output shape / argument provenance); the four contract-check categories that name where it lands (RubricRefine)
 
 Catalog:
 
 - [`references/INDEX.md`](references/INDEX.md) — full corpus index
+
+## Domain as a scoped operating-loop contract
+
+The `Slice` primitive above has a runtime counterpart: a **domain slice** can
+scope an operating-loop run. A *domain* is a named vertical slice with an
+explicit boundary contract — a manifest at
+`docs/domains/<name>/manifest.yaml` listing the Primitives the slice may touch,
+its goal, and its decision gate.
+
+Use `$scaffold domain <name>` to write the manifest template, then fill in the
+boundary before running the operating loop with that manifest as explicit scope.
+For out-of-session execution, dispatch the scoped loop through NTM plus Agent
+Mail reservations so write ownership and the slice boundary are visible. The
+manifest schema and resolution rules are in `docs/adr/ADR-0013`; the `$scaffold`
+skill documents the bootstrap step.
 
 ## What's NOT here
 

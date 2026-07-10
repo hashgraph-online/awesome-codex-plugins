@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/beads-bv",
   "layout": "modular",
-  "source_hash": "62113d3b09f0d834aab48a38f01f4053d682c0e47386c326739f6a76baad4018",
-  "generated_hash": "d01b999822c490694ee6dd65441b565b56fb9c44698d9e55f73930c012a4c2ed"
+  "source_hash": "e2ac4100fbce01d3c514b3945e33956b7ebe208d5a72ce625fd1ed56ebb527a5",
+  "generated_hash": "5f3364d3f02989d46c3008e207e46c1c4d11b6d1b471f88e1922334bb489bc70"
 }

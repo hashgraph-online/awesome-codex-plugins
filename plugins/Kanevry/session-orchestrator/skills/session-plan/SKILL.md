@@ -2,7 +2,7 @@
 name: session-plan
 user-invocable: false
 tags: [orchestration, planning, waves, agents]
-model: opus
+model: inherit
 model-preference: opus
 model-preference-codex: gpt-5.4
 model-preference-cursor: claude-opus-4-6
@@ -12,7 +12,7 @@ description: >
   dependency ordering, and inter-wave checkpoints. Activated by session-start after Q&A phase completes.
 ---
 
-> **Platform Note:** Project agents live in `<state-dir>/agents/` where `<state-dir>` is `.claude/` (Claude Code), `.codex/` (Codex CLI), or `.cursor/` (Cursor IDE). On Cursor IDE, parallel agent dispatch is not available — present wave tasks as a sequential execution list instead. See `skills/_shared/platform-tools.md`.
+> **Platform Note:** Project agents live in `<state-dir>/agents/` where `<state-dir>` is `.claude/` (Claude Code), `.codex/` (Codex CLI), `.cursor/` (Cursor IDE), or `.pi/` (Pi). On Cursor IDE and Pi v1, parallel agent dispatch is not available — present wave tasks as a sequential execution list instead. See `skills/_shared/platform-tools.md`.
 
 # Session Plan Skill
 
@@ -112,9 +112,11 @@ Extract these fields for planning:
    - **Effective sizing**: use historical sizing data to inform Step 3 complexity scoring
    - **Recurring issues**: pre-populate risk mitigation with known issue patterns
    - **Scope guidance**: validate planned scope against historical session capacity
+   - **Over-delivery sizing (#730/H4)**: read the over_delivery_ratio of recent same-session_type waves — from `effective-sizing` learnings if present, else directly from the last ~5 sessions.jsonl records' `waves[].over_delivery_ratio` (skip records lacking the field — pre-#730; also skip Discovery/Finalization waves, whose planned set is empty by design). If the median ratio R > 1.3, the fleet historically under-briefs file scope: inflate the Step 3 "Files to change" estimate by R before scoring the complexity tier; note it under Project Intelligence Applied.
 
 For each agreed task/issue:
 1. Read the VCS issue description and acceptance criteria
+   (if session-start Phase 7.1 emitted a `### Premise Verification Result` entry for this issue, treat its verdict as binding — re-scope or drop tasks whose verdict is FALSCH-PRÄMISSE/SHIPPED before decomposing; do not re-run the greps, session-start already did)
 2. Identify affected files by searching the codebase (Grep/Glob — don't guess)
 3. Map dependencies: which tasks must complete before others can start
 4. Estimate complexity: small (1 agent), medium (2-3 agents), large (dedicated wave)
@@ -124,7 +126,7 @@ For each agreed task/issue:
 
 Before assigning tasks to waves, discover available agents for this session:
 
-1. **Scan for project-level agents**: Glob `<state-dir>/agents/*.md` (`.claude/agents/*.md` for Claude Code, `.codex/agents/*.md` for Codex CLI, `.cursor/agents/*.md` for Cursor IDE)
+1. **Scan for project-level agents**: Glob `<state-dir>/agents/*.md` (`.claude/agents/*.md` for Claude Code, `.codex/agents/*.md` for Codex CLI, `.cursor/agents/*.md` for Cursor IDE, `.pi/agents/*.md` for Pi)
    - Read each file's YAML frontmatter: extract `name` and `description`
    - Filter out non-agent reference files (skip files with `description` containing "Reference documentation" or "NOT an executable agent")
    - Build a list of available project agents with their names and capabilities
@@ -396,6 +398,8 @@ Score the session scope to determine optimal agent counts per wave. Skip for hou
 
 > **Cross-module scope** counts top-level source directories (e.g., `src/auth/`, `src/api/`, `lib/utils/`). Nested subdirectories under the same parent count as one directory. Non-source directories (docs, config, scripts) don't count unless they contain modified production code.
 
+> **Over-delivery adjustment (#730/H4):** when Step 0.5 surfaced a historical over-delivery ratio R > 1.3 for this session_type, score the "Files to change" row against ceil(briefed_files × R) rather than the raw briefed count — agents historically deliver R× the briefed scope, so the raw count under-sizes the wave.
+
 ### Complexity Tiers
 
 | Tier | Score | Description |
@@ -435,6 +439,11 @@ For each role's wave, distribute its classified tasks across the allocated agent
   - If both tasks share >50% of their file scope → merge them into one agent
   - If the overlapping task is NOT on the critical path (no downstream dependencies) → move it to Impl-Polish
   - If both are on the critical path → merge into one agent and note in Risk Mitigation
+6. **Contract-Lock detection (#730/H1)**: After deconfliction, check whether ≥2 agents in the SAME wave each depend on a shared contract surface — a file/module defining interfaces, schemas, shared types, or shared constants that all of them read but none exclusively owns (e.g. `types/*.ts`, `*.schema.*`, a shared `constants.*`, an OpenAPI/Zod spec). If so, do NOT let the N agents co-define it in parallel:
+   a. Extract the shared contract into ONE dedicated **Contract-Lock** task on a single agent, and REMOVE the contract file from every impl agent's file scope (this is what makes the remaining scopes disjoint — step 5 then has nothing left to merge).
+   b. Order it BEFORE the N implementation agents — either as the final task of the preceding wave, or as a serialized first slot in this wave (annotate the wave-plan item `contract-lock: true`; the wave-executor honors the flag per `skills/wave-executor/wave-loop.md` § Contract-Lock Serialization).
+   c. Give the N follow-on agents READ-only reference to the locked file and disjoint write scopes; keep the contract file OUT of their allowedPaths.
+   d. Record in Risk Mitigation: "Contract-Lock: <file> locked by <agent> before <N>-way fan-out".
 
 **Constraint check:** If the final agent count for any wave exceeds `agents-per-wave` from `$CONFIG`, either merge more tasks or defer lower-priority tasks to Impl-Polish. Log any such adjustments in Risk Mitigation.
 
@@ -506,8 +515,8 @@ Present the plan in this format:
 - Waves: [N] | Agents-per-wave cap: [M] | Isolation: [worktree|none|auto]
 - Enforcement: [strict|warn|off] | Max turns: [N per session type]
 - Persistence: [true|false] | Pencil: [path|none]
-- Bite-sized plan: [path if exists, e.g. `docs/plans/2026-05-16-superpowers-cluster.md` | none]
-- Parallel dispatch: All agents within each wave execute simultaneously via Agent() tool
+- Bite-sized plan: [path if exists, e.g. `docs/plans/YYYY-MM-DD-<feature>.md` | none]
+- Parallel dispatch: agents execute in small batches of 3–4 per message (up to the wave cap)
 - Total agents planned: [sum across all waves]
 
 Ready to execute? Use /go to begin.

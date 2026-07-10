@@ -28,6 +28,7 @@ stack:        <language, runtime, frameworks, key deps>
 entry:        <where execution starts>
 contract:     <public APIs / interfaces that must not break>
 flow:         <name>: <trigger> → <steps> → <output>
+              (complex — branching/async/multi-actor: one-line summary here, diagram in docs/specs/<flow>.md)
 invariant:    <what must always hold>
 constraint:   <limits, warnings from code>
 convention:   <naming, file structure, test patterns>

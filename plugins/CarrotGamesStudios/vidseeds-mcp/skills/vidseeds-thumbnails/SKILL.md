@@ -1,6 +1,7 @@
 ---
 name: vidseeds-thumbnails
-description: Use for VidSeeds MCP thumbnail workflows — generate, poll jobs, edit, restyle, Thumbnail Studio (trends, briefs, subjects, overlay text), apply to a project, publish to YouTube, or thumbnails from a local video file via vidseeds-local.
+description: Use for VidSeeds MCP thumbnail workflows - generate, poll jobs, edit, restyle, Thumbnail Studio (trends, briefs, subjects, overlay text), apply to a project, publish to YouTube, or thumbnails from a local video file via vidseeds-local.
+license: MIT
 ---
 
 # Thumbnails (MCP)
@@ -16,8 +17,8 @@ description: Use for VidSeeds MCP thumbnail workflows — generate, poll jobs, e
 
 ## Edit or restyle an existing thumbnail
 
-- `vidseeds_edit_thumbnail` — chat-style edit (async job; poll per tool response).
-- `vidseeds_restyle_thumbnail` — style transfer on an existing asset.
+- `vidseeds_edit_thumbnail` - chat-style edit (async job; poll per tool response).
+- `vidseeds_restyle_thumbnail` - style transfer on an existing asset.
 
 ## Attach to a project
 
@@ -26,6 +27,7 @@ description: Use for VidSeeds MCP thumbnail workflows — generate, poll jobs, e
 ## Publish thumbnail to YouTube
 
 - `vidseeds_publish_thumbnail_to_youtube` when the video is on a connected channel (see `vidseeds-publishing` for connections).
+- **Bulk YouTube limit:** YouTube rate-limits custom-thumbnail uploads separately from VidSeeds.ai seeds/MCP quota. For bulk replacements, plan **no more than about 100 thumbnail uploads per connected YouTube channel/account per rolling 24 hours**. If YouTube returns `uploadRateLimitExceeded` / "too many thumbnails recently", stop the batch, persist the next video id, and resume later.
 
 ## Thumbnail Studio (research → brief → generate)
 
@@ -50,14 +52,14 @@ Then run `vidseeds_generate_thumbnail` (or from-video flow below) with prompts/r
 The **hosted** server cannot read the user's filesystem.
 
 1. Configure **vidseeds-local** stdio MCP (see plugin README; env `VIDSEEDS_API_KEY` or PAT).
-2. `vidseeds_generate_thumbnail_from_video` on the local server — probes/transcribes/extracts frames locally, then calls the hosted pipeline.
+2. `vidseeds_generate_thumbnail_from_video` on the local server - probes/transcribes/extracts frames locally, then calls the hosted pipeline.
 
 Alternatively, extract frames locally with `vidseeds_extract_video_frames` (see `vidseeds-local-video`) and pass base64 frames into `vidseeds_generate_thumbnail`.
 
 ## From an existing YouTube video (hosted)
 
-- `vidseeds_generate_thumbnail_from_video` (hosted) when the video is addressable via allowed CDN URLs / account-owned assets — check tool `description` for inputs.
+- `vidseeds_generate_thumbnail_from_video` (hosted) when the video is addressable via allowed CDN URLs / account-owned assets - check tool `description` for inputs.
 
 ## Learning / preferences
 
-- `vidseeds_record_thumbnail_preference`, `vidseeds_get_thumbnail_learning_status` — optional feedback loop for repeat creators.
+- `vidseeds_record_thumbnail_preference`, `vidseeds_get_thumbnail_learning_status` - optional feedback loop for repeat creators.

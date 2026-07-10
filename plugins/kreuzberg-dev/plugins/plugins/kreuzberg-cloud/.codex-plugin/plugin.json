@@ -1,0 +1,47 @@
+{
+  "name": "kreuzberg-cloud",
+  "version": "0.2.2",
+  "description": "Managed Kreuzberg document intelligence on api.kreuzberg.dev — async extraction with OCR, URL crawling, presigned uploads, document versioning and diffing, signed webhooks, and usage tracking.",
+  "author": {
+    "name": "Kreuzberg, Inc.",
+    "email": "support@kreuzberg.dev",
+    "url": "https://kreuzberg.dev"
+  },
+  "homepage": "https://kreuzberg.dev",
+  "repository": "https://github.com/kreuzberg-dev/plugins",
+  "license": "MIT",
+  "keywords": [
+    "document-intelligence",
+    "extraction",
+    "ocr",
+    "cloud",
+    "api",
+    "webhooks",
+    "versioning"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Kreuzberg Cloud",
+    "shortDescription": "Managed extraction, document versioning, and diffing",
+    "longDescription": "Managed Kreuzberg document intelligence at api.kreuzberg.dev. Authenticate with a bearer API key; submit documents or URL crawls for async extraction with OCR, push large files through presigned uploads, poll job status or receive signed webhook callbacks, retrieve stored documents and diff their versions, and track per-project usage against your quota. Sandbox keys are available for evaluation without signup. An MCP server lands in plugin v0.2.0.",
+    "developerName": "Kreuzberg, Inc.",
+    "category": "document-intelligence",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Extract this PDF in the cloud",
+      "Check my usage",
+      "Get this job's result",
+      "Diff the last two versions of this document"
+    ],
+    "websiteURL": "https://kreuzberg.dev",
+    "privacyPolicyURL": "https://kreuzberg.dev/privacy",
+    "termsOfServiceURL": "https://kreuzberg.dev/terms",
+    "brandColor": "#0EA5E9",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

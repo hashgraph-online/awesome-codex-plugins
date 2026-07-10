@@ -1,0 +1,95 @@
+[project]
+name = "rag-reviewer"
+version = "0.2.27"
+description = "AI pull-request reviewer: hybrid RAG + a code graph + Claude Code. Whole-repo context, inline GitHub comments grounded on exact code."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "rag_for_git contributors" }]
+keywords = [
+    "code-review",
+    "pull-request",
+    "rag",
+    "code-graph",
+    "mcp",
+    "claude-code",
+    "static-analysis",
+    "neo4j",
+    "pgvector",
+    "tree-sitter",
+    "scip",
+    "voyage",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "pydantic-settings>=2.3",
+    "tree-sitter>=0.25,<0.26",
+    "tree-sitter-python>=0.25,<0.26",
+    "voyageai>=0.4,<0.5",
+    "psycopg[binary]>=3.2",
+    "psycopg_pool>=3.2",
+    "pgvector>=0.3.6",
+    "neo4j>=6.2,<7",
+    "httpx>=0.27",
+    "python-docx>=1.1",
+    "pypdf>=4.0",
+    "langchain-core>=1.4,<2",
+    "pyyaml>=6.0",
+    "click>=8.1",
+    "protobuf>=5.27",
+    "mcp>=1.9,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "grpcio-tools>=1.64",
+]
+web = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.urls]
+Homepage = "https://github.com/mimfort/rag_for_git"
+Repository = "https://github.com/mimfort/rag_for_git"
+Issues = "https://github.com/mimfort/rag_for_git/issues"
+PyPI = "https://pypi.org/project/rag-reviewer/"
+
+[project.scripts]
+reviewer = "reviewer.entrypoints.cli:cli"
+reviewer-mcp = "reviewer.entrypoints.mcp_server:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: требует поднятых Postgres/Neo4j (docker-compose up)"]
+addopts = "-m 'not integration'"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["reviewer*", "eval*"]
+
+[tool.setuptools.package-data]
+"reviewer.web" = ["*.sql"]
+"reviewer.index" = ["*.sql"]
+"reviewer.mcp" = ["*.sql"]

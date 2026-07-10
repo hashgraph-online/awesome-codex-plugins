@@ -38,6 +38,21 @@
  *   will report drift in CI. Tracked as upstream-sync-debt in the #503 PRD.
  *   When upstream catches up, re-run `node scripts/sync-vault-schema.mjs --write`
  *   to confirm idempotency.
+ *
+ * 2026-07-02 (#725, D2): `'source-repo': z.string().optional()` appended to
+ *   vaultFrontmatterSchema (same vendored-ahead pattern as #503). vault-mirror
+ *   now emits `source-repo` in generated learning notes for cross-repo
+ *   attribution (scripts/lib/vault-mirror/render-learnings.mjs). The field is
+ *   OPTIONAL — pre-existing notes without it stay valid, and `.passthrough()`
+ *   already accepted the key; the explicit declaration adds string-type
+ *   enforcement. Upstream canonical is behind until #725 lands there, so
+ *   `sync-vault-schema.mjs --check` reports drift in CI (upstream-sync-debt).
+ *   Re-run `--write` once upstream catches up to confirm idempotency.
+ *
+ * 2026-07-03 (#738, I2): `board` appended to vaultNoteTypeSchema so the
+ *   generated `01-projects/_active-sessions.md` board validates as a
+ *   first-class vault note. Upstream canonical sync remains out of scope for
+ *   this worker because the baseline repo is intentionally dirty.
  * ────────────────────────────────────────────────────────────────────────────
  */
 
@@ -73,6 +88,7 @@ const vaultNoteTypeSchema = z.enum([
   'learning',
   'session',
   'peer-card',
+  'board',
 ]);
 
 const vaultNoteStatusSchema = z.enum([
@@ -113,6 +129,7 @@ const vaultFrontmatterSchema = z
     source: z.string().optional(),
     sources: z.array(z.string()).optional(),
     aliases: z.array(z.string().min(1).max(200)).optional(),
+    'source-repo': z.string().optional(),
   })
   .passthrough();
 // ── END GENERATED SCHEMA ──
@@ -406,14 +423,29 @@ for (const f of mdFiles) {
   fileIndex.get(key).push(f);
 }
 
-// ── Wiki-link regex — captures target (pre-alias, pre-anchor) ───────────────
-const WIKILINK_RE = /\[\[([^\]|#]+?)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]/g;
+// ── Wiki-link regex — captures link body for target parsing ─────────────────
+const WIKILINK_RE = /\[\[([^\]]+)\]\]/g;
+
+function findAliasSeparatorIndex(linkBody) {
+  for (let i = 0; i < linkBody.length; i++) {
+    if (linkBody[i] === '\\' && linkBody[i + 1] === '|') return i;
+    if (linkBody[i] === '|') return i;
+  }
+  return -1;
+}
+
+function extractWikiLinkTarget(linkBody) {
+  const aliasIndex = findAliasSeparatorIndex(linkBody);
+  const targetWithAnchor = aliasIndex === -1 ? linkBody : linkBody.slice(0, aliasIndex);
+  return targetWithAnchor.split('#', 1)[0].trim();
+}
 
 function extractWikiLinks(content) {
   const targets = new Set();
   let m;
   while ((m = WIKILINK_RE.exec(content)) !== null) {
-    targets.add(m[1].trim());
+    const target = extractWikiLinkTarget(m[1]);
+    if (target.length > 0) targets.add(target);
   }
   return [...targets];
 }

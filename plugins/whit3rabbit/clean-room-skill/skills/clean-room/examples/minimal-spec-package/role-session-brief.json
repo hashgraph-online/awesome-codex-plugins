@@ -1,0 +1,46 @@
+{
+  "brief_id": "brief-clean-plan-example",
+  "task_id": "task-example",
+  "created_at": "2024-01-01T00:00:00Z",
+  "role": "clean-architect",
+  "phase": "clean-plan",
+  "unit_id": "unit-example-flow",
+  "spec_slice_ref": "behavior-spec:unit-example-flow",
+  "fresh_context_required": true,
+  "context_budget": {
+    "max_prompt_chars": 1200,
+    "max_brief_chars": 4000,
+    "max_artifact_refs": 8,
+    "max_referenced_artifact_bytes": 20000
+  },
+  "compact_status": "Plan the example unit from the approved clean handoff artifacts.",
+  "next_action": "Read the clean run context, handoff package, and approved behavior spec, then write the implementation plan.",
+  "allowed_artifacts": [
+    {
+      "artifact_id": "clean-context-example",
+      "artifact_type": "clean-run-context",
+      "path": "clean-run-context.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "artifact_id": "handoff-example",
+      "artifact_type": "handoff-package",
+      "path": "handoff-package.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "artifact_id": "spec-example-flow",
+      "artifact_type": "behavior-spec",
+      "path": "behavior-spec.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "forbidden_inputs": [
+    "prior chat history",
+    "task-manifest.json",
+    "source-index.json",
+    "coverage-ledger.json",
+    "evidence-ledger.json"
+  ],
+  "blockers": []
+}

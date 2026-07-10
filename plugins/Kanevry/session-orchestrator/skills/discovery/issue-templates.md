@@ -202,6 +202,9 @@ Used as a comment or standalone issue to summarize a full discovery run across a
 | ui | <n> | <n> | <n> | <n> | <n> | <n> |
 | arch | <n> | <n> | <n> | <n> | <n> | <n> |
 | session | <n> | <n> | <n> | <n> | <n> | <n> |
+| audit | <n> | <n> | <n> | <n> | <n> | <n> |
+| vault | <n> | <n> | <n> | <n> | <n> | <n> |
+| feature | <n> | <n> | <n> | <n> | <n> | <n> |
 | **Total** | **<n>** | **<n>** | **<n>** | **<n>** | **<n>** | **<n>** |
 
 ### Issues Created

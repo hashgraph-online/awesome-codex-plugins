@@ -1,0 +1,15 @@
+.git/
+node_modules/
+.venv/
+tmp/
+logs/
+*.log
+*.slx
+*.mdl
+*.mat
+*.mex*
+*.asv
+*.bak
+*.zip
+*.7z
+.env

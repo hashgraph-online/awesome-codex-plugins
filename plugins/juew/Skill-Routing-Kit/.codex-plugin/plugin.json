@@ -1,0 +1,36 @@
+{
+  "name": "skill-routing-kit",
+  "version": "0.1.0+codex.20260604032338",
+  "description": "Local-first skill and plugin routing guard, registry, and diagnostics for Codex.",
+  "author": {
+    "name": "Zhonghao"
+  },
+  "repository": "https://github.com/juew/Skill-Routing-Kit",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "codex-plugin",
+    "skill-routing",
+    "ai-agents",
+    "local-first",
+    "developer-tools"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skill Routing Kit",
+    "shortDescription": "Local-first skill routing guard and diagnostics.",
+    "longDescription": "Improve Codex skill and plugin hit rate with an always-on AGENTS routing guard, a local capability registry, and explicit diagnostic scripts.",
+    "defaultPrompt": "Use Skill Routing Kit to diagnose which Codex skill or plugin should handle a request, refresh the local capability registry, or improve skill routing hit rate.",
+    "developerName": "Zhonghao",
+    "category": "Productivity",
+    "brandColor": "#22D3EE",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "capabilities": [
+      "Skill routing guard",
+      "Local capability registry",
+      "Routing diagnostics",
+      "Registry maintenance"
+    ]
+  }
+}

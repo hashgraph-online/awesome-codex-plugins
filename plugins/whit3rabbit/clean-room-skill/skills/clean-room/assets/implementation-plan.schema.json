@@ -1,0 +1,414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Implementation Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plan_id",
+    "task_id",
+    "created_at",
+    "planner_role",
+    "implementation_root_refs",
+    "source_artifacts",
+    "architecture_manifest_ref",
+    "foundation_summary",
+    "code_hygiene_policy",
+    "work_items",
+    "verification_strategy",
+    "implementation_forbidden_material",
+    "open_decisions"
+  ],
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "planner_role": {
+      "const": "clean-architect"
+    },
+    "implementation_root_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/implementation_root_ref"
+      }
+    },
+    "source_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "architecture_manifest_ref": {
+      "$ref": "#/$defs/relative_path"
+    },
+    "foundation_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "code_hygiene_policy": {
+      "$ref": "#/$defs/code_hygiene_policy"
+    },
+    "work_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "work_item_id",
+          "status",
+          "summary",
+          "spec_ids",
+          "architecture_area_refs",
+          "implementation_root_ref",
+          "target_paths",
+          "test_paths",
+          "acceptance_criteria"
+        ],
+        "properties": {
+          "work_item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "planned",
+              "in-progress",
+              "complete",
+              "blocked"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "spec_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "architecture_area_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "public_contract_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "implementation_root_ref": {
+            "$ref": "#/$defs/implementation_root_ref"
+          },
+          "target_paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/relative_path"
+            }
+          },
+          "test_paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/relative_path"
+            }
+          },
+          "local_patterns": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "constraints": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "verification_commands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/verification_command"
+            }
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "planned_refactors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refactor_id",
+          "kind",
+          "summary",
+          "architecture_area_refs",
+          "target_paths",
+          "rationale"
+        ],
+        "properties": {
+          "refactor_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "split",
+              "move",
+              "merge",
+              "extract"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "architecture_area_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "existing_paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/relative_path"
+            }
+          },
+          "target_paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/relative_path"
+            }
+          },
+          "test_paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/relative_path"
+            }
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "verification_strategy": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/verification_command"
+      }
+    },
+    "implementation_forbidden_material": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "source_excerpt",
+          "raw_diff",
+          "private_identifier",
+          "source_shaped_pseudocode",
+          "copied_comments",
+          "decompiled_output",
+          "other"
+        ]
+      }
+    },
+    "open_decisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/open_decision"
+      }
+    }
+  },
+  "$defs": {
+    "implementation_root_ref": {
+      "type": "string",
+      "pattern": "^CLEAN_ROOM_IMPLEMENTATION_ROOTS\\[[0-9]+\\]$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+    },
+    "code_hygiene_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_lines_per_code_file",
+        "max_lines_per_test_file",
+        "max_files_per_iteration",
+        "split_large_files_by",
+        "exceptions"
+      ],
+      "properties": {
+        "max_lines_per_code_file": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_lines_per_test_file": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_files_per_iteration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "split_large_files_by": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbidden_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "verification_command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "cwd"
+      ],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cwd": {
+          "$ref": "#/$defs/implementation_root_ref"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_type": {
+          "enum": [
+            "verify",
+            "package"
+          ]
+        },
+        "container_profile": {
+          "enum": [
+            "node22",
+            "python312",
+            "go126",
+            "rust-stable"
+          ]
+        },
+        "network": {
+          "enum": [
+            "off",
+            "deps-only",
+            "on"
+          ]
+        },
+        "dependency_mode": {
+          "enum": [
+            "offline",
+            "locked",
+            "allow-new"
+          ]
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        }
+      }
+    },
+    "open_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "summary",
+        "status",
+        "owner"
+      ],
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "deferred"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

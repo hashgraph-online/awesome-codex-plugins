@@ -1,0 +1,20 @@
+{
+  "name": "roadmapsmith-local-marketplace",
+  "interface": {
+    "displayName": "RoadmapSmith Local Plugins"
+  },
+  "plugins": [
+    {
+      "name": "roadmapsmith",
+      "source": {
+        "source": "local",
+        "path": "./plugins/roadmapsmith"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

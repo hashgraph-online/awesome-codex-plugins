@@ -1,6 +1,6 @@
 # 🐙 Claude Octopus
 
-Every AI model has blind spots. Claude Octopus puts up to eight of them on every task, so blind spots surface before you ship — not after. It orchestrates Codex, Gemini, Copilot, Qwen, Ollama, Perplexity, and OpenRouter alongside Claude Code, with consensus gates that flag any disagreements.
+Every AI model has blind spots. Claude Octopus puts up to ten of them on every task, so blind spots surface before you ship — not after. It orchestrates Codex, Gemini, Antigravity CLI, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OpenCode, and Grok alongside Claude Code, with consensus gates that flag any disagreements.
 
 **Claude-native first, Octopus for escalation.** Use Claude-native `/init`, `/review`, and `/security-review` when Claude is enough. Use Octopus when you want multiple model opinions, adversarial review, or stricter multi-LLM workflows.
 
@@ -11,29 +11,35 @@ Every AI model has blind spots. Claude Octopus puts up to eight of them on every
 <p align="center">
   <a href="https://claude.ai"><img src="https://img.shields.io/badge/Claude-Built_with_AI-c96442?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJhMTAgMTAgMCAxIDAgMCAyMCAxMCAxMCAwIDAgMCAwLTIwbTAgMS44YTEuMiAxLjIgMCAwIDEgLjg1LjM1bDEuNSA0LjVhLjYuNiAwIDAgMCAuMzUuMzVsNC41IDEuNWExLjIgMS4yIDAgMCAxIDAgMi4yN2wtNC41IDEuNWEuNi42IDAgMCAwLS4zNS4zNWwtMS41IDQuNWExLjIgMS4yIDAgMCAxLTIuMjcgMGwtMS41LTQuNWEuNi42IDAgMCAwLS4zNS0uMzVsLTQuNS0xLjVhMS4yIDEuMiAwIDAgMSAwLTIuMjdsNC41LTEuNWEuNi42IDAgMCAwIC4zNS0uMzVsMS41LTQuNUExLjIgMS4yIDAgMCAxIDEyIDMuOCIvPjwvc3ZnPg==&labelColor=333" alt="Built with Claude"></a>
   <a href="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml"><img src="https://github.com/nyldn/claude-octopus/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <img src="https://img.shields.io/badge/Tests-117_suites_passing-brightgreen" alt="117 suites passing">
-  <img src="https://img.shields.io/badge/Version-9.42.3-blue" alt="Version 9.42.3">
-  <img src="https://img.shields.io/badge/Claude_Code-v2.1.14+_required-blueviolet" alt="Requires Claude Code v2.1.14+">
+  <img src="https://img.shields.io/badge/Version-9.52.0-blue" alt="Version 9.52.0">
+  <img src="https://img.shields.io/badge/Claude_Code-v2.1.50+_required-blueviolet" alt="Requires Claude Code v2.1.50+">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
 </p>
 
-🐙 **Research, build, review, and ship — with eight AI providers checking each other's work.** Say what you need, and the right workflow runs. Claude-native handles the ordinary path; Octopus handles the escalated path. A 75% consensus gate catches disagreements before they reach production. No single model's blind spots slip through.
+🐙 **Research, build, review, and ship — with ten AI providers checking each other's work.** Say what you need, and the right workflow runs. Claude-native handles the ordinary path; Octopus handles the escalated path. A 75% consensus gate catches disagreements before they reach production. No single model's blind spots slip through.
 
-🧠 **Remembers across sessions.** Integrates with [claude-mem](https://github.com/thedotmack/claude-mem) for persistent memory — past decisions, research, and context survive session boundaries.
+🧠 **Remembers across sessions.** Integrates with [claude-mem](https://github.com/thedotmack/claude-mem) and [agentmemory](https://github.com/rohitg00/agentmemory) for persistent memory — past decisions, research, and context survive session boundaries.
 
 ⚡ **Spec in, software out.** Dark Factory mode takes a spec and autonomously runs the full pipeline — research, define, develop, deliver. You review the output, not every step.
 
 🔄 **Four-phase methodology, not just tools.** Every task moves through Discover → Define → Develop → Deliver, with quality gates between phases. Other orchestrators give you infrastructure. Octopus gives you the workflows.
 
-🐙 **32 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **50 commands** (slash commands you type), **54 skills** (reusable workflow modules). Say "audit my API" and the right expert activates. Don't know the command? The smart router figures it out.
+🐙 **32 specialized personas** (role-specific AI agents like security-auditor, backend-architect), **50 commands** (slash commands you type), **58 skills** (reusable workflow modules). Say "audit my API" and the right expert activates. Don't know the command? The smart router figures it out.
 
-🐙 **Works with just Claude. Scales to eight.** Zero providers needed to start. Add them one at a time — each activates automatically when detected.
+🐙 **Works with just Claude. Scales to ten.** Zero providers needed to start. Add them one at a time — each activates automatically when detected.
 
-💰 **Five providers cost nothing extra.** Codex and Gemini use OAuth (included with subscriptions). Qwen has 1,000-2,000 free requests/day. Copilot uses your GitHub subscription. Ollama runs locally for free.
+💰 **Five providers cost nothing extra when you already have access.** Codex, Gemini, Antigravity CLI, and Copilot use existing subscriptions or local auth. Ollama runs locally for free. Qwen now requires API-key or Coding-Plan auth; its free OAuth tier ended on 2026-04-15.
 
 ---
 
 ## What's New
+
+> 🆕 **v9.50 — Claude Code 2026 compatibility layer.** Routine manifest for scheduled and GitHub-event automations, a SubagentStop quality/cost gate, `/octo:usage` per-provider cost attribution in Claude Code's `/usage` schema, a `worktree.bgIsolation` opt-out for fast direct-edit runs, a Claude Agent SDK seat (`CLAUDE_SDK_API_KEY`, Opus 4.8, 1M context), a four-skill starter pack, and a `/plugin browse` manifest with projected context cost.
+>
+> ```bash
+> /octo:usage --format table        # who spent what, per provider/skill/MCP server
+> OCTOPUS_WORKTREE_BG_ISOLATION=false   # skip worktree cloning for fast runs
+> ```
 
 > 🆕 **v9.41 — Multi-LLM Council.** `/octo:council` runs a structured 3/5/7-persona deliberation across Claude, Codex, Gemini, and OpenCode with goal modes (`advice`, `decision`, `plan`, `implement`, `review`), styles (`balanced`, `adversarial`, `red-team`, `executive`, `implementation`), benchmark-aware role routing, quorum + critical-veto gates, budget caps, and gated worktree handoff for approved plans. Use it when one model's opinion isn't enough.
 >
@@ -44,12 +50,23 @@ Every AI model has blind spots. Claude Octopus puts up to eight of them on every
 
 | Version | Best Features |
 |---------|--------------|
-| **v9.41** (new) | **`/octo:council`** promoted to first-class workflow — structured multi-LLM deliberation with goal modes, adversarial/red-team styles, benchmark-aware persona routing, quorum and critical-veto gates, budget preflight, and gated worktree handoff for approved implementation plans. |
-| **v9** (current) | Up to 8 providers (Codex, Gemini, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OpenCode). Four-way AI debates and configurable multi-LLM councils. Smart router — just say what you need. Agent summary tables show which providers actually contributed. Provider-aware prompt preflight prevents silent oversize failures. Research breadth modes fan out light, standard, or exhaustive investigations. Setup aliases and fuzzy `/octo:*` corrections reduce command friction. Discipline mode with 8 auto-invoke gates. Two-stage review. Circuit breakers with automatic provider recovery. Cursor + OpenCode + Codex cross-compatibility. Token compression: `bin/octo-compress` pipe + auto PostToolUse hook save ~7,300 tokens/session. PostCompact context recovery. `bin/octopus` CLI. 175+ CC feature flags through v2.1.157, including Opus 4.8 and dynamic workflow awareness. |
+| **v9.50** (new) | **Claude Code 2026 compatibility layer** — routines manifest (schedule + GitHub-event automations), SubagentStop quality/cost gate, `/octo:usage` cost attribution, `worktree.bgIsolation` opt-out, Claude Agent SDK seat (Opus 4.8, 1M context), starter skills pack, `/plugin browse` manifest with projected context cost. |
+| **v9.41** | **`/octo:council`** promoted to first-class workflow — structured multi-LLM deliberation with goal modes, adversarial/red-team styles, benchmark-aware persona routing, quorum and critical-veto gates, budget preflight, and gated worktree handoff for approved implementation plans. |
+| **v9** (current) | Up to 9 providers (Codex, Gemini, Antigravity CLI, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OpenCode). Structured provider debates and configurable multi-LLM councils. Smart router — just say what you need. Agent summary tables show which providers actually contributed. Provider-aware prompt preflight prevents silent oversize failures. Research breadth modes fan out light, standard, or exhaustive investigations. Setup aliases and fuzzy `/octo:*` corrections reduce command friction. Discipline mode with 8 auto-invoke gates. Two-stage review. Circuit breakers with automatic provider recovery. Cursor + OpenCode + Codex cross-compatibility. Token compression: `bin/octo-compress` pipe + auto PostToolUse hook save ~7,300 tokens/session. PostCompact context recovery. `bin/octopus` CLI. 175+ CC feature flags through v2.1.157, including Opus 4.8 and dynamic workflow awareness. |
 | **v8** | Multi-LLM code review with inline PR comments. Parallel workstreams in isolated git worktrees. Reaction engine — auto-responds to CI failures. 32 specialized personas. Dark Factory autonomous pipeline. |
 | **v7** | Double Diamond workflow. Multi-provider dispatch. Quality gates and consensus scoring. Configurable sandbox modes. |
 
 [Full changelog →](CHANGELOG.md)
+
+<details>
+<summary>Upgrading to 9.5x</summary>
+
+- The Codex seat's premium default moved from GPT-5.4 to **GPT-5.5** (v9.44+). Pin the old model with `OCTOPUS_CODEX_MODEL=gpt-5.4` if needed.
+- New claude-sdk seat env vars (v9.50): `CLAUDE_SDK_API_KEY`, `OCTOPUS_CLAUDE_SDK_MODEL`, `OCTOPUS_CLAUDE_SDK_MAX_TOKENS`, `OCTOPUS_CLAUDE_SDK_ALLOWED_MODELS`, `OCTOPUS_CLAUDE_SDK_CONTEXT_BUDGET`.
+- New Fable 5 guard env vars (v9.51): `OCTOPUS_FABLE5_MODE` (auto/off/on), `OCTOPUS_FABLE5_NO_RETRY`. Guards auto-enable only when you pin `claude-fable-5`.
+- Premium Claude role routing (architect, strategist, security-reviewer to Opus) landed in v9.29; restore the older mapping with `OCTOPUS_LEGACY_ROLES=1`.
+
+</details>
 
 ## Quickstart
 
@@ -64,7 +81,7 @@ claude plugin install octo@nyldn-plugins
 
 That's it. Setup detects installed providers, shows what's missing, and walks you through configuration. You need **zero** external providers to start — Claude is built in.
 
-Claude Code **v2.1.14+** is the minimum supported runtime. Newer Claude Code releases unlock additional Octopus diagnostics and release checks automatically; the current plugin tracks feature flags through **Claude Code v2.1.157**.
+Claude Code **v2.1.50+** is the minimum supported runtime. Newer Claude Code releases unlock additional Octopus diagnostics and release checks automatically; the current plugin tracks feature flags through **Claude Code v2.1.157**.
 
 <details>
 <summary>Install for Codex CLI</summary>
@@ -216,6 +233,7 @@ npm install -g @openai/codex @google/gemini-cli @qwen-code/qwen-code 2>/dev/null
 echo "Octopus cloud setup:"
 command -v codex >/dev/null 2>&1 && echo "  Codex CLI: installed" || echo "  Codex CLI: missing"
 command -v gemini >/dev/null 2>&1 && echo "  Gemini CLI: installed" || echo "  Gemini CLI: missing"
+command -v agy >/dev/null 2>&1 && echo "  Antigravity CLI: installed" || echo "  Antigravity CLI: missing"
 command -v qwen >/dev/null 2>&1 && echo "  Qwen CLI: installed" || echo "  Qwen CLI: missing"
 command -v gh >/dev/null 2>&1 && echo "  GitHub CLI: installed" || echo "  GitHub CLI: optional, install if Sentinel needs GitHub"
 ```
@@ -245,7 +263,7 @@ Nine high-traffic commands cover the common Octopus workflows: lifecycle executi
 /octo:embrace build stripe integration     # Full lifecycle: research → define → develop → deliver
 /octo:factory "build a CLI that converts CSV to JSON"  # Autonomous pipeline — spec in, software out
 /octo:council --goal decision "Should we keep this service monolithic?"  # Persona council with budget/veto gates
-/octo:debate monorepo vs microservices     # Structured four-way AI debate with consensus
+/octo:debate monorepo vs microservices     # Structured provider debate with consensus
 /octo:research --breadth=standard htmx vs react in 2026  # Attributed multi-provider research
 /octo:design mobile checkout redesign       # UI/UX design with BM25 style intelligence
 /octo:tdd create user auth                 # Red-green-refactor with test discipline
@@ -298,8 +316,8 @@ Or skip the table — type `/octo:auto <what you want>` or just say `octo <what 
 
 | | Claude Code alone | [Superpowers](https://github.com/obra/superpowers) | Claude Octopus |
 |---|---|---|---|
-| **Core idea** | One model, your prompts | Structured methodology for one agent | Up to 8 providers cross-checking each other |
-| **Providers** | Claude only | Claude only | Codex, Gemini, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OpenCode |
+| **Core idea** | One model, your prompts | Structured methodology for one agent | Up to 9 providers cross-checking each other |
+| **Providers** | Claude only | Claude only | Codex, Gemini, Antigravity CLI, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OpenCode |
 | **Workflow** | Ad-hoc | Spec → plan → subagent-driven dev | Discover → Define → Develop → Deliver (Double Diamond) |
 | **Strength** | Simple, no setup | Long autonomous runs with discipline | Multiple perspectives catching blind spots |
 | **Consensus gates** | No | No | Yes — 75% agreement threshold |
@@ -314,24 +332,27 @@ Or skip the table — type `/octo:auto <what you want>` or just say `octo <what 
 
 ## How It Works
 
-### How 8 Providers Work Together
+### How 10 Providers Work Together
 
-Claude Octopus coordinates up to eight AI providers — one per tentacle:
+Claude Octopus coordinates up to ten AI providers:
 
 | Provider | Role |
 |----------|------|
-| 🔴 Codex (OpenAI, GPT-5.4) | Code review + implementation — edge-case hunting, terminal-heavy execution, patch/test loops |
+| 🔴 Codex (OpenAI, GPT-5.5) | Code review + implementation — edge-case hunting, terminal-heavy execution, patch/test loops |
 | 🟡 Gemini (Google) | Ecosystem breadth — alternatives, research synthesis |
+| 🧭 Antigravity CLI (`agy`) | Google Antigravity perspective via native stdin print-mode dispatch |
 | 🟣 Perplexity | Live web search — CVE lookups, dependency research, current docs |
 | 🌐 OpenRouter | Alternative model routing — access 100+ models via single API |
 | 🟢 Copilot (GitHub) | Zero-cost research — uses existing GitHub Copilot subscription |
-| 🟤 Qwen (Alibaba) | Free-tier research — 1,000-2,000 requests/day via Qwen OAuth |
+| 🟤 Qwen (Alibaba) | Qwen3-Coder research via API-key or Coding-Plan auth |
 | ⚫ Ollama (Local) | Zero-cost local LLM — offline, privacy-sensitive, fallback |
+| ⚡ Grok (xAI, via cursor-agent) | Frontier-model second opinion — added as a first-class seat in v9.48 |
 | 🔵 Claude (Anthropic, Opus 4.8 + Sonnet 4.6) | Architecture, strategy, security review, orchestration, consensus, final synthesis |
+| 🔵 Claude Agent SDK seat (`claude-sdk`) | Opus 4.8 with the 1M-token context window, independent of the host session (set `CLAUDE_SDK_API_KEY`) |
 
 Providers run in parallel for research, sequentially for problem scoping, and adversarially for review. A 75% consensus quality gate prevents questionable work from shipping. Only Claude is required — all others are optional and auto-detected.
 
-**Premium Claude routing** defaults `architect`, `strategist`, `security-reviewer`, and opt-in `implementer-heavy` to the current Opus family. On Claude Code v2.1.154+ that is Opus 4.8; older supported hosts fall back to Opus 4.7 and then 4.6. `code-reviewer` and `implementer` default to GPT-5.4 (Terminal-Bench and edge-case review). Opt out with `OCTOPUS_LEGACY_ROLES=1` to restore the v9.28 mapping. See [CHANGELOG](CHANGELOG.md) and [GPT-5.4 prompting guide](docs/GPT-5.4-PROMPTING.md).
+**Premium Claude routing** defaults `architect`, `strategist`, `security-reviewer`, and opt-in `implementer-heavy` to the current Opus family. On Claude Code v2.1.154+ that is Opus 4.8; older supported hosts fall back to Opus 4.7 and then 4.6. `code-reviewer` and `implementer` default to GPT-5.5 (Terminal-Bench and edge-case review). Opt out with `OCTOPUS_LEGACY_ROLES=1` to restore the v9.28 mapping. See [CHANGELOG](CHANGELOG.md) and [GPT-5.4 prompting guide](docs/GPT-5.4-PROMPTING.md).
 
 **Native dynamic workflows:** Claude Code v2.1.154+ can run native dynamic workflows for huge single-Claude migrations. Use that path when one Claude workflow is enough; use Octopus when you need multi-provider disagreement, councils, adversarial review, external model validation, or blind-spot coverage.
 
@@ -354,7 +375,7 @@ Specialized agents that activate automatically based on your request. When you s
 
 Categories: Software Engineering (11), Specialized Development (6), Documentation & Communication (5), Research & Strategy (3), Business & Compliance (3), Creative & Design (4).
 
-[Full persona reference](docs/AGENTS.md) | [All 54 skills](docs/COMMAND-REFERENCE.md)
+[Full persona reference](docs/AGENTS.md) | [All 58 skills](docs/COMMAND-REFERENCE.md)
 
 ### Built-in Reaction Engine
 
@@ -393,16 +414,75 @@ Reactions track 13 agent lifecycle states: `running` → `pr_open` → `ci_pendi
 
 ### Authentication
 
-| Method | Codex | Gemini | Claude |
-|--------|-------|--------|--------|
-| OAuth (recommended) | `codex login` — included in ChatGPT subscription | Google account — included in AI subscription | Built into Claude Code |
-| API key | `OPENAI_API_KEY` — per-token billing | `GEMINI_API_KEY` — per-token billing | Built into Claude Code |
+| Method | Codex | Gemini | Antigravity | Claude |
+|--------|-------|--------|-------------|--------|
+| OAuth/subscription (recommended) | `codex login` — included in ChatGPT subscription | Google account — included in AI subscription | `agy` auth — included with Antigravity access | Built into Claude Code |
+| API key | `OPENAI_API_KEY` — per-token billing | `GEMINI_API_KEY` — per-token billing | n/a | Built into Claude Code |
 
-OAuth users pay nothing beyond their existing subscriptions.
+OAuth users pay nothing beyond their existing subscriptions. Qwen is the exception: its free OAuth tier ended on 2026-04-15, so use `QWEN_API_KEY` or Coding-Plan (`OPENAI_API_KEY` + `OPENAI_BASE_URL`).
+
+### What a Typical Run Costs
+
+Rough per-run estimates on API-key billing at current rates (GPT-5.5 $5/$30, Gemini 3.1 Pro $2.50/$10, Sonar Pro $3/$15, Opus 4.8 $5/$25 per MTok). OAuth/subscription seats (Codex via ChatGPT, Gemini via Google account, Antigravity, Copilot) bill nothing extra; Ollama is free. Numbers scale with prompt size — treat them as order-of-magnitude.
+
+| Run | Typical volume | API-key cost range |
+|-----|----------------|--------------------|
+| Single probe / quick question (one provider) | 5-20K tokens | $0.01-0.15 |
+| Debate (2-3 providers, multi-round) | 30-80K tokens | $0.20-0.80 |
+| Council (4-6 seats + synthesis) | 60-150K tokens | $0.50-2.00 |
+| Full embrace (4 phases, multi-provider) | 150-400K tokens | $1.00-5.00 |
+
+Before an expensive run, `/octo:costs` shows a session cost projection; after runs, `/octo:usage` breaks down actual spend per provider and skill. Anything projected over $1 is called out before dispatch.
 
 ### What You Get With Just Claude
 
 Everything except multi-AI features. You get all 32 personas, structured workflows, smart routing, context detection, and every skill. Multi-AI orchestration (parallel analysis, debate, consensus) activates when external providers are configured.
+
+---
+
+## Claude Code 2026 Compatibility Layer
+
+v9.50.0 aligns the plugin with Claude Code's 2026 native capabilities. Each piece degrades gracefully on older Claude Code versions via the existing `SUPPORTS_*` feature detection.
+
+- **Routines** (`.claude-plugin/routines.json`): saved automation configs mapping schedule and GitHub-event triggers to `/octo:` commands. All ship disabled; each entry carries a provider roster and a cost note so you know what enabling it will bill.
+- **SubagentStop gate** (`hooks/subagent-stop-gate.sh`): quality scoring, provider attribution, cost logging, and council verdict pre-screening before a subagent's summary reaches the lead.
+- **`/octo:usage`**: per-provider, per-skill, and per-MCP-server token and cost breakdown in Claude Code's `/usage` schema, built from local usage records (no provider dispatch).
+- **Worktree bgIsolation opt-out**: mirror of Claude Code's `worktree.bgIsolation` session flag; disables background worktree cloning for fast direct-edit runs.
+- **Claude Agent SDK seat** (`claude-sdk`): with `CLAUDE_SDK_API_KEY` set, workflows can seat Opus 4.8 with the 1M-token context window independent of the host session.
+- **Starter pack** (`skills/octopus-starter-pack/`): debate kickoff, council verdict interpretation, provider health summary, and model cost comparison skills.
+- **`/plugin browse` manifest** (`.claude-plugin/plugin-manifest.json`): projected context cost and component inventory for the plugin browse pane.
+
+### New environment variables (v9.50.0)
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `CLAUDE_SDK_API_KEY` | unset | Enables the `claude-sdk` provider seat (Claude Agent SDK; Opus 4.8, 1M context) |
+| `OCTOPUS_CLAUDE_SDK_MODEL` | `claude-opus-4-8` | Model for the `claude-sdk` seat |
+| `OCTOPUS_CLAUDE_SDK_MAX_TOKENS` | `8192` | Max output tokens for the `claude-sdk` seat (SDK CLI path) |
+| `OCTOPUS_CLAUDE_SDK_ALLOWED_MODELS` | unset | Comma-separated model allowlist for the `claude-sdk` seat |
+| `OCTOPUS_CLAUDE_SDK_CONTEXT_BUDGET` | `1000000` | Prompt context budget for `claude-sdk` agent types |
+| `OCTOPUS_WORKTREE_BG_ISOLATION` | `true` | Set `false` to skip background worktree cloning (fast direct-edit runs) |
+| `OCTOPUS_SUBAGENT_GATE_STRICT` | `false` | Set `true` to let the SubagentStop gate block malformed council verdicts and low-quality summaries |
+| `OCTOPUS_SUBAGENT_MIN_QUALITY` | `0` | Quality floor (0-100) enforced by the gate in strict mode; `0` disables |
+
+---
+
+## Fable 5 Support
+
+v9.51.0 adds first-class support for Claude Fable 5 (Anthropic's Mythos-class model, $10/$50 per MTok — 2x Opus 4.8). Fable 5 is never auto-selected; pin it with `OCTOPUS_OPUS_MODEL=claude-fable-5` (opus seats) or `OCTOPUS_CLAUDE_SDK_MODEL=claude-fable-5` (the 1M-context SDK seat). When a pin is detected, the plugin auto-enables three guards and prints a one-line banner:
+
+- **Security reroute** — security-audit dispatches (security-auditor persona, squeeze red/blue workflow) run on Opus 4.8 instead of Fable 5, whose safety classifiers can refuse adversarial security phrasing even in authorized audits.
+- **Effort clamp** — `xhigh`/`max` effort clamps to `high` for Fable dispatches. Fable 5 effort applies per tool call; higher settings widen scope at 2x cost without extending runs.
+- **Refusal retry** — a refused or empty Fable 5 dispatch on the `claude-sdk` seat retries once on Opus 4.8 instead of failing the seat.
+
+A SessionStart hook injects the dispatch profile (prompt anti-patterns, judgment routing, risk-surface escalation) whenever a pin is active. Full guidance: `skills/blocks/fable5-prompting.md`.
+
+### New environment variables (v9.51.0)
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `OCTOPUS_FABLE5_MODE` | `auto` | `off` disables all Fable 5 guards; `on` forces them without a pin |
+| `OCTOPUS_FABLE5_NO_RETRY` | unset | Set `1` to disable the refusal retry on the `claude-sdk` seat |
 
 ---
 
@@ -412,7 +492,7 @@ Everything except multi-AI features. You get all 32 personas, structured workflo
 
 **Data locations** — Results in `~/.claude-octopus/results/`, logs in `~/.claude-octopus/logs/`, project state in `.octo/`. Nothing hidden.
 
-**Provider transparency** — Every command shows a 🐙 activation indicator on launch. Colored dots (🔴 🟡 🟣 🔵) show exactly which providers are running and when external APIs are called. You always know what's happening.
+**Provider transparency** — Every command shows a 🐙 activation indicator on launch. Provider markers such as 🔴 🟡 🧭 🟣 🔵 show exactly which providers are running and when external APIs are called. You always know what's happening.
 
 **Session provider controls** — Temporarily disable exhausted providers without uninstalling them. For example, `/octo:model-config disable codex --session` keeps Codex out of provider detection and multi-LLM fanout for the current session; `/octo:model-config clear-allowlist --session` restores the default.
 
@@ -499,7 +579,7 @@ The extension registers as an OpenClaw plugin with configurable workflows, auton
 
 ## FAQ
 
-**Do I need all three AI providers?**
+**Do I need every AI provider?**
 No. One external provider plus Claude gives you multi-AI features. No external providers still gives you personas, workflows, and skills.
 
 **Will this break my existing Claude Code setup?**
@@ -536,11 +616,15 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details.
 
 - [Documentation Guide](docs/README.md) — Start here
 - [Command Reference](docs/COMMAND-REFERENCE.md) — Commands, triggers, and provider indicators
-- [Feature Gap Analysis](docs/FEATURE-GAP.md) — CC feature adoption tracker
+- [Troubleshooting](docs/TROUBLESHOOTING.md) — Provider auth failures and common errors
 - [Architecture](docs/ARCHITECTURE.md) — Provider flow and execution model
-- [Plugin Architecture](docs/PLUGIN-ARCHITECTURE.md) — Internal plugin structure
 - [Agents & Personas](docs/AGENTS.md) — All 32 personas
-- [CLI Reference](docs/CLI-REFERENCE.md) — Direct CLI usage, debug mode, async, and tmux
+- [Provider Wiring Map](docs/PROVIDERS.md) — How a provider is wired (contributors)
+- [Developer Guide](docs/DEVELOPER.md) — Modular config, E2E testing, enforcement patterns
+- [Scheduler](docs/SCHEDULER.md) — Scheduled workflow runner
+- [Privacy](docs/PRIVACY.md) — What leaves your machine and when
+- [Security Policy](SECURITY.md) — Threat model and trust boundaries
+- [Releasing](RELEASING.md) — Release checklist (maintainers)
 - [Changelog](CHANGELOG.md)
 
 ---

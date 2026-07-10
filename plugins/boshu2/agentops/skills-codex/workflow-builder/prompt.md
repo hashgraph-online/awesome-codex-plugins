@@ -1,6 +1,6 @@
 # workflow-builder
 
-Scaffold a new Claude Workflow script (.claude/workflows/*.js) — deterministic multi-agent orchestration — from the operating-loop.js template and the Workflow primitives. Triggers: "build a workflow", "create a workflow", "scaffold workflow", "author a workflow".
+Scaffold a new Claude Workflow script — deterministic multi-agent orchestration. Triggers: "build a workflow", "create a workflow", "scaffold workflow", "author a workflow".
 
 ## Instructions
 

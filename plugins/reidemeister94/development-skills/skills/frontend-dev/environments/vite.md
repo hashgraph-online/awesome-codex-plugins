@@ -139,9 +139,18 @@ Run package.json scripts via the project's detected package manager — see [../
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Settings = lazy(() => import("./pages/Settings"));
 
+// In the router/render tree — route fallback is a layout-mirroring skeleton, not a bare spinner
+<Route path="/dashboard" element={
+  <Suspense fallback={<DashboardSkeleton />}>
+    <Dashboard />
+  </Suspense>
+} />
+
 // Dynamic imports
 const module = await import("./heavy-module");
 ```
+
+The `Suspense fallback` mirrors the route's layout — same content-loading pattern as Next.js (see [react.md](../patterns/react.md), *Async content loading*).
 
 ---
 

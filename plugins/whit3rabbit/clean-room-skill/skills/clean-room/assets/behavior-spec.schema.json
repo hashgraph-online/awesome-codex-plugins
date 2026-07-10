@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Behavior Spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "spec_id",
+    "unit_id",
+    "producer_role",
+    "created_at",
+    "source_unit_refs",
+    "evidence_refs",
+    "evidence_status",
+    "confidence",
+    "leakage_risk",
+    "summary",
+    "observable_surface",
+    "public_surface",
+    "compatibility_level",
+    "observable_behaviors",
+    "inputs",
+    "outputs",
+    "state_transitions",
+    "edge_cases",
+    "error_conditions",
+    "negative_behaviors",
+    "timing_or_ordering",
+    "security_relevant_behavior",
+    "invariants",
+    "non_goals",
+    "test_scenarios",
+    "open_questions",
+    "leakage_review",
+    "review_history"
+  ],
+  "properties": {
+    "spec_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "producer_role": {
+      "const": "contaminated-source-analyst"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_unit_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^evidence-ledger:"
+      }
+    },
+    "evidence_status": {
+      "$ref": "#/$defs/evidence_status"
+    },
+    "confidence": {
+      "$ref": "#/$defs/confidence"
+    },
+    "leakage_risk": {
+      "$ref": "#/$defs/leakage_risk"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observable_surface": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "public_surface": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/public_surface_item"
+      }
+    },
+    "compatibility_level": {
+      "enum": [
+        "exact-public-contract",
+        "behavior-compatible",
+        "best-effort",
+        "unspecified"
+      ]
+    },
+    "observable_behaviors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "state_transitions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "edge_cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "error_conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "negative_behaviors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "timing_or_ordering": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "security_relevant_behavior": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "compatibility_notes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "non_goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "test_scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/test_scenario"
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "leakage_review": {
+      "$ref": "#/$defs/leakage_review"
+    },
+    "review_history": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/review_event"
+      }
+    }
+  },
+  "$defs": {
+    "evidence_status": {
+      "enum": [
+        "observed",
+        "derived",
+        "inferred",
+        "unknown",
+        "error"
+      ]
+    },
+    "confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "leakage_risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "blocked"
+      ]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim",
+        "evidence_status",
+        "evidence_refs",
+        "confidence"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/evidence_status"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^evidence-ledger:"
+          }
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "rationale": {
+          "type": "string"
+        }
+      }
+    },
+    "public_surface_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "visibility",
+        "compatibility_reason"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "visibility": {
+          "enum": [
+            "public",
+            "destination",
+            "protocol",
+            "user-required"
+          ]
+        },
+        "compatibility_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "test_scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "scenario",
+        "expected_result",
+        "coverage"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_result": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "leakage_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reviewer_role",
+        "notes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pending",
+            "passed",
+            "failed",
+            "quarantined"
+          ]
+        },
+        "reviewer_role": {
+          "enum": [
+            "contaminated-source-analyst",
+            "contaminated-handoff-sanitizer",
+            "clean-qa-editor"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "review_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewer_role",
+        "status",
+        "notes"
+      ],
+      "properties": {
+        "reviewer_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

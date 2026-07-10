@@ -5,44 +5,60 @@ description: Use when about to claim work is complete, fixed, passing, verified,
 
 # Execute
 
-→ About to claim "done", "passing", "fixed", "complete"? → **Run the verification command first. Then claim.**
-  1. Identify: what command proves the claim?
-  2. Run: full command, fresh, complete
-  3. Read: output, exit code, failures
-  4. Verify: output confirms claim? → state claim WITH evidence. Doesn't? → state actual status.
-→ Done when: exact command run, output confirms, residual risk stated, confidence graded.
-  Non-trivial code changes → also report Complexity Delta and Complexity Governance Suggestion.
-  Governance/retirement work → also close Repair Track + Retirement Track + Residual Risk.
+→ About to claim "done", "passing", "fixed", "complete", "verified",
+"release-ready", or "ready to hand off"? → **Verify first, then claim only
+what the evidence supports.**
+
+1. Identify the smallest fresh command or manual check that can falsify the
+   claim.
+2. Run or perform it completely.
+3. Read output, exit status, failures, and covered scope.
+4. Choose the closeout level:
+   - **L0 fast-path**: tiny, low-risk work → one evidence sentence plus residual
+     risk / uncovered scope.
+   - **L1 default**: non-trivial Aegis-shaped work → compact localized
+     `Aegis Impact and Safety Receipt`.
+   - **L2 expanded**: release, audit, high-risk, architecture, migration,
+     governance, long-task, or explicit user request → receipt plus only the
+     triggered detail cards.
+5. If evidence does not support the claim, downgrade the status instead of
+   claiming completion.
+
+Done means: fresh verification evidence exists, covered and uncovered scope are
+explicit, residual risk is stated, confidence is graded, and any triggered
+baseline / complexity / retirement / ADR boundary has been folded into the
+single closeout surface or expanded because the risk requires it.
 
 # Verification Before Completion
 
-## Overview
+## Purpose
 
-Claiming work is complete without verification is dishonesty, not efficiency. Evidence before claims, always.
+Prevent unsupported completion claims while keeping ordinary completion output
+compact. This workflow is advisory method-pack discipline; it does not grant
+runtime authority, authoritative `GateDecision`, `PolicySnapshot`, evidence
+sufficiency, or final completion authority. It is advisory, not completion authority.
 
-## Red Flags - STOP
+## Stop Signals
 
-- Using "should", "probably", "seems to"
-- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
-- About to commit/push/PR without verification
-- Trusting agent success reports
-- Relying on partial verification
-- Thinking "just this once"
-- Tired and wanting work over
-- **ANY wording implying success without having run verification**
+Stop and verify before any success wording if you are:
 
-## When To Apply
+- using "should", "probably", "seems to", or similar uncertainty words
+- relying on an agent success report rather than independent evidence
+- about to commit, push, open a PR, merge, tag, publish, or hand off
+- using a narrow check to support a broad claim
+- treating task / slice completion as accepted requirement satisfaction
+- closing governance or retirement work without repair / retirement evidence
+- retaining old logic without a retention reason and retirement trigger
+- treating a destructive warning, guard, or broad assent as permission
 
-Before ANY success/completion claim, expression of satisfaction, commit, PR, task completion, or delegation. Applies to exact phrases, paraphrases, and implications.
+## Required Evidence Slots
 
-## QA Closure
-
-Before any success claim, include the required evidence semantic slots. Natural
-prose, localized headings, or compact cards are all valid when the slots remain
-explicit and auditable.
+Every completion claim needs these semantic slots. They may appear as localized
+headings, natural prose, or a compact card, but they must remain explicit and
+auditable:
 
 ```text
-Required evidence slots, one allowed card rendering:
+Required evidence slots:
 - Evidence action / check performed:
 - Result / exit status:
 - Covered scope:
@@ -51,338 +67,217 @@ Required evidence slots, one allowed card rendering:
 - Confidence grade: A | B | C
 ```
 
-Semantic Slots:
-- Required governance fields may appear as localized headings, natural prose, or
-  compact cards when they remain explicit and auditable.
-- Natural Surface is valid when natural user-facing wording preserves the
-  semantic slots; natural expression is not a reason to drop evidence,
-  uncovered scope, residual risk, confidence, retirement, baseline, or
-  architecture fields.
-- In short: natural expression is valid only when it preserves semantic slots.
-- Governance Receipt is the compact closeout form for Aegis-shaped non-trivial
-  work. It names the boundary held, evidence, covered and uncovered scope,
-  residual risk, confidence, and any triggered governance closure.
+Confidence grades:
 
-TDD Completion Boundary:
-- Judge the completion claim against the highest available explicit boundary.
-- Parent plan/spec acceptance decides whole-task completion; `TaskIntentDraft`
-  decides current-task completion; `Slice Card` decides slice completion only.
-- Match the boundary to the claim being made, and keep any higher open boundary
-  explicit.
-- If only slice-level evidence exists, do not claim whole-task `done`.
-- If no explicit boundary exists and atomicity is not clear, downgrade to
-  `needs-verification` or return to framing/planning.
+- `A`: direct target evidence plus relevant regression evidence, no meaningful
+  unknowns
+- `B`: direct target evidence with bounded residual risk
+- `C`: partial evidence only; do not claim full completion
 
-1. **Remove/Restore**: side effects? temp instrumentation restored?
-2. **Evidence Bundle**: exact command, scope, exit status, key output. State what's covered and what's not. Include target test and related regression evidence. When automation is blocked, provide reproducible manual verification steps.
-3. **Prompt Hygiene**: when external output shaped judgment → state whether summaries or raw excerpts were used. Name large payloads not loaded. If summary insufficient → read back excerpt or lower claim. Include Evidence Used / Not Loaded / Next Evidence boundary when relevant.
-4. **Confidence**: A (direct + regression, no unknowns) | B (direct, bounded risk) | C (partial only, not closed)
-5. **Authority**: verified evidence ≠ authoritative completion. Keep distinct.
-6. **Goal Closure**: when `goal-framing` or optional `TaskIntentDraft` goal
-   fields shaped the work, explicitly check the goal before claiming completion:
+Verified evidence is not authority. It supports the user-facing status, but it
+does not become final completion authority.
 
-   Available boundary check for completion judgment:
-   1. Parent plan/spec acceptance for whole-task completion, when present
-   2. `TaskIntentDraft` Goal / Success evidence / Non-goals for the current
-      task, when present
-   3. `Slice Card` Goal / Verification / Stop for the current slice, when
-      present
+## Evidence Bundle
 
-   ```text
-   Goal Closure:
-   - Goal status: satisfied | blocked | needs-verification | scope-exceeded
-   - Success evidence:
-   - Stop state: done | blocked | needs-verification | scope-exceeded
-   - Non-goals respected:
-   ```
+Every completion claim should name the evidence action, result, covered scope,
+uncovered scope, residual risk, and confidence. Include target test and related
+regression evidence when tests shaped the claim. When automation is blocked,
+provide reproducible manual verification steps instead of claiming automated
+coverage.
 
-   Use `done` only when success evidence is satisfied. Use `blocked` when a
-   dependency, permission, or required fact is missing. Use `needs-verification`
-   when implementation exists but evidence is insufficient. Use
-   `scope-exceeded` when continuing would exceed the goal or non-goals.
-7. **Long-Task**: re-read checkpoint, confirm every todo has status, no drift check unresolved.
-8. **Workspace Integrity**: if the task created or modified a target project's
-   `docs/aegis/` workspace and configured Aegis workspace support is available,
-   run
-   `python <aegis-workspace-helper> bundle --root <target-project-root> --work YYYY-MM-DD-<slug>`
-   when a `work/` record exists, then run
-   `python <aegis-workspace-helper> check --root <target-project-root>` and
-   include the result in the evidence bundle. The generated proof bundle and
-   workspace check validate method-pack structure, index coverage, and
-   recognizable JSON artifact sidecars only; they do not judge evidence
-   sufficiency and do not grant completion authority.
-9. **Readiness Summary**: for release, merge, handoff, or "ready?" requests,
-   organize the evidence into a compact readiness view after the evidence
-   slots:
+## Closeout Decision Tree
 
-   ```text
-   Readiness Summary:
-   - Tests:
-   - Docs:
-   - Version:
-   - Host compatibility:
-   - Uncovered scope:
-   - Residual risk:
-   ```
+Use one completion surface. Do not output parallel final reports.
+`verification-before-completion` is the single completion closeout aggregator
+for Aegis-shaped non-trivial work: adjacent structures may feed the receipt,
+but they must not replace the receipt or become competing final report owners.
+Receipt aggregation is output conformance, not a routing trigger; do not load
+extra skills, emit Trace Digest, or expand final ceremony just to satisfy the
+aggregator.
 
-   A readiness summary is advisory evidence organization only. It is not
-   authorization to commit, tag, publish, merge, or release. It cannot provide
-   completion authority.
-10. **Natural Aegis closeout**: when Aegis skills materially shaped a
-   non-trivial task, keep Aegis explicitly visible in the final completion
-   closeout.
+## Aegis Visibility
 
-   The closeout should naturally show how Aegis influenced the result. Make at
-   least one of the following user-visible:
-   - what boundary Aegis helped hold steady
-   - what evidence or verification discipline Aegis required before the claim
-   - what residual risk, uncovered scope, or restraint Aegis kept visible
+For this owner workflow, Aegis Visibility ties the final claim to the decision
+boundary, fresh evidence, baseline / complexity / retirement safety, and
+residual risk kept visible. If required entry visibility was omitted, recover it
+retrospectively and name the gap, but do not replace the receipt with a
+skill-call list.
 
-   Use one sentence when Aegis mainly helped hold one boundary steady,
-   but more than one mention is valid when boundary, evidence, and
-   residual-risk visibility each materially shaped the judgment.
+### L0 Fast-Path
 
-   Keep this integrated into the normal completion summary rather than a fixed
-   slogan. Do not default to a visible `Aegis Contribution Note:` heading. Do
-   not default to one canonical closeout phrase, and do not repeat the same
-   Aegis closeout wording across unrelated tasks.
+Use for tiny, low-risk work where Aegis only held one narrow boundary steady.
+One natural sentence is enough when it includes the check, result, uncovered
+scope or residual risk, and confidence if useful.
 
-   When Aegis materially shaped multiple parts of the judgment, it may appear
-   more than once across the closeout, as long as each mention is tied to a
-   concrete boundary, evidence decision, or risk callout.
+### L1 Default Non-Trivial Closeout
 
-   Keep it advisory method-pack discipline, not completion authority. Keep it
-   implicit only for obvious fast-path replies unless the user asked about
-   Aegis routing.
+For non-trivial Aegis-shaped work, use the compact receipt by default. Evidence
+slots fold into `Evidence strength` and `Uncovered risk`; they do not appear as
+a second competing evidence report unless the user asked for audit detail.
 
-   Natural expression may satisfy the visibility requirement when the semantic
-   slots are still explicit. For example, "I will follow the Aegis order here:
-   read the owner / baseline and current implementation first, add a failing
-   example for the main path, then make the minimal repair and verify it" is a
-   valid natural transition before implementation. Completion still needs fresh
-   evidence and the applicable Governance Receipt fields.
+```text
+Aegis Impact and Safety Receipt:
+- Key judgment:
+- Avoided misfix:
+- Boundary held:
+- Baseline alignment:
+- Complexity control:
+- Evidence strength:
+- Uncovered risk:
+- Next most valuable verification:
+- Aegis path:
+```
 
-   Use structured trace only for audit, debug, release, long-task review, or user request.
-   The structured form may name skills, stage transitions, quality
-   effect, and boundary, but it should not replace the normal user-facing
-   completion note.
+Field rules:
 
-11. **User-Language Output**: final response cards must localize user-facing
-   section labels, field labels, and explanatory prose to the user's language.
-   Keep commands, file paths, code identifiers, stable enum values, and exact
-   product names unchanged. For important Aegis product terms, include the
-   stable English identifier only when it prevents ambiguity, usually beside a
-   user-language explanation on first use.
+- `Key judgment`: the owner, root-cause layer, requirement boundary, or
+  completion boundary that shaped the answer.
+- `Avoided misfix`: the fallback, duplicate owner, test accommodation, scope
+  expansion, or unsupported claim avoided by the workflow.
+- `Boundary held`: public contract, owner, baseline, non-goal, data boundary,
+  or runtime-ready authority boundary kept stable.
+- `Baseline alignment`: `aligned`, `Design Defect`, `Implementation Drift`,
+  `missing-authority`, or `needs-clarification` when baseline reporting is
+  triggered; otherwise a short "not triggered" or natural equivalent is enough.
+- `Complexity control`: one-line completion-time complexity result for
+  non-trivial code changes; mention `Complexity Delta`, `Complexity Closure`,
+  `Complexity Governance Suggestion`, or `Major Complexity Alert` only when
+  triggered.
+- `Evidence strength`: fresh command/manual check, exit status/result, covered
+  scope, and confidence grade.
+- `Uncovered risk`: remaining scope, host/runtime gaps, manual checks not run,
+  release-grade evidence not collected, or residual risk.
+- `Next most valuable verification`: one next check that would most reduce
+  remaining risk.
+- `Aegis path`: optional compact skill path. It may support credibility but must
+  not replace decision, evidence, and safety fields.
 
-12. **Complexity Delta**: for non-trivial code changes, inspect the actual
-   diff before claiming completion. This is a completion-time entropy check,
-   not a universal failure gate. Skip or keep it one-line for tiny wording
-   edits, tests-only additions, generated files, vendored files, fixtures,
-   lockfiles, or purely mechanical formatting where no maintained source owner
-   gained complexity.
+Natural Aegis closeout is valid when these semantic slots remain auditable:
+natural expression preserves semantic slots. Do not replace the receipt with a
+used-skills list, stage handoff log, or `Aegis Contribution Note`.
 
-   Use the project language for field labels in the final response, but keep
-   the internal shape recognizable:
+Compatibility names: `Semantic Slots` and `Natural Surface` describe this same
+rule: natural wording is valid only when required fields stay explicit.
+`Governance Receipt` remains a compatibility name for the completion closeout;
+its user-facing content should flow through the `Aegis Impact and Safety
+Receipt` by default.
 
-   ```text
-   Complexity Delta:
-   - Files over 800 lines:
-   - Files newly crossing 800 lines:
-   - Largest touched file delta:
-   - Largest touched function/block:
-   - New branches/fallbacks/adapters:
-   - Retired branches/fallbacks/adapters:
-   - Net entropy: decreased | stable | increased-with-justification
-   - Required follow-up:
-   ```
+### L2 Expanded Closeout
 
-   When the delta finds meaningful pressure, add:
+Start with the receipt, then add only the triggered detail. Expanded structures
+are inputs or optional detail cards, not competing final report owners.
 
-   ```text
-   Complexity Governance Suggestion:
-   - Recommendation: none | monitor | schedule-refactor | extract helper | split owner | open follow-up
-   - Why:
-   - Suggested scope:
-   - Timing:
-   ```
+Use expanded detail only when the trigger applies:
 
-   Use `none` for small owner-correct diffs, `monitor` for acceptable visible
-   growth, and stronger recommendations for 800+ line files, 80+ line blocks,
-   branch/fallback/adapter growth without retirement, or owner mismatch. The
-   suggestion is advisory; keep residual risk visible.
+- `Readiness Summary`: release, merge, handoff, or "ready?" requests. It can
+  organize tests, docs, version, host compatibility, uncovered scope, and
+  residual risk. It does not authorize commit, tag, publish, merge, or release.
+- `Trace Digest`: explicit audit / debug / release / long-task review request.
+  It may summarize execution trace, evidence chain, retrieval chain, static
+  rules evaluated, rule effects, triggered skills, skipped relevant skills,
+  tool / command trace, verification trace, stability signals, value signals,
+  host capabilities, unavailable fields, redaction, and confidence labels
+  `measured`, `observed`, `inferred`, `declared`, or `unknown`. It must not
+  expose raw chain-of-thought.
+  Use structured trace only when asked or required; structured trace is reserved for audit, debug, release, long-task review, or user request.
+- `Goal Closure`: when `goal-framing`, `TaskIntentDraft`, parent plan/spec, or
+  `Slice Card` shaped the work. Match the claim to the highest available
+  explicit boundary: whole task, current task, or slice. If only slice evidence
+  exists, do not claim whole-task done. Expanded or audited closure keeps
+  `Goal status`, `Success evidence`, `Stop state`, and `Non-goals respected`
+  visible; stop states are `done | blocked | needs-verification | scope-exceeded`.
+- `Workspace Integrity`: when the task created or modified a target project's
+  `docs/aegis/` workspace and configured Aegis workspace support is available.
+  Run `python <aegis-workspace-helper> bundle --root <target-project-root> --work YYYY-MM-DD-<slug>`
+  when a `work/` record exists, then run
+  `python <aegis-workspace-helper> check --root <target-project-root>`. Report
+  that these validate structure only, not evidence sufficiency.
+- `Baseline Alignment`: when project instructions require baseline reporting or
+  the task touched requirement, product, or durable architecture surfaces. Use
+  `docs/current/AEGIS_PROCESS_BASELINE.md` §3.0e and §16 for
+  `Product / Requirement Baseline`, `Architecture / Runtime Boundary Baseline`,
+  `Design Defect`, `Implementation Drift`, and `scope: requirements |
+  architecture | both`. Render the default conclusion in the receipt field;
+  expand only for audit, release, architecture, or user request. `Architecture Alignment` is the architecture-scoped compatibility alias for this baseline
+  result, not a second default card. Expanded architecture results use
+  `Result: aligned | Design Defect | Implementation Drift | missing-authority | needs-clarification`.
+- `ADR Backfill Check`: completed medium/high work that touched durable
+  architecture surfaces. Use `docs/current/AEGIS_ADR_AUTO_BACKFILL.md` for
+  trigger criteria. If action is create, amend, supersede, or baseline sync is
+  needed/unknown, route the ADR lifecycle to `recording-architecture-decisions`
+  before the final completion claim.
+- `Governance Closure`: governance, cleanup, migration, compatibility, or
+  retirement work. Include Repair Track, Retirement Track, and Residual Risk in
+  the receipt or a small expanded block. Do not skip this structure just because the implementation was small.
+- `Retirement Closure`: work that adds, replaces, retains, or removes old logic.
+  Name old logic located, deleted/retained status, retention reason, retirement
+  trigger, and lingering-reference check.
+- `Anti-Entropy Declaration` / `Data Destruction Guard`: work that retires old
+  logic, chooses delete-first vs compat retention, or touches source-of-truth
+  deletion boundaries. Use `anti-entropy-governance` for the decision surface.
+  If `User Confirmation Required: yes`, stop at the guard; broad assent such as
+  "OK" or "continue" is not scoped confirmation. Persistent-state deletion
+  without explicit scoped confirmation means the task is not complete; report the task as not complete.
 
-   Rules:
-   - A maintained source file over 800 lines is a review signal. If this slice
-     added logic there or pushed it across 800 lines, explain why the owner
-     boundary is still correct or report a split/refactor follow-up.
-   - A touched function, method, component, or cohesive block over roughly 80
-     lines, deeply nested logic, or mixed reasons to change is a block-level
-     complexity signal even if the file remains under 800 lines.
-   - New fallback, adapter, compatibility, guard, or branch logic must be
-     paired with retired paths or a Retirement Closure entry. Net new paths
-     without deletion or a scheduled retirement trigger count as entropy
-     increase.
-   - If entropy increased and no stronger owner/compatibility reason exists,
-     downgrade the completion claim or state the residual risk.
+## Completion Boundary
 
-13. **Baseline Alignment Check**: before final response, if project
-   instructions require baseline reporting or the task touched requirement,
-   product, or durable architecture surfaces, include an explicit baseline
-   alignment result. This is separate from ADR Backfill: alignment states
-   whether the completed work matches current requirements and architecture
-   baselines; ADR Backfill states whether durable architecture memory needs to
-   be created, amended, superseded, or skipped. This is a method-pack signal,
-   not a runtime gate, not an authoritative `GateDecision`, and not completion
-   authority.
+Judge the claim against the highest available explicit boundary:
 
-   `Product / Requirement Baseline` covers the accepted problem, success
-   evidence, non-goals, workflow constraints, and approved requirement/spec
-   intent. `Architecture / Runtime Boundary Baseline` covers canonical owner,
-   contract, source-of-truth, dependency direction, compatibility,
-   runtime-ready/method-pack boundary, and retirement state.
+1. parent plan/spec acceptance for whole-task completion
+2. `TaskIntentDraft` goal / success evidence / non-goals for current-task
+   completion
+3. `Slice Card` goal / verification / stop for slice completion
+4. direct user request when no durable boundary exists
 
-   Triggering surfaces include architecture, contracts, source-of-truth owner,
-   canonical owner, context/answering/runtime flow, cross-module data flow,
-   producer-to-carrier-to-consumer chains, public user-visible identity,
-   evidence model, retained fallback, adapter, compatibility path, requirement
-   acceptance, product non-goals, and project-specific baseline rules.
+A completed task or slice means the authorized execution / verification boundary
+reached its stop condition. It does not mean the underlying requirement is
+accepted. `Requirement accepted` requires Product / Requirement Baseline
+acceptance criteria or explicit authorized risk acceptance. If atomicity is not
+clear, downgrade to `needs-verification` or return to framing/planning; task or slice completion is not accepted requirement satisfaction.
 
-   ```text
-   Baseline Alignment:
-   - Trigger: yes | no
-   - Product / Requirement Baseline:
-   - Architecture / Runtime Boundary Baseline:
-   - Requirement / acceptance alignment:
-   - Architecture / owner / contract alignment:
-   - Result: aligned | Design Defect | Implementation Drift | missing-authority | needs-clarification
-   - scope: requirements | architecture | both
-   - Evidence:
-   - Residual risk:
-   ```
+If an `Execution Readiness View` shaped execution, mention whether fresh
+evidence covered its required checks or which readiness item remains uncovered.
+Do not treat the view itself as verification evidence.
 
-   Use `Design Defect` when the relevant requirement, design, or baseline is
-   wrong. Use `Implementation Drift` when the work deviates from a correct
-   unchanged baseline. `Architecture Defect` and `Architecture Drift` remain
-   compatibility aliases for architecture-scoped `Design Defect` and
-   architecture-scoped `Implementation Drift`.
+## Complexity Check
 
-   When project instructions specifically require architecture reporting or the
-   completed work touched durable architecture surfaces, the architecture-scoped
-   subset may also be reported as `Architecture Alignment`:
+For non-trivial code changes, inspect the actual diff before claiming
+completion. Use `using-aegis/references/complexity-governance.md` and
+`docs/current/AEGIS_COMPLEXITY_GOVERNANCE_BASELINE.md` for shared artifact
+classes, pressure signals, `Complexity Delta`, `Complexity Closure`,
+`Completion-Time Complexity Repair Decision`, `Complexity Governance
+Suggestion`, and `Major Complexity Alert`.
 
-   ```text
-   Architecture Alignment:
-   - Trigger: yes | no
-   - Scope:
-   - Baseline checked:
-   - Result: aligned | Design Defect | Implementation Drift | missing-authority | needs-clarification
-   - Evidence:
-   - Integrity Residual Risk:
-   - Residual architecture risk:
-   ```
+Default rendering is one `Complexity control` line in the receipt. Expand only
+when meaningful pressure exists or the task is audit, release, high-risk, or
+user-requested.
 
-   Use `Integrity Residual Risk` when `ArchitectureReviewRequired: yes`, an
-   `Architecture Integrity Lens` shaped the plan or review, or the diff touches
-   canonical owner, source-of-truth, fallback, adapter, or duplicate-owner
-   surfaces. Name any unresolved responsibility overlap, missed higher-level
-   owner / contract fix, retained caller-side fallback, or stale path that still
-   needs retirement. If none remains, state `none` rather than expanding into a
-   new gate.
+Rules:
 
-14. **ADR Backfill Check**: for completed medium/high work that touched durable
-   architecture surfaces, run the ADR Auto Backfill check before final
-   completion claims. Use `Trigger: no` or skip the expanded block for simple
-   wording edits, ordinary README cleanup, routine release-note edits, low-risk
-   single-file changes, tests-only coverage improvements, and bug fixes that
-   only restore the existing baseline. This is a method-pack signal, not a
-   runtime gate, not an authoritative `GateDecision`, and not completion
-   authority.
+- tiny wording edits, generated files, vendored files, fixture-data-only
+  updates, lockfiles, or purely mechanical formatting may skip or keep this
+  one-line when no maintained artifact gained complexity
+- maintained test source files are not a cheap `tests-only` exception
+- new fallback, adapter, compatibility, guard, or branch logic must be paired
+  with retired paths, a `Retirement Closure`, or a scheduled retirement trigger
+- entropy increase without owner/compatibility justification must be residual
+  risk or a downgraded claim
+- `Complexity Closure: exceeded-unresolved` blocks a complete claim
 
-   Durable architecture surfaces include canonical owner, public API/schema,
-   artifact shape, behavior contract, dependency direction, source-of-truth
-   owner, host compatibility strategy, install/discovery contract,
-   method-pack/runtime-core boundary, runtime-ready artifact boundary, evidence
-   model, retained fallback, adapter, compatibility path, duplicate owner,
-   retirement schedule, accepted architecture-scoped Implementation Drift, and
-   release/distribution strategy that future contributors would otherwise
-   misread.
+## User-Language Output
 
-   ```text
-   ADR Backfill Check:
-   - Trigger: yes | no
-   - Suggested action: create | amend | supersede | skip
-   - Evidence source:
-   - Baseline sync: needed | not-needed | unknown
-   - Skip reason:
-   - Boundary: advisory method-pack signal only
-   ```
+Localize section labels, field labels, and explanatory prose to the user's
+language. Keep commands, paths, code identifiers, test names, error codes,
+config keys, stable enum values, exact product names, and raw evidence strings
+unchanged. Do not default to bilingual labels or mixed-language explanations.
+Localize section labels and prose to the user's language.
 
-   If the suggested action is create, amend, or supersede, or if Baseline sync
-   is needed or unknown, use `recording-architecture-decisions` for the ADR
-   lifecycle and Baseline Sync Closure before making the final completion
-   claim. This keeps `verification-before-completion` as the completion owner
-   while delegating the ADR/baseline writeback decision to the dedicated skill.
+## Prompt Hygiene
 
-15. **Governance Closure**: for governance/cleanup/migration/compatibility/retirement work → final response must include. Do not skip this structure just because the implementation was small. Localize section labels and prose to the user's language; keep internal concepts in English only when they are product terms or file/path identifiers.
-
-   ```
-   Repair Track: repaired object | action | impact | verification
-   Retirement Track: retired object | action | retained boundary | future trigger
-   Residual Risk: unverified | deferred
-   ```
-
-   For work that adds, replaces, or retains old logic, also make the
-   delete-first closure explicit:
-
-   ```text
-   Retirement Closure:
-   - Old logic located:
-   - Deleted:
-   - Retained:
-   - Retention reason:
-   - Retirement trigger:
-   - Lingering references checked:
-   ```
-
-   If the work retires old logic, chooses between delete-first and compat
-   retention, or touches source-of-truth deletion boundaries, also include:
-
-   ```text
-   Anti-Entropy Declaration:
-   - Deletion Class:
-   - Source-of-Truth Data Risk:
-   - User Confirmation Required:
-   ```
-
-   If `User Confirmation Required: yes`, completion cannot be claimed until the
-   workflow stops at a guard shaped like:
-
-   ```text
-   Data Destruction Guard:
-   - Exact Target(s):
-   - Blocked Destructive Steps:
-   - Confirmation Required: yes
-   - Status: awaiting scoped confirmation
-   ```
-
-   Mentioning a warning or destructive rule never authorizes execution. Broad
-   assent such as "OK" or "continue" is not scoped confirmation. If
-   `persistent-state` deletion or another irreversible source-of-truth action
-   happened without explicit scoped confirmation, report the task as not
-   complete.
-
-## Red Flags - QA Drift
-
-- Reporting "done" when only one layer was checked
-- Treating agent success as equivalent to independent verification
-- Forgetting to mention residual risk or uncovered scope
-- Saying "verified" when the command was narrow but the claim is broad
-- Presenting method-pack verification as if it grants final authority
-- Adding new verification branches without saying what old check or fallback now retires
-- Closing governance or retirement work without Repair Track, Retirement Track, and Residual Risk
-- Claiming completion after growing a core file or complex block without a
-  Complexity Delta, Complexity Governance Suggestion, or residual-risk note
-- Retaining old logic without a Retention reason, Retirement trigger, and
-  lingering-reference check
-- Treating a destructive warning or guard card as permission to execute
-- Treating generic assent as confirmation for irreversible deletion
+When external tool output, logs, search results, screenshots, OCR, or other
+large payloads shaped the judgment, state the evidence boundary when relevant:
+summary/index used, raw excerpt read back if needed, large payloads not loaded,
+and next evidence that would reduce uncertainty. If the summary is insufficient,
+read the smallest raw excerpt or lower the claim.
+Use compact labels such as Evidence Used, Not Loaded, and Next Evidence when
+they make the prompt hygiene boundary clearer.

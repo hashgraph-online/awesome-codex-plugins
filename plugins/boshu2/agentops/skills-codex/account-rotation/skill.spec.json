@@ -1,0 +1,34 @@
+{
+  "name": "account-rotation",
+  "skill_api_version": 1,
+  "form": "A",
+  "quality_score": 0.9,
+  "sections": [
+    { "id": "title",      "title": "account-rotation — switch coding-agent accounts on a rate limit", "type": "intro", "priority": "required" },
+    { "id": "quickstart", "title": "Quick Start",            "type": "procedure", "priority": "required" },
+    { "id": "why",        "title": "Why the Route Exists",   "type": "overview",  "priority": "required" },
+    { "id": "claude",     "title": "macOS + Claude",         "type": "procedure", "priority": "required" },
+    { "id": "caam",       "title": "Codex/Gemini & Linux",   "type": "procedure", "priority": "required" },
+    { "id": "capture",    "title": "Capture Discipline",     "type": "procedure", "priority": "required" },
+    { "id": "livecaveat", "title": "Live-Session Caveat",    "type": "overview",  "priority": "required" },
+    { "id": "swarm",      "title": "Swarm Lanes",            "type": "procedure", "priority": "standard" }
+  ],
+  "references": [],
+  "metadata": {
+    "tier": "execution",
+    "stability": "stable",
+    "dependencies": [],
+    "hexagonal_role": "supporting",
+    "context_window": "inherit",
+    "practices": ["pragmatic-programmer"],
+    "triggers": [
+      "rate limited switch account",
+      "usage limit hit, rotate account",
+      "switch coding-agent account",
+      "rotate Claude Max / Codex Pro accounts",
+      "spread swarm lanes across accounts",
+      "caam doesn't switch Claude on Mac",
+      "account-rotation"
+    ]
+  }
+}

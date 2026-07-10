@@ -1,0 +1,54 @@
+{
+  "name": "agy-native",
+  "skill_api_version": 1,
+  "form": "A",
+  "quality_score": 0.94,
+  "sections": [
+    { "id": "title",        "title": "agy-native",              "type": "intro",       "priority": "required" },
+    { "id": "overview",     "title": "Overview / When to Use",  "type": "overview",    "priority": "required" },
+    { "id": "constraints",  "title": "⚠️ Critical Constraints",  "type": "constraints", "priority": "required" },
+    { "id": "workflow",     "title": "Workflow / Methodology",  "type": "procedure",   "priority": "required" },
+    { "id": "output",       "title": "Output Specification",    "type": "contract",    "priority": "required" },
+    { "id": "rubric",       "title": "Quality Rubric",          "type": "rubric",      "priority": "required" },
+    { "id": "examples",     "title": "Examples",                "type": "examples",    "priority": "standard" },
+    { "id": "troubleshoot", "title": "Troubleshooting",         "type": "table",       "priority": "standard" },
+    { "id": "seealso",      "title": "See Also / References",   "type": "routing",     "priority": "required" }
+  ],
+  "references": [],
+  "metadata": {
+    "tier": "cross-vendor",
+    "stability": "experimental",
+    "dependencies": ["ntm", "beads-br", "dcg", "agent-mail"],
+    "hexagonal_role": "driving-adapter",
+    "context_window": "inherit",
+    "consumes": ["operating-loop-skill"],
+    "produces": ["agy-run-evidence"],
+    "triggers": [
+      "agy",
+      "antigravity",
+      "drive the loop on Gemini/Antigravity",
+      "agy plugin import/install",
+      "agy --print headless tick",
+      "author!=judge on Antigravity",
+      "Gemini-native loop harness",
+      "~/.gemini brain / knowledge store",
+      "third image after Claude and Codex"
+    ],
+    "token_estimate": {
+      "minimal": 55,
+      "overview": 300,
+      "standard": 1400,
+      "full": 2600
+    }
+  },
+  "output_contract": "A green tick on the Antigravity image: a bead moved claim->close by an author subagent, an independent PASS/WARN/FAIL verdict artifact from a distinct-context judge subagent, and a scoped one-bead commit; evidence persisted to ~/.gemini/antigravity-cli/brain (userFacing:true) and the repo.",
+  "evidence": {
+    "sources": [
+      "~/.agents/research/agy-native-harness-2026-06-06.md",
+      "~/.local/bin/agy (agy --help, agy plugin help, agy models — verified 2026-06-06)",
+      "~/.gemini/settings.json (dcg BeforeTool hook on run_shell_command — verified)",
+      "~/.gemini/antigravity-cli/brain/<id>/*.md.metadata.json ({summary,updatedAt,userFacing} — verified)",
+      "~/dev/control-plane/LEARNINGS.md (author!=judge, evidence-gated close, tie-break quorum)"
+    ]
+  }
+}

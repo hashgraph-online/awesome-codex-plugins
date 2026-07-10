@@ -1,0 +1,416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Polish Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_id",
+    "task_id",
+    "spec_slice_ref",
+    "unit_id",
+    "reviewer_role",
+    "reviewed_at",
+    "reviewed_artifacts",
+    "changed_paths",
+    "verification_results",
+    "findings",
+    "git",
+    "residual_risks",
+    "abstract_delta_tickets",
+    "final_status"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec_slice_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewer_role": {
+      "const": "clean-polish-reviewer"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "changed_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "kind",
+          "action",
+          "reason"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "kind": {
+            "enum": [
+              "code",
+              "test",
+              "config",
+              "docs",
+              "repo-hygiene",
+              "other"
+            ]
+          },
+          "action": {
+            "enum": [
+              "created",
+              "updated",
+              "deleted",
+              "unchanged"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "verification_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command",
+          "cwd",
+          "status",
+          "output_summary"
+        ],
+        "properties": {
+          "command": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "cwd": {
+            "$ref": "#/$defs/implementation_root_ref"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed",
+              "not-run"
+            ]
+          },
+          "output_summary": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository_status",
+        "commit_required",
+        "commit_status",
+        "include_paths",
+        "commit_message",
+        "commit_hash"
+      ],
+      "properties": {
+        "repository_status": {
+          "enum": [
+            "initialized",
+            "existing",
+            "not-initialized",
+            "unknown"
+          ]
+        },
+        "commit_required": {
+          "type": "boolean"
+        },
+        "commit_status": {
+          "enum": [
+            "not-run",
+            "not-needed",
+            "committed",
+            "failed",
+            "blocked"
+          ]
+        },
+        "include_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          }
+        },
+        "commit_message": {
+          "type": "string"
+        },
+        "commit_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{40,64}$"
+        },
+        "status_summary": {
+          "type": "string"
+        }
+      }
+    },
+    "residual_risks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "abstract_delta_tickets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/abstract_delta_ticket"
+      }
+    },
+    "final_status": {
+      "enum": [
+        "passed",
+        "passed-with-gaps",
+        "failed",
+        "blocked",
+        "quarantined"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "final_status": {
+            "const": "passed"
+          },
+          "git": {
+            "properties": {
+              "commit_required": {
+                "const": true
+              }
+            },
+            "required": [
+              "commit_required"
+            ]
+          }
+        },
+        "required": [
+          "final_status",
+          "git"
+        ]
+      },
+      "then": {
+        "properties": {
+          "git": {
+            "properties": {
+              "commit_status": {
+                "const": "committed"
+              },
+              "commit_hash": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{40,64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "final_status": {
+            "const": "passed"
+          },
+          "git": {
+            "properties": {
+              "commit_required": {
+                "const": false
+              }
+            },
+            "required": [
+              "commit_required"
+            ]
+          }
+        },
+        "required": [
+          "final_status",
+          "git"
+        ]
+      },
+      "then": {
+        "properties": {
+          "git": {
+            "properties": {
+              "commit_status": {
+                "const": "not-needed"
+              },
+              "commit_hash": {
+                "const": null
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "git": {
+            "properties": {
+              "commit_status": {
+                "const": "committed"
+              }
+            },
+            "required": [
+              "commit_status"
+            ]
+          }
+        },
+        "required": [
+          "git"
+        ]
+      },
+      "then": {
+        "properties": {
+          "git": {
+            "properties": {
+              "commit_hash": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{40,64}$"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "implementation_root_ref": {
+      "type": "string",
+      "pattern": "^CLEAN_ROOM_IMPLEMENTATION_ROOTS\\[[0-9]+\\]$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!~)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "category",
+        "summary",
+        "status"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "blocker"
+          ]
+        },
+        "category": {
+          "enum": [
+            "security",
+            "docs-comments",
+            "exception-handling",
+            "resource-leak",
+            "race-condition",
+            "repo-hygiene",
+            "verification",
+            "leakage",
+            "correctness",
+            "process"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "deferred"
+          ]
+        },
+        "affected_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relative_path"
+          }
+        },
+        "recommended_action": {
+          "type": "string"
+        }
+      }
+    },
+    "abstract_delta_ticket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "summary",
+        "requested_clean_change",
+        "status"
+      ],
+      "properties": {
+        "ticket_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_clean_change": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "deferred"
+          ]
+        }
+      }
+    }
+  }
+}

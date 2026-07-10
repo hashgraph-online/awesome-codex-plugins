@@ -1,0 +1,29 @@
+{
+  "name": "superloopy",
+  "version": "0.9.1",
+  "description": "A lightweight loop harness for Codex and Claude Code with strict evidence gates.",
+  "type": "module",
+  "bin": {
+    "superloopy": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "npm test",
+    "sync-version": "node scripts/sync-version.mjs"
+  },
+  "keywords": [
+    "codex",
+    "codex-plugin",
+    "ai-agents",
+    "developer-tools",
+    "workflow-automation",
+    "evidence-gates",
+    "loop",
+    "evidence"
+  ],
+  "author": "beefiker",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

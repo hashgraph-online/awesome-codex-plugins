@@ -15,6 +15,9 @@ Before finalizing issue decomposition, verify the plan avoids these confirmed fa
 | **Propagation surface blindness** | Has the full propagation surface been enumerated for renames/refactors? | FAIL if structural changes lack a propagation surface table |
 | **40% context budget violation** | Will implementation sessions need to load >40% context window for knowledge? | WARN if injected knowledge exceeds estimated budget |
 | **Commit-per-session anti-pattern** | Does the wave structure enforce commit-per-wave? | WARN if no explicit commit cadence in execution order |
+| **Big-batch slice** (PR-010) | Does any slice deliver more than one Given/When/Then behavior? | FAIL if a slice bundles ≥2 behaviors — split into one-behavior slices (small batches beat all-at-once; Finster 2026) |
+| **Refactor folded into a feature slice** (PR-010) | Does any slice mix "make it work" (feature) with "make it clean" (refactor)? | FAIL if a slice mixes refactor + feature — split into two slices so refactor-after-green happens as its own commit (the load-bearing quality move) |
+| **Over-planned thoroughness** (PR-011) | Does a small, low-risk, fully-specified slice plan full mutation (BF3) or the whole BF1–BF9 corpus? | WARN — throttle to L2 + L1 regression guards; reserve heavy BF for critical/security/high-blast-radius slices (the over-testing tax) |
 
 ## Design Briefs for Rewrites
 
@@ -28,11 +31,23 @@ Without a design brief, workers invent design decisions. In ol-571, a spec rewri
 
 ## Issue Granularity
 
+Granularity has two axes: **behavior** (how many Given/When/Then the slice delivers) and **files** (how many the slice touches). Behavior is primary — decompose by behavior first, then use the file axis to decide parallelism.
+
+### Behavior batch size (small batches) — primary axis
+
+- **One behavior per slice.** Each slice delivers exactly one Given/When/Then. A slice that delivers two or more behaviors is a big-batch anti-pattern (PR-010) — split it. Small batches (one behavior per cycle) beat all-at-once across cost, changeability, and quality (Finster 2026, `skills/standards/references/agentic-workflow-evidence.md`).
+- **Refactor is its own slice.** Never fold a refactor into a feature slice. "Refactor then feature" is two slices (operating-loop move 3). Refactor-after-every-green is the load-bearing quality move — scheduling it as a distinct unit is what makes it actually happen rather than get deferred to a final pass (the worst-performing cluster in the study).
+- **Test-first ordering is not the quality lever** — do not add ceremony slices for it. What matters is that each slice carries a runnable acceptance test (its contract, owned by `behavior-first-planning`) and that refactor-under-green follows each green.
+
+### File axis — decides parallelism, not batch size
+
 - **1-2 independent files** → 1 issue
 - **3+ independent files with no code deps** → split into sub-issues (one per file)
   - Example: "Rewrite 4 specs" → 4 sub-issues (4.1, 4.2, 4.3, 4.4)
   - Enables N parallel workers instead of 1 serial worker
 - **Shared files between issues** → serialize or assign to same worker
+
+The file axis never overrides the behavior axis: a single behavior spanning several files is still one slice (one contract), and several behaviors in one file are still several slices (serialized on that file).
 
 ## Operationalization Heuristics
 

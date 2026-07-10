@@ -67,6 +67,14 @@ After the user responds, confirm your understanding with a 1-2 sentence summary 
 
 Run 3 to 5 AUQ rounds. Each round asks ONE question. Stop when the design space is sufficiently constrained — fewer rounds is better. Do NOT run more than 5 rounds; if still ambiguous after 5, recommend switching to `/plan feature`.
 
+**Generate before narrowing — three-lens divergent pass (not a numbered round):** before the rounds below start narrowing the design space, generate divergently, once. Run three lenses in sequence, ~5 ideas each as terse bullets, no AUQ, no evaluation yet:
+
+- **PM lens** — user value / outcome: what job does this do for the user, what's the smallest slice that delivers it?
+- **Designer lens** — UX / interaction: how does the user encounter and trigger this, what does the surface look like?
+- **Engineer lens** — feasibility / leverage: what's the cheapest lever that gets most of the value, what existing system can this ride on?
+
+Then converge: carry the 2-3 most viable ideas forward as input to the rounds below, and note the rest as explicitly discarded (one line each — "considered X, discarded because Y"). Present both the three-lens listing and the convergence as plain text before Round 1. This pass consumes none of the 3-5 counted AUQ rounds — it's silent generation, not dialogue.
+
 **Round topics (select the most relevant; do not ask redundant questions):**
 
 1. **User-facing surface** — who triggers this feature, what do they see, what action do they take?
@@ -80,6 +88,9 @@ Run 3 to 5 AUQ rounds. Each round asks ONE question. Stop when the design space 
 - Each option has a `description` with a concrete pro/con (one sentence each)
 - Include an `Other / describe below` option when free-form input makes sense
 - `multiSelect: false` unless the question is genuinely multi-select (e.g., integration targets)
+- **Mom Test — ask about past behavior, not hypothetical future.** "When did you last hit this problem?" beats "Would you use X?" — hypotheticals get polite lies, past behavior gets facts.
+- **Compliments are noise, not signal.** A nice-sounding answer with no concrete behavior attached does not count as validation — dig for the specific instance.
+- **Talk less, listen more.** Keep option descriptions short; the goal is to elicit facts, not pitch your own idea of the solution.
 
 Example round (adapt to the actual feature):
 

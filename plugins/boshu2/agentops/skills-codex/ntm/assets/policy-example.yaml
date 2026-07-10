@@ -1,0 +1,42 @@
+version: 1
+
+automation:
+  auto_commit: false
+  auto_push: false
+  force_release: approval
+
+allowed:
+  - pattern: '^git status(\s|$)'
+    reason: read-only git status
+  - pattern: '^git diff(\s|$)'
+    reason: read-only git diff
+  - pattern: '^git log(\s|$)'
+    reason: read-only git log
+  - pattern: '^git branch(\s|$)'
+    reason: read-only branch listing
+
+blocked:
+  - pattern: '^git reset\s+--hard'
+    reason: destroys local changes
+  - pattern: '^git clean\s+-f'
+    reason: deletes untracked files
+  - pattern: '^git push.*--force'
+    reason: rewrites remote history
+  - pattern: '^rm\s+-rf\s+(/|~|\*|\.|\.\.)'
+    reason: mass deletion of protected paths
+  - pattern: '^git branch\s+-D'
+    reason: force-delete branch
+  - pattern: '^git stash\s+(drop|clear)'
+    reason: destroys stashed work
+
+approval_required:
+  - pattern: '^git rebase\s+(-i|--interactive)'
+    reason: interactive rebase rewrites history
+    slb: false
+  - pattern: '^git commit\s+--amend'
+    reason: rewrites last commit
+  - pattern: '^rm\s+-rf\s+'
+    reason: recursive delete
+    slb: true
+  - pattern: '^git push(?!.*--dry-run)'
+    reason: publishes to remote

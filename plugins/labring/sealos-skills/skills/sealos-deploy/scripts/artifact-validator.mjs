@@ -12,6 +12,7 @@ const SCHEMA_FILES = {
   analysis: 'analysis.schema.json',
   'build-result': 'build-result.schema.json',
   state: 'state.schema.json',
+  'template-match': 'template-match.schema.json',
 }
 
 function isPlainObject(value) {
@@ -321,6 +322,7 @@ const SEMANTIC_VALIDATORS = {
   analysis: validateAnalysisSemantics,
   'build-result': validateBuildResultSemantics,
   state: validateStateSemantics,
+  'template-match': () => {},
 }
 
 export function inferArtifactKind(filePath) {
@@ -334,6 +336,8 @@ export function inferArtifactKind(filePath) {
       return 'build-result'
     case 'state.json':
       return 'state'
+    case 'template-match.json':
+      return 'template-match'
     default:
       return null
   }

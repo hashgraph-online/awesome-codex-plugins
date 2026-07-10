@@ -1,0 +1,20 @@
+{
+  "name": "spec-superflow",
+  "interface": {
+    "displayName": "spec-superflow"
+  },
+  "plugins": [
+    {
+      "name": "spec-superflow",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

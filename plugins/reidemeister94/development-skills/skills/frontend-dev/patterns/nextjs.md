@@ -11,7 +11,7 @@ Enforce these during Staff Engineer Review (Phase 4) — **in addition to** Reac
 - Server Components by default — `"use client"` only when needed (interactivity, hooks, browser APIs)
 - Data fetching in Server Components (not `useEffect`)
 - Server Actions for mutations (`"use server"`)
-- Proper error boundaries (`error.tsx`) and loading states (`loading.tsx`)
+- Proper error boundaries (`error.tsx`) and loading states (`loading.tsx` / `Suspense` render a layout-mirroring skeleton)
 - No client-side auth checks only — use middleware + server-side validation
 - Caching strategy explicit (revalidate time or `no-store`)
 
@@ -169,6 +169,39 @@ revalidatePath("/users");
 
 ---
 
+## Loading UI (streaming with skeletons)
+
+While the server fetches, stream a **skeleton that mirrors the final layout** — no layout shift when content arrives. This is the content-loading pattern from [react.md](react.md), applied via Next.js streaming; visual rules live in the `visual-design-principles` skill (design-skills plugin).
+
+`loading.tsx` is the route-segment fallback — shown until the segment's `page.tsx` resolves:
+
+```tsx
+// app/dashboard/loading.tsx
+export default function Loading() {
+  return <DashboardSkeleton />; // mirrors dashboard/page.tsx's layout
+}
+```
+
+`<Suspense>` is the per-component fallback — wrap a slow sub-tree so the fast parts render immediately:
+
+```tsx
+// app/dashboard/page.tsx
+export default function Page() {
+  return (
+    <>
+      <Header />                            {/* renders instantly */}
+      <Suspense fallback={<RevenueSkeleton />}>
+        <RevenueChart />                    {/* slow fetch — streams in */}
+      </Suspense>
+    </>
+  );
+}
+```
+
+Loading, error (`error.tsx`, below), and data are the three route states — wire all three. A bare spinner or an empty segment is the anti-pattern.
+
+---
+
 ## State Management
 
 ```
@@ -295,7 +328,7 @@ describe("UsersPage", () => {
 | Share client state | React Context |
 | URL-based state | `useSearchParams` + `router.push` |
 | Handle errors | `error.tsx` boundary |
-| Loading states | `loading.tsx` or `Suspense` |
+| Loading states | `loading.tsx` / `Suspense` with a layout-mirroring skeleton |
 
 ## What NOT to Do
 

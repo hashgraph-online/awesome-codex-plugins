@@ -11,6 +11,7 @@ function collectProjectArtifacts(workDir) {
   const sealosDir = path.join(workDir, '.sealos')
   const candidates = [
     path.join(sealosDir, 'config.json'),
+    path.join(sealosDir, 'template-match.json'),
     path.join(sealosDir, 'analysis.json'),
     path.join(sealosDir, 'build', 'build-result.json'),
     path.join(sealosDir, 'state.json'),

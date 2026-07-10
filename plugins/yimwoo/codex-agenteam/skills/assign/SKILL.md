@@ -11,7 +11,8 @@ Assign a task to a specific team member, independent of the pipeline.
 
 ### 1. Auto-Init Guard
 
-Check for `.agenteam/config.yaml` (or legacy `agenteam.yaml`) in the project root. If missing:
+Check for `.agenteam/config.yaml`, `.agenteam.team/config.yaml`, or legacy
+`agenteam.yaml` in the project root. If all are missing:
 - Create config dir: `mkdir -p .agenteam`
 - Copy the template: `cp <plugin-dir>/templates/agenteam.yaml.template .agenteam/config.yaml`
 - Set the team name to the project directory name
@@ -111,6 +112,15 @@ Pass the resolved output paths to the agent so it writes artifacts to
 the correct location (standalone vs HOTL mode).
 
 ### 7. Launch Agent
+
+Before launch, create a durable assignment checkpoint under
+`.agenteam/assignments/<assignment_id>.json`. Record `assignment_id`, role,
+task, isolated cwd, start time, attempt number, configured wall and idle budget,
+last heartbeat, host thread ID when available, and stop reason. Update the
+heartbeat while the role is active. On controller restart, verify the recorded
+PID/thread before launching anything; resume the existing host thread when the
+host supports it. A fresh assignment attempt requires explicit confirmation if
+side effects may already have occurred.
 
 Launch the role as a Codex subagent using the generated agent file:
 - Agent file: `.codex/agents/<role-name>.toml`

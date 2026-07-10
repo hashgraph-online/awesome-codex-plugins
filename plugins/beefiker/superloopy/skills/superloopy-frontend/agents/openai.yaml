@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superloopy Frontend"
+  short_description: "Explicit Superloopy frontend workflow with visual evidence"
+  default_prompt: "Use Codex `$superloopy:superloopy-frontend` or Claude Code `/superloopy:superloopy-frontend` only after explicit invocation or an explicit route from an active `loopy`/`루피` task; then enforce a DESIGN.md token gate, anti-slop rules, and a real-browser visual-QA evidence artifact."

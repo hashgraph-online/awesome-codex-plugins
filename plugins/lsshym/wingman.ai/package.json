@@ -1,0 +1,9 @@
+{
+  "name": "wingman",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Cross-platform AI coding plugin for project memory, contract checks, and project-map discovery.",
+  "scripts": {
+    "check:release": "node scripts/check-release.mjs"
+  }
+}

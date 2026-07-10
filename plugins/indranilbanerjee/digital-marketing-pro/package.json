@@ -1,0 +1,43 @@
+{
+  "name": "@indranilbanerjee/digital-marketing-pro",
+  "version": "3.15.0",
+  "description": "Open-source AI marketing plugin — 158 skills, 24 agents, 12-Part Strategy Flow, EU AI Act ready. Native on Claude Code, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw.",
+  "license": "MIT",
+  "homepage": "https://github.com/indranilbanerjee/digital-marketing-pro",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/indranilbanerjee/digital-marketing-pro.git"
+  },
+  "author": {
+    "name": "Indranil Banerjee",
+    "url": "https://indranil.in"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-plugin",
+    "agent-skills",
+    "openai-codex",
+    "cursor-plugin",
+    "copilot-cli-plugin",
+    "google-antigravity",
+    "hermes-plugin",
+    "openclaw-plugin",
+    "marketing",
+    "seo",
+    "aeo",
+    "geo",
+    "c2pa",
+    "eu-ai-act"
+  ],
+  "openclaw": {
+    "type": "bundle",
+    "extensions": ["./skills/"],
+    "skills": ["./skills"],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2"
+    },
+    "build": {
+      "openclawVersion": "2026.3.24-beta.2"
+    }
+  }
+}

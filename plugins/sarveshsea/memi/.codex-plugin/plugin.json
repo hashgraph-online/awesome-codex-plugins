@@ -1,0 +1,48 @@
+{
+  "name": "memoire",
+  "version": "2.4.1",
+  "description": "memi design memory and UI quality tools for Codex: MCP tools, design-system context, Figma workflows, shadcn/ui, Tailwind, and Atomic Design.",
+  "author": {
+    "name": "Sarvesh Chidambaram",
+    "url": "https://github.com/sarveshsea"
+  },
+  "homepage": "https://www.memoire.cv/codex-plugin",
+  "repository": "https://github.com/sarveshsea/memi",
+  "license": "MIT",
+  "privacyPolicyURL": "https://www.memoire.cv/privacy",
+  "termsOfServiceURL": "https://www.memoire.cv/terms",
+  "keywords": [
+    "codex",
+    "memoire",
+    "mcp",
+    "figma",
+    "design-system",
+    "shadcn",
+    "tailwind",
+    "atomic-design",
+    "ui-quality"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "memi",
+    "shortDescription": "Design memory and UI quality tools for Codex.",
+    "longDescription": "memi gives Codex design-system memory, MCP tools, Figma context, Tailwind and shadcn/ui diagnostics, Atomic Design guidance, and research-backed UI audit workflows before frontend edits.",
+    "developerName": "Sarvesh Chidambaram",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.memoire.cv/codex-plugin",
+    "privacyPolicyURL": "https://www.memoire.cv/privacy",
+    "termsOfServiceURL": "https://www.memoire.cv/terms",
+    "defaultPrompt": [
+      "Audit this UI with memi before editing.",
+      "Extract tokens and shadcn registry context.",
+      "Create an Atomic Design implementation plan."
+    ],
+    "brandColor": "#000000"
+  }
+}

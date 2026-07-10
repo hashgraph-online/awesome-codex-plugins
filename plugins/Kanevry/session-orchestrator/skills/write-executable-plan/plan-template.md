@@ -1,5 +1,5 @@
 # Plan: <FEATURE_TITLE>
-Source: <SOURCE_PATH>
+Source: <SOURCE_PATH> (#<ISSUE_OR_EPIC_NUMBER>)
 Created: <ISO_TIMESTAMP>
 Status: draft
 

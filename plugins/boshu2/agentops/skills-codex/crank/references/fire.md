@@ -44,9 +44,9 @@ FIRE is the reconciliation loop that extracts progress from chaos. Like a forge 
 **Commands**:
 
 ```bash
-bd ready --parent=<epic>                    # Ready to ignite
-bd list --parent=<epic> --status=in_progress  # Currently burning
-bd list --parent=<epic> --status=closed       # Reaped
+br ready --parent=<epic>                    # Ready to ignite
+br list --parent=<epic> --status=in_progress  # Currently burning
+br list --parent=<epic> --status=closed       # Reaped
 bd blocked --parent=<epic>                    # Waiting on deps
 gt convoy list                               # Active convoys  <!-- FUTURE: gt convoy not yet implemented -->
 ```
@@ -338,9 +338,9 @@ gt sling <issue> <rig>                    # Re-ignite
 
 **Beads sync conflict**:
 ```bash
-git checkout --theirs .beads/issues.jsonl
-git add .beads/issues.jsonl
-bd vc status   # Optional: inspect Dolt state after resolving the JSONL file
+git -C "$(ao beads dir)" checkout --theirs issues.jsonl
+git -C "$(ao beads dir)" add issues.jsonl
+BEADS_DIR="$(ao beads dir)" br doctor
 ```
 
 ---

@@ -1,0 +1,34 @@
+{
+  "name": "river-review",
+  "version": "1.45.0",
+  "description": "Capability pack that strengthens AI review for Codex: your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that runs perspective-based reviewer roles (code, security, performance, architecture, testing, adversarial) and verifies findings against the diff so humans keep the high-risk judgment.",
+  "author": {
+    "name": "river-review maintainers",
+    "url": "https://github.com/s977043/river-review"
+  },
+  "homepage": "https://river-review.the3396.com/",
+  "repository": "https://github.com/s977043/river-review",
+  "license": "MIT",
+  "keywords": [
+    "code-review",
+    "security-review",
+    "performance",
+    "architecture",
+    "testing",
+    "adversarial-review",
+    "skills"
+  ],
+  "skills": "./skills/agent-skills/",
+  "interface": {
+    "displayName": "River Review",
+    "shortDescription": "Capability pack: a Skill Registry of review skills, driven by a review agent",
+    "longDescription": "River Review is a capability pack that strengthens AI review. It runs your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that executes perspective-based reviewer roles (code, security, performance, architecture, testing) plus an adversarial pass, and verifies findings against the diff so human reviewers keep the high-risk judgment.",
+    "developerName": "river-review maintainers",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://river-review.the3396.com/",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

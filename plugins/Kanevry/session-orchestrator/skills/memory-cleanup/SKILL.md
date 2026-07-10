@@ -8,7 +8,7 @@ model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
 args-schema:
   - flag: --dry-run
-    description: "Produce diff in .orchestrator/pending-dream.md, no mutations."
+    description: "Produce complete-body proposal in .orchestrator/pending-dream.md, no mutations."
   - flag: --apply-pending
     description: "Consume .orchestrator/pending-dream.md (atomic apply)."
 description: >
@@ -35,16 +35,16 @@ This skill accepts two optional flags. Default (no flag) runs the interactive 4-
 
 | Flag | Behavior |
 |---|---|
-| `--dry-run` | Run Phases 1-3 read-only; instead of mutating MEMORY.md / topic files, write a unified-diff proposal to `.orchestrator/pending-dream.md` (atomic). Exit 0. |
-| `--apply-pending` | Read `.orchestrator/pending-dream.md`; refuse if older than 14 days; apply diff; delete pending file; print `auto-dream applied: -<X> lines, +<Y> entries`. Exit 0. |
+| `--dry-run` | Run Phases 1-3 read-only; instead of mutating MEMORY.md / topic files, write a complete-body MEMORY.md proposal (single fenced block — never a unified-diff) to `.orchestrator/pending-dream.md` (atomic). Exit 0. |
+| `--apply-pending` | Read `.orchestrator/pending-dream.md`; refuse if older than 14 days (`stale`) or if MEMORY.md changed since the producing --dry-run (`stale-index`, #788); apply diff; delete pending file; print `auto-dream applied: -<X> lines, +<Y> entries`. Exit 0. |
 
 Flags are mutually exclusive — passing both is an error. Absence of both = legacy interactive mode (Phases 1-4 below).
 
 **`--dry-run` flow:**
 - Read MEMORY.md and topic files (read-only).
 - Produce the same internal plan the interactive mode would (merges, prunes, rewrites).
-- Serialise the plan as a unified diff body inside a fenced ` ```diff ` block (or as a complete replacement body when full rewrite is simpler).
-- Call `writePendingDream({ repoRoot, diff, sourceSession, memoryLinesBefore, proposedLinesAfter })` from `scripts/lib/auto-dream.mjs`.
+- **Serialisation contract (#717 — load-bearing, read before writing the proposal):** `applyPendingDream()` in `scripts/lib/auto-dream.mjs` consumes ONLY the FIRST fenced code block in the sidecar body and writes it VERBATIM as the complete new MEMORY.md. It does NOT parse or apply git-style diff hunks. Therefore the proposal MUST ALWAYS be the complete new MEMORY.md body, in EXACTLY ONE fenced ` ```markdown ` block — never git-style unified-diff hunks (`--- `/`+++ `/`@@ … @@` lines), and never multiple fences for MEMORY.md itself. Any topic-file (non-MEMORY.md) change needed by the plan CANNOT be carried inside that single fence — instead, append it AFTER the fence as a separate, clearly-delimited machine-readable section per topic file, using the heading `### Topic-file change: <path>` followed by plain-language instruction text (not a diff). These sections are for a human to apply by hand; `applyPendingDream()` never reads past the first fence. If a `### Topic-file change:` section needs to show illustrative code, use 4-space-indented code text, never a fenced ``` block — `countFencedBlocks()` counts every fence in the raw sidecar body (not just MEMORY.md's), so a second fence anywhere in the document trips the >1-fence unsupported-format guard and blocks the whole apply.
+- Call `writePendingDream({ repoRoot, diff, sourceSession, memoryLinesBefore, proposedLinesAfter })` from `scripts/lib/auto-dream.mjs`, passing the single-fence MEMORY.md body (plus any `### Topic-file change:` sections) as `diff`.
 - Print one-line status: `pending-dream written: <N> lines proposed` (or `no consolidation needed (MEMORY.md is healthy)` when the plan is empty).
 - Exit 0 in both branches.
 
@@ -54,7 +54,9 @@ Flags are mutually exclusive — passing both is an error. Absence of both = leg
   - `applied: true` → print `auto-dream applied: -<linesBefore-linesAfter> lines, +<entries> consolidated entries` and exit 0.
   - `applied: false, reason: 'missing'` → print `no pending dream to apply` and exit 1.
   - `applied: false, reason: 'stale'` → print `pending dream is stale (>14d), re-run --dry-run` and exit 1.
-- The sidecar file is deleted on successful apply; staleness or missing sidecar never deletes anything.
+  - `applied: false, reason: 'stale-index'` (#788) → print `MEMORY.md changed since the producing --dry-run; re-run --dry-run.` and exit 1. The sidecar is preserved and MEMORY.md is left untouched (MEMORY.md's mtime is newer than the sidecar's `generated_at`, so applying the frozen dry-run snapshot would clobber the interim edits).
+  - `applied: false, reason: 'unsupported-format'` → print `auto-dream NOT applied: pending-dream.md contains git-style diff hunks this applier cannot consume. MEMORY.md left untouched, sidecar preserved. Re-run /memory-cleanup --dry-run to regenerate a complete-body proposal.` and exit 1.
+- The sidecar file is deleted on successful apply; staleness (`stale` / `stale-index`), missing sidecar, or unsupported-format never deletes anything.
 
 Both flag-driven flows delegate atomicity and staleness enforcement to `scripts/lib/auto-dream.mjs`. The interactive Phases 1-4 below remain unchanged.
 
@@ -271,7 +273,7 @@ Per `.claude/rules/parallel-sessions.md` PSA-003: every `git worktree remove` is
 
 ### Cross-references
 
-- PRD: `docs/prd/2026-05-26-parallel-aware-sessions.md` §3 P3 Gherkin row 4 + §3.A P3 EARS state-driven clause
+- PRD: "Parallel-Aware Sessions" (#568; archived in the private Meta-Vault) §3 P3 Gherkin row 4 + §3.A P3 EARS state-driven clause
 - `stale-branch-days` config: `scripts/lib/config.mjs:138` (default: 7)
 - Detection helper: `parseSessionId()` from `scripts/lib/session-id.mjs`
 - Stale-sweep helpers: `listAutoPromotedWorktrees()` + `isWorktreeStale()` from `scripts/lib/memory-cleanup/worktree-sweep.mjs`
@@ -287,6 +289,18 @@ After completing all four phases, report:
 - Contradictions resolved (with one-line summary each).
 - Stale entries pruned (count + categories).
 - Any issues that need manual attention (e.g. ambiguous facts that need user input — surface via `AskUserQuestion` rather than guessing).
+
+### Session-End Signal: "cleanup ran this session" (#699)
+
+**A completed cleanup — including a healthy no-op where MEMORY.md was already healthy and no files were mutated — counts as a cleanup run.** The session-end skill MUST stamp `memory_cleanup_at` on the session record whenever `/memory-cleanup` ran in THIS session, regardless of outcome (dry-run, apply-pending, or no-op).
+
+This advances the auto-dream cadence marker (`readDreamSignals` → `lastCleanupAt` in `scripts/lib/auto-dream.mjs`) so `shouldDispatchAutoDream` does not fire a false nudge on the next session.
+
+**Signalling contract (coordinator responsibility at session-end Phase 3.7):**
+- Set `ranMemoryCleanupThisSession = true` when `/memory-cleanup` ran this session in ANY mode or with ANY outcome.
+- Pass this flag to `stampMemoryCleanup()` from `scripts/lib/memory-cleanup-stamp.mjs` before emitting the session record (see `skills/session-end/session-metrics-write.md` § 1-pre).
+- Do NOT distinguish between "applied changes" and "healthy no-op" — both count.
+- Do NOT set `memory_cleanup_at` to `null`; simply omit the field when cleanup did not run.
 
 ## Anti-Patterns
 

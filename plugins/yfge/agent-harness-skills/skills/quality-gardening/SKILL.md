@@ -13,7 +13,7 @@ This skill freezes new degradation first, then uses generated metrics to show cu
 
 ## When To Use
 
-- The user mentions `QUALITY_SCORE.md`, quality reports, quality snapshots, debt reduction, or red lines.
+- The user asks to design, evaluate, or maintain `QUALITY_SCORE.md`, quality reports, quality snapshots, debt reduction, or red lines.
 - A repository needs structural metrics beyond lint and tests.
 - The team needs periodic gardening instead of a one-time large refactor.
 

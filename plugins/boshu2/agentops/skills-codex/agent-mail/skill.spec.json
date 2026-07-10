@@ -1,0 +1,64 @@
+{
+  "name": "agent-mail",
+  "skill_api_version": 1,
+  "form": "A",
+  "quality_score": 0.92,
+  "sections": [
+    { "id": "title",        "title": "Using MCP Agent Mail",         "type": "intro",       "priority": "required" },
+    { "id": "boundary",     "title": "Coordination Boundary",        "type": "overview",    "priority": "required" },
+    { "id": "when-to-use",  "title": "When to Use What",             "type": "table",       "priority": "required" },
+    { "id": "bootstrap",    "title": "Session Bootstrap",            "type": "procedure",   "priority": "required" },
+    { "id": "core-ops",     "title": "Core Operations",              "type": "table",       "priority": "required" },
+    { "id": "reservations", "title": "File Reservations",            "type": "procedure",   "priority": "required" },
+    { "id": "beads",        "title": "Beads Integration",            "type": "procedure",   "priority": "required" },
+    { "id": "troubleshoot", "title": "Quick Troubleshooting",        "type": "table",       "priority": "standard" },
+    { "id": "identity",     "title": "Agent Identity",               "type": "procedure",   "priority": "standard" },
+    { "id": "overseer",     "title": "Human Overseer",               "type": "procedure",   "priority": "standard" },
+    { "id": "guard",        "title": "Pre-Commit Guard",             "type": "procedure",   "priority": "standard" },
+    { "id": "references",   "title": "References",                   "type": "routing",     "priority": "required" },
+    { "id": "validation",   "title": "Validation",                   "type": "contract",    "priority": "required" }
+  ],
+  "references": [
+    { "file": "references/TOOLS.md",          "topic": "full MCP tool catalog" },
+    { "file": "references/WORKFLOWS.md",       "topic": "coordination workflow patterns" },
+    { "file": "references/RESOURCES.md",       "topic": "MCP resource read endpoints" },
+    { "file": "references/CROSS-PROJECT.md",   "topic": "cross-project contact setup" },
+    { "file": "references/RECOVERY.md",        "topic": "doctor diagnostics + recovery" },
+    { "file": "references/INSTALL.md",         "topic": "installation" },
+    { "file": "references/FIX-MCP-CONFIG.md",  "topic": "repairing MCP server config" },
+    { "file": "references/ADVANCED.md",        "topic": "product bus, build slots, internals" }
+  ],
+  "metadata": {
+    "tier": "execution",
+    "stability": "stable",
+    "dependencies": ["beads-br"],
+    "hexagonal_role": "supporting",
+    "context_window": "inherit",
+    "triggers": [
+      "agent mail",
+      "file reservation",
+      "macro_start_session",
+      "agent coordination",
+      "edit lease",
+      "conflict prevention",
+      "one writer per hot dir",
+      "send_message",
+      "agent inbox",
+      "handoff to another agent"
+    ],
+    "token_estimate": {
+      "minimal": 80,
+      "overview": 350,
+      "standard": 1700,
+      "full": 3200
+    }
+  },
+  "output_contract": "Coordinates multi-agent work through Agent Mail's side channel: registers agent identity (macro_start_session), reserves/releases file paths to enforce one-writer-per-hot-dir, threads notifications/acks by bead id, and installs the pre-commit guard — while BR/beads stays the durable source of truth for work state and closure evidence. Returns: project/agent registration, reservation grants/conflicts, thread ids, and health/doctor status.",
+  "evidence": {
+    "sources": [
+      "skills/agent-mail/SKILL.md (verified: macro_start_session, file_reservation_paths, release_file_reservations, send_message/reply_message, fetch_inbox, search FTS5, install_precommit_guard)",
+      "MCP Agent Mail server health endpoint http://127.0.0.1:8765/health and resource:// read surfaces",
+      "doctor check/repair CLI (uv run python -m mcp_agent_mail.cli doctor)"
+    ]
+  }
+}

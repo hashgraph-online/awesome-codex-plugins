@@ -1,0 +1,64 @@
+{
+  "name": "@maestrofrontier/frontier",
+  "version": "1.14.0+codex.20260709190950",
+  "description": "Maestro Frontier is an opt-in, zero-dependency local multi-CLI fusion engine for AI coding agents. Inspect the portable catalog, compose a ready model panel, and synthesize its read-only responses. Off, single, and fusion modes switch via /maestro:frontier in Claude Code or /maestro frontier in Codex. Built on Maestro orchestration discipline: decision-gated routing, verified done-claims, surgical scope, and structural enforcement hooks.",
+  "keywords": ["multi-cli-fusion", "fusion-engine", "frontier", "multi-agent", "orchestration", "claude-code", "gemini", "codex", "agents", "hooks", "doctrine"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbanderas/maestro.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "maestro": "bin/maestro.cjs"
+  },
+  "files": [
+    "bin/maestro.cjs",
+    "frontier/catalog.cjs",
+    "frontier/smoke.cjs",
+    "frontier/compose.cjs",
+    "frontier/cli.cjs",
+    "frontier/config.cjs",
+    "frontier/dispatch.cjs",
+    "frontier/judge.cjs",
+    "frontier/progress.cjs",
+    "frontier/presets.cjs",
+    "frontier/run.cjs",
+    "frontier/runlock.cjs",
+    "frontier/schema.cjs",
+    "frontier/semaphore.cjs",
+    "frontier/synthesize.cjs",
+    "scripts/install.cjs",
+    ".codex-plugin/",
+    ".agents/plugins/marketplace.json",
+    "codex-skills/",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".cursorrules",
+    "docs/orchestration.md",
+    "docs/codex.md",
+    "commands/",
+    "integrations/",
+    "hooks/frontier-autorun.cjs",
+    "hooks/hooks.json",
+    "hooks/maestro-doctrine-guard.cjs",
+    "hooks/maestro-gate-reminder.cjs",
+    "hooks/maestro-gate-telemetry.cjs",
+    "hooks/maestro-loop-guard.cjs",
+    "hooks/maestro-phase-scope.cjs",
+    "hooks/maestro-statusline-sync.cjs",
+    "hooks/maestro-subagent-guard.cjs",
+    "hooks/maestro-terse-mode.cjs",
+    "hooks/maestro-toolbudget-advisory.cjs",
+    "settings/cli.cjs",
+    "settings/config.cjs"
+  ],
+  "scripts": {
+    "test": "node scripts/run-hook-tests.cjs",
+    "lint": "npx --yes markdownlint-cli2",
+    "bench-verify": "node scripts/bench-verify.cjs"
+  }
+}

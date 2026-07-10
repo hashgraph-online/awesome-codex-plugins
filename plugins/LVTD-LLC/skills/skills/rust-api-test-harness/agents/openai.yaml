@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust API Test Harness"
+  short_description: "Build reliable Rust API integration tests"
+  default_prompt: "Add black-box integration tests for this Rust API using the Rust API Test Harness skill."

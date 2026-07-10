@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "armorcodex-policy": {
+      "command": "node",
+      "args": ["./scripts/bootstrap.mjs", "mcp"]
+    }
+  }
+}

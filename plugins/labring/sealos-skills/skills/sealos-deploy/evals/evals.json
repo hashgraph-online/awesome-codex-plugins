@@ -121,6 +121,17 @@
         {"name": "identifies-web-service", "description": "Identifies this as a web application on port 8080"},
         {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
       ]
+    },
+    {
+      "id": 10,
+      "prompt": "/sealos-deploy https://github.com/toeverything/affine",
+      "expected_output": "Runs Phase 0.5 template fast-path detection before source analysis; if no configured template exists, writes template-match.json with matched=false and continues the normal deploy pipeline",
+      "files": [],
+      "assertions": [
+        {"name": "runs-template-fast-path", "description": "Checks configured GitHub repo to Sealos template mappings before Phase 1 assessment"},
+        {"name": "writes-template-match", "description": "Writes .sealos/template-match.json for both matched and unmatched outcomes"},
+        {"name": "does-not-false-positive", "description": "Does not skip source analysis/build/template generation unless a matched template is materialized"}
+      ]
     }
   ]
 }

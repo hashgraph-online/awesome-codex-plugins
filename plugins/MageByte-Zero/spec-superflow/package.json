@@ -1,0 +1,47 @@
+{
+  "name": "spec-superflow",
+  "version": "0.8.17",
+  "description": "Spec-first workflow: integrates OpenSpec planning engine + Superpowers execution discipline via bridge contract. 9 collaborative skills for multi-agent coding tools.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ssf": "./scripts/spec-superflow.mjs",
+    "spec-superflow": "./scripts/spec-superflow.mjs"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test --experimental-strip-types tests/e2e.test.ts tests/lib/*.test.*",
+    "validate": "node scripts/validate-artifacts",
+    "version": "node scripts/spec-superflow.mjs version $npm_new_version && node scripts/check-version-consistency.mjs && git add -A",
+    "check-versions": "node scripts/check-version-consistency.mjs",
+    "setup-hooks": "node scripts/install-git-hooks.mjs"
+  },
+  "keywords": [
+    "spec-driven-development",
+    "tdd",
+    "workflow",
+    "skills",
+    "contract-driven",
+    "claude-code",
+    "cursor",
+    "trae",
+    "codex",
+    "gemini-cli",
+    "copilot-cli",
+    "opencode",
+    "workbuddy"
+  ],
+  "author": "MageByte",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MageByte-Zero/spec-superflow"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
