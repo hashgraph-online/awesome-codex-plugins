@@ -1,6 +1,6 @@
 {
   "name": "spec-superflow",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Spec-first workflow that bridges OpenSpec-style planning and Superpowers-style execution discipline.",
   "author": {
     "name": "MageByte",
