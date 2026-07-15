@@ -43,7 +43,7 @@ Given/When/Then. Name one covering test after the behavior, and add
 `@covered-by:<test-path>[::<TestName>]` above the scenario. Prove the mapping:
 
 ```bash
-bash scripts/check-bead-scenario-coverage.sh skills/<skill>/references/<name>.feature --run
+bash scripts/check-scenario-coverage.sh skills/<skill>/references/<name>.feature --run
 ```
 
 Without scenarios, inventory public behavior, error paths, branches, and edge
@@ -51,7 +51,7 @@ cases. Rank gaps by risk: high complexity plus low coverage first.
 
 ### 2. Detect the language and baseline
 
-Stop at the first applicable project marker and load `$standards` for it:
+Stop at the first applicable project marker and consult the Standards skill for it:
 
 | Marker | Framework | Baseline command |
 |---|---|---|
@@ -101,8 +101,8 @@ relevant suite are green and the recorded RED evidence names the intended behavi
 
 Re-run the baseline coverage command. Summarize before/after coverage, tests
 added, remaining high-risk gaps, bugs found, and exact validation commands in
-`.agents/test/summary.md`. Run `$validate` when the test change accompanies a
-product slice or is ready for acceptance.
+`.agents/test/summary.md`. Supply that evidence to Validate when the test
+change accompanies a product slice or is ready for acceptance.
 
 ## Language Rules
 
@@ -129,7 +129,7 @@ structural gaps and a test architecture; do not generate code in this mode.
 - **Serialization/schema format:** Markdown evidence reports, native coverage
   text/profile formats, and JSON where the coverage tool supports it.
 - **Validator command:** run the focused test, relevant suite, coverage command,
-  and `bash scripts/check-bead-scenario-coverage.sh ... --run` when scenarios exist.
+  and `bash scripts/check-scenario-coverage.sh ... --run` when scenarios exist.
 - **Downstream use:** factual evidence that a caller may supply to Validate.
 
 ## Quality Rubric

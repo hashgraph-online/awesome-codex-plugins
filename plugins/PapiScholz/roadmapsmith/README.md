@@ -4,23 +4,42 @@
 
 <h1 align="center">RoadmapSmith</h1>
 
-Evidence-backed roadmap workflows for AI coding agents — two commands: `init` and `update`.
+**Who this is for:** solo devs and small teams that run AI coding agents (Claude Code, Codex) at least a few hours a week and want an **auditable trail** of what the agent claims it shipped vs what actually landed in the code.
+
+**Who this is NOT for:** (see [When NOT to use](#when-not-to-use) below).
+
+Two commands — `init` and `update` — turn `ROADMAP.md` into a validated, evidence-backed source of truth that survives an agent saying "done!" when nothing is done.
 
 ## See it in action
 
-RoadmapSmith does not make an AI agent smarter. It makes the agent's output **auditable** — a validated trail of what got done, why, and with what evidence.
+The killer moment: your agent marks a task `[x]`, RoadmapSmith checks the code, and the audit disagrees.
 
 <p align="center">
-  <img src="assets/demo.gif" alt="A/B demo: claude-code session with ROADMAP.md vs without" width="800">
+  <img src="assets/demo.gif" alt="Agent marks a task done without writing code; roadmapsmith --audit catches it and surfaces the task id" width="800">
 </p>
 
-A scripted A/B demo runs two identical `claude-code` sessions against this repo — one that can read `ROADMAP.md`, one that can't — and diffs the results:
+Reproduce it locally in ~2 seconds:
+
+```bash
+bash scripts/demo/false-claim-repro.sh
+```
+
+The script sets up a throwaway repo, adds a task, flips the checkbox without writing code, and runs `update --audit`. Expected output: `checkedWithoutEvidence: 1` and the specific caught task id.
+
+<details>
+<summary>Deeper look — A/B demo (two claude-code sessions, one blind to ROADMAP.md)</summary>
+
+<p align="center">
+  <img src="assets/demo-ab.gif" alt="A/B demo: claude-code session with ROADMAP.md vs without" width="800">
+</p>
+
+Two identical `claude-code` sessions on the same worktree — one can read `ROADMAP.md`, one can't — and the results diverge on evidence, alignment, and audit-cleanliness. Full walkthrough: [`scripts/demo/README.md`](scripts/demo/README.md).
 
 ```bash
 bash scripts/demo/run.sh
 ```
 
-Full walkthrough and honest caveats: [`scripts/demo/README.md`](scripts/demo/README.md).
+</details>
 
 ## Install
 
@@ -37,6 +56,17 @@ npx skills add PapiScholz/roadmapsmith --skill '*' -a claude-code
 ```
 
 This installs the native Claude GUI slash commands (`/roadmap-init`, `/roadmap-update`). It does not install the CLI.
+
+## When NOT to use
+
+RoadmapSmith is opinionated tooling. It's the wrong fit if:
+
+- **You already have Jira / Linear / Asana as source of truth.** Adding a third tracker creates drift, not clarity. Stay with what your team already trusts.
+- **You don't use AI coding agents.** The killer feature is "agent claims done → validator disagrees against real files". Without an agent, a plain `TODO.md` covers 95% of the value with 5% of the overhead.
+- **Your repo is >2 languages or a large monorepo.** The evidence scanner is optimized for single-primary-language repos; monorepo support is best-effort (see `pathAliases` in config).
+- **You need multi-user assignment, sprints, or estimation.** RoadmapSmith is a *validation* tool, not a project-management tool. It has no concept of "assignee" or "story points".
+
+If any of the above applies, close this tab. If none apply and you run agents daily, keep reading.
 
 ## Quick Start
 

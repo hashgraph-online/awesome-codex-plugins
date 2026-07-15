@@ -6,18 +6,19 @@ description: Challenge a consequential idea with sealed
 
 Produce independent challenges for a consequential choice. The result is
 advisory evidence for Plan. It never decides whether a plan is ready and never
-substitutes for the final exact-plan Premortem verdict.
+turns a later optional Premortem challenge into an approval gate.
 
 ## Constraints
 
 - Keep generation sealed until every perspective is complete to prevent later
   proposals from anchoring on earlier ones.
-- Preserve dissent and concrete refutation attempts so Plan sees alternatives
+- Preserve dissent and concrete refutation attempts because Plan must see alternatives
   that synthesis might otherwise erase.
-- Keep reversible choices lightweight; they do not require a pane manager,
+- Keep reversible choices lightweight because they do not warrant a pane manager,
   messaging service, council, or model-family rule.
 - Emit no readiness, approval, quorum, retry, budget, helper, delivery, or
-  tracker state.
+  tracker state because this strategy supplies evidence rather than lifecycle
+  authority.
 
 ## Workflow
 

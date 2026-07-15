@@ -17,50 +17,57 @@ RPI -> Plan -> Implement -> fresh Validate -> durable verdict -> report and stop
 ## Install
 
 ```bash
-# Claude Code
-claude plugin marketplace add boshu2/agentops
-claude plugin install agentops@agentops-marketplace
-
-# Codex CLI (macOS/Linux/WSL)
-curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.sh | bash
-
-# Codex CLI (Windows)
-irm https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-codex.ps1 | iex
-
-# Gemini / Antigravity
-curl -fsSL https://raw.githubusercontent.com/boshu2/agentops/main/scripts/install-agy.sh | bash
-
-# Other skills-compatible agents
-npx skills@latest add boshu2/agentops --cursor -g
-```
-
-The optional `ao` CLI supplies deterministic repository checks and inspection:
-
-```bash
+# Install the optional CLI.
 brew tap boshu2/agentops https://github.com/boshu2/homebrew-agentops
 brew install agentops
-ao gate check --fast
+
+# Keep one canonical checkout and link it into every installed runtime.
+git clone https://github.com/boshu2/agentops.git ~/.local/share/agentops
+cd ~/.local/share/agentops
+ao skills link
 ```
 
-Installers are hookless. An agent runtime and Git are the only hard external
-requirements; individual skills declare any additional tool needs.
+`ao skills link` creates source symlinks under the portable
+`~/.agents/skills` root and every detected runtime skill root, including Claude,
+Codex, Gemini/Antigravity, and Cursor. It never replaces a real directory or a
+foreign symlink. Updates stay simple:
+
+```bash
+cd ~/.local/share/agentops
+git pull --ff-only
+ao skills link
+```
+
+Without Homebrew, build the optional CLI from the checkout and then link:
+
+```bash
+cd ~/.local/share/agentops/cli
+go install ./cmd/ao
+cd ..
+"$(go env GOPATH)/bin/ao" skills link
+```
+
+The 3.x runtime plugin installers remain only as migration compatibility for
+this release. New installs do not need a plugin cache, hooks, or a runtime-owned
+copy of the AgentOps corpus. See the [migration guide](docs/MIGRATION.md) for
+removing an old plugin install.
 
 ## Core workflow
 
 ```text
-> /plan "rate-limit /login"
+> use plan for "rate-limit /login"
 PlanPacket: normal + burst edge scenarios, exact scope, first acceptance check
 
-> /implement
+> use implement
 CandidatePacket: RED -> GREEN -> refactor, actual paths, content manifest
 
-> /validate
+> use validate
 verdict.v2: FAIL — burst refill violates scenario S2
 checked: S1, S2, subject identity, write scope
 not_checked: load behavior above declared limit
 ```
 
-Or invoke `/rpi "rate-limit /login"` to run the three responsibilities once and
+Or invoke `rpi` with `rate-limit /login` to run the three responsibilities once and
 receive one report. RPI stops after `PASS`, `FAIL`, or `NOT_PROVEN`; the caller
 decides whether to revise, deliver, or abandon the work.
 
@@ -68,13 +75,13 @@ decides whether to revise, deliver, or abandon the work.
 
 | Skill | Responsibility |
 |---|---|
-| `/rpi` | invoke Plan, Implement, and fresh Validate at most once |
-| `/plan` | define one behavior, acceptance, evidence, and write scope |
-| `/implement` | run one bounded experiment and describe the candidate |
-| `/validate` | independently judge exact content and persist `verdict.v2` |
+| `rpi` | invoke Plan, Implement, and fresh Validate at most once |
+| `plan` | define one behavior, acceptance, evidence, and write scope |
+| `implement` | run one bounded experiment and describe the candidate |
+| `validate` | independently judge exact content and persist `verdict.v2` |
 
-`/learn` is an optional later analysis of verdict collections. `/premortem`,
-`/postmortem`, `/council`, and idea genies are caller-selected strategies.
+`learn` is an optional later analysis of verdict collections. `premortem`,
+`postmortem`, `council`, and idea genies are caller-selected strategies.
 Factory/runtime skills such as NTM, Agent Mail, Gas City, and swarms are optional
 adapters. None can change core sequencing or a verdict.
 

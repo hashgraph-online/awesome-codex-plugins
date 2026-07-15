@@ -1,0 +1,15 @@
+{
+  "name": "codetruss-agent-plugins",
+  "version": "0.1.5",
+  "private": true,
+  "description": "Open Claude Code, Codex, and Agent Skills wrappers for the CodeTruss CLI",
+  "license": "MIT",
+  "scripts": {
+    "test": "node scripts/validate.mjs",
+    "release:build": "node scripts/build-release.mjs",
+    "release:verify": "node scripts/verify-release.mjs"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

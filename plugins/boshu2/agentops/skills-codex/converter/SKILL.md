@@ -2,7 +2,7 @@
 name: converter
 description: Convert AgentOps skill formats.
 ---
-# $converter -- Cross-Platform Skill Converter
+# Converter — Cross-Platform Skill Converter
 
 Parse AgentOps skills into a universal SkillBundle format, then convert to target agent platforms.
 
@@ -11,14 +11,6 @@ Parse AgentOps skills into a universal SkillBundle format, then convert to targe
 - Treat the canonical source skill as read-only because conversion must not mutate the contract it is translating.
 - Clean-write only the explicit target directory to prevent stale resources from surviving a conversion or unrelated paths from being deleted.
 - Fail when copied-resource parity or target-format validation fails because a partial bundle is not a usable conversion.
-
-## Quick Start
-
-```bash
-$converter skills/council codex     # Convert council skill to Codex format
-$converter skills/validate cursor       # Convert validate skill to Cursor format
-$converter --all codex              # Convert all skills to Codex
-```
 
 ## Pipeline
 
@@ -46,7 +38,7 @@ Transform the SkillBundle into the target platform's format:
 | `codex` | Codex SKILL.md + prompt.md | Implemented |
 | `cursor` | Cursor .mdc rule + optional mcp.json | Implemented |
 
-The Codex adapter produces a `SKILL.md` with YAML frontmatter (`name`, `description`) plus rewritten body content and a `prompt.md` (Codex prompt referencing the skill). Default mode is **modular**: reference docs, scripts, and resources are copied as files and `SKILL.md` includes a local resource index instead of inlining everything. Optional **inline** mode preserves the older behavior by appending inlined references and script code blocks. Codex output rewrites known slash-skill references (for example `$plan`) to dollar-skill syntax (`$plan`), replaces Claude-specific paths/labels (including `~/.codex/`, `$HOME/.codex/`, and `/.codex/` path variants), normalizes common mixed-runtime terms (for example `Claude Native Teams`, `claude-native-teams`, and `Claude session/runtime`) to Codex-native phrasing, and rewrites Claude-only primitive labels to runtime-neutral wording. It preserves current flat `ao` CLI commands from the source skill rather than reintroducing deprecated namespace forms. It also deduplicates repeated "In Codex" runtime headings after rewrite while preserving section content. It preserves non-generated resource files/directories from the source skill (for example `templates/`, `assets/`, `schemas/`, `examples/`, `agents/`) and enforces passthrough parity (missing copied resources fail conversion). Descriptions are truncated to 1024 chars at a word boundary if needed.
+The Codex adapter produces a `SKILL.md` with YAML frontmatter (`name`, `description`) plus rewritten body content and a `prompt.md`. Default mode is **modular**: reference docs, scripts, and resources are copied as files and `SKILL.md` includes a local resource index instead of inlining everything. Optional **inline** mode preserves the older behavior by appending inlined references and script code blocks. Codex output normalizes foreign-runtime invocation syntax and paths, rewrites unsupported primitive labels to runtime-neutral wording, and preserves current flat `ao` CLI commands. It also deduplicates repeated runtime headings while preserving section content. Non-generated resource files and directories are copied with parity checks. Descriptions are truncated to 1024 characters at a word boundary if needed.
 
 The Cursor adapter produces a `<name>.mdc` rule file with YAML frontmatter (`description`, `globs`, `alwaysApply: false`) and body content. References are inlined into the body, scripts are included as code blocks. Output is budget-fitted to 100KB max -- references are omitted largest-first if the total exceeds the limit. If the skill references MCP servers, a `mcp.json` stub is also generated.
 
@@ -80,7 +72,7 @@ bash skills/converter/scripts/convert.sh --all <target> [output-dir]
 
 ## Supported Targets
 
-- **codex** -- Convert to OpenAI Codex format (`SKILL.md` + `prompt.md`) with codex-native rewrites (slash-to-dollar skills, `.claude` path variants to `.codex`, mixed-runtime term normalization to Codex phrasing, Claude primitive label neutralization, duplicate runtime-heading cleanup, and flat `ao` CLI preservation). Default is modular output with copied resources and a `SKILL.md` local-resource index; pass `--codex-layout inline` for legacy inlined refs/scripts. Converter enforces passthrough parity so missing copied resources fail fast. Output: `<dir>/SKILL.md`, `<dir>/prompt.md`, and copied resources.
+- **codex** -- Convert to OpenAI Codex format (`SKILL.md` + `prompt.md`) with runtime-neutral rewrites and flat `ao` CLI preservation. Default is modular output with copied resources and a local-resource index; pass `--codex-layout inline` for legacy inlined refs/scripts. Missing copied resources fail fast.
 - **cursor** -- Convert to Cursor rules format (`.mdc` rule file + optional `mcp.json`). Output: `<dir>/<name>.mdc` and optionally `<dir>/mcp.json`.
 - **test** -- Emit the raw SkillBundle as structured markdown. Useful for debugging the parse stage.
 
@@ -96,7 +88,7 @@ To add a new target platform:
 
 ### Converting a single skill to Codex format
 
-**User says:** `$converter skills/council codex`
+**Caller asks:** Convert `skills/council` to Codex format.
 
 **What happens:**
 1. The converter parses `skills/council/SKILL.md` frontmatter, markdown body, and any `references/` and `scripts/` files into a SkillBundle.
@@ -107,7 +99,7 @@ To add a new target platform:
 
 ### Batch-converting all skills to Cursor rules
 
-**User says:** `$converter --all cursor`
+**Caller asks:** Convert all canonical skills to Cursor format.
 
 **What happens:**
 1. The converter scans every directory under `skills/` and parses each into a SkillBundle.
@@ -120,10 +112,10 @@ To add a new target platform:
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| `parse error: no frontmatter found` | SKILL.md is missing the `---` delimited YAML frontmatter block | Add frontmatter with at least `name:` and `description:` fields, or run `$heal-skill --fix` on the skill first |
+| `parse error: no frontmatter found` | SKILL.md is missing the `---` delimited YAML frontmatter block | Add frontmatter with at least `name:` and `description:` fields, or run Heal Skill on the source package first |
 | Cursor `.mdc` output is missing references | Total bundle size exceeded the 100KB budget limit | The converter omits references largest-first to fit the budget. Split large reference files or move non-essential content to external docs |
 | Output directory already has old files | Previous conversion artifacts remain | This is expected -- the converter clean-writes by deleting the target directory before writing. If old files persist, manually delete `.agents/converter/<target>/<skill>/` |
-| `--all` skips a skill directory | The directory has no `SKILL.md` file | Ensure each skill directory contains a valid `SKILL.md`. Run `$heal-skill` to detect empty directories |
+| `--all` skips a skill directory | The directory has no `SKILL.md` file | Ensure each skill directory contains a valid `SKILL.md`. Run Heal Skill to detect empty directories |
 | Codex `prompt.md` description is truncated | The skill description exceeds 1024 characters | This is by design. The converter truncates at a word boundary to fit Codex limits. Shorten the description in SKILL.md frontmatter if the truncation point is awkward |
 | Conversion fails with passthrough parity check | A resource entry from source skill wasn't copied to output | Ensure source entries are readable and copyable (including nested files). Re-run conversion; failure is intentional to prevent drift between `skills/` and converted output |
 

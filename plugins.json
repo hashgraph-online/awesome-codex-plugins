@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-07-15",
-  "total": 168,
+  "total": 169,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -298,6 +298,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yujiachen-y/codebase-recon-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "CodeTruss",
+      "url": "https://github.com/DeliriumPulse/codetruss-plugins",
+      "owner": "DeliriumPulse",
+      "repo": "codetruss-plugins",
+      "description": "Local-first acceptance gate that checks coding-agent scope, sensitive surfaces, deterministic analyzers, and repository verification from immutable Git snapshots, then writes signed receipts before the PR.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/DeliriumPulse/codetruss-plugins/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex Agenteam",

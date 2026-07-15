@@ -19,21 +19,21 @@ Generate and validate documentation for any project. `--mode` selects the artifa
 | `--mode` | Artifact | Read first |
 |----------|----------|-----------|
 | *(default)* | API docs, code-maps, doc coverage/validate | this file |
-| `readme` | Gold-standard README (interview → generate → council-validate) | [references/readme-craft.md](references/readme-craft.md) |
+| `readme` | Gold-standard README (interview → generate → deterministic checks) | [references/readme-craft.md](references/readme-craft.md) |
 | `oss` | OSS doc pack (CONTRIBUTING/CHANGELOG/AGENTS.md, audit + scaffold) | [references/oss-pack.md](references/oss-pack.md) |
 
 **Mode routing (absorbed skills):**
 
 | You typed | Runs |
 |-----------|------|
-| "readme", "rewrite the README", "validate the README" | `$doc --mode=readme [...]` |
-| "oss docs", "scaffold contributing", "audit OSS docs" | `$doc --mode=oss [...]` |
+| "readme", "rewrite the README", "validate the README" | Doc in `readme` mode |
+| "oss docs", "scaffold contributing", "audit OSS docs" | Doc in `oss` mode |
 
 When invoked with `--mode=readme` or `--mode=oss`, read the corresponding reference above and follow its workflow verbatim. The default-mode steps below apply only when no mode (or the implied code-docs mode) is selected.
 
 ## Execution Steps (default mode — code/API docs)
 
-Default mode is deliberately thin — a frontier model runs it correctly with no payload. Given `$doc [command] [target]`:
+Default mode is deliberately thin. Given a Doc command and target:
 
 1. **Detect project type** — `ls package.json pyproject.toml go.mod Cargo.toml` + existing `docs/`; classify CODING / INFORMATIONAL / OPS.
 2. **Run the command** — `discover` (grep undocumented funcs), `coverage` (documented vs total), `gen [feature]` (read code → stamp function/class markdown), `all`, or `validate`.
@@ -47,7 +47,7 @@ Full step-by-step detail — grep recipes, function/class + code-map templates, 
 - **Filename:** default reports use the filename convention `YYYY-MM-DD-<target>.md`; README and OSS filenames follow their mode references.
 - **Format:** outputs are Markdown; the default report schema records coverage percentage, generated artifacts, gaps, and validation issues.
 - **Validation command:** validate the skill contract with `bash skills/doc/scripts/validate.sh`, then run the mode-specific validation required by its reference before reporting completion.
-- **Downstream handoff:** return changed paths, validation results, coverage or remaining gaps, and any blocked decision; these results are consumed by the requesting workflow and the verification membrane.
+- **Downstream handoff:** return changed paths, validation results, coverage or remaining gaps, and any blocked decision to the requesting caller or evidence consumer.
 
 ## Quality Checklist
 
@@ -59,14 +59,13 @@ Full step-by-step detail — grep recipes, function/class + code-map templates, 
 
 - [references/default-mode.md](references/default-mode.md) — default mode (code/API docs): the full Steps 1-7 detail — grep recipes, function/class + code-map templates, report skeleton, worked examples, troubleshooting (moved out of SKILL.md in the generic-craft trim)
 - [references/doc.feature](references/doc.feature) — Executable spec: detect project type, generate type-appropriate docs from the repo, validate existing docs against source (soc-qk4b)
-- [references/readme.feature](references/readme.feature) — Executable spec (`--mode=readme`): mode detection, problem-first lead, trust block near install, collapse-don't-delete depth, the council gate, anti-pattern detection (soc-qk4b)
+- [references/readme.feature](references/readme.feature) — Executable spec (`--mode=readme`): mode detection, problem-first lead, trust block near install, collapse-don't-delete depth, evidence reporting, and anti-pattern detection
 - [references/oss-docs.feature](references/oss-docs.feature) — Executable spec (`--mode=oss`): audit existing/missing OSS docs, scaffold missing without overwrite, project-type-tailored (soc-qk4b)
 
-- [references/readme-craft.md](references/readme-craft.md) — `--mode=readme`: the 8 gold-standard README patterns, interview, generation structure, council validation, anti-pattern table
+- [references/readme-craft.md](references/readme-craft.md) — `--mode=readme`: the 8 gold-standard README patterns, interview, generation structure, deterministic checks, and anti-pattern table
 - [references/oss-pack.md](references/oss-pack.md) — `--mode=oss`: audit + scaffold the OSS doc pack (CONTRIBUTING/CHANGELOG/AGENTS.md), project-type templates
 - [references/oss-documentation-tiers.md](references/oss-documentation-tiers.md) — OSS doc tier definitions (core/standard/enhanced)
 - [references/oss-project-types.md](references/oss-project-types.md) — Per-type OSS scaffolding templates (cli/operator/service/library/helm)
-- [references/oss-beads-patterns.md](references/oss-beads-patterns.md) — AGENTS.md beads-tracker patterns for OSS projects
 - [references/generation-templates.md](references/generation-templates.md)
 - [references/prose-and-report-workmanship.md](references/prose-and-report-workmanship.md)
 - [references/project-types.md](references/project-types.md)
@@ -76,15 +75,13 @@ Full step-by-step detail — grep recipes, function/class + code-map templates, 
 
 ## Examples
 
-```bash
-$doc                    # default: docs for the changed surface (references/default-mode.md)
-$doc --mode=readme      # gold-standard README, council-validated
-$doc --mode=oss         # full OSS doc pack
-```
+- Default mode documents the changed surface using `references/default-mode.md`.
+- `readme` mode creates or revises the repository README.
+- `oss` mode creates the explicitly requested open-source documentation pack.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
 | Default mode feels heavyweight | Read [references/default-mode.md](references/default-mode.md) — or just ask the model directly for simple docs |
-| README mode verdict fails | Re-run with the council findings addressed (see the readme-mode references listed above) |
+| README evidence has gaps | Report the concrete gaps; the caller decides whether to start a revision |

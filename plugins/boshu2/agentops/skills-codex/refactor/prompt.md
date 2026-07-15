@@ -1,6 +1,6 @@
 # refactor
 
-Execute one behavior-preserving structural transformation and report evidence.
+Execute one behavior-preserving structural transformation and report evidence. Triggers: "refactor this", "simplify without changing behavior".
 
 ## Instructions
 

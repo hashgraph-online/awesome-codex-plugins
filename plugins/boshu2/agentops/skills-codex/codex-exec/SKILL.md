@@ -1,6 +1,6 @@
 ---
 name: codex-exec
-description: Run one caller-supplied Codex worker or
+description: Run one caller-supplied Codex command
 ---
 # Codex Exec — one-shot runtime adapter
 

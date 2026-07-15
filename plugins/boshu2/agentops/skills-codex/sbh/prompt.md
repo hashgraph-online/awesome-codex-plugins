@@ -1,6 +1,6 @@
 # sbh
 
-Inspect disk pressure with SBH and run one explicitly authorized recovery action.
+Inspect disk pressure with SBH and run one explicitly authorized recovery action. Triggers: "check disk pressure", "run SBH".
 
 ## Instructions
 

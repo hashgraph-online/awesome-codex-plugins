@@ -1,6 +1,6 @@
 # domain
 
-Load the small AgentOps ubiquitous-language and bounded-context contracts when a term needs precise meaning.
+Load the AgentOps language and bounded-context contracts when a term needs precise meaning. Triggers: "define this domain term", "check the bounded context".
 
 ## Instructions
 

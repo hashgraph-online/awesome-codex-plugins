@@ -1,7 +1,7 @@
 # Generic scaffolding templates (project · component · CI)
 
 > **Provenance:** This content was **moved verbatim** out of `skills/scaffold/SKILL.md`
-> (bead `age-skills-audit-fable-l6ic.10`, generic-craft trim). A frontier model produces
+> (generic-craft trim). A frontier model produces
 > standard project trees, best-practice config, and GitHub-Actions / GitLab-CI YAML
 > correctly **with no template** — so this file is a fallback reference, not the skill's
 > durable value. Reach for this file only when the caller wants one of the

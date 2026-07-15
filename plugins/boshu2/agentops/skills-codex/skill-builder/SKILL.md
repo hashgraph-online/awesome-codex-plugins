@@ -2,7 +2,7 @@
 name: skill-builder
 description: Create a metadata-complete AgentOps skill
 ---
-# $skill-builder — Create one skill source package
+# Skill Builder — Create one skill source package
 
 Create one `skills/<slug>/` package, verify its structure, regenerate the
 metadata-owned projections, and stop. The builder does not schedule work,
@@ -11,6 +11,15 @@ skill should be invoked.
 
 Before creating a new root, search `skills/*/SKILL.md` for an existing owner.
 Extend an existing skill when it already owns the requested behavior.
+
+## Constraints
+
+- Create exactly one source package because metadata must have one canonical
+  owner.
+- Treat external skills as structural signals only because clean-room output
+  must not copy names, prose, prompts, scripts, or examples.
+- Regenerate projections once and stop because validation, revision, Git, and
+  delivery remain caller-owned.
 
 ## Inputs
 

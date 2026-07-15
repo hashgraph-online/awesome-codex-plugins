@@ -1,19 +1,30 @@
 # Bootstrap Examples
 
-## Bare Repository
+Bootstrap accepts an explicit target and requested artifacts. It preserves
+every existing file and never starts another skill or runtime automatically.
 
-**User says:** `/bootstrap`
+## New repository
 
-The workflow detects no AgentOps artifacts, runs `/goals init`, `/product`, and `/doc --mode=readme`, creates the `.agents/` structure, leaves hooks optional, and reports all core artifact statuses.
+**Caller asks:** Initialize AgentOps documentation in `/work/widget` with a
+PRODUCT document, GOALS document, AGENTS router, and local verdict storage.
 
-## Partial Repository
+Bootstrap inspects those paths, asks only for product or goal content that is
+not supplied, then creates the missing files plus
+`.agentops/verdicts/sha256/`. It reports the exact created and existing paths.
 
-**User says:** `/bootstrap`
+## Partial repository
 
-When `GOALS.md` and `.agents/` already exist, the workflow preserves them, runs only the missing product and documentation steps, and reports created and skipped artifacts separately.
+**Caller asks:** Add the missing AgentOps entry documents to `/work/widget`.
 
-## Dry Run
+If `PRODUCT.md` and `README.md` already exist, Bootstrap leaves them byte-for-
+byte unchanged. It creates only explicitly requested missing files such as
+`GOALS.md` or `AGENTS.md`, then reports created and skipped paths separately.
 
-**User says:** `/bootstrap --dry-run`
+## Inspection only
 
-The workflow detects repository state and reports the create/skip plan without writing files.
+**Caller asks:** Show what Bootstrap would need to create in `/work/widget`;
+do not write anything.
+
+Bootstrap reports which requested paths exist and which are missing. It does
+not create directories, invoke another skill, initialize Git, install hooks,
+or infer permission to write.

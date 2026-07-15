@@ -1,6 +1,6 @@
 # bootstrap
 
-Initialize minimal AgentOps documentation and verdict storage without taking over repository workflow.
+Initialize minimal AgentOps documentation and verdict storage without taking over repository workflow. Triggers: "bootstrap AgentOps", "initialize AgentOps docs".
 
 ## Instructions
 

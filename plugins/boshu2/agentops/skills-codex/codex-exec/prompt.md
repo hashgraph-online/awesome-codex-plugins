@@ -1,6 +1,6 @@
 # codex-exec
 
-Run one caller-supplied Codex worker or validator command non-interactively and capture evidence.
+Run one caller-supplied Codex command non-interactively and capture evidence. Triggers: "run Codex headless", "capture Codex evidence".
 
 ## Instructions
 

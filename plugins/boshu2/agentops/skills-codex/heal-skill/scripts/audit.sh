@@ -168,6 +168,7 @@ profile_rule_has_form() {
 # Check 2: constraints-frontloaded (WARN on miss)
 check_constraints_frontloaded() {
   local skill_md="$1"
+  if (( PROFILE_LINE_COUNT <= 100 )); then return 0; fi
   awk '
     BEGIN{n=0; i=0; found=0}
     /^---$/{n++; next}
@@ -183,17 +184,26 @@ check_constraints_frontloaded() {
 # Check 3: rationale-present (WARN on miss)
 check_rationale_present() {
   local skill_md="$1"
-  # NOTE: case-insensitivity is spelled out per-character because gawk's
-  # IGNORECASE=1 is silently ignored by mawk and BSD awk (portability).
   awk '
-    BEGIN{in_constraints=0; bullets=0; with_why=0}
-    /^## .*([Cc]onstraints|⚠️)/{in_constraints=1; next}
-    in_constraints && /^## /{exit}
-    in_constraints && /^[ ]*[-*] /{
+    function flush_bullet() {
+      if (!bullet_open) return
       bullets++
-      if (/[Ww][Hh][Yy]|[Bb]ecause|[Tt]his matters|[Tt]o prevent|[Rr]ationale:|[Mm]otivation:/) with_why++
+      if (bullet_text ~ /[Ww][Hh][Yy]|[Bb]ecause|[Tt]his matters|[Tt]o prevent|[Rr]ationale:|[Mm]otivation:/) with_why++
+      bullet_open=0
+      bullet_text=""
     }
+    BEGIN{in_constraints=0; bullets=0; with_why=0; bullet_open=0}
+    /^## .*([Cc]onstraints|⚠️)/{in_constraints=1; next}
+    in_constraints && /^## /{flush_bullet(); exit}
+    in_constraints && /^[ ]*[-*] /{
+      flush_bullet()
+      bullet_open=1
+      bullet_text=$0
+      next
+    }
+    in_constraints && bullet_open{bullet_text=bullet_text " " $0}
     END{
+      flush_bullet()
       if (bullets == 0) exit 0
       exit (with_why * 2 >= bullets ? 0 : 1)
     }
@@ -218,9 +228,10 @@ check_output_spec_explicit() {
 # Check 6: quality-rubric (WARN on miss)
 check_quality_rubric() {
   local skill_md="$1"
+  if (( PROFILE_LINE_COUNT <= 100 )); then return 0; fi
   awk '
     BEGIN{in_q=0; bullets=0}
-    /^## (Quality|Checklist|Rubric|Best Practices|Acceptance)/{in_q=1; next}
+    /^## (Quality|Checks|Checklist|Rubric|Best Practices|Acceptance)/{in_q=1; next}
     in_q && /^## /{exit}
     in_q && /^[ ]*[-*] /{bullets++}
     END{exit (bullets >= 3 ? 0 : 1)}

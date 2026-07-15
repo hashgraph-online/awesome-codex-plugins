@@ -64,11 +64,26 @@ uppercase only) as the modal:
 - State-driven: `WHILE <state>, the <subject> MUST <response>.`
 - Unwanted behavior: `IF <undesired condition>, THEN the <subject> MUST <response>.`
 
+Three rules keep each numbered line strict-EARS conformant:
+
+1. **Active voice, obligated subject.** The grammatical subject is the component
+   that bears the obligation — never a subjectless passive. "Tokens MUST be
+   rotated" names no obligated component; write `the <component> MUST rotate the
+   token`. A plain `The <subject> MUST <response>` line is valid only when
+   `<subject>` is that component, not a passive object.
+2. **One line, one requirement, one modal.** Each numbered line carries exactly
+   one modal keyword (MUST NOT counts as one). Split `MUST X and MUST NOT Y`
+   into two numbered lines.
+3. **Explicit trigger for event responses.** When behavior answers a command,
+   request, or state change, open with `WHEN <trigger>,` (or `WHILE <state>,`) —
+   the event is the trigger, never the grammatical subject. Do not bury the
+   trigger inside the subject ("The /remember command invalidates the cache" →
+   `WHEN the user invokes /remember, the <component> MUST invalidate the cache`).
+
 Grade with intent: MUST only where required for interoperation or to prevent harm
 (RFC 2119 §6 — sparingly); SHOULD where deviation needs a weighed reason; MAY for
-true options. Existing plain `X MUST Y` lines are valid ubiquitous-pattern sentences —
-no migration needed; add trigger/state clauses when writing or editing a line whose
-behavior is conditional.
+true options. Existing conformant plain `X MUST Y` lines need no migration; add
+trigger/state clauses when writing or editing a line whose behavior is conditional.
 
 ## Body cap
 
@@ -175,9 +190,9 @@ Normative for the card renderer (@ui/card/*). Out of scope: the catalog data sou
 
 ## Normative Behavior
 1. WHEN `episodes[]` is non-empty, the card MUST render the progress block.
-2. WHILE `status` is `completed`, the card MUST show the badge and MUST NOT show
-   the subscribe action.
-3. The card MUST reach `ready` only when header and media fields are both present.
+2. WHILE `status` is `completed`, the card MUST show the completed badge.
+3. WHILE `status` is `completed`, the card MUST NOT show the subscribe action.
+4. The card MUST reach `ready` only when header and media fields are both present.
 
 ## Constraints & Invariants
 - Invariant: exactly one primary action is visible in the `ready` state.
@@ -189,7 +204,7 @@ Normative for the card renderer (@ui/card/*). Out of scope: the catalog data sou
    affordance; no blocks render.
 
 ## Conformance
-An implementation is conformant when it satisfies behaviors 1–3, holds the
+An implementation is conformant when it satisfies behaviors 1–4, holds the
 single-primary-action invariant, and degrades per the failure rules.
 ```
 

@@ -434,6 +434,21 @@
       "description": "Analyze git history to understand a codebase before reading any code — auto-scales by repo size and cross-references hotspots with bug magnets to surface high-risk files, bus factor, and team momentum."
     },
     {
+      "name": "codetruss",
+      "displayName": "CodeTruss",
+      "source": {
+        "source": "local",
+        "path": "./plugins/DeliriumPulse/codetruss-plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Local-first acceptance gate that checks coding-agent scope, sensitive surfaces, deterministic analyzers, and repository verification from immutable Git snapshots, then writes signed receipts before the PR.",
+      "icon": "./plugins/DeliriumPulse/codetruss-plugins/assets/icon.svg"
+    },
+    {
       "name": "ateam",
       "displayName": "Codex Agenteam",
       "source": {

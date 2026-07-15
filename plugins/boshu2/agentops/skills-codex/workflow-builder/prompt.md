@@ -1,6 +1,6 @@
 # workflow-builder
 
-Scaffold an explicit one-shot workflow adapter without lifecycle authority.
+Scaffold an explicit one-shot workflow adapter without lifecycle authority. Triggers: "build a workflow adapter", "scaffold a one-shot workflow".
 
 ## Instructions
 

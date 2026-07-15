@@ -1,6 +1,6 @@
 # standards
 
-Load only the language and risk standards relevant to a caller-supplied change, then report concrete findings.
+Load only the standards relevant to a caller-supplied change, then report concrete findings. Triggers: "check standards", "which standards apply".
 
 ## Instructions
 

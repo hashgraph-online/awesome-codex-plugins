@@ -22,9 +22,9 @@ different runtime. Preserve unrelated existing changes.
 
 ## Modes
 
-- `$scaffold <language> <name>` creates a project.
-- `$scaffold component <type> <name>` adds a component to an existing project.
-- `$scaffold ci <platform>` creates the requested CI configuration.
+- A language and name request creates a project.
+- A component type and name request adds a component to an existing project.
+- A CI platform request creates the requested CI configuration.
 
 If the request does not identify a target or language, ask only for the missing
 fact. The caller owns version control, revision, and delivery.

@@ -97,10 +97,10 @@ For a bounded suite smoke test, use an owned binary and a temporary output direc
 
 ## Examples
 
-- `$security` — run the quick repository gate, validate its summary, and report coverage/findings.
-- `$security --full` — run the full scan once, preserve artifacts, and report coverage and findings.
-- `$security run --binary "$(command -v ao)" --out-dir .tmp/security-suite/ao-current` — capture an authorized binary baseline via the composable suite.
-- `$security collect-redteam --repo-root .` — run the offline attack pack over repo-owned control surfaces.
+- A quick Security request runs the repository gate once and reports coverage and findings.
+- A full Security request runs the full scan once and preserves its artifacts.
+- An authorized binary request may capture a baseline in an explicit temporary output directory.
+- A red-team request may run the offline attack pack over repo-owned surfaces.
 
 ## Troubleshooting
 

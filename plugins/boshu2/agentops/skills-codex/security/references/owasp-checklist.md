@@ -96,7 +96,7 @@ Loads this checklist as judge context. Each judge evaluates against relevant che
 ```bash
 /postmortem --scope security
 ```
-Runs full checklist as pre-check before council validation.
+Run the full checklist as factual security evidence for the exact candidate.
 
 ### With /security (suite primitives)
 The redteam primitive (`collect-redteam`) covers items 1-4 automatically. This checklist covers the remaining items that require code-level review.

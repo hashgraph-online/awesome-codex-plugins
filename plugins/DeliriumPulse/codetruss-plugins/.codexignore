@@ -1,0 +1,7 @@
+.git/
+.github/
+.claude-plugin/
+dist/
+node_modules/
+plugins/
+scripts/

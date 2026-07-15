@@ -24,7 +24,7 @@ SkillBundle:
 
 The skill's short name, extracted from the `name` field in SKILL.md YAML frontmatter.
 
-Example: `council`, `vibe`, `crank`
+Example: `council`, `validate`, `plan`
 
 ### description (string, required)
 

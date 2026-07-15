@@ -2,7 +2,7 @@
 name: heal-skill
 description: Check or repair structural hygiene in
 ---
-# $heal-skill — Check one or more skill packages
+# Heal Skill — Check one or more skill packages
 
 `heal-skill` is a specialist hygiene tool. It reports structural defects in
 canonical source skills and generated Codex twins. With `--fix`, it repairs only

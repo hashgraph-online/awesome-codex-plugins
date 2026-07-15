@@ -1,0 +1,46 @@
+{
+  "name": "codetruss",
+  "version": "0.1.5",
+  "description": "Verify the acceptance contract for coding-agent changes locally.",
+  "author": {
+    "name": "CodeTruss",
+    "email": "zack@codetruss.com",
+    "url": "https://codetruss.com"
+  },
+  "homepage": "https://codetruss.com/cli",
+  "repository": "https://github.com/DeliriumPulse/codetruss-plugins",
+  "license": "MIT",
+  "keywords": [
+    "acceptance-gate",
+    "coding-agents",
+    "scope-drift",
+    "local-first",
+    "verification",
+    "receipts"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "CodeTruss",
+    "shortDescription": "Local acceptance gate for coding-agent changes",
+    "longDescription": "Declare approved scope and repository checks, evaluate the captured Git state locally, and produce a verifiable receipt before commit. Requires the separately installed free CodeTruss CLI; no CodeTruss account or upload is required.",
+    "developerName": "CodeTruss",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://codetruss.com",
+    "privacyPolicyURL": "https://codetruss.com/privacy",
+    "termsOfServiceURL": "https://codetruss.com/terms",
+    "defaultPrompt": [
+      "Set up CodeTruss for this repository",
+      "Review my current changes against the task",
+      "Verify and explain my latest CodeTruss receipt"
+    ],
+    "brandColor": "#B93A26",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "logoDark": "./assets/icon.svg"
+  }
+}

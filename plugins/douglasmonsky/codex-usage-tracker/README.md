@@ -189,12 +189,12 @@ The tracker cannot read your logged-in ChatGPT plan or live remaining usage auto
 
 - Local SQLite index at `~/.codex-usage-tracker/usage.sqlite3`.
 - Static dashboard generation plus localhost live refresh.
-- `Overview`, `Investigate`, `Calls`, `Threads`, `Limits`, and `Diagnostics` dashboard views, including evidence-graded weekly allowance analysis and on-demand usage-drain report runs.
+- `Overview`, `Investigate`, `Calls`, `Threads`, `Limits`, and `Diagnostics` dashboard views, including responsive token-flow visualization, evidence-graded weekly allowance analysis, and on-demand usage-drain report runs.
 - Active-only dashboards by default, with an explicit `All history` toggle for archived sessions.
 - CLI summaries, queries, CSV export, dashboard generation, doctor checks, and support bundles.
 - MCP tools for Codex sessions that want to query local usage data.
 - Companion Codex skills for operational setup and conversational usage analysis.
-- Optional local pricing, Codex credit, allowance, threshold, project alias, and privacy-mode configuration.
+- Optional local pricing, Codex credit, allowance, threshold, project alias, and privacy-mode configuration, including per-call long-context pricing above 272K input tokens for OpenAI service tiers that publish long-context rates.
 
 ## Dashboard Language
 
@@ -214,7 +214,7 @@ CODEX_USAGE_TRACKER_LANG=vi codex-usage-tracker serve-dashboard --open
 
 The dashboard also includes a language selector. Browser selections are stored locally and can override the generated default for that browser.
 
-Supported dashboard locales include English, Vietnamese, Spanish, French, German, Portuguese, Japanese, Simplified Chinese, Korean, Russian, Italian, and Arabic. This localizes dashboard UI text, not raw Codex log content, thread names, project names, paths, full CLI output, or data exports.
+Supported dashboard locales include English, Vietnamese, Spanish, French, German, Portuguese, Japanese, Simplified Chinese, Korean, Russian, Italian, and Arabic. Simplified Chinese also localizes CLI help and dashboard lifecycle messages. Localization never rewrites raw Codex log content, thread names, project names, paths, or data exports.
 
 ### Adding A Dashboard Language
 

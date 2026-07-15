@@ -1,6 +1,6 @@
-# README Craft — Gold-Standard README Generation (`/doc --mode=readme`)
+# README Craft — Gold-Standard README Generation
 
-> Generate a README that converts skimmers into users and satisfies deep readers — then validate it with a council. This is the full contract behind `/doc --mode=readme`; it absorbed the former `/readme` skill.
+> Generate a README that converts skimmers into users and satisfies deep readers, then run deterministic documentation checks and return factual evidence to the caller.
 
 **YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
 
@@ -88,11 +88,11 @@ ls README.md 2>/dev/null
 ```
 
 **Mode detection:**
-- `--validate` + README exists → skip to Step 5 (council validation only)
+- `--validate` + README exists → skip to Step 5 (deterministic review only)
 - `--rewrite` + README exists → read existing, use as context for rewrite
 - README exists, no flags → ask:
   - "Rewrite — regenerate with gold-standard patterns"
-  - "Validate — council-check the existing README"
+  - "Validate — check the existing README without rewriting it"
   - "Cancel"
 - No README exists → proceed to Step 2 (generate from scratch)
 
@@ -259,38 +259,29 @@ State what's genuinely new about your approach — once.}
 
 Write the generated README to `README.md`.
 
-### Step 5: Council Validation
+### Step 5: Deterministic checks
 
-Run a council to validate the README:
+Run `bash skills/doc/scripts/validate.sh` and inspect the anti-pattern table
+below against the exact README. Record concrete matches, checked scope, and
+anything the local environment could not check. These results are evidence,
+not a semantic verdict.
 
-```
-Skill(skill="council", args="--quick validate README.md — is it clear, non-repetitive, and does it serve both skimmers and deep readers?")
-```
+Do not start Council, rewrite the README again, or decide what happens after a
+finding. The caller may supply the README and these results to Validate as part
+of an exact candidate.
 
-**If `--rewrite` or generating from scratch:** Use `--quick` (inline, fast).
-
-**If `--validate` on existing README:** Use default council (2 judges) for thorough review.
-
-Present the council findings to the user. If significant issues found, offer:
-- "Fix — apply council recommendations automatically"
-- "Show me — display findings, I'll decide"
-- "Ship it — good enough"
-
-### Step 6: Apply Fixes (if requested)
-
-Apply council-recommended fixes. Re-validate with `--quick` to confirm.
-
-### Step 7: Report
+### Step 6: Report
 
 ```
-## README Complete
+## README Evidence
 
 **File:** README.md
 **Sections:** {count}
 **Patterns applied:** {list which of the 8 patterns were relevant}
-**Council verdict:** {PASS/WARN/FAIL}
+**Checks:** {commands and factual results}
+**Unchecked:** {scope not examined}
 
-{If WARN/FAIL: list the top findings and whether they were fixed}
+{List concrete findings without approval or next-action language}
 ```
 
 ---
@@ -317,8 +308,8 @@ When rewriting or validating, flag these:
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Council validation step fails or hangs | The `/council` dependency is not installed or is broken | Reinstall skills (re-run the install one-liner from CLAUDE.md), then retry. Verify `/council` works independently |
-| Generated README has no trust block | No trust concerns were selected during the interview (step 3f answered "None of the above") | If your tool does run hooks, modify config, or make network calls, re-run `/doc --mode=readme --rewrite` and select the applicable trust concerns |
+| README validator cannot run | A required local tool or path is unavailable | Record the command failure and unchecked scope; do not claim the check passed |
+| Generated README has no trust block | No trust concerns were selected during the interview (step 3f answered "None of the above") | Report the mismatch when the tool does run hooks, modify config, or make network calls |
 | `<details>` blocks render as raw HTML on GitHub | Missing blank line after `<summary>` tag or before `</details>` | This mode enforces the formatting rule, but manual edits may break it. Ensure a blank line after every `<summary>...</summary>` line and before every `</details>` |
 | Interview keeps asking questions the project manifest already answers | The manifest file format is not recognized by the context-gathering step | Ensure your project has a standard manifest (`package.json`, `go.mod`, `pyproject.toml`, `Cargo.toml`) in the repo root |
-| Anti-pattern detection flags false positives on rewrite | Some content patterns trigger heuristic detection even when intentional | Review each finding during the council step and select "Ship it" for intentional choices. The detection is heuristic, not absolute |
+| Anti-pattern detection flags false positives on rewrite | Some content patterns trigger heuristic detection even when intentional | Report the exact match as heuristic evidence and let the caller judge it |

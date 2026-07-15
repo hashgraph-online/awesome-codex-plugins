@@ -1,6 +1,6 @@
 # account-rotation
 
-Switch a caller-selected coding-agent account and report the observed identity.
+Switch a caller-selected coding-agent account and report the observed identity. Triggers: "switch account", "rotate coding-agent account".
 
 ## Instructions
 

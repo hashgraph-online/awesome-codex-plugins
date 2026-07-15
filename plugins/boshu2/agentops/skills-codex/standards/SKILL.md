@@ -1,6 +1,6 @@
 ---
 name: standards
-description: Load only the language and risk standards
+description: Load only the standards relevant to a
 ---
 # Standards — focused engineering guidance
 

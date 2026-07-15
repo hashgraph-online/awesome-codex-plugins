@@ -1,6 +1,6 @@
 # goals
 
-Measure declared project fitness goals without recommending or applying work.
+Measure declared project fitness goals without recommending or applying work. Triggers: "measure goals", "check project fitness".
 
 ## Instructions
 

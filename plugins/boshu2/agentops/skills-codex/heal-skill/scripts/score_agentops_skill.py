@@ -9,6 +9,8 @@ import os
 import re
 from pathlib import Path
 
+import yaml
+
 
 CATEGORIES = [
     "trigger_quality",
@@ -24,17 +26,15 @@ CATEGORIES = [
 ]
 
 
-def frontmatter(text: str) -> dict[str, str]:
+def frontmatter(text: str) -> dict:
     match = re.match(r"^---\n(.*?)\n---", text, re.S)
-    data: dict[str, str] = {}
     if not match:
-        return data
-    for line in match.group(1).splitlines():
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        data[key.strip()] = value.strip().strip("'\"")
-    return data
+        return {}
+    try:
+        data = yaml.safe_load(match.group(1)) or {}
+    except yaml.YAMLError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def count_files(path: Path, *parts: str) -> int:
@@ -82,11 +82,15 @@ def collect_metrics(path: Path, text: str) -> dict:
 
 
 def score_trigger(description: str) -> tuple[int, str]:
-    trigger_signals = sum(
-        signal in description.lower()
-        for signal in ("use when", "when", "audit", "upgrade", "validate", "create")
-    )
-    return min(3, int(bool(description)) + trigger_signals), "Description length and trigger phrases."
+    if not description:
+        return 0, "Description missing."
+    lowered = description.lower()
+    score = 1
+    if "triggers:" in lowered or "use when" in lowered:
+        score = 2
+    if any(term in lowered for term in ("not for", "do not use", "not when", "only when")):
+        score = 3
+    return score, "Description and explicit trigger or false-positive boundary."
 
 
 def score_kernel(metrics: dict) -> tuple[int, str]:
@@ -106,13 +110,17 @@ def score_kernel(metrics: dict) -> tuple[int, str]:
 def score_progressive_disclosure(metrics: dict) -> tuple[int, str]:
     reference_files = metrics["reference_files"]
     reference_links = metrics["reference_links"]
+    if not reference_files and metrics["skill_md_lines"] <= 100:
+        return 2, "Concise self-contained kernel; no reference split needed."
     score = min(3, (1 if reference_files else 0) + min(2, reference_links))
     return score, f"{reference_files} reference files, {reference_links} direct reference links."
 
 
 def score_helper_scripts(path: Path, metrics: dict) -> tuple[int, str]:
     script_files = metrics["script_files"]
-    score = 0
+    if not script_files:
+        return 2, "No repeated deterministic mechanic requires a helper script."
+    score = 1
     if script_files:
         score = 1
     if has_named_script(path, ("validate", "check", "audit", "score", "doctor")):
@@ -124,6 +132,8 @@ def score_helper_scripts(path: Path, metrics: dict) -> tuple[int, str]:
 
 def score_validation(path: Path, body: str, metrics: dict) -> tuple[int, str]:
     validation_terms = ("validate", "test", "check", "lint", "verify", "heal-skill")
+    if metrics["script_files"] == 0 and metrics["skill_md_lines"] <= 100:
+        return 2, "Concise non-executable skill states its evidence inline."
     score = int(any(term in body.lower() for term in validation_terms))
     score += int(has_named_script(path, ("validate", "check", "test", "audit")))
     score += int(metrics["self_test_exists"])
@@ -132,7 +142,13 @@ def score_validation(path: Path, body: str, metrics: dict) -> tuple[int, str]:
 
 def score_self_test(path: Path, metrics: dict) -> tuple[int, str]:
     if not metrics["self_test_exists"]:
-        return 0, "SELF-TEST.md missing."
+        if metrics["script_files"] == 0 and metrics["skill_md_lines"] <= 100:
+            return 2, "Concise non-executable skill; a separate self-test is optional."
+        if any(path.rglob("*.feature")) or has_named_script(
+            path, ("validate", "check", "test", "audit")
+        ):
+            return 2, "Executable behavior has a feature or validation helper."
+        return 1, "Executable or broad skill has no focused self-test artifact."
     self_test = (path / "SELF-TEST.md").read_text(encoding="utf-8").lower()
     score = min(
         3,
@@ -145,7 +161,7 @@ def score_self_test(path: Path, metrics: dict) -> tuple[int, str]:
 
 def score_assets(path: Path, metrics: dict) -> tuple[int, str]:
     asset_files = metrics["asset_files"]
-    score = 0
+    score = 2
     if asset_files:
         score = 2
         if any("template" in p.name.lower() for p in (path / "assets").rglob("*") if p.is_file()):
@@ -155,7 +171,7 @@ def score_assets(path: Path, metrics: dict) -> tuple[int, str]:
 
 def score_subagents(metrics: dict) -> tuple[int, str]:
     subagent_files = metrics["subagent_files"]
-    score = 0
+    score = 2
     if subagent_files:
         score = 2 if subagent_files < 3 else 3
     return score, f"{subagent_files} subagent files."
@@ -170,10 +186,8 @@ def score_safety(body: str) -> tuple[int, str]:
 def score_packaging(metrics: dict) -> tuple[int, str]:
     score = 0
     if metrics["total_files"] <= 50 and metrics["symlinks"] == 0:
-        score += 1
-    if metrics["executable_scripts"] == 0:
-        score += 1
-    if metrics["self_test_exists"]:
+        score += 2
+    if metrics["script_files"] == 0 or metrics["executable_scripts"] > 0:
         score += 1
     note = (
         f"{metrics['total_files']} files, {metrics['symlinks']} symlinks, "

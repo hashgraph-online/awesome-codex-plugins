@@ -1,6 +1,6 @@
 # toil-mining
 
-Mine caller-supplied usage history for repeated toil and emit ranked evidence.
+Mine caller-supplied usage history for repeated toil and emit ranked evidence. Triggers: "mine toil", "find repeated operational work".
 
 ## Instructions
 

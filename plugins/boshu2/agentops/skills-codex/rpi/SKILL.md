@@ -19,13 +19,13 @@ the dispatch and stop semantics executable without Git, `ao`, or a tracker.
 
 ## Contract
 
-1. Invoke `$plan` once with the caller's intent. Preserve its exact
+1. Invoke Plan once with the caller's intent. Preserve its exact
    `PlanPacket` and digest. If planning cannot produce a complete packet, report
    `NOT_PLANNED` and stop.
-2. Invoke `$implement` once with that packet. It performs one bounded experiment
+2. Invoke Implement once with that packet. It performs one bounded experiment
    and returns a `CandidatePacket`. If no candidate is built, report `NOT_BUILT`
    and stop.
-3. Invoke `$validate` once in a context distinct from the candidate's
+3. Invoke Validate once in a context distinct from the candidate's
    `author_context_id`. Pass only the PlanPacket, CandidatePacket, factual
    evidence, validator identity, and freshness attestation.
 4. Return the durable `verdict.v2` reference and a short report. Stop regardless

@@ -2,7 +2,7 @@
 name: reverse-engineer
 description: Reverse-engineer an authorized repo, binary
 ---
-# $reverse-engineer
+# Reverse Engineer
 
 Reverse-engineer an external system into two things: a **mechanically-verifiable teardown** (feature inventory + registry + specs, optionally a security audit) and a **steal-map** — what to adopt into our surfaces, what to leave behind. The teardown is the evidence; the steal-map is the decision. The original failure mode this skill exists to prevent: reading a competitor's README and "deciding" from vibes.
 
@@ -56,10 +56,10 @@ Discipline that makes the map trustworthy:
 ## Route one-way-door adoptions into planning
 
 If adopting a steal is a **one-way door** (an architecture fork, a new bounded
-context, or a migration), do not decide it here. Hand the steal-map to
-`$plan`. Dueling Idea Genies may challenge the choice as
-advisory evidence. Premortem alone decides whether the exact final plan is
-ready.
+context, or a migration), do not decide it here. Hand the steal-map to Plan.
+Dueling Idea Genies or Premortem may challenge the choice as advisory
+evidence. Plan alone shapes the resulting PlanPacket; neither strategy grants
+readiness or continuation authority.
 
 ## Invocation Contract
 
@@ -115,7 +115,7 @@ Phase-1 teardown under `output_dir/`: `feature-inventory.md`, `feature-registry.
     [[ "$sbom" == 0 ]]
   fi
   ```
-- **Downstream handoff:** give the validated `steal-map.md` to `$plan` for
+- **Downstream handoff:** give the validated `steal-map.md` to Plan for
   one-way-door candidates; ordinary `have`, `park`, and
   `reject` decisions remain evidence-backed terminal rows.
 
@@ -135,11 +135,11 @@ Must show: feature inventory generated, registry generated, registry validator e
 
 ### Reverse-engineer an OSS CLI (repo mode) → steal-map
 
-`$reverse-engineer cc-sdd --mode=repo --upstream-repo="https://github.com/gotalab/cc-sdd.git" --upstream-ref=v1.0.0` → clones pinned, scans surface, writes inventory/registry/specs, then you map each feature onto our surfaces (have/gap/steal/park/reject) in `steal-map.md` and route selected steals to `$plan`.
+Run the skill for `cc-sdd` with `--mode=repo --upstream-repo="https://github.com/gotalab/cc-sdd.git" --upstream-ref=v1.0.0`. It clones the pinned source, scans the surface, writes inventory/registry/specs, and maps each feature onto our surfaces (`have`, `gap`, `steal`, `park`, or `reject`) in `steal-map.md`. Supply selected steals to Plan.
 
 ### Binary analysis with security audit
 
-`$reverse-engineer ao --authorized --mode=binary --binary-path="$(command -v ao)" --security-audit` → static analysis (metadata, linked libs, embedded-archive signatures, index only) plus the security suite under `output_dir/security/`; the secret-scan gate passes.
+Run the skill for `ao` with `--authorized --mode=binary --binary-path="$(command -v ao)" --security-audit`. It performs authorized static analysis plus the security suite under `output_dir/security/`; the secret-scan check must pass.
 
 ## Troubleshooting
 
@@ -156,14 +156,14 @@ Must show: feature inventory generated, registry generated, registry validator e
 - [ ] Every steal-map row cites teardown evidence **and** our matching surface (or "none").
 - [ ] Verdicts use the full set — `have`/`gap`/`steal`/`park`/`reject` — not everything marked "steal".
 - [ ] Facts on *how* they implement come from code and a fresh independent check — not a README.
-- [ ] One-way-door adoptions are routed to Discovery and Plan, not decided here.
+- [ ] One-way-door adoptions are supplied to Plan, not decided here.
 - [ ] Secret-scan gate passed over all outputs; no proprietary source/prompts reproduced.
 
 ## See Also
 
 - [plan](../plan/SKILL.md) — shape selected steals into exact PlanPackets
 - [dueling-idea-genies](../dueling-idea-genies/SKILL.md) — optional advisory challenge
-- [premortem](../premortem/SKILL.md) — binary readiness verdict on the exact plan
+- [premortem](../premortem/SKILL.md) — optional advisory challenge of the exact plan
 - [research](../research/SKILL.md) — general exploration; this is its external-system specialization
 
 ## Reference Documents

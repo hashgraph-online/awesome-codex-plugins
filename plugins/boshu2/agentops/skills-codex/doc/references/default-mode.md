@@ -1,14 +1,14 @@
 # Doc default mode — code/API docs, code-maps, coverage/validate
 
 > **Provenance:** This is the default-mode workflow **moved verbatim** out of
-> `skills/doc/SKILL.md` (bead `age-skills-audit-fable-l6ic.10`, generic-craft trim).
+> `skills/doc/SKILL.md` (generic-craft trim).
 > Steps 1-7 below — grep for undocumented functions, stamp function/class markdown,
 > compute coverage, write a report — are frontier-trivial: a capable model does them
 > correctly with no skill payload. The skill's durable value is the references-led
-> `--mode=readme` (council-validated) and `--mode=oss` modes, which stay in `SKILL.md`.
+> `--mode=readme` and `--mode=oss` modes, which stay in `SKILL.md`.
 > This file is retained so the default mode still has a full spec to follow.
 
-Given `/doc [command] [target]`:
+Given a Doc command and target:
 
 ## Step 1: Detect Project Type
 

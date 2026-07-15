@@ -8,7 +8,7 @@ Shell commands that fire at specific points in Claude Code's lifecycle.
 
 ## Constraints
 
-- Keep every hook opt-in because AgentOps 3.0 ships runtime-hookless and host policy belongs to the operator.
+- Keep every hook opt-in because AgentOps installs no runtime hooks by default and host policy belongs to the operator.
 - Keep the happy path silent and block only with the event's documented exit/JSON contract because stray stdout can corrupt a tool call.
 - Bound Stop hooks with `stop_hook_active` and scope matchers narrowly to prevent recursion and unrelated-command interception.
 

@@ -1,6 +1,6 @@
 ---
 name: domain
-description: Load the small AgentOps ubiquitous-language
+description: Load the AgentOps language and
 ---
 # Domain — ubiquitous language
 

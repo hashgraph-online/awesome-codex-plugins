@@ -2,7 +2,7 @@
 name: scope
 description: Review a proposed PlanPacket write scope for
 ---
-# $scope — Review a proposed write scope
+# Scope — Review a proposed write scope
 
 Review the `write_scope.include` and `write_scope.exclude` fields of a proposed
 PlanPacket. This skill is advisory: it does not write a lock, install a hook,

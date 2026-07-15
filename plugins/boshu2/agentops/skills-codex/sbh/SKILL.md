@@ -10,13 +10,17 @@ caller.
 
 ## Constraints
 
-- Begin with `sbh --json status`, `sbh check`, or a dry run on the exact mount.
+- Begin with `sbh --json status`, `sbh check`, or a dry run on the exact mount
+  because recovery decisions need a factual baseline.
 - Never run `clean --yes`, `emergency --yes`, ballast release, `tune --apply`,
-  `unprotect`, or service/configuration changes without explicit authority.
+  `unprotect`, or service/configuration changes without explicit authority
+  because those operations mutate host state.
 - Preserve `.git/`, open-file, young-file, non-writable-parent, and
-  `.sbh-protect` vetoes.
-- Confirm that ballast or reclaimed bytes affect the constrained mount.
-- Run one action once, capture before/after evidence, and stop. A negative result
+  `.sbh-protect` vetoes because they prevent unsafe or ineffective cleanup.
+- Confirm that ballast or reclaimed bytes affect the constrained mount because
+  free space on another filesystem does not resolve the pressure.
+- Run one action once, capture before/after evidence, and stop because the
+  caller owns any further mutation. A negative result
   is returned to the caller; this skill does not retry or escalate it.
 
 ## Output

@@ -2,6 +2,6 @@
   "generator": "codex-sync",
   "source_skill": "skills/heal-skill",
   "layout": "modular",
-  "source_hash": "6d52240c1167aef9905e4ebc9a53b41e34a44bb682592792e4e4002c12c53e30",
-  "generated_hash": "7a2a6e0b33327fd6f581cd1d661c7a1fffb93c0856382bdd642d6b8d29e1b7dd"
+  "source_hash": "9643aeb00aad96f802a3fb2617325e805d6dfaea7abcef2597f90d698a2355e3",
+  "generated_hash": "661a51c3a59bef49c577ac274ef53b149e40b8fcc636d329f7df466ccd6c44db"
 }

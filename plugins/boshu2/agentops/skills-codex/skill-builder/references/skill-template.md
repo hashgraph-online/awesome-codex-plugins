@@ -122,11 +122,11 @@ Audits run in **two passes**. Pass 1 runs `heal-skill --check --strict` for stru
 | # | Check id | What passes | Severity |
 |---|----------|-------------|----------|
 | 1 | `description-has-triggers` | A profile-accepted marker inside the description value, or a metadata list meeting the profile minimum | Profile |
-| 2 | `constraints-frontloaded` | First H2 within 80 lines after closing frontmatter `---` contains `Constraints` or `⚠️` | Profile |
+| 2 | `constraints-frontloaded` | Kernels over 100 lines put `Constraints` or `⚠️` within the first 80 body lines; concise kernels pass | Profile |
 | 3 | `rationale-present` | Each constraint bullet contains `why`, `because`, `this matters`, or similar rationale token | Profile |
 | 4 | `verification-checkpoints` | If skill has multi-phase Workflow/Methodology, body contains `Checkpoint`, `confirm`, or `Wait for` markers between phases | Profile |
-| 5 | `output-spec-explicit` | One output section supplies every profile-required executable-handoff component | Profile |
-| 6 | `quality-rubric` | Has `## Quality` / `## Checklist` / `## Rubric` / `## Best Practices` H2 with 3+ bullet items | Profile |
+| 5 | `output-spec-explicit` | Nonempty `output_contract`, or one output section supplies every profile-required component | Profile |
+| 6 | `quality-rubric` | Kernels over 100 lines have 3+ bullets under Quality/Checks/Checklist/Rubric/Best Practices/Acceptance; concise kernels pass | Profile |
 | 7 | `references-modularization` | SKILL.md is at or below the profile's 250-line kernel limit | Profile |
 | 8 | `trigger-clarity` | Frontmatter `description` contains a profile-accepted marker an LLM can match | Profile |
 

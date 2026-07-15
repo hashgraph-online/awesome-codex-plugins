@@ -135,17 +135,11 @@ This project uses **<tool>** for <purpose>. Run `<onboard-cmd>` to get started.
 <cmd2>              # Do thing 2
 ```
 
-## Landing the Plane (Session Completion)
+## Verification evidence
 
-**MANDATORY WORKFLOW:**
-
-1. **Run quality gates** - Tests, linters, builds
-2. **Commit changes** - Meaningful commit message
-3. **PUSH TO REMOTE** - This is MANDATORY
-4. **Verify** - All changes committed AND pushed
-```
-
-Beads-tracker AGENTS.md patterns: [oss-beads-patterns.md](oss-beads-patterns.md).
+Run the documentation checks relevant to the created files and report their
+commands, results, and unchecked scope. Doc does not commit, push, release, or
+decide completion; repository policy and the caller own those transitions.
 
 ---
 

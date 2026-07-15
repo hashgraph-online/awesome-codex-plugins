@@ -1,6 +1,6 @@
 # cc-hooks
 
-Configure Claude Code hooks (PreToolUse, PostToolUse, Stop, Notification) — user-side, opt-in per host (AgentOps 3.0 ships none). Triggers: "cc-hooks", "cc hooks", "configure claude code hooks pretooluse".
+Configure Claude Code hooks (PreToolUse, PostToolUse, Stop, Notification) as an opt-in host adapter; AgentOps installs none by default. Triggers: "cc-hooks", "configure Claude Code hooks".
 
 ## Instructions
 

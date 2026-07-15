@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeTruss"
+  short_description: "Local acceptance gate for coding-agent changes"
+  default_prompt: "Review my current agent changes with CodeTruss and explain the receipt."
