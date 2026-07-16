@@ -412,6 +412,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [EchoCoding](https://github.com/launsion-boop/EchoCoding) - Voice-enabled audio layer for coding agents with ambient soundscapes, event-driven SFX, and optional cloud TTS/ASR interaction.
 - [Emdash Skills](https://github.com/megabytespace/claude-skills) - 14-category autonomous product-building OS for AI coding tools with 94 reference docs, 18 agents, and cross-tool support (Claude Code, Codex, Cursor, Copilot, 30+ more).
 - [HOL Plugin Registry](https://hol.org/registry/plugins) - Browse plugins with scanner-backed security analysis and trust scores.
+- [Tura](https://github.com/Tura-AI/tura) - Open-source terminal coding-agent harness with persistent task state, runtime context compaction, and local or OpenAI-compatible model support.
 
 ## Claim Your Plugin
 
