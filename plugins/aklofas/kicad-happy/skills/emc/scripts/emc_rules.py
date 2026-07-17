@@ -603,9 +603,49 @@ def check_decoupling_via_distance(pcb: Dict) -> List[Dict]:
     if not via_list:
         return findings
 
+    # KH-341: on 2-layer boards the "via to plane" model doesn't apply —
+    # decoupling current returns through pours/traces, not plane vias.
+    layers = pcb.get('layers', [])
+    copper_layer_count = len([l for l in layers
+                              if l.get('type') in ('signal', 'power')])
+    if copper_layer_count == 2:
+        return findings
+
+    zones = pcb.get('zones', [])
     footprints = pcb.get('footprints', [])
     fp_positions = {fp.get('reference', ''): (fp.get('x') or 0, fp.get('y') or 0)
                     for fp in footprints}
+    fp_by_ref = {fp.get('reference', ''): fp for fp in footprints}
+
+    def _cap_in_same_net_pour(fp: Dict) -> bool:
+        """True if the cap sits inside a same-layer zone of one of its own
+        nets — the pour IS the connection, no via needed (KH-341).
+
+        KH-356: analyzer output strips pad geometry from footprints, so
+        this works from what survives: footprint center + connected_nets
+        (pad_nets fallback). Center containment is a good proxy for a
+        chip cap's pad positions.
+        """
+        fp_layer = fp.get('layer', 'F.Cu')
+        fx = fp.get('x')
+        fy = fp.get('y')
+        if fx is None or fy is None:
+            return False
+        cap_nets = fp.get('connected_nets') or [
+            v.get('net') for v in (fp.get('pad_nets') or {}).values()
+            if isinstance(v, dict) and v.get('net')]
+        for net in cap_nets:
+            for z in zones:
+                if z.get('net_name') != net:
+                    continue
+                if fp_layer not in (z.get('layers') or []):
+                    continue
+                bbox = z.get('filled_bbox') or z.get('outline_bbox')
+                if not bbox or len(bbox) != 4:
+                    continue
+                if bbox[0] <= fx <= bbox[2] and bbox[1] <= fy <= bbox[3]:
+                    return True
+        return False
 
     for entry in decoupling:
         for cap_info in entry.get('nearby_caps', []):
@@ -614,6 +654,10 @@ def check_decoupling_via_distance(pcb: Dict) -> List[Dict]:
                 continue
 
             cx, cy = fp_positions[cap_ref]
+
+            _cap_fp = fp_by_ref.get(cap_ref)
+            if _cap_fp and _cap_in_same_net_pour(_cap_fp):
+                continue
 
             # Find nearest via to this cap
             min_via_dist = float('inf')

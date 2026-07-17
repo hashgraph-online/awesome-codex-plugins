@@ -1,6 +1,6 @@
 # plan
 
-Shape intent into one behavior-first PlanPacket with acceptance, evidence, and write scope. Triggers: "plan", "discover and plan", "shape this goal".
+Shape or refine the existing bead or caller intent without creating a second planning artifact. Triggers: "plan", "discover and plan", "shape this goal".
 
 ## Instructions
 

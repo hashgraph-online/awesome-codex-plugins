@@ -53,7 +53,7 @@ Mitigation: Verify unfamiliar endpoint details against `https://docs.xquik.com` 
 - NVIDIA signing guidance: `https://docs.nvidia.com/skills/signing-agent-skills`
 - NVIDIA skill card guidance: `https://docs.nvidia.com/skills/skill-cards`
 - NVIDIA release checklist: `https://docs.nvidia.com/skills/release-checklist`
-- Scan evidence: `skillspector-report.md` records a static SkillSpector v2.3.7 scan from 2026-07-10 with 0 findings. Refresh it after each `SKILL.md` change.
+- Scan evidence: `skillspector-report.md` records a static SkillSpector v2.3.7 scan from 2026-07-16 with 0 findings. Refresh it after each skill directory change.
 - Signing evidence: pending `skill.oms.sig` for signed release artifacts.
 - Evaluation evidence: pending Tier-3 evaluation data and `BENCHMARK.md` for NVIDIA-Verified release.
 

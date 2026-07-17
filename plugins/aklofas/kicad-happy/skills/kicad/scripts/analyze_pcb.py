@@ -772,8 +772,20 @@ def extract_footprints(root: list) -> list[dict]:
 
             pads.append(pad_info)
 
-        # Extract courtyard bounding box (absolute coordinates)
+        # Extract courtyard geometry: bounding box + chained outline polygons
         crtyd_pts: list[tuple[float, float]] = []
+        crtyd_segs: list[tuple[tuple[float, float], tuple[float, float]]] = []
+        crtyd_polys: list[list[tuple[float, float]]] = []
+        crtyd_unchainable = False  # arcs/circles → polygon set would be incomplete
+
+        def _fp_to_abs(lx: float, ly: float) -> tuple[float, float]:
+            if angle != 0:
+                rad = math.radians(-angle)
+                rx = lx * math.cos(rad) - ly * math.sin(rad)
+                ry = lx * math.sin(rad) + ly * math.cos(rad)
+                lx, ly = rx, ry
+            return (x + lx, y + ly)
+
         for gtype in ("fp_line", "fp_rect", "fp_circle", "fp_poly", "fp_arc"):
             for item in find_all(fp, gtype):
                 item_layer = get_value(item, "layer")
@@ -783,27 +795,48 @@ def extract_footprints(root: list) -> list[dict]:
                 if gtype == "fp_poly":
                     pts = find_first(item, "pts")
                     if pts:
+                        poly = []
                         for xy in find_all(pts, "xy"):
                             if len(xy) >= 3:
-                                lx, ly = float(xy[1]), float(xy[2])
-                                if angle != 0:
-                                    rad = math.radians(-angle)
-                                    rx = lx * math.cos(rad) - ly * math.sin(rad)
-                                    ry = lx * math.sin(rad) + ly * math.cos(rad)
-                                    lx, ly = rx, ry
-                                crtyd_pts.append((x + lx, y + ly))
+                                poly.append(_fp_to_abs(float(xy[1]), float(xy[2])))
+                        if len(poly) >= 3:
+                            crtyd_polys.append(poly)
+                        crtyd_pts.extend(poly)
                     continue
+                if gtype == "fp_line":
+                    p1 = find_first(item, "start")
+                    p2 = find_first(item, "end")
+                    if p1 and p2 and len(p1) >= 3 and len(p2) >= 3:
+                        seg_a = _fp_to_abs(float(p1[1]), float(p1[2]))
+                        seg_b = _fp_to_abs(float(p2[1]), float(p2[2]))
+                        crtyd_segs.append((seg_a, seg_b))
+                        crtyd_pts.extend((seg_a, seg_b))
+                    continue
+                if gtype == "fp_rect":
+                    p1 = find_first(item, "start")
+                    p2 = find_first(item, "end")
+                    if p1 and p2 and len(p1) >= 3 and len(p2) >= 3:
+                        sx, sy = float(p1[1]), float(p1[2])
+                        ex, ey = float(p2[1]), float(p2[2])
+                        corners = [_fp_to_abs(cx_, cy_) for cx_, cy_ in
+                                   ((sx, sy), (ex, sy), (ex, ey), (sx, ey))]
+                        crtyd_polys.append(corners)
+                        crtyd_pts.extend(corners)
+                    continue
+                # fp_circle / fp_arc: bbox contribution only — polygon set
+                # stays disabled so overlap falls back to the AABB (KH-350)
+                crtyd_unchainable = True
                 for key in ("start", "end", "center", "mid"):
                     node = find_first(item, key)
                     if node and len(node) >= 3:
-                        lx, ly = float(node[1]), float(node[2])
-                        # Transform to absolute coordinates
-                        if angle != 0:
-                            rad = math.radians(-angle)
-                            rx = lx * math.cos(rad) - ly * math.sin(rad)
-                            ry = lx * math.sin(rad) + ly * math.cos(rad)
-                            lx, ly = rx, ry
-                        crtyd_pts.append((x + lx, y + ly))
+                        crtyd_pts.append(_fp_to_abs(float(node[1]), float(node[2])))
+
+        if crtyd_segs and not crtyd_unchainable:
+            _chained = _chain_segments(crtyd_segs)
+            if _chained:
+                crtyd_polys.extend(_chained)
+            else:
+                crtyd_unchainable = True
 
         fp_entry: dict = {
             "library": fp_lib,
@@ -860,10 +893,85 @@ def extract_footprints(root: list) -> list[dict]:
                 "min_x": round(min(cxs), 3), "min_y": round(min(cys), 3),
                 "max_x": round(max(cxs), 3), "max_y": round(max(cys), 3),
             }
+            if crtyd_polys and not crtyd_unchainable:
+                fp_entry["courtyard_poly"] = [
+                    [[round(vx_, 3), round(vy_, 3)] for vx_, vy_ in poly]
+                    for poly in crtyd_polys
+                ]
 
         footprints.append(fp_entry)
 
     return footprints
+
+
+def _chain_segments(segs: list, tol: float = 0.01) -> list | None:
+    """Chain undirected 2D segments into closed loops (KH-350).
+
+    Returns a list of polygons (each a list of (x, y) vertices, implicit
+    closure) or None when any chain fails to close within tolerance —
+    callers then keep the AABB-only behavior.
+    """
+    def _close(p, q):
+        return abs(p[0] - q[0]) <= tol and abs(p[1] - q[1]) <= tol
+
+    remaining = [s for s in segs if not _close(s[0], s[1])]
+    polys = []
+    while remaining:
+        a, b = remaining.pop()
+        path = [a, b]
+        while not _close(path[0], path[-1]):
+            tail = path[-1]
+            for i, (p, q) in enumerate(remaining):
+                if _close(p, tail):
+                    path.append(q)
+                    break
+                if _close(q, tail):
+                    path.append(p)
+                    break
+            else:
+                return None  # open chain
+            remaining.pop(i)
+        poly = path[:-1]
+        if len(poly) < 3:
+            return None
+        polys.append(poly)
+    return polys
+
+
+def _point_in_polys(px: float, py: float, polys: list) -> bool:
+    """Even-odd ray-casting membership over a list of polygons."""
+    inside = False
+    for poly in polys:
+        n = len(poly)
+        j = n - 1
+        for i in range(n):
+            xi, yi = poly[i][0], poly[i][1]
+            xj, yj = poly[j][0], poly[j][1]
+            if (yi > py) != (yj > py):
+                if px < (xj - xi) * (py - yi) / (yj - yi) + xi:
+                    inside = not inside
+            j = i
+    return inside
+
+
+def _refined_overlap_mm2(polys_a: list, polys_b: list,
+                         ix1: float, iy1: float, ix2: float, iy2: float,
+                         samples: int = 24) -> float:
+    """True courtyard overlap area inside the AABB-intersection box,
+    estimated by grid-sampling membership in both polygon sets (KH-350)."""
+    w = ix2 - ix1
+    h = iy2 - iy1
+    if w <= 0 or h <= 0:
+        return 0.0
+    hits = 0
+    for i in range(samples):
+        px = ix1 + (i + 0.5) * w / samples
+        for j in range(samples):
+            py = iy1 + (j + 0.5) * h / samples
+            if (_point_in_polys(px, py, polys_a)
+                    and _point_in_polys(px, py, polys_b)):
+                hits += 1
+    return w * h * hits / (samples * samples)
 
 
 def extract_tracks(root: list) -> dict:
@@ -3474,6 +3582,21 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                 ox = min(cy_a["max_x"], cy_b["max_x"]) - max(cy_a["min_x"], cy_b["min_x"])
                 oy = min(cy_a["max_y"], cy_b["max_y"]) - max(cy_a["min_y"], cy_b["min_y"])
                 overlap_mm2 = round(ox * oy, 3)
+                # KH-350: AABB is only a pre-filter — notched courtyards
+                # (QFP cross shapes) fill their corners in bbox space. With
+                # chained polygons on both parts, measure the true overlap.
+                _polys_a = fp_a.get("courtyard_poly")
+                _polys_b = fp_b.get("courtyard_poly")
+                if _polys_a and _polys_b:
+                    _refined = _refined_overlap_mm2(
+                        _polys_a, _polys_b,
+                        max(cy_a["min_x"], cy_b["min_x"]),
+                        max(cy_a["min_y"], cy_b["min_y"]),
+                        min(cy_a["max_x"], cy_b["max_x"]),
+                        min(cy_a["max_y"], cy_b["max_y"]))
+                    if _refined <= 0.0:
+                        continue
+                    overlap_mm2 = round(_refined, 3)
                 is_rf_overlap = _is_rf_module(fp_a) or _is_rf_module(fp_b)
                 # RF module courtyards deliberately encode the antenna RF
                 # keepout (e.g., ESP32-S3-WROOM-1 extends ~7mm past the body
@@ -3561,6 +3684,23 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                 else:
                     severity = 'warning'
                     rf_suffix = ''
+                _summary = f"{fp['reference']} is {clearance}mm from board edge{rf_suffix}"
+                _description = (f"Component {fp['reference']} on {fp['layer']} is only "
+                                f"{clearance}mm from the board edge, risking damage "
+                                f"during depaneling or handling.")
+                _recommendation = (f"Move {fp['reference']} further from board edge "
+                                   f"(currently {clearance}mm, recommend >= 1.0mm)")
+                if clearance < 0 and not is_rf and not is_edge_mount:
+                    # KH-344: negative clearance means the courtyard overhangs
+                    # the outline — "move further from edge" is nonsense there.
+                    _summary = (f"{fp['reference']} courtyard overhangs board "
+                                f"edge by {abs(clearance)}mm")
+                    _description = (f"Component {fp['reference']} on {fp['layer']} has "
+                                    f"a courtyard extending {abs(clearance)}mm past the "
+                                    f"board outline. If not intentional (castellated or "
+                                    f"edge-mount part), it will collide with the edge.")
+                    _recommendation = (f"Verify the overhang on {fp['reference']} is "
+                                       f"intentional; if not, place it inside the outline.")
                 edge_close.append({
                     "component": fp["reference"],
                     "layer": fp["layer"],
@@ -3571,12 +3711,12 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                     "severity": severity,
                     "confidence": "deterministic",
                     "evidence_source": "topology",
-                    "summary": f"{fp['reference']} is {clearance}mm from board edge{rf_suffix}",
-                    "description": f"Component {fp['reference']} on {fp['layer']} is only {clearance}mm from the board edge, risking damage during depaneling or handling.",
+                    "summary": _summary,
+                    "description": _description,
                     "components": [fp["reference"]],
                     "nets": [],
                     "pins": [],
-                    "recommendation": f"Move {fp['reference']} further from board edge (currently {clearance}mm, recommend >= 1.0mm)",
+                    "recommendation": _recommendation,
                     "report_context": {"section": "Placement", "impact": "manufacturability", "standard_ref": ""},
                 })
 
@@ -5192,6 +5332,38 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
 _PASSIVE_REF_RE = re.compile(r"^([A-Za-z0-9_]+/)?(C|R|L|FB)\d+$")
 
 
+def _nearest_zone_copper_distance(fx: float, fy: float, fp_layer: str,
+                                  gnd_zones: list) -> tuple:
+    """Distance from a point to the nearest same-layer GND zone copper.
+
+    KH-339: prefers filled_bbox (actual copper) over outline_bbox — the
+    zone outline routinely overstates copper reach. Returns (distance,
+    basis) where basis is 'filled_bbox' or 'outline_bbox' (None if no
+    candidate zone).
+    """
+    min_dist = float('inf')
+    basis = None
+    for gz in gnd_zones:
+        if fp_layer not in gz.get("layers", []):
+            continue
+        gz_basis = "filled_bbox" if gz.get("filled_bbox") else "outline_bbox"
+        bbox = gz.get("filled_bbox") or gz.get("outline_bbox")
+        if not bbox or len(bbox) != 4:
+            continue
+        bx_min, by_min, bx_max, by_max = bbox
+        # EQ-102: d = √((px-zx)² + (py-zy)²) for point-to-zone-pour proximity.
+        # Source: Self-evident — 2D Euclidean distance to the nearest
+        #   axis-aligned bounding-box edge (dx/dy clamped to 0 when the
+        #   point is inside the box on that axis).
+        dx = max(bx_min - fx, 0, fx - bx_max)
+        dy = max(by_min - fy, 0, fy - by_max)
+        dist = math.sqrt(dx * dx + dy * dy)
+        if dist < min_dist:
+            min_dist = dist
+            basis = gz_basis
+    return min_dist, basis
+
+
 def analyze_copper_presence(footprints: list[dict], zones: list[dict],
                             zone_fills: ZoneFills,
                             ref_layer_map: dict[str, str] | None = None) -> dict:
@@ -5406,37 +5578,28 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
             continue
         fx, fy = fp.get("x", 0), fp.get("y", 0)
         fp_layer = fp.get("layer", "F.Cu")
-        min_dist = float('inf')
-        for gz in gnd_zones:
-            if fp_layer not in gz.get("layers", []):
-                continue
-            bbox = gz.get("outline_bbox")
-            if not bbox or len(bbox) != 4:
-                continue
-            bx_min, by_min, bx_max, by_max = bbox
-            # EQ-102: d = √((px-zx)² + (py-zy)²) for point-to-zone-pour proximity.
-            # Source: Self-evident — 2D Euclidean distance to the nearest
-            #   axis-aligned bounding-box edge (dx/dy clamped to 0 when the
-            #   point is inside the box on that axis).
-            dx = max(bx_min - fx, 0, fx - bx_max)
-            dy = max(by_min - fy, 0, fy - by_max)
-            dist = math.sqrt(dx * dx + dy * dy)
-            min_dist = min(min_dist, dist)
+        min_dist, _basis = _nearest_zone_copper_distance(fx, fy, fp_layer,
+                                                         gnd_zones)
         if min_dist < float('inf'):
+            _conf = "deterministic" if _basis == "filled_bbox" else "heuristic"
+            _note = ("" if _basis == "filled_bbox" else
+                     " (zone outline basis — fill data unavailable; actual "
+                     "copper may be farther)")
             touch_clearances.append({
                 "ref": ref,
                 "layer": fp_layer,
                 "gnd_clearance_mm": round(min_dist, 2),
+                "measurement_basis": _basis,
                 "detector": "analyze_copper_presence",
                 "rule_id": "CP-003",
                 "category": "copper_integrity",
                 "severity": "info",
-                "confidence": "deterministic",
+                "confidence": _conf,
                 "evidence_source": "geometry",
                 "summary": f"Touch pad {ref} GND clearance {round(min_dist, 2)}mm",
                 "description": (
                     f"Touch pad {ref} on {fp_layer}: {round(min_dist, 2)}mm "
-                    f"clearance to nearest GND zone."
+                    f"clearance to nearest GND zone copper{_note}."
                 ),
                 "components": [ref],
                 "nets": [],
@@ -5807,6 +5970,36 @@ def analyze_silkscreen_pad_overlaps(footprints: list[dict], board_texts: list[di
     return findings
 
 
+def _point_in_pad(vx: float, vy: float, px: float, py: float,
+                  width: float, height: float, shape: str,
+                  pad_angle: float) -> bool:
+    """Point-in-pad test for VP-001 (KH-340): circle/oval exact, other
+    shapes as a rotated bounding rect. Pad `at` angles in .kicad_pcb are
+    absolute (they already include the footprint rotation)."""
+    dx = vx - px
+    dy = vy - py
+    if pad_angle:
+        # Inverse of the local->absolute rotation used in extract_footprints
+        rad = math.radians(-pad_angle)
+        c, s = math.cos(rad), math.sin(rad)
+        dx, dy = dx * c + dy * s, -dx * s + dy * c
+    hw = width / 2
+    hh = height / 2
+    if shape == "circle":
+        r = max(hw, hh)
+        return dx * dx + dy * dy <= r * r
+    if shape == "oval":
+        # Stadium: center rect capped by semicircles of radius min(hw, hh)
+        r = min(hw, hh)
+        if hw >= hh:
+            cx = max(abs(dx) - (hw - r), 0.0)
+            return cx * cx + dy * dy <= r * r
+        cy = max(abs(dy) - (hh - r), 0.0)
+        return dx * dx + cy * cy <= r * r
+    # rect / roundrect / trapezoid / custom: rotated bounding rect
+    return abs(dx) <= hw and abs(dy) <= hh
+
+
 def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set) -> list[dict]:
     """VP-001: Detect vias inside SMD pads that aren't tented."""
     findings: list[dict] = []
@@ -5823,25 +6016,31 @@ def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set
         for pad in fp.get("pads", []):
             if pad.get("type") != "smd":
                 continue
+            # KH-349: pads "disabled" by clearing all copper layers
+            # (e.g. (layers "Dwgs.User")) can't have via-in-pad issues.
+            _pad_layers = pad.get("layers") or []
+            if _pad_layers and not any(l.endswith(".Cu") for l in _pad_layers):
+                continue
             px = pad.get("abs_x")
             py = pad.get("abs_y")
             if px is None or py is None:
                 continue
-            hw = pad.get("width", 0) / 2
-            hh = pad.get("height", 0) / 2
-            if hw <= 0 or hh <= 0:
+            pw = pad.get("width", 0)
+            ph = pad.get("height", 0)
+            if pw <= 0 or ph <= 0:
                 continue
             pad_num = pad.get("number", "?")
             smd_pads.append((ref, pad_num, pad.get("net_name", ""),
-                             px - hw, py - hh, px + hw, py + hh))
+                             px, py, pw, ph,
+                             pad.get("shape", "rect"), pad.get("angle", 0)))
 
     for via in via_list:
         vx = via.get("x")
         vy = via.get("y")
         if vx is None or vy is None:
             continue
-        for ref, pad_num, net, x1, y1, x2, y2 in smd_pads:
-            if x1 <= vx <= x2 and y1 <= vy <= y2:
+        for ref, pad_num, net, ppx, ppy, pw, ph, pshape, pangle in smd_pads:
+            if _point_in_pad(vx, vy, ppx, ppy, pw, ph, pshape, pangle):
                 # Check tenting
                 via_layers = via.get("layers", [])
                 # A via is tented if it has solder mask coverage (heuristic: look for F.Mask/B.Mask)

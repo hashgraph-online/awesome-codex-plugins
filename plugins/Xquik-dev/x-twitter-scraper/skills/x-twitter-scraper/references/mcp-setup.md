@@ -1,8 +1,9 @@
 # Xquik MCP Server Setup
 
 Connect AI agents and IDEs to Xquik through Model Context Protocol. Add the
-remote URL and complete OAuth 2.1 in the browser. API keys remain available for
-clients that cannot complete OAuth.
+remote URL and complete OAuth 2.1 in the browser. API-key fallback is
+client-specific. ChatGPT custom apps require OAuth and cannot present custom
+API keys.
 
 | Setting | Value |
 |---------|-------|
@@ -18,9 +19,14 @@ Xquik publishes these discovery documents:
 - MCP registry card: `https://xquik.com/.well-known/mcp.json`
 - Agent-readable auth guide: `https://xquik.com/auth.md`
 
-OAuth clients should prefer Client ID Metadata Documents (CIMD). Dynamic Client
-Registration (DCR) remains available as a compatibility fallback. Both use
-Authorization Code with S256 PKCE and the `mcp:tools` scope.
+Xquik supports Client ID Metadata Documents (CIMD) and Dynamic Client
+Registration (DCR). Let each client use its documented registration flow. Both
+use Authorization Code with S256 PKCE and the `mcp:tools` scope.
+
+Use the [canonical client compatibility matrix](https://docs.xquik.com/mcp/overview#client-compatibility)
+for current per-client support. Cline and Qwen Code support OAuth. Affected
+Affected Goose releases need an environment-backed API key, Roo Code's archived final
+release is API-key-only, and Pi has no native MCP client.
 
 > **Security:** Start OAuth from the MCP client. Do not open Xquik login routes
 > directly. Do not proxy Xquik credentials through local bridge packages or
@@ -31,13 +37,16 @@ Authorization Code with S256 PKCE and the `mcp:tools` scope.
 
 ### Claude.ai
 
-1. Open **Customize > Connectors**.
+1. Open [Claude Connectors](https://claude.ai/settings/connectors) or **Customize > Connectors**.
 2. Select **+**, then **Add custom connector**.
 3. Enter `https://xquik.com/mcp`.
-4. Select **Connect** and approve Xquik access.
+4. Select **Add**.
+5. In a chat, select **+ > Connectors**, enable Xquik, then select **Connect** and approve access.
 
-Leave advanced client ID and client secret fields empty. Claude can use Xquik's
-CIMD or DCR registration path.
+Leave advanced client ID and client secret fields empty. Free accounts can add
+1 custom connector. On Team and Enterprise plans, an Owner or Primary Owner
+must first add the Web connector under **Organization settings > Connectors >
+Add > Custom**. The feature is currently beta.
 
 ### Claude Desktop
 
@@ -56,16 +65,24 @@ Run `/mcp`, select `xquik`, then authenticate.
 
 ### ChatGPT
 
-1. Open **Settings > Security and login**.
-2. Enable **Developer mode**.
-3. Open **Settings > Plugins** or `https://chatgpt.com/plugins`.
-4. Select **+** and create a developer-mode app.
-5. Enter `https://xquik.com/mcp` as the server URL.
-6. Complete Xquik authorization.
+1. In ChatGPT on the web, open **Settings > Apps > Advanced settings** and enable **Developer mode**.
+2. Open **Settings > Apps > Create**. Workspace administrators may instead use **Workspace settings > Apps > Create**.
+3. Enter `https://xquik.com/mcp`, choose OAuth, then select **Scan tools**.
+4. Complete Xquik authorization and select **Create**.
 
-Do not paste an API key into the app definition.
+ChatGPT cannot present a custom API key. Business and Enterprise/Edu
+workspaces support full MCP, including write tools. Pro supports read and fetch
+tools only. Custom MCP apps are web-only.
 
 ### Codex CLI
+
+Current Codex releases affected by
+[openai/codex#31573](https://github.com/openai/codex/issues/31573) must use the
+environment-backed API-key configuration in **Codex Config** below. Do not run
+`codex mcp login xquik` while that configuration is active.
+
+After your Codex release includes the upstream issuer fix, remove
+`bearer_token_env_var`, then run:
 
 ```bash
 codex mcp add xquik --url https://xquik.com/mcp
@@ -73,44 +90,66 @@ codex mcp login xquik
 codex mcp list
 ```
 
+Affected releases discard the RFC 9207 `iss` callback value and fail before
+token exchange. If login reports
+`Authorization server response missing required issuer: expected https://xquik.com`,
+Xquik already returns the required issuer. Follow the [Xquik troubleshooting guide](https://docs.xquik.com/guides/troubleshooting#codex-oauth-issuer-validation-error).
+
 ### Codex Desktop
 
-1. Open **Settings > MCP servers**.
-2. Select **Add server**.
-3. Choose **Streamable HTTP**.
-4. Enter `https://xquik.com/mcp`.
-5. Save, select **Authenticate**, then restart.
+Current affected releases use the environment-backed API-key configuration
+below through the shared `config.toml`, then restart Codex Desktop. After your
+release includes the upstream fix, open **Settings > MCP servers**, add
+`https://xquik.com/mcp` as Streamable HTTP, select **Authenticate**, then
+restart.
 
 ### Codex Config
 
-Add to `~/.codex/config.toml`:
+Current affected releases need an environment-backed API key instead of OAuth.
+Load `XQUIK_API_KEY` from your password manager or operating-system secret
+store. Do not type the key into a shell command, save it in shell history, or
+put it in `config.toml`.
+
+Use this `~/.codex/config.toml` entry:
 
 ```toml
 [mcp_servers.xquik]
 url = "https://xquik.com/mcp"
+bearer_token_env_var = "XQUIK_API_KEY"
 ```
 
-Then run `codex mcp login xquik`.
+Restart Codex, then run `codex mcp list`. Do not run `codex mcp login xquik`
+while using the API-key configuration.
+
+After your Codex release includes the upstream fix, remove
+`bearer_token_env_var` so the entry contains only the MCP URL, then run
+`codex mcp login xquik`.
 
 ### OpenAI Agents SDK
 
 Use the OpenAI Agents SDK for programmatic access. When the runtime cannot open
-OAuth, inject an API key from its secret store:
+OAuth, pass an API key into the connection function from its secret store:
 
 ```python
+from agents import Agent, Runner
 from agents.mcp import MCPServerStreamableHttp
 
-def load_secret(name: str) -> str:
-    raise RuntimeError(f"Configure {name} in your secret store.")
 
-api_key = load_secret("XQUIK_API_KEY")
-
-async with MCPServerStreamableHttp(
-    url="https://xquik.com/mcp",
-    headers={"Authorization": f"Bearer {api_key}"},
-    params={},
-) as xquik:
-    pass
+async def run_xquik(api_key: str) -> str:
+    async with MCPServerStreamableHttp(
+        name="Xquik",
+        params={
+            "url": "https://xquik.com/mcp",
+            "headers": {"Authorization": f"Bearer {api_key}"},
+        },
+    ) as server:
+        agent = Agent(
+            name="Xquik agent",
+            instructions="Use Xquik to inspect the API catalog.",
+            mcp_servers=[server],
+        )
+        result = await Runner.run(agent, "List the endpoint categories.")
+        return str(result.final_output)
 ```
 
 ## Editors and Terminals
@@ -164,7 +203,8 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 ```
 
 Enable the server in **Windsurf Settings > Cascade > MCP Servers**, then
-complete OAuth.
+complete OAuth. Enterprise users must enable MCP manually. Team policies may
+disable MCP or restrict servers to an allowlist.
 
 ### OpenCode
 
@@ -190,37 +230,50 @@ opencode mcp list
 
 ### Gemini CLI
 
-Add to Gemini CLI settings:
+Add the remote server:
+
+```bash
+gemini mcp add --transport http xquik https://xquik.com/mcp
+```
+
+Or add it to `~/.gemini/settings.json` for user scope or
+`.gemini/settings.json` for project scope:
 
 ```json
 {
-  "mcpServers": {
-    "xquik": {
-      "httpUrl": "https://xquik.com/mcp"
-    }
-  }
+      "mcpServers": {
+        "xquik": {
+          "type": "http",
+          "url": "https://xquik.com/mcp"
+        }
+      }
 }
 ```
+
+Older Gemini CLI builds also accept the legacy `httpUrl` field.
 
 Run `/mcp auth xquik` to complete OAuth.
 
+### GitHub Copilot CLI
+
+```bash
+copilot mcp add --transport http xquik https://xquik.com/mcp
+```
+
+If your installed CLI does not recognize those flags, start `copilot`, run
+`/mcp add`, choose HTTP, name the server `xquik`, enter the endpoint above, and
+save. This interactive path works across Copilot CLI command variants.
+
+In an interactive Copilot CLI session, run `/mcp auth xquik`. Enterprise policy
+may block servers that are not on the organization allowlist.
+
 ## API-Key Fallback
 
-Use this only when the client cannot complete OAuth and can store secrets
-securely:
-
-```json
-{
-  "mcpServers": {
-    "xquik": {
-      "url": "https://xquik.com/mcp",
-      "headers": {
-        "Authorization": "Bearer ${XQUIK_API_KEY}"
-      }
-    }
-  }
-}
-```
+Use this only when the client cannot complete OAuth and documents a secure
+secret-input or environment-variable mechanism. ChatGPT custom apps cannot use
+this fallback. Codex uses the `bearer_token_env_var` configuration above.
+Client schemas and environment syntax differ, so do not copy a generic header
+object between clients or place a literal key in a configuration file.
 
 Full account keys expose 118 operations. Active guest `paid_reads` keys expose
 33 eligible GET routes.

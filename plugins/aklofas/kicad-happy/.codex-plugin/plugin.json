@@ -1,6 +1,6 @@
 {
   "name": "kicad-happy",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "KiCad electronics design review. Parse schematics and PCB layouts, run EMC pre-compliance and SPICE simulation, extract structured specs from datasheet PDFs, source components from major distributors, and prep boards for fabrication. Catches real design bugs before you order.",
   "author": {
     "name": "aklofas",

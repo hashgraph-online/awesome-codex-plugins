@@ -13,7 +13,7 @@ Read `.spec-superflow.yaml` (especially `dp_0_decisions`, `dp_0_confirmed`) and 
 
 ## Config Check
 
-Run: `npx --yes --package spec-superflow@0.9.1 ssf runtime config --get artifacts.order` — generate in configured order (default: proposal → specs → design → tasks). Run with `artifacts.skip` — skip any listed artifacts.
+Run: `npx --yes --package spec-superflow@0.10.0 ssf runtime config --get artifacts.order` — generate in configured order (default: proposal → specs → design → tasks). Run with `artifacts.skip` — skip any listed artifacts.
 
 ## Artifact Roles
 
@@ -73,8 +73,8 @@ Generate one at a time. Confirm each before next. This prevents scope drift — 
 
 Present summary of all 4 artifacts (2-3 sentences each). Ask user for adjustments. After approval:
 ```bash
-npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> dp_2_result "approved: <summary>"
-npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> dp_2_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> dp_2_result "approved: <summary>"
+npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> dp_2_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
 ```
 
 ## Handoff Rule

@@ -630,7 +630,7 @@ python3 <skill-path>/scripts/lifecycle_audit.py analysis.json
 
 # With temperature range validation (preset or custom)
 python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --temp-range industrial
-python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --temp-range "-40,105"
+python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --temp-range="-40,105"
 
 # Query specific distributors only
 python3 <skill-path>/scripts/lifecycle_audit.py analysis.json --only digikey,lcsc

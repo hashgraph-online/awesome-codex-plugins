@@ -581,7 +581,7 @@
       "icon": "./plugins/reidemeister94/development-skills/assets/icon.svg"
     },
     {
-      "name": "ditto",
+      "name": "emulo",
       "displayName": "Ditto",
       "source": {
         "source": "local",
@@ -593,7 +593,7 @@
       },
       "category": "Development & Workflow",
       "description": "Mines selected evidence from local coding-agent sessions into private work, design, and writing profiles for Codex, Claude Code, and GitHub Copilot.",
-      "icon": "./plugins/ohad6k/ditto/assets/ditto.svg"
+      "icon": "./plugins/ohad6k/ditto/assets/emulo.svg"
     },
     {
       "name": "docflow",
@@ -1021,7 +1021,7 @@
       },
       "category": "Development & Workflow",
       "description": "Evidence-backed ROADMAP.md workflows for AI coding agents with validation, sync, and roadmap generation across any tech stack.",
-      "icon": "./plugins/PapiScholz/roadmapsmith/assets/palette.png"
+      "icon": "./plugins/PapiScholz/roadmapsmith/legacy/assets/palette.png"
     },
     {
       "name": "runtype-skills",

@@ -1,6 +1,6 @@
 # scope
 
-Review a proposed PlanPacket write scope for completeness and ambiguity. Triggers: "review write scope", "check scope boundaries", "scope this change".
+Review the bead or caller intent write scope for completeness and ambiguity. Triggers: "review write scope", "check scope boundaries", "scope this change".
 
 ## Instructions
 

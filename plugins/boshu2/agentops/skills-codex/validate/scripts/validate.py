@@ -182,47 +182,50 @@ def verify_manifest(manifest: dict[str, Any], root: Path, base_manifest: dict[st
     return True, "manifest matches subject"
 
 
-def plan_digest(plan: dict[str, Any]) -> str:
-    return digest_value(plan)
-
-
-def scope_result(plan: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
-    reasons: list[str] = []
-    if candidate.get("plan_packet_digest") != plan_digest(plan):
-        return {"result": "NOT_PROVEN", "out_of_scope": [], "reasons": ["PlanPacket digest mismatch"]}
-    if candidate.get("acceptance_digest") != plan.get("acceptance_digest"):
-        return {"result": "NOT_PROVEN", "out_of_scope": [], "reasons": ["acceptance digest mismatch"]}
-    if not candidate.get("changed_path_coverage_complete"):
-        return {"result": "NOT_PROVEN", "out_of_scope": [], "reasons": ["complete changed-path coverage was not established"]}
-    write_scope = plan.get("write_scope") or {}
-    includes = list(write_scope.get("include") or [])
-    excludes = list(write_scope.get("exclude") or [])
-    if not includes:
-        return {"result": "NOT_PROVEN", "out_of_scope": [], "reasons": ["PlanPacket has no write_scope.include"]}
-    out = []
-    for raw in candidate.get("actual_changed_paths") or []:
-        try:
-            path = normalize_rel(str(raw))
-        except ContractError as exc:
-            reasons.append(str(exc))
-            continue
-        allowed = any(path_matches(path, pattern) for pattern in includes)
-        denied = is_excluded(path, excludes)
-        if not allowed or denied:
-            out.append(path)
-    if reasons:
-        return {"result": "NOT_PROVEN", "out_of_scope": sorted(set(out)), "reasons": reasons}
-    if out:
-        return {"result": "FAIL", "out_of_scope": sorted(set(out)), "reasons": ["proven change outside Plan write scope"]}
-    return {"result": "PASS", "out_of_scope": [], "reasons": []}
-
-
 def add_integrity_finding(draft: dict[str, Any], summary: str) -> dict[str, Any]:
     changed = dict(draft)
     changed["verdict"] = "NOT_PROVEN"
     findings = list(changed.get("findings") or [])
     findings.append({"id": "validate.integrity", "summary": summary, "evidence_refs": ["verdict-store"]})
     changed["findings"] = findings
+    return changed
+
+
+def bind_runtime_facts(
+    draft: dict[str, Any],
+    intent_bytes: bytes | None,
+    manifest: dict[str, Any] | None,
+    author_context_id: str | None,
+    scope_status: str | None,
+) -> dict[str, Any]:
+    """Inject runtime-owned intent, subject, author, and scope facts."""
+    changed = dict(draft)
+    problems: list[str] = []
+    if intent_bytes is None:
+        problems.append("runtime intent source is missing")
+    else:
+        changed["acceptance_digest"] = hashlib.sha256(intent_bytes).hexdigest()
+    if not isinstance(manifest, dict):
+        problems.append("runtime subject manifest is missing")
+    else:
+        claimed = manifest.get("canonical_manifest_digest")
+        if not valid_digest(claimed) or digest_value(manifest_identity(manifest)) != claimed:
+            problems.append("runtime subject manifest digest is invalid")
+        else:
+            changed["subject_manifest_digest"] = claimed
+    if not isinstance(author_context_id, str) or not author_context_id.strip():
+        problems.append("runtime author context ID is missing")
+    else:
+        changed["author_context_id"] = author_context_id
+    if scope_status == "FAIL":
+        changed["verdict"] = "FAIL"
+        findings = list(changed.get("findings") or [])
+        findings.append({"id": "validate.scope", "summary": "runtime-derived changed paths are outside intent scope", "evidence_refs": ["runtime-scope"]})
+        changed["findings"] = findings
+    elif scope_status != "PASS":
+        problems.append("runtime changed-path scope is not proven")
+    if problems:
+        return add_integrity_finding(changed, "; ".join(problems))
     return changed
 
 
@@ -252,6 +255,17 @@ def enforce_identity(draft: dict[str, Any]) -> dict[str, Any]:
         or any(not isinstance(item, dict) or item.get("result") != "PASS" for item in criteria)
     ):
         problems.append("PASS requires at least one criterion and every criterion must PASS")
+    if draft.get("verdict") == "PASS" and (
+        any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("evidence_refs"), list)
+            or not item["evidence_refs"]
+            for item in criteria or []
+        )
+        or not draft.get("evidence_refs")
+        or not draft.get("checked")
+    ):
+        problems.append("PASS requires evidence for every criterion plus nonempty evidence_refs and checked")
     if problems:
         return add_integrity_finding(draft, "; ".join(problems))
     return draft
@@ -353,6 +367,8 @@ def validate_verdict_v2(artifact: dict[str, Any]) -> None:
             raise ContractError("verdict.v2 PASS requires distinct identities and freshness attestation")
         if any(criterion["result"] != "PASS" for criterion in criteria):
             raise ContractError("verdict.v2 PASS requires every criterion to PASS")
+        if any(not criterion["evidence_refs"] for criterion in criteria) or not artifact["evidence_refs"] or not artifact["checked"]:
+            raise ContractError("verdict.v2 PASS requires criterion evidence plus nonempty evidence_refs and checked")
         if artifact["not_checked"]:
             raise ContractError("verdict.v2 PASS cannot contain not_checked items")
 
@@ -390,7 +406,42 @@ def atomic_store(artifact: dict[str, Any], payload: bytes, destination: Path) ->
     return target, False
 
 
-def store_verdict(draft: dict[str, Any], destination: Path) -> tuple[dict[str, Any], Path, bool]:
+def snapshot_intent(payload: bytes, destination: Path) -> tuple[Path, bool]:
+    """Persist exact resolved intent bytes under their SHA-256 identity."""
+    destination.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256(payload).hexdigest()
+    target = destination / f"{digest}.intent"
+    if target.exists():
+        if target.read_bytes() == payload:
+            return target, True
+        raise ContractError(f"intent snapshot integrity collision at {target}")
+    fd, temporary = tempfile.mkstemp(prefix=".intent-", suffix=".tmp", dir=destination)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, target)
+        dir_fd = os.open(destination, os.O_RDONLY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    return target, False
+
+
+def store_verdict(
+    draft: dict[str, Any],
+    destination: Path,
+    intent_bytes: bytes | None = None,
+    manifest: dict[str, Any] | None = None,
+    author_context_id: str | None = None,
+    scope_status: str | None = None,
+) -> tuple[dict[str, Any], Path, bool]:
+    draft = bind_runtime_facts(draft, intent_bytes, manifest, author_context_id, scope_status)
     draft = enforce_identity(draft)
     draft["schema_version"] = "verdict.v2"
     artifact, payload = artifact_bytes(draft)
@@ -426,14 +477,18 @@ def parse_args() -> argparse.Namespace:
     verify.add_argument("--root", required=True)
     verify.add_argument("--manifest", required=True)
     verify.add_argument("--base-manifest")
-    scope = sub.add_parser("scope", help="compare Candidate changed paths to Plan write scope")
-    scope.add_argument("--plan", required=True)
-    scope.add_argument("--candidate", required=True)
-    scope.add_argument("--output")
+    snapshot = sub.add_parser("snapshot-intent", help="persist exact intent bytes under their SHA-256 identity")
+    snapshot.add_argument("--source", required=True, help="intent file path, or - for stdin")
+    snapshot.add_argument("--workspace", default=".")
+    snapshot.add_argument("--intent-dir")
     digest = sub.add_parser("digest", help="print a canonical JSON digest")
     digest.add_argument("json_file")
     store = sub.add_parser("store-verdict", help="atomically persist verdict.v2")
     store.add_argument("--draft", required=True)
+    store.add_argument("--intent-source", required=True)
+    store.add_argument("--subject-manifest", required=True)
+    store.add_argument("--author-context-id", required=True)
+    store.add_argument("--scope-result", required=True, choices=("PASS", "FAIL", "NOT_PROVEN"))
     store.add_argument("--workspace", default=".")
     store.add_argument("--verdict-dir")
     return parser.parse_args()
@@ -452,14 +507,41 @@ def main() -> int:
             ok, reason = verify_manifest(manifest, Path(args.root), base)
             write_json({"result": "PASS" if ok else "NOT_PROVEN", "reason": reason}, None)
             return 0 if ok else 1
-        elif args.command == "scope":
-            write_json(scope_result(load_json(Path(args.plan)), load_json(Path(args.candidate))), args.output)
+        elif args.command == "snapshot-intent":
+            intent_bytes = sys.stdin.buffer.read() if args.source == "-" else Path(args.source).read_bytes()
+            destination = Path(args.intent_dir) if args.intent_dir else Path(args.workspace) / ".agents" / "ao" / "intents" / "sha256"
+            intent_path, existed = snapshot_intent(intent_bytes, destination)
+            write_json({
+                "acceptance_digest": hashlib.sha256(intent_bytes).hexdigest(),
+                "idempotent": existed,
+                "intent_ref": str(intent_path),
+            }, None)
         elif args.command == "digest":
             print(digest_value(load_json(Path(args.json_file))))
         elif args.command == "store-verdict":
-            destination = Path(args.verdict_dir) if args.verdict_dir else Path(args.workspace) / ".agentops" / "verdicts" / "sha256"
-            artifact, path, existed = store_verdict(load_json(Path(args.draft)), destination)
-            write_json({"artifact_digest": artifact["artifact_digest"], "path": str(path), "verdict": artifact["verdict"], "idempotent": existed}, None)
+            destination = Path(args.verdict_dir) if args.verdict_dir else Path(args.workspace) / ".agents" / "ao" / "verdicts" / "sha256"
+            intent_bytes = Path(args.intent_source).read_bytes()
+            intent_path, intent_existed = snapshot_intent(
+                intent_bytes,
+                Path(args.workspace) / ".agents" / "ao" / "intents" / "sha256",
+            )
+            artifact, path, existed = store_verdict(
+                load_json(Path(args.draft)),
+                destination,
+                intent_bytes,
+                load_json(Path(args.subject_manifest)),
+                args.author_context_id,
+                args.scope_result,
+            )
+            write_json({
+                "acceptance_digest": hashlib.sha256(intent_bytes).hexdigest(),
+                "artifact_digest": artifact["artifact_digest"],
+                "idempotent": existed,
+                "intent_ref": str(intent_path),
+                "intent_snapshot_idempotent": intent_existed,
+                "path": str(path),
+                "verdict": artifact["verdict"],
+            }, None)
         return 0
     except (ContractError, OSError, json.JSONDecodeError) as exc:
         print(f"validate: {exc}", file=sys.stderr)

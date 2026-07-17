@@ -34,6 +34,48 @@ Do not stop at a plan unless the requested mode is `strategy`.
 Default to `generate`. Flags: `--mode`, `--scope`, `--min-coverage`, and
 `--dry-run` narrow the workflow but never weaken its evidence requirements.
 
+## Oracle-strength hierarchy
+
+Every test asserts through an oracle, and oracles are not equal. Rank them:
+
+```text
+exact value > property/invariant > differential (two implementations agree) > smoke (it ran)
+```
+
+Choose the strongest oracle the behavior admits and name the oracle-strength
+tier when a test uses anything below exact. A smoke assertion where an exact one was available
+is the **oracle downgrade** failure mode: the test runs the code but proves
+almost nothing about it. Stop condition: no acceptance scenario may be covered
+only by smoke-tier tests when a stronger oracle is practical; if only smoke is
+practical (e.g. nondeterministic external output), record why in
+`.agents/test/summary.md` so the gap is a visible decision, not an accident.
+
+## Mutation-kill proof
+
+A new test earns trust by failing when the behavior it guards is broken. In
+`tdd` mode the recorded RED run is that proof. In other mutating modes, prove
+at least one kill per new behavioral test: mutate the covered logic (flip the
+branch, break the boundary value, or use the project's mutation tool), confirm
+the test fails, then restore. A test that stays green through its own mutation
+is the **immortal test** failure mode — delete or strengthen it before handoff;
+never count it as coverage.
+
+## Harness health floors
+
+Green is only evidence when the harness can go red. Before trusting or
+reporting a green suite, confirm these floors:
+
+- The suite runs to completion — a crashed or truncated run is not a pass.
+- Zero-assertion test count did not grow with this change.
+- Skipped or excluded tests did not silently increase; new skips are named in
+  the summary with a reason.
+- At least one deliberate failure (the mutation-kill or RED run above) failed
+  through the same runner and reporting path you are about to trust.
+
+A suite that cannot demonstrate a failure is the **dead harness** failure mode:
+its green is decoration. Report a dead harness as a finding; do not build
+coverage claims on top of it.
+
 ## Workflow
 
 ### 1. Bind tests to behavior

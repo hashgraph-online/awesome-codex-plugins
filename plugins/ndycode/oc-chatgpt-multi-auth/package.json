@@ -1,6 +1,6 @@
 {
   "name": "oc-codex-multi-auth",
-  "version": "6.8.1",
+  "version": "6.8.2",
   "description": "OpenCode plugin for ChatGPT Plus/Pro OAuth with Codex/GPT-5 routing, multi-account rotation, account switching, health checks, diagnostics, and recovery tools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

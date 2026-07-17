@@ -6,6 +6,12 @@ description: Convert AgentOps skill formats.
 
 Parse AgentOps skills into a universal SkillBundle format, then convert to target agent platforms.
 
+The intermediate SkillBundle is what keeps conversions honest: every target reads the same parsed contract, so a rendering bug is a target-adapter bug, never a silent reinterpretation of the source. If two targets disagree about a skill's content, the bundle — not either output — arbitrates.
+
+Named failure mode — **projection editing**: fixing a rendering problem by hand-editing the converted output, which the next conversion clean-writes away.
+
+Anti-pattern: merging new output into an existing target directory to preserve local tweaks. Corrective: fix the source skill or the adapter, then re-run the clean-write conversion.
+
 ## Constraints
 
 - Treat the canonical source skill as read-only because conversion must not mutate the contract it is translating.

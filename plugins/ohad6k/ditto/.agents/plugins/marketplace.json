@@ -1,9 +1,9 @@
 {
-  "name": "ditto",
-  "interface": {"displayName": "Ditto development"},
+  "name": "emulo",
+  "interface": {"displayName": "Emulo development"},
   "plugins": [
     {
-      "name": "ditto",
+      "name": "emulo",
       "source": {"source": "local", "path": "./"},
       "policy": {
         "installation": "AVAILABLE",

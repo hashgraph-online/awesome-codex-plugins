@@ -124,6 +124,10 @@ A single PR review is three stages:
    suggestion invariants, fingerprint idempotency, comment cap) → post to GitHub → history record
    → overlay/session cleanup.
 
+If a review is abandoned between `prepare_review` and `publish_review` (user cancelled, orchestrating
+LLM session died), publish never runs — such an overlay is collected by GC: opportunistically on the
+next `prepare_review`, and via the `reviewer gc` command.
+
 > Status: working v1. Target analysis language is **Python**; VCS is **GitHub** (behind a
 > `VCSProvider` interface). Proven live: it catches real bugs and sees the impact on calling code
 > and existing tests.
@@ -608,6 +612,7 @@ All commands run via `uvx --from rag-reviewer <command>`, or after `uv tool inst
 | `index` | `<repo>` (path to local clone) | `--ref BRANCH` (git ref to read; default = primary branch), `--branch NAME` (storage key; default = `--ref`), `--repo OWNER/NAME` (default from git `origin`) | Build/update the base index of a branch (vectors + graph). Done once, then incremental. |
 | `search` | `<query>` | `--repo OWNER/NAME` (default `DEFAULT_REPO`), `--branch NAME` (default primary) | Diagnostic hybrid search over a branch's base index. |
 | `status` | `[path]` (default `.`) | `--repo OWNER/NAME` (default from git `origin`), `--branch NAME` (default: all `REVIEW_BRANCHES`), `--json` (machine-readable output) | Index health / freshness vs the clone's HEAD. Spends no Voyage quota. |
+| `gc` | — | — | Purge orphaned overlays (abandoned reviews) and expired sessions. |
 | `migrate-branches` | — | — | One-time: rename legacy `ref="base"` → `base:<primary>` after upgrading to multi-branch. |
 | `serve` | — | `--host HOST` (default `127.0.0.1`), `--port PORT` (default `8000`) | Run the observability web admin on the host. |
 | `reviewer-mcp` | — | — | MCP server (stdio transport). Started automatically by the plugin / editor. |
@@ -997,14 +1002,32 @@ A factual list of what this does and does not do today.
 ## Tests
 
 ```bash
-.venv/bin/pytest -q                 # unit: fast, on fakes; never hit external APIs
-.venv/bin/pytest -m integration     # integration: needs running Postgres/Neo4j + a Voyage key
-.venv/bin/ruff check .              # lint (line-length 100, target py311)
+# unit: no Postgres, Neo4j, localhost service, or external network
+.venv/bin/pytest -q
+# isolated integration infra
+docker compose --profile test up -d --wait paradedb-test neo4j-test
+# integration; pipeline also needs VOYAGE_API_KEY
+.venv/bin/pytest -q -m integration
+# safe teardown only
+docker compose --profile test rm -sfv paradedb-test neo4j-test
 ```
 
-`pytest` excludes integration tests by default (`addopts = -m 'not integration'`). External services
-(GitHub, Voyage, Postgres, Neo4j) are isolated behind interfaces and mocked in unit tests; real calls
-happen only in integration/E2E.
+Default `pytest` starts no infrastructure and excludes integration tests
+(`addopts = -m 'not integration'`). Unit tests cannot use external or localhost sockets. Any test
+that uses the real network must carry `@pytest.mark.integration`.
+
+Database integration tests use `TEST_PG_DSN`, `TEST_NEO4J_URI`, `TEST_NEO4J_USER`, and
+`TEST_NEO4J_PASSWORD`. These `TEST_*` values must never equal development or production endpoints.
+The development and test Compose services differ in ports, credentials, and storage. Test data uses
+`tmpfs`, and the test service images are pinned by digest.
+
+Never use `docker compose --profile test down -v`: the test and development services share a
+Compose project, so that command would remove development containers and named volumes. Only the
+targeted `docker compose --profile test rm -sfv paradedb-test neo4j-test` command is safe.
+
+```bash
+.venv/bin/ruff check .              # lint (line-length 100, target py311)
+```
 
 ## Project layout
 
@@ -1040,14 +1063,11 @@ Issues and PRs are welcome. To work on the project locally:
 git clone https://github.com/mimfort/rag_for_git
 cd rag_for_git
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-docker compose up -d            # Postgres/ParadeDB (:5433) + Neo4j (:7687)
-.venv/bin/pytest -q             # unit tests — fast, on fakes, no external APIs
-.venv/bin/ruff check .          # lint (line-length 100, target py311)
 ```
 
-External services (GitHub, Voyage, Postgres, Neo4j) sit behind interfaces and are mocked in unit
-tests; real calls happen only in integration/E2E. Commit messages follow Conventional Commits. The
-architecture is documented in depth in [README.ru.md](README.ru.md) (Russian) and `CLAUDE.md`.
+Run the canonical workflow and follow its safety rules in [Tests](#tests). Commit messages follow
+Conventional Commits. The architecture is documented in depth in [README.ru.md](README.ru.md)
+(Russian) and `CLAUDE.md`.
 
 ## License
 

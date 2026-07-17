@@ -7,6 +7,31 @@ description: Operate explicit orchestrator, implementer
 Operate caller-selected agent sessions as explicit roles without turning the
 runtime into AgentOps lifecycle authority.
 
+For caller-elected multi-model judgment (mixed council, dueling perspectives,
+cross-model validate), follow
+[references/model-dispatch.md](references/model-dispatch.md): the working
+session is the controller; probe `codex-exec` and `ntm` at runtime; never
+require either; never use Agent Mail for judgment; never invoke `claude -p`.
+
+Role separation works because each role's authority is checkable from its
+packet: a worker that cannot exceed its declared subject cannot corrupt a
+sibling's evidence, so factory failures stay local instead of systemic.
+
+When a worker looks stuck, score interventions by evidence and reversibility
+before acting: observe more (free, fully reversible), then nudge, then replace
+the worker, then restart the runtime — escalate only when observable state,
+not impatience, rules out the cheaper step. Stop the observe-nudge cycle once
+the worker reaches a terminal status or the caller's observation window ends;
+past that point further intervention manufactures noise, not evidence.
+
+Named failure mode — **prompt-send optimism**: treating a successfully
+delivered prompt as a working worker; delivery proves transport, not
+engagement.
+
+Anti-pattern: restarting an unresponsive worker as the first move. Corrective:
+capture its observable state first — a restart destroys the evidence of why it
+stalled, and rescue is usually cheaper than rerun.
+
 ## Roles
 
 - **Orchestrator:** passes explicit packets and reports runtime facts.
@@ -28,6 +53,8 @@ runtime into AgentOps lifecycle authority.
 6. A validator session may supply judgment to Validate, but only Validate writes
    `verdict.v2`.
 
-NTM, native processes, Agent Mail, and Gas City are replaceable adapters. Use
-them only when the caller selected that execution shape. A single local agent
-pays no factory coordination cost.
+NTM, Codex exec, native processes, Agent Mail, and Gas City are replaceable
+adapters. Use them only when the caller selected that execution shape. A
+single local agent pays no factory coordination cost. Model identity, when
+recorded, is a declared runtime fact like context identity — see
+[references/model-dispatch.md](references/model-dispatch.md).

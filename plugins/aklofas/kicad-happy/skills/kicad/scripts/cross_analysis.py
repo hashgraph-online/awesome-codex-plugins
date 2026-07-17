@@ -411,13 +411,19 @@ def check_cross_validation(schematic: dict, pcb: dict | None) -> list[dict]:
     sch_comp_map = {c.get('reference', ''): c for c in schematic.get('components', [])}
     for ref in sch_refs & pcb_refs:
         sch_val = sch_comp_map.get(ref, {}).get('value', '')
-        pcb_val = pcb_fp_map.get(ref, {}).get('value', '')
+        pcb_fp = pcb_fp_map.get(ref, {})
+        pcb_val = pcb_fp.get('value', '')
         # KH-326: skip cross-check if either value is malformed (not a string).
         # Parser edge case in analyze_pcb.py footprint parsing can yield a list.
         if not isinstance(sch_val, str) or not isinstance(pcb_val, str):
             continue
         if sch_val and pcb_val and sch_val != pcb_val:
             if sch_val.replace(' ', '') == pcb_val.replace(' ', ''):
+                continue
+            # Skip when the PCB "value" is actually the footprint library name
+            # (never synced from schematic — KiCad default on fresh placement)
+            pcb_footprint = pcb_fp.get('footprint', '')
+            if pcb_val == pcb_footprint or pcb_val == pcb_footprint.split(':')[-1]:
                 continue
             findings.append(make_finding(
                 detector='check_cross_validation', rule_id='XV-002', category='design_sync',

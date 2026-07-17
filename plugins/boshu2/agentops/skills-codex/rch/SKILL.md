@@ -7,6 +7,22 @@ description: Use RCH once to offload a build or collect
 RCH can offload one explicit compilation command or inspect the remote compiler
 path. This skill reports what happened; it does not govern retries or repair.
 
+Staged diagnosis works because the offload pipeline fails in order —
+availability, configuration, hook, classification, sync, remote compile,
+worker pressure — so the first failing stage localizes the fault and every
+later stage is noise until it passes. Remediate in irreversibility order:
+read-only probes and config inspection before daemon restarts, restarts before
+cleanup, and destructive cleanup or worker mutation only with explicit caller
+authority.
+
+Named failure mode — **green-local blindness**: a passing `[RCH] local (...)`
+build read as offload success; the local fallback hid that the remote claim
+was never proved.
+
+Anti-pattern: re-running the build hoping the fallback reason disappears.
+Corrective: read the recorded fallback reason and fix that stage; the pipeline
+fails deterministically, not moodily.
+
 ## Procedure
 
 1. Capture `rch check`, `rch doctor --json`, worker status, and the relevant

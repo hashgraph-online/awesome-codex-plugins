@@ -1,6 +1,6 @@
 {
   "name": "@useorgx/codex-plugin",
-  "version": "0.1.7",
+  "version": "0.1.11",
   "description": "OrgX Codex plugin with MCP access, initiative-aware skills, and a Sovereign Execution peer sidecar.",
   "type": "module",
   "private": false,
@@ -38,6 +38,8 @@
     "docs/operator-reporting-gates.json",
     "lib/peer/cli.mjs",
     "lib/peer/CodexDriver.mjs",
+    "lib/peer/CodexAppServerClient.mjs",
+    "lib/peer/continuityHealth.mjs",
     "lib/peer/peer.mjs",
     "lib/peer/README.md",
     "lib/peer/sentry.mjs",
@@ -50,13 +52,13 @@
   ],
   "scripts": {
     "check": "node scripts/verify-plugin.mjs",
-    "test": "node --test lib/peer/peer.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs",
+    "test": "node --test lib/peer/peer.test.mjs lib/peer/CodexAppServerClient.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs tests/continuity-health.test.mjs",
     "prepublishOnly": "npm run check && npm test",
     "peer:start": "node lib/peer/cli.mjs"
   },
   "dependencies": {
     "@sentry/node": "10.65.0",
-    "@useorgx/orgx-gateway-sdk": "github:useorgx/orgx-gateway-sdk#40871edeb9b92eaf4403c0ba7270a74204ba425f",
+    "@useorgx/orgx-gateway-sdk": "github:useorgx/orgx-gateway-sdk#c2eb30d4f2df6b19edd3894ad06adb8b3e1ddbdb",
     "ws": "^8.18.3"
   },
   "engines": {

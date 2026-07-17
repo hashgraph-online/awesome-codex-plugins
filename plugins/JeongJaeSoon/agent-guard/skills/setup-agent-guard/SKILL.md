@@ -71,12 +71,12 @@ Make Agent Guard operational without silently changing the machine. Diagnose fir
      The raw marker must not reach the model; expect `[REDACTED]` in a masked or sanitized replacement. These sentinels prove host dispatch without reading a sensitive file or printing a credential-shaped value; the plugin-local smoke test separately proves the real detection rules.
    - If Codex exposes only a wrapping/orchestration tool such as `functions.exec`, test that exact route. Agent Guard cannot replace or wrap Codex's host executor; it can protect only nested calls that Codex exposes to plugin hooks. If either probe bypasses the hook, report the route as unsupported in the current host instead of claiming successful setup.
 
-8. After dependency, enablement, or trust changes, restart Codex and run both live probes again in a new task. In Codex, plugin hooks provide the supported command boundary; do not configure the Claude-specific bang-command shell wrapper as a Codex setup step.
+8. After dependency, enablement, or trust changes, restart Codex and run both live probes again in a new task. In Codex, plugin hooks provide the supported command boundary; do not configure Claude-specific command wrapping as a Codex setup step.
 
 ## Safety And Host Boundaries
 
 - Dependency setup is intentionally approval-gated. A SessionStart hook may diagnose and recommend this skill, but it must never install software itself.
 - If installation is declined, leave the machine unchanged and state that Agent Guard is in degraded mode.
 - Codex protects only hook surfaces that the current host actually dispatches, such as supported `Bash`, `apply_patch`, and MCP calls. Do not claim that Codex hooks intercept arbitrary read, grep, web-search, or opaque wrapping-tool calls.
-- `agent-guard setup-shell`, `agx`, and the bang-command guard are optional Claude Code shell-snapshot integrations. Only configure them when the user explicitly asks for Claude Code coverage.
+- `agent-guard setup-shell`, `agx`, and command wrapping are Claude Code shell-snapshot integrations. `setup-shell` enables command wrapping by default; `--no-command-wrapping` is the persistent opt-out and `AGENT_GUARD_COMMAND_WRAPPING=off` is the runtime opt-out. Only configure them when the user explicitly asks for Claude Code coverage.
 - If plugin hooks are not trusted, enabled, or reached by both live probes, explain that dependencies alone do not activate runtime protection. Never report Agent Guard as operational based only on `check` and `smoke-test`.

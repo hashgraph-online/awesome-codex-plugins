@@ -4,7 +4,12 @@
 > requirements, clean-room behavior, and the 250-line limit come from
 > [skill-conformance-profiles.yaml](skill-conformance-profiles.yaml).
 
-This is the canonical template `skill-builder` materializes and the heal-skill deep audit validates against. Two artifacts in one document because both skills need identical truth.
+This is the canonical template `skill-builder` materializes and its deep audit mode validates against. Two artifacts in one document because both modes need identical truth.
+
+This template governs *structure*. The prose inside that structure is governed
+by [authoring-doctrine.md](authoring-doctrine.md) — the no-op test, negation,
+completion criteria, leading words, description discipline, and the context
+load vs cognitive load decision. Apply both when authoring or healing a skill.
 
 ---
 
@@ -101,9 +106,9 @@ output_contract: <path-to-schema-or-description>
 
 ## 2. Auditor 15-check checklist
 
-Audits run in **two passes**. Pass 1 runs `heal-skill --check --strict` for structural hygiene and gates on the exit code. Pass 2 adds 8 NEW checks not covered by heal.
+Audits run in **two passes**. Pass 1 runs `heal.sh --check --strict` for structural hygiene and gates on the exit code. Pass 2 adds 8 NEW checks not covered by heal.
 
-### Pass 1 — delegated to heal-skill (7 checks)
+### Pass 1 — delegated to heal.sh (7 checks)
 
 | Check | heal.sh code | Severity |
 |-------|--------------|----------|
@@ -115,7 +120,7 @@ Audits run in **two passes**. Pass 1 runs `heal-skill --check --strict` for stru
 | Scripts referenced exist | SCRIPT_REF_MISSING | WARN |
 | User-invocable in dispositions ledger | MISSING_DISPOSITION | FAIL in strict mode |
 
-### Pass 2 — 8 NEW checks beyond heal-skill
+### Pass 2 — 8 NEW checks beyond heal.sh
 
 > The check id `description-has-triggers` (NOT `description-multiline`) is the canonical name. AgentOps' established convention is single-line `description: '...'`; the auditor must NOT false-fail that style. Three valid forms are accepted (any one passes).
 
@@ -171,7 +176,7 @@ H1 title
 └── See Also / References
 ```
 
-The `## Examples` and `## Troubleshooting` sections are recommended but not enforced (heal-skill catches missing references; the auditor leaves these to taste).
+The `## Examples` and `## Troubleshooting` sections are recommended but not enforced (heal.sh catches missing references; the auditor leaves these to taste).
 
 ---
 
@@ -202,9 +207,34 @@ For every shipped AgentOps skill, both files must exist:
 
 ---
 
-## 7. Out-of-scope for v1 (stocktake territory)
+## 7. The 12 craft elements (advisory Pass-4 instrumentation)
 
-The following deeper audits are described in `skills/heal-skill/references/skill-stocktake.md` but NOT yet implemented anywhere — defer to v2:
+`scripts/craft_score.py` detects the presence of these 12 authoring elements
+(never their quality) and reports an advisory `craft n/12` with named gaps in
+the deep audit. `scripts/init.sh` scaffolds one `<!-- craft:<id> ... -->` stub
+per element; the scorer strips HTML comments, so stubs never satisfy an
+element — only authored prose counts.
+
+| # | Element id | One-line authoring prompt |
+|---|------------|---------------------------|
+| 1 | `causal-insight-line` | State the one causal insight that makes this skill work (`Insight:` / `**Why:**` / a `because` clause). |
+| 2 | `named-failure-mode` | Name the concrete failure mode this skill exists to prevent (`fails when`, `failure mode`, a Failure behavior section). |
+| 3 | `frozen-prompts` | Provide any reusable prompt as a fenced block marked copy-paste-only. |
+| 4 | `named-loop-stop-condition` | If the skill iterates, name the loop and give a checkable stop condition in the same section (`stop after`, `at most N passes`, `until ... exit 0`). |
+| 5 | `quantified-rules` | Quantify at least one rule with a number and unit (`at most 3 attempts`, `250 lines`). |
+| 6 | `negative-space` | State what this skill is NOT for (`non-goals`, `not for`, `do not use when`). |
+| 7 | `anti-pattern-with-corrective` | Pair each anti-pattern with its corrective in the same section (`avoid X; instead Y`). |
+| 8 | `provenance-citation` | Cite at least one resolvable source: a repo path or a `.agents/ao` verdict/intent digest (abbreviated `prefix...suffix` accepted). |
+| 9 | `measurable-done` | Give a machine-checkable done signal (`done when`, `exit 0`, a validator command). |
+| 10 | `router-shape` | Map trigger phrases to modes/entry points in a routing table or Modes section. |
+| 11 | `trigger-rich-description` | Put `Triggers:` / `Use when` phrases callers actually say in the frontmatter description. |
+| 12 | `runnable-commands` | Include at least one fenced block with runnable commands. |
+
+---
+
+## 8. Out-of-scope for v1 (stocktake territory)
+
+The following deeper audits are described in a future `skills/skill-builder/references/skill-stocktake.md` but NOT yet implemented anywhere — defer to v2:
 
 - Actionability (does it produce concrete artifacts?)
 - Scope fit (right tier for the task?)

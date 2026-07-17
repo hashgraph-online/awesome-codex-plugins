@@ -638,6 +638,12 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
             continue
         mpn_map.setdefault(mpn, []).extend(entry.get("references", []))
 
+    # KH-348: LCSC/jlcsearch exposes no lifecycle/obsolescence data — an
+    # LCSC-only audit can only ever return 'unknown'. Flag the capability
+    # gap up front and skip the per-part LC-004 noise (rows are kept for
+    # any temperature data).
+    lcsc_only = bool(sources) and set(sources) == {"lcsc"}
+
     lifecycle_findings = []
     temperature_findings = []
     status_counts = {"active": 0, "nrnd": 0, "last_time_buy": 0,
@@ -685,7 +691,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                     finding["alternatives"] = alts
 
         rule_info = _LIFECYCLE_STATUS_RULES.get(status)
-        if rule_info:
+        if rule_info and not (lcsc_only and status == "unknown"):
             rule_id, severity = rule_info
             consensus_split = data.get('consensus_split', False)
             per_source = data.get('per_source_status', {})
@@ -865,8 +871,17 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
         "findings": lifecycle_findings,
         "lifecycle_summary": status_counts,
     }
+    if lcsc_only:
+        result["capability_note"] = (
+            "LCSC (jlcsearch) exposes no lifecycle/obsolescence status — "
+            "every part reads 'unknown' by construction. Use DigiKey, "
+            "Mouser, or element14 credentials for a real lifecycle audit.")
 
     observations = []
+    if lcsc_only:
+        observations.append(
+            "LCSC-only audit: lifecycle status unavailable from this source "
+            "(all statuses 'unknown' by construction)")
     for status_key in ("nrnd", "last_time_buy", "obsolete", "discontinued"):
         count = status_counts.get(status_key, 0)
         if count:

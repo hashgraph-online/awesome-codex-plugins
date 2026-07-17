@@ -7,6 +7,17 @@ description: 'Front door for agent automation: choose'
 Choose the smallest execution shape that preserves the required evidence and
 control. This skill routes; it does not build or start a substrate.
 
+Ordered routing works because each rung is strictly cheaper to operate than the
+next: if the smallest shape truly preserves the evidence and control the task
+needs, every larger shape can only add coordination cost, never correctness.
+
+Named failure mode — **substrate romance**: routing to persistent workers
+because the topology is interesting, not because any deciding axis demands it.
+
+Anti-pattern: starting the chosen substrate as part of routing "to save a
+step". Corrective: return the one-line verdict and let the owner start under
+its own authority.
+
 ## Critical Constraints
 
 - **Route only; do not start a substrate. Why:** choosing an execution shape is

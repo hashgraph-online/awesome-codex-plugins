@@ -8,6 +8,17 @@ Agent Mail carries messages, acknowledgements, identities, and temporary file
 reservations. It is not a task tracker, queue, proof ledger, or lifecycle
 controller.
 
+Reservations prevent collisions only because every cooperating writer checks
+them against the same absolute project path; one writer registered against a
+different path resolution makes the whole ledger advisory fiction.
+
+Named failure mode — **silence-as-status**: reading an unanswered thread as
+"work stalled" or "work done"; mail silence proves only that no mail arrived.
+
+Anti-pattern: widening or renewing a reservation unprompted when a conflict
+appears. Corrective: report the conflict to the caller as-is; scope and TTL
+changes are the caller's call.
+
 ## Boundary
 
 - Skip Agent Mail for a single writer.

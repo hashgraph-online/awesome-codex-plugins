@@ -22,6 +22,11 @@ grep -q '^description:' "$SKILL_MD" || err "description missing"
 grep -q '^skill_api_version:' "$SKILL_MD" || err "skill_api_version missing"
 grep -q 'cass search' "$SKILL_MD" || err "cass search workflow missing"
 grep -q 'cass status' "$SKILL_MD" || err "cass status workflow missing"
+grep -q 'Incremental refresh can become authoritative' "$SKILL_MD" || err "authoritative fallback guidance missing"
+grep -q '124 is NOT zero hits' "$SKILL_MD" || err "bounded concurrent-search guidance missing"
+grep -q 'not evidence that source sessions were lost' "$SKILL_MD" || err "source-preservation boundary missing"
+grep -q '^## Authoritative Fallback and Concurrent Read Latency$' \
+  "$SKILL_DIR/references/OBSERVABILITY.md" || err "observability fallback detail missing"
 
 if [ -f "$SPEC_JSON" ]; then
   python3 -m json.tool "$SPEC_JSON" >/dev/null || err "skill.spec.json is not valid JSON"

@@ -2,6 +2,6 @@
   "generator": "codex-sync",
   "source_skill": "skills/agent-native",
   "layout": "modular",
-  "source_hash": "b5c4759d9793af9392be6712fd00d4a53c044c74478c3ddaa4fbf731944f4d87",
-  "generated_hash": "f408a3ec0118bfa7bcfadbf25882a5ca04a3f9cb5d73626daea8c36a677d8205"
+  "source_hash": "281f66ca51b712cadbc4630f7809c57a721e49838243a5d4346638038305a58d",
+  "generated_hash": "b6d6685acb03edc9bf703b33d9c2185ef3b3c905af55328f2325f5f7be871563"
 }

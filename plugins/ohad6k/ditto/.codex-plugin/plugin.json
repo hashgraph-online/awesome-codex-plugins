@@ -1,12 +1,12 @@
 {
-  "name": "ditto",
-  "version": "0.3.8",
+  "name": "emulo",
+  "version": "0.5.0",
   "description": "Mine real AI coding sessions into a bounded, evidence-backed personal layer.",
   "author": {
     "name": "Ohad"
   },
-  "homepage": "https://github.com/ohad6k/ditto",
-  "repository": "https://github.com/ohad6k/ditto",
+  "homepage": "https://github.com/ohad6k/emulo",
+  "repository": "https://github.com/ohad6k/emulo",
   "license": "MIT",
   "keywords": [
     "personalization",
@@ -16,9 +16,9 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Ditto",
+    "displayName": "Emulo",
     "shortDescription": "Your agents stop starting from zero",
-    "longDescription": "Ditto mines selected evidence from your real local coding-agent sessions into private work, design, and writing profiles.",
+    "longDescription": "Emulo mines selected evidence from your real local coding-agent sessions into private work, design, writing, and video profiles.",
     "developerName": "Ohad",
     "category": "Developer Tools",
     "capabilities": [
@@ -27,13 +27,13 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Run Ditto",
-      "Update my Ditto profile"
+      "Run Emulo",
+      "Update my Emulo profile"
     ],
-    "websiteURL": "https://github.com/ohad6k/ditto",
+    "websiteURL": "https://github.com/ohad6k/emulo",
     "brandColor": "#141414",
-    "composerIcon": "./assets/ditto.svg",
-    "logo": "./assets/ditto.png",
+    "composerIcon": "./assets/emulo.svg",
+    "logo": "./assets/emulo.png",
     "screenshots": []
   }
 }

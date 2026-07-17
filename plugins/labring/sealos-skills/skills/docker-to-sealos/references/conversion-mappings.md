@@ -178,6 +178,8 @@ metadata:
   name: ${{ defaults.app_name }}
 ```
 
+For a single-component StatefulSet with no documented headless or stable per-Pod DNS requirement, set `spec.serviceName` to the public application Service and keep the workload, Service, root Ingress, and manager identity aligned. Preserve documented HA/headless governing Services and expose them through a separate public application Service.
+
 ## Image Mapping
 
 Warning: Example images must use a pinned version, preferring an exact version tag (e.g., `v2.2.0`); only use a digest when a stable version tag cannot be determined. Using `:latest` is prohibited.
@@ -308,6 +310,8 @@ spec:
         - ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
       secretName: ${{ SEALOS_CERT_SECRET_NAME }}
 ```
+
+Keep `Service.spec.ports[].name` populated, and route root-path Prefix Ingress backends through the matching numeric `service.port.number`. Launchpad public-address discovery compares that number with `Service.spec.ports[].port`.
 
 #### WebSocket Ingress Mapping
 

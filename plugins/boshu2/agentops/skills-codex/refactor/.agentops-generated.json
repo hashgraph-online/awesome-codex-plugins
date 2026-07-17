@@ -2,6 +2,6 @@
   "generator": "codex-sync",
   "source_skill": "skills/refactor",
   "layout": "modular",
-  "source_hash": "72d688b661eb84829d708301b15c6e1cab168d5fe77aff3e17a54200e04fa86e",
-  "generated_hash": "6927081e0bac3380f0486669e4238dd9e8ed6b83e76862fc7c610e48a7675a36"
+  "source_hash": "6ea99148467a48e1a0a397ce2b65a0890ba506c4e7b8b44c75d0e3212c2ece86",
+  "generated_hash": "a766c44c64307a8f67cb27396ad04788a36ff21dea50b14c0170ba5a8d9083a3"
 }

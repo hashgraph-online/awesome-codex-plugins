@@ -3,7 +3,7 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ditto-cli"
+name = "emulo"
 dynamic = ["version"]
 description = "Mine your local AI coding session logs into a personal profile your agent loads before every task."
 readme = "README.md"
@@ -20,15 +20,15 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ohad6k/ditto"
-Repository = "https://github.com/ohad6k/ditto"
+Homepage = "https://github.com/ohad6k/emulo"
+Repository = "https://github.com/ohad6k/emulo"
 
 [project.scripts]
-ditto = "ditto:main"
-ditto-cli = "ditto:main"
+emulo = "emulo:main"
+emulo-cli = "emulo:main"  # deprecated alias, kept so existing scripts keep working
 
 [tool.setuptools]
-py-modules = ["ditto"]
+py-modules = ["emulo"]
 
 [tool.setuptools.dynamic]
-version = { attr = "ditto.DITTO_VERSION" }
+version = { attr = "emulo.EMULO_VERSION" }

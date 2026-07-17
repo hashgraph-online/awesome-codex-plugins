@@ -259,6 +259,16 @@ State what's genuinely new about your approach — once.}
 
 Write the generated README to `README.md`.
 
+### Step 4b: Docs prose pass (required)
+
+Read [de-slopify.md](de-slopify.md) and run the full docs-prose prompt on the
+exact `README.md` you just wrote. Apply fixes in place. Manual line-by-line
+recast only — no regex pass. Do not report the README complete until this pass
+has run.
+
+On `--validate` only: inspect for residual prefab/slop tells and record them as
+evidence; do not rewrite unless the caller asked for `--rewrite`.
+
 ### Step 5: Deterministic checks
 
 Run `bash skills/doc/scripts/validate.sh` and inspect the anti-pattern table
@@ -301,6 +311,7 @@ When rewriting or validating, flag these:
 | **Install scatter** | Same install command in 3+ locations | One hero install, one canonical reference |
 | **Theory before try** | Architecture/philosophy before examples | Reorder: examples first, theory in details |
 | **Claim without evidence** | "Best", "different", "unique" without demo | Replace with concrete example or remove |
+| **AI slop prose** | Prefab phrases, "not X, it's Y" on the lead, "here's why," metronomic cadence | Run [de-slopify.md](de-slopify.md); recast manually |
 
 ---
 

@@ -60,12 +60,12 @@ Check for files modified outside scope fence, new dependencies not in design. Un
 - Scope added without artifact updates?
 - Unresolved blockers or known risks?
 - Delta specs exist that need merging?
-- Run `npx --yes --package spec-superflow@0.9.1 ssf audit <change-dir>` — include `decision-point-audit.md` in archive
+- Run `npx --yes --package spec-superflow@0.10.0 ssf audit <change-dir>` — include `decision-point-audit.md` in archive
 
 ### DP-6 (Verification Outcome)
 ```bash
-npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> dp_6_result "<pass|conditional|fail>: <summary>"
-npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> dp_6_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> dp_6_result "<pass|conditional|fail>: <summary>"
+npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> dp_6_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
 ```
 If FAIL, do NOT proceed to DP-7. Route back or ask about abandonment.
 
@@ -73,13 +73,13 @@ After recording a PASS outcome, also record it as the verification gate so the
 `executing → closing` transition is allowed (the guard accepts either
 `test_result: pass` or a `dp_6_result` starting with `pass`):
 ```bash
-npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> test_result pass
+npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> test_result pass
 ```
 
 ### DP-7 (Archive Confirmation)
 ```bash
-npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> dp_7_result "confirmed: <archive summary>"
-npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> dp_7_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> dp_7_result "confirmed: <archive summary>"
+npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> dp_7_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
 ```
 Verify DP-0 through DP-6 are recorded before DP-7.
 
@@ -89,7 +89,7 @@ If implementation diverged from the contract, return to `bridging` before closur
 
 ## Post-Verification
 
-Run `npx --yes --package spec-superflow@0.9.1 ssf state transition <change-dir> closing`. If delta specs exist, route to `spec-merger`.
+Run `npx --yes --package spec-superflow@0.10.0 ssf state transition <change-dir> closing`. If delta specs exist, route to `spec-merger`.
 
 ## Lightweight Closure (hotfix/tweak)
 
@@ -98,6 +98,6 @@ Verify files exist and are non-empty, run `node --check` on code files, skip 5-s
 ## Exception Handling
 
 - **Parse failures**: Report exact file and section
-- **Missing files**: If audit can't generate, run `npx --yes --package spec-superflow@0.9.1 ssf audit` manually
+- **Missing files**: If audit can't generate, run `npx --yes --package spec-superflow@0.10.0 ssf audit` manually
 - **User interruption**: Re-run verification from the beginning on resume
 - **DP gaps**: Flag missing DPs during DP-6; ask user whether to proceed or return

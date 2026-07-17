@@ -102,6 +102,8 @@ class NetEntry:
         "description": "Geometric connection point count."})
     no_connect: bool = field(default=False, metadata={
         "description": "Net terminated by a no-connect flag."})
+    has_pwr_flag: bool = field(default=False, metadata={
+        "description": "Net carries a PWR_FLAG ERC source declaration."})
     labels: list[str] = field(default_factory=list, metadata={
         "description": "Label strings attached to this net."})
 

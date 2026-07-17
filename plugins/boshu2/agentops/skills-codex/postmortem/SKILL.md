@@ -36,6 +36,28 @@ description: Optionally test a retrospective causal
 6. Emit a report containing supported claims, rejected claims, unknowns,
    evidence references, and suggested experiments. Stop.
 
+## Correlation-to-cause discrimination
+
+A fix is proven when the mechanism is demonstrated, not when symptoms stop.
+Promoting a claim from correlation to cause requires all three:
+
+- a stated mechanism — the specific path by which the condition produced the
+  outcome, in terms a reader could check against the subject;
+- discriminating evidence — an observation that the mechanism predicts and at
+  least one plausible alternative does not;
+- a counterfactual test — what should have differed if the claim were false,
+  with the cited evidence showing it did differ.
+
+Symptom disappearance after a change satisfies none of these on its own: the
+change and the recovery may share an unobserved cause, or the symptom may be
+intermittent. The named failure mode is post-hoc fix attribution — "we
+changed X and the failure stopped, therefore X was the cause." Claims backed
+only by symptom cessation stay in the report as correlations with the
+untested alternatives listed, and the suggested experiment is the
+discrimination that would settle them. Stop condition: every supported causal
+claim in the report carries all three elements with citations; anything less
+is filed under correlations or unknowns, never silently promoted.
+
 ## Output Specification
 
 - **Artifact directory:** `.agents/postmortem/`.

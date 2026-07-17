@@ -180,7 +180,7 @@ Current package line: `0.4.0`.
 
 - PR context: architecture snapshots and deterministic diff checks surface dependency and ownership context for reviews and CI.
 - Review workflow: Anchor, Judge, and Critic artifacts now gate Actor publishing so only approved findings can become inline GitHub comments.
-- Language context: an optional tree-sitter backend improves Java, Ruby, and PHP symbol and import extraction while preserving the existing fallback path.
+- Language context: Tree-sitter is part of the standard install and drives the semantic graph for the core languages, with explicit best-effort or file-level capability reporting when a grammar is unavailable.
 - Selection evidence: typed ownership signals, comparative owner features, and calibration reports improve context ranking diagnostics.
 - Dashboard: graph observability and the context cockpit make current selection state easier to inspect.
 - Plugin distribution: the Codex plugin now uses the README symbol as its `composerIcon`/`logo`, and the packaged plugin scanner path reports `100/A` with zero local findings.

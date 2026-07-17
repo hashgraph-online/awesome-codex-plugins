@@ -22,7 +22,8 @@ def digest(value: Any) -> str:
 def report(
     status: str,
     *,
-    plan_digest: str | None = None,
+    intent_ref: str | None = None,
+    acceptance_digest: str | None = None,
     subject_digest: str | None = None,
     verdict_ref: str | None = None,
     verdict_digest: str | None = None,
@@ -32,7 +33,8 @@ def report(
     return {
         "schema_version": "rpi-report.v1",
         "status": status,
-        "plan_packet_digest": plan_digest,
+        "intent_ref": intent_ref,
+        "acceptance_digest": acceptance_digest,
         "subject_manifest_digest": subject_digest,
         "verdict_ref": verdict_ref,
         "verdict_digest": verdict_digest,
@@ -48,26 +50,32 @@ def invoke_once(
     validate_phase: Callable[[Mapping[str, Any], Mapping[str, Any]], Mapping[str, Any]],
 ) -> dict[str, Any]:
     """Dispatch Plan, Implement, and Validate no more than once each."""
-    plan = plan_phase(intent)
-    if plan is None:
+    resolved_intent = plan_phase(intent)
+    if resolved_intent is None:
         return report("NOT_PLANNED", not_checked=["implement", "validate"])
-    plan = dict(plan)
-    plan_packet_digest = digest(plan)
+    resolved_intent = dict(resolved_intent)
+    intent_ref = resolved_intent.get("intent_ref")
+    if not isinstance(intent_ref, str) or not intent_ref:
+        intent_ref = "caller"
+    acceptance_digest = digest(resolved_intent)
 
-    candidate = implement_phase(plan)
-    if candidate is None:
+    subject = implement_phase(resolved_intent)
+    if subject is None:
         return report(
             "NOT_BUILT",
-            plan_digest=plan_packet_digest,
+            intent_ref=intent_ref,
+            acceptance_digest=acceptance_digest,
             checked=["plan"],
             not_checked=["validate"],
         )
-    candidate = dict(candidate)
+    subject = dict(subject)
 
-    validation = dict(validate_phase(plan, candidate))
+    validation = dict(validate_phase(resolved_intent, subject))
     status = validation.get("verdict")
     if status not in {"PASS", "FAIL", "NOT_PROVEN"}:
         raise ValueError("Validate must return PASS, FAIL, or NOT_PROVEN")
+    if validation.get("acceptance_digest") != acceptance_digest:
+        raise ValueError("Validate verdict does not match the resolved intent digest")
     subject_digest = validation.get("subject_manifest_digest")
     verdict_digest = validation.get("verdict_digest")
     verdict_ref = validation.get("verdict_ref")
@@ -75,7 +83,8 @@ def invoke_once(
         raise ValueError("Validate must return durable verdict and subject identities")
     return report(
         status,
-        plan_digest=plan_packet_digest,
+        intent_ref=intent_ref,
+        acceptance_digest=acceptance_digest,
         subject_digest=subject_digest,
         verdict_ref=verdict_ref,
         verdict_digest=verdict_digest,

@@ -110,8 +110,8 @@ or continuation unless the skill is Validate producing `verdict.v2`.
 Run the canonical checks after editing a skill:
 
 ```bash
-bash skills/heal-skill/scripts/heal.sh --check --strict skills/<slug>
-bash skills/heal-skill/scripts/audit.sh --strict skills/<slug>
+bash skills/skill-builder/scripts/heal.sh --check --strict skills/<slug>
+bash skills/skill-builder/scripts/audit.sh --strict skills/<slug>
 bash scripts/validate-skill-frontmatter.sh --strict
 python3 scripts/generate-skill-mesh.py --check
 ```

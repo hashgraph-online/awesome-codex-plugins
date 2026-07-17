@@ -8,6 +8,7 @@
 - [Status Schema (the one you'll actually parse)](#status-schema-the-one-youll-actually-parse)
 - [The Three States, Read Off Status](#the-three-states-read-off-status)
 - [NDJSON Progress on stderr](#ndjson-progress-on-stderr)
+- [Authoritative Fallback and Concurrent Read Latency](#authoritative-fallback-and-concurrent-read-latency)
 - [Liveness Stack](#liveness-stack)
 - [Capabilities Self-Check](#capabilities-self-check)
 
@@ -168,6 +169,46 @@ When you run `cass index --json`, **stderr** streams progress events:
 Tune the cadence: `--progress-interval-ms 1000` (clamped 250–60000). Disable: `--no-progress-events` or `CASS_INDEX_NO_PROGRESS_EVENTS=1`.
 
 **This is how you detect issue #196 (stuck indexing):** if `current` doesn't advance for >30s of progress events, kill and retry with `--full --force-rebuild`.
+
+## Authoritative Fallback and Concurrent Read Latency
+
+`cass index --json` names the requested mode, not a guarantee that every source
+can be reconciled incrementally. The indexer may discover an incompatible or
+incomplete derived checkpoint and expand into an authoritative rebuild across
+the full conversation corpus. A suddenly large `.rebuild.total_conversations`
+therefore describes the chosen recovery work; by itself it says nothing about
+loss of the source session files.
+
+The active writer can also make concurrent `status` and `search` calls slower
+than the normal latency table above. Keep observations bounded and preserve the
+difference between timeout, command failure, and an actual empty result:
+
+```bash
+status_rc=0
+timeout 15 cass status --json > /tmp/cass-status.json || status_rc=$?
+search_rc=0
+timeout 30 cass search "QUERY" --json --fields minimal --limit 20 \
+  > /tmp/cass-search.json || search_rc=$?
+
+case "$status_rc" in
+  0) jq '{index, rebuild}' /tmp/cass-status.json ;;
+  124) echo 'status not observed within 15s' ;;
+  *) echo "status failed with exit $status_rc" ;;
+esac
+
+case "$search_rc" in
+  0) jq '{total_matches, hits}' /tmp/cass-search.json ;;
+  124) echo 'search not observed within 30s (not a zero-hit result)' ;;
+  *) echo "search failed with exit $search_rc" ;;
+esac
+```
+
+When status succeeds, compare `.rebuild.updated_at` and
+`.rebuild.processed_conversations` across bounded observations. Movement means
+the authoritative run is progressing; let that single writer converge. If the
+values do not move, follow the existing issue #196 recovery guidance. Never use
+a timed-out read, a large rebuild total, or a temporary `rebuilding` state as a
+claim that data was lost.
 
 ---
 

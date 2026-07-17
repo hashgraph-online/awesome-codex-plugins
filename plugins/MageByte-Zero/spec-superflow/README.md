@@ -102,7 +102,7 @@ gemini extensions install https://github.com/MageByte-Zero/spec-superflow
 gemini extensions update spec-superflow   # 升级
 ```
 
-### 更多平台（Cline / Kiro / Windsurf / Qwen / Amazon Q / Roo Code / Continue / Pi / OpenCode / WorkBuddy / Trae）
+### 更多平台（Cline / Kiro / Windsurf / Qwen / Amazon Q / Roo Code / Continue / Pi / Qoder / OpenCode / WorkBuddy / Trae）
 
 | 平台 | 安装方式 | 状态 |
 |------|---------|------|
@@ -114,11 +114,12 @@ gemini extensions update spec-superflow   # 升级
 | **Roo Code** | `npx spec-superflow@latest install-roocode` | 已提供安装器 |
 | **Continue** | `npx spec-superflow@latest install-continue` | 已提供安装器 |
 | **Pi** | `npx spec-superflow@latest install-pi` | 已提供安装器 |
+| **Qoder** | `npx spec-superflow@latest install-qoder` | 已提供安装器 |
 | **OpenCode** | `.opencode/plugins/spec-superflow.js` 或 `.agents/skills -> skills/` | 已提供入口 |
 | **WorkBuddy** | `npx spec-superflow@latest install-workbuddy` | 已提供安装器 |
 | **Trae IDE / TRAE Work** | `.trae/skills/`、`~/.trae/skills/` 或上传 zip/.skill | 手动/导入 |
 
-> 共支持 17 个平台，完整安装说明见 [INSTALL.md](INSTALL.md)，支持矩阵见 [docs/platform-matrix.md](docs/platform-matrix.md)。
+> 共支持 18 个平台，完整安装说明见 [INSTALL.md](INSTALL.md)，支持矩阵见 [docs/platform-matrix.md](docs/platform-matrix.md)。
 
 ### CLI 工具链
 
@@ -158,10 +159,11 @@ npx spec-superflow list          # 或通过 npx 使用
 | `ssf install-roocode` | 部署到 Roo Code `.roo/` + `.roo/rules/` |
 | `ssf install-continue` | 部署到 Continue `.continue/` + `.continue/rules/` |
 | `ssf install-pi` | 部署到 Pi `.pi/skills/`（无规则目录） |
+| `ssf install-qoder` | 部署到 Qoder `.qoder/` + `.qoder/rules/` |
 
 ### 版本
 
-- 当前版本：`v0.9.1`
+- 当前版本：`v0.10.0`
 - v0.9.1 highlights：DP-4 执行模式推荐、跨 17 个平台的 portable runtime，以及无插件根路径的 raw-package smoke；详见 [CHANGELOG.md](CHANGELOG.md)
 - v0.9.0 highlights：支持 Node 20/22、model profiles 只读解析，以及 code-reviewer 的最小性审查
 - 自包含插件，不需要运行时安装 OpenSpec 或 Superpowers

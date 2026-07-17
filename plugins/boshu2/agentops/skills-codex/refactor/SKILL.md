@@ -21,6 +21,38 @@ Do not combine a newly discovered behavior fix with the structural change. A red
 result is evidence for the caller; this skill does not revert, narrow, retry,
 commit, validate, or route subsequent work automatically.
 
+## Seam experiments before commitment
+
+When the transformation needs a seam — an extraction boundary, interface, or
+module split — and more than one candidate seam exists, probe before you cut.
+Run the probe in disposable isolation (a scratch branch, worktree, or copied
+tree the caller's policy allows): rough in the seam, see what it forces —
+signature churn, import cycles, test rewrites — then discard the probe and
+keep only the knowledge. Stop condition: at most two probes; if the second
+candidate seam also fights back, report both findings to the caller instead of
+trying a third. Cutting the first imaginable seam directly into the working
+tree is the **premature seam** failure mode: the wrong boundary calcifies
+because reverting it now costs more than living with it.
+
+## Neutrality gates
+
+"Behavior-preserving" is a claim to execute, not assert. Gate the
+transformation on behavior-identical proof:
+
+- The focused check and the package-level regression check pass both before
+  and after, with the same set of pre-existing failures — no new red, and no
+  quietly vanished red either (a test that stops running is a behavior change).
+- For output-producing surfaces (generators, serializers, formatters, reports),
+  hash the outputs: capture golden-output hashes over identical inputs before
+  the change and compare byte-for-byte after. A hash mismatch is a behavior
+  diff to explain or revert, never to shrug at.
+- Observable error messages, exit codes, and public signatures on the changed
+  surface are part of behavior unless the caller excluded them.
+
+A neutrality gate that was skipped or narrowed after the fact is the
+**post-hoc neutrality** failure mode — the diff decides what got tested. Name
+any surface the gates did not cover in the report's behavior-not-checked list.
+
 ## References
 
 - [Behavior-preserving simplification](references/behavior-preserving-simplification.md)

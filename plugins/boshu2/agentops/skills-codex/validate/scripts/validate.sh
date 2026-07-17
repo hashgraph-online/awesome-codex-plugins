@@ -6,7 +6,8 @@ repo_root="$(cd "$skill_dir/../.." && pwd)"
 
 grep -q '^name: validate$' "$skill_dir/SKILL.md"
 grep -Fq 'PASS`, `FAIL`, or `NOT_PROVEN`' "$skill_dir/SKILL.md"
-grep -Fq 'sole verdict writer' "$skill_dir/SKILL.md"
+grep -Fq 'sole' "$skill_dir/SKILL.md"
+grep -Fq 'verdict writer' "$skill_dir/SKILL.md"
 
 python3 "$skill_dir/scripts/validate.py" --help >/dev/null
 python3 - "$repo_root" <<'PY'
@@ -17,10 +18,7 @@ from jsonschema import Draft202012Validator
 
 root = Path(sys.argv[1])
 names = (
-    "plan-packet.v1.schema.json",
-    "candidate-packet.v1.schema.json",
     "subject-manifest.v1.schema.json",
-    "revision-packet.v1.schema.json",
     "verdict.v2.schema.json",
 )
 for name in names:

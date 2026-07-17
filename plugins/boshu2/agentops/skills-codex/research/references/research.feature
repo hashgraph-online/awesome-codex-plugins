@@ -9,3 +9,10 @@ Feature: Research answers one bounded question
     Given a cited answer with checked and unchecked scope
     When Research reports the result
     Then it does not approve work, select a next action, retry, or mutate lifecycle state
+
+  Scenario: Multiple caller-supplied reports are synthesized once
+    Given several identified reports that address one bounded question
+    When Research compares their load-bearing claims
+    Then every claim preserves its report identity and evidence reference
+    And agreement, contradiction, and unknown are reported separately
+    And Research emits one synthesis without creating an umbrella or starting a new runtime

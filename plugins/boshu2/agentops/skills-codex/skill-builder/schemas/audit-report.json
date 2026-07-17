@@ -1,0 +1,398 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Skill Audit Report",
+  "description": "Output contract for the skill-builder deep audit. Three passes: Pass 1 wraps heal.sh structural checks; Pass 2 adds 8 NEW content-discipline checks beyond heal.sh; Pass 3 folds the 10-category Skill Quality Rubric (docs/reference/skill-quality-rubric.md) in as an advisory 0-30 productization score.",
+  "type": "object",
+  "required": ["target", "profile_id", "verdict", "pass1", "pass2"],
+  "properties": {
+    "target": {
+      "type": "string",
+      "description": "skills/<name> path being audited"
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "Selected authoritative skill-conformance profile ID."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "WARN", "FAIL"],
+      "description": "Aggregate verdict. fails>0 = FAIL; warns>0 = WARN; otherwise PASS."
+    },
+    "pass1": {
+      "type": "object",
+      "description": "heal structural results (delegated to bash skills/skill-builder/scripts/heal.sh --check --strict <target>).",
+      "required": ["status", "exit_code", "findings"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail"],
+          "description": "Strict heal verdict based on process exit code, not parsed finding text."
+        },
+        "exit_code": {
+          "type": "integer",
+          "description": "Actual exit code from heal.sh --check --strict. Non-zero forces aggregate FAIL."
+        },
+        "strict": {
+          "type": "boolean",
+          "const": true,
+          "description": "Always true: Pass 1 uses heal strict mode."
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code", "path", "msg"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "heal.sh finding code (e.g., MISSING_NAME, UNLINKED_REF, DEAD_REF)"
+              },
+              "path": {"type": "string"},
+              "msg": {"type": "string"}
+            }
+          }
+        },
+        "autofixable": {
+          "type": "integer",
+          "description": "Count of findings heal.sh can auto-fix with --fix"
+        }
+      }
+    },
+    "pass2": {
+      "type": "object",
+      "description": "Eight NEW checks beyond heal structural hygiene.",
+      "required": ["checks"],
+      "properties": {
+        "checks": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "required": ["id", "severity", "status"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "description-has-triggers",
+                  "constraints-frontloaded",
+                  "rationale-present",
+                  "verification-checkpoints",
+                  "output-spec-explicit",
+                  "quality-rubric",
+                  "references-modularization",
+                  "trigger-clarity"
+                ],
+                "description": "Stable check identifier. NOTE: 'description-has-triggers' (NOT 'description-multiline') — the broader form accepts AgentOps' single-line description convention plus financial-services' multi-line block-scalar form plus metadata.triggers arrays. See skills/skill-builder/references/skill-template.md §2 for accepted forms."
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pass", "warn", "fail", "n/a"],
+                "description": "Status derived from the selected profile severity."
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["WARN", "FAIL"]
+              },
+              "forms": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["inline-marker", "block-marker", "metadata-list"]
+                }
+              },
+              "evidence": {
+                "type": "string",
+                "description": "Specific finding (line, snippet, or grep match) supporting the status."
+              }
+            }
+          }
+        }
+      }
+    },
+    "density": {
+      "type": "object",
+      "description": "Advisory-only Context Density Rule coverage. This does not affect the aggregate verdict and does not enforce execution-packet density.",
+      "required": ["status", "advisory", "fields", "summary"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pass", "warn"],
+          "description": "pass when all six advisory density fields are present, warn otherwise."
+        },
+        "advisory": {
+          "type": "boolean",
+          "const": true,
+          "description": "Always true. Density coverage is report-only at the skill-auditor layer."
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "required": ["id", "present", "evidence"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "intent",
+                  "boundary",
+                  "evidence",
+                  "decision",
+                  "constraint",
+                  "next_action"
+                ]
+              },
+              "present": {"type": "boolean"},
+              "evidence": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "summary": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "rubric": {
+      "description": "Advisory-only Pass-3 Skill Quality Rubric score (docs/reference/skill-quality-rubric.md). Folded in from score_agentops_skill.py --audit-block. Never affects the aggregate verdict. Emitted as null when python3 or the scorer is unavailable (fail-open).",
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["total_score", "max_score", "rating", "advisory", "categories"],
+          "properties": {
+            "total_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30,
+              "description": "Sum of the 10 category scores (0-30)."
+            },
+            "max_score": {
+              "type": "integer",
+              "const": 30
+            },
+            "rating": {
+              "type": "string",
+              "enum": ["C", "B", "A", "S"],
+              "description": "Rating band: C (0-10), B (11-20), A (21-26), S (27-30)."
+            },
+            "advisory": {
+              "type": "boolean",
+              "const": true,
+              "description": "Always true. The rubric score is report-only and never gates the verdict."
+            },
+            "categories": {
+              "type": "array",
+              "minItems": 10,
+              "maxItems": 10,
+              "description": "The 10 rubric categories, each scored 0-3 with an explainable reason. Category ids come verbatim from the rubric doc.",
+              "items": {
+                "type": "object",
+                "required": ["category", "score", "reason"],
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "trigger_quality",
+                      "kernel_clarity",
+                      "progressive_disclosure",
+                      "helper_scripts",
+                      "validation",
+                      "self_test",
+                      "assets_templates",
+                      "subagents_roles",
+                      "safety_boundaries",
+                      "packaging"
+                    ]
+                  },
+                  "score": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "description": "0 missing/unsafe, 1 present-but-weak, 2 solid, 3 product-grade and mechanically validated."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Deterministic explanation derived from the skill directory contents."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "craft": {
+      "description": "Advisory-only Pass-4 craft instrumentation (craft_score.py): 12-element craft score with named gaps, provenance-citation resolution, and loop-safety findings. Additive and never affects the aggregate verdict or exit code. Emitted as null when python3 or the scorer is unavailable (fail-open).",
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["score", "max", "advisory", "missing", "elements", "provenance", "loop_safety", "summary"],
+          "properties": {
+            "score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 12,
+              "description": "Count of the 12 craft elements detected as present."
+            },
+            "max": {"type": "integer", "const": 12},
+            "advisory": {
+              "type": "boolean",
+              "const": true,
+              "description": "Always true. Craft instrumentation is report-only and never gates."
+            },
+            "missing": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Element ids not detected; the named gaps."
+            },
+            "elements": {
+              "type": "array",
+              "minItems": 12,
+              "maxItems": 12,
+              "items": {
+                "type": "object",
+                "required": ["id", "present", "evidence"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "enum": [
+                      "causal-insight-line",
+                      "named-failure-mode",
+                      "frozen-prompts",
+                      "named-loop-stop-condition",
+                      "quantified-rules",
+                      "negative-space",
+                      "anti-pattern-with-corrective",
+                      "provenance-citation",
+                      "measurable-done",
+                      "router-shape",
+                      "trigger-rich-description",
+                      "runnable-commands"
+                    ]
+                  },
+                  "present": {"type": "boolean"},
+                  "evidence": {"type": "string"}
+                },
+                "additionalProperties": false
+              }
+            },
+            "provenance": {
+              "type": "object",
+              "required": ["advisory", "citations", "resolved", "dead"],
+              "properties": {
+                "advisory": {"type": "boolean", "const": true},
+                "citations": {"type": "integer", "minimum": 0},
+                "resolved": {"type": "integer", "minimum": 0},
+                "dead": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["citation", "kind"],
+                    "properties": {
+                      "citation": {"type": "string"},
+                      "kind": {"type": "string", "enum": ["digest", "path"]}
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "loop_safety": {
+              "type": "object",
+              "required": ["advisory", "findings"],
+              "properties": {
+                "advisory": {"type": "boolean", "const": true},
+                "findings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["type", "section", "evidence"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["loop-missing-stop-condition", "dispatch-loop-missing-budget"]
+                      },
+                      "section": {"type": "string"},
+                      "evidence": {"type": "string"}
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "summary": {
+              "type": "string",
+              "description": "One-line rollup, e.g. 'craft 7/12; missing: causal-insight-line, frozen-prompts'."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "authoring": {
+      "description": "Advisory-only Pass-5 authoring prose-quality scan (authoring_scan.py): mechanical suspects for the failure modes named in references/authoring-doctrine.md. Never affects the aggregate verdict or exit code. Emitted as null when python3 or the scanner is unavailable (fail-open).",
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["advisory", "findings", "counts", "summary"],
+          "properties": {
+            "advisory": {
+              "type": "boolean",
+              "const": true,
+              "description": "Always true. Authoring findings are report-only and never gate."
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "line", "evidence"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "enum": [
+                      "noop-phrase",
+                      "negation-without-positive",
+                      "step-missing-done-condition"
+                    ]
+                  },
+                  "line": {"type": "integer", "minimum": 1},
+                  "evidence": {"type": "string"}
+                },
+                "additionalProperties": false
+              }
+            },
+            "counts": {
+              "type": "object",
+              "required": [
+                "noop-phrase",
+                "negation-without-positive",
+                "step-missing-done-condition"
+              ],
+              "properties": {
+                "noop-phrase": {"type": "integer", "minimum": 0},
+                "negation-without-positive": {"type": "integer", "minimum": 0},
+                "step-missing-done-condition": {"type": "integer", "minimum": 0}
+              },
+              "additionalProperties": false
+            },
+            "summary": {"type": "string"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "description": "Human-readable one-paragraph rollup. Suitable for embedding in a markdown audit report."
+    }
+  },
+  "additionalProperties": false
+}

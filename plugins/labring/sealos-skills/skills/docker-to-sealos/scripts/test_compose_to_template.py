@@ -126,8 +126,10 @@ class ComposeToTemplateTests(unittest.TestCase):
             )
             ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
             backend_service_name = ingress["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"]
+            backend_service_port = ingress["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["port"]
             self.assertEqual("${{ defaults.app_name }}", ingress["metadata"]["name"])
             self.assertEqual("${{ defaults.app_name }}", backend_service_name)
+            self.assertEqual({"number": 80}, backend_service_port)
             self.assertEqual(
                 "${{ defaults.app_name }}",
                 ingress["metadata"]["labels"]["cloud.sealos.io/app-deploy-manager"],
@@ -1116,8 +1118,16 @@ class ComposeToTemplateTests(unittest.TestCase):
             )
             docs = parse_yaml_documents(index_path)
             workload = next(doc for doc in docs if doc.get("kind") in {"Deployment", "StatefulSet"})
+            service = next(doc for doc in docs if doc.get("kind") == "Service")
+            ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
             self.assertEqual("StatefulSet", workload["kind"])
             self.assertIn("volumeClaimTemplates", workload["spec"])
+            self.assertEqual(workload["metadata"]["name"], workload["spec"]["serviceName"])
+            self.assertEqual(workload["metadata"]["name"], service["metadata"]["name"])
+            self.assertEqual(
+                service["metadata"]["name"],
+                ingress["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"],
+            )
             request = workload["spec"]["volumeClaimTemplates"][0]["spec"]["resources"]["requests"]["storage"]
             self.assertEqual("1Gi", request)
 

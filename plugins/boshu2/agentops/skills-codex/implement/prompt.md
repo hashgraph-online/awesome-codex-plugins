@@ -1,6 +1,6 @@
 # implement
 
-Execute one bounded RED to GREEN to refactor experiment from a PlanPacket and return a CandidatePacket. Triggers: "implement", "build this plan", "run the experiment".
+Execute one bounded RED to GREEN experiment from bead or caller intent; return derived subject identity and check facts. Triggers: "implement", "build this plan", "run the experiment".
 
 ## Instructions
 

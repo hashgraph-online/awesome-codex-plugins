@@ -14,6 +14,7 @@ from kicad_utils import (
     format_frequency as _format_frequency,
     is_ground_name,
     is_power_net_name,
+    is_usb_data_net_name,
     lookup_regulator_vref as _lookup_regulator_vref,
     lookup_switching_freq,
     match_known_switching as _match_known_switching,
@@ -1544,7 +1545,10 @@ def _infer_rail_voltage(net_name):
     m = re.match(r'[+]?(\d+\.?\d*)V', name)
     if m:
         return float(m.group(1))
-    if "VBUS" in name or "USB" in name:
+    if "VBUS" in name:
+        return 5.0
+    # KH-343: only non-data USB nets (VBUS-ish) default to 5V
+    if "USB" in name and not is_usb_data_net_name(name):
         return 5.0
     if "VBAT" in name:
         return 3.7
@@ -4019,15 +4023,16 @@ def audit_rail_sources(ctx: AnalysisContext,
 
     def _has_direct_source(net_info: dict, net_name: str) -> bool:
         # Direct power_out pin anywhere on the net, OR an explicit PWR_FLAG
-        # (#FLG) tied to it, OR the rail is a regulator output.
+        # tied to it, OR the rail is a regulator output.
         # NOTE: #PWR symbols are KiCad power port instances; they appear as
         # power_in in the analyzer and are NOT treated as sources here.
+        if net_info.get("has_pwr_flag"):
+            return True
         for p in net_info.get("pins", []):
             if p.get("pin_type") == "power_out":
                 return True
             comp = p.get("component") or ""
             if comp.startswith("#FLG"):
-                # PWR_FLAG explicit declaration — ERC source marker.
                 return True
         return net_name in reg_output_nets
 

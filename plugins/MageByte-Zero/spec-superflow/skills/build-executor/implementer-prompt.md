@@ -22,7 +22,7 @@ Subagent (general-purpose):
     ## Planned Wave
 
     You are assigned to planned wave [WAVE_ID] with strategy [WAVE_STRATEGY].
-    Read `npx --yes --package spec-superflow@0.9.1 ssf execution show <change-dir> --json` before editing. Do not start
+    Read `npx --yes --package spec-superflow@0.10.0 ssf execution show <change-dir> --json` before editing. Do not start
     unless all declared dependencies have `pass` review receipts. A `parallel`
     label permits concurrent dispatch only when the controller confirms the
     platform supports it; never change the saved wave strategy yourself.

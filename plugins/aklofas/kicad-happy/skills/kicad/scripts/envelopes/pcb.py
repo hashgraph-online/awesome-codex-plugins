@@ -268,9 +268,9 @@ class PCBEnvelope:
         "description": "Every placed footprint. Fields include reference, "
                        "value, library, footprint, layer, x, y, angle, "
                        "type, mpn, manufacturer, description, pad_count, "
-                       "courtyard, pad_nets, connected_nets, sch_path, "
-                       "sheetname, sheetfile. Tightens to typed Footprint "
-                       "in v1.5."})
+                       "courtyard, courtyard_poly, pad_nets, connected_nets, "
+                       "sch_path, sheetname, sheetfile. Tightens to typed "
+                       "Footprint in v1.5."})
     zones: list[dict] = field(metadata={
         "description": "Copper zones: [{net, net_name, layers, clearance, "
                        "min_thickness, thermal_gap, thermal_bridge_width, "

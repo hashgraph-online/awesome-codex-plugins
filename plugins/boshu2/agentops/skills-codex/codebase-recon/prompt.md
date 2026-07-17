@@ -1,6 +1,6 @@
 # codebase-recon
 
-Reconstruct a repository as cited entry-to-test flows, bounded claims, and a reusable baseline or verified delta. Triggers: "build a repository mental model", "trace this codebase", "refresh the prior recon".
+Reconstruct a repository as cited entry-to-test flows and bounded claims. Triggers: "codebase recon", "trace this codebase", "repository audit", "refresh the prior recon".
 
 ## Instructions
 

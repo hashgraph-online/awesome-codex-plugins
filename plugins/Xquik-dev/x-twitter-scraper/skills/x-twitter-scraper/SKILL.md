@@ -337,6 +337,8 @@ See [api endpoints](references/api-endpoints.md), [draws](references/draws.md), 
 
 The MCP endpoint is the `/mcp` route on the first-party Xquik host. Prefer OAuth 2.1 discovery. Use a scoped API key only when the client cannot complete OAuth.
 
+Affected Codex releases discard the RFC 9207 `iss` callback value even though Xquik returns it. If Codex reports `Authorization server response missing required issuer: expected https://xquik.com`, use `XQUIK_API_KEY` through the Codex `bearer_token_env_var` setting. Follow the [Codex OAuth troubleshooting guide](https://docs.xquik.com/guides/troubleshooting#codex-oauth-issuer-validation-error) and track [openai/codex#31573](https://github.com/openai/codex/issues/31573).
+
 Available tools:
 
 - `explore`: inspect endpoint categories and schemas.

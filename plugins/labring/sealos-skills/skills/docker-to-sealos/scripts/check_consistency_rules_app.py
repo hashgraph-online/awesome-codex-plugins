@@ -7,7 +7,7 @@ from collections import Counter
 import ipaddress
 import re
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 from urllib.parse import unquote_plus, urlsplit
 
 from check_consistency_models import LATEST_IMAGE_PATTERN, TEMPLATE_NAME_PATTERN, Rule, ScanContext, Violation, YamlDocument
@@ -2115,6 +2115,122 @@ def check_ingress_name_matches_backends(context: ScanContext) -> List[Violation]
     return violations
 
 
+def _iter_root_prefix_ingress_backend_services(data: Dict[str, Any]) -> Iterable[Mapping[str, Any]]:
+    spec = data.get("spec")
+    rules = spec.get("rules") if isinstance(spec, dict) else None
+    if not isinstance(rules, list):
+        return
+    for rule in rules:
+        http = rule.get("http") if isinstance(rule, dict) else None
+        paths = http.get("paths") if isinstance(http, dict) else None
+        if not isinstance(paths, list):
+            continue
+        for path in paths:
+            if not isinstance(path, dict):
+                continue
+            if path.get("pathType") != "Prefix" or path.get("path") != "/":
+                continue
+            backend = path.get("backend")
+            service = backend.get("service") if isinstance(backend, dict) else None
+            yield service if isinstance(service, dict) else {}
+
+
+def _collect_declared_service_ports(context: ScanContext) -> Dict[Tuple[Path, str], Set[int]]:
+    ports_by_service: Dict[Tuple[Path, str], Set[int]] = {}
+    for doc in iter_documents_by_kind(context, "Service"):
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if doc.path.name != "index.yaml" or not isinstance(doc.data, dict):
+            continue
+        metadata = doc.data.get("metadata")
+        service_name = metadata.get("name") if isinstance(metadata, dict) else None
+        if not isinstance(service_name, str) or not service_name.strip():
+            continue
+        spec = doc.data.get("spec")
+        ports = spec.get("ports") if isinstance(spec, dict) else None
+        service_key = (doc.path, service_name.strip())
+        if not isinstance(ports, list):
+            ports_by_service.setdefault(service_key, set())
+            continue
+        declared_ports = ports_by_service.setdefault(service_key, set())
+        for port in ports:
+            port_number = port.get("port") if isinstance(port, dict) else None
+            if isinstance(port_number, int) and not isinstance(port_number, bool):
+                declared_ports.add(port_number)
+    return ports_by_service
+
+
+def check_root_ingress_backend_port_numbers(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    ports_by_service = _collect_declared_service_ports(context)
+
+    for doc in iter_documents_by_kind(context, "Ingress"):
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if doc.path.name != "index.yaml" or not isinstance(doc.data, dict):
+            continue
+
+        for service in _iter_root_prefix_ingress_backend_services(doc.data):
+            service_name = service.get("name")
+            if not isinstance(service_name, str) or not service_name.strip():
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=r"^\s*service\s*:",
+                    default_pattern=r"^\s*backend\s*:",
+                    message="Root-path Prefix Ingress backend.service.name must reference a declared Service",
+                )
+                continue
+            service_name = service_name.strip()
+
+            port = service.get("port")
+            port_number = port.get("number") if isinstance(port, dict) else None
+            uses_named_port = isinstance(port, dict) and "name" in port
+            if not isinstance(port_number, int) or isinstance(port_number, bool) or uses_named_port:
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=r"^\s*port\s*:",
+                    default_pattern=r"^\s*service\s*:",
+                    message=(
+                        "Root-path Prefix Ingress backend.service.port must use an integer number "
+                        "for Launchpad public-address discovery"
+                    ),
+                )
+                continue
+
+            service_key = (doc.path, service_name)
+            if service_key not in ports_by_service:
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=re.escape(service_name),
+                    default_pattern=r"^\s*service\s*:",
+                    message=f"Ingress backend Service {service_name} is not declared in the template artifact",
+                )
+                continue
+
+            declared_ports = ports_by_service[service_key]
+            if port_number not in declared_ports:
+                declared_text = ", ".join(str(value) for value in sorted(declared_ports)) or "none"
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=str(port_number),
+                    default_pattern=r"^\s*port\s*:",
+                    message=(
+                        f"Ingress backend port {port_number} must match Service {service_name} "
+                        f"spec.ports[*].port; declared ports: {declared_text}"
+                    ),
+                )
+
+    return violations
+
+
 def _normalize_annotation_value(value: Any) -> Optional[str]:
     if isinstance(value, str):
         return "\n".join(line.rstrip() for line in value.strip().splitlines())
@@ -4176,6 +4292,7 @@ APP_RULES: Dict[str, Rule] = {
     "R047": Rule("R047", check_external_object_storage_inputs),
     "R049": Rule("R049", check_license_gated_object_storage_options),
     "R031": Rule("R031", check_ingress_name_matches_backends),
+    "R051": Rule("R051", check_root_ingress_backend_port_numbers),
     "R026": Rule("R026", check_http_ingress_annotations),
     "R048": Rule("R048", check_websocket_ingress_annotations),
     "R027": Rule("R027", check_postgres_custom_db_init_job),

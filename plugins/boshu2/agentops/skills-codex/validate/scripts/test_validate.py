@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -35,6 +37,20 @@ class ValidateV2Tests(unittest.TestCase):
     def assert_schema_valid(self, artifact):
         schema = json.loads((Path(__file__).parents[3] / "schemas" / "verdict.v2.schema.json").read_text())
         jsonschema.Draft202012Validator(schema).validate(artifact)
+
+    def runtime_facts(self):
+        manifest = {
+            "schema_version": "subject-manifest.v1",
+            "declared_roots": ["src"],
+            "exclusions": [],
+            "entries": [],
+        }
+        manifest["canonical_manifest_digest"] = tool.digest_value(tool.manifest_identity(manifest))
+        return b"bead:agentops-test\nacceptance: works\n", manifest
+
+    def store_bound(self, draft, destination, *, scope="PASS"):
+        intent, manifest = self.runtime_facts()
+        return tool.store_verdict(draft, destination, intent, manifest, draft.get("author_context_id"), scope)
 
     def test_manifest_is_content_addressed_and_detects_mutation(self):
         with tempfile.TemporaryDirectory() as raw:
@@ -71,32 +87,16 @@ class ValidateV2Tests(unittest.TestCase):
             self.assertEqual(kinds["link"], "symlink")
             self.assertEqual(kinds["target"], "deletion")
 
-    def test_scope_fail_and_not_proven(self):
-        plan = {
-            "schema_version": "plan-packet.v1",
-            "acceptance_digest": "a" * 64,
-            "write_scope": {"include": ["src/**"], "exclude": ["src/generated/**"]},
-        }
-        candidate = {
-            "plan_packet_digest": tool.plan_digest(plan),
-            "acceptance_digest": "a" * 64,
-            "changed_path_coverage_complete": True,
-            "actual_changed_paths": ["src/main.go", "docs/readme.md"],
-        }
-        self.assertEqual(tool.scope_result(plan, candidate)["result"], "FAIL")
-        candidate["changed_path_coverage_complete"] = False
-        self.assertEqual(tool.scope_result(plan, candidate)["result"], "NOT_PROVEN")
-
     def test_verdict_identity_floor_and_idempotence(self):
         with tempfile.TemporaryDirectory() as raw:
             draft = self.draft()
             draft["author_context_id"] = "same"
             draft["validator_context_id"] = "same"
-            first, path, existed = tool.store_verdict(draft, Path(raw))
+            first, path, existed = self.store_bound(draft, Path(raw))
             self.assertEqual(first["verdict"], "NOT_PROVEN")
             self.assert_schema_valid(first)
             self.assertFalse(existed)
-            second, second_path, existed = tool.store_verdict(draft, Path(raw))
+            second, second_path, existed = self.store_bound(draft, Path(raw))
             self.assertTrue(existed)
             self.assertEqual(path, second_path)
             self.assertEqual(json.loads(path.read_text())["artifact_digest"], first["artifact_digest"])
@@ -106,7 +106,7 @@ class ValidateV2Tests(unittest.TestCase):
             with self.subTest(missing=missing), tempfile.TemporaryDirectory() as raw:
                 draft = self.draft()
                 draft.pop(missing)
-                artifact, _path, _existed = tool.store_verdict(draft, Path(raw))
+                artifact, _path, _existed = self.store_bound(draft, Path(raw))
                 self.assertEqual(artifact["verdict"], "NOT_PROVEN")
                 self.assert_schema_valid(artifact)
 
@@ -114,17 +114,83 @@ class ValidateV2Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             draft = self.draft()
             draft["criteria"][0]["result"] = "FAIL"
-            artifact, _path, _existed = tool.store_verdict(draft, Path(raw))
+            artifact, _path, _existed = self.store_bound(draft, Path(raw))
             self.assertEqual(artifact["verdict"], "NOT_PROVEN")
             self.assert_schema_valid(artifact)
+
+    def test_pass_without_evidence_is_downgraded(self):
+        mutations = (
+            lambda draft: draft.__setitem__("evidence_refs", []),
+            lambda draft: draft.__setitem__("checked", []),
+            lambda draft: draft["criteria"][0].__setitem__("evidence_refs", []),
+        )
+        for mutate in mutations:
+            with self.subTest(mutate=mutate), tempfile.TemporaryDirectory() as raw:
+                draft = self.draft()
+                mutate(draft)
+                artifact, _path, _existed = self.store_bound(draft, Path(raw))
+                self.assertEqual(artifact["verdict"], "NOT_PROVEN")
+                self.assertIn("PASS requires evidence", artifact["findings"][-1]["summary"])
+                self.assert_schema_valid(artifact)
+
+    def test_intent_snapshot_is_content_addressed_and_idempotent(self):
+        with tempfile.TemporaryDirectory() as raw:
+            destination = Path(raw)
+            payload = b"caller intent\nacceptance: works\n"
+            first, existed = tool.snapshot_intent(payload, destination)
+            self.assertFalse(existed)
+            self.assertEqual(first.name, f"{tool.hashlib.sha256(payload).hexdigest()}.intent")
+            self.assertEqual(first.read_bytes(), payload)
+            second, existed = tool.snapshot_intent(payload, destination)
+            self.assertTrue(existed)
+            self.assertEqual(first, second)
+
+    def test_store_verdict_cli_snapshots_intent_before_persistence(self):
+        with tempfile.TemporaryDirectory() as raw:
+            workspace = Path(raw)
+            intent, manifest = self.runtime_facts()
+            intent_path = workspace / "intent.txt"
+            manifest_path = workspace / "manifest.json"
+            draft_path = workspace / "draft.json"
+            intent_path.write_bytes(intent)
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            draft_path.write_text(json.dumps(self.draft()), encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).with_name("validate.py")),
+                    "store-verdict",
+                    "--draft",
+                    str(draft_path),
+                    "--intent-source",
+                    str(intent_path),
+                    "--subject-manifest",
+                    str(manifest_path),
+                    "--author-context-id",
+                    "author",
+                    "--scope-result",
+                    "PASS",
+                    "--workspace",
+                    str(workspace),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            response = json.loads(result.stdout)
+            snapshot = Path(response["intent_ref"])
+            self.assertEqual(snapshot.read_bytes(), intent)
+            self.assertEqual(response["acceptance_digest"], tool.hashlib.sha256(intent).hexdigest())
 
     def test_corrupt_existing_digest_yields_new_not_proven_artifact(self):
         with tempfile.TemporaryDirectory() as raw:
             destination = Path(raw)
             draft = self.draft()
-            artifact, path, _ = tool.store_verdict(draft, destination)
+            artifact, path, _ = self.store_bound(draft, destination)
             path.write_text("corrupt\n", encoding="utf-8")
-            replacement, replacement_path, existed = tool.store_verdict(draft, destination)
+            replacement, replacement_path, existed = self.store_bound(draft, destination)
             self.assertEqual(replacement["verdict"], "NOT_PROVEN")
             self.assertNotEqual(replacement["artifact_digest"], artifact["artifact_digest"])
             self.assertNotEqual(replacement_path, path)
@@ -142,8 +208,33 @@ class ValidateV2Tests(unittest.TestCase):
             draft = self.draft()
             draft["next_action"] = "repair"
             with self.assertRaisesRegex(tool.ContractError, "unknown fields"):
-                tool.store_verdict(draft, Path(raw))
+                self.store_bound(draft, Path(raw))
             self.assertEqual(list(Path(raw).iterdir()), [])
+
+    def test_pass_without_runtime_facts_is_not_proven(self):
+        with tempfile.TemporaryDirectory() as raw:
+            artifact, _path, _existed = tool.store_verdict(self.draft(), Path(raw))
+            self.assertEqual(artifact["verdict"], "NOT_PROVEN")
+            self.assertIn("runtime intent source is missing", artifact["findings"][-1]["summary"])
+            self.assert_schema_valid(artifact)
+
+    def test_runtime_facts_override_model_authored_digests(self):
+        with tempfile.TemporaryDirectory() as raw:
+            draft = self.draft()
+            draft["acceptance_digest"] = "c" * 64
+            draft["subject_manifest_digest"] = "d" * 64
+            artifact, _path, _existed = self.store_bound(draft, Path(raw))
+            intent, manifest = self.runtime_facts()
+            self.assertEqual(artifact["acceptance_digest"], tool.hashlib.sha256(intent).hexdigest())
+            self.assertEqual(artifact["subject_manifest_digest"], manifest["canonical_manifest_digest"])
+            self.assertEqual(artifact["verdict"], "PASS")
+
+    def test_runtime_scope_failure_forces_fail(self):
+        with tempfile.TemporaryDirectory() as raw:
+            artifact, _path, _existed = self.store_bound(self.draft(), Path(raw), scope="FAIL")
+            self.assertEqual(artifact["verdict"], "FAIL")
+            self.assertEqual(artifact["findings"][-1]["id"], "validate.scope")
+            self.assert_schema_valid(artifact)
 
 
 if __name__ == "__main__":

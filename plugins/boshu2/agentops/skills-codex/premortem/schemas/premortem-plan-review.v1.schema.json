@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
-    "plan_packet_digest",
+    "intent_digest",
     "author_context_id",
     "judge_context_id",
     "findings",
@@ -15,7 +15,7 @@
   ],
   "properties": {
     "schema_version": {"const": "premortem-plan-review.v1"},
-    "plan_packet_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "intent_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "author_context_id": {"type": "string", "minLength": 1},
     "judge_context_id": {"type": "string", "minLength": 1},
     "findings": {

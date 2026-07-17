@@ -190,7 +190,7 @@ The analysis scripts are **pure Python 3.10+** with zero required dependencies. 
 
 ### Release candidates
 
-The stable install commands above always resolve to the latest stable release on `main` (currently v2.0.0). When a release candidate is active, opt in by appending `#<tag>` to the marketplace ref:
+The stable install commands above always resolve to the latest stable release on `main` (currently v2.1.0). When a release candidate is active, opt in by appending `#<tag>` to the marketplace ref:
 
 **Claude Code:**
 
@@ -433,7 +433,7 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 
 ## 🎯 Release notes
 
-**Current release: v2.0.0 — Deep Review.** A per-IC usage-vs-datasheet review pass whose findings must survive an evidence gate (verbatim datasheet quotes verified against the PDF, design anchors verified against the analyzer output), plus a mirrored+rotated symbol transform fix that corrected pin-to-net maps in 18% of the 5,857-repo validation corpus. Upgrading from v1.3.x: expect finding churn on designs with mirrored+rotated symbols — the old findings were computed from wrong pin-net maps — and note the kidoc skill is removed.
+**Current release: v2.1.0 — correctness batch.** Seventeen analyzer fixes from field reports and external reviews: inner power planes no longer fragment into false islands on 4+ layer boards (#24), via-in-pad and courtyard-overlap checks use real pad/courtyard geometry instead of bounding boxes (#28, #29), USB compliance failures surface as findings (new UC-001..UC-004), plus a dozen false-positive fixes across sleep-current, decoupling, derating, and lifecycle checks. Includes three fixes ported from Anya Sabo's fork. Upgrading from v2.0.0: expect finding churn in exactly those classes — overwhelmingly false positives disappearing; four additive JSON fields, no breaking schema changes.
 
 Per-release stories are in [release-notes.md](release-notes.md); line-level detail in the [CHANGELOG](CHANGELOG.md).
 

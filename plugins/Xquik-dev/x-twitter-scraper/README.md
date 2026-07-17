@@ -25,7 +25,9 @@ The npm package `x-developer` is this agent skill and plugin bundle. The separat
 
 Includes 126 REST API operations, HMAC webhooks, 23 extraction tools, SDK pointers, and confirmation-gated writes.
 
-MCP v2.5.3 exposes 118 MCP operations through 2 tools. Add `https://xquik.com/mcp` and complete OAuth 2.1 in the client. API keys remain a fallback. Eight credential or session-bound REST operations remain outside MCP: 3 account API-key operations, saved-payment top-up, account top-up redirect, and 3 guest-wallet credential operations.
+MCP v2.5.3 exposes 118 MCP operations through 2 tools. Add `https://xquik.com/mcp`, then follow the [current client compatibility path](https://docs.xquik.com/mcp/overview#client-compatibility). OAuth-capable clients complete OAuth 2.1; API-key fallback is client-specific; ChatGPT custom apps require OAuth. Eight credential or session-bound REST operations remain outside MCP: 3 account API-key operations, saved-payment top-up, account top-up redirect, and 3 guest-wallet credential operations.
+
+> **Codex OAuth compatibility:** Affected Codex releases discard the RFC 9207 `iss` callback value even though Xquik returns it. If Codex reports `Authorization server response missing required issuer: expected https://xquik.com`, use `XQUIK_API_KEY` through the Codex `bearer_token_env_var` setting. Follow the [Codex OAuth troubleshooting guide](https://docs.xquik.com/guides/troubleshooting#codex-oauth-issuer-validation-error) and track [openai/codex#31573](https://github.com/openai/codex/issues/31573).
 
 ## Why Teams Use Xquik
 
@@ -33,7 +35,7 @@ MCP v2.5.3 exposes 118 MCP operations through 2 tools. Add `https://xquik.com/mc
 - **Ship X data integrations faster** with endpoint routing for tweet search, user lookup, timelines, followers, replies, quotes, retweeters, favoriters, media, lists, communities, articles, trends, and Spaces.
 - **Build production apps, not just dataset runs** with REST APIs, typed SDKs, OpenAPI, MCP tools, cursor pagination, webhook delivery, and exports.
 - **Control large jobs before they run** with usage estimates for extractions, draws, monitors, webhooks, and other metered workflows.
-- **Keep agents safe around X content** with API-key-only auth, read-only defaults, untrusted-content delimiters, and explicit approval for private reads, writes, persistent resources, and bulk jobs.
+- **Keep agents safe around X content** with OAuth-first MCP, scoped API-key access, read-only defaults, untrusted-content delimiters, and explicit approval for private reads, writes, persistent resources, and bulk jobs.
 - **Support enterprise-scale X data pipelines** with high-throughput read limits, bulk extraction jobs, exports, event replay, and webhook automation.
 - **Win high-intent search traffic** for Twitter scraper API, X scraper, X API alternative, tweet search API, Twitter follower export, social listening API, X monitoring, and X automation.
 
@@ -252,7 +254,7 @@ x-twitter-scraper/
 │           ├── api-endpoints.md          # REST API routing index
 │           ├── api-endpoints-*.md        # Split endpoint sections for targeted agent loading
 │           ├── mcp-tools.md              # MCP tool selection rules and workflow patterns
-│           ├── mcp-setup.md              # MCP configs for 10 platforms (v2 + v1)
+│           ├── mcp-setup.md              # Current MCP client setup and compatibility
 │           ├── webhooks.md               # Webhook setup & verification
 │           ├── extractions.md            # 23 extraction tool types
 │           ├── types.md                  # TypeScript type routing index

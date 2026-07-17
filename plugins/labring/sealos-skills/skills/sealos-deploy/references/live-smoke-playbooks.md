@@ -8,6 +8,7 @@ Run this pass after Phase 6 for every deployment unless the user explicitly asks
 
 1. Capture the namespace, app name, Instance name, and actual App URL from the Template API response or the `apps.app.sealos.io` resource.
 2. Inspect runtime state with the Sealos kubeconfig:
+   - run `scripts/sealos-launchpad-network.mjs` for public web apps and require an open public network whose port and host match the live Service and App URL
    - `get pod,app,instances.app.sealos.io,svc,ingress,pvc`
    - `describe pod/<pod>`
    - initContainer logs and main container logs

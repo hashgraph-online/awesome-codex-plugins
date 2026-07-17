@@ -26,6 +26,8 @@ dependencies = [
   "tomli-w>=1.0.0",
   "tiktoken>=0.7.0",
   "watchdog>=4.0.0",
+  "tree-sitter>=0.23.2",
+  "tree-sitter-language-pack>=0.7.4",
   "tomli>=2.0.0; python_version < '3.11'"
 ]
 
@@ -48,10 +50,7 @@ mcp = [
   "mcp>=1.0.0"
 ]
 
-tree-sitter = [
-  "tree-sitter>=0.23.2",
-  "tree-sitter-language-pack>=0.7.4"
-]
+tree-sitter = []
 
 all = [
   "watchdog>=4.0.0",

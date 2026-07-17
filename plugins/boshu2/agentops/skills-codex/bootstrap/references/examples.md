@@ -10,7 +10,7 @@ PRODUCT document, GOALS document, AGENTS router, and local verdict storage.
 
 Bootstrap inspects those paths, asks only for product or goal content that is
 not supplied, then creates the missing files plus
-`.agentops/verdicts/sha256/`. It reports the exact created and existing paths.
+`.agents/ao/verdicts/sha256/`. It reports the exact created and existing paths.
 
 ## Partial repository
 

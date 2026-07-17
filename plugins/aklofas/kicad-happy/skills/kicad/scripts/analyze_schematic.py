@@ -46,6 +46,7 @@ from kicad_utils import (
     format_frequency as _format_frequency,
     load_lib_tables,
     is_ground_name as _is_ground_name,
+    is_usb_data_net_name,
     is_power_net_name as _is_power_net_name,
     load_kicad_pro,
     parse_value,
@@ -1356,19 +1357,25 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         point_info.setdefault(k, []).append(info)
         return k
 
-    # Add component pins (skip PWR_FLAG — it's an ERC marker, not a real connection)
+    # Add component pins. PWR_FLAG is an ERC marker, not a real connection —
+    # still register its position so the net gets a has_pwr_flag annotation.
     for comp in components:
-        if comp.get("value") == "PWR_FLAG" or comp.get("type") == "power_flag":
-            continue
+        is_pwr_flag = comp.get("value") == "PWR_FLAG" or comp.get("type") == "power_flag"
         sheet = comp.get("_sheet", 0)
         for pin in comp.get("pins", []):
-            add_point(pin["x"], pin["y"], {
-                "source": "pin",
-                "component": comp["reference"],
-                "pin_number": pin["number"],
-                "pin_name": pin["name"],
-                "pin_type": pin["type"],
-            }, sheet)
+            if is_pwr_flag:
+                add_point(pin["x"], pin["y"], {
+                    "source": "pwr_flag",
+                    "component": comp["reference"],
+                }, sheet)
+            else:
+                add_point(pin["x"], pin["y"], {
+                    "source": "pin",
+                    "component": comp["reference"],
+                    "pin_number": pin["number"],
+                    "pin_name": pin["name"],
+                    "pin_type": pin["type"],
+                }, sheet)
 
     # Add wire endpoints and union them.
     # Also build a list of wire segments so we can detect points that land
@@ -1566,6 +1573,8 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
                    for i in all_info if i["source"] == "pin")
         )
 
+        has_pwr_flag = any(i["source"] == "pwr_flag" for i in all_info)
+
         if net_name is None:
             # Only create unnamed nets if they have component pins
             has_pins = any(i["source"] == "pin" for i in all_info)
@@ -1597,6 +1606,8 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
                 nets[net_name]["point_count"] += len(members)
                 if has_nc_marker:
                     nets[net_name]["no_connect"] = True
+                if has_pwr_flag:
+                    nets[net_name]["has_pwr_flag"] = True
                 existing_labels = nets[net_name].setdefault("labels", [])
                 existing_seen = {(lbl["name"], lbl["type"]) for lbl in existing_labels}
                 for nl in net_labels:
@@ -1609,6 +1620,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
                     "pins": pin_connections,
                     "point_count": len(members),
                     "no_connect": has_nc_marker,
+                    "has_pwr_flag": has_pwr_flag,
                     "labels": net_labels,
                 }
 
@@ -2018,14 +2030,22 @@ def analyze_ic_pinouts(ctx: AnalysisContext,
             net_name, net_info = pin_net.get(pin_key, (None, None))
 
             # Check if pin has a no-connect marker (by position, net flag, or
-            # library-defined NC pin type)
+            # library-defined NC pin type).
             pin_pos = (ic.get("_sheet", 0),
                        round(pin["x"] / EPSILON) * EPSILON,
                        round(pin["y"] / EPSILON) * EPSILON)
+            # The net-level no_connect flag is set when *any* point in a net's
+            # union-find group is an NC marker (extract_nets line ~1490). On a
+            # genuinely-connected multi-pin net it must NOT mark every pin as
+            # NO_CONNECT — e.g. a stray NC marker absorbed into VBUS/GND would
+            # otherwise flip all of that rail's IC pins to NO_CONNECT. Only honor
+            # the net flag for single-pin nets, which covers the real case where
+            # the marker sits on a short wire stub rather than exactly on the pin.
+            net_pin_count = len(net_info.get("pins", [])) if net_info else 0
             has_no_connect = (
                 pin_pos in nc_positions
-                or bool(net_info and net_info.get("no_connect"))
                 or pin.get("type") in ("no_connect", "unconnected")
+                or bool(net_info and net_info.get("no_connect") and net_pin_count <= 1)
             )
 
             # Get components sharing this net
@@ -4716,7 +4736,10 @@ def _estimate_rail_voltage(net_name: str) -> float | None:
     if v is not None:
         return v
     # Hardcoded fallbacks for common names without voltage numbers
-    if "VBUS" in nu or "USB" in nu:
+    if "VBUS" in nu:
+        return 5.0
+    # KH-343: only non-data USB nets (VBUS-ish) default to 5V
+    if "USB" in nu and not is_usb_data_net_name(nu):
         return 5.0
     return None
 
@@ -4830,26 +4853,16 @@ def audit_pwr_flags(components: list[dict], nets: dict, known_power_rails: set) 
     """
     warnings = []
 
-    # Find nets with PWR_FLAG
-    flagged_nets = set()
-    for c in components:
-        if c["type"] == "power_flag" or (c["type"] == "flag" and "PWR_FLAG" in c.get("lib_id", "")):
-            # PWR_FLAG connects to whatever net its pin is on
-            for pin in c.get("pins", []):
-                px, py = pin["x"], pin["y"]
-                # Find which net this pin is on
-                for net_name, net_info in nets.items():
-                    for p in net_info["pins"]:
-                        if p["component"] == c["reference"]:
-                            flagged_nets.add(net_name)
-
-    # Check each power rail
-    for net_name in known_power_rails:
-        if net_name in flagged_nets:
-            continue
+    # Check each power rail (sorted: set order is hash-randomized per
+    # process and pwr_flag_warnings must be byte-stable across runs)
+    for net_name in sorted(known_power_rails):
         if net_name not in nets:
             continue
         net_info = nets[net_name]
+        # KH-354: PWR_FLAG pins never appear in pins[] (build_net_map
+        # registers them as source points) — credit the net-level flag.
+        if net_info.get("has_pwr_flag"):
+            continue
         pin_types = set(p["pin_type"] for p in net_info["pins"])
 
         # If the net has only power_in pins (no power_out), it needs PWR_FLAG
@@ -6303,14 +6316,73 @@ def analyze_sleep_current(ctx: AnalysisContext,
 
         # Pull-up resistor: one side to power rail, other side to a signal net
         if is_power_net(n1) and not is_ground(n1) and not is_power_net(n2):
-            pwr_net = n1
+            pwr_net, sig_net = n1, n2
         elif is_power_net(n2) and not is_ground(n2) and not is_power_net(n1):
-            pwr_net = n2
+            pwr_net, sig_net = n2, n1
         else:
             continue
 
         v_rail = _estimate_rail_voltage(pwr_net)
-        if v_rail and v_rail > 0:
+        if not v_rail or v_rail <= 0:
+            continue
+
+        # KH-342: classify the signal side before assuming worst-case V/R.
+        # A second resistor to ground makes this a divider (DC = V/(R1+R2));
+        # a shunt cap with no other DC sink makes it an RC filter (DC ~ 0).
+        divider_r2_ref = None
+        divider_r2_ohm = None
+        has_shunt_cap = False
+        has_other_dc_sink = False
+        if sig_net in nets:
+            for p in nets[sig_net]["pins"]:
+                if p["component"] == ref:
+                    continue
+                oc = comp_lookup.get(p["component"])
+                if not oc:
+                    continue
+                o_type = oc.get("type")
+                if o_type == "resistor":
+                    o1, o2 = _get_two_pin_nets(oc["reference"])
+                    o_other = o2 if o1 == sig_net else o1
+                    o_val = parse_value(oc.get("value", ""))
+                    if o_other and is_ground(o_other) and o_val and o_val > 0:
+                        if divider_r2_ref is None:
+                            divider_r2_ref = oc["reference"]
+                            divider_r2_ohm = o_val
+                    else:
+                        has_other_dc_sink = True
+                elif o_type == "capacitor":
+                    o1, o2 = _get_two_pin_nets(oc["reference"])
+                    o_other = o2 if o1 == sig_net else o1
+                    if o_other and is_ground(o_other):
+                        has_shunt_cap = True
+                elif o_type in ("switch", "led", "diode", "transistor"):
+                    has_other_dc_sink = True
+
+        if divider_r2_ref:
+            current_a = v_rail / (r_val + divider_r2_ohm)
+            rail_currents.setdefault(pwr_net, []).append({
+                "ref": ref,
+                "value": comp["value"],
+                "type": "divider",
+                "resistance_ohm": r_val,
+                "divider_partner": divider_r2_ref,
+                "total_resistance_ohm": round(r_val + divider_r2_ohm, 1),
+                "rail_voltage": v_rail,
+                "current_uA": round(current_a * 1e6, 2),
+                "note": f"divider with {divider_r2_ref}: I = V/(R1+R2)",
+            })
+        elif has_shunt_cap and not has_other_dc_sink:
+            rail_currents.setdefault(pwr_net, []).append({
+                "ref": ref,
+                "value": comp["value"],
+                "type": "rc_filter",
+                "resistance_ohm": r_val,
+                "rail_voltage": v_rail,
+                "current_uA": 0.0,
+                "note": "series-R + shunt-C, no DC load — steady-state ~ 0",
+            })
+        else:
             # Pull-up: worst case current is V/R (pin driven low)
             current_a = v_rail / r_val
             rail_currents.setdefault(pwr_net, []).append({
@@ -6497,6 +6569,16 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 else:
                     e["likely_state"] = "always conducting"
                     e["realistic_uA"] = e["current_uA"]
+            elif etype == "divider":
+                if rail in _disableable_rails:
+                    e["likely_state"] = "rail disabled during sleep"
+                    e["realistic_uA"] = 0.0
+                else:
+                    e["likely_state"] = "always conducting"
+                    e["realistic_uA"] = e["current_uA"]
+            elif etype == "rc_filter":
+                e["likely_state"] = "no DC path (shunt cap only)"
+                e["realistic_uA"] = 0.0
 
     # Summarize per rail — split always-on vs conditional (pull-ups)
     result_rails = {}
@@ -7931,6 +8013,7 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         return {}
 
     checklist = []
+    usb_findings: list[dict] = []
 
     for conn in usb_connectors:
         ref = conn["ref"]
@@ -8134,6 +8217,11 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                 vbus_net = net_name
                 break
 
+        # Shared ESD-part keyword list: vbus_esd_protection credit (KH-338)
+        # + the usb_esd_ic check below.
+        esd_keywords = ("usblc", "prtr5v", "ip4", "sp0", "tpd", "esd", "pesd",
+                        "rclamp", "nup", "lesd")
+
         if vbus_net and vbus_net in nets:
             # ESD/TVS on VBUS
             has_esd = False
@@ -8148,6 +8236,14 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                     lib_lower = pc.get("lib_id", "").lower()
                     if any(k in val_lower or k in lib_lower
                            for k in ("tvs", "esd", "smaj", "smbj", "p6ke")):
+                        has_esd = True
+                elif pc["type"] == "ic":
+                    # KH-338: ESD arrays (USBLC6 etc.) protect VBUS through
+                    # their own VBUS pin — credit them even when the net is
+                    # unnamed (resolution is by connector pin, not net name).
+                    _combined = (pc.get("value", "") + " "
+                                 + pc.get("lib_id", "")).lower()
+                    if any(k in _combined for k in esd_keywords):
                         has_esd = True
                 if pc["type"] == "capacitor":
                     has_decoupling = True
@@ -8184,8 +8280,6 @@ def analyze_usb_compliance(ctx: AnalysisContext,
 
         # --- USB ESD protection ICs ---
         esd_ic_found = False
-        esd_keywords = ("usblc", "prtr5v", "ip4", "sp0", "tpd", "esd", "pesd",
-                        "rclamp", "nup", "lesd")
         for comp_c in components:
             if comp_c["type"] not in ("ic", "diode"):
                 continue
@@ -8200,6 +8294,84 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                     break
 
         conn_checks["checks"]["usb_esd_ic"] = "pass" if esd_ic_found else "info"
+
+        # KH-338: promote failed checks to rich findings so they reach
+        # findings[] / summaries instead of living only in this aux section.
+        _uc_specs = {
+            "vbus_decoupling": (
+                "UC-001",
+                f"No decoupling capacitor on VBUS at {ref}",
+                f"USB connector {ref}: no capacitor found on the VBUS net. "
+                f"USB 2.0 recommends >=1uF bulk + 100nF local decoupling on VBUS.",
+                f"Add bulk (>=1uF) + 100nF decoupling on VBUS near {ref}.",
+                [vbus_net] if vbus_net else [],
+            ),
+            "vbus_esd_protection": (
+                "UC-002",
+                f"No ESD/TVS protection on VBUS at {ref}",
+                f"USB connector {ref}: no TVS diode or ESD array found on the "
+                f"VBUS net. VBUS is exposed to external ESD/surge events.",
+                f"Add a TVS diode or ESD array on VBUS at {ref}.",
+                [vbus_net] if vbus_net else [],
+            ),
+            "cc1_pulldown_5k1": (
+                "UC-003",
+                f"CC1 missing 5.1k pull-down at {ref}",
+                f"USB-C sink {ref}: CC1 has no 5.1k pull-down to GND and no "
+                f"PD controller was found. A source will not present VBUS.",
+                f"Add a 5.1k pull-down on CC1 (or a PD controller) at {ref}.",
+                [],
+            ),
+            "cc2_pulldown_5k1": (
+                "UC-003",
+                f"CC2 missing 5.1k pull-down at {ref}",
+                f"USB-C sink {ref}: CC2 has no 5.1k pull-down to GND and no "
+                f"PD controller was found. A source will not present VBUS.",
+                f"Add a 5.1k pull-down on CC2 (or a PD controller) at {ref}.",
+                [],
+            ),
+        }
+        for _check_name, _spec in _uc_specs.items():
+            if conn_checks["checks"].get(_check_name) != "fail":
+                continue
+            _rid, _summary, _desc, _rec, _nets_f = _spec
+            usb_findings.append(make_finding(
+                detector="analyze_usb_compliance",
+                rule_id=_rid,
+                category="usb_compliance",
+                summary=_summary,
+                description=_desc,
+                severity="warning",
+                confidence="deterministic",
+                evidence_source="topology",
+                components=[ref],
+                nets=[n for n in _nets_f if n],
+                recommendation=_rec,
+                report_section="USB Compliance",
+                impact="USB functionality / robustness",
+                check=_check_name,
+            ))
+        if conn_checks["checks"].get("vbus_capacitance") == "warning":
+            _detail = conn_checks.get("vbus_capacitance_detail", {})
+            usb_findings.append(make_finding(
+                detector="analyze_usb_compliance",
+                rule_id="UC-004",
+                category="usb_compliance",
+                summary=(f"VBUS decoupling may be undersized at {ref} "
+                         f"({_detail.get('total_uf')}uF total)"),
+                description=_detail.get(
+                    "detail", "VBUS capacitance below recommended minimum."),
+                severity="warning",
+                confidence="deterministic",
+                evidence_source="topology",
+                components=[ref],
+                nets=[vbus_net] if vbus_net else [],
+                recommendation=(f"Increase VBUS bulk capacitance at {ref} "
+                                f"to >=1uF (USB 2.0)."),
+                report_section="USB Compliance",
+                impact="VBUS droop on connect",
+                check="vbus_capacitance",
+            ))
 
         checklist.append(conn_checks)
 
@@ -8221,6 +8393,8 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         "connectors": checklist,
         "summary": all_checks,
     }
+    if usb_findings:
+        result["findings"] = usb_findings
     if observations:
         result["observations"] = observations
     return result
@@ -9166,6 +9340,10 @@ def analyze_schematic(path: str, project_root: str | None = None,
     # VD-001..004 — component voltage/power derating (rich findings since v1.4)
     if voltage_derating:
         findings.extend(voltage_derating)
+
+    # UC-001..004 — USB compliance check failures (KH-338)
+    if usb_compliance:
+        findings.extend(usb_compliance.pop("findings", []))
 
     # Build severity summary
     sev_counts = {"error": 0, "warning": 0, "info": 0}

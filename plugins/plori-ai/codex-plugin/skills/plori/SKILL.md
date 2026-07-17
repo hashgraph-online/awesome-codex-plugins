@@ -48,6 +48,11 @@ or value for input requests).
 Deferred work: `schedule_run` (agent_id, prompt, and delay_seconds or an RFC3339
 fire_at) invokes the agent later as an ordinary run.
 
+Workflows: `list_workflows`, `create_workflow` (name, optional description/trigger_kind/
+cron_expr), `run_workflow` (runs a workflow now: a real execution billed like any run,
+returning the execution, terminal or still `running`), and `get_workflow_execution` to poll
+one. A workflow's steps are built by an agent; these tools manage and run the result.
+
 ## CLI commands
 
 The CLI mirrors the tools above; an agent is addressable by name or id, and every command
@@ -65,6 +70,8 @@ accepts `--json`.
   <tool-call-id> --approve|--deny|--value <v>` replies.
 - `plori schedule <name> "prompt" --in <seconds>` (or `--at <rfc3339>`) defers a run;
   `plori schedules <name>` and `plori unschedule <name> <id>` manage them.
+- `plori workflows list`, `plori workflows create <name> [--trigger cron --cron <expr>]`,
+  `plori workflows run <name|id>` (run it now), `plori workflows execution <name|id> <exec-id>`.
 - `plori credits`, `plori usage`, `plori disk` read account state.
 
 ## Costs and limits

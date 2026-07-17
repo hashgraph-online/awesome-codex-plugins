@@ -34,7 +34,7 @@ That includes:
 - Built-in Codex subagent orchestration for rescue and background review flows
 - Session-scoped tracked jobs with status, result, and cancel commands
 - Background completion nudges that steer you to the right `$cc:result <job-id>`
-- An optional stop-time review gate
+- An optional turn-end review gate
 - GitHub CI coverage on Windows, macOS, and Linux
 
 It follows the shape of [openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) but runs in the opposite direction.
@@ -46,7 +46,8 @@ It follows the shape of [openai/codex-plugin-cc](https://github.com/openai/codex
 Install from the Sendbird marketplace:
 
 ```bash
-codex marketplace add sendbird/codex-marketplace
+codex plugin marketplace add sendbird/codex-marketplace
+codex plugin add cc@sendbird
 ```
 
 Then install `cc` from the Sendbird marketplace inside Codex, and run `$cc:setup` once.
@@ -215,7 +216,7 @@ $cc:cancel task-abc123              # cancel a running job
 
 ```text
 $cc:setup                           # verify everything
-$cc:setup --enable-review-gate      # turn on stop-time review gate
+$cc:setup --enable-review-gate      # turn on turn-end review gate
 $cc:setup --disable-review-gate     # turn it off
 ```
 
@@ -251,16 +252,17 @@ $cc:result task-abc123
 
 ## Review Gate
 
-The review gate is an **optional** stop-time hook. When enabled, pressing Ctrl+C in Codex triggers a Claude Code review of the last Codex response before the stop is accepted.
+The review gate is an **optional turn-end hook**. When enabled, Codex runs a Claude Code review of the last Codex response before the turn is allowed to finish.
 
-- Claude returns `ALLOW:` → stop proceeds normally.
-- Claude returns `BLOCK:` → stop is rejected; Codex continues.
+- Claude returns `ALLOW:` → the turn finishes normally.
+- Claude returns `BLOCK:` → the turn is blocked; Codex continues with the review feedback.
 
 **Caveats:**
 
 - **Disabled by default.** Enable with `$cc:setup --enable-review-gate`.
-- **Token cost.** Every Ctrl+C triggers a Claude invocation. This can drain usage limits quickly if you stop often.
-- **15-minute timeout.** The gate has a hard timeout. If Claude doesn't respond, the stop is allowed.
+- **Uses your Claude Code defaults.** The gate does not pass `--model` or `--effort`; set your preferred default in Claude Code if you want the gate to use a specific model or effort level.
+- **Token cost.** Every edit-producing turn can trigger a Claude invocation. This can drain usage limits quickly in active coding sessions.
+- **15-minute timeout.** The gate has a hard timeout. If Claude doesn't respond, the turn remains blocked and the error points you to a manual review.
 - **Skip-on-no-edits.** The gate computes a working-tree fingerprint baseline and skips review when the last Codex turn made no net edits.
 - **Not in nested sessions.** Child sessions (e.g., rescue subagents) suppress the gate to avoid feedback loops.
 
@@ -273,13 +275,14 @@ The review gate is an **optional** stop-time hook. When enabled, pressing Ctrl+C
 | **Host** | Claude Code hosts the plugin | Codex hosts the plugin |
 | **Commands** | `/codex:review`, `/codex:rescue`, … | `$cc:review`, `$cc:rescue`, … |
 | **Runtime** | Codex app-server + broker | Fresh `claude -p` subprocess per invocation |
-| **Review gate** | Reviews previous Claude response | Reviews previous Codex response |
+| **Review gate trigger** | End of Claude Code turn | End of Codex turn |
+| **Review gate target** | Reviews previous Claude response | Reviews previous Codex response |
 | **Model flags** | Codex model names and effort controls | Claude model names and effort values (`low` / `medium` / `high` / `max`) |
 
 ### Where This Goes Further
 
-- **Smart review gate** — fingerprints the working tree and skips review when the last Codex turn made no net edits, avoiding unnecessary token spend.
-- **Nested-session awareness** — suppresses stop-time review and unread-result prompts in child runs, keeping interactive hooks attached to the user-facing thread only.
+- **Smart review gate** — fingerprints the working tree and skips turn-end review when the last Codex turn made no net edits, avoiding unnecessary token spend.
+- **Nested-session awareness** — suppresses turn-end review and unread-result prompts in child runs, keeping interactive hooks attached to the user-facing thread only.
 - **Tracked job ownership** — background jobs track unread/viewed state and session ownership, with safe PID-validated cleanup on session exit.
 - **Built-in background notify** — rescue and review flows can now wake the parent thread and point directly to `$cc:result <job-id>` instead of relying only on later polling.
 - **Unread-result nudges** — completed background jobs are still surfaced in your next prompt as a reliable fallback.
@@ -380,7 +383,7 @@ $cc:review --scope working-tree
 ```
 
 **Review gate draining tokens**
-Disable it: `$cc:setup --disable-review-gate`. The gate fires on every Ctrl+C, which adds up.
+Disable it: `$cc:setup --disable-review-gate`. The gate can fire after every edit-producing turn, which adds up.
 
 **Background jobs not cleaned up**
 Jobs are terminated when the Codex session that owns them exits. If a session crashes without cleanup, use `$cc:status` and `$cc:cancel <job-id>` to clean up any leftovers.

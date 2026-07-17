@@ -516,6 +516,8 @@ spec:
 5. Application Service must include `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and `metadata.name`, both labels, and `spec.selector.app` must be exactly the same
 6. Runtime component-level ConfigMap must include `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and both must be consistent with `metadata.name`; ConfigMaps used only by init containers to copy initial config into persistent storage must not include either label
 7. Root-path Ingress rules (`pathType: Prefix`, `path: /`) must keep `metadata.name` consistent with `metadata.labels.cloud.sealos.io/app-deploy-manager` and backend `service.name`; non-root or non-Prefix Ingress rules may use a distinct Ingress name and backend service
+8. Root-path Ingress backends must use `service.port.number`, and the number must match a declared `spec.ports[].port` on the referenced application Service so Launchpad can discover the public address
+9. For a single-component StatefulSet without a documented headless or stable per-Pod DNS requirement, set `spec.serviceName` to the public application Service and keep the workload, Service, root Ingress, and manager identity aligned. Preserve documented HA/headless governing Services and route public traffic through a separate application Service
 
 ### Container Naming Rules
 
@@ -703,6 +705,7 @@ spec:
 3. `ssl-redirect` defaults to `'true'`
 4. Includes a configuration-snippet for static resource caching
 5. Backend service name must be `${{ defaults.app_name }}`
+6. Backend service port must use numeric `number: <port-number>` and match the referenced Service `spec.ports[].port`; keep the Service port `name` for Kubernetes multi-port compatibility
 
 ### WebSocket Format
 

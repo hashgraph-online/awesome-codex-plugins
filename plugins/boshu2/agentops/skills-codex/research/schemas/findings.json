@@ -26,6 +26,33 @@
         "additionalProperties": false
       }
     },
+    "source_ledger": {
+      "type": "array",
+      "description": "Preserved identities for caller-supplied reports used in a multi-report synthesis",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "string", "description": "Short local label used by comparison entries"},
+          "identity": {"type": "string", "description": "Original path or caller-supplied report identifier"},
+          "title": {"type": ["string", "null"]},
+          "author_runtime": {"type": ["string", "null"]},
+          "revision_or_date": {"type": ["string", "null"]}
+        },
+        "required": ["label", "identity"],
+        "additionalProperties": false
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "description": "Claim comparison for a multi-report synthesis; omitted for ordinary single-source research",
+      "properties": {
+        "agreements": {"$ref": "#/definitions/comparisonEntries"},
+        "contradictions": {"$ref": "#/definitions/comparisonEntries"},
+        "unknowns": {"$ref": "#/definitions/comparisonEntries"}
+      },
+      "required": ["agreements", "contradictions", "unknowns"],
+      "additionalProperties": false
+    },
     "checked": {
       "type": "array",
       "items": {"type": "string"},
@@ -40,6 +67,28 @@
       "type": "integer",
       "enum": [1],
       "description": "Schema version for forward compatibility"
+    }
+  },
+  "definitions": {
+    "comparisonEntries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claim": {"type": "string"},
+          "source_labels": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Labels from source_ledger; may be empty for a genuine unknown"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        },
+        "required": ["claim", "source_labels", "evidence"],
+        "additionalProperties": false
+      }
     }
   },
   "required": ["topic", "summary", "findings", "checked", "not_checked", "schema_version"],

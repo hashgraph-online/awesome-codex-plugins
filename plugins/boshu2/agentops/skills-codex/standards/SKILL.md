@@ -20,6 +20,31 @@ and risks. Do not preload the entire reference corpus.
 This skill provides context and findings. It does not edit, validate, retry,
 approve, commit, release, deliver, or decide continuation.
 
+## Mutation-safety standards
+
+When the supplied change rewrites existing files in bulk — formatters,
+codemods, migration scripts, generators pointed at hand-written sources —
+check it against three standards and report each as a finding when absent:
+
+- **Single audited mutation chokepoint.** All rewrites flow through one named
+  command or script whose inputs, outputs, and dry-run mode can be inspected.
+  Edits scattered across ad-hoc one-liners and manual touch-ups are the
+  **diffuse mutation** failure mode: no single point can be audited, re-run,
+  or blamed. Finding: name every mutation path outside the chokepoint.
+- **Hash-witnessed backups before rewrite.** Before the chokepoint runs, the
+  originals are preserved with content hashes recorded (a committed baseline
+  counts), so "the rewrite changed only what it claims" is checkable
+  byte-for-byte, not asserted. Finding: a bulk rewrite with no verifiable
+  before-state.
+- **Self-administered ambition gate.** The change states what it deliberately
+  does not touch, and the diff respects it. A formatter run that also renames,
+  a codemod that also refactors, is the **scope-creep rewrite** failure mode.
+  Finding: any file class in the diff outside the change's own stated scope.
+
+Stop condition for this check: all three standards have an explicit pass or
+finding; a bulk-rewrite review that reports style nits but skips these is
+incomplete.
+
 ## References
 
 - [Common standards](references/common-standards.md)

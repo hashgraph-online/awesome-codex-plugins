@@ -1,6 +1,6 @@
 # skill-builder
 
-Create a metadata-complete AgentOps skill source package and regenerate its derived projections. Triggers: "create a skill", "scaffold skill", "absorb external skill", "new skill".
+Create a metadata-complete AgentOps skill source package, regenerate its derived projections, and check or repair structural hygiene in skill packages. Triggers: "create a skill", "scaffold skill", "absorb external skill", "new skill", "heal skill", "repair skill hygiene", "audit skill structure", "check skill package".
 
 ## Instructions
 

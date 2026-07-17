@@ -1,6 +1,6 @@
 {
   "name": "spec-superflow",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Spec-first workflow: integrates OpenSpec planning engine + Superpowers execution discipline via bridge contract. 9 collaborative skills for multi-agent coding tools.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -35,6 +35,11 @@ Feature: README generation converts skimmers into users and reports evidence
     Then it is placed inside <details> blocks with a blank line after <summary>
     And the skimmer path stays short while deep readers can expand
 
+  Scenario: De-slopify runs before deterministic checks
+    When generation or rewrite finishes
+    Then Doc runs the de-slopify pass from references/de-slopify.md on README.md
+    And applies manual recasts before validator and anti-pattern checks
+
   Scenario: Checks run before the skill reports its evidence
     When generation or rewrite finishes
     Then Doc runs its README validator and anti-pattern checks once
@@ -43,4 +48,4 @@ Feature: README generation converts skimmers into users and reports evidence
   Scenario: Anti-patterns are flagged on rewrite or validate
     When Doc readme mode reviews an existing README
     Then it flags flywheel-echo, framework-first, guru tone, buried trust info,
-      install scatter, and theory-before-try with a concrete fix for each
+      install scatter, theory-before-try, and AI slop prose with a concrete fix for each

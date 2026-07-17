@@ -184,7 +184,7 @@ Output of `python3 skills/kicad/scripts/analyze_pcb.py <file>.kicad_pcb`.
 | `nets` | `dict[str, string]` | yes | Net ID (as string) -> net name. |
 | `net_name_to_id` | `dict[str, int]` | yes | Net name -> integer net ID. Reverse of nets. |
 | `layers` | `list[dict]` | yes | Layer stackup entries: [{number, name, type, alias}]. |
-| `footprints` | `list[dict]` | yes | Every placed footprint. Fields include reference, value, library, footprint, layer, x, y, angle, type, mpn, manufacturer, description, pad_count, courtyard, pad_nets, connected_nets, sch_path, sheetname, sheetfile. Tightens to typed Footprint in v1.5. |
+| `footprints` | `list[dict]` | yes | Every placed footprint. Fields include reference, value, library, footprint, layer, x, y, angle, type, mpn, manufacturer, description, pad_count, courtyard, courtyard_poly, pad_nets, connected_nets, sch_path, sheetname, sheetfile. Tightens to typed Footprint in v1.5. |
 | `zones` | `list[dict]` | yes | Copper zones: [{net, net_name, layers, clearance, min_thickness, thermal_gap, thermal_bridge_width, outline_points, outline_area_mm2, is_filled, outline_bbox}]. |
 | `keepout_zones` | `list[dict]` | yes | Keepout zones: [{name, layers, restrictions, bounding_box, area_mm2, nearby_components}]. |
 | `net_classes` | `list[dict]` | yes | Net class definitions: [{name, clearance, track_width, via_diameter, via_drill}]. |

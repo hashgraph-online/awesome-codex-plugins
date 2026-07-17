@@ -40,6 +40,23 @@ When blocked, follow this sequence every time:
 
 **Never:** Ask for override first. Never retry silently. Never circumvent.
 
+### Risk-tiered approval counts
+
+When no safe alternative exists and the human must decide, the number of
+distinct human approvals scales with what the command can destroy:
+
+| Tier | Blast radius | Approvals required |
+|------|--------------|--------------------|
+| Recoverable | undoable via reflog/stash/trash/backup | 1 allow-once for this exact command |
+| Destructive-local | permanently deletes local, uncommitted, or unbacked state | 1 allow-once, granted only after you name the exact state lost and confirm no backup exists |
+| Destructive-shared | shared history, remote branches, databases, namespaces others use | 1 approval per individual command occurrence — never batched, never pattern-widened |
+
+Stop conditions: never present a tier-2 or tier-3 command as tier-1; never
+convert several pending blocks into one blanket approval. A single "yes" that
+gets spent across multiple destructive commands is the **approval laundering**
+failure mode — each allow-once code is bound to one command in one directory,
+and the workflow must keep it that way.
+
 **Example block output:**
 ```
 BLOCKED: git reset --hard HEAD

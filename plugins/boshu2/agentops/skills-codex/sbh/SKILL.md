@@ -8,6 +8,21 @@ SBH exposes disk-pressure status, ballast, scanning, and recovery commands. This
 skill gathers evidence and performs at most the explicit action authorized by the
 caller.
 
+Evidence-first recovery works because disk pressure has cheap reversible
+remedies and expensive irreversible ones; a factual baseline is what tells them
+apart before anything is deleted. Order remediation by irreversibility:
+status and dry runs first, ballast release next, cleanup of unprotected files
+after that, and emergency deletion last — never skip forward while a more
+reversible step remains untried.
+
+Named failure mode — **wrong-mount relief**: reclaiming gigabytes on a
+filesystem that is not the constrained mount and declaring the pressure
+resolved.
+
+Anti-pattern: escalating straight to `emergency --yes` because pressure is
+critical. Corrective: urgency raises the stakes of an irreversible mistake; it
+never lowers the authorization bar or the ordering above.
+
 ## Constraints
 
 - Begin with `sbh --json status`, `sbh check`, or a dry run on the exact mount

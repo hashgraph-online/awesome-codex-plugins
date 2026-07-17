@@ -1,0 +1,25 @@
+{
+  "name": "roadmapsmith",
+  "version": "1.2.2",
+  "private": false,
+  "description": "Self-contained skill for Claude Code, Codex, and any host that reads SKILL.md. Keeps ROADMAP.md coherent with real code.",
+  "bin": "./install.js",
+  "scripts": {
+    "sync-skills": "node scripts/sync-skills.js --fix",
+    "check-skills": "node scripts/sync-skills.js --check",
+    "version": "node scripts/sync-skills.js --fix && git add -A",
+    "prepublishOnly": "node scripts/sync-skills.js --check"
+  },
+  "files": [
+    "install.js",
+    "plugins/roadmapsmith/skills/roadmap-init/SKILL.md",
+    "plugins/roadmapsmith/skills/roadmap-update/SKILL.md"
+  ],
+  "author": "PapiScholz",
+  "license": "MIT",
+  "homepage": "https://github.com/PapiScholz/roadmapsmith#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PapiScholz/roadmapsmith.git"
+  }
+}

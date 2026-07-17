@@ -139,6 +139,9 @@ rules:
   - id: R031
     description: Root-path Prefix Ingress resources must use one component name across metadata.name, cloud.sealos.io/app-deploy-manager, and backend service names; non-root or non-Prefix routes may differ.
     severity: error
+  - id: R051
+    description: Root-path Prefix Ingress backends must use a numeric service port that matches a declared port on the referenced application Service so Launchpad can discover the public address.
+    severity: error
   - id: R009
     description: Managed app workloads must explicitly set revisionHistoryLimit to 1.
     severity: error

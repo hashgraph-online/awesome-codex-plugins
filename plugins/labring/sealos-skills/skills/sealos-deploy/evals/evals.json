@@ -132,6 +132,19 @@
         {"name": "writes-template-match", "description": "Writes .sealos/template-match.json for both matched and unmatched outcomes"},
         {"name": "does-not-false-positive", "description": "Does not skip source analysis/build/template generation unless a matched template is materialized"}
       ]
+    },
+    {
+      "id": 11,
+      "prompt": "The application URL works, but Launchpad does not show a public address. Diagnose the Sealos template and live deployment.",
+      "expected_output": "Runs the Launchpad public-network check, validates numeric root Ingress backend port and Service port matching, compares the App URL host, and inventories manager-labeled resources before proposing a template repair.",
+      "files": [],
+      "assertions": [
+        {"name": "runs-launchpad-network-check", "description": "Uses sealos-launchpad-network.mjs or the equivalent Launchpad API contract before declaring success"},
+        {"name": "checks-numeric-ingress-port", "description": "Requires backend.service.port.number on the root Prefix Ingress and matches it to Service.spec.ports[].port"},
+        {"name": "compares-app-url-host", "description": "Compares the App URL host with the Launchpad public or custom domain"},
+        {"name": "inventories-live-resources", "description": "Checks manager-labeled Ingresses, Services, ready endpoints, App, Instance, and orphan resource footprint"},
+        {"name": "protects-sensitive-data", "description": "Keeps kubeconfig, environment values, and Secret data out of diagnostic output"}
+      ]
     }
   ]
 }

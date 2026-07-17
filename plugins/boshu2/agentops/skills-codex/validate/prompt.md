@@ -1,6 +1,6 @@
 # validate
 
-Freshly and independently judge one exact CandidatePacket, persist verdict.v2, and stop. Triggers: "validate", "independently validate", "vibe".
+Freshly judge exact subject content against bead or caller acceptance, persist verdict.v2, and stop. Triggers: "validate", "independently validate", "vibe".
 
 ## Instructions
 

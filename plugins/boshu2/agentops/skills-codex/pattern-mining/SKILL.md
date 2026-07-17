@@ -35,6 +35,48 @@ survive examples it was not designed around.
 6. Otherwise emit `outcome: hypothesis` with `route: no-action`. Keep the
    evidence bounded and name what additional observation would retest it.
 
+## Diff/align across exemplars
+
+Invariants are extracted mechanically, not remembered. Lay the exemplars side
+by side, align them structurally (same role, same position in the flow — not
+same variable names), and diff: what survives every alignment is a candidate
+invariant; what varies by site is a variation point; what varies with no
+functional consequence is incidental. Work pairwise before generalizing — an
+"invariant" derived by skimming all exemplars at once is usually the first
+exemplar's shape with the others squinted into agreement. Stop condition: every
+line of the candidate abstraction is traceable to a surviving alignment across
+all exemplars, or it is deleted. The named failure mode is eyeball
+convergence — declaring similarity from memory of the files rather than from an
+explicit alignment, which smuggles one lineage's incidentals into the rule.
+
+## Explicit search recipes
+
+Exemplar discovery is part of the evidence and must be replayable. Record the
+exact queries used — `rg` patterns, glob scopes, structural searches — in the
+output packet, alongside which hits were kept and why the rest were excluded.
+A recipe that returns hits you did not examine is unfinished coverage: either
+examine them or narrow the recipe and record the narrowed form. The named
+failure mode is convenience sampling — mining only the files already in
+context, which biases the exemplar set toward one author or one era of the
+codebase and fakes independence at step 1. If no recipe can be written that
+finds the exemplars, the recurrence claim is unverifiable and the outcome
+stays `hypothesis`.
+
+## Packaging-shape catalog
+
+A promoted pattern lands in exactly one shape, and naming the intended shape
+before promotion sharpens the holdout test. The catalog, in ascending
+commitment: **no-action** (evidence retained, nothing built), **checklist
+line** (rule in an existing doc or skill), **template** (copyable exemplar),
+**library/helper** (shared executable code), **gate** (deterministic check
+that blocks). Match commitment to evidence strength: three exemplars and one
+holdout justify a checklist line or template; a gate needs demonstrated cost
+of violation, not just recurrence. This skill only records the recommended
+shape in the packet — `operationalize` owns the packaging decision. The named
+failure mode is shape inflation: routing a barely-promoted pattern straight to
+a gate or library because building feels like progress, which turns weak
+evidence into architecture the same way skipping the holdout would.
+
 ## Output Specification
 
 - **Artifact directory:** `.agents/patterns/<run-id>/`

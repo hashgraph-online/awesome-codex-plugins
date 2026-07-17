@@ -18,16 +18,17 @@ class RunOnceTests(unittest.TestCase):
 
         def plan(intent):
             calls.append("plan")
-            return {"schema_version": "plan-packet.v1", "intent": intent}
+            return {"intent_ref": "bead:agentops-test", "intent": intent, "acceptance": ["works"]}
 
         def implement(_plan):
             calls.append("implement")
-            return {"schema_version": "candidate-packet.v1"}
+            return {"subject_manifest_digest": "a" * 64, "checks": ["focused"]}
 
         def validate(_plan, _candidate):
             calls.append("validate")
             return {
                 "verdict": verdict,
+                "acceptance_digest": MODULE.digest(_plan),
                 "subject_manifest_digest": "a" * 64,
                 "verdict_digest": "b" * 64,
                 "verdict_ref": "/tmp/verdict.json",
@@ -42,6 +43,8 @@ class RunOnceTests(unittest.TestCase):
         result = MODULE.invoke_once("intent", plan, implement, validate)
         self.assertEqual(calls, ["plan", "implement", "validate"])
         self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["intent_ref"], "bead:agentops-test")
+        self.assertEqual(len(result["acceptance_digest"]), 64)
         self.assertNotIn("next_action", result)
 
     def test_fail_reports_and_stops_without_another_dispatch(self):
@@ -65,12 +68,23 @@ class RunOnceTests(unittest.TestCase):
         calls: list[str] = []
         result = MODULE.invoke_once(
             "intent",
-            lambda _intent: {"plan": "packet"},
+            lambda _intent: {"intent_ref": "caller", "acceptance": ["works"]},
             lambda _plan: None,
             lambda _plan, _candidate: calls.append("validate"),
         )
         self.assertEqual(calls, [])
         self.assertEqual(result["status"], "NOT_BUILT")
+
+    def test_validate_cannot_report_a_different_intent(self):
+        calls, plan, implement, validate = self.phases()
+
+        def mismatched(resolved, subject):
+            result = validate(resolved, subject)
+            result["acceptance_digest"] = "f" * 64
+            return result
+
+        with self.assertRaisesRegex(ValueError, "resolved intent digest"):
+            MODULE.invoke_once("intent", plan, implement, mismatched)
 
 
 if __name__ == "__main__":

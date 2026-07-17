@@ -1,6 +1,6 @@
 {
   "name": "plori",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Create and drive plori cloud agents (each an AI agent on its own cloud computer) over MCP. Bundles the plori skill so Codex knows the connect flow and the tool surface.",
   "author": {
     "name": "plori",
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "plori",
     "shortDescription": "Cloud computers for AI agents, over one MCP URL.",
-    "longDescription": "plori gives your agent its own cloud computer with a persistent disk, a shell, developer tools, and memory that survive between sessions. This plugin adds the plori remote MCP server (create_agent, invoke_agent, schedule_run, and more) plus a skill that teaches the connect flow and tool surface. Authentication is OAuth 2.1, auto-discovered on first use; no API key to handle.",
+    "longDescription": "plori gives your agent its own cloud computer with a persistent disk, a shell, developer tools, and memory that survive between sessions. This plugin adds the plori remote MCP server (create_agent, invoke_agent, schedule_run, run_workflow, and more) plus a skill that teaches the connect flow and tool surface. Authentication is OAuth 2.1, auto-discovered on first use; no API key to handle.",
     "developerName": "plori",
     "category": "Productivity",
     "websiteURL": "https://plori.ai",

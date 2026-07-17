@@ -20,7 +20,7 @@ except (OSError, json.JSONDecodeError) as exc:
     raise SystemExit(1)
 
 required = {
-    "schema_version", "plan_packet_digest", "author_context_id",
+    "schema_version", "intent_digest", "author_context_id",
     "judge_context_id", "findings", "checked", "not_checked",
 }
 if set(value) != required:
@@ -28,8 +28,8 @@ if set(value) != required:
     raise SystemExit(1)
 if value["schema_version"] != "premortem-plan-review.v1":
     raise SystemExit("premortem plan review: wrong schema_version")
-if not re.fullmatch(r"[a-f0-9]{64}", value["plan_packet_digest"]):
-    raise SystemExit("premortem plan review: invalid plan digest")
+if not re.fullmatch(r"[a-f0-9]{64}", value["intent_digest"]):
+    raise SystemExit("premortem plan review: invalid intent digest")
 author = value["author_context_id"]
 judge = value["judge_context_id"]
 if not isinstance(author, str) or not author or not isinstance(judge, str) or not judge or author == judge:

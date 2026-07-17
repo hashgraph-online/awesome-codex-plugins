@@ -70,7 +70,7 @@ emit_telemetry() {
     return 0  # no hasher -> emit nothing rather than risk leaking the raw path
   fi
   [ -n "$h" ] || return 0
-  local tdir="${AGENTOPS_HOME:-${HOME}/.agentops}"
+  local tdir="${AGENTOPS_HOME:-${HOME}/.agents/ao}"
   local tfile="${AGENTOPS_GUARDRAIL_TELEMETRY:-${tdir}/guardrail-telemetry.jsonl}"
   mkdir -p "$(dirname "$tfile")" 2>/dev/null || return 0
   local line

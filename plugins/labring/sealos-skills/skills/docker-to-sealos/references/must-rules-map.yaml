@@ -120,6 +120,10 @@ must_rules:
     enforcement:
       type: rule
       target: R031
+  - must: "Root-path `Ingress` resources (`pathType: Prefix`, `path: /`) must use `backend.service.port.number`, and the number must match a declared `spec.ports[*].port` on the referenced application `Service`."
+    enforcement:
+      type: rule
+      target: R051
   - must: "Service `spec.ports[*].name` must be explicitly set (required for multi-port services)."
     enforcement:
       type: rule

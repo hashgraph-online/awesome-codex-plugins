@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Corpus-wide skill description trigger scanner.
 
-The per-skill deep audit (heal-skill audit mode) runs `description-has-triggers` / `trigger-clarity`
+The per-skill deep audit (skill-builder audit mode) runs `description-has-triggers` / `trigger-clarity`
 as WARN checks, so a missing trigger phrase never blocks a merge and the gap
 accumulates silently across the corpus. This scanner is the corpus-wide
 companion: it walks every `skills/*/SKILL.md`, applies the *same* three-form
-trigger detection as `heal-skill/scripts/audit.sh`, scores each description,
+trigger detection as `skill-builder/scripts/audit.sh`, scores each description,
 and emits a prioritized remediation list with a suggested `Triggers:` stub for
 each skill that lacks one.
 
@@ -333,7 +333,7 @@ def detect_trigger(text: str, profile: dict) -> list[str]:
 
 
 def score_trigger(description: str) -> int:
-    """Score 0-3, mirroring heal-skill/scripts/score_agentops_skill.py."""
+    """Score 0-3, mirroring skill-builder/scripts/score_agentops_skill.py."""
     signals = sum(
         marker.lower().strip("*").rstrip(":") in description.lower()
         for marker in ("Use when", "Triggers", "Perfect for")

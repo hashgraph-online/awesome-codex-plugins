@@ -1978,6 +1978,135 @@ class CheckConsistencyTests(unittest.TestCase):
             )
             self.assertTrue(any(item.rule_id == "R020" for item in violations))
 
+    def test_enforces_root_ingress_numeric_backend_port_contract(self):
+        service = """
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: demo
+              labels:
+                app: demo
+                cloud.sealos.io/app-deploy-manager: demo
+            spec:
+              selector:
+                app: demo
+              ports:
+                - name: http
+                  port: 8080
+                  targetPort: 8080
+        """
+        cases = [
+            ("numeric matching port", service, "Prefix", "/", "number: 8080", False),
+            ("named backend port", service, "Prefix", "/", "name: http", True),
+            ("mismatched numeric port", service, "Prefix", "/", "number: 9090", True),
+            ("missing service", "", "Prefix", "/", "number: 8080", True),
+            ("non-root prefix route", service, "Prefix", "/admin", "name: http", False),
+        ]
+
+        for label, service_yaml, path_type, path, backend_port, expect_violation in cases:
+            with self.subTest(label=label):
+                ingress = f"""
+                    apiVersion: networking.k8s.io/v1
+                    kind: Ingress
+                    metadata:
+                      name: demo
+                      labels:
+                        cloud.sealos.io/app-deploy-manager: demo
+                    spec:
+                      rules:
+                        - host: demo.example.com
+                          http:
+                            paths:
+                              - pathType: {path_type}
+                                path: {path}
+                                backend:
+                                  service:
+                                    name: demo
+                                    port:
+                                      {backend_port}
+                """
+                artifact = "\n---\n".join(
+                    part
+                    for part in (
+                        textwrap.dedent(service_yaml).strip(),
+                        textwrap.dedent(ingress).strip(),
+                    )
+                    if part
+                )
+                violations = self.run_artifact_checker(artifact)
+                has_violation = any(item.rule_id == "R051" for item in violations)
+                self.assertEqual(expect_violation, has_violation, label)
+
+    def test_scopes_root_ingress_port_matching_to_the_same_artifact(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            skill = root / "SKILL.md"
+            refs_dir = root / "references"
+            rules_file = refs_dir / "rules-registry.yaml"
+            demo_artifact = root / "template" / "demo" / "index.yaml"
+            other_artifact = root / "template" / "other" / "index.yaml"
+
+            write_file(skill, "# no yaml snippets\n")
+            write_file(refs_dir / "sample.md", "# refs\n")
+            write_registry(rules_file)
+            write_file(
+                demo_artifact,
+                """
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: demo
+                spec:
+                  ports:
+                    - name: http
+                      port: 8080
+                      targetPort: 8080
+                ---
+                apiVersion: networking.k8s.io/v1
+                kind: Ingress
+                metadata:
+                  name: demo
+                  labels:
+                    cloud.sealos.io/app-deploy-manager: demo
+                spec:
+                  rules:
+                    - http:
+                        paths:
+                          - pathType: Prefix
+                            path: /
+                            backend:
+                              service:
+                                name: demo
+                                port:
+                                  number: 9090
+                """,
+            )
+            write_file(
+                other_artifact,
+                """
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: demo
+                spec:
+                  ports:
+                    - name: http
+                      port: 9090
+                      targetPort: 9090
+                """,
+            )
+
+            violations = CHECKER.run_checks(
+                skill,
+                refs_dir,
+                rules_file,
+                additional_include_paths=[
+                    "template/demo/index.yaml",
+                    "template/other/index.yaml",
+                ],
+            )
+            self.assertTrue(any(item.rule_id == "R051" for item in violations))
+
     def test_detects_service_missing_required_labels_in_artifact(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

@@ -1,6 +1,6 @@
 ---
 name: setup
-description: 'Check whether Claude Code CLI is ready in this environment and optionally toggle the stop-time review gate. Args: --enable-review-gate, --disable-review-gate. Use for installation, authentication, or review-gate setup requests.'
+description: 'Check whether Claude Code CLI is ready in this environment and optionally toggle the turn-end review gate. Args: --enable-review-gate, --disable-review-gate. Use for installation, authentication, or review-gate setup requests.'
 ---
 
 # Claude Code Setup

@@ -49,7 +49,7 @@ Scientific method: form a single hypothesis ("I think X is the root cause becaus
 
 ### DP-5: Debug Escalation (3+ Failures)
 
-3+ failed fixes = architectural problem. Each fix revealing new problems elsewhere = wrong architecture. Record: `npx --yes --package spec-superflow@0.9.1 ssf state set <change-dir> dp_5_result <decision>`. Discuss with user before attempting more fixes.
+3+ failed fixes = architectural problem. Each fix revealing new problems elsewhere = wrong architecture. Record: `npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> dp_5_result <decision>`. Discuss with user before attempting more fixes.
 
 ## Red Flags — Return to Phase 1
 

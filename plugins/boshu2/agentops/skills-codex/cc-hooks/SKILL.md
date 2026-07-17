@@ -6,6 +6,14 @@ description: Configure Claude Code hooks (PreToolUse
 
 Shell commands that fire at specific points in Claude Code's lifecycle.
 
+Hooks enforce mechanically what prose cannot: a model can reason its way past
+an instruction, but it cannot reason its way past an exit 2 — which is exactly
+why every hook must be narrow, silent, and reversible.
+
+Named failure mode — **chatty happy path**: a hook that emits stdout on exit 0
+corrupts the tool call it was guarding; silence on success is part of the
+contract, not a style preference.
+
 ## Constraints
 
 - Keep every hook opt-in because AgentOps installs no runtime hooks by default and host policy belongs to the operator.
@@ -131,7 +139,7 @@ Recipe: [INSTALLED-SKILL-EDIT-GUARD.md](references/INSTALLED-SKILL-EDIT-GUARD.md
 
 The keystone guard ships **gate-blind per-fire telemetry**: on each fire it
 appends exactly one JSONL line — `{ts, session, token_class, path_sha256}` — to
-`${AGENTOPS_HOME:-~/.agentops}/guardrail-telemetry.jsonl` (override with
+`${AGENTOPS_HOME:-~/.agents/ao}/guardrail-telemetry.jsonl` (override with
 `AGENTOPS_GUARDRAIL_TELEMETRY`). The path is **SHA-256 hashed, never raw**
 (privacy); nothing is written on the happy path; the sensor is inert until the
 guard is installed and fires. The pre-registered methodology — metric =

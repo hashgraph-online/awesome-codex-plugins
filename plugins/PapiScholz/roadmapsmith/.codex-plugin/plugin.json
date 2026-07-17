@@ -1,6 +1,6 @@
 {
   "name": "roadmapsmith",
-  "version": "0.14.2",
+  "version": "1.2.2",
   "description": "Evidence-backed ROADMAP.md workflows for AI coding agents — two commands: init and update.",
   "author": {
     "name": "PapiScholz"
@@ -12,7 +12,6 @@
     "roadmap",
     "planning",
     "agent",
-    "cli",
     "validation",
     "sync",
     "task-tracking",
@@ -30,11 +29,10 @@
     "markdown",
     "agent-workflow"
   ],
-  "skills": "./skills/",
+  "skills": "./plugins/roadmapsmith/skills/",
   "interface": {
     "displayName": "RoadmapSmith",
     "shortDescription": "Evidence-backed roadmap workflows for AI coding agents",
-    "longDescription": "Install RoadmapSmith in Codex to expose the shared skills bundle for zero-mode onboarding, existing-repo maintenance, roadmap discovery, evidence-backed validation, and compatibility-aware host readiness while keeping the CLI and Claude bundle surfaces aligned.",
     "developerName": "PapiScholz",
     "category": "Developer Tools",
     "capabilities": [
@@ -47,8 +45,9 @@
       "Help me bootstrap or maintain this repository roadmap with RoadmapSmith."
     ],
     "brandColor": "#2B6CB0",
-    "composerIcon": "./assets/palette.png",
-    "logo": "./assets/roadmapsmith-logo.png",
-    "screenshots": []
+    "composerIcon": "./legacy/assets/palette.png",
+    "logo": "./legacy/assets/roadmapsmith-logo.png",
+    "screenshots": [],
+    "longDescription": "Self-contained skill for Codex, Claude Code, and any host that reads SKILL.md. Creates ROADMAP.md from a 3-question interview, then keeps it truthful by evaluating evidence in real code before proposing any [x] flip — agent waits for your OK, never modifies silently. Install with a single npx command; no CLI, no configs, no accounts."
   }
 }

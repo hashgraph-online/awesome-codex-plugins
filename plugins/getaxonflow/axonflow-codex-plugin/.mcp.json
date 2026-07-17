@@ -4,11 +4,12 @@
       "type": "http",
       "url": "http://localhost:8080/api/v1/mcp-server",
       "http_headers": {
-        "X-Axonflow-Client": "codex-plugin/1.1.0"
+        "X-Axonflow-Client": "codex-plugin/1.6.0"
       },
       "env_http_headers": {
         "X-License-Token": "AXONFLOW_LICENSE_TOKEN",
-        "Authorization": "AXONFLOW_AUTH"
+        "Authorization": "AXONFLOW_AUTH",
+        "X-User-Token": "AXONFLOW_USER_TOKEN"
       }
     }
   }

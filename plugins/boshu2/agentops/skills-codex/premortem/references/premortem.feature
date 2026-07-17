@@ -1,6 +1,6 @@
 Feature: Premortem optionally challenges one frozen plan
   Scenario: A fresh judge returns advisory findings
-    Given a PlanPacket with a pinned digest and author context ID
+    Given a bead or caller intent with a runtime-derived digest and author context ID
     When a distinct fresh judge challenges its acceptance, scope, and evidence
     Then Premortem returns findings with checked and not-checked scope
     And an empty finding set grants no lifecycle permission

@@ -17,6 +17,31 @@ PASS/WARN/FAIL verdict.
 - To preserve traceability, prefer a verified delta when a prior pack exists
   instead of rewriting unchanged evidence as fresh discovery.
 
+## Modes, views, and lenses
+
+One skill replaces a cluster of loose recon skills. Steer it with mode, view
+emphasis, lens, and depth — do not invent a second skill for each shape.
+
+| Control | Values | Use when |
+|---|---|---|
+| **Mode** | `baseline` \| `delta` | First pack vs refresh after a prior recon |
+| **View emphasis** | mental model · bounded audit · pattern evidence · synthesis | Archaeology-style map, audit-style findings, pattern harvest, or executive synthesis |
+| **Lens** | persistence · auth · CLI · build · test (one per pass) | Domain-deep cut instead of a shallow whole-tree sweep |
+| **Depth** | quick · standard · deep | Orientation vs onboarding vs decision-grade evidence |
+
+Ask for the shape explicitly, for example:
+
+```text
+codebase-recon --mode=delta --view=audit --lens=cli --depth=standard
+codebase-recon baseline, mental-model view, persistence lens, deep
+```
+
+Natural-language equivalents count. The durable pack still carries all four
+views; emphasis changes what you spend tokens on and what the companion report
+leads with. Pattern packaging beyond evidence pointers belongs in
+[`pattern-mining`](../pattern-mining/SKILL.md). Binding PASS/FAIL stays with
+[`validate`](../validate/SKILL.md).
+
 ## Workflow
 
 1. Record the current commit and the repository's local source-of-truth
@@ -32,6 +57,40 @@ PASS/WARN/FAIL verdict.
 5. List inspected and uninspected scope. Write the JSON manifest and companion
    report, then run the validator. Missing evidence and hidden coverage gaps are
    contract failures, not prose caveats.
+
+## Docs-first entry-point tracing
+
+Enter through what the repository declares about itself — README, architecture
+docs, build manifests, CLI help — and only then verify those declarations
+against the tree. Before the first broad search, list the declared entry points
+and trace at least one of them to code. The named failure mode is grep-first
+drift: opening with keyword sweeps builds a model of whatever happened to
+match, and the recon inherits the search terms' blind spots instead of the
+repository's actual shape. When declaration and code disagree, that is a
+finding, not noise: record the doc's claim as `inference`, the traced behavior
+as `fact`, and cite both.
+
+## One-domain-deep lens per pass
+
+Each pass adopts exactly one lens — persistence, auth, CLI surface, build
+system, test harness — and follows it from entry point through domain logic to
+its tests before switching lenses. A pass ends in exactly one of two states:
+the lens has one complete entry-to-test flow, or the report names the file and
+line where the trace was cut and why. The named failure mode is the shallow
+sweep: touching every directory at depth one produces a file inventory that
+reads like a model but supports no claim, because no path was followed far
+enough to falsify anything.
+
+## Citation floor: file:line or downgrade
+
+The durable output doc earns its keep only if a future reader can re-verify a
+claim without redoing the recon. Every `fact` cites file:line; every
+`inference` cites the file:line facts it rests on. A claim that cannot be
+cited is downgraded to `unknown` before the report ships — never shipped
+uncited at its original confidence. The manifest validator accepts a bare path,
+but hold the companion report to the stricter floor: a path without a line is
+a pointer to homework, not a citation, and counts as a coverage gap in the
+report's own terms.
 
 ## Output Specification
 

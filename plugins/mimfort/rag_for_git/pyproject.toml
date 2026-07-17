@@ -55,6 +55,7 @@ dependencies = [
 dev = [
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
+    "pytest-socket>=0.8,<0.9",
     "ruff>=0.5",
     "grpcio-tools>=1.64",
 ]
@@ -75,8 +76,8 @@ reviewer-mcp = "reviewer.entrypoints.mcp_server:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: требует поднятых Postgres/Neo4j (docker-compose up)"]
-addopts = "-m 'not integration'"
+markers = ["integration: использует изолированные тестовые Postgres/Neo4j"]
+addopts = "--disable-socket -m 'not integration'"
 
 [tool.ruff]
 line-length = 100

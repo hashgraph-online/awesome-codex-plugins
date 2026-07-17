@@ -142,6 +142,35 @@ detection:
   fallback_readme: "scan README.md for image references"
 ```
 
+### Launchpad Public Address Missing While The URL Works
+
+```yaml
+detection:
+  symptoms:
+    - "The public URL serves the application while Launchpad shows no public address"
+    - "The App shortcut points to a host that differs from the current public network"
+    - "Launchpad edit/save creates random network and Service names"
+
+root_causes:
+  - "The root Prefix Ingress uses backend.service.port.name instead of port.number"
+  - "The numeric Ingress backend port does not match Service.spec.ports[].port"
+  - "A split StatefulSet governing Service causes Launchpad to rewrite immutable serviceName during an edit"
+  - "The App URL retains a replaced Ingress host"
+
+fixes:
+  - "Use a numeric root Ingress backend port while keeping the Service port name"
+  - "For single-component StatefulSets without a headless requirement, align spec.serviceName with the public application Service"
+  - "Preserve documented HA/headless topology and expose it through a separate public application Service"
+  - "Repair the template-owned resources, then verify Launchpad API state before HTTP smoke"
+
+verification:
+  - "sealos-launchpad-network.mjs reports ok: true"
+  - "The Launchpad network port matches the public Service port"
+  - "The App URL host matches the Launchpad public or custom domain"
+  - "The manager-labeled Ingress backend resolves to a Service with ready endpoints"
+  - "sealos-footprint.mjs identifies any orphan network resources before cleanup"
+```
+
 ### BillionMail Safe Entry and DB Bootstrap (Prevents `access denied` and Init Loops)
 
 ```yaml

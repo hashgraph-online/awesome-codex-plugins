@@ -28,7 +28,7 @@ telemetry it consumes *is* that evidence pipeline.
 
 The keystone guard (`skills/cc-hooks/hooks/installed-skill-edit-guard.sh`) emits
 **exactly one JSONL line per FIRE** to
-`${AGENTOPS_HOME:-~/.agentops}/guardrail-telemetry.jsonl`
+`${AGENTOPS_HOME:-~/.agents/ao}/guardrail-telemetry.jsonl`
 (override with `AGENTOPS_GUARDRAIL_TELEMETRY`):
 
 ```json
@@ -131,12 +131,12 @@ Fixed **before** any data is collected:
 ```bash
 # Fires per session, oldest→newest:
 jq -r 'select(.token_class=="installed-skill-edit") | .session' \
-  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agentops/guardrail-telemetry.jsonl}" \
+  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agents/ao/guardrail-telemetry.jsonl}" \
   | sort | uniq -c
 
 # Distinct targets touched (hashes), to spot repeated footguns:
 jq -r 'select(.token_class=="installed-skill-edit") | .path_sha256' \
-  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agentops/guardrail-telemetry.jsonl}" \
+  "${AGENTOPS_GUARDRAIL_TELEMETRY:-$HOME/.agents/ao/guardrail-telemetry.jsonl}" \
   | sort | uniq -c | sort -rn
 ```
 

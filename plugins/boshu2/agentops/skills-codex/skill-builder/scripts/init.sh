@@ -52,7 +52,7 @@ target="$REPO_ROOT/skills/$slug"
 
 tier="${SKILL_TIER:-execution}"
 dependencies="${SKILL_DEPENDENCIES:-[]}"
-capabilities="${SKILL_CAPABILITIES:-[${slug//-/_}]}"
+capabilities="${SKILL_CAPABILITIES:-[\"${slug//-/_}\"]}"
 effects="${SKILL_EFFECTS:-[]}"
 
 python3 - "$dependencies" "$capabilities" "$effects" <<'PY'
@@ -66,15 +66,21 @@ PY
 
 mkdir -p "$target/scripts"
 
+# The <!-- craft:... --> stubs mirror the 12 craft elements enumerated in
+# references/skill-template.md section 7. The craft scorer strips HTML
+# comments, so a fresh scaffold scores low until the author replaces stubs
+# with real prose.
 cat >"$target/SKILL.md" <<EOF
 ---
 name: $slug
 description: 'TODO: state the behavior and concrete trigger phrases for $slug.'
+practices: []
 skill_api_version: 1
 hexagonal_role: supporting
 consumes: []
 produces: []
 context_rel: []
+user-invocable: true
 metadata:
   tier: $tier
   dependencies: $dependencies
@@ -89,9 +95,16 @@ metadata:
 
 TODO: Explain the bounded behavior this skill provides.
 
+<!-- craft:trigger-rich-description Put Triggers:/Use when phrases callers actually say in the frontmatter description. -->
+<!-- craft:causal-insight-line State the one causal insight (Insight:/Why:/a-because-clause) that makes this skill work. -->
+<!-- craft:named-failure-mode Name the concrete failure mode this skill exists to prevent. -->
+<!-- craft:router-shape Map trigger phrases to modes/entry points in a routing table when the skill has modes. -->
+
 ## Inputs
 
 TODO: List required inputs and explicit non-goals.
+
+<!-- craft:negative-space State what this skill is NOT for (non-goals / not-for / do-not-use-when). -->
 
 ## Procedure
 
@@ -99,14 +112,24 @@ TODO: List required inputs and explicit non-goals.
 2. TODO: Check the output against the stated contract.
 3. Report the result and stop.
 
+<!-- craft:named-loop-stop-condition If any step iterates, name the loop and give a checkable stop condition in the same section. -->
+<!-- craft:quantified-rules Quantify at least one rule with a number and unit. -->
+<!-- craft:anti-pattern-with-corrective Pair each anti-pattern with its corrective in the same section. -->
+<!-- craft:frozen-prompts Provide any reusable prompt as a fenced block marked copy-paste-only. -->
+<!-- craft:runnable-commands Include at least one fenced block with runnable commands. -->
+
 ## Output
 
 TODO: Define the artifact or response shape and how a caller checks it.
+
+<!-- craft:measurable-done Give a machine-checkable done signal (done-when phrase, exit 0, validator command). -->
 
 ## Checks
 
 - The output satisfies the declared behavior.
 - No undeclared side effect occurred.
+
+<!-- craft:provenance-citation Cite at least one resolvable repo path or .agents/ao verdict/intent digest grounding this skill. -->
 
 ## Failure behavior
 
@@ -119,7 +142,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"
-exec bash "$REPO_ROOT/skills/heal-skill/scripts/heal.sh" --check --strict "$SKILL_DIR"
+exec bash "$REPO_ROOT/skills/skill-builder/scripts/heal.sh" --check --strict "$SKILL_DIR"
 EOF
 chmod +x "$target/scripts/validate.sh"
 
