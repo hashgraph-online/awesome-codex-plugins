@@ -1643,6 +1643,20 @@
       "icon": "./plugins/win4r/chrome-devtools-codex-plugin/assets/chrome-devtools-small.svg"
     },
     {
+      "name": "claude-math",
+      "displayName": "claude-math",
+      "source": {
+        "source": "local",
+        "path": "./plugins/vladimirrott/claude-math"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Emit mathematics as copy- and search-safe inline Unicode (∑, ≤, ℝ, x², matrices, set-builder) instead of LaTeX so equations stay legible in the Codex TUI, terminals, and Claude Code."
+    },
+    {
       "name": "be-serious",
       "displayName": "Codex Be Serious",
       "source": {

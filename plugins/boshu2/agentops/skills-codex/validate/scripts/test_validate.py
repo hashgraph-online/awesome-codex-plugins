@@ -48,9 +48,29 @@ class ValidateV2Tests(unittest.TestCase):
         manifest["canonical_manifest_digest"] = tool.digest_value(tool.manifest_identity(manifest))
         return b"bead:agentops-test\nacceptance: works\n", manifest
 
-    def store_bound(self, draft, destination, *, scope="PASS"):
+    def store_bound(
+        self,
+        draft,
+        destination,
+        *,
+        scope="PASS",
+        author="author",
+        validator="validator",
+        freshness_source="runtime",
+        freshness_attester="validator",
+    ):
         intent, manifest = self.runtime_facts()
-        return tool.store_verdict(draft, destination, intent, manifest, draft.get("author_context_id"), scope)
+        return tool.store_verdict(
+            draft,
+            destination,
+            intent,
+            manifest,
+            author,
+            scope,
+            validator,
+            freshness_source,
+            freshness_attester,
+        )
 
     def test_manifest_is_content_addressed_and_detects_mutation(self):
         with tempfile.TemporaryDirectory() as raw:
@@ -92,23 +112,36 @@ class ValidateV2Tests(unittest.TestCase):
             draft = self.draft()
             draft["author_context_id"] = "same"
             draft["validator_context_id"] = "same"
-            first, path, existed = self.store_bound(draft, Path(raw))
+            first, path, existed = self.store_bound(draft, Path(raw), author="same", validator="same")
             self.assertEqual(first["verdict"], "NOT_PROVEN")
             self.assert_schema_valid(first)
             self.assertFalse(existed)
-            second, second_path, existed = self.store_bound(draft, Path(raw))
+            second, second_path, existed = self.store_bound(draft, Path(raw), author="same", validator="same")
             self.assertTrue(existed)
             self.assertEqual(path, second_path)
             self.assertEqual(json.loads(path.read_text())["artifact_digest"], first["artifact_digest"])
 
-    def test_missing_identity_or_attestation_is_schema_valid_not_proven(self):
+    def test_runtime_identity_and_attestation_replace_missing_model_fields(self):
         for missing in ("author_context_id", "validator_context_id", "freshness_attestation"):
             with self.subTest(missing=missing), tempfile.TemporaryDirectory() as raw:
                 draft = self.draft()
                 draft.pop(missing)
                 artifact, _path, _existed = self.store_bound(draft, Path(raw))
-                self.assertEqual(artifact["verdict"], "NOT_PROVEN")
+                self.assertEqual(artifact["verdict"], "PASS")
                 self.assert_schema_valid(artifact)
+
+    def test_runtime_validator_and_freshness_override_model_claims(self):
+        with tempfile.TemporaryDirectory() as raw:
+            draft = self.draft()
+            draft["validator_context_id"] = "model-claimed-validator"
+            draft["freshness_attestation"] = {"source": "caller", "attester_identity": "model-claimed-attester"}
+            artifact, _path, _existed = self.store_bound(draft, Path(raw))
+            self.assertEqual(artifact["validator_context_id"], "validator")
+            self.assertEqual(
+                artifact["freshness_attestation"],
+                {"source": "runtime", "attester_identity": "validator"},
+            )
+            self.assertEqual(artifact["verdict"], "PASS")
 
     def test_pass_with_failed_criterion_is_downgraded(self):
         with tempfile.TemporaryDirectory() as raw:
@@ -169,6 +202,12 @@ class ValidateV2Tests(unittest.TestCase):
                     str(manifest_path),
                     "--author-context-id",
                     "author",
+                    "--validator-context-id",
+                    "validator",
+                    "--freshness-source",
+                    "runtime",
+                    "--freshness-attester-id",
+                    "validator",
                     "--scope-result",
                     "PASS",
                     "--workspace",

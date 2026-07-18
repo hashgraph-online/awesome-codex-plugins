@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-07-17",
-  "total": 169,
+  "last_updated": "2026-07-18",
+  "total": 170,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1118,6 +1118,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/win4r/chrome-devtools-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "claude-math",
+      "url": "https://github.com/vladimirrott/claude-math",
+      "owner": "vladimirrott",
+      "repo": "claude-math",
+      "description": "Emit mathematics as copy- and search-safe inline Unicode (∑, ≤, ℝ, x², matrices, set-builder) instead of LaTeX so equations stay legible in the Codex TUI, terminals, and Claude Code.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/vladimirrott/claude-math/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex Be Serious",

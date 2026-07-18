@@ -74,6 +74,7 @@ Subagent launch:
 - If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command so tracked Claude Code jobs stay attached to the user-facing parent session for `$cc:status` / `$cc:result`.
 - If it returns an empty `ownerSessionId`, omit `--owner-session-id` entirely. Never leave an empty routing placeholder such as `--owner-session-id  --job-id`.
 - If that helper returns a non-empty `jobId`, pass it into the companion command as an internal `--job-id <reserved-job-id>` routing flag.
+- Whenever forwarding that reserved `--job-id`, also pass `--cwd <workspace-root>` using `workspaceRoot` from the same helper response. Reserved job ids are workspace-scoped.
 - Add an internal companion routing flag that reflects whether the user will see this result in the current turn:
   - Foreground rescue must add `--view-state on-success`
   - Background rescue must add `--view-state defer`
@@ -141,6 +142,7 @@ Subagent launch:
   - for background rescue, use that same steering message as the child's own final assistant message instead of echoing the raw companion result
   - tell the child not to inspect the repository, read files, grep, or do the task directly
   - tell the child not to reinterpret routing flags that were already resolved by the parent
+  - include the matching `--cwd <workspace-root>` whenever the command includes that reserved `--job-id`
   - tell the child to copy the resolved rescue task text byte-for-byte into that exact command after parent-side routing flags are removed
   - explicitly forbid appending terminal punctuation, adding quotes, dropping prefixes such as `completed:`, or stripping leading slash commands such as `/simplify`
   - include one short exact-output example such as `completed:/simplify make the output compact`

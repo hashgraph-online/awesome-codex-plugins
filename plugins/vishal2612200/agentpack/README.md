@@ -218,9 +218,13 @@ agentpack dashboard
 rules, commands, warnings, and matching skills without writing source files.
 `pack` renders selected files, omitted-file receipts, freshness checks, token
 stats, and citation provenance for packed claims.
-`dashboard` opens the local context cockpit: selected and omitted files, task
-map risk, likely tests, memory influence, observer signals, and next actions in
-one inspectable view backed by `dashboard-data.json` and `dashboard-graph.json`.
+`dashboard` opens the local AgentPack workspace: task-aware context, a 3D
+repository impact map with 2D/table fallbacks, Tree-sitter evidence, agent
+handoffs, and explainable next actions. The dashboard uses the versioned v2
+contract while keeping the existing v1 API and CLI behavior. Switch between
+Explain and Build modes depending on whether you need plain-language guidance
+or paths, symbols, commands, and diagnostics. See
+[`docs/dashboard-v2.md`](docs/dashboard-v2.md) for the API contract.
 AgentPack reuses cached file summaries and snapshot metadata so repeated packs do not start from zero.
 Run `agentpack doctor` when an agent integration, MCP setup, hook, or installed CLI path looks stale.
 Inspect advisory memory with `agentpack memory --timeline`; prune local history

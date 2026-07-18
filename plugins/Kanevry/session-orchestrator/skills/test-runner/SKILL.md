@@ -121,6 +121,8 @@ Log: `playwright-driver exited [code] — [N] test files captured under ${RUN_DI
 RUN_DIR="${RUN_DIR}" TARGET="${TARGET}" PROFILE="${PROFILE}" bash skills/peekaboo-driver/SKILL.md
 ```
 
+Any bash-driver shim or report helper you write for this dispatch is subject to `.claude/rules/bash-harness-pitfalls.md` (`grep -c` double-print, stdout-capture pollution, file-based aggregate verdicts, `perl -pi` script-surgery corruption).
+
 **Outputs the orchestrator must parse:**
 
 | Artifact | Description |

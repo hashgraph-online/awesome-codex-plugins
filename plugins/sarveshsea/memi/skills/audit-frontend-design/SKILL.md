@@ -12,14 +12,14 @@ Audit the real source tree before proposing UI changes. Memi's checks are determ
 From the repository root:
 
 ```bash
-npx -y @memi-design/cli@2.5.0 diagnose . --json --no-write --fail-on none
+npx -y @memi-design/cli@2.6.2 diagnose . --json --no-write --fail-on none
 ```
 
 For UX behavior and visual craft detail, run only the relevant follow-up:
 
 ```bash
-npx -y @memi-design/cli@2.5.0 ux audit . --json --no-write
-npx -y @memi-design/cli@2.5.0 craft audit . --json --no-write
+npx -y @memi-design/cli@2.6.2 ux audit . --json --no-write
+npx -y @memi-design/cli@2.6.2 craft audit . --json --no-write
 ```
 
 Use `--screenshot <path>` with `craft audit` when the user provides a rendered screen.

@@ -63,6 +63,8 @@ dev = [
   "pytest",
   "pytest-asyncio",
   "pytest-cov",
+  "jsonschema>=4.20.0",
+  "Pillow>=10.0.0",
   "ruff",
   "mypy",
   "tomli>=2.0.0; python_version < '3.11'"

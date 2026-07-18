@@ -2,7 +2,7 @@
   "name": "axonflow",
   "displayName": "AxonFlow Governance",
   "description": "Policy enforcement, PII detection, and audit trails for OpenAI Codex. Hybrid governance — enforces policies on terminal commands (exec_command) via hooks, provides advisory governance for other tools via implicit-activation skills, and records compliance-grade audit trails. Self-hosted via Docker — all data stays on your infrastructure.",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "author": {
     "name": "AxonFlow",
     "email": "hello@getaxonflow.com",

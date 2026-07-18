@@ -20,6 +20,7 @@ Workflow:
 - If the user agrees, run `npm install -g @anthropic-ai/claude-code` and rerun setup.
 - If Claude Code is already installed or `npm` is unavailable, do not ask about installation.
 - If setup reports missing native plugin hook features or hook trust, rerun setup once. The companion repairs `[features].hooks`, `[features].plugin_hooks`, and this plugin's native hook trust hashes itself.
+- If setup adds the plugin-data destination or legacy migration roots to the writable-root list, do not retry in the same Codex session. Tell the user to restart Codex and rerun the same setup command; any requested review-gate change is deliberately deferred until that restart.
 - After the decision flow is complete, run the final user-facing command without `--json`:
   `node "<plugin-root>/scripts/claude-companion.mjs" setup $ARGUMENTS`
 

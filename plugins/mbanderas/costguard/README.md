@@ -1,4 +1,4 @@
-# CostGuard
+# Maestro: CostGuard
 
 <p align="center">
   <img src="assets/costguard-banner.png" alt="CostGuard — a robot sea captain steering a boat named costguard through waters of dollars, CPUs, clocks, and clouds" width="720">
@@ -11,8 +11,8 @@
   <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/@costguard/costguard-mcp" alt="node version"></a>
 </p>
 
-CostGuard audits your repos and cloud providers for CI and infrastructure cost
-leaks. It is built for developers who run several projects across GitHub Actions,
+Maestro: CostGuard audits your repos and cloud providers for CI and infrastructure
+cost leaks. It is built for developers who run several projects across GitHub Actions,
 Vercel, Supabase, Railway, Netlify, Neon, Cloudflare, and more, and want a single
 command that surfaces what is being wasted and exactly how to fix it. On repositories that have never been
 optimized, the static audit alone typically reduces CI spend by 60–80%.
@@ -20,6 +20,12 @@ optimized, the static audit alone typically reduces CI spend by 60–80%.
 <p align="center">
   <img src="assets/chart-ci-savings.svg" alt="Observed CI cost reduction: 60-80% typical on repositories never optimized, up to 80% best observed" width="720">
 </p>
+
+**One suite: fuse the answer, make the case, guard the spend.**
+
+- **[Maestro Frontier](https://github.com/mbanderas/maestro)** — Fuses the model CLIs you already run into one judged, grounded answer.
+- **[Maestro Agora](https://github.com/mbanderas/maestro-agora)** — Turns verified product truth into concise, argument-first copy without inventing the proof.
+- **[Maestro CostGuard](https://github.com/mbanderas/costguard)** — Audits CI and cloud infrastructure for cost leaks and shows what to fix.
 
 ---
 
@@ -605,9 +611,8 @@ pulls the runner image (~1GB), then caches it.
 
 ---
 
-## Related Projects
+## Related Project
 
-- **[Maestro](https://github.com/mbanderas/maestro)**: Frontier multi-CLI fusion engine and orchestration discipline layer for AI coding agents. CostGuard finds the cost leaks; Maestro keeps the agents that fix them disciplined — verified done-claims, surgical scope, and a research-backed multi-agent gate.
 - **[Govyn](https://govynai.com)**: Open-source AI agent governance proxy — your agents never hold real API keys, stay within budget, and follow policy. CostGuard audits the spend; Govyn enforces the guardrails at runtime.
 
 ---

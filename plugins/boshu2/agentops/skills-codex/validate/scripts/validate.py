@@ -197,8 +197,11 @@ def bind_runtime_facts(
     manifest: dict[str, Any] | None,
     author_context_id: str | None,
     scope_status: str | None,
+    validator_context_id: str | None,
+    freshness_source: str | None,
+    freshness_attester_id: str | None,
 ) -> dict[str, Any]:
-    """Inject runtime-owned intent, subject, author, and scope facts."""
+    """Inject runtime-owned identity, freshness, intent, subject, and scope facts."""
     changed = dict(draft)
     problems: list[str] = []
     if intent_bytes is None:
@@ -217,6 +220,19 @@ def bind_runtime_facts(
         problems.append("runtime author context ID is missing")
     else:
         changed["author_context_id"] = author_context_id
+    if not isinstance(validator_context_id, str) or not validator_context_id.strip():
+        problems.append("runtime validator context ID is missing")
+    else:
+        changed["validator_context_id"] = validator_context_id
+    if freshness_source not in {"runtime", "caller"}:
+        problems.append("runtime freshness source is missing or invalid")
+    elif not isinstance(freshness_attester_id, str) or not freshness_attester_id.strip():
+        problems.append("runtime freshness attester identity is missing")
+    else:
+        changed["freshness_attestation"] = {
+            "source": freshness_source,
+            "attester_identity": freshness_attester_id,
+        }
     if scope_status == "FAIL":
         changed["verdict"] = "FAIL"
         findings = list(changed.get("findings") or [])
@@ -440,8 +456,20 @@ def store_verdict(
     manifest: dict[str, Any] | None = None,
     author_context_id: str | None = None,
     scope_status: str | None = None,
+    validator_context_id: str | None = None,
+    freshness_source: str | None = None,
+    freshness_attester_id: str | None = None,
 ) -> tuple[dict[str, Any], Path, bool]:
-    draft = bind_runtime_facts(draft, intent_bytes, manifest, author_context_id, scope_status)
+    draft = bind_runtime_facts(
+        draft,
+        intent_bytes,
+        manifest,
+        author_context_id,
+        scope_status,
+        validator_context_id,
+        freshness_source,
+        freshness_attester_id,
+    )
     draft = enforce_identity(draft)
     draft["schema_version"] = "verdict.v2"
     artifact, payload = artifact_bytes(draft)
@@ -488,6 +516,9 @@ def parse_args() -> argparse.Namespace:
     store.add_argument("--intent-source", required=True)
     store.add_argument("--subject-manifest", required=True)
     store.add_argument("--author-context-id", required=True)
+    store.add_argument("--validator-context-id", required=True)
+    store.add_argument("--freshness-source", required=True, choices=("runtime", "caller"))
+    store.add_argument("--freshness-attester-id", required=True)
     store.add_argument("--scope-result", required=True, choices=("PASS", "FAIL", "NOT_PROVEN"))
     store.add_argument("--workspace", default=".")
     store.add_argument("--verdict-dir")
@@ -532,6 +563,9 @@ def main() -> int:
                 load_json(Path(args.subject_manifest)),
                 args.author_context_id,
                 args.scope_result,
+                args.validator_context_id,
+                args.freshness_source,
+                args.freshness_attester_id,
             )
             write_json({
                 "acceptance_digest": hashlib.sha256(intent_bytes).hexdigest(),

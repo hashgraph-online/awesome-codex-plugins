@@ -78,6 +78,7 @@ $cc:setup
 ```
 
 All checks should pass. If any fail, `$cc:setup` tells you what to fix.
+If setup adds the marketplace-qualified plugin-data root and legacy migration roots to the writable-root list, restart Codex and rerun the same command; a requested review-gate toggle waits for that restart.
 
 ### 3. Try It
 
@@ -221,7 +222,7 @@ $cc:setup --disable-review-gate     # turn it off
 ```
 
 Setup checks Claude Code availability, native plugin hook feature gates, and review-gate state. If Claude Code isn't installed, it offers to install it.
-This is also the repair path for marketplace-installed copies of the plugin: `$cc:setup` confirms `[features].hooks = true` and `[features].plugin_hooks = true`, then trusts this plugin's current native hook hashes so Codex loads the bundled hooks from the active plugin cache.
+This is also the repair path for marketplace-installed copies of the plugin: `$cc:setup` confirms `[features].hooks = true` and `[features].plugin_hooks = true`, trusts this plugin's current native hook hashes, and allows sandboxed writes to Codex's injected marketplace-qualified plugin-data root plus the legacy roots needed for one-time migration. If those writable roots were just added, restart Codex and rerun setup before changing the review gate.
 
 ## Background Jobs
 

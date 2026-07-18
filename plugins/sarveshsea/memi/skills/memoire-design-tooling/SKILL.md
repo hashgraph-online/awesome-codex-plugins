@@ -12,6 +12,7 @@ Memi gives coding agents repository-specific interface evidence before they edit
 - Before reviewing or changing frontend UI: use `audit-frontend-design`.
 - Before building from an existing product system: use `remember-design-system`.
 - When adding deterministic pull-request gates: use `enforce-design-ci`.
+- For native SwiftUI, SwiftData, App Intents, or Apple-platform verification: use `build-swiftui-interface`.
 - For Figma, research, scaffolding, registry publishing, or multi-agent work: continue below.
 
 Install one focused skill directly:
@@ -23,7 +24,7 @@ npx skills add sarveshsea/memi --skill audit-frontend-design
 ## Compact Preflight
 
 ```bash
-npx -y @memi-design/cli@2.5.0 agent brief . --intent "<interface task>" --detail compact --json
+npx -y @memi-design/cli@2.6.2 agent brief . --intent "<interface task>" --detail compact --json
 ```
 
 Use `--detail standard` only when the compact brief lacks evidence needed for the edit.
@@ -33,6 +34,8 @@ Use `--detail standard` only when the compact brief lacks evidence needed for th
 ```bash
 memi agent install --dry-run --json
 memi scaffold component EvidenceCard --level organism --json
+memi ios brief --intent "<SwiftUI task>" --detail compact --json
+memi ios scaffold FeatureName --kind screen --module AppModule --json
 memi research design --intent "<task>" --json
 memi shadcn export --out public/r --json
 memi mcp start --no-figma

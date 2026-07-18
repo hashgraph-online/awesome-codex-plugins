@@ -50,7 +50,7 @@ That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --wh
 
 ## 🏆 The developer pronunciation scoreboard
 
-**1,880 entries — 1,229 carry a citable source** — **86 settled by the creator themselves**, **169 the community still argues about.** The famous ones:
+**1,880 entries — 1,260 carry a citable source** — **101 settled by the creator themselves**, **174 the community still argues about.** The famous ones:
 
 ### ✅ Settled — the creator said so
 
@@ -83,7 +83,7 @@ Every cell has IPA, audio, and the source. **[Hear all 1,880 →](https://pronou
 
 ## What you're actually getting
 
-- **1,880 entries — 1,229 carry a citable source.** Confidence-tagged (`creator-clarified` / `community-consensus` / `contested`), each with a citable URL where one exists (we'd rather leave it blank than fabricate one). Wilhite said GIF is "jif" at the 2013 Webby Awards. Crockford says JSON is "JAY-son" (RailsConf 2009). RFC 7519 says JWT is "jot". The dictionary cites them.
+- **1,880 entries — 1,260 carry a citable source.** Confidence-tagged (`creator-clarified` / `community-consensus` / `contested`), each with a citable URL where one exists (we'd rather leave it blank than fabricate one). Wilhite said GIF is "jif" at the 2013 Webby Awards. Crockford says JSON is "JAY-son" (RailsConf 2009). RFC 7519 says JWT is "jot". The dictionary cites them.
 - **Multi-reading audio.** For words where the debate is real — GIF, SQL, GUI, char, regex — the CLI chains the alternates after the primary with a spoken "or:" so you *hear* the debate without staring at the terminal. `--solo` skips the tail once you've internalized it.
 - **Zero deps. ~250 lines of Bash.** No npm, no sudo, no surprises. Wraps the `say` engine that's already on your Mac. Ships a [Claude Code skill](skills/pronounce-word/SKILL.md) and an [MCP server](mcp-server/) so your AI answers "how do you pronounce X?" with **audio**, not a phonetic guess.
 
@@ -210,7 +210,7 @@ Source: [`integrations/vscode/`](integrations/vscode/). **Cross-platform as of v
 
 Click any tech word on any webpage → popup with IPA + audio. Same 1,880-entry dictionary; same Web Speech API as `pronounce.renlab.ai`. **Sideload only for now** (not yet on Chrome Web Store).
 
-Download [`pronounce-chrome-0.3.0.zip`](integrations/chrome/pronounce-chrome-0.3.0.zip) → unzip → `chrome://extensions/` → Developer mode → Load unpacked.
+Download [`pronounce-chrome-0.3.1.zip`](integrations/chrome/pronounce-chrome-0.3.1.zip) → unzip → `chrome://extensions/` → Developer mode → Load unpacked.
 
 Source: [`integrations/chrome/`](integrations/chrome/).
 
@@ -231,7 +231,7 @@ Local override: drop a `~/.config/say-it/pronunciations.local.tsv` and it takes 
 ## What works today
 
 - ✅ macOS — any word, via the built-in `say` engine. Zero dependencies.
-- ✅ **1,229** of 1,880 entries carry a citable source — the rest are confidence-tagged, no fabricated citations.
+- ✅ **1,260** of 1,880 entries carry a citable source — the rest are confidence-tagged, no fabricated citations.
 - ✅ **Audible multi-reading awareness** — contested words audibly chain alternates with "or:".
 - ✅ `--alt [N]`, `--all`, `--solo`, `--why`, `--json`, `--md`, `--no-dict`, `list`, `search`, `quiz`, `repl`, `stream`, `doctor`, `export`, `benchmark`, `badge`, `cheatsheet`.
 - ✅ Claude Code skill + MCP server for AI-side pronunciation questions.

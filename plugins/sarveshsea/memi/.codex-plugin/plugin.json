@@ -1,7 +1,7 @@
 {
   "name": "memoire",
-  "version": "2.5.0",
-  "description": "memi design memory and UI quality tools for Codex: MCP tools, design-system context, Figma workflows, shadcn/ui, Tailwind, and Atomic Design.",
+  "version": "2.6.2",
+  "description": "memi design memory and quality tools for Codex: SwiftUI, MCP, Figma, shadcn/ui, Tailwind, and Atomic Design.",
   "author": {
     "name": "Sarvesh Chidambaram",
     "url": "https://github.com/sarveshsea"
@@ -20,14 +20,16 @@
     "shadcn",
     "tailwind",
     "atomic-design",
-    "ui-quality"
+    "ui-quality",
+    "swiftui",
+    "ios"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "memi",
     "shortDescription": "Agent design CI, file scaffolds, and UI quality tools for Codex.",
-    "longDescription": "memi gives Codex design-system memory, MCP tools, spec-first file scaffolds, compact design-agent briefs, Figma context, Tailwind and shadcn/ui diagnostics, Atomic Design guidance, and research-backed UI audit workflows before frontend edits.",
+    "longDescription": "memi gives Codex design-system memory, MCP tools, spec-first web and SwiftUI file scaffolds, compact agent briefs, Figma context, Tailwind and shadcn/ui diagnostics, Apple-platform guidance, and research-backed UI audits before interface edits.",
     "developerName": "Sarvesh Chidambaram",
     "category": "Productivity",
     "capabilities": [
@@ -41,7 +43,8 @@
     "defaultPrompt": [
       "Audit this UI with memi before editing.",
       "Extract tokens and shadcn registry context.",
-      "Create an Atomic Design implementation plan."
+      "Create an Atomic Design implementation plan.",
+      "Scaffold and verify a SwiftUI feature."
     ],
     "brandColor": "#000000"
   }

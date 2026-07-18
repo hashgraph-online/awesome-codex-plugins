@@ -69,11 +69,14 @@ committed subject, never the judged working tree.
    top-level evidence, and evidence for every criterion.
 6. Persist canonical `verdict.v2` with `store-verdict --draft <draft.json>
    --intent-source <resolved-intent> --subject-manifest <manifest.json>
-   --author-context-id <id> --scope-result <PASS|FAIL|NOT_PROVEN>`. The helper
+   --author-context-id <id> --validator-context-id <id>
+   --freshness-source <runtime|caller> --freshness-attester-id <id>
+   --scope-result <PASS|FAIL|NOT_PROVEN>`. The helper
    snapshots the exact resolved intent under
    `<workspace>/.agents/ao/intents/sha256/<digest>.intent`, then computes and
-   injects intent and subject digests. Identity and changed-path facts come from
-   runtime-derived manifests and receipts, not model transcription. Verdict
+   injects intent and subject digests plus author, validator, and freshness
+   facts. Identity and changed-path facts come from runtime-derived inputs and
+   receipts, not model transcription. Verdict
    storage defaults to `<workspace>/.agents/ao/verdicts/sha256/<digest>.json`;
    callers may provide `verdict_dir`.
 7. Return the artifact path and digest. Stop.

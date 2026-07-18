@@ -1,6 +1,6 @@
 {
   "name": "agent-guard",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Real-time secret-leak guardrails for AI coding agents (Claude Code, Codex), Git hooks, and CI.",
   "author": {
     "name": "Agent Guard contributors"

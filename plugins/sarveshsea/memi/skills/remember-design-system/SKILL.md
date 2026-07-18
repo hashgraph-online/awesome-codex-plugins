@@ -12,13 +12,13 @@ Build design context from the repository instead of guessing from the prompt. Th
 Translate the user's task into a short intent, then run from the repository root:
 
 ```bash
-npx -y @memi-design/cli@2.5.0 agent brief . --intent "<user's interface task>" --detail compact --json
+npx -y @memi-design/cli@2.6.2 agent brief . --intent "<user's interface task>" --detail compact --json
 ```
 
 If the task changes colors, spacing, typography, radii, or shadows, add token evidence:
 
 ```bash
-npx -y @memi-design/cli@2.5.0 tokens --from ./src --report --json
+npx -y @memi-design/cli@2.6.2 tokens --from ./src --report --json
 ```
 
 ## Apply The Memory

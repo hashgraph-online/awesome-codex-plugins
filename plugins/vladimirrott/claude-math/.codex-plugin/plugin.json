@@ -1,0 +1,39 @@
+{
+  "name": "claude-math",
+  "version": "0.3.0",
+  "description": "Emit mathematics as inline Unicode (∑, ≤, ℝ, x², matrices, set-builder) instead of LaTeX, so equations stay legible in the Codex TUI and any terminal. Copy- and search-safe. Also works in Claude Code.",
+  "author": {
+    "name": "Vladimir Rotariu",
+    "url": "https://github.com/vladimirrott"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/vladimirrott/claude-math",
+  "repository": "https://github.com/vladimirrott/claude-math",
+  "keywords": [
+    "math",
+    "latex",
+    "unicode",
+    "terminal",
+    "codex-skills",
+    "claude-skills",
+    "rendering"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "claude-math",
+    "shortDescription": "Readable Unicode math in the terminal instead of LaTeX.",
+    "longDescription": "A skill that makes the model emit mathematics as inline Unicode glyphs (∑, ≤, ℝ, x², ∫₀¹, matrices, set-builder) instead of LaTeX, so equations stay legible in the Codex TUI and any terminal. Copy- and search-safe (no math-alphanumeric styling codepoints). Also works in Claude Code via the same SKILL.md.",
+    "developerName": "Vladimir Rotariu",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/vladimirrott/claude-math",
+    "defaultPrompt": [
+      "State the Shannon entropy and explain each term.",
+      "Write the cohort filter as a set-builder expression.",
+      "Show the gradient descent update rule."
+    ]
+  }
+}

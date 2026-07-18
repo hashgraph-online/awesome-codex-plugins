@@ -12,18 +12,6 @@
         ]
       }
     ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$PLUGIN_ROOT/hooks/session-lifecycle-hook.mjs\" SessionEnd",
-            "statusMessage": "Cleaning up Claude Code bridge jobs"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [

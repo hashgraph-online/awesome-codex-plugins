@@ -85,8 +85,17 @@ The values exposed on `$CONFIG` for these keys already reflect the resolved (hos
 ### Precedence chain (highest first)
 
 1. **Environment variable** — `SO_VAULT_DIR` (for `vault-dir`) / `SO_BASELINE_PATH` (for `plan-baseline-path`).
-2. **`owner.yaml` `paths:` section** — `~/.config/session-orchestrator/owner.yaml` → `paths.vault-dir` / `paths.baseline-path` (see `.claude/rules/owner-persona.md`).
-3. **Committed Session Config default** — the value in the `## Session Config` block of `CLAUDE.md` / `AGENTS.md`.
+2. **`owner.yaml` `baselines:` per-context match** (`plan-baseline-path` only, #819) — first-match-wins directory-prefix match of cwd against each entry's `match.path-prefix`; resolver: `scripts/lib/named-baseline-resolver.mjs`. Example entry:
+   ```yaml
+   baselines:
+     - name: world-a-baseline
+       path: ~/Projects/world-a/projects-baseline
+       match: { path-prefix: ~/Projects/world-a }
+   ```
+3. **`owner.yaml` `paths:` section** — `~/.config/session-orchestrator/owner.yaml` → `paths.vault-dir` / `paths.baseline-path` (see `.claude/rules/owner-persona.md`).
+4. **Committed Session Config default** — the value in the `## Session Config` block of `CLAUDE.md` / `AGENTS.md`.
+
+`vault-dir` only ever uses tiers 1, 3, 4 (no per-context match tier); a host without a `baselines:` array resolves `plan-baseline-path` identically to the pre-#819 3-tier chain.
 
 ### Empty-tier-falls-through
 

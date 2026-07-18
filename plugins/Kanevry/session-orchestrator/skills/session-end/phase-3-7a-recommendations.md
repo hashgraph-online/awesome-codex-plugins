@@ -62,7 +62,7 @@ try {
 
 ## Phase 3.7b: Durable-Commit Session Telemetry (#490 AC2)
 
-> **Ordering:** Runs AFTER Phase 3.7a (Recommendation fields just-written to STATE.md) and BEFORE Phase 3.4 (`status: completed`). The canonical runtime order is `… → 3.6.7 → 3.7 → 3.7a → 3.7b → 3.4`. Both session-end-owned files (`sessions.jsonl` from Phase 3.7, `STATE.md` from Phase 3.7a) have already been written to disk; this step only declares them as the durable-commit set.
+> **Ordering:** Runs AFTER Phase 3.7a (Recommendation fields just-written to STATE.md) and BEFORE Phase 3.4 (`status: completed`). The canonical runtime order is `… → 3.6.7 → 3.6.8 → 3.7 → 3.7a → 3.7b → 3.7c → 3.7d → 3.4`. Both session-end-owned files (`sessions.jsonl` from Phase 3.7, `STATE.md` from Phase 3.7a) have already been written to disk; this step only declares them as the durable-commit set.
 
 > **Ownership:** session-end commits ONLY the two files it owns — `.orchestrator/metrics/sessions.jsonl` and `<state-dir>/STATE.md`. `.orchestrator/metrics/autopilot.jsonl` is NOT session-end's responsibility: `scripts/lib/autopilot/loop.mjs` commits that file in the autopilot loop (the core `loop.mjs` wiring shipped in #490 Wave-2). Do not add autopilot.jsonl to the files array here.
 

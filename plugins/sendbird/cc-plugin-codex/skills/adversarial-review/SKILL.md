@@ -71,6 +71,7 @@ Background flow:
 - Before spawning the built-in child, capture the review job id plus routing context in one call:
   `node "<plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind review --json`
 - If that helper returns a non-empty `jobId`, pass it into the companion command as an internal `--job-id <reserved-job-id>` routing flag.
+- Whenever forwarding that reserved `--job-id`, also pass `--cwd <workspace-root>` using `workspaceRoot` from the same helper response. Reserved job ids are workspace-scoped.
 - If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command.
 - If it returns an empty `ownerSessionId`, omit `--owner-session-id` entirely. Never leave an empty placeholder such as `--owner-session-id  --job-id`.
 - If that helper returns a non-empty `parentThreadId`, pass it into the child prompt as the parent thread id for one-shot completion notification.
@@ -95,6 +96,7 @@ Background flow:
   - if the available shell tool is `exec_command`, call it once in non-interactive mode and wait for command exit in that same call
   - include `--owner-session-id <owner-session-id>` only when the parent resolved a non-empty owner session id
   - include `--job-id <reserved-job-id>` when the parent reserved one
+  - include the matching `--cwd <workspace-root>` whenever the command includes that reserved `--job-id`
   - never leave an empty routing placeholder such as `--owner-session-id  --job-id`
   - return only that command's stdout exactly, with no added commentary
   - ignore stderr progress chatter such as `[cc] ...` lines and preserve only the final stdout-equivalent result text

@@ -32,6 +32,12 @@
 > model IDs or secret values. Full walkthrough in [The Frontier
 > Engine](#the-frontier-engine).
 
+**One suite: fuse the answer, make the case, guard the spend.**
+
+- **[Maestro Frontier](https://github.com/mbanderas/maestro)** — Fuses the model CLIs you already run into one judged, grounded answer.
+- **[Maestro Agora](https://github.com/mbanderas/maestro-agora)** — Turns verified product truth into concise, argument-first copy without inventing the proof.
+- **[Maestro CostGuard](https://github.com/mbanderas/costguard)** — Audits CI and cloud infrastructure for cost leaks and shows what to fix.
+
 ---
 
 > **Install — run the command block for your tool, inside that tool.**
@@ -527,10 +533,9 @@ Contributions are welcome. Before opening a PR:
 
 If you have benchmarks, case studies, or research that challenges or extends the current architecture, open an issue. The design should evolve with evidence.
 
-## Related Projects
+## Related Project
 
 - **[Govyn](https://govynai.com)**: Open-source AI agent governance proxy. Maestro orchestrates your agents; Govyn ensures they never hold real API keys, stay within budget, and follow policy. They are designed to work together.
-- **[CostGuard](https://github.com/mbanderas/costguard)**: Audit your repos and cloud providers for CI and infrastructure cost leaks — a CLI + MCP server for AI coding agents (Claude Code, Codex, any MCP host). Maestro keeps your agents disciplined; CostGuard keeps the infrastructure they touch honest on spend.
 
 ## Community
 

@@ -1,6 +1,6 @@
 {
   "name": "agentops",
-  "version": "4.0.0",
+  "version": "3.3.0",
   "description": "Fresh-context validation for coding-agent work: shape one behavior, run one bounded experiment, and persist an independent verdict.",
   "skills": "./skills-codex",
   "interface": {

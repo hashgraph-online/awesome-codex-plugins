@@ -7,35 +7,74 @@ description: Install or refresh oc-codex-multi-auth in OpenCode, choose the righ
 
 Use this skill when the user wants to install, reinstall, upgrade, or troubleshoot `oc-codex-multi-auth` in OpenCode.
 
-## Default install
+## Default install (compact modern)
 
 ```bash
 npx -y oc-codex-multi-auth@latest
 ```
 
-Use this when the user wants the full catalog config, including base entries like `gpt-5.5` and explicit preset entries like `gpt-5.5-medium`.
+This is the default. It installs the compact modern catalog: 12 base OAuth model families with OpenCode variant presets (53 total variants). The TUI model picker shows bases such as `gpt-5.5` and `gpt-5.6-sol`; reasoning depth is selected with `--variant`.
 
-## Modern compact install
+## Full install (explicit selector IDs)
 
 ```bash
-npx -y oc-codex-multi-auth@latest --modern
+npx -y oc-codex-multi-auth@latest --full
 ```
 
-Use this on OpenCode `v1.0.210+` when the user wants the compact variant-based config.
+Use this when the user needs direct selector IDs such as `openai/gpt-5.5-medium` or `openai/gpt-5.6-sol-high` in addition to the compact bases.
+
+## Legacy install (older OpenCode)
+
+```bash
+npx -y oc-codex-multi-auth@latest --legacy
+```
+
+Use this on older OpenCode versions that do not support variant-based model entries. Installs 53 explicit model IDs only.
+
+## Other installer flags
+
+- `--dry-run` — show planned actions without writing files
+- `--no-cache-clear` — skip clearing the OpenCode plugin cache
+- `--modern` — same compact modern catalog as the default
+
+## Standalone CLI (no agent cost)
+
+```bash
+oc-codex-multi-auth status
+oc-codex-multi-auth list
+oc-codex-multi-auth warm
+oc-codex-multi-auth doctor
+```
+
+Also available: `limits`, `dashboard`, `health`, `diag`.
 
 ## Login and verification
 
 1. Run `opencode auth login`.
-2. Run a quick verification request:
+2. Run a quick verification request with **compact modern** selectors (default install):
 
 ```bash
-opencode run "Explain this repository" --model=openai/gpt-5.5-medium
+opencode run "Explain this repository" --model=openai/gpt-5.5 --variant=medium
 ```
 
-3. For a Codex-focused workflow, try:
+Do **not** use `openai/gpt-5.5-medium` unless the user installed with `--full` or `--legacy`.
+
+3. Optional GPT-5.6 smoke:
+
+```bash
+opencode run "Explain this repository" --model=openai/gpt-5.6-sol --variant=medium
+```
+
+4. For a Codex-focused workflow, try:
 
 ```bash
 opencode run "Refactor the retry logic and update the tests" --model=openai/gpt-5-codex --variant=high
+```
+
+5. After `--full`, explicit IDs are valid:
+
+```bash
+opencode run "Explain this repository" --model=openai/gpt-5.5-medium
 ```
 
 ## Troubleshooting

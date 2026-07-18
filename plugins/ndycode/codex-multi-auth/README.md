@@ -45,15 +45,16 @@ Use it when you need a local Codex CLI multi-account workflow with visible accou
 
 ## Current Architecture At A Glance
 
-`codex-multi-auth` now ships three distinct global binaries:
+`codex-multi-auth` ships four global binaries:
 
 | Binary | Purpose |
 | --- | --- |
 | `codex-multi-auth` | Primary account manager; accepts bare auth subcommands such as `login`, `status`, `switch`, `forecast`, and `rotation status` |
 | `codex-multi-auth-codex` | Optional wrapper that handles `auth ...` locally and forwards every other command to the official Codex CLI |
+| `mcodex` | Convenience launcher over `codex-multi-auth-codex` with optional `--monitor` and `--tmux` modes |
 | `codex-multi-auth-app-launcher` | Optional desktop launcher helper for supported user-level shortcuts and wrapper apps |
 
-The package does not publish a global `codex` binary. Keep `codex` owned by the official OpenAI install path and use `codex-multi-auth-codex ...` only when you intentionally want this package's forwarding wrapper.
+The package does not publish a global `codex` binary. Keep `codex` owned by the official OpenAI install path. Use `codex-multi-auth-codex ...` or `mcodex ...` only when you intentionally want this package's forwarding wrapper.
 
 ---
 
@@ -170,15 +171,18 @@ For remote or headless shells, prefer `codex-multi-auth login --device-auth`.
 | Command | What it answers |
 | --- | --- |
 | `codex-multi-auth login` | How do I add or re-open the account menu? |
-| `codex-multi-auth status` | Is the wrapper active right now? |
-| `codex-multi-auth check` | Do my saved accounts look healthy? |
+| `codex-multi-auth status` | What does my account pool, pin, and runtime metrics look like? (`list` is the same output) |
+| `codex-multi-auth check` | Do live health probes against my saved accounts succeed? |
 
 ### Daily use
 
 | Command | What it answers |
 | --- | --- |
-| `codex-multi-auth list` | Which accounts are saved and which one is active? |
-| `codex-multi-auth switch <index>` | How do I move to a different saved account? |
+| `codex-multi-auth list` | Alias of `status` — full account/runtime dump |
+| `codex-multi-auth switch <index>` | How do I pin a different saved account for runtime routing? |
+| `codex-multi-auth unpin` | How do I clear a manual pin and resume hybrid rotation? |
+| `codex-multi-auth workspace <account> [workspace]` | How do I list or set an account's active workspace? |
+| `codex-multi-auth best --live` | How do I switch to the forecast-best account (clears any pin)? |
 | `codex-multi-auth-codex --account <index\|email\|id>` | How do I force one account for a single wrapper session without changing my default? |
 | `codex-multi-auth forecast --live` | Which account looks best for the next session? |
 
@@ -273,8 +277,10 @@ Selected runtime/environment overrides:
 | Variable | Effect |
 | --- | --- |
 | `CODEX_MULTI_AUTH_DIR` | Override settings/accounts root |
-| `CODEX_MULTI_AUTH_CONFIG_PATH` | Alternate config file path |
+| `CODEX_MULTI_AUTH_CONFIG_PATH` | Prefer this config file when it exists (also the save target when set) |
 | `CODEX_MODE=0/1` | Disable/enable Codex mode |
+| `CODEX_MULTI_AUTH_FORCE_ACCOUNT=<index\|email\|id>` | Force one account for a single `codex-multi-auth-codex` run (ephemeral; requires rotation proxy) |
+| `CODEX_MULTI_AUTH_BYPASS=1` | Skip multi-auth intercept and forward straight to official Codex |
 | `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0/1` | Opt out/in of live Responses proxy rotation for forwarded Codex CLI/app sessions |
 | `CODEX_MULTI_AUTH_APP_ROTATION_IDLE_MS=<ms>` | Override automatic Codex app helper idle shutdown |
 | `CODEX_MULTI_AUTH_APP_BIND_INSTALL=0/1` | Opt out/in of packaged Codex app bind self-heal on first CLI run or rotation enable |
@@ -386,6 +392,7 @@ codex-multi-auth doctor --json
 ## Release Notes
 
 - Current stable: [docs/releases/v2.6.1.md](docs/releases/v2.6.1.md) — install via `npm i -g codex-multi-auth`
+- Previous stable: [docs/releases/v2.6.0.md](docs/releases/v2.6.0.md)
 - Previous stable: [docs/releases/v2.5.0.md](docs/releases/v2.5.0.md)
 - Previous stable: [docs/releases/v2.4.0.md](docs/releases/v2.4.0.md)
 - Previous stable: [docs/releases/v2.3.3.md](docs/releases/v2.3.3.md)

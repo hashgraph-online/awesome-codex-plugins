@@ -19,6 +19,24 @@ Emulo mines selected evidence from those sessions — Claude Code, Codex, Copilo
 
 The [Emulo Proof v1 methodology](docs/proof/README.md) is an unexecuted methodology until a separately approved evidence release exists.
 
+## Open source and Emulo Pro
+
+Emulo's local engine stays MIT licensed and useful without an account. Your
+session extraction, redaction, caches, profile, and agent adapters remain on
+your machine unless you explicitly choose a model provider for mining.
+
+[Emulo Pro](https://emulo.vercel.app/#pricing) is the optional hosted layer for
+client-encrypted approved-generation continuity across up to five devices,
+managed pairing and revocation, conflict-preserving history, and a bounded
+encrypted recovery/export window. Raw session evidence, decryption keys, and
+model-provider tokens do not enter the hosted service. Ending Pro access never
+disables local Emulo, its history, or rollback.
+
+The hosted Worker source is public so its authentication, checkout, webhook,
+and entitlement rules can be audited. Production credentials and customer
+records are held by Cloudflare and Polar and are never stored in Git. Public
+source code is not public access to the hosted service or its data.
+
 ## Not memory
 
 Memory is what you explicitly told the model.

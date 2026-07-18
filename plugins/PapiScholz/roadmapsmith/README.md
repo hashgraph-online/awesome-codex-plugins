@@ -1,5 +1,7 @@
 # roadmapsmith
 
+[![skills.sh](https://skills.sh/b/PapiScholz/roadmapsmith)](https://skills.sh/PapiScholz/roadmapsmith)
+
 Una habilidad para agentes de IA (Claude Code, Codex, o cualquier host que soporte skills en formato SKILL.md) que mantiene tu `ROADMAP.md` al día automáticamente. El agente lo crea, y después lo actualiza solo cuando ve evidence real en el código. Sin CLIs, sin configs.
 
 ## Install
@@ -7,7 +9,17 @@ Una habilidad para agentes de IA (Claude Code, Codex, o cualquier host que sopor
 Standard skills.sh CLI (detecta el agente automáticamente y soporta 70+ hosts):
 
 ```bash
-npx skills add https://github.com/PapiScholz/roadmapsmith
+# Direct add
+npx skills add PapiScholz/roadmapsmith
+
+# List first (revisa qué skills declara el repo antes de instalar)
+npx skills add PapiScholz/roadmapsmith --list
+
+# Search por keyword (aparece cuando skills.sh indexa el repo, ~1h después del primer add)
+npx skills find roadmap
+
+# Web (aparece cuando skills.sh indexa el repo)
+# https://skills.sh/
 ```
 
 Legacy shim (equivalente, delega al comando de arriba):

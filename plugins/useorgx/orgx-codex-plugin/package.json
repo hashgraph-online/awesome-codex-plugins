@@ -1,6 +1,6 @@
 {
   "name": "@useorgx/codex-plugin",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "OrgX Codex plugin with MCP access, initiative-aware skills, and a Sovereign Execution peer sidecar.",
   "type": "module",
   "private": false,
@@ -39,9 +39,19 @@
     "lib/peer/cli.mjs",
     "lib/peer/CodexDriver.mjs",
     "lib/peer/CodexAppServerClient.mjs",
+    "lib/peer/CodexMcpPolicy.mjs",
+    "lib/peer/DurableReceiptOutbox.mjs",
+    "lib/peer/autonomousCodexExecution.mjs",
+    "lib/peer/autonomousReadiness.mjs",
+    "lib/peer/autonomousDispatch.mjs",
+    "lib/peer/autonomousDispatchContract.mjs",
+    "lib/peer/autonomousDispatchContractChecks.mjs",
+    "lib/peer/autonomousTerminalEvidence.mjs",
     "lib/peer/continuityHealth.mjs",
     "lib/peer/peer.mjs",
     "lib/peer/README.md",
+    "lib/peer/runtimeConfig.mjs",
+    "lib/peer/runnerInstanceIdentity.mjs",
     "lib/peer/sentry.mjs",
     "plugin.manifest.json",
     "scripts/diagnose-reporting-gates.mjs",
@@ -52,13 +62,13 @@
   ],
   "scripts": {
     "check": "node scripts/verify-plugin.mjs",
-    "test": "node --test lib/peer/peer.test.mjs lib/peer/CodexAppServerClient.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs tests/continuity-health.test.mjs",
+    "test": "node --test lib/peer/peer.test.mjs lib/peer/CodexAppServerClient.test.mjs lib/peer/CodexMcpPolicy.test.mjs lib/peer/DurableReceiptOutbox.test.mjs lib/peer/autonomousCodexExecution.test.mjs lib/peer/autonomousReadiness.test.mjs lib/peer/autonomousDispatch.test.mjs lib/peer/autonomousTerminalEvidence.test.mjs lib/peer/cli.test.mjs lib/peer/runtimeConfig.test.mjs lib/peer/runnerInstanceIdentity.test.mjs hooks/scripts/orgx-session-hook.test.mjs hooks/scripts/orgx-reconcile-hook.test.mjs hooks/scripts/orgx-work-graph-reconcile.test.mjs scripts/diagnose-reporting-gates.test.mjs tests/continuity-health.test.mjs",
     "prepublishOnly": "npm run check && npm test",
     "peer:start": "node lib/peer/cli.mjs"
   },
   "dependencies": {
     "@sentry/node": "10.65.0",
-    "@useorgx/orgx-gateway-sdk": "github:useorgx/orgx-gateway-sdk#c2eb30d4f2df6b19edd3894ad06adb8b3e1ddbdb",
+    "@useorgx/orgx-gateway-sdk": "github:useorgx/orgx-gateway-sdk#c3dfd41ad01d44660457961f3ddee080e1596faa",
     "ws": "^8.18.3"
   },
   "engines": {
