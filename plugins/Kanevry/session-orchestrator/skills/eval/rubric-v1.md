@@ -64,13 +64,18 @@ time-window; `session-resolve.mjs → computeWindow`).
 1. **explicit** — a supplied `session_id` selects the LAST record carrying it
    (records may be rewritten/backfilled; the latest is authoritative). No match →
    `SessionResolutionError`.
-2. **cascade-completed** — otherwise, the last record with `status === 'completed'`.
-3. **cascade-fallback** — otherwise, the last record that is NOT `abandoned`, HAS
-   `completed_at` set, AND shows evidence of work
-   (`agent_summary.complete > 0` OR `effectiveness.completion_rate != null`).
+2. **no-arg cascade (#822)** — otherwise, ONE backward scan (newest-to-oldest,
+   source order); the FIRST record that qualifies wins:
+   - `status === 'completed'` → `resolvedVia: 'cascade-completed'`;
+   - else NOT `abandoned`, HAS `completed_at` set, AND shows evidence of work
+     (`agent_summary.complete > 0` OR `effectiveness.completion_rate != null`)
+     → `resolvedVia: 'cascade-fallback'`.
+   `status: 'completed'` is a sparse legacy field — it is a same-scan qualifier,
+   NOT a tier that is exhausted over the whole array first (the pre-#822 two-pass
+   behavior let an arbitrarily old `completed` record shadow newer valid work).
    Note: `status` is absent on many records — **absent is not `abandoned`**, so
    those qualify when they otherwise did work.
-4. **none** — nothing eligible → `SessionResolutionError` (the run cannot score).
+3. **none** — nothing eligible → `SessionResolutionError` (the run cannot score).
 
 ---
 

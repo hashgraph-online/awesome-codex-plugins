@@ -32,7 +32,7 @@ If any safety check is unknown, stop and ask for an explicit test environment.
 
 ## Output
 
-Record real-service test safety in `.agents/test/summary.md`:
+Record real-service test safety in `.agents/tests/summary.md`:
 
 ```markdown
 ## Real-Service Safety

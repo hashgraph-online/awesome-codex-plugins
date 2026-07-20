@@ -58,25 +58,24 @@ The proposals queue is populated mid-session by wave-executor agents calling `no
 
 5. After all batches answered, partition the queue into `approved` (any option selected across all batches) and `rejected` (all unselected).
 
-6. Invoke `writeApproved` and `archiveRejected` from `scripts/lib/memory-proposals/sink.mjs`:
+6. Invoke `promoteAndClear` and `archiveRejected` from `scripts/lib/memory-proposals/sink.mjs`:
    ```javascript
-   import { writeApproved, archiveRejected, clearProposalsJsonl } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/sink.mjs';
-   const writeResult = await writeApproved({ approved, repoRoot, sessionId });
+   import { promoteAndClear, archiveRejected } from '${PLUGIN_ROOT}/scripts/lib/memory-proposals/sink.mjs';
+   const writeResult = await promoteAndClear({ approved, sessionId, repoRoot });
    const archiveResult = await archiveRejected({ rejected, repoRoot, reason: 'user-declined' });
-   await clearProposalsJsonl({ repoRoot });
    ```
 
-   > **Ordering invariant (#797 — write-before-clear, clear-only-on-confirmed-success).** `clearProposalsJsonl()` drains the ENTIRE proposals queue unconditionally — it has no knowledge of whether `writeApproved()` actually persisted anything. Always run `writeApproved()` BEFORE `clearProposalsJsonl()` (never reorder), and only proceed to `clearProposalsJsonl()` when `writeResult.written === approved.length` (i.e. every approved proposal was actually written, with zero `writeResult.errors`). If `written !== approved.length`, STOP: do NOT call `clearProposalsJsonl()` — leave the queue intact, surface a `⚠ memory-proposals: writeApproved wrote <written>/<approved.length> — queue NOT cleared, retry next session-end` warning to the operator, and let the discrepancy carry over to the next session's Phase 3.6.3 pass rather than silently losing the un-written proposals. `writeApproved()` itself now throws a `TypeError` if called with the wrong argument name (e.g. `{ proposals: [...] }` instead of `{ approved: [...] }`) instead of silently returning `{written: 0}` — treat any thrown error from this call the same as a `written !== approved.length` mismatch: skip the clear. As defense-in-depth, `clearProposalsJsonl()` itself now archives the full pre-clear content of `proposals.jsonl` to `.orchestrator/runtime/proposals-archive.jsonl` before truncating, so even a clear that runs after an undetected write shortfall leaves a recovery copy behind.
+   > **Ordering invariant (#797/#828 — write-before-clear, clear-only-on-confirmed-success) is now enforced IN-CODE.** `promoteAndClear()` composes `writeApproved()` + `clearProposalsJsonl()` behind a single mechanical guard: it calls `writeApproved({ approved, repoRoot, sessionId })` first, computes `expected` from `approved.length`, and clears `proposals.jsonl` (via `clearProposalsJsonl()`) ONLY when `written === expected && errors.length === 0`. There is no separate `writeApproved` → `clearProposalsJsonl` call sequence left for the coordinator to get wrong or reorder — the guard that used to be a prose instruction here is now a load-bearing conditional inside `promoteAndClear()` itself. The coordinator's remaining job is to INSPECT the returned `{ written, expected, errors, cleared, summariesCleared, skippedReason }` and surface a warning when `writeResult.cleared === false`: log `⚠ memory-proposals: ${writeResult.skippedReason} (${writeResult.written}/${writeResult.expected} written) — queue NOT cleared, retry next session-end` and let the discrepancy carry over to the next session's Phase 3.6.3 pass rather than silently losing the un-written proposals. `promoteAndClear()` throws a `TypeError` before calling `writeApproved()` at all when `sessionId` is missing/blank, or when `approved` is omitted alongside an unrecognised key (arg-name-typo guard, mirroring `writeApproved()`'s own #797 guard one layer up) — treat either thrown error the same as a hard stop: nothing was written, nothing was cleared. As defense-in-depth, `clearProposalsJsonl()` (invoked internally by `promoteAndClear()` on the success path) still archives the full pre-clear content of `proposals.jsonl` to `.orchestrator/runtime/proposals-archive.jsonl` before truncating, so even a clear that runs after an undetected write shortfall leaves a recovery copy behind. `archiveRejected()` remains a separate, caller-driven call — it operates on the disjoint rejected subset and has no bearing on whether the approved write succeeded; call it before or after `promoteAndClear()`, order does not matter between the two.
 
 7. Log outcome for Phase 6 Final Report: `memory.proposals: <queued> queued → <approved> approved, <rejected> rejected (dropped: <dropped> quota, <below_floor> below-floor)`.
 
 #### Failure modes
 
 - If `collectProposals` fails (fs error): log warning `⚠ memory-proposals: collect failed (${err}) — skipping`, do not block session close.
-- If `writeApproved` reports errors per-record: log each, but continue (per-record fault isolation per sink contract).
-- If `writeApproved` throws (arg-name mistake or non-array `approved` — #797): log the error and STOP before `clearProposalsJsonl()` — never clear a queue that failed to write cleanly.
-- If `writeResult.written !== approved.length` (partial write): per the ordering invariant above, skip `clearProposalsJsonl()` and surface a warning; do not block session close.
-- If `clearProposalsJsonl` fails: log warning; do not block. The file may be re-collected at the next session-end, idempotent. A pre-clear archive copy also survives at `.orchestrator/runtime/proposals-archive.jsonl` when the clear DID run.
+- If `promoteAndClear`'s internal `writeApproved` call reports errors per-record: those errors surface in `writeResult.errors` and the guard skips the clear (`cleared: false`, `skippedReason: 'write-errors'`); log each error, but continue — session close is never blocked.
+- If `promoteAndClear` throws (missing/blank `sessionId`, or `approved` omitted alongside an unrecognised key — #797/#828 arg-typo guard): log the error and treat it as a hard stop for this phase — nothing was written, nothing was cleared, the queue is untouched.
+- If `writeResult.cleared === false` (partial write, `written !== expected`): the internal guard already skipped `clearProposalsJsonl()` — surface `writeResult.skippedReason` in a warning; do not block session close. The queue is retried at the next session-end's Phase 3.6.3 pass.
+- If the internal `clearProposalsJsonl()` call fails on the success path: log warning; do not block. The file may be re-collected at the next session-end, idempotent. A pre-clear archive copy also survives at `.orchestrator/runtime/proposals-archive.jsonl` when the clear DID run.
 
 #### Cross-references
 

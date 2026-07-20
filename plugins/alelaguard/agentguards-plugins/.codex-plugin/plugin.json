@@ -1,7 +1,7 @@
 {
   "name": "agentguards-codex",
   "description": "LLM security guardrails for OpenAI Codex — jailbreak detection, prompt-injection and web-content scanning, data-exfiltration blocking, and destructive-command authorization. Bundles enforcing hooks plus the AgentGuards MCP server.",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "author": {
     "name": "AgentGuards",
     "email": "support@agentguards.co",

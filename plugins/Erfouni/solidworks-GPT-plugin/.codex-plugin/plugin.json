@@ -1,0 +1,39 @@
+{
+  "name": "solidworks-gpt-plugin",
+  "version": "1.0.2",
+  "description": "Knowledge-backed SolidWorks design workflows for Codex, with rule checks and consent-based session learning.",
+  "author": {
+    "name": "Erfouni",
+    "url": "https://github.com/Erfouni"
+  },
+  "homepage": "https://github.com/Erfouni/solidworks-GPT-plugin",
+  "repository": "https://github.com/Erfouni/solidworks-GPT-plugin",
+  "license": "MIT",
+  "keywords": [
+    "solidworks",
+    "cad",
+    "mechanical-design",
+    "engineering",
+    "knowledge-base"
+  ],
+  "skills": "./plugins/solidworks-gpt-plugin/skills/",
+  "interface": {
+    "displayName": "SolidWorks GPT Plugin",
+    "shortDescription": "Knowledge-backed SolidWorks design and validation",
+    "longDescription": "Plan, build, validate, and export SolidWorks parts and assemblies using curated conventions, design rules, standards, catalog instructions, known fixes, and consent-based session feedback.",
+    "developerName": "Erfouni",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Erfouni/solidworks-GPT-plugin",
+    "defaultPrompt": [
+      "Design and validate a parametric SolidWorks part.",
+      "Look up proven SolidWorks instructions for this component.",
+      "Review this SolidWorks model against engineering rules."
+    ],
+    "brandColor": "#D71920",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

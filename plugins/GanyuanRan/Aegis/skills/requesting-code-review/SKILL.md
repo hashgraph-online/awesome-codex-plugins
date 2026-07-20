@@ -52,6 +52,8 @@ Before you leave this workflow, you must be able to state:
 10. **Aegis Visibility**: why findings-first ordering, evidence sufficiency,
     baseline alignment, compatibility, or retirement risk matters for this
     review request
+11. **Semantic context scope**: which relevant canonical terms, deprecated
+    aliases, or public naming boundaries the review must preserve
 
 Review in this method pack is advisory and evidence-oriented. It is not authoritative completion by itself.
 
@@ -70,6 +72,8 @@ Review in this method pack is advisory and evidence-oriented. It is not authorit
   Auto Backfill or baseline sync findings
 - Whether `recording-architecture-decisions` was used, or should be used, when
   an ADR action or baseline sync closure is in scope
+- Relevant active `CONTEXT.md` language when public/domain naming is in scope;
+  passive reading does not load active modeling
 
 If you cannot answer these, stop and gather them before dispatching review.
 
@@ -175,6 +179,8 @@ The review request must prompt the reviewer to inspect at least:
   baseline sync closure is in scope
 - unverified claims or missing proof
 - old logic that should retire, stay temporarily, or converge
+- public-name drift, deprecated-term re-entry, or a semantic change recorded in
+  code/docs without composing `establishing-project-context`
 
 If the review only asks “is this code good?”, it is underspecified.
 

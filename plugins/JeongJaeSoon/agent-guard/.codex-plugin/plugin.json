@@ -1,9 +1,10 @@
 {
   "name": "agent-guard",
-  "version": "2.0.1",
-  "description": "Real-time secret-leak guardrails for AI coding agents (Claude Code, Codex), Git hooks, and CI.",
+  "version": "3.0.0",
+  "description": "Local-by-default, no-telemetry hooks inspect supported tool inputs, outputs, and changed files in every enabled Claude Code or Codex session to block or mask secret leaks. Includes opt-in PII filtering and Git/CI backstops.",
   "author": {
-    "name": "Agent Guard contributors"
+    "name": "Agent Guard contributors",
+    "url": "https://github.com/JeongJaeSoon"
   },
   "homepage": "https://github.com/JeongJaeSoon/agent-guard",
   "repository": "https://github.com/JeongJaeSoon/agent-guard",
@@ -20,7 +21,7 @@
   "interface": {
     "displayName": "Agent Guard",
     "shortDescription": "Real-time secret-leak guardrails for AI coding agents",
-    "longDescription": "Real-time secret-leak guardrails for AI coding agents (Claude Code, Codex), Git hooks, and CI. Blocks `.env` reads, secret writes, and credential-dumping shell commands at the agent's tool boundary, with native Git-hook and GitHub Actions backstops.",
+    "longDescription": "Local-by-default, no-telemetry hooks inspect supported tool-call inputs, outputs, and changed files in every enabled Claude Code or Codex session. Agent Guard blocks risky `.env` reads, secret writes, and credential-dumping commands; masks secret-like tool output; and adds native Git-hook and GitHub Actions backstops. PII hook processing and HTTP providers are opt-in.",
     "developerName": "Agent Guard contributors",
     "category": "Developer Tools",
     "capabilities": [

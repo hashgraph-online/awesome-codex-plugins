@@ -425,14 +425,20 @@ Details:
   ageDays:              <integer or null>
   pluginVersion:        <version in lock or "unknown">
   currentPluginVersion: <running plugin version>
-  bootstrappedAt:       <ISO timestamp used for age calculation>
+  bootstrappedAt:       <ISO timestamp used for age calculation — ORIGINAL provenance, unchanged by a refresh>
+  refreshedAt:          <ISO timestamp of the last /bootstrap --refresh-lock, or null>
   versionMismatch:      true | false
-Remediation: Run `/bootstrap --upgrade` (if available) or re-run `/bootstrap --retroactive` to refresh the lock.
+  reason:               missing-repoRoot | missing | read-error | stale-age | unparseable-timestamp
+                         | version-mismatch-major | version-mismatch-unparseable | null (#57)
+Remediation: reason-aware (#57) — see below.
 ```
 
 **Default Severity:** info <30d, warn 30–89d or version-mismatch, alert ≥90d or unparseable.
 
-**Remediation:** Run `/bootstrap --upgrade` (if available) or re-run `/bootstrap --retroactive` to refresh the lock and stamp the current plugin version.
+**Remediation (reason-aware, #57):** `/bootstrap --retroactive` only helps when the lock is missing entirely (`reason: 'missing'`) — once a lock already has valid `version`/`tier` fields, re-running `--retroactive` is an idempotent no-op (see the Retroactive Flow's idempotency guard in `skills/bootstrap/SKILL.md`) and never actually refreshes anything. For a present-but-stale/drifted lock, branch on `result.details.reason`:
+- `stale-age` or `unparseable-timestamp` → `/bootstrap --refresh-lock` to acknowledge and reset the freshness clock.
+- `version-mismatch-major` or `version-mismatch-unparseable` → check for a plugin update first (git pull / marketplace update), then `/bootstrap --refresh-lock` to acknowledge the current version.
+- `missing` → `/bootstrap --retroactive` (or `/bootstrap` for a fresh scaffold) — this is the one case where no lock exists to refresh.
 
 **Dependencies:** Requires `${PLUGIN_ROOT}/scripts/lib/bootstrap-lock-freshness.mjs` (issue #186). Degrades gracefully when the helper is absent (pre-#186 plugin install) — skip with a note, do not fabricate findings.
 

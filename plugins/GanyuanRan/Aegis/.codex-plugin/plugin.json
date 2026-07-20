@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "2.4.7",
+  "version": "2.5.0",
   "description": "An agentic skills framework & software development methodology that works: planning, TDD, debugging, and collaboration workflows.",
   "author": {
     "name": "Aegis Maintainers",

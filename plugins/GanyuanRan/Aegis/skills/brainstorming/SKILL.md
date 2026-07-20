@@ -73,7 +73,9 @@ smallest stabilizing spec.
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, recent commits, authority docs, CONTEXT.md
+1. **Explore project context** — check files, docs, recent commits, authority
+   docs, and passively consume relevant active `CONTEXT.md` language without
+   loading active modeling
 2. **Choose the path and scope** — real design? diagnosis? route accordingly or decompose first
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `BaselineUsageDraft`, `ImpactStatementDraft`
@@ -92,6 +94,9 @@ You MUST create a task for each of these items and complete them in order:
 **Understanding the idea:**
 - Check current project state first (files, docs, recent commits)
 - Read relevant authority docs before asking deep questions
+- Use existing canonical terms in questions, options, scenarios, and the spec.
+  If terminology crystallizes or conflicts, compose
+  `establishing-project-context`; do not leave the resolution only in the spec.
 - If the request is diagnosis/root-cause/follow-up to an approved plan → route to correct workflow
 - If the request spans multiple independent subsystems → flag and decompose first
 - Ask clarifying questions one at a time, prefer multiple choice

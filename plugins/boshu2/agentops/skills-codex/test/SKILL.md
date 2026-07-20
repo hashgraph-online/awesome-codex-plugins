@@ -48,7 +48,7 @@ is the **oracle downgrade** failure mode: the test runs the code but proves
 almost nothing about it. Stop condition: no acceptance scenario may be covered
 only by smoke-tier tests when a stronger oracle is practical; if only smoke is
 practical (e.g. nondeterministic external output), record why in
-`.agents/test/summary.md` so the gap is a visible decision, not an accident.
+`.agents/tests/summary.md` so the gap is a visible decision, not an accident.
 
 ## Mutation-kill proof
 
@@ -102,8 +102,8 @@ Stop at the first applicable project marker and consult the Standards skill for 
 | `package.json` | Jest/Vitest | `npx jest --coverage` or `npx vitest run --coverage` |
 | `Cargo.toml` | cargo test | `cargo tarpaulin --out Lcov` |
 
-Write raw coverage to `.agents/test/coverage-raw.txt`, a ranked gap inventory
-to `.agents/test/gaps.md`, and language-native machine output where available.
+Write raw coverage to `.agents/tests/coverage-raw.txt`, a ranked gap inventory
+to `.agents/tests/gaps.md`, and language-native machine output where available.
 
 ### 3. Write the smallest valuable tests
 
@@ -130,7 +130,7 @@ In `tdd` mode:
 2. Implement only enough to pass that test.
 3. Refactor under green without changing the test contract.
 4. Run the focused test and the relevant suite after each cycle.
-5. Append the exact commands and outcomes to `.agents/test/tdd-log.md`.
+5. Append the exact commands and outcomes to `.agents/tests/tdd-log.md`.
 
 In other mutating modes, run each new test immediately, then the owning package
 or module, then the relevant project suite. A failure caused by a wrong test is
@@ -143,7 +143,7 @@ relevant suite are green and the recorded RED evidence names the intended behavi
 
 Re-run the baseline coverage command. Summarize before/after coverage, tests
 added, remaining high-risk gaps, bugs found, and exact validation commands in
-`.agents/test/summary.md`. Supply that evidence to Validate when the test
+`.agents/tests/summary.md`. Supply that evidence to Validate when the test
 change accompanies a product slice or is ready for acceptance.
 
 ## Language Rules
@@ -159,12 +159,12 @@ change accompanies a product slice or is ready for acceptance.
 ## Strategy Mode
 
 Inventory test files, functions, assertion density, unit/integration/e2e split,
-fixtures, and CI wiring. Write `.agents/test/strategy.md` with prioritized
+fixtures, and CI wiring. Write `.agents/tests/strategy.md` with prioritized
 structural gaps and a test architecture; do not generate code in this mode.
 
 ## Output Specification
 
-- **Artifact directory:** `.agents/test/` plus test files in the target's
+- **Artifact directory:** `.agents/tests/` plus test files in the target's
   language-native locations.
 - **Filename convention:** `coverage-raw.txt`, `coverage-func.txt` or
   `coverage.json`, `gaps.md`, `summary.md`, `tdd-log.md`, and `strategy.md`.

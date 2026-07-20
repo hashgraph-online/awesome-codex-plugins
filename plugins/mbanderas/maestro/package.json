@@ -1,6 +1,6 @@
 {
   "name": "@maestrofrontier/frontier",
-  "version": "1.14.0+codex.20260709190950",
+  "version": "1.14.2",
   "description": "Maestro Frontier is an opt-in, zero-dependency local multi-CLI fusion engine for AI coding agents. Inspect the portable catalog, compose a ready model panel, and synthesize its read-only responses. Off, single, and fusion modes switch via /maestro:frontier in Claude Code or /maestro frontier in Codex. Built on Maestro orchestration discipline: decision-gated routing, verified done-claims, surgical scope, and structural enforcement hooks.",
   "keywords": ["multi-cli-fusion", "fusion-engine", "frontier", "multi-agent", "orchestration", "claude-code", "gemini", "codex", "agents", "hooks", "doctrine"],
   "license": "MIT",

@@ -151,6 +151,7 @@ Every command accepts these inherited flags:
 - [context](rules/context.md) — Manage Bitbucket CLI contexts
 - [extension](rules/extension.md) — Manage bkt CLI extensions
 - [issue](rules/issue.md) — Work with Bitbucket Cloud issues *(Cloud)*
+- [mcp](rules/mcp.md) — Model Context Protocol server for agents
 - [perms](rules/perms.md) — Manage Bitbucket permissions *(DC)*
 - [pipeline](rules/pipeline.md) — Run and inspect Bitbucket Cloud pipelines *(Cloud)*
 - [pr](rules/pr.md) — Manage pull requests

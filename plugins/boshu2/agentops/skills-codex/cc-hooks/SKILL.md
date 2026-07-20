@@ -1,6 +1,6 @@
 ---
 name: cc-hooks
-description: Configure Claude Code hooks (PreToolUse
+description: Claude Code hooks and the AgentOps
 ---
 # Claude Code Hooks
 
@@ -16,7 +16,8 @@ contract, not a style preference.
 
 ## Constraints
 
-- Keep every hook opt-in because AgentOps installs no runtime hooks by default and host policy belongs to the operator.
+- Enforcement hooks (the PreToolUse policy dispatcher) ship by DEFAULT: plugin installs auto-wire `hooks/hooks.json`; skill copies and checkouts wire with one command (`scripts/install-hooks.sh`). Operators can disable per host (`/plugin disable`, or remove the settings matchers).
+- Injection hooks (SessionStart/UserPromptSubmit context stuffing) stay dead — the #511 teardown proved delta=0 at 10.35M resident tokens. Never ship one; the hookless-cold-start gate still enforces this.
 - Keep the happy path silent and block only with the event's documented exit/JSON contract because stray stdout can corrupt a tool call.
 - Bound Stop hooks with `stop_hook_active` and scope matchers narrowly to prevent recursion and unrelated-command interception.
 
@@ -101,8 +102,9 @@ Details: [DCG-RCH.md](references/DCG-RCH.md)
 ## Skill-First Coordination Guard (opt-in)
 
 A copy-paste PreToolUse recipe that nudges agents to **load the coordination
-skill before hand-rolling the `am`/`atm`/`ntm`/`tmux send-keys` CLI**. AgentOps
-3.0 is hookless — this auto-installs nothing; you opt in per host.
+skill before hand-rolling the `am`/`atm`/`ntm`/`tmux send-keys` CLI**. This
+recipe auto-installs nothing; you opt in per host (unlike the policy
+dispatcher, which ships by default).
 
 **Context-budget doctrine for hooks:** hooks are the most powerful enforcement
 (mechanical, can't be reasoned past) but they pollute context — use sparingly. A
@@ -149,6 +151,60 @@ acceptable outcome** — satisfies ADR-0002 l.58 ("test or eval evidence showing
 positive value"), the criterion whose absence killed 2.x hooks (#511).
 
 Methodology: [GUARDRAIL-VALUE-PROOF.md](references/GUARDRAIL-VALUE-PROOF.md)
+
+## Policy Dispatch Engine (ships by default)
+
+The admission-control layer (epic age-4qw1): **one** PreToolUse dispatcher —
+[hooks/policy-dispatch.sh](hooks/policy-dispatch.sh) — evaluating a
+**policies-as-data** registry
+([policies/policies.json](policies/policies.json), contract
+`schemas/hooks-manifest.v2.schema.json`) instead of N hand-wired settings
+entries. This is the membrane at tool-call altitude: same vocabulary, lower
+altitude than the pawl/gate at push time.
+
+Per policy: dcg-style id (`domain.object:token`), `mode: deny | route | audit`,
+matchers (tool + `command`/`file_path` regex), a `route_message` that names THE
+correct tool, a rationale, and a pre-registered `value_proof` (the ADR-0002
+lease-on-life: no proof accruing → retire the policy).
+
+**Predicate discipline, schema-enforced** (the #511 anti-lesson): only
+`predicate_class: pure` — syntactic mistake-tokens over the command or file
+path — may `deny`/`route`. Lookup/stateful predicates ship `audit`-only until
+promoted with reviewed fires.
+[scripts/lint-policies.sh](scripts/lint-policies.sh) enforces this mechanically
+(jq-only; runs in bats and CI).
+
+Semantics: happy path = exit 0, zero output. `deny` = exit 2 + one stderr
+route line (full message once per session, short line after — every attempt
+still blocks). `route` = exit 0 + `permissionDecision:"ask"` JSON. `audit` =
+allow + record. Every fire appends one hashed guardrail-telemetry line
+(`token_class` = policy id, plus `mode`/`decision`). Waive once with
+`AOP_WAIVE=<policy-id>`, or a `policy-waivers` file line
+`<policy-id> <expiry-epoch>`. Missing registry or jq fails OPEN.
+
+Day-1 enforce cohort (age-wnyt, all pure-regex, high-pain):
+
+| Policy | Blocks | Routes to |
+|---|---|---|
+| `core.git:add-beads-ledger` | `git add` naming `_beads/` (private ledger leak is one-way) | push the ledger repo itself — never `git add _beads` in the public tree |
+| `core.provenance:ledger-hand-append` | redirect/`tee`/Edit/Write onto `docs/provenance/ledger.jsonl` (hash-chained, sealed) | `ao provenance add` |
+| `core.skills:copy-into-installed` | `cp`/`rsync`/`mv` INTO `~/.claude|.codex|.gemini/skills` (dest-position enforced) | `ao skills link` |
+| `core.skills:edit-installed-copy` | Edit/Write of an installed skill copy (`file_path` only — prose can never fire it) | edit repo `skills/<name>/` |
+
+**How it reaches users — every install path delivers hooks:**
+
+| Install path | Delivery |
+|---|---|
+| Claude Code plugin (`claude plugin install agentops@agentops-marketplace`) | **Automatic** — the plugin bundles `hooks/hooks.json` (`${CLAUDE_PLUGIN_ROOT}` paths); hooks are active on install, no wiring step |
+| `npx skills@latest add boshu2/agentops` / skills.sh copy | The skill package carries its own installer: `~/.claude/skills/cc-hooks/scripts/install-hooks.sh` (one command; file copies cannot self-wire) |
+| git clone / brew checkout | `scripts/install-policy-dispatch.sh` (delegates to the same skill-embedded installer) |
+
+The installer lints the registry before wiring, backs up settings, and is
+idempotent. Disable per host with `/plugin disable agentops` or by removing the
+two PreToolUse matchers from settings.
+
+Contract tests: `tests/scripts/policy-dispatch.bats` (block+message+telemetry
+per policy, stray-stdout hazard, waivers, audit/route modes, fail-open).
 
 ## Writing Your Own Hook
 

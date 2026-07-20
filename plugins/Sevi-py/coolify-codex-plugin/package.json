@@ -1,6 +1,6 @@
 {
   "name": "coolify-codex-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Codex plugin for controlling Coolify Cloud and self-hosted Coolify instances.",
   "type": "module",
   "private": true,
@@ -17,7 +17,8 @@
   "scripts": {
     "setup": "node ./scripts/setup.js",
     "start": "node ./src/server.js",
-    "check": "node --check ./src/server.js",
+    "check": "node --check ./src/credentials.js && node --check ./src/server.js && node --check ./scripts/setup.js && node --check ./scripts/inspect-openapi.js",
+    "test": "node --test",
     "inspect:openapi": "node ./scripts/inspect-openapi.js"
   },
   "engines": {

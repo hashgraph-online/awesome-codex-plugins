@@ -140,6 +140,9 @@ npx spec-superflow list          # 或通过 npx 使用
 | `ssf checkpoint save <dir> --task <id> --next <text>` | 保存任务级会话恢复点 |
 | `ssf checkpoint list <dir>` | 列出 checkpoint 及 stale 状态 |
 | `ssf checkpoint show <dir> <id>` | 查看单个恢复点 |
+| `ssf resume [change]` | 只读恢复摘要；唯一活跃 change 可自动选择 |
+| `ssf switch <change>` | 只读返回明确 change 的恢复上下文；adapter 可据此切换当前 AI 对话关注对象 |
+| `ssf save <change> --task <id> --next <text>` | 手动写入兼容 checkpoint；不自动 commit、push 或 sync |
 | `ssf handoff create <dir> --type <type> ...` | 创建 prototype/research/experiment handoff |
 | `ssf handoff list <dir>` | 列出 handoff 生命周期状态 |
 | `ssf handoff finish <dir> <id>` | 校验 handoff 结果 |
@@ -182,10 +185,16 @@ ssf inject changes/my-change --platforms all
 会话恢复与可选 prototype：
 
 ```bash
+ssf resume                         # 只在唯一活跃 change 时自动选择
+ssf resume changes/my-change       # 只读恢复指定 change 的摘要
+ssf switch changes/another-change  # 只读返回明确 change 的恢复上下文
+ssf save changes/my-change --task 1.1 --next "Run focused tests"
 ssf checkpoint save changes/my-change --task 1.1 --next "Run focused tests"
 ssf checkpoint list changes/my-change
 ssf handoff create changes/my-change --type research --objective "Compare approaches" --expected-output "Recommendation" --acceptance "Evidence recorded"
 ```
+
+`resume` 与 `switch` 都是只读恢复操作；`resume` 只会在恰好一个活跃 change 时自动选择目标。`switch` 只返回明确目标的恢复上下文，不修改 cwd、TUI 会话或任何隐藏指针；CLI 本身不切换当前对话关注对象，CodeBuddy/WorkBuddy adapter 或宿主 Agent 可用该上下文完成该动作。`save` 仅手动写入既有 checkpoint 协议，绝不自动 commit、push 或 sync。`/ssf:resume`、`/ssf:switch`、`/ssf:save` 是 CodeBuddy/WorkBuddy 使用的 Markdown command adapter：它们分发到同一 CLI guard，不为其他平台承诺完全相同的 slash 名称。
 
 Prototype 只在用户明确确认后创建；后端、CLI、配置和内部重构不会自动进入 prototype 流程。handoff 结果不会自动修改 `design.md` 或 `tasks.md`。
 
@@ -231,8 +240,8 @@ ssf execution review changes/my-change --wave foundation --base <sha> --head <sh
 report 本身必须为普通、非空、非符号链接文件。
 
 每个 wave 的 review receipt 必须是当前 revision 的 `pass`，依赖 wave 和 closing
-才会放行；修订计划会使旧 receipt 失效。恢复、切换和手动保存等 #47 的 slash
-command 尚未实现，不能据此假定存在 `/ssf:*` 命令。
+才会放行；修订计划会使旧 receipt 失效。恢复、切换和手动保存是 control-plane
+overlay，不会增加第九个状态；其 CLI 与 CodeBuddy/WorkBuddy Markdown adapter 保持相同 guard。
 
 ---
 
@@ -276,8 +285,8 @@ command 尚未实现，不能据此假定存在 `/ssf:*` 命令。
 | 5 | `build-executor` | 执行 | TDD 铁律 + SDD 子代理驱动 + Review Gate |
 | 6 | `bug-investigator` | 调试 | 4 阶段根因分析，3+ 修复失败 → 质疑架构 |
 | 7 | `code-reviewer` | 审查 | 结构化审查，三级问题分级 |
-| 8 | `release-archivist` | 收口 | 验证前完成铁律 + 归档 + 风险总结 |
-| 9 | `spec-merger` | 同步 | Delta Spec → 主规范智能合并 |
+| 8 | `release-archivist` | 执行内收尾 | 验证前完成铁律 + 归档 + 风险总结 |
+| 9 | `spec-merger` | 执行内收尾 | Delta Spec → 主规范智能合并 |
 
 ---
 
@@ -302,10 +311,12 @@ command 尚未实现，不能据此假定存在 `/ssf:*` 命令。
    executing          build-executor: TDD → SDD → Review Gate
        │
        ├──[bug]──→ debugging  → bug-investigator
+       │
        ▼
-   closing            release-archivist 验证 + 归档
+   pre-closing（仍属于 executing 的收尾步骤，不是新增状态）
+       │ release-archivist 验证 → spec-merger 同步 → 归档确认
        ▼
-   syncing            spec-merger（delta spec → 主规范）
+   closing            CLOSED 成功终态（无 next skill）
 ```
 
 **关键约束：** 没有 `execution-contract.md` 或未被批准 → 不允许实现；full/hotfix 没有 current execution plan、或任一 wave 缺少 `pass` review receipt → 不允许推进；需求变更 → 强制回退；遇到 bug → 强制走 debugging，不允许"随便试试"。

@@ -34,10 +34,9 @@
     "privacyPolicyURL": "https://vishal2612200.github.io/agentpack/privacy/",
     "termsOfServiceURL": "https://vishal2612200.github.io/agentpack/terms/",
     "defaultPrompt": [
-      "@agentpack-route fix auth token expiry",
-      "@agentpack-pack fix auth token expiry",
-      "@agentpack-learn retry handling in this repo",
-      "@agentpack-review"
+      "Use $agentpack-review to review the current PR.",
+      "Use $agentpack-resolve to address all PR comments.",
+      "Use $agentpack to orient this repository task."
     ],
     "brandColor": "#1F6FEB"
   }

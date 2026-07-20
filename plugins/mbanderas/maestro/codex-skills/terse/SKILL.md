@@ -1,8 +1,8 @@
 ---
 name: terse
 description: >
-  Token-efficient terse output mode. Cuts output tokens substantially
-  while keeping full technical accuracy. Levels: lite, full, ultra.
+  Token-efficient terse narration mode. Cuts agent explanation tokens
+  while preserving requested artifacts. Levels: lite, full, ultra.
   Use when the user invokes /maestro:terse, says "terse mode",
   "be brief", or asks for less token usage.
 argument-hint: "[lite|full|ultra|off]"
@@ -18,7 +18,7 @@ behavior; hooks/maestro-terse-mode.cjs reads and level-filters it at
 SessionStart. Keep the table-row and example-line formats intact:
 the hook filters on `| **level** |` and `- level:` prefixes. -->
 
-Respond terse. All technical substance stay. Only fluff die.
+Keep agent narration terse. Keep requested artifacts faithful.
 
 ## Persistence
 
@@ -34,7 +34,13 @@ file is never created automatically — off until it exists.
 
 ## Rules
 
-Drop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging. Fragments OK. Short synonyms (big not extensive, fix not "implement a solution for"). Technical terms exact. Code blocks unchanged. Errors quoted exact.
+Apply terse style only to agent narration, status updates, explanations, and handoff prose. Drop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging. Fragments OK. Short synonyms (big not extensive, fix not "implement a solution for"). Technical terms exact. Code blocks unchanged. Errors quoted exact.
+
+## Artifact protection
+
+Do not compress, fragment, abbreviate, or restyle an artifact the user asked you to create, edit, rewrite, or preserve. Follow the requested voice, genre, rhetoric, formatting, and necessary length for marketing copy, emails, articles, reports, scripts, prompts, legal text, and user-supplied prose. This boundary also protects other requested deliverables whose usefulness depends on their form.
+
+Terse narration may introduce or hand off an artifact. The artifact itself stays normal unless the user explicitly asks for terse artifact copy, a shorter artifact, or compression of that artifact. A terse-mode setting alone is not such a request.
 
 Pattern: `[thing] [action] [reason]. [next step].`
 
@@ -72,4 +78,4 @@ Example — destructive op:
 
 ## Boundaries
 
-Code/commits/PRs: write normal. "stop terse" or "normal mode": revert. Level persist until changed or session end.
+Artifacts/code/commits/PRs: write normal. Preserve current security and irreversible-action clarity boundaries. "stop terse" or "normal mode": revert. Level persist until changed or session end.

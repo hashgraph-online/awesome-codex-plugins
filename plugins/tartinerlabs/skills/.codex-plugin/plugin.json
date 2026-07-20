@@ -1,6 +1,6 @@
 {
   "name": "tartinerlabs",
-  "version": "1.26.0",
+  "version": "1.27.1",
   "description": "Language-agnostic agent skills for git/GitHub workflows, code quality, and project tooling, with first-class JS/TS support",
   "author": {
     "name": "Tartiner Labs",

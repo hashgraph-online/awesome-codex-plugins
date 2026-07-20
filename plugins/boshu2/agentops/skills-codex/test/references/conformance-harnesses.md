@@ -33,7 +33,7 @@ Choose conformance testing when the target has a contract that can be exercised 
 
 ## Output
 
-Add a short conformance section to `.agents/test/summary.md`:
+Add a short conformance section to `.agents/tests/summary.md`:
 
 ```markdown
 ## Conformance Coverage

@@ -283,7 +283,7 @@ Each part is produced by real, existing agents and skills. This orchestrator dis
 | 8 | skills `growth-plan` + `yearly-planner` |
 | 9 | per-channel skills — `paid-advertising`, `aeo-geo`, `social-strategy`, `seo-plan`, `email-sequence` (one per channel family) |
 | 10 | skill `content-engine` (execution / output mode) |
-| 11 | skills `content-engine` + `ad-creative` + `video-script` (creative briefs); actual asset generation via `/socialforge:compose-creative` + `/socialforge:generate-video` (requires the SocialForge plugin) |
+| 11 | skills `content-engine` + `ad-creative` + `video-script` (creative briefs); asset rendering happens in your own creative tooling (design team, AI image/video tools, or a connected design platform), then finished assets are signed via `c2pa-metadata` |
 | 12 | skill `continuous-improvement-loop` |
 
 ## Parallel Dispatch

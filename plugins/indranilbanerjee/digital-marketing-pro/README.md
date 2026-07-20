@@ -1,4 +1,4 @@
-# Digital Marketing Pro
+﻿# Digital Marketing Pro
 
 > **Your agency just signed a 50-brand client. The previous agency left no playbook. Three brands are bleeding budget, two have stale positioning, one is launching in a regulated jurisdiction next month. Where do you start?**
 
@@ -6,7 +6,7 @@ Run `/digital-marketing-pro:engagement` against each brand. Same 12-Part Strateg
 
 Open-source AI marketing plugin — **158 skills, 24 specialist agents, EU AI Act Article 50 ready, Cowork team-persistent**. Built for marketing agencies, in-house teams running 50–200 brands, and consultancies. Installs on **Claude Code** (CLI + IDE), **Anthropic Cowork**, **OpenAI Codex**, **Cursor 2.5+**, **GitHub Copilot CLI**, **Google Antigravity 2.0**, **Hermes Agent**, and **OpenClaw** + 35+ Agent Skills platforms. Created by [Indranil Banerjee](https://indranil.in) · [LinkedIn](https://www.linkedin.com/in/askneelnow/) · [X](https://x.com/askneelnow).
 
-[![Version](https://img.shields.io/badge/version-3.15.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.15.1-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/indranilbanerjee/digital-marketing-pro?style=flat&logo=github&color=yellow)](https://github.com/indranilbanerjee/digital-marketing-pro/stargazers)
 [![Forks](https://img.shields.io/github/forks/indranilbanerjee/digital-marketing-pro?style=flat&logo=github&color=blue)](https://github.com/indranilbanerjee/digital-marketing-pro/network/members)
@@ -14,12 +14,12 @@ Open-source AI marketing plugin — **158 skills, 24 specialist agents, EU AI Ac
 [![Last commit](https://img.shields.io/github/last-commit/indranilbanerjee/digital-marketing-pro?logo=github)](https://github.com/indranilbanerjee/digital-marketing-pro/commits/main)
 [![Tests](https://img.shields.io/badge/tests-207%2F207%20passing-brightgreen.svg)](tests/)
 [![Platforms](https://img.shields.io/badge/platforms-8%20native%20%2B%2035%20Agent%20Skills-success.svg)](#works-on-40-agent-harnesses-via-the-agent-skills-open-standard)
-[![Cowork](https://img.shields.io/badge/cowork-team%20persistent-purple.svg)](#supported-surfaces-v3150)
+[![Cowork](https://img.shields.io/badge/cowork-team%20persistent-purple.svg)](#supported-surfaces-v3151)
 [![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Article%2050%20ready-darkred.svg)](skills/context-engine/compliance-rules.md)
 
-> 🆕 **Just shipped — v3.15.0 (July 7, 2026):** The **Reliability & Truth** release — a full-repo audit fixed ~200 findings in one pass. Connectors are honestly opt-in (the shipped `.mcp.json` is empty; fictional npm packages purged), all 18 execution skills carry a uniform typed-approval gate (`disable-model-invocation: false` — closes issue #6), the Tessl review workflow moved to the `tessl review` CLI (closes issue #8), agents consolidated 25 → 24, C2PA gained the Article 50 `--ai-disclosure` assertion, and a new doc-vs-argparse contract linter + state-layer tests grew the suite from 123 to 207 passing. [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)
+> 🆕 **Just shipped — v3.15.1 (July 12, 2026):** Self-containment patch — removed every cross-plugin capability reference from skills. Visual-production handoffs, C2PA signing, workflow resume, and publish-dir checks are all DMP-native paths now; install DMP alone and every documented capability works. [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)
 >
-> <sub>Previously — **v3.14.1 (June 28, 2026):** README sync patch — fixed 4 stale version refs that escaped v3.14.0 (Cowork badge anchor, `## Supported surfaces` heading, 2nd internal anchor, missing What's new entries) + extended `tests/test_release_consistency.py` so this drift class is caught in CI from now on. v3.14.0 (also today) brought the **June market-refresh sweep** — model registry rebuilt (47 entries verified against Anthropic/OpenAI/Google primary docs), Meta Graph API bumped v20 → v24, Google Ads v24.1 + v24.2 documented, EU AI Act Code of Practice second-draft refresh, resolver now auto-rewrites `retired` model IDs, EvoLink vendor added. 123 tests passing. [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)</sub>
+> <sub>Previously — **v3.15.0 (July 7, 2026):** The **Reliability & Truth** release — a full-repo audit fixed ~200 findings in one pass. Connectors are honestly opt-in (the shipped `.mcp.json` is empty; fictional npm packages purged), all 18 execution skills carry a uniform typed-approval gate (closes issue #6), the Tessl review workflow moved to the `tessl review` CLI (closes issue #8), agents consolidated 25 → 24, C2PA gained the Article 50 `--ai-disclosure` assertion, and a new doc-vs-argparse contract linter + state-layer tests grew the suite from 123 to 207 passing. [Read what's new →](#whats-new) · [Full changelog →](CHANGELOG.md)</sub>
 
 ```bash
 # Install — one line
@@ -245,7 +245,7 @@ Output: real API calls fired against your stack with audit logging at `~/.claude
 
 ---
 
-## Supported surfaces (v3.15.0)
+## Supported surfaces (v3.15.1)
 
 | Platform | Install command | Manifest path | Status |
 |---|---|---|---|
@@ -356,6 +356,9 @@ If you run into a platform-specific install snag, file a [GitHub issue](https://
 ## What's new
 
 DM Pro is updated against the **actual current marketing ecosystem state** — June 2026 platform refresh, Google I/O 2026, the active broad core algorithm update, EU AI Act draft implementing guidelines, Meta platform expansions, and the latest AI image/video model landscape. No "trained on 2024 data" surprises in your client outputs.
+
+**v3.15.1 — Self-containment patch (July 12)**
+Removed every cross-plugin capability reference from the skill surface: `ad-creative` and the engagement's Part 11 hand visual production to your own tooling (design team, AI generators, or connected design platforms) instead of naming a sibling plugin; `launch-campaign` C2PA signing and checkpoint-resume route through DMP's own `c2pa-metadata` and `/digital-marketing-pro:resume`; `validate-profile` checks DMP's own publish dir (`$DIGITAL_MARKETING_PRO_PUBLISH_DIR` / `~/Documents/DigitalMarketingPro/`); the EU compliance reference docs are DMP-centric. DMP is fully standalone — no other plugin is ever required for any documented capability. Cross-promo links in this README stay; capability delegation is gone.
 
 **v3.15.0 — Reliability & Truth (July 7)**
 A full-repo audit (orchestration, agents, skills, scripts, docs/manifests) surfaced ~200 findings, all fixed in one pass. One shared workspace-root/slugify/atomic-write helper (`_common.py`) ends the storage split-brain; connectors are honestly opt-in (the shipped `.mcp.json` is empty, fictional npm packages purged, memory backends demoted to "only if connected"); all 18 execution skills carry a uniform `## Execution gate` and flip to `disable-model-invocation: false` (**closes issue #6**); the Tessl workflow moves to the `tessl review` CLI + `.github/tessl-rubric.yml` (**closes issue #8**); `competitor-intelligence` merges into `competitive-intel` (**25 → 24 agents**); `embed-c2pa.py` gains the EU AI Act Article 50 `--ai-disclosure` assertion; and a new `check_skill_contracts.py` doc-vs-argparse linter + state-layer tests grow the suite **123 → 207 passing**. Every fabricated capability, stale count, and phantom flag is fixed or labeled.
@@ -736,7 +739,7 @@ Yes. Each brand has its own `~/.claude-marketing/<brand-slug>/` directory and Py
 Skip to `/digital-marketing-pro:campaign-plan`. Every individual surface (campaign / SEO / content / competitor / email / report) is independently runnable. The full engagement is the canonical path, not the only path.
 
 **Q: Will this work on Codex / Cursor / Copilot CLI / Antigravity?**
-Yes — verified-real native manifests ship for all 8 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw). See [Supported surfaces](#supported-surfaces-v3150) above for per-platform install commands.
+Yes — verified-real native manifests ship for all 8 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw). See [Supported surfaces](#supported-surfaces-v3151) above for per-platform install commands.
 
 **Q: I run my team on Anthropic Cowork. Does brand state persist between sessions?**
 Yes — but you need to run `/digital-marketing-pro:cowork-setup` once per team first (v3.12.0). Cowork's per-session filesystem is ephemeral, and `${CLAUDE_PLUGIN_DATA}` is too ([open issue #51398](https://github.com/anthropics/claude-code/issues/51398)). The setup wizard routes brand profiles + plans + reports through a Google Drive MCP so everything survives across sessions and is shared across the team. Multi-team isolation via per-team folder names.

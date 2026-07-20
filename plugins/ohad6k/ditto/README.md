@@ -10,12 +10,14 @@
 <a href="https://discord.gg/QMnYtVcxk2"><img src="https://img.shields.io/badge/discord-join-3a3a3a?style=for-the-badge&labelColor=141414&logo=discord&logoColor=white" alt="discord"></a>
 <img src="https://img.shields.io/badge/license-MIT-3a3a3a?style=for-the-badge&labelColor=141414" alt="MIT">
 <img src="https://img.shields.io/badge/python-zero_deps-3a3a3a?style=for-the-badge&labelColor=141414&logo=python&logoColor=white" alt="Python, zero dependencies">
-<img src="https://img.shields.io/badge/works_with-claude_·_codex_·_cursor_·_copilot-141414?style=for-the-badge&labelColor=3a3a3a" alt="works with claude, codex, cursor, copilot">
+<img src="https://img.shields.io/badge/works_with-claude_·_codex_·_cursor_·_copilot_·_openclaw_·_hermes-141414?style=for-the-badge&labelColor=3a3a3a" alt="works with claude, codex, cursor, copilot, openclaw, hermes">
 </p>
 
 Your real coding-agent sessions already contain the rules you never wrote down: what “done” means, what you reject on sight, how you debug, how you design UI, and how you write when you are actually working.
 
 Emulo mines selected evidence from those sessions — Claude Code, Codex, Copilot CLI, OpenCode, and Google Antigravity logs out of the box — into a private working profile your agent reads before every task. Separate layers for work, design, writing, and video mean the right part of you loads for the right task.
+
+The mined profile loads where your agents already live: Claude Code and Codex natively, Cursor, Gemini, and OpenCode through explicit adapters, and OpenClaw and Hermes Agent as a standard skill ([guide](docs/OPENCLAW_HERMES.md)).
 
 The [Emulo Proof v1 methodology](docs/proof/README.md) is an unexecuted methodology until a separately approved evidence release exists.
 
@@ -157,7 +159,19 @@ Then tell your agent:
 run emulo
 ```
 
-That installs the bootstrap and creates a read-only full-history mining plan. Your agent must show the cost and wait for approval before model work. It does not install native namespaced routing.
+That installs the bootstrap and creates a read-only full-history mining plan. Your agent must show the cost and wait for approval before model work.
+
+Once your profile exists, the bootstrap offers the native plugin so you also get namespaced `emulo:` routing. It asks first and takes a no. In Codex it can run the install itself; in Claude Code `/plugin` is typed by you, so it hands you the two exact lines to paste.
+
+### Install the CLI
+
+If you'd rather run Emulo yourself instead of through an agent:
+
+```bash
+pip install emulo
+```
+
+That puts `emulo` on your path. `emulo` runs the miner, `emulo --dry-run` prints the read-only plan first, and `emulo mcp` runs the MCP server below. `uv tool install emulo` works the same way, and `uvx emulo` runs it without installing.
 
 ### Native Codex plugin
 

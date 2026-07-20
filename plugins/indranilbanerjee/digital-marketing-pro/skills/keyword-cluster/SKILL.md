@@ -111,7 +111,7 @@ This skill is a producer in the chain:
 1. `/digital-marketing-pro:keyword-research` — generate seeds
 2. **`/digital-marketing-pro:keyword-cluster`** — *this skill*
 3. `/digital-marketing-pro:content-brief` — consumes `PLAN.md` + `06-pillar-pages.md` to brief each pillar
-4. `/digital-marketing-pro:content-engine` (or `contentforge:create-content`) — drafts the content
+4. `/digital-marketing-pro:content-engine` — drafts the content
 5. `/digital-marketing-pro:seo-implement` — applies the internal-link map to the CMS
 
 ## Tips & caveats

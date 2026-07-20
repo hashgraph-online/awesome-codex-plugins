@@ -5,7 +5,7 @@ description: Run the full AgentPack PR review flow for the current branch or PR 
 
 # AgentPack Review
 
-Use when the user invokes `@agentpack-review` or `@agentpack-review <reviewer context>`.
+Use when the user invokes `$agentpack-review` or `$agentpack-review <reviewer context>`.
 
 Do not claim correctness unless relevant checks actually ran.
 

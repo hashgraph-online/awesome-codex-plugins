@@ -34,6 +34,21 @@
       "icon": "./plugins/GanyuanRan/Aegis/assets/aegis-small.svg"
     },
     {
+      "name": "agent-deck",
+      "displayName": "Agent Deck",
+      "source": {
+        "source": "local",
+        "path": "./plugins/not-so-fat/agent-deck"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "One MCP for context management: bind self-improving playbooks, MCP tools, and API keys to the session.",
+      "icon": "./plugins/not-so-fat/agent-deck/assets/icon.svg"
+    },
+    {
       "name": "agent-guard",
       "displayName": "Agent Guard",
       "source": {
@@ -2317,6 +2332,21 @@
       "category": "Tools & Integrations",
       "description": "Agent-native App Store screenshot, app icon, ASO, and localization workflows through the hosted Shots MCP server.",
       "icon": "./plugins/hitSlop/shots/assets/icon.png"
+    },
+    {
+      "name": "solidworks-gpt-plugin",
+      "displayName": "SolidWorks GPT Plugin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Erfouni/solidworks-GPT-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Knowledge-backed SolidWorks design and validation workflows for Codex with standards lookup, CAD evidence gates, and consent-based session learning.",
+      "icon": "./plugins/Erfouni/solidworks-GPT-plugin/assets/icon.svg"
     },
     {
       "name": "n8n-mcp-synta-codex",

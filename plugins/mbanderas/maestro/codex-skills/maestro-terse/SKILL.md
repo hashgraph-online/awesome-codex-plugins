@@ -1,12 +1,12 @@
 ---
 name: maestro-terse
-description: Toggle Maestro terse output level (lite, full, ultra, off) via the settings CLI
+description: Toggle Maestro terse narration level (lite, full, ultra, off) via the settings CLI
 license: MIT
 ---
 
 Toggle the **Maestro terse** output level for this environment. Terse mode
-condenses agent replies; levels range from `off` (default verbosity) through
-`lite`, `full`, and `ultra` (most compressed).
+condenses agent narration, not requested artifacts; levels range from `off`
+(default verbosity) through `lite`, `full`, and `ultra` (most compressed).
 
 When the user invokes this skill, run the settings CLI to read or change the
 terse level. Do not edit settings files by hand.
@@ -55,5 +55,7 @@ If the CLI rejects an argument or the subcommand name differs, run
 
 - The change persists in Maestro's settings store; it applies to subsequent
   agent turns in this project.
+- Preserve the requested voice, genre, rhetoric, formatting, and necessary
+  length of artifacts unless the user explicitly asks for terse artifact copy.
 - Requires `node` on `PATH`. A project-local Maestro install is optional when
   the skill is loaded from the Maestro Codex plugin.

@@ -1,0 +1,43 @@
+{
+  "name": "agent-deck",
+  "version": "1.4.4",
+  "description": "Decks of MCP tools, keys, and self-improving playbooks that bind per-workspace.",
+  "author": {
+    "name": "not-so-fat",
+    "url": "https://github.com/not-so-fat"
+  },
+  "homepage": "https://github.com/not-so-fat/agent-deck",
+  "repository": "https://github.com/not-so-fat/agent-deck",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "playbooks",
+    "agent-context",
+    "codex-plugin"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Agent Deck",
+    "shortDescription": "Decks of tools, keys, and self-improving playbooks.",
+    "longDescription": "Bind a deck to your workspace and every session starts with the right MCP tools, credentials, and task playbooks — and playbooks learn from your corrections via a review queue.",
+    "developerName": "not-so-fat",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/not-so-fat/agent-deck",
+    "privacyPolicyURL": "https://github.com/not-so-fat/agent-deck/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/not-so-fat/agent-deck/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Bind this workspace's deck and show the deck status line."
+    ],
+    "brandColor": "#0ea5e9",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/icon.svg"
+    ]
+  }
+}

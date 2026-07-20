@@ -938,6 +938,14 @@ model, timings, status, findings with verdicts and whether they were posted. The
 `true`). The web admin (FastAPI + React/Vite SPA) shows run history, aggregates (gate filter rate,
 trends over time, findings by category/severity) and per-run details with finding drill-down.
 
+`review_findings` persists **every candidate** (not just published ones) with an `outcome` column —
+the terminal funnel state (`published_inline` / `published_summary` / `verify_rejected` /
+`gate_dropped` / `deduped` / `already_posted`) — and `reject_reason` (verifier text for
+`verify_rejected`, the fired policy rule for `gate_dropped`, else `NULL`). This makes generation
+precision measurable and separates "verify killed a hallucination" from "verify killed a real bug".
+The columns are additive and idempotent (`ADD COLUMN IF NOT EXISTS` + best-effort backfill of
+historical published rows); the legacy `is_real`/`published`/`inline` columns are still populated.
+
 ```bash
 # On the host — build the frontend, then serve the SPA + FastAPI:
 pip install -e ".[web]"

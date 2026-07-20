@@ -5,7 +5,18 @@ description: Close out a spec-superflow change with verification, summary, and a
 
 # Release Archivist
 
-Finish a spec-superflow change cleanly with verification evidence.
+Finish a spec-superflow change cleanly with verification evidence. This skill
+operates while the change state is `executing`; it is not an active skill after
+the final transition to `closing`.
+
+## Execution-State Guard
+
+Before verification, `ssf audit`, any DP state write, or delta-spec merge, run
+`npx --yes --package spec-superflow@0.10.0 ssf state get <change-dir> state`.
+Continue only when the persisted state is exactly `executing`. If it is
+`closing` → STOP: "Closing is terminal; release, audit, and archival work were
+completed before this transition." For any other state, or if the state cannot
+be read → STOP and route through `workflow-start`; do not perform side effects.
 
 ## The Iron Law: Verification Before Completion
 
@@ -87,9 +98,14 @@ Verify DP-0 through DP-6 are recorded before DP-7.
 
 If implementation diverged from the contract, return to `bridging` before closure.
 
-## Post-Verification
+## Finalize While Executing
 
-Run `npx --yes --package spec-superflow@0.10.0 ssf state transition <change-dir> closing`. If delta specs exist, route to `spec-merger`.
+Complete every release, delta-spec synchronization, and audit action while the
+state remains `executing`. If delta specs exist, invoke `spec-merger` and
+resolve its outcome before the final `executing → closing` transition. Then
+run `npx --yes --package spec-superflow@0.10.0 ssf state transition <change-dir> closing`.
+`executing → closing` is the final action: once it succeeds, select no next
+skill and run no recovery scans.
 
 ## Lightweight Closure (hotfix/tweak)
 

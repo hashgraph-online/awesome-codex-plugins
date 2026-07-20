@@ -225,14 +225,15 @@ When resuming:
 2. Read latest resume hint if present.
 3. Re-read original task intent.
 4. Re-read required baseline refs.
-5. Re-read the `Execution Readiness View` if present.
-6. Compare current worktree state with checkpoint claims.
-7. Compare the active slice against the view's intent lock, scope fence,
-   baseline lock, compatibility boundary, retirement boundary, test
-   obligations, and review gates.
-8. If checkpoint, baseline, view, and worktree disagree, pause and ask for
-   direction or return to planning.
-9. Before an unplanned repair, read retained invariant, owner seam, patch shape,
+5. Passively re-read relevant active `CONTEXT.md` language for non-trivial work.
+6. Re-read the `Execution Readiness View` if present.
+7. Compare current worktree state with checkpoint claims.
+8. Compare the slice with the view's intent, scope, baseline, compatibility,
+   retirement, test, and review locks.
+9. If checkpoint, baseline, context, view, and worktree disagree, compose
+   `establishing-project-context` for semantic conflict; otherwise pause or
+   return to planning.
+10. Before an unplanned repair, read retained invariant, owner seam, patch shape,
    and causal topology and route comparison to `systematic-debugging`; a new
    carrier name alone does not prove a new direction.
 

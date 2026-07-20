@@ -1,6 +1,6 @@
 # cc-hooks
 
-Configure Claude Code hooks (PreToolUse, PostToolUse, Stop, Notification) as an opt-in host adapter; AgentOps installs none by default. Triggers: "cc-hooks", "configure Claude Code hooks".
+Claude Code hooks and the AgentOps admission-control layer. Enforcement hooks ship by DEFAULT: the plugin auto-wires the policy dispatcher; skill copies carry scripts/install-hooks.sh. Injection hooks stay dead (#511). Triggers: "cc-hooks", "configure Claude Code hooks", "install hooks".
 
 ## Instructions
 

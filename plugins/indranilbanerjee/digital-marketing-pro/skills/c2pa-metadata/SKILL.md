@@ -138,7 +138,7 @@ The script prints a JSON status report to stdout:
 
 ## Integration with the engagement workflow
 
-In a full 12-part engagement, this skill plugs in at **Part 11 — AI Creative Instructions output**. After a creative brief is rendered as an actual asset (in SocialForge or a manual creative process), the resulting file passes through `c2pa-metadata` before being checked in to `engagements/<slug>/11-creative-briefs/signed/`.
+In a full 12-part engagement, this skill plugs in at **Part 11 — AI Creative Instructions output**. After a creative brief is rendered as an actual asset (by your creative tooling or a manual creative process), the resulting file passes through `c2pa-metadata` before being checked in to `engagements/<slug>/11-creative-briefs/signed/`.
 
 The `/digital-marketing-pro:check` pre-publish gate should also verify that all AI-generated assets in an EU-targeted campaign carry a C2PA manifest. v3.4 adds this verification to the EU jurisdiction rule pack in `skills/context-engine/compliance-rules.md`.
 

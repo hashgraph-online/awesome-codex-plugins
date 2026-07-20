@@ -152,6 +152,14 @@ Use these explicit requests when you need tighter control:
   pressure-tests a complex direction before implementation.
 - `aegis:update` updates the installed method pack through its host-aware path.
 
+For non-trivial project work, Aegis can passively reuse relevant canonical
+language from `CONTEXT.md` or a bounded context selected by `CONTEXT-MAP.md`.
+It activates domain modeling only when a term is resolved, ambiguous, renamed,
+deprecated, or conflicting. High-confidence existing facts may synchronize
+directly; unresolved domain decisions remain user-owned. Files are created
+lazily on the first resolved term and remain glossary-only. Stable bytes can be
+cache-friendly, but Aegis does not guarantee provider cache hits or savings.
+
 Aegis preserves Workflow Quality by keeping simple work light and expanding
 only when risk warrants it. For deeper method detail, read the
 [Workflow Guide](docs/current/AEGIS_WORKFLOW_GUIDE.md),

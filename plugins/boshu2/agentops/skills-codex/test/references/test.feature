@@ -1,7 +1,7 @@
 # Executable spec for the /test skill — test generation + coverage (supporting role).
 # /test loads the language's test standards, generates REAL tests for existing code, runs them to
 # verify they pass (it does not stop at a plan), and fills coverage gaps — writing artifacts to
-# .agents/test/. Hexagon: supporting; consumes standards (test conventions) + repo-context (the
+# .agents/tests/. Hexagon: supporting; consumes standards (test conventions) + repo-context (the
 # code under test); produces result.json. (soc-qk4b)
 
 Feature: Test generates real, passing tests and coverage
@@ -20,4 +20,4 @@ Feature: Test generates real, passing tests and coverage
 
   Scenario: coverage analyzes and fills gaps
     When /test coverage runs
-    Then it analyzes coverage gaps and fills them, writing a coverage report to .agents/test/
+    Then it analyzes coverage gaps and fills them, writing a coverage report to .agents/tests/

@@ -1,6 +1,6 @@
 {
   "name": "clean-room-skill",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Spec-first clean-room workflow for authorized source analysis without replacement code.",
   "bin": {
     "clean-room-skill": "bin/install.js"
@@ -10,6 +10,7 @@
     "lib",
     "skills",
     "agents",
+    "workflows",
     "hooks",
     "templates",
     "examples",

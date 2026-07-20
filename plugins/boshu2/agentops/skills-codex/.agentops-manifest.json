@@ -369,8 +369,8 @@
     {
       "name": "cc-hooks",
       "source_skill": "skills/cc-hooks",
-      "source_hash": "d85a55382bdf1fc91a1de99e48451197f0b79b33e3b2dfb809084b2a5fb89fd9",
-      "generated_hash": "51fd3f0daf67d12e848e3b69ee3eb7cea4793bd719fce89efa0b6a5b29d5c155"
+      "source_hash": "1e17e091dea81183aef666cf27321f8f03992ef1cdcdfbc7b3890d842a474b51",
+      "generated_hash": "06a47649e0d36e8ec423031df8f769a181ea10f1d2bcc369063f9bf11017d227"
     },
     {
       "name": "codebase-recon",
@@ -567,8 +567,8 @@
     {
       "name": "standards",
       "source_skill": "skills/standards",
-      "source_hash": "042b92664356ff6c255374a18686b964632ecf98b3e521732b1d60ce31e76de5",
-      "generated_hash": "97bb097ef45816bde76e6f6678f95f3ee5f641d91504e51716608d288cbeb370"
+      "source_hash": "26c713ca6dcbd820f96b32b57a6d0f64d54e22b29b1e5803c13e53845035fd8f",
+      "generated_hash": "6d34fb105d8b4d4a47e995b5bb7862e18715a985eefb88e6dfbe9be5c7849ffa"
     },
     {
       "name": "status",
@@ -585,8 +585,8 @@
     {
       "name": "test",
       "source_skill": "skills/test",
-      "source_hash": "2be808b714915337de71234a0047f3c363657ca49927ae64339f95cb365234a4",
-      "generated_hash": "8d1fd84ecba8663a53026ff1ad27781fdcf49f3aa504496dcdee4d549aec3e6f"
+      "source_hash": "dbbafbde1d401820937979725c57dee0bbee663f04c85648f8f0cb79b5ba3772",
+      "generated_hash": "0406e09c6634f50232bd51782431bb18f4c186ed5f1b5ec08b399e7c841dfe57"
     },
     {
       "name": "toil-mining",
@@ -603,8 +603,8 @@
     {
       "name": "validate",
       "source_skill": "skills/validate",
-      "source_hash": "a31b4d4e257ef1f621dd77c9b437199e1c0138332f291c1c682fb77b8f21c343",
-      "generated_hash": "7927f8fd530807aa400b38cba55ee45313db1ad84cb1373ac0cf10fde0fe3bb5"
+      "source_hash": "fa092110c79c2bc4bf0f3269b3c2b0d32e8db592a56286dbec52c302491c1f49",
+      "generated_hash": "a4e1913964341da1df03a9f9b7148a70074b387129c86a6ea9621a08c76e51d3"
     },
     {
       "name": "workflow-builder",

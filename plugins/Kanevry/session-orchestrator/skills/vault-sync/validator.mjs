@@ -159,14 +159,27 @@ const _schemaHash = (() => {
 const args = process.argv.slice(2);
 const checkExpires = args.includes('--check-expires');
 
-// Parse --mode <hard|warn|off|baseline|diff|full> (default: hard)
+// Parse --mode <hard|strict|warn|off|baseline|diff|full> (default: hard)
 //   hard      — legacy alias; identical to full enforcement
+//   strict    — alias of hard (#835). The Session Config schema
+//               (scripts/lib/config-schema.mjs VAULT_MODE_VALUES) uses
+//               strict|warn|off, so a caller forwarding the configured value
+//               verbatim would otherwise hit exit 2. Normalized to 'hard' at
+//               parse time so exactly one internal value flows downstream.
 //   full      — enforce: exit 1 on errors
 //   warn      — report but exit 0
 //   off       — skip entirely
 //   baseline  — write snapshot then exit 0
 //   diff      — compare against snapshot, emit JSON diff
 // Parse --exclude <glob> (repeatable)
+const MODE_VALUES = new Set(['hard', 'strict', 'warn', 'off', 'baseline', 'diff', 'full']);
+const MODE_EXPECTED = 'hard|strict|warn|off|baseline|diff|full';
+
+/** Normalize CLI mode aliases to the single internal value used downstream. */
+function normalizeMode(v) {
+  return v === 'strict' ? 'hard' : v;
+}
+
 let mode = 'hard';
 const excludePatterns = [];
 
@@ -204,22 +217,22 @@ for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--mode') {
     const v = args[i + 1];
-    if (v === 'hard' || v === 'warn' || v === 'off' || v === 'baseline' || v === 'diff' || v === 'full') {
-      mode = v;
+    if (MODE_VALUES.has(v)) {
+      mode = normalizeMode(v);
     } else {
       process.stderr.write(
-        `validator.mjs: invalid --mode value "${v}" (expected hard|warn|off|baseline|diff|full)\n`,
+        `validator.mjs: invalid --mode value "${v}" (expected ${MODE_EXPECTED})\n`,
       );
       process.exit(2);
     }
     i++;
   } else if (a.startsWith('--mode=')) {
     const v = a.slice('--mode='.length);
-    if (v === 'hard' || v === 'warn' || v === 'off' || v === 'baseline' || v === 'diff' || v === 'full') {
-      mode = v;
+    if (MODE_VALUES.has(v)) {
+      mode = normalizeMode(v);
     } else {
       process.stderr.write(
-        `validator.mjs: invalid --mode value "${v}" (expected hard|warn|off|baseline|diff|full)\n`,
+        `validator.mjs: invalid --mode value "${v}" (expected ${MODE_EXPECTED})\n`,
       );
       process.exit(2);
     }
@@ -335,12 +348,28 @@ if (process.env.VAULT_DIR) {
   }
 }
 
+// Directories the crawler never descends into. These are structurally
+// invisible: their notes are neither checked NOR available as link targets.
 const EXCLUDED_DIRS = new Set([
   'node_modules',
   '.git',
   '.obsidian',
-  '90-archive',
 ]);
+
+// Top-level directories whose notes are skipped by the CHECK set but remain in
+// the link-target register (#833). Before this split, '90-archive' lived in
+// EXCLUDED_DIRS, so archiving a note silently turned every inbound
+// [[wiki-link]] into a dangling-link warning. The register and the check-set
+// are now decoupled: walk() still visits these notes (so they resolve links),
+// the validation loop skips them (so their frontmatter never blocks a close).
+const CHECK_EXCLUDED_TOP_DIRS = new Set(['90-archive']);
+
+/** True when relPath's FIRST path segment is a check-excluded top-level dir. */
+function isArchived(relPath) {
+  const p = String(relPath).replace(/\\/g, '/');
+  const top = p.split('/', 1)[0];
+  return CHECK_EXCLUDED_TOP_DIRS.has(top);
+}
 
 function emit(obj) {
   process.stdout.write(JSON.stringify(obj) + '\n');
@@ -354,6 +383,7 @@ if (mode === 'off') {
     vault_dir: vaultDir,
     files_checked: 0,
     excluded_count: 0,
+    archived_skipped_count: 0,
     files_skipped_no_frontmatter: 0,
     errors: [],
     warnings: [],
@@ -415,14 +445,6 @@ function parseFrontmatter(raw) {
   }
 }
 
-// ── Build link index (filename -> path) ─────────────────────────────────────
-const fileIndex = new Map(); // basename-without-ext -> [absolute paths]
-for (const f of mdFiles) {
-  const key = basename(f, '.md');
-  if (!fileIndex.has(key)) fileIndex.set(key, []);
-  fileIndex.get(key).push(f);
-}
-
 // ── Wiki-link regex — captures link body for target parsing ─────────────────
 const WIKILINK_RE = /\[\[([^\]]+)\]\]/g;
 
@@ -450,9 +472,70 @@ function extractWikiLinks(content) {
   return [...targets];
 }
 
+// ── Pass 1: read every file ONCE ────────────────────────────────────────────
+// Builds the record set the link-target register (below) and the validation
+// loop (further down) both consume. Net-neutral on I/O versus the previous
+// shape, which read the file once but ran the frontmatter match twice.
+// A malformed note must never abort this pass — every failure is recorded on
+// the record and surfaced later by the validation loop.
+const records = [];
+for (const file of mdFiles) {
+  const rel = relative(vaultDir, file);
+  let raw;
+  try {
+    raw = readFileSync(file, 'utf8');
+  } catch (err) {
+    records.push({ file, rel, readError: err.message || String(err) });
+    continue;
+  }
+  let fm;
+  let links;
+  try {
+    fm = parseFrontmatter(raw);
+    const body = raw.slice(raw.match(FRONTMATTER_RE)?.[0].length || 0);
+    links = extractWikiLinks(body);
+  } catch (err) {
+    fm = { hasFrontmatter: true, parseError: err.message || String(err) };
+    links = [];
+  }
+  records.push({ file, rel, fm, links });
+}
+
+// ── Link-target register ────────────────────────────────────────────────────
+// Keys: basename-without-ext, frontmatter `id`, and every frontmatter `aliases`
+// entry (#833). Keys are normalized NFC + lowercase at BOTH insert and lookup:
+// NFC is required, not cosmetic — APFS returns decomposed (NFD) filenames and
+// this is a German-language corpus, so "Übung" from a filename and "Übung" from
+// a YAML string would otherwise be different strings. Values are already
+// arrays, so a case-collision (Topic.md + topic.md) merely appends.
+const fileIndex = new Map(); // normalized key -> [absolute paths]
+
+function indexKey(k) {
+  return String(k).normalize('NFC').toLowerCase();
+}
+
+function addIndexKey(key, file) {
+  if (typeof key !== 'string' || key.length === 0) return;
+  const k = indexKey(key);
+  if (!fileIndex.has(k)) fileIndex.set(k, []);
+  fileIndex.get(k).push(file);
+}
+
+for (const rec of records) {
+  addIndexKey(basename(rec.file, '.md'), rec.file);
+  const data = rec.fm && rec.fm.hasFrontmatter && !rec.fm.parseError ? rec.fm.data : null;
+  if (!data || typeof data !== 'object') continue;
+  // Type-guard: `id` must be a string, `aliases` an array of strings. A note
+  // with `aliases: some-scalar` contributes no alias keys instead of throwing.
+  if (typeof data.id === 'string') addIndexKey(data.id, rec.file);
+  if (Array.isArray(data.aliases)) {
+    for (const alias of data.aliases) addIndexKey(alias, rec.file);
+  }
+}
+
 function resolveWikiLink(target, sourceFile) {
   // Target may be a bare name ("my-note") or a path ("01-projects/foo/_overview").
-  // Try exact path first (relative to vault), then basename lookup.
+  // Try exact path first (relative to vault), then register lookup.
   const candidate1 = resolve(vaultDir, target.endsWith('.md') ? target : target + '.md');
   if (existsSync(candidate1)) return true;
 
@@ -463,9 +546,8 @@ function resolveWikiLink(target, sourceFile) {
   );
   if (existsSync(candidate2)) return true;
 
-  // Try basename lookup anywhere in index
-  const key = basename(target, '.md');
-  if (fileIndex.has(key)) return true;
+  // Try register lookup anywhere in the vault (basename / id / alias)
+  if (fileIndex.has(indexKey(basename(target, '.md')))) return true;
 
   return false;
 }
@@ -476,28 +558,30 @@ const warnings = [];
 let filesChecked = 0;
 let filesSkippedNoFrontmatter = 0;
 let excludedCount = 0;
+let archivedSkippedCount = 0;
 
 const todayIso = new Date().toISOString().slice(0, 10);
 
-for (const file of mdFiles) {
-  const rel = relative(vaultDir, file);
+// ── Pass 2: validate ────────────────────────────────────────────────────────
+for (const rec of records) {
+  const { file, rel, fm } = rec;
   if (isExcluded(rel)) {
     excludedCount++;
     continue;
   }
-  let raw;
-  try {
-    raw = readFileSync(file, 'utf8');
-  } catch (err) {
+  // Archived notes stay in the link-target register but are never CHECKED.
+  if (isArchived(rel)) {
+    archivedSkippedCount++;
+    continue;
+  }
+  if (rec.readError) {
     errors.push({
       file: rel,
       path: '',
-      message: `Cannot read file: ${err.message || err}`,
+      message: `Cannot read file: ${rec.readError}`,
     });
     continue;
   }
-
-  const fm = parseFrontmatter(raw);
 
   if (!fm.hasFrontmatter) {
     filesSkippedNoFrontmatter++;
@@ -527,10 +611,8 @@ for (const file of mdFiles) {
     // Even if frontmatter is invalid, still check wiki-links to surface all problems.
   }
 
-  // Wiki-link check
-  const body = raw.slice(raw.match(FRONTMATTER_RE)?.[0].length || 0);
-  const links = extractWikiLinks(body);
-  for (const target of links) {
+  // Wiki-link check (links were extracted in pass 1)
+  for (const target of rec.links) {
     if (!resolveWikiLink(target, file)) {
       warnings.push({
         file: rel,
@@ -589,6 +671,7 @@ if (mode === 'diff') {
       vault_dir: vaultDir,
       files_checked: filesChecked,
       excluded_count: excludedCount,
+      archived_skipped_count: archivedSkippedCount,
       files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
       errors,
       warnings,
@@ -608,6 +691,7 @@ if (mode === 'diff') {
       vault_dir: vaultDir,
       files_checked: filesChecked,
       excluded_count: excludedCount,
+      archived_skipped_count: archivedSkippedCount,
       files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
       errors,
       warnings,
@@ -629,6 +713,7 @@ if (mode === 'diff') {
     vault_dir: vaultDir,
     files_checked: filesChecked,
     excluded_count: excludedCount,
+    archived_skipped_count: archivedSkippedCount,
     files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
   });
 
@@ -640,7 +725,8 @@ if (mode === 'diff') {
 }
 
 // ── mode=full | hard | warn ───────────────────────────────────────────────
-// 'full' and 'hard' are identical (hard is the legacy alias).
+// 'full' and 'hard' are identical (hard is the legacy alias; 'strict' was
+// normalized to 'hard' at parse time — see normalizeMode, #835).
 // In warn mode, errors are reported but the status is "ok" for exit-code purposes.
 // The errors array is still populated so the caller can surface them as warnings.
 const status = hasErrors ? (mode === 'warn' ? 'ok' : 'invalid') : 'ok';
@@ -650,6 +736,7 @@ emit({
   vault_dir: vaultDir,
   files_checked: filesChecked,
   excluded_count: excludedCount,
+  archived_skipped_count: archivedSkippedCount,
   files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
   errors,
   warnings,

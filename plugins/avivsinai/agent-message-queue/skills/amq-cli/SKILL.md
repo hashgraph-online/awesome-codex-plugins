@@ -16,7 +16,7 @@ description: >-
   (RabbitMQ, Kafka), CI/CD pipelines, or single-agent tasks with no partner.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
-  compatibility: claude-code, codex-cli
+  compatibility: claude-code, codex-cli, grok-cli
 ---
 
 # AMQ CLI Skill
@@ -114,6 +114,7 @@ amq coop init
 # Per-session (one command per terminal — defaults to --session collab)
 amq coop exec claude -- --dangerously-skip-permissions  # Terminal 1
 amq coop exec codex -- --dangerously-bypass-approvals-and-sandbox  # Terminal 2
+amq coop exec grok  # Terminal 3 (optional peer) — caller flags forwarded unchanged, no baked-in bypass
 ```
 
 Without `--session` or `--root`, `coop exec` defaults to `--session collab`.
@@ -346,6 +347,7 @@ amq drain --session auth --include-body           # Deliberate sibling-session r
 amq reply --id <msg_id> --body "Response"          # Reply in thread
 amq watch --timeout 60s                           # Block until message arrives
 amq list --new                                    # Peek without side effects
+amq send --to grok --body "hello"                 # Grok is a normal peer handle, like codex or claude
 ```
 
 ### Send with metadata

@@ -82,9 +82,9 @@ amq upgrade
 amq coop init
 ```
 
-Creates `.amqrc`, mailboxes for `claude` and `codex`, and updates `.gitignore`.
+Creates `.amqrc`, mailboxes for `claude`, `codex`, and the reserved `user` operator handle, and updates `.gitignore`.
 
-Optionally add shell aliases (`amc` for Claude, `amx` for Codex):
+Optionally add shell aliases (`amc` for Claude, `amx` for Codex, and `amg` for Grok CLI as an optional peer):
 ```bash
 eval "$(amq shell-setup)"
 ```
@@ -104,12 +104,14 @@ Each alias sets up the environment, starts wake notifications, and launches the 
 ```bash
 amc feature-a          # Claude in feature-a session
 amx feature-a          # Codex in feature-a session
+amg feature-a          # Grok CLI in feature-a session (optional third peer)
 ```
 
 Without aliases, use `amq coop exec` directly:
 ```bash
 amq coop exec claude -- --dangerously-skip-permissions
 amq coop exec --session feature-a codex
+amq coop exec grok     # Grok CLI as an optional peer; caller flags forwarded unchanged
 ```
 
 Add `--no-gitignore` when `coop exec` should auto-initialize the project without changing `.gitignore`.

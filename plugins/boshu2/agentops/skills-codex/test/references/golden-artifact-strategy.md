@@ -40,7 +40,7 @@ Do not refresh a golden artifact just to make a test pass.
 
 ## Output
 
-Add an acceptance table to `.agents/test/summary.md` when golden files change:
+Add an acceptance table to `.agents/tests/summary.md` when golden files change:
 
 ```markdown
 ## Golden Artifact Review

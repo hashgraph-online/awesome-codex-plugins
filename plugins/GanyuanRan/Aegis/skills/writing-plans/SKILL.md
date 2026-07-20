@@ -336,6 +336,13 @@ has docs/adr/ or architecture docs, reference them — do not duplicate authorit
 
 Map files before defining tasks. Design units with clear boundaries and single responsibilities. Files that change together should live together. Follow existing codebase patterns. Each task should produce self-contained, independently reviewable changes.
 
+For non-trivial project plans, passively read the relevant active language from
+`CONTEXT-MAP.md`/`CONTEXT.md` when present. Use canonical terms consistently in
+the plan title, tasks, acceptance language, and owner references. If planning
+discovers a resolved semantic change, ambiguity, or conflict, compose
+`establishing-project-context` instead of recording a glossary decision only in
+the plan. Passive reads alone do not load active modeling.
+
 ## Required Planning Outputs
 
 Before you leave this workflow, the written plan must make these items answerable:

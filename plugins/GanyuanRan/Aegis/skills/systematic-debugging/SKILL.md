@@ -24,11 +24,8 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 ## Overview
 
-Random fixes waste time and create new bugs. Symptom fixes are failure.
-
-This skill is the canonical debugging workflow. Use it to move from symptom to
-root cause, then to the smallest sufficient stable repair and retirement plan.
-Smallest repair means correct owner + bug class fixed + bounded entropy, not the smallest textual diff.
+Find root cause. Fix the bug class at its canonical owner; close repair and
+retirement. This is not the smallest textual diff.
 
 ## When to Use
 
@@ -75,6 +72,10 @@ Aegis impact/safety receipt.
 
 3. **Check Recent Changes**
    - What changed that could cause this? Git diff, recent commits, new dependencies, config changes, environmental differences
+
+   Non-trivial bugs passively use relevant active `CONTEXT.md` terms. If
+   authority/glossary/code/tests differ, code is evidence; compose
+   `establishing-project-context` rather than silently rewrite meaning.
 
 4. **Gather Evidence in Multi-Component Systems**
    - Instrument each component boundary: log what enters and exits

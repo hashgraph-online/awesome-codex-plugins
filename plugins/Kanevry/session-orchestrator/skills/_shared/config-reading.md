@@ -2,30 +2,47 @@
 
 ## Resolving the Plugin Root
 
-`$CLAUDE_PLUGIN_ROOT` (Claude Code), `$CODEX_PLUGIN_ROOT` (Codex CLI), `$CURSOR_RULES_DIR` (Cursor IDE), or `$PI_PLUGIN_ROOT` (Pi) may not be set (depends on how hooks/skills are loaded). Resolve the script path with this fallback chain:
+Harnesses expose different root variables. Codex hook manifests provide native `${PLUGIN_ROOT}`; their validated wrapper also exports `CODEX_PLUGIN_ROOT="${PLUGIN_ROOT}"` for shared compatibility code and sets `SO_PLATFORM=codex`. Claude Code uses `CLAUDE_PLUGIN_ROOT`, Cursor IDE uses `CURSOR_RULES_DIR`, and Pi uses `PI_PLUGIN_ROOT`.
 
-1. If `$CLAUDE_PLUGIN_ROOT`, `$CODEX_PLUGIN_ROOT`, `$CURSOR_RULES_DIR`, or `$PI_PLUGIN_ROOT` is set and non-empty, use it.
-2. Otherwise, search for the plugin install location (includes Claude Code, Codex, Cursor, and Pi paths):
-   ```bash
-   PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-${CURSOR_RULES_DIR:-${PI_PLUGIN_ROOT:-}}}}"
-   if [[ -z "$PLUGIN_ROOT" ]]; then
-     # Check common install locations (Claude Code + Codex CLI + Cursor IDE + Pi)
-     for candidate in \
-       "$HOME/Projects/session-orchestrator" \
-       "$HOME/.claude/plugins/session-orchestrator" \
-       "$HOME/.codex/plugins/session-orchestrator" \
-       "$HOME/.pi/agent/packages/session-orchestrator" \
-       "$HOME/plugins/session-orchestrator" \
-       "$HOME/.cursor/plugins/session-orchestrator" \
-       "$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "")")")" \
-     ; do
-       if [[ -n "$candidate" && -f "$candidate/scripts/parse-config.mjs" ]]; then
-         PLUGIN_ROOT="$candidate"
-         break
-       fi
-     done
-   fi
-   ```
+Resolve shell paths in this order:
+
+1. Keep a non-empty native `$PLUGIN_ROOT` supplied by the harness.
+2. If `SO_PLATFORM` names a supported harness, prefer its matching compatibility variable. In particular, `SO_PLATFORM=codex` makes `$CODEX_PLUGIN_ROOT` win over an ambient Claude variable.
+3. Otherwise preserve the compatibility order Claude → Codex → Cursor → Pi.
+4. If no variable resolves, search only known clone/install locations and the current script ancestry. Codex public plugin installs should normally resolve through native `${PLUGIN_ROOT}`; do not depend on or write a private Codex cache path.
+
+```bash
+if [[ -z "${PLUGIN_ROOT:-}" ]]; then
+  case "${SO_PLATFORM:-}" in
+    claude) PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}" ;;
+    codex)  PLUGIN_ROOT="${CODEX_PLUGIN_ROOT:-}" ;;
+    cursor) PLUGIN_ROOT="${CURSOR_RULES_DIR:-}" ;;
+    pi)     PLUGIN_ROOT="${PI_PLUGIN_ROOT:-}" ;;
+  esac
+fi
+
+if [[ -z "${PLUGIN_ROOT:-}" ]]; then
+  PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-${CURSOR_RULES_DIR:-${PI_PLUGIN_ROOT:-}}}}"
+fi
+
+if [[ -z "$PLUGIN_ROOT" ]]; then
+  # Common clone/install locations for Claude Code, Cursor IDE, and Pi,
+  # plus a source-relative fallback shared by every harness.
+  for candidate in \
+    "$HOME/Projects/session-orchestrator" \
+    "$HOME/.claude/plugins/session-orchestrator" \
+    "$HOME/.pi/agent/packages/session-orchestrator" \
+    "$HOME/plugins/session-orchestrator" \
+    "$HOME/.cursor/plugins/session-orchestrator" \
+    "$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "")")")" \
+  ; do
+    if [[ -n "$candidate" && -f "$candidate/scripts/parse-config.mjs" ]]; then
+      PLUGIN_ROOT="$candidate"
+      break
+    fi
+  done
+fi
+```
 
 ## Parsing Config
 

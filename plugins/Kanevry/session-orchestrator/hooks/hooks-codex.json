@@ -1,105 +1,44 @@
 {
-  "_comment": "Codex CLI hooks equivalent of hooks.json. Enable hooks in ~/.codex/config.toml: [hooks] enabled = true",
+  "description": "Synchronous Codex hooks for payload-compatible Session Orchestrator handlers.",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|clear|compact",
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🎯 Session Orchestrator v3.14.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
+            "command": "echo '🎯 Session Orchestrator v3.16.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
             "async": false
           },
           {
             "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/on-session-start.mjs\"",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/on-session-end.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-session-start.mjs\"",
             "timeout": 5
           }
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/enforce-scope.mjs\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/config-protection.mjs\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/pre-bash-destructive-guard.mjs\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/pre-bash-staging-fence.mjs\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/pre-bash-memory-propose-audit.mjs\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/enforce-commands.mjs\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
+    "PreToolUse": [],
     "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/post-edit-validate.mjs\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/post-tooluse-frontend-slop.mjs\"",
-            "timeout": 5
-          }
-        ]
-      },
       {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/loop-guard.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/loop-guard.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-stop.mjs\"",
             "timeout": 5
           }
         ]
@@ -111,82 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/on-stop.mjs\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/on-stop.mjs\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/subagent-telemetry.mjs\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/post-tool-failure-corrective-context.mjs\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolBatch": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/post-tool-batch-wave-signal.mjs\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/operator-steer.mjs\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/subagent-telemetry.mjs\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "CwdChanged": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$CODEX_PLUGIN_ROOT/hooks/run-node.sh\" \"$CODEX_PLUGIN_ROOT/hooks/cwd-change-restore.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-stop.mjs\"",
             "timeout": 5
           }
         ]

@@ -1,0 +1,20 @@
+{
+  "name": "solidworks-gpt",
+  "interface": {
+    "displayName": "SolidWorks GPT"
+  },
+  "plugins": [
+    {
+      "name": "solidworks-gpt-plugin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/solidworks-gpt-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

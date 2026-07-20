@@ -6,7 +6,7 @@
 - **Leader/Coordinator** = coordinates phases, merges, and final decisions (often the initiator).
 - **Worker** = executes assigned phases and reports back to the initiator.
 
-**Default pairing note**: Claude is often faster and more decisive, while Codex tends to be deeper but slower. That commonly makes Claude a natural coordinator and Codex a strong worker. This is a default, not a rule — roles are set per task by the initiator.
+**Default pairing note**: Claude is often faster and more decisive, while Codex tends to be deeper but slower. That commonly makes Claude a natural coordinator and Codex a strong worker. This is a default, not a rule — roles are set per task by the initiator. Grok CLI can join as an additional optional peer/worker (e.g. a third `amq coop exec grok` in a three-way session) without changing this default two-engine pairing note.
 
 ## Phased Flow
 

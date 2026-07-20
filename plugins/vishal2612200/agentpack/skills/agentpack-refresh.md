@@ -5,7 +5,7 @@ description: Refresh AgentPack context when task, git state, or repo files chang
 
 # AgentPack Refresh
 
-Use when the user invokes `@agentpack-refresh`, context looks stale, or task/git state changed.
+Use when the user invokes `$agentpack-refresh`, context looks stale, or task/git state changed.
 
 ## Steps
 

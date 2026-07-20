@@ -40,6 +40,22 @@ Two install paths:
 - **npx / [skills.sh](https://skills.sh)** copies skills you can edit.
 - **Plugins** keep a read-only bundle current with the repo.
 
+## Admission-control hooks (on by default)
+
+AgentOps ships a PreToolUse **policy dispatcher** — deterministic guards that
+block a small set of known-destructive commands (staging the private bead
+ledger, hand-editing the hash-chained provenance ledger, overwriting installed
+skill copies) and route you to the correct tool instead. Silent on every clean
+call; every block is one line.
+
+- **Claude Code plugin installs:** active automatically — nothing to run.
+- **npx / skills.sh copies:** run `~/.claude/skills/cc-hooks/scripts/install-hooks.sh` once.
+- **git clone / brew:** run `scripts/install-policy-dispatch.sh` once.
+
+Disable anytime (`/plugin disable agentops`, or remove the two PreToolUse
+matchers from settings). Policy list and design:
+`skills/cc-hooks/SKILL.md`.
+
 Remove with your runtime's plugin uninstall, or delete the linked skill
 directories.
 

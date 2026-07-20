@@ -1,0 +1,4 @@
+interface:
+  display_name: "SolidWorks Session Reporter"
+  short_description: "Ask consent and submit SolidWorks session feedback"
+  default_prompt: "Use $sw-session-reporter to finish and report this SolidWorks session."

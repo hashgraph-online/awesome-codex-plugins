@@ -221,14 +221,14 @@ PLAN.md                    summary + publish instructions
 - **Upstream:** `/digital-marketing-pro:content-brief` (preferred — pre-researched) or `/digital-marketing-pro:keyword-cluster` (`06-pillar-pages.md` becomes content briefs)
 - **Downstream:**
   - `/digital-marketing-pro:publish-blog` — pushes the publish-ready draft to the CMS
-  - `/digital-marketing-pro:social-strategy` — repurposes the article across platforms (or hand to `contentforge:social-adapt` if ContentForge is installed)
+  - `/digital-marketing-pro:content-repurpose` + `/digital-marketing-pro:social-strategy` — repurposes the article across platforms
   - `/digital-marketing-pro:check` — final pre-publish gate
   - `/digital-marketing-pro:c2pa-metadata` — if AI-generated images accompany the article and EU markets are targeted
 
 ## Tips & caveats
 
 - **Brand voice deviation tolerance is per-axis, not aggregate.** A piece that's 1 point off on every axis is not the same as 4 points off on humor alone — the latter is a fail even if the average looks OK.
-- **Humanize step is not a guarantee** against AI-detection tools — it's a probabilistic improvement. For pieces that MUST pass an explicit AI-detection gate, use the ContentForge pipeline (`contentforge:create-content`) which has the 29-pattern catalog + self-critique meta-pass.
+- **Humanize step is not a guarantee** against AI-detection tools — it's a probabilistic improvement. For pieces that must minimize AI-sounding patterns, run additional humanize passes and re-score with `/digital-marketing-pro:eval-content`, iterating until the flagged patterns clear; a final human edit pass remains the strongest signal.
 - **Fact-check is content's most-skipped gate.** Don't ship a piece with "0 unverified" only because no one looked. Run `/digital-marketing-pro:verify-claims` against the draft if you didn't have a fact-checker in the loop.
 - **For pillar content,** target the upper bound of word count (3000+ for SaaS, 5000+ for B2B research) — pillar pages need depth for topical authority. For spoke content, the lower bound is fine.
 - **Don't write the meta description last.** Write it FIRST, before the article — it's the answer to "what's this page's promise?" Writing it last produces post-hoc summaries that don't drive click intent.

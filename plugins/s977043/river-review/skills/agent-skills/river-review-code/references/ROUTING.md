@@ -67,6 +67,20 @@
 - 英語: altitude, generalization, special-case, bandaid, caller-specific branch
 - → `altitude-generalization`
 
+### 新知識のコード反映・設計知識の保全（Knowledge-to-Code）
+
+- 日本語: 知識反映, リファクタリング, 命名の更新, 責務, 境界, 過去の設計判断, 制約の消失
+- 英語: knowledge delta, knowledge-to-code, refactoring intent, naming update, responsibility, design history, constraint preservation
+- → `knowledge-to-code-alignment`
+- 注意: ドメイン用語の一貫性は `ubiquitous-language-naming`、境界設計の妥当性は `bounded-context-language`、振る舞い/構造の分離は `behavior-structure-separation` に割り当て済み。本スキルは新知識の命名・責務・境界への反映と過去の設計知識の保全のみを扱う
+
+### 振る舞い変更と構造変更の分離・外部挙動維持（Behavior-Structure）
+
+- 日本語: 振る舞い変更, 構造変更, 混在, 外部挙動維持, characterization test, safety net, 挙動不変
+- 英語: behavior change, structural change, separation, behavior preservation, characterization test, safety net
+- → `behavior-structure-separation`
+- 注意: 公開 API/DTO の破壊的変更は `api-compatibility`、完了主張の反証・抽出リファクタの性能退行は `refactor-claim-audit` に割り当て済み。本スキルは振る舞い/構造変更の混在と外部挙動維持の証拠のみを扱う
+
 ### closure スコープ保持（メモリ）
 
 - 日本語: クロージャ, スコープ保持, メモリ保持, シングルトンのキャッシュ肥大

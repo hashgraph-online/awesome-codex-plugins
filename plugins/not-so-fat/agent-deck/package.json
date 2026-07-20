@@ -1,0 +1,59 @@
+{
+  "name": "agent-deck",
+  "version": "1.4.4",
+  "description": "Agent Deck — decks of tools, keys, and self-improving playbooks",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "AGENT_DECK_DEV=1 turbo run dev",
+    "dev:all": "bash ./scripts/dev-all.sh",
+    "backend:dev": "npm --workspace packages/backend run dev",
+    "frontend:dev": "npm --workspace apps/agent-deck run dev -- --port 3000 --strictPort",
+    "mcp": "npm --workspace packages/backend run mcp",
+    "lint": "turbo run lint",
+    "test": "node scripts/rebuild-native.mjs && turbo run test",
+    "test:ci": "node scripts/rebuild-native.mjs && turbo run test",
+    "prepublish:check": "node scripts/pre-publish-check.mjs",
+    "postinstall": "node scripts/rebuild-native.mjs",
+    "agent-deck": "node packages/cli/dist/bin.js",
+    "agent-deck:dev": "tsx packages/cli/src/bin.ts",
+    "setup:dev": "AGENT_DECK_DEV=1 npm run agent-deck:dev -- setup",
+    "build:release": "node scripts/prepare-release.mjs",
+    "version:sync": "node scripts/sync-versions.mjs",
+    "release:tag": "node scripts/release-tag.mjs",
+    "release:tag:push": "node scripts/release-tag.mjs --push --github-release",
+    "release:tag:backfill": "node scripts/release-tag.mjs --backfill --push",
+    "publish:packages": "npm run build:release && npm publish -w @agent-deck/shared --access public && npm publish -w @agent-deck/backend --access public && npm publish -w @agent-deck/cli --access public",
+    "smoke:dev": "bash ./scripts/smoke-dev.sh",
+    "release:smoke": "bash ./scripts/release-smoke.sh",
+    "clean": "turbo run clean",
+    "type-check": "turbo run type-check",
+    "install:all": "npm install && node scripts/rebuild-native.mjs && npm run build"
+  },
+  "devDependencies": {
+    "turbo": "^1.12.4",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/not-so-fat/agent_deck.git"
+  },
+  "keywords": [
+    "mcp",
+    "agent",
+    "typescript",
+    "react",
+    "nextjs"
+  ],
+  "author": "@not-so-fat",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/not-so-fat/agent_deck/issues"
+  },
+  "homepage": "https://github.com/not-so-fat/agent_deck#readme"
+}

@@ -1,15 +1,7 @@
 {
   "name": "session-orchestrator",
-  "version": "3.14.0",
-  "description": "Session-level orchestration for structured planning, wave execution, quality gates, and clean session close-out",
-  "author": {
-    "name": "Bernhard Goetzendorfer",
-    "email": "office@gotzendorfer.at",
-    "url": "https://gotzendorfer.at"
-  },
-  "homepage": "https://gotzendorfer.at/en/session-orchestrator",
-  "repository": "https://github.com/Kanevry/session-orchestrator",
-  "license": "MIT",
+  "version": "3.16.0+codex.20260719182053",
+  "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "keywords": [
     "session",
     "orchestration",
@@ -33,7 +25,7 @@
       "Write"
     ],
     "composerIcon": "./assets/icon.svg",
-    "websiteURL": "https://gotzendorfer.at/en/session-orchestrator",
+    "websiteURL": "https://session-orchestrator.com",
     "privacyPolicyURL": "https://gotzendorfer.at/en/session-orchestrator/privacy",
     "termsOfServiceURL": "https://gotzendorfer.at/en/session-orchestrator/terms",
     "defaultPrompt": [

@@ -17,12 +17,26 @@ Do NOT invoke for: general coding tasks outside spec-superflow changes, casual q
 
 `exploring` → `specifying` → `bridging` → `approved-for-build` → `executing` → `closing`, with `debugging` side-path from `executing`, and `abandoned` as terminal. If a transition is ambiguous, run `npx --yes --package spec-superflow@0.10.0 ssf runtime asset read docs/state-machine.md`.
 
+## Terminal-State Short Circuit
+
+Before update checks or recovery overlays, inspect the persisted state. If it is
+`closing`, stop immediately: `closing` is a successful terminal state and the
+next skill is `none`. Report the terminal state and its persisted evidence.
+Do not run `handoff list`, `checkpoint list`, the execution-control recovery
+scan, or `release-archivist`; do not resume, hand off, or route any more work.
+
 ## Initialization
 
 1. **Update check**: Run `npx --yes --package spec-superflow@0.10.0 ssf runtime check-update`. Exit 0 → continue. Exit 1 → non-blocking upgrade reminder. Exit 2 → skip.
 2. **Inspect change folder**: Check for `proposal.md`, `specs/`, `design.md`, `tasks.md`, `execution-contract.md`. Answer: Is the change fuzzy? Artifacts missing/unstable? Contract exist? User approved contract? Execution in progress or blocked? In verification/wrap-up?
+
+## Overlay Recovery Scan
+
 3. **Overlay recovery scan**: Run `npx --yes --package spec-superflow@0.10.0 ssf handoff list <change-dir> --json` and `npx --yes --package spec-superflow@0.10.0 ssf checkpoint list <change-dir> --json`. A `result-ready` handoff requires explicit review and `npx --yes --package spec-superflow@0.10.0 ssf handoff resolve` before resuming the affected work. An `active` handoff is non-blocking side work. Show a non-stale checkpoint as recovery context; show a stale checkpoint only as historical evidence.
-4. **Execution-control recovery scan**: For `approved-for-build`, `executing`, `debugging`, or `closing`, run `npx --yes --package spec-superflow@0.10.0 ssf execution show <change-dir> --json`. Treat only `current: true` plus `waves[].eligible: true` as permission to start a wave; report plan revision, mode, next eligible wave, and every wave's receipt/blockers. A missing, invalid, or stale plan blocks implementation and routes to `build-executor`; do not infer progress from chat history.
+
+## Execution-Control Recovery Scan
+
+4. **Execution-control recovery scan**: For `approved-for-build`, `executing`, or `debugging`, run `npx --yes --package spec-superflow@0.10.0 ssf execution show <change-dir> --json`. Treat only `current: true` plus `waves[].eligible: true` as permission to start a wave; report plan revision, mode, next eligible wave, and every wave's receipt/blockers. A missing, invalid, or stale plan blocks implementation and routes to `build-executor`; do not infer progress from chat history.
 
 ## DP-0: User Confirmation Gate
 
@@ -67,10 +81,10 @@ Execution hit blockage: test failure, unexpected behavior, build error, task can
 The current planned wave is implemented and ready for spec-compliance + code-quality verification. A reviewer must write an `npx --yes --package spec-superflow@0.10.0 ssf execution review <change-dir> --wave <id> --base <sha> --head <sha> --report <path> --verdict <pass|fail>` receipt before any dependent wave or closing transition.
 
 ### Route to release-archivist
-Guard: `... check <dir> executing closing --json` → fail = BLOCK. Implementation complete, verification complete/nearly complete. Include `DP-7: 归档确认`.
+Only while the current state is `executing`: implementation is complete and verification is ready. Run the guard `... check <dir> executing closing --json` → fail = BLOCK. `release-archivist` completes verification, audit, and any required delta merge before the final transition. Include `DP-7: 归档确认`.
 
 ### Route to spec-merger
-Delta specs exist that need merging, change closing with ADDED/MODIFIED/REMOVED/RENAMED specs.
+Only while the current state is `executing`, before the final `executing → closing` transition: delta specs need merging with ADDED/MODIFIED/REMOVED/RENAMED specs. Never route a change already in `closing` to `spec-merger`.
 
 ### Route to abandoned
 User explicitly requests, bug-investigator escalates after 3+ failures AND user chooses, scope change makes change no longer worthwhile AND user confirms. Block from `closing` or `abandoned`.
@@ -118,6 +132,7 @@ Use content inspection, not timestamps.
 - No implementation past bug without investigation
 - No closure without all planned wave review receipts recorded as `pass`
 - No closure with unsynced delta specs
+- `closing` is a successful terminal state: next skill is none and recovery overlays do not run
 - No transitions from `abandoned` (terminal)
 - No transition to `abandoned` from `closing` or `abandoned`
 - No auto-abandon without user confirmation

@@ -1,0 +1,83 @@
+{
+  "schema": "hooks-manifest.v2",
+  "comment": "Policies-as-data registry for policy-dispatch.sh (age-bhsz, epic age-4qw1). Predicate discipline: only predicate_class 'pure' (syntactic regex over tool_input.command / tool_input.file_path) may carry mode deny|route; lookup/stateful predicates ship audit-only until promoted with reviewed fires. Enforced by skills/cc-hooks/scripts/lint-policies.sh against schemas/hooks-manifest.v2.schema.json. Patterns are POSIX ERE (BSD grep -E compatible: no \\b, no lookaround).",
+  "policies": [
+    {
+      "id": "core.git:add-beads-ledger",
+      "predicate_class": "pure",
+      "mode": "deny",
+      "matchers": [
+        {
+          "tools": [
+            "Bash"
+          ],
+          "field": "command",
+          "pattern": "(^|[;&|][[:space:]]*)git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+add[[:space:]]([^;&|]*[[:space:]/=])?_beads"
+        }
+      ],
+      "route_message": "_beads/ is the PRIVATE bead ledger (its own git repo) — never stage it into the public tree; the leak is one-way. Sync it by pushing the ledger repo itself: (cd _beads && git push)",
+      "rationale": "CLAUDE.md footgun row + memory agentops-br-private-ledger. Only the explicit '_beads' path form is matched; 'git add -A' silently sweeping _beads/ is the stateful variant and stays out of deny per predicate discipline.",
+      "value_proof": "declining fire-attempt rate in guardrail telemetry (token_class core.git:add-beads-ledger); retire on false-positive evidence"
+    },
+    {
+      "id": "core.provenance:ledger-hand-append",
+      "predicate_class": "pure",
+      "mode": "deny",
+      "matchers": [
+        {
+          "tools": [
+            "Bash"
+          ],
+          "field": "command",
+          "pattern": "(>>?[[:space:]]*[^[:space:];&|]*docs/provenance/ledger\\.jsonl)|(tee[[:space:]]+(-a[[:space:]]+)?[^[:space:];&|]*docs/provenance/ledger\\.jsonl)"
+        },
+        {
+          "tools": [
+            "Edit",
+            "Write"
+          ],
+          "field": "file_path",
+          "pattern": "(^|/)docs/provenance/ledger\\.jsonl$"
+        }
+      ],
+      "route_message": "docs/provenance/ledger.jsonl is HASH-CHAINED (prev_hash/payload_hash/hash on every record) and SEALED — a hand-written row breaks VerifyChain for every record after it. Append through the owning command instead: ao provenance add (schema-validated, sealed onto the chain tip)",
+      "rationale": "Memory pawl-gated-land-flow ('SEALED, never hand-append'). Reads (grep/jq/cat with no redirect onto the file) never match.",
+      "value_proof": "declining fire-attempt rate (token_class core.provenance:ledger-hand-append); retire on false-positive evidence"
+    },
+    {
+      "id": "core.skills:copy-into-installed",
+      "predicate_class": "pure",
+      "mode": "deny",
+      "matchers": [
+        {
+          "tools": [
+            "Bash"
+          ],
+          "field": "command",
+          "pattern": "(^|[;&|][[:space:]]*)(cp|rsync|mv)[[:space:]][^;&|]*[[:space:]][^[:space:];&|]*\\.(claude|codex|gemini)/skills(/[^[:space:];&|]*)?[[:space:]]*([;&|]|$)"
+        }
+      ],
+      "route_message": "~/.claude/skills (and .codex/.gemini) are INSTALLED/symlinked copies — a cp/rsync/mv into them writes through the symlink into whatever branch the factory checkout is on, or is overwritten on install. Link instead: ao skills link (repo) or link-skill --all (dotfiles). Closes the Bash gap of the Edit|Write-only installed-skill-edit-guard.",
+      "rationale": "Global CLAUDE.md 'Never cp into ~/.claude/skills'. Destination position is enforced: the installed-skills path must be the LAST token of the command segment, so copying FROM an installed dir out to the repo never fires.",
+      "value_proof": "declining fire-attempt rate (token_class core.skills:copy-into-installed); retire on false-positive evidence"
+    },
+    {
+      "id": "core.skills:edit-installed-copy",
+      "predicate_class": "pure",
+      "mode": "deny",
+      "matchers": [
+        {
+          "tools": [
+            "Edit",
+            "Write"
+          ],
+          "field": "file_path",
+          "pattern": "/\\.(claude|codex|gemini)/skills/"
+        }
+      ],
+      "route_message": "This is an INSTALLED skill copy (overwritten on install, or symlinked through to the factory checkout) — editing it is lost work. Edit skills/<name>/ in the source repo instead.",
+      "rationale": "Registry twin of the standalone installed-skill-edit-guard: matches tool_input.file_path ONLY (prose that merely mentions claude/skills lands in tool_input.content and can never fire). Subsumes the standalone guard for dispatcher users; the standalone script remains for hosts wanting only that one guard.",
+      "value_proof": "declining fire-attempt rate (token_class core.skills:edit-installed-copy); 2 real fires already recorded by the standalone guard's telemetry; retire on false-positive evidence"
+    }
+  ]
+}

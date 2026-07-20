@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-07-18",
-  "total": 170,
+  "last_updated": "2026-07-20",
+  "total": 172,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -28,6 +28,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/GanyuanRan/Aegis/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Agent Deck",
+      "url": "https://github.com/not-so-fat/agent-deck",
+      "owner": "not-so-fat",
+      "repo": "agent-deck",
+      "description": "One MCP for context management: bind self-improving playbooks, MCP tools, and API keys to the session.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/not-so-fat/agent-deck/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Agent Guard",
@@ -1578,6 +1588,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hitSlop/shots/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "SolidWorks GPT Plugin",
+      "url": "https://github.com/Erfouni/solidworks-GPT-plugin",
+      "owner": "Erfouni",
+      "repo": "solidworks-GPT-plugin",
+      "description": "Knowledge-backed SolidWorks design and validation workflows for Codex with standards lookup, CAD evidence gates, and consent-based session learning.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Erfouni/solidworks-GPT-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Synta MCP",

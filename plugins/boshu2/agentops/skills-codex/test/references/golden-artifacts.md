@@ -36,7 +36,7 @@ Never update golden files as the first move.
 
 ## Output
 
-Add this to `.agents/test/summary.md` when golden files change:
+Add this to `.agents/tests/summary.md` when golden files change:
 
 ```markdown
 ## Golden Changes

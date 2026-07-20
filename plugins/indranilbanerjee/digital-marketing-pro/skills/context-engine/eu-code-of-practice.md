@@ -59,23 +59,23 @@ Source: [Section-by-section summary of the second draft (EU Commission)](https:/
 
 The Code is a **voluntary compliance tool** — it does not replace Article 50, it just provides a presumption-of-conformity path for signatories. If you don't sign, you still need to comply with Article 50 via your own mechanism. Marketing teams running multi-brand portfolios should consider signing on behalf of each brand whose target market includes any EU jurisdiction.
 
-## What this means for DMP-generated content (and SocialForge / ContentForge)
+## What this means for DMP-generated content
 
-DMP, ContentForge, and SocialForge are all **deployers**, not providers. Article 50 deployer obligations apply when:
+DMP is a **deployer**, not a provider — and the same logic applies to any other AI content tooling in your stack. Article 50 deployer obligations apply when:
 
 - The brand's target market includes any EU jurisdiction (check `brand.profile.json → target_markets` for any of: AT, BE, BG, HR, CY, CZ, DK, EE, FI, FR, DE, GR, HU, IE, IT, LV, LT, LU, MT, NL, PL, PT, RO, SK, SI, ES, SE)
 - AND the content is AI-generated (image, video, audio, or text-published-to-inform-public)
 - AND the disclosure exception does not apply (no human editorial review with editorial responsibility, or the asset is a deep fake)
 
-### Mandatory disclosure paths used by the plugins
+### Mandatory disclosure paths used by the plugin
 
-1. **Machine-readable mark** — embed a C2PA manifest with the `c2pa.ai-disclosure` assertion (spec 2.4, April 2026). Use `/digital-marketing-pro:c2pa-metadata` or SocialForge `/socialforge:c2pa-sign`. **This satisfies the Section 1 secured-metadata requirement automatically.** Note: the Code Section 1 also requires a watermarking layer — this is a *provider* obligation, but if you're stitching together outputs from multiple providers (e.g., Nano Banana Pro images composited with SocialForge), verify the marks survive your post-processing pipeline.
+1. **Machine-readable mark** — embed a C2PA manifest with the `c2pa.ai-disclosure` assertion (spec 2.4, April 2026) via `/digital-marketing-pro:c2pa-metadata`. **This satisfies the Section 1 secured-metadata requirement automatically.** Note: the Code Section 1 also requires a watermarking layer — this is a *provider* obligation, but if you're stitching together outputs from multiple providers (e.g., AI-generated images composited in a separate design tool), verify the marks survive your post-processing pipeline.
 2. **Visible deepfake disclosure** — for any AI-generated image/video/audio that resembles a real person, place, or object: visible icon/label/disclaimer on the asset OR in the adjacent caption / alt text / publication metadata. DMP's content pipeline auto-adds this when `c2pa_auto_sign: true` is on for the brand and the generator emitted `ai-claim: ai-generated-content`. **Anticipate the standardized EU icon** — when the final Code publishes (expected mid-2026; as of July 2026 not yet confirmed), DMP will adopt the standardized EU disclosure icon from the annex.
-3. **Editorial-review proof for AI-generated text** — if you're publishing long-form AI-written articles (ContentForge pipeline) to inform the public on matters of public interest, the editorial-review exception applies only if a human editor signed off with editorial responsibility. ContentForge's quality-gate logs serve as evidence; **archive them for at least 3 years** (typical regulatory retention).
+3. **Editorial-review proof for AI-generated text** — if you're publishing long-form AI-written articles to inform the public on matters of public interest, the editorial-review exception applies only if a human editor signed off with editorial responsibility. Your documented review records (the quality-assurance agent's logged evals, reviewer scorecards, sign-off notes) serve as evidence; **archive them for at least 3 years** (typical regulatory retention).
 
 ## When the Code is published in final form (expected 2026 — not yet published as of July 2026)
 
-The skills `c2pa-metadata` (DMP), `c2pa-sign` (SocialForge), `check` (DMP pre-publish gate), `contentforge` pipeline (CF), and any future regulatory-compliance skill should be updated to:
+The skills `c2pa-metadata`, `check` (the pre-publish gate), and any future regulatory-compliance skill should be updated to:
 
 - Cite the final Code URL
 - Adopt the final standardized EU disclosure icon
@@ -83,7 +83,7 @@ The skills `c2pa-metadata` (DMP), `c2pa-sign` (SocialForge), `check` (DMP pre-pu
 - Note the brand's signatory status (if the brand or its parent company signs the Code, document it in `brand.profile.json → compliance.eu_code_of_practice_signatory: true`)
 - Update `industry-profiles.md` with vertical-specific disclosure-language samples once the AI Office annex publishes them
 
-Until final publication, the C2PA `c2pa.ai-disclosure` + IPTC digital-source-type pairing already shipped by DMP / SocialForge is the most defensible deployer-side compliance mechanism — both are referenced positively in the Section 1 draft guidance.
+Until final publication, the C2PA `c2pa.ai-disclosure` + IPTC digital-source-type pairing already shipped by DMP is the most defensible deployer-side compliance mechanism — both are referenced positively in the Section 1 draft guidance.
 
 ## Operational checklist for marketing teams (Aug 2 readiness)
 
@@ -91,7 +91,7 @@ Run this checklist before 2 August 2026 for any brand with EU target markets:
 
 - [ ] `brand.profile.json → target_markets` reviewed; EU jurisdictions identified
 - [ ] `c2pa_auto_sign: true` enabled for any brand with EU markets
-- [ ] All AI image/video generation paths route through `/digital-marketing-pro:c2pa-metadata` or `/socialforge:c2pa-sign` (verify with `/digital-marketing-pro:check`)
+- [ ] All AI image/video generation paths route through `/digital-marketing-pro:c2pa-metadata` (verify with `/digital-marketing-pro:check`)
 - [ ] Visible deepfake disclosure language drafted in EU languages relevant to target markets (DE / FR / IT / ES / NL / PL at minimum for major-EU brands)
 - [ ] Editorial-review logs archived for any AI-generated long-form content in `archives/` directory (3+ year retention)
 - [ ] Marketing platforms (CMS, social schedulers, email tools) confirmed to preserve C2PA metadata on re-upload (some platforms strip it — verify with `/digital-marketing-pro:c2pa-metadata --verify-roundtrip`)
@@ -99,9 +99,8 @@ Run this checklist before 2 August 2026 for any brand with EU target markets:
 
 ## Related skills
 
-- `skills/c2pa-metadata/SKILL.md` (DMP) — embed C2PA manifest including 2.4 `c2pa.ai-disclosure` assertion
-- `skills/c2pa-sign/SKILL.md` (SocialForge) — equivalent for social-media assets
-- `skills/check/SKILL.md` (DMP) — pre-publish gate, includes EU-market compliance check
+- `skills/c2pa-metadata/SKILL.md` — embed C2PA manifest including 2.4 `c2pa.ai-disclosure` assertion
+- `skills/check/SKILL.md` — pre-publish gate, includes EU-market compliance check
 - `skills/context-engine/compliance-rules.md` — jurisdiction-specific compliance rules (16+ privacy laws, AI labelling rules, advertising standards)
 - `skills/context-engine/industry-profiles.md` — industry-specific transparency expectations
 

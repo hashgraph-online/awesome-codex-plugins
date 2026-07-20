@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.56.1",
+  "version": "1.61.0",
   "description": "Capability pack that strengthens AI review for Codex: your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that runs perspective-based reviewer roles (code, security, performance, architecture, testing, adversarial) and verifies findings against the diff so humans keep the high-risk judgment.",
   "author": {
     "name": "river-review maintainers",

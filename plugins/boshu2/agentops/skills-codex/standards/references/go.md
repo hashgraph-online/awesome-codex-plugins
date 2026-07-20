@@ -272,6 +272,7 @@ func TestClassifyServeArg(t *testing.T) {
     ```
 
   - Scope process state: `t.Chdir(t.TempDir())`, `t.Setenv`, and `git -C <tempRepo>` with `cmd.Dir` set. Never run a state-mutating `git` op against the real repo via an unset `cmd.Dir` / leaked `GIT_DIR`.
+  - Any package whose tests shell out to `git` MUST call `testsupport.ScrubGitDiscoveryEnv()` from its `TestMain` (`cli/internal/testsupport`). Git injects `GIT_DIR`/`GIT_WORK_TREE`/... into hook-launched processes; with `GIT_DIR` pointing at a linked worktree's gitdir, a fixture `git init` rewrites the SHARED `.git/config` to `core.bare=true`, bricking every worktree (ek8v; recurred 2026-07-18).
   - Find leakers by analysis (grep set-sites for a missing reset), not by chasing reproducing seeds: order-dependent flakes are population+seed-specific, so "couldn't reproduce" ≠ fixed — close on the root (the missing cleanup).
   - The push==CI full race suite runs `-shuffle=on` as the *late* backstop; it is not the primary guard.
 

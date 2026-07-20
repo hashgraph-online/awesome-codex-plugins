@@ -186,6 +186,11 @@ Use expanded detail only when the trigger applies:
   exists, do not claim whole-task done. Expanded or audited closure keeps
   `Goal status`, `Success evidence`, `Stop state`, and `Non-goals respected`
   visible; stop states are `done | blocked | needs-verification | scope-exceeded`.
+- `Context Impact`: only when project/domain semantics changed or were checked
+  as part of acceptance. Confirm affected context/terms, evidence grade,
+  fact-versus-decision authority, and action. If action is `unchanged`, verify
+  that no context write occurred. Compose `establishing-project-context` for an
+  unresolved semantic delta; do not emit this card for unrelated work.
 - `Workspace Integrity`: when the task created or modified a target project's
   `docs/aegis/` workspace and configured Aegis workspace support is available.
   Run `python <aegis-workspace-helper> bundle --root <target-project-root> --work YYYY-MM-DD-<slug>`

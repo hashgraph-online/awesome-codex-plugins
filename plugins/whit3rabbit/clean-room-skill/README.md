@@ -160,6 +160,8 @@ clean-room-skill run --task-manifest <task-root>/contaminated/task-manifest.json
 
 Use `/clean-room` or `/skill:clean-room` when you want the skill to talk through setup, inspect where the run is, and decide whether to continue, refocus, resume, or start over.
 
+Claude Code local installs also ship a dynamic workflow: run `/clean-room:clean-room-loop` to drive the unattended loop with in-session subagents (no per-token `claude -p` cost), gating every wall crossing with the real leakage CLI. Dynamic workflows are Claude Code only and install to `.claude/workflows/` on local installs. It is a cost-free POC path with context-level separation, not the OS-enforced wall of `clean-room-skill run --agent-runtime claude`.
+
 The CLI also has a bounded inner-loop runner for already approved unattended spec slices:
 
 ```bash
@@ -168,6 +170,8 @@ clean-room-skill run \
   --agent-runtime claude \
   --max-iterations 3
 ```
+
+Prefer in-harness fresh-context roles first: the dynamic workflow above on Claude Code, or fresh subagent/skill sessions on other harnesses. The runner's external process dispatch is a last resort. `--agent-runtime claude` is Claude-only and spawns `claude -p` per role (per-token); on Codex, Pi, and other runtimes drive the runner with `--agent-commands <adapter>` (your harness's own CLI, `shell: false`) instead, never `--agent-runtime claude`.
 
 For CCSILO, prefer the `--ccsilo [variant]` shortcut from the collapsible section above. For other Claude wrappers, set `CLEAN_ROOM_CLAUDE_EXECUTABLE=/absolute/path/to/wrapper` and pass the wrapper config with `--agent-config-dir`. For example, an OpenRouter silo uses the `openrouter` wrapper path, not a separate `claude` command. Never persist `ANTHROPIC_AUTH_TOKEN` or API keys into ccsilo or Claude settings files.
 

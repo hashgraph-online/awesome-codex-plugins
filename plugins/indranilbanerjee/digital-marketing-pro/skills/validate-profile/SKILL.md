@@ -41,7 +41,7 @@ The skill is **read-only** — it inspects state, never modifies it. It also **n
 | **Connector config present** | Every connector named in `tracking.backend`, `integrations.*`, `analytics.*` has its env vars / `.mcp.json` entry present (local check; live reachability comes from the MCP/curl probe below) | BLOCKER per unconfigured connector |
 | **MCP server health** | Every entry in `.mcp.json` (if present) responds to a tools/list ping | WARNING |
 | **Credential storage** | `~/.claude-marketing/{brand}/credentials.json` (or env vars) present for every backend referenced | BLOCKER |
-| **Output paths writeable** | `~/.claude-marketing/{brand}/` is writeable; `$CONTENTFORGE_PUBLISH_DIR` (if cross-plugin) is writeable | BLOCKER |
+| **Output paths writeable** | `~/.claude-marketing/{brand}/` is writeable; the user-visible publish dir (`$DIGITAL_MARKETING_PRO_PUBLISH_DIR` or `~/Documents/DigitalMarketingPro/`) is writeable | BLOCKER |
 | **Model curator currency** | `scripts/resolve_model.py --registry-age` returns < 90 days | WARNING |
 
 A **BLOCKER** means "do not let the user run engagement / campaign-plan / launch-campaign until this is fixed." A **WARNING** is surfaced but does not gate.
@@ -102,11 +102,11 @@ HTTP `200`, `204`, `401` (auth required for GET — POST will work), and `405` (
 
 ```bash
 test -w "$HOME/.claude-marketing/{brand}/" || echo "BLOCK: brand directory is not writeable"
-# Cross-plugin: if ContentForge is installed, check its publish dir too
-if [ -n "$CONTENTFORGE_PUBLISH_DIR" ]; then
-    test -w "$CONTENTFORGE_PUBLISH_DIR" || echo "WARN: CONTENTFORGE_PUBLISH_DIR ($CONTENTFORGE_PUBLISH_DIR) is not writeable"
+# User-visible publish dir (dual-copy pattern)
+if [ -n "$DIGITAL_MARKETING_PRO_PUBLISH_DIR" ]; then
+    test -w "$DIGITAL_MARKETING_PRO_PUBLISH_DIR" || echo "WARN: DIGITAL_MARKETING_PRO_PUBLISH_DIR ($DIGITAL_MARKETING_PRO_PUBLISH_DIR) is not writeable"
 elif [ -d "$HOME/Documents" ]; then
-    test -w "$HOME/Documents" || echo "WARN: ~/Documents is not writeable — ContentForge publish copy will fail"
+    test -w "$HOME/Documents" || echo "WARN: ~/Documents is not writeable — the user-visible publish copy will fail"
 fi
 ```
 
@@ -135,7 +135,7 @@ Print a structured report. ALWAYS show every check (don't only print failures �
 ✅ Connector — HubSpot     OK (workspace acme-corp, 1247 contacts)
 ✅ Connector — Stripe      OK
 ✅ MCP — gmailmcp.googleapis.com  HTTP 405 (alive)
-✅ Output paths            ~/.claude-marketing/{brand}/ writeable; ~/Documents/ContentForge/ writeable
+✅ Output paths            ~/.claude-marketing/{brand}/ writeable; ~/Documents/DigitalMarketingPro/ writeable
 ⚠️  Model curator           registry is 102 days old — consider scripts/refresh_models.py
 
 Decision: 🛑 BLOCKED — Slack connector not configured. Fix before running:

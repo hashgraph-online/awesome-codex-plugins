@@ -41,7 +41,7 @@ golden artifact strategy for that case.
 
 ## Output
 
-Record the invariant and generated cases in `.agents/test/summary.md`:
+Record the invariant and generated cases in `.agents/tests/summary.md`:
 
 ```markdown
 ## Metamorphic Coverage
