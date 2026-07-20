@@ -210,6 +210,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [PR Storyteller](./plugins/mturac/pr-storyteller) - PR title + body + test plan from commits and diff vs base branch.
 - [Praxis](https://github.com/ouonet/praxis) - Intent-driven workflow skills for coding agents: describe what done looks like, not the steps. Triage-first design keeps token costs low across design, TDD, debug, review, and release.
 - [Project Autopilot](https://github.com/AlexMi64/codex-project-autopilot) - Turn an idea into a structured project workflow with planning, execution, verification, and handoff.
+- [Project Delivery](https://github.com/sealad886/project-delivery) - Repository-grounded, risk-scaled Codex workflow from idea through requirements, design, planning, implementation, testing, review, release, and continuous improvement.
 - [Quality Engineering Skills](https://github.com/RBraga01/Quality-Engineering-Skills) - 22 structured quality engineering skills for automotive and manufacturing: ISO 9001, IATF 16949, AIAG-VDA FMEA, VDA 6.3, PPAP, APQP, SPC, MSA.
 - [RAG Reviewer](https://github.com/mimfort/rag_for_git) - Agentic PR review: hybrid RAG + code graph via MCP, review skills for Codex.
 - [Registry Broker](https://github.com/hashgraph-online/registry-broker-codex-plugin) - Delegate tasks to specialist AI agents via the HOL Registry, plan, find, summon, and recover sessions.
