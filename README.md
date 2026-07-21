@@ -174,6 +174,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [CodeTruss](https://github.com/DeliriumPulse/codetruss-plugins) - Local-first acceptance gate that checks coding-agent scope, sensitive surfaces, deterministic analyzers, and repository verification from immutable Git snapshots, then writes signed receipts before the PR.
 - [Codex Agenteam](https://github.com/yimwoo/codex-agenteam) - Specialist AI agents (researcher, PM, architect, developer, QA, reviewer) orchestrated as a configurable team pipeline.
 - [Codex Multi Auth](https://github.com/ndycode/codex-multi-auth) - Multi-account OAuth manager for the official Codex CLI with switching, health checks, and recovery tools.
+- [Codex Process Jobs](https://github.com/joelfarthing/codex-process-jobs) - Run long local builds, tests, benchmarks, and inference jobs as durable detached processes with tracked status, bounded results, and completion delivery across Codex surfaces.
 - [Codex Reviewer](https://github.com/schuettc/codex-reviewer) - Second-pass review of Claude-driven plans and implementations.
 - [Codex rg Guard](https://github.com/Rycen7822/codex-rg-guard) - Budgeted `rg`/`grep` replacement for Codex that narrows broad searches before they waste model context.
 - [Codex TUI Proof](https://github.com/bnc4vk/codex-tui-proof) - Visually validate real local terminal UIs in Codex's in-app browser with screenshots and session evidence.
