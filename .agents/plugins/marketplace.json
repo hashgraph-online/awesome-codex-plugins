@@ -1353,7 +1353,7 @@
       "displayName": "UIZZE",
       "source": {
         "source": "local",
-        "path": "./plugins/samuelbushi/uizze"
+        "path": "./plugins/uizze/uizze"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -1361,7 +1361,7 @@
       },
       "category": "Development & Workflow",
       "description": "STOP UI SLOP. Gives Codex 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate before generic UI ships; connect it at https://uizze.com.",
-      "icon": "./plugins/samuelbushi/uizze/plugins/openai-directory/uizze/assets/uizze-logo.png"
+      "icon": "./plugins/uizze/uizze/plugins/openai-directory/uizze/assets/uizze-logo.png"
     },
     {
       "name": "unforgit",
@@ -1921,6 +1921,21 @@
       "category": "Tools & Integrations",
       "description": "131 evidence-based education skills for curriculum design, lesson planning, and assessment, with transparent evidence ratings and MCP server.",
       "icon": "./plugins/GarethManning/education-agent-skills/assets/education-agent-skills-icon.svg"
+    },
+    {
+      "name": "exa",
+      "displayName": "Exa Web Search",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zlsbksdxl/codex-exa"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search and fetch current web sources in Codex through the official Exa MCP server with browser OAuth.",
+      "icon": "./plugins/zlsbksdxl/codex-exa/assets/logo.svg"
     },
     {
       "name": "feishu2codex",

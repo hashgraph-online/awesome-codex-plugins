@@ -10,13 +10,13 @@ API keys.
 | Protocol | Streamable HTTP |
 | Endpoint | `https://xquik.com/mcp` |
 | Authentication | OAuth 2.1 discovery; API key fallback |
-| Version | `2.5.4` |
+| Version | `2.5.6` |
 
 Xquik publishes these discovery documents:
 
 - Protected resource metadata: `https://xquik.com/.well-known/oauth-protected-resource/mcp`
 - Authorization server metadata: `https://xquik.com/.well-known/oauth-authorization-server`
-- MCP registry card: `https://xquik.com/.well-known/mcp.json`
+- MCP registry card: `https://xquik.com/.well-known/mcp/server-card.json`
 - Agent-readable auth guide: `https://xquik.com/auth.md`
 
 Xquik supports Client ID Metadata Documents (CIMD) and Dynamic Client
@@ -24,9 +24,9 @@ Registration (DCR). Let each client use its documented registration flow. Both
 use Authorization Code with S256 PKCE and the `mcp:tools` scope.
 
 Use the [canonical client compatibility matrix](https://docs.xquik.com/mcp/overview#client-compatibility)
-for current per-client support. Cline and Qwen Code support OAuth. Affected
-Affected Goose releases need an environment-backed API key, Roo Code's archived final
-release is API-key-only, and Pi has no native MCP client.
+for current per-client support. Cline and Qwen Code support OAuth.
+Affected Goose releases need an environment-backed API key. Roo Code's archived final
+release is API-key-only. Pi has no native MCP client.
 
 > **Security:** Start OAuth from the MCP client. Do not open Xquik login routes
 > directly. Do not proxy Xquik credentials through local bridge packages or
@@ -275,12 +275,12 @@ this fallback. Codex uses the `bearer_token_env_var` configuration above.
 Client schemas and environment syntax differ, so do not copy a generic header
 object between clients or place a literal key in a configuration file.
 
-Full account keys expose 118 operations. Active guest `paid_reads` keys expose
-33 eligible GET routes.
+Full account keys expose 119 catalog routes. Of these, 118 support JSON or text.
+Active guest `paid_reads` keys expose 33 eligible GET routes.
 
 ## MCP Server Architecture
 
-The MCP server (v2.5.4) at `https://xquik.com/mcp` exposes 118 operations through 2 structured API tools:
+The MCP server (v2.5.6) exposes 119 catalog routes through 2 structured API tools. Of these, 118 support JSON or text. Binary support downloads use REST.
 
 | Tool | Description | Usage |
 |------|-------------|------|
@@ -291,8 +291,8 @@ The MCP server (v2.5.4) at `https://xquik.com/mcp` exposes 118 operations throug
 operations with normalized snake_case responses. Authentication is injected, so
 tool code must never include credentials.
 
-MCP v2.5.4 exposes 118 of 126 documented REST operations. These 8 credential or
-session-bound operations remain direct REST or dashboard workflows:
+MCP v2.5.6 catalogs 119 of 127 documented REST operations. These 8 credential
+or session operations remain direct REST or dashboard workflows:
 
 - API key creation, listing, and revocation
 - Saved-payment top-up

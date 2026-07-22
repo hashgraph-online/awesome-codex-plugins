@@ -39,7 +39,17 @@ Make Agent Guard operational without silently changing the machine. Diagnose fir
 
    Never substitute an unverified checksum and never bypass TLS verification.
 
-5. Verify the plugin-local installation:
+5. If an approved dependency installation is blocked by the host sandbox:
+   - Relay the exact error. Do not retry the same blocked write, change the
+     install destination, or bypass the sandbox silently.
+   - Show the exact command for the user to run in a separate terminal. For the
+     private gitleaks installer, preserve the plugin-local binary path, version,
+     and published checksum from the approved command above.
+   - Wait for the user to confirm that the command finished, rerun the read-only
+     `"<agent-guard-bin>" setup` diagnosis, and continue only when the dependency
+     reports `ok`.
+
+6. Verify the plugin-local installation:
 
    ```sh
    "<agent-guard-bin>" check
@@ -48,13 +58,13 @@ Make Agent Guard operational without silently changing the machine. Diagnose fir
 
    Treat `check` as dependency/config validation and `smoke-test` as proof of the binary's own behavior. They do not prove that the host is dispatching plugin hooks.
 
-6. Verify Codex hook readiness before claiming that protection is active.
+7. Verify Codex hook readiness before claiming that protection is active.
    - Confirm that the Agent Guard plugin is installed and enabled.
    - In Codex **Settings > Hooks**, inspect Agent Guard's `SessionStart`, `PreToolUse`, `PostToolUse`, and `Stop` hooks. Every hook must be enabled and trusted. Treat `Untrusted` and `Modified` as inactive; an updated hook must be reviewed and trusted again.
    - Do not edit `hooks.state` or copy trust hashes into `config.toml`. Hook trust is a user security decision and must go through the Codex trust UI.
    - If `SessionStart` itself is untrusted, explain that it cannot emit the setup warning or invoke this skill automatically.
 
-7. Run live host probes through the normal command tool that Codex selected for the current task. Do not read a real sensitive file.
+8. Run live host probes through the normal command tool that Codex selected for the current task. Do not read a real sensitive file.
    - Pre-tool probe:
 
      ```sh
@@ -71,7 +81,7 @@ Make Agent Guard operational without silently changing the machine. Diagnose fir
      The raw marker must not reach the model; expect `[REDACTED]` in a masked or sanitized replacement. These sentinels prove host dispatch without reading a sensitive file or printing a credential-shaped value; the plugin-local smoke test separately proves the real detection rules.
    - If Codex exposes only a wrapping/orchestration tool such as `functions.exec`, test that exact route. Agent Guard cannot replace or wrap Codex's host executor; it can protect only nested calls that Codex exposes to plugin hooks. If either probe bypasses the hook, report the route as unsupported in the current host instead of claiming successful setup.
 
-8. After dependency, enablement, or trust changes, restart Codex and run both live probes again in a new task. In Codex, plugin hooks provide the supported command boundary; do not configure Claude-specific command wrapping as a Codex setup step.
+9. After dependency, enablement, or trust changes, restart Codex and run both live probes again in a new task. In Codex, plugin hooks provide the supported command boundary; do not configure Claude-specific command wrapping as a Codex setup step.
 
 ## Safety And Host Boundaries
 

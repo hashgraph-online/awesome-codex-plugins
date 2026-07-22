@@ -476,6 +476,10 @@ must_rules:
     enforcement:
       type: rule
       target: R045
+  - must: "Every `spec.defaults.<name>.value` and every present `spec.inputs.<name>.default` in a Template CR must deserialize as a YAML string, regardless of the declared input type; quote numeric-, boolean-, and null-like scalars, while omitting `default` remains valid for required inputs."
+    enforcement:
+      type: rule
+      target: R052
   - must: "`inputs.description` must be in English."
     enforcement:
       type: manual

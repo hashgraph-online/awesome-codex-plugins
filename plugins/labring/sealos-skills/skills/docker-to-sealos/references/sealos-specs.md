@@ -190,6 +190,13 @@ When workers, protocol gateways, or background services depend on database migra
 - `defaults`: Used to store **automatically generated** values (such as random strings, random ports, etc.)
 - `inputs`: Used to store values that **require user input** (such as email, API Key, custom configurations, etc.)
 
+**Scalar type contract:**
+- Every `spec.defaults.<name>.value` must deserialize as a YAML string.
+- Every present `spec.inputs.<name>.default` must deserialize as a YAML string, regardless of the input's declared `type`.
+- Quote numeric-, boolean-, and null-like values. For example, use `default: "587"` and `default: "false"`, not `default: 587` or `default: false`.
+- Omitting `default` remains valid for required inputs such as administrator credentials.
+- This contract is limited to Template defaults and input defaults. Keep infrastructure fields such as `replicas`, `containerPort`, and Service ports as YAML numbers.
+
 ### Defaults Configuration
 
 Values in `defaults` are automatically generated when the template is parsed and do not require user interaction:

@@ -69,7 +69,7 @@ Other properties: The skill performs no shell execution, no local file access, n
 
 ## Skill Version
 
-2.5.4
+2.5.6
 
 ## Ethical Considerations
 

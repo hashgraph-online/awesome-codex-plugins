@@ -133,6 +133,9 @@ rules:
   - id: R045
     description: Template artifacts must declare every referenced inputs.<name> key in the same Template CR spec.inputs.
     severity: error
+  - id: R052
+    description: Template spec.defaults.<name>.value and every present spec.inputs.<name>.default must deserialize as YAML strings.
+    severity: error
   - id: R047
     description: External S3/object-storage credential inputs require a credential-free HTTPS source URL or user-request reference and cannot coexist with managed ObjectStorageBucket.
     severity: error

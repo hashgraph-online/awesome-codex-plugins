@@ -157,6 +157,19 @@
         {"name": "uses-server-entrypoint-evidence", "description": "Uses the Express dependency plus node server start command as affirmative web-service evidence"},
         {"name": "eligibility-passes", "description": "Returns an eligible web_service decision and permits readiness assessment to continue"}
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "Generate the Sealos Template phase for a Mastodon-style app whose analysis classifies SMTP_PORT as an optional input with the default string \"587\". Expose it as spec.inputs.smtp_port, keep infrastructure replicas and ports numeric, and validate the generated artifact before deployment.",
+      "expected_output": "Generates a Template whose SMTP port default remains the YAML string \"587\", preserves numeric Kubernetes infrastructure fields, and runs the docker-to-sealos quality gate against .sealos/template/index.yaml so R052 blocks an unquoted default before deployment.",
+      "files": [],
+      "assertions": [
+        {"name": "smtp-default-is-string", "description": "Emits spec.inputs.smtp_port.default as a quoted YAML string such as \"587\", never as the numeric scalar 587"},
+        {"name": "input-reference-is-declared", "description": "Declares spec.inputs.smtp_port and references that declared input from the Mastodon SMTP_PORT environment value"},
+        {"name": "infrastructure-numbers-stay-numeric", "description": "Keeps Kubernetes replicas, container ports, and Service ports as numeric YAML fields"},
+        {"name": "validates-generated-artifact", "description": "Runs quality_gate.py with --artifacts pointing to .sealos/template/index.yaml before configuration or deployment"},
+        {"name": "rejects-unquoted-input-default", "description": "Treats R052 or the equivalent string-type validation failure as blocking and fixes the template before continuing"}
+      ]
     }
   ]
 }

@@ -5718,6 +5718,108 @@ __MOUNTS__
             self.assertTrue(r045)
             self.assertTrue(any("inputs.enable_signup" in item.message for item in r045))
 
+    def test_detects_non_string_template_input_defaults(self):
+        cases = {
+            "numeric": ("587", "integer"),
+            "decimal": ("587.0", "number"),
+            "boolean": ("false", "boolean"),
+            "null": ("null", "null"),
+        }
+
+        for case_name, (default_value, expected_type) in cases.items():
+            with self.subTest(case=case_name):
+                violations = self.run_artifact_checker(
+                    f"""
+                    apiVersion: app.sealos.io/v1
+                    kind: Template
+                    metadata:
+                      name: demo
+                    spec:
+                      inputs:
+                        smtp_port:
+                          description: SMTP server port
+                          type: string
+                          default: {default_value}
+                          required: false
+                    """
+                )
+
+                r052 = [item for item in violations if item.rule_id == "R052"]
+                self.assertEqual(1, len(r052))
+                self.assertEqual(10, r052[0].line)
+                self.assertIn("spec.inputs.smtp_port.default", r052[0].message)
+                self.assertIn(f"got {expected_type}", r052[0].message)
+
+    def test_detects_non_string_template_default_values(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              defaults:
+                smtp_port:
+                  type: string
+                  value: 587
+            """
+        )
+
+        r052 = [item for item in violations if item.rule_id == "R052"]
+        self.assertEqual(1, len(r052))
+        self.assertEqual(9, r052[0].line)
+        self.assertIn("spec.defaults.smtp_port.value", r052[0].message)
+        self.assertIn("got integer", r052[0].message)
+
+    def test_allows_string_template_defaults_and_numeric_infrastructure_fields(self):
+        violations = self.run_artifact_checker(
+            """
+            apiVersion: app.sealos.io/v1
+            kind: Template
+            metadata:
+              name: demo
+            spec:
+              defaults:
+                smtp_port:
+                  type: string
+                  value: "587"
+                null_marker:
+                  type: string
+                  value: "null"
+              inputs:
+                smtp_port:
+                  description: SMTP server port
+                  type: string
+                  default: "587"
+                  required: false
+                enable_tls:
+                  description: Enable SMTP TLS
+                  type: boolean
+                  default: "false"
+                  required: false
+                admin_username:
+                  description: Administrator login name
+                  type: string
+                  required: true
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: demo
+            spec:
+              replicas: 1
+              template:
+                spec:
+                  containers:
+                    - name: demo
+                      image: nginx:1.27.2
+                      ports:
+                        - containerPort: 3000
+            """
+        )
+
+        self.assertFalse(any(item.rule_id == "R052" for item in violations))
+
     def test_registry_rule_scope_filters_violations(self):
         rules_yaml = render_registry(
             overrides={

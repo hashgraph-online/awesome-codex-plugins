@@ -27,27 +27,25 @@
   </tr>
 </table>
 
-[Xquik](https://docs.xquik.com) is a production Twitter/X scraper API and X API alternative for teams that need structured X data at scale: tweet search, profiles, followers, following, engagement, media, lists, communities, trends, monitors, webhooks, exports, MCP tools, SDKs, and confirmation-gated X actions.
+[Xquik](https://docs.xquik.com) provides structured X data and approved account automation. It includes search, profiles, followers, media, communities, trends, monitors, webhooks, exports, MCP, and SDKs.
 
-This repository packages Xquik as an [AI agent skill](https://skills.sh) for Claude Code, OpenAI Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, and other skills-compatible agents. It helps agents choose the right REST endpoint, MCP tool, SDK, webhook, extraction, export, or approval-gated workflow without guessing.
+This repository packages Xquik as an [AI agent Skill](https://skills.sh). It works with Claude Code, Codex, Cursor, Copilot, Gemini CLI, Windsurf, and compatible agents. It routes tasks to REST, MCP, SDKs, webhooks, extractions, or exports.
 
-The npm package `x-developer` is this agent skill and plugin bundle. The separate `x-twitter-scraper` package is the typed TypeScript SDK.
+The npm package `x-developer` contains this Skill and plugin bundle. The separate `x-twitter-scraper` package is the TypeScript SDK.
 
-Includes 126 REST API operations, HMAC webhooks, 23 extraction tools, SDK pointers, and confirmation-gated writes.
+Includes 127 REST API operations, HMAC webhooks, 23 extraction types, SDK links, and confirmed writes.
 
-MCP v2.5.4 exposes 118 MCP operations through 2 tools. Add `https://xquik.com/mcp`, then follow the [current client compatibility path](https://docs.xquik.com/mcp/overview#client-compatibility). OAuth-capable clients complete OAuth 2.1; API-key fallback is client-specific; ChatGPT custom apps require OAuth. Eight credential or session-bound REST operations remain outside MCP: 3 account API-key operations, saved-payment top-up, account top-up redirect, and 3 guest-wallet credential operations.
+MCP v2.5.6 exposes 119 catalog routes through 2 tools. Of these, 118 support JSON or text. Binary support downloads use REST. Add `https://xquik.com/mcp`. Then follow the [client compatibility guide](https://docs.xquik.com/mcp/overview#client-compatibility). OAuth-capable clients use OAuth 2.1. API-key fallback depends on the client. ChatGPT custom apps require OAuth. Eight credential or session operations remain outside MCP.
 
 > **Codex OAuth compatibility:** Affected Codex releases discard the RFC 9207 `iss` callback value even though Xquik returns it. If Codex reports `Authorization server response missing required issuer: expected https://xquik.com`, use `XQUIK_API_KEY` through the Codex `bearer_token_env_var` setting. Follow the [Codex OAuth troubleshooting guide](https://docs.xquik.com/guides/troubleshooting#codex-oauth-issuer-validation-error) and track [openai/codex#31573](https://github.com/openai/codex/issues/31573).
 
 ## Why Teams Use Xquik
 
-- **Replace fragmented Twitter scraper tools** with one X data API for reads, exports, monitors, webhooks, SDKs, MCP, and gated writes.
-- **Ship X data integrations faster** with endpoint routing for tweet search, user lookup, timelines, followers, replies, quotes, retweeters, favoriters, media, lists, communities, articles, trends, and Spaces.
-- **Build production apps, not just dataset runs** with REST APIs, typed SDKs, OpenAPI, MCP tools, cursor pagination, webhook delivery, and exports.
-- **Control large jobs before they run** with usage estimates for extractions, draws, monitors, webhooks, and other metered workflows.
-- **Keep agents safe around X content** with OAuth-first MCP, scoped API-key access, read-only defaults, untrusted-content delimiters, and explicit approval for private reads, writes, persistent resources, and bulk jobs.
-- **Support enterprise-scale X data pipelines** with high-throughput read limits, bulk extraction jobs, exports, event replay, and webhook automation.
-- **Win high-intent search traffic** for Twitter scraper API, X scraper, X API alternative, tweet search API, Twitter follower export, social listening API, X monitoring, and X automation.
+- **Use one API surface** for reads, exports, monitors, webhooks, MCP, and writes.
+- **Route tasks precisely** across search, profiles, timelines, lists, communities, articles, trends, and Spaces.
+- **Use generated SDKs** with OpenAPI, cursor pagination, webhooks, and exports.
+- **Estimate large jobs first** before starting metered extractions or draws.
+- **Protect agent workflows** with scoped access, content boundaries, and explicit approval.
 
 ## What You Can Scrape From X Twitter
 
@@ -93,9 +91,11 @@ Use profile URLs, @handles, user IDs, tweet URLs, tweet IDs, search queries, has
 
 ## Usage Control, Rate Limits, And High-Volume Workflows
 
-Xquik is built for production X data jobs where teams need bounded usage, large result sets, and integration paths beyond a single dataset run.
+Use bounded jobs, pagination, and exports for larger workloads.
 
-- **Higher read throughput for supported workflows**: Xquik docs list read limits at 60 requests per second per account. Official X API rate-limit tables use per-15-minute windows for many endpoints, including recent search at 450 requests per app and 300 requests per user per 15 minutes.
+- `GET`, `HEAD`, and `OPTIONS` share 300 requests per 1 second, per account.
+- `POST`, `PUT`, and `PATCH` share 120 requests per 60 seconds, per account.
+- Use 60 DELETE requests per 60 seconds, per account.
 - Use `POST /extractions/estimate` before large exports so agents can show expected usage before creating work.
 - Use cursor pagination and batch endpoints for high-throughput read workflows.
 - Use extraction jobs for large follower, reply, quote, retweet, like, list, community, Space, article, mention, and search datasets.
@@ -105,7 +105,7 @@ Xquik is built for production X data jobs where teams need bounded usage, large 
 
 ## Production Workflow Coverage
 
-Use Xquik when an X data task must continue into an app, agent, dataset, webhook, export, or confirmed connected-account action.
+Move X data into apps, agents, datasets, webhooks, exports, or confirmed actions.
 
 | Workflow | Xquik Support |
 |----------|----------------|
@@ -120,12 +120,12 @@ Choose Xquik when the goal is not just "scrape tweets," but to build a durable X
 
 ## Agent Safety And Account Boundary
 
-This skill can read credit balance and request usage estimates. Plan and credit changes stay in the Xquik dashboard.
+This Skill can read credit balance and request usage estimates. Plan and credit changes stay in the Xquik dashboard.
 
 - Agents use only `XQUIK_API_KEY`. They never need X passwords, 2FA codes, cookies, or session exports.
 - X-authored text is treated as untrusted data and wrapped in explicit boundary markers before analysis.
 - Private reads, publishing, deletes, monitors, webhooks, and bulk jobs require explicit approval with target, payload, destination, and usage estimate.
-- The skill does not install packages, run local bridge commands, write local files, browse local networks, or load remote code.
+- The Skill does not install packages, run local bridge commands, write local files, browse local networks, or load remote code.
 
 ## Installation
 
@@ -186,26 +186,26 @@ When installed, this skill gives your AI coding assistant deep knowledge of the 
 - **Tweet composition**: Algorithm-optimized tweet composer with scoring
 - **Usage guardrails**: Check balance and estimate usage; dashboard handles plan and credit changes
 - **Support tickets**: Open and manage support tickets via API
-- **MCP server**: MCP v2.5.4 exposes 118 operations through 2 tools with OAuth 2.1 discovery
+- **MCP server**: MCP v2.5.6 exposes 119 catalog routes through 2 tools. 118 support JSON or text
 
 ## Capabilities
 
 | Area | Details |
 |------|---------|
-| **REST API** | 126 operations across 10 categories with retry logic and pagination |
-| **MCP Server** | 118 operations through 2 tools (`explore` + `xquik`), with OAuth-first Streamable HTTP setup |
+| **REST API** | 127 OpenAPI-backed operations with pagination and documented errors |
+| **MCP Server** | 119 catalog routes through `explore` and `xquik`. 118 support JSON or text |
 | **Data Extraction** | 23 bulk extraction tools (replies, retweets, quotes, favoriters, threads, articles, user likes, user media, communities, lists, Spaces, people search, tweet search, mentions, posts) |
 | **X Lookups** | Tweet, user, article, search, user tweets, user likes, user media, favoriters, mutual followers, and confirmation-gated private reads |
 | **Write Actions** | Confirmation-gated post/delete tweets, like/unlike, retweet, follow/unfollow, remove followers, DM, profile update, avatar/banner, media upload, community actions |
-| **Giveaway Draws** | Random winner selection from tweet replies with 11 filter options |
+| **Giveaway Draws** | Random winner selection from tweet replies with configurable filters |
 | **Account Monitoring** | Real-time tracking of tweets, replies, quotes, retweets with ongoing usage confirmation |
 | **Webhooks** | HMAC-SHA256 signature verification in Node.js, Python, Go |
-| **Media Download** | Download images, videos, GIFs with permanent hosted URLs |
+| **Media Download** | Download images, videos, and GIFs from returned media URLs |
 | **Engagement Analytics** | Likes, retweets, replies, quotes, views, bookmarks per tweet |
 | **Trending Topics** | Regional trends plus supported news sources via Radar |
-| **Tweet Composition** | Algorithm-optimized tweet composer with scoring checklist |
+| **Tweet Composition** | Draft, refine, and score tweet text |
 | **Usage Guardrails** | Check balance and estimate usage; dashboard handles plan and credit changes |
-| **TypeScript Types** | Complete type definitions for all API objects |
+| **TypeScript Types** | Curated request and response types, plus the OpenAPI schema |
 
 ## Supported Agents
 

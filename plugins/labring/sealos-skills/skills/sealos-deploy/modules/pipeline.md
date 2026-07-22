@@ -761,6 +761,7 @@ After generating the base template, check if the app needs its public URL config
 - `revisionHistoryLimit: 1`
 - `automountServiceAccountToken: false`
 - `template.spec.imagePullSecrets: [{ name: ${{ defaults.app_name }} }]` for managed workloads
+- Every `spec.defaults.<name>.value` and every present `spec.inputs.<name>.default` must deserialize as a YAML string; quote numeric-, boolean-, and null-like values, while infrastructure fields such as replicas and ports remain numeric
 - **App CRD** (last resource): only `spec.data.url`, `spec.displayType`, `spec.icon`, `spec.name`, `spec.type` — no other fields (no `menuData`, `nameColor`, `template`, etc.)
 - **App CRD fixed enums**: `spec.displayType` must be `normal`; `spec.type` must be `link`
 
@@ -768,8 +769,11 @@ After generating the base template, check if the app needs its public URL config
 
 Run validation if Python is available:
 ```bash
-python "<SKILL_DIR>/../docker-to-sealos/scripts/quality_gate.py" 2>/dev/null
+python "<SKILL_DIR>/../docker-to-sealos/scripts/quality_gate.py" \
+  --artifacts "$WORK_DIR/.sealos/template/index.yaml" 2>/dev/null
 ```
+
+Fix every validation error before interactive configuration or deployment. In particular, `R052` means a Template default was parsed as a YAML number, boolean, or null instead of the string required by the Template CRD.
 
 If Python is not available, validate manually by checking the MUST rules above against the generated YAML.
 

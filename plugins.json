@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-07-22",
-  "total": 179,
+  "total": 180,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -921,13 +921,13 @@
     },
     {
       "name": "UIZZE",
-      "url": "https://github.com/samuelbushi/uizze",
-      "owner": "samuelbushi",
+      "url": "https://github.com/uizze/uizze",
+      "owner": "uizze",
       "repo": "uizze",
       "description": "STOP UI SLOP. Gives Codex 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate before generic UI ships; connect it at https://uizze.com.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/samuelbushi/uizze/HEAD/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/uizze/uizze/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Unforgit",
@@ -1308,6 +1308,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/GarethManning/education-agent-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Exa Web Search",
+      "url": "https://github.com/zlsbksdxl/codex-exa",
+      "owner": "zlsbksdxl",
+      "repo": "codex-exa",
+      "description": "Search and fetch current web sources in Codex through the official Exa MCP server with browser OAuth.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/zlsbksdxl/codex-exa/HEAD/plugins/exa/.codex-plugin/plugin.json"
     },
     {
       "name": "Feishu to Codex",

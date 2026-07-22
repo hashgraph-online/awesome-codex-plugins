@@ -2772,6 +2772,121 @@ def check_template_input_references_declared(context: ScanContext) -> List[Viola
     return violations
 
 
+def _yaml_mapping_key_match(line: str, key: str) -> Optional[re.Match[str]]:
+    escaped = re.escape(key)
+    return re.match(rf"^(?P<indent>\s*)(?:{escaped}|'{escaped}'|\"{escaped}\")\s*:", line)
+
+
+def _template_mapping_field_line(
+    doc: YamlDocument,
+    collection_name: str,
+    entry_name: str,
+    field_name: str,
+) -> int:
+    lines = doc.source.splitlines()
+    collection_index: Optional[int] = None
+    collection_indent = -1
+
+    for index, line in enumerate(lines):
+        match = _yaml_mapping_key_match(line, collection_name)
+        if match is None:
+            continue
+        collection_index = index
+        collection_indent = len(match.group("indent"))
+        break
+
+    if collection_index is None:
+        return doc.start_line
+
+    entry_index: Optional[int] = None
+    entry_indent = -1
+    for index in range(collection_index + 1, len(lines)):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= collection_indent:
+            break
+        match = _yaml_mapping_key_match(line, entry_name)
+        if match is None or len(match.group("indent")) <= collection_indent:
+            continue
+        entry_index = index
+        entry_indent = len(match.group("indent"))
+        break
+
+    if entry_index is None:
+        return doc.start_line + collection_index
+
+    for index in range(entry_index + 1, len(lines)):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= entry_indent:
+            break
+        match = _yaml_mapping_key_match(line, field_name)
+        if match is not None and len(match.group("indent")) > entry_indent:
+            return doc.start_line + index
+
+    return doc.start_line + entry_index
+
+
+def _yaml_value_type_name(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, float):
+        return "number"
+    if isinstance(value, list):
+        return "sequence"
+    if isinstance(value, dict):
+        return "mapping"
+    return type(value).__name__
+
+
+def check_template_default_scalar_types(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+
+    for doc in _iter_template_artifact_documents(context):
+        if not isinstance(doc.data, dict):
+            continue
+        spec = doc.data.get("spec")
+        if not isinstance(spec, dict):
+            continue
+
+        for collection_name, field_name in (("defaults", "value"), ("inputs", "default")):
+            entries = spec.get(collection_name)
+            if not isinstance(entries, dict):
+                continue
+            for entry_name, entry_spec in entries.items():
+                if not isinstance(entry_name, str) or not isinstance(entry_spec, dict):
+                    continue
+                if field_name not in entry_spec or isinstance(entry_spec[field_name], str):
+                    continue
+                violations.append(
+                    Violation(
+                        rule_id="R052",
+                        path=doc.path,
+                        line=_template_mapping_field_line(
+                            doc,
+                            collection_name,
+                            entry_name,
+                            field_name,
+                        ),
+                        message=(
+                            f"spec.{collection_name}.{entry_name}.{field_name} must be a YAML string, "
+                            f"got {_yaml_value_type_name(entry_spec[field_name])}; encode this field as a "
+                            "string and quote numeric-, boolean-, and null-like scalars"
+                        ),
+                    )
+                )
+
+    return violations
+
+
 def _find_branch_end(lines: List[str], start_index: int) -> int:
     depth = 0
     for index in range(start_index, len(lines)):
@@ -4289,6 +4404,7 @@ APP_RULES: Dict[str, Rule] = {
     "R043": Rule("R043", check_configmap_file_mount_contract),
     "R044": Rule("R044", check_object_storage_input_contract),
     "R045": Rule("R045", check_template_input_references_declared),
+    "R052": Rule("R052", check_template_default_scalar_types),
     "R047": Rule("R047", check_external_object_storage_inputs),
     "R049": Rule("R049", check_license_gated_object_storage_options),
     "R031": Rule("R031", check_ingress_name_matches_backends),

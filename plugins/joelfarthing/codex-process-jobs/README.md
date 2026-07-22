@@ -35,7 +35,7 @@ The detached runtime and installer are functional and tested on macOS and Linux.
 
 A successful start releases the assigning turn immediately. Completion state is durable; consent-gated hooks and experimental Codex transports provide best-effort conversational pickup without polling. Explicit status and result retrieval remain available on every supported surface. Compatible sibling completions can share one sanitized turn, while a busy owning task receives a bounded retry followed by a cheap idle watch.
 
-Goal mode integrates with an explicitly active Codex Goal without reading private Goal state: automatic continuations do independent authorized work while the job runs, wait once when result-gated, and inspect terminal evidence before continuing an already-authorized next step.
+Goal mode integrates with an explicitly active Codex Goal without reading private Goal state: automatic continuations do independent authorized work while the job runs, use the host blocked audit rather than polling when result-gated, and inspect terminal evidence before continuing an already-authorized next step.
 
 The repository includes a repeatable surface acceptance test. For transport behavior, limitations, and empirical client results, see [Conversational completion relay](docs/notification-relay.md), [Cartesian client and execution surfaces](docs/cartesian-surfaces.md), and [VS Code completion wake research](docs/vscode-wake-research-and-process.md).
 
@@ -92,6 +92,7 @@ The included [three-arm token benchmark](benchmarks/token-savings/README.md) mea
 - macOS or Linux
 - Node.js 18 or newer
 - A Codex client with local plugin support
+- Bash at `/bin/bash` only when using Bash command mode (`--shell`); direct argv and `--posix-sh` do not require it
 - Optional desktop notices: macOS `osascript`, or Linux `notify-send` in a graphical session
 
 No runtime npm packages are required. Missing desktop-notification support does not affect detached jobs, durable state, or conversational completion.
@@ -225,11 +226,15 @@ node scripts/job.mjs cancel JOB_ID
 node scripts/job.mjs config --notify-user true
 ```
 
-Use explicit shell mode only when pipes, redirection, globbing, or other shell syntax is required:
+Use explicit Bash mode when a command needs `pipefail`, pipes, redirection, globbing, or other Bash syntax. CPJ uses deterministic non-login `/bin/bash -c`, not `/bin/sh` or `$SHELL`:
 
 ```bash
-node scripts/job.mjs start --shell -- 'cmake --build build 2>&1 | tee build.log'
+node scripts/job.mjs start --shell -- 'set -o pipefail; cmake --build build 2>&1 | tee build.log'
 ```
+
+Use `--posix-sh` instead only for command strings intentionally limited to POSIX `/bin/sh -c`. Direct argv mode remains the default and safest option.
+
+Jobs created before this change remain schema-v1 records and retain their historical `/bin/sh -lc` behavior when read by a newer installation; new jobs record an explicit schema-v2 execution descriptor.
 
 ## Critical jobs
 
@@ -247,7 +252,7 @@ Specific-job status checks are deliberately lightweight. They read the job recor
 
 Repeated JSON reads can be incremental. `tail` accepts a generic `--since-byte`/`--since-generation` pair when exactly one stream is selected. `status` and `result`, or a two-stream `tail`, use independent `--stdout-since-*` and `--stderr-since-*` cursors. Reuse each returned `nextOffset` and `generation` on the next read. If bounded-log compaction changes the byte stream, the response sets `compacted: true`; every read remains model-bounded.
 
-When the owning persistent task is available, ordinary start reports notification as `pending`. The launch response must preserve four facts: background job label/id, durable completion with possible live notification, later conversational recap, and status available on user request. Goal-mode launches use a distinct contract: durable completion, terminal pickup by automatic Goal continuation, idle-thread direct-delivery fallback, and on-request status. After either report the launch turn ends without monitoring. Only an explicit request to keep that exact turn open and wait overrides the boundary. A later Goal continuation does independent work first; if result-gated, it makes one bounded wait and ends on timeout without another probe. Codex never creates a Goal merely because a job exists. See [Conversational completion relay](docs/notification-relay.md).
+When the owning persistent task is available, ordinary start reports notification as `pending`. The launch response must preserve four facts: background job label/id, durable completion with possible live notification, later conversational recap, and status available on user request. Goal-mode launches use a distinct contract: durable completion, terminal pickup by automatic Goal continuation, idle-thread direct-delivery fallback, and on-request status. After either report the launch turn ends without monitoring. Only an explicit user request to keep that exact turn open and wait overrides the boundary. A later automatic Goal continuation does independent work only; if result-gated, it makes no process probe and follows the host blocked audit until the relay or a hook surfaces terminal state. Codex never creates a Goal merely because a job exists. See [Conversational completion relay](docs/notification-relay.md).
 
 ## Safety model
 
@@ -275,7 +280,7 @@ npm run check
 npm run smoke
 ```
 
-The test suite covers real detached launches, private Desktop IPC and app-server completion relays, cheap idle watching, sibling batching, prompt-data isolation, matching durable turn confirmation, structured post-tool/stop/next-prompt hook output, one-shot launch-boundary reinforcement, persisted security-field validation, tampered log-path rejection, bounded incremental model-facing output, optional argv-only OS notifications, critical cancellation, shell mode, atomic concurrent state updates, Darwin/Linux process-identity parsing, installer rollback boundaries, explicit global/project/none policy consent, marketplace preservation, and idempotent agent-policy insertion. GitHub Actions runs `npm run check` on macOS and Ubuntu with Node.js 18 and 22.
+The test suite covers real detached launches, private Desktop IPC and app-server completion relays, cheap idle watching, sibling batching, prompt-data isolation, matching durable turn confirmation, structured post-tool/stop/next-prompt hook output, one-shot launch-boundary reinforcement, persisted security-field validation, tampered log-path rejection, bounded incremental model-facing output, optional argv-only OS notifications, critical cancellation, Bash/POSIX shell selection with legacy-schema compatibility, atomic concurrent state updates, Darwin/Linux process-identity parsing, installer rollback boundaries, explicit global/project/none policy consent, marketplace preservation, and idempotent agent-policy insertion. GitHub Actions runs `npm run check` on macOS and Ubuntu with Node.js 18 and 22.
 
 Use [the surface smoke test](docs/surface-smoke-test.md) after installation to verify skill discovery independently in Codex App, VS Code, CLI, and mobile-to-remote tasks.
 

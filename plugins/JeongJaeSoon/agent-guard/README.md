@@ -41,6 +41,9 @@ Optional Claude shell command wrapping requires an explicit shell-rc change:
 /agent-guard:setup-shell
 ```
 
+The slash command uses Claude's Bash tool so a sandboxed session can request
+approval before changing the shell rc. If the host cannot grant that approval,
+run the plugin-local `agent-guard setup-shell` command directly in a terminal.
 Restart the shell and Claude Code after setup. Dependency downloads never run
 from a lifecycle hook. Until wrapping is loaded, SessionStart repeats the
 `/agent-guard:setup-shell` instruction. The guided setup path asks before
