@@ -1,6 +1,6 @@
 {
   "name": "claude-math",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Emit mathematics as inline Unicode (∑, ≤, ℝ, x², matrices, set-builder) instead of LaTeX, so equations stay legible in the Codex TUI and any terminal. Copy- and search-safe. Also works in Claude Code.",
   "author": {
     "name": "Vladimir Rotariu",

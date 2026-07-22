@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 112" role="img" aria-label="Token Harbor">
+  <rect width="112" height="112" rx="20" fill="#083C46"/>
+  <path d="M15 73c13-9 24-9 36 0 12 9 24 9 46-4v17c-22 13-34 13-46 4-12-9-23-9-36 0z" fill="#4DC7C8"/>
+  <path d="M31 58h49L72 77H40z" fill="#F3C451"/>
+  <path d="M51 22h10v37H51z" fill="#F7F4E8"/>
+  <path d="M61 28l24 12-24 12z" fill="#E65F4F"/>
+  <text x="136" y="54" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#083C46">Token Harbor</text>
+  <text x="138" y="83" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0B6E75">CODEX COMPANION</text>
+</svg>

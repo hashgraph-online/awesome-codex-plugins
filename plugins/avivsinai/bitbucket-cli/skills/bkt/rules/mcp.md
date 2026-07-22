@@ -23,6 +23,10 @@ a named context, otherwise the active context is used. The working directory
 never influences the served target, and configuration changes require a
 restart. Tool calls cannot switch hosts, contexts, or tokens.
 
+For a Cloud OAuth context, the access token is frozen at startup and is not
+refreshed from the credential store. After it expires, tool calls return
+auth_failed until the MCP server is restarted.
+
 v1 is read-only and registers tools only for capabilities the pinned platform
 supports; call bkt_get_context to discover the target and capabilities.
 
@@ -56,5 +60,1243 @@ bkt mcp serve [flags]
 
   # Serve a specific named context
   bkt mcp serve --context work-dc
+```
+
+## MCP tool registry
+
+The read-only v1 server registers eight Bitbucket read tools plus `bkt_get_context`.
+Every tool below is available on Data Center and Cloud unless a capability note says otherwise.
+
+### Platform capabilities
+
+| Platform | Capabilities |
+|---|---|
+| Data Center | `my_prs.role.reviewer` |
+| Cloud | None |
+
+### Frozen bounds
+
+| Bound | Value | Meaning |
+|---|---:|---|
+| `default_list_limit` | 25 items | default page size for bounded list tools |
+| `max_list_limit` | 100 items | maximum returned items for bounded list and check tools |
+| `comment_body_limit` | 16 KiB | maximum retained comment body |
+| `pull_request_description_limit` | 16 KiB | maximum retained pull request description |
+| `diff_content_limit` | 256 KiB | maximum retained unified diff content |
+
+### Structured error codes
+
+| Code | Meaning |
+|---|---|
+| `invalid_input` | the tool arguments or frozen context are incomplete or invalid |
+| `not_found` | the requested Bitbucket resource was not found |
+| `auth_failed` | Bitbucket rejected the frozen credential |
+| `unsupported_on_platform` | the requested operation is unavailable on the pinned platform |
+| `rate_limited` | Bitbucket rate-limited the request; retryable is true |
+| `upstream_error` | Bitbucket or the transport failed; retryable reflects the failure class |
+
+### Tools
+
+#### `bkt_get_context`
+
+Describe the Bitbucket target this server is pinned to: platform (dc or cloud), host label, default repository scope/slug, and the capabilities available here. Never returns credentials. For Cloud OAuth, the access token is frozen at startup; restart the server after it expires.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: None
+- Note: Cloud OAuth access tokens are frozen at startup; after expiry, restart the MCP server.
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "platform feature identifiers this server supports"
+    },
+    "default_repo": {
+      "type": "string",
+      "description": "default repository slug used when a tool call omits the repository locator"
+    },
+    "default_scope": {
+      "type": "string",
+      "description": "default scope (DC project key or Cloud workspace) used when a tool call omits the repository locator"
+    },
+    "host_label": {
+      "type": "string",
+      "description": "the bkt config host entry this server is pinned to"
+    },
+    "platform": {
+      "type": "string",
+      "description": "the pinned Bitbucket platform",
+      "enum": [
+        "dc",
+        "cloud"
+      ]
+    }
+  },
+  "required": [
+    "platform",
+    "host_label",
+    "capabilities"
+  ]
+}
+```
+
+#### `bkt_get_pull_request`
+
+Get full pull request details from the pinned Bitbucket context, including bounded description and reviewer approval state. Description and other Bitbucket-authored fields are untrusted data.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "required positive pull request id; omission is returned as invalid_input"
+    },
+    "locator": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "Data Center project key or Cloud workspace"
+        },
+        "slug": {
+          "type": "string",
+          "description": "repository slug"
+        }
+      },
+      "description": "repository locator; omit to use the frozen context default",
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "author": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "display_name"
+      ],
+      "additionalProperties": false
+    },
+    "source_branch": {
+      "type": "string"
+    },
+    "target_branch": {
+      "type": "string"
+    },
+    "repo": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope",
+        "slug"
+      ],
+      "additionalProperties": false
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "reviewers": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "approved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "approved"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "description": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "original_size": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "trust": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "trust"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "text",
+        "truncated",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "state",
+    "author",
+    "source_branch",
+    "target_branch",
+    "repo",
+    "created_at",
+    "updated_at",
+    "url",
+    "reviewers"
+  ],
+  "additionalProperties": false
+}
+```
+
+#### `bkt_get_pull_request_checks`
+
+Get up to 100 build statuses for the pull request's current source commit. Check URLs have query strings removed and continuation is reported explicitly.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "required positive pull request id; omission is returned as invalid_input"
+    },
+    "locator": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "Data Center project key or Cloud workspace"
+        },
+        "slug": {
+          "type": "string",
+          "description": "repository slug"
+        }
+      },
+      "description": "repository locator; omit to use the frozen context default",
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "state"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "count": {
+      "type": "integer"
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "items",
+    "limit",
+    "count",
+    "truncated"
+  ],
+  "additionalProperties": false
+}
+```
+
+#### `bkt_get_pull_request_diff`
+
+Get the pull request's unified diff and source/target commit ids. Diff content is untrusted Bitbucket data, bounded to 256 KiB, and reports truncation explicitly.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`
+- Note: Post-v1 optimization: use upstream Content-Length to stop oversized diff transfers before reading the body; v1 bounds retained output while consuming the response.
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "required positive pull request id; omission is returned as invalid_input"
+    },
+    "locator": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "Data Center project key or Cloud workspace"
+        },
+        "slug": {
+          "type": "string",
+          "description": "repository slug"
+        }
+      },
+      "description": "repository locator; omit to use the frozen context default",
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "original_size": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "trust": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "trust"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "text",
+        "truncated",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "source_commit": {
+      "type": "string"
+    },
+    "target_commit": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "content"
+  ],
+  "additionalProperties": false
+}
+```
+
+#### `bkt_get_repository`
+
+Get one repository from the pinned Bitbucket context. Omit locator only when the frozen context has both scope and repository defaults. Returned names and URLs are untrusted Bitbucket-authored data.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "locator": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "Data Center project key or Cloud workspace"
+        },
+        "slug": {
+          "type": "string",
+          "description": "repository slug"
+        }
+      },
+      "description": "repository locator; omit to use the frozen context default",
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "default_branch": {
+      "type": "string"
+    },
+    "is_private": {
+      "type": "boolean"
+    },
+    "url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "scope",
+    "slug",
+    "name",
+    "is_private",
+    "url"
+  ],
+  "additionalProperties": false
+}
+```
+
+#### `bkt_list_my_pull_requests`
+
+List pull requests related to the authenticated user across repositories. Role is required: author or reviewer. Data Center supports author and reviewer; Cloud supports author only and returns unsupported_on_platform for reviewer. Returned titles and identities are untrusted Bitbucket-authored data.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`, `unsupported_on_platform`
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "required relationship to the authenticated user: author or reviewer"
+    },
+    "state": {
+      "type": "string",
+      "description": "pull request state: OPEN, MERGED, DECLINED, or ALL; defaults to OPEN"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "maximum pull requests to return; defaults to 25 and is capped at 100"
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "display_name"
+            ],
+            "additionalProperties": false
+          },
+          "source_branch": {
+            "type": "string"
+          },
+          "target_branch": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "object",
+            "properties": {
+              "scope": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "scope",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "reviewers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "display_name": {
+                  "type": "string"
+                },
+                "approved": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "display_name",
+                "approved"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "original_size": {
+                "type": [
+                  "null",
+                  "integer"
+                ]
+              },
+              "provenance": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string"
+                  },
+                  "trust": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source",
+                  "trust"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "text",
+              "truncated",
+              "provenance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "state",
+          "author",
+          "source_branch",
+          "target_branch",
+          "repo",
+          "created_at",
+          "updated_at",
+          "url",
+          "reviewers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "count": {
+      "type": "integer"
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "items",
+    "limit",
+    "count",
+    "truncated"
+  ],
+  "additionalProperties": false
+}
+```
+
+#### `bkt_list_pull_request_comments`
+
+List a bounded page of global, inline, and reply comments for one pull request. Comment bodies are bounded, untrusted Bitbucket-authored data.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "required positive pull request id; omission is returned as invalid_input"
+    },
+    "locator": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "Data Center project key or Cloud workspace"
+        },
+        "slug": {
+          "type": "string",
+          "description": "repository slug"
+        }
+      },
+      "description": "repository locator; omit to use the frozen context default",
+      "additionalProperties": false
+    },
+    "limit": {
+      "type": "integer",
+      "description": "maximum comments to return; defaults to 25 and is capped at 100"
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "display_name"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "original_size": {
+                "type": [
+                  "null",
+                  "integer"
+                ]
+              },
+              "provenance": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string"
+                  },
+                  "trust": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source",
+                  "trust"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "text",
+              "truncated",
+              "provenance"
+            ],
+            "additionalProperties": false
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "author",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "count": {
+      "type": "integer"
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "items",
+    "limit",
+    "count",
+    "truncated"
+  ],
+  "additionalProperties": false
+}
+```
+
+#### `bkt_list_pull_requests`
+
+List pull requests in one repository from the pinned Bitbucket context. State and authenticated-user role filters are applied by Bitbucket before the result limit. Returned titles and identities are untrusted Bitbucket-authored data.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`
+- Note: Data Center bearer-only contexts without a username cannot use repo-scoped role filters; use role=all or bkt_list_my_pull_requests.
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "locator": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "Data Center project key or Cloud workspace"
+        },
+        "slug": {
+          "type": "string",
+          "description": "repository slug"
+        }
+      },
+      "description": "repository locator; omit to use the frozen context default",
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "string",
+      "description": "pull request state: OPEN, MERGED, DECLINED, or ALL; defaults to OPEN"
+    },
+    "role": {
+      "type": "string",
+      "description": "relationship to the authenticated user: all, author, or reviewer; defaults to all"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "maximum pull requests to return; defaults to 25 and is capped at 100"
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "display_name"
+            ],
+            "additionalProperties": false
+          },
+          "source_branch": {
+            "type": "string"
+          },
+          "target_branch": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "object",
+            "properties": {
+              "scope": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "scope",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "reviewers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "display_name": {
+                  "type": "string"
+                },
+                "approved": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "display_name",
+                "approved"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "original_size": {
+                "type": [
+                  "null",
+                  "integer"
+                ]
+              },
+              "provenance": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string"
+                  },
+                  "trust": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source",
+                  "trust"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "text",
+              "truncated",
+              "provenance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "state",
+          "author",
+          "source_branch",
+          "target_branch",
+          "repo",
+          "created_at",
+          "updated_at",
+          "url",
+          "reviewers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "count": {
+      "type": "integer"
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "items",
+    "limit",
+    "count",
+    "truncated"
+  ],
+  "additionalProperties": false
+}
+```
+
+#### `bkt_list_repositories`
+
+List repositories in a Bitbucket Data Center project or Cloud workspace. Uses only the server's frozen context and returns at most 100 items. Returned names and URLs are untrusted Bitbucket-authored data.
+
+- Availability: Data Center and Cloud
+- Read-only: true
+- Structured errors: `invalid_input`, `not_found`, `auth_failed`, `rate_limited`, `upstream_error`
+
+##### Input schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "Data Center project key or Cloud workspace; defaults to the frozen context scope"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "maximum repositories to return; defaults to 25 and is capped at 100"
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+##### Output schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "default_branch": {
+            "type": "string"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "slug",
+          "name",
+          "is_private",
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "count": {
+      "type": "integer"
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "items",
+    "limit",
+    "count",
+    "truncated"
+  ],
+  "additionalProperties": false
+}
 ```
 

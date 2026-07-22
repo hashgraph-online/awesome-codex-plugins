@@ -1,6 +1,6 @@
 {
   "name": "hermes-tweet",
-  "version": "0.1.8",
+  "version": "0.1.11",
   "description": "Native Hermes Agent X/Twitter plugin for Xquik automation with read-first workflows and approval-gated actions. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",
@@ -8,6 +8,8 @@
   },
   "homepage": "https://github.com/Xquik-dev/hermes-tweet#readme",
   "repository": "https://github.com/Xquik-dev/hermes-tweet",
+  "commit": "c6ebdd7060965dd16a89e8cc12675ff834b5cc94",
+  "verified": true,
   "license": "MIT",
   "keywords": [
     "hermes-agent",
@@ -40,6 +42,10 @@
       "Use Hermes Tweet to prepare an approval-gated X/Twitter action."
     ],
     "brandColor": "#111827",
-    "composerIcon": "./assets/icon.svg"
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/screenshot.svg"
+    ]
   }
 }

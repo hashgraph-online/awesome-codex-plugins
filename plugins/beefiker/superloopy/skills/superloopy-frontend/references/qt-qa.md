@@ -1,20 +1,20 @@
 # Qt QA
 
-Apply this evidence gate to Qt Widgets, Qt Quick/QML, and mixed work. A successful build is necessary but does not prove native rendering or interaction.
+Apply this evidence gate to Qt Widgets, Qt Quick/QML, and mixed work, including their WebAssembly routes when selected. Define the **validation scope** from the changed claims, affected journey, adjacent regression surface, and consequence risk. A successful build is necessary for executable changes but does not by itself prove real-target rendering or interaction.
 
 ## Commands
 
-Record and run the repository's exact commands, with the candidate revision and build directory identifiable:
+Record the repository's exact commands with the candidate revision and build directory identifiable. An implementation must run and pass all applicable commands; a plan must name the intended commands and clearly mark them as not yet run.
 
-Every implementation or release-proof plan must explicitly name the configure/build, Qt Test/ctest, and repository lint/static gates. All applicable commands must run and pass. When no relevant repository lint/static check exists, mark that gate `N/A` with evidence instead of omitting it or claiming a pass. Missing required build or test infrastructure is a disclosed blocker, not `N/A` or a pass.
+Every implementation or release-proof plan must explicitly classify the configure/build, Qt Test/ctest, and repository lint/static gates. An executable Qt UI change requires a real configure/build. A docs-only or otherwise non-executable contract change may mark configure/build `not applicable` with a reason. Run affected existing tests and add focused automated coverage for changed behavior where the repository supports it. Missing required build infrastructure is a blocker for an executable claim. Missing test infrastructure is a disclosed gap, not an automatic blocker for every narrow change; it becomes a blocker when the changed risk cannot be covered truthfully by another reproducible behavioral check or when release criteria require that test layer.
 
 Before returning a plan, include a **Repository gates** block:
 
-- **Configure/build:** the applicable command that must run and pass, or `BLOCKED` when required infrastructure is missing.
-- **Qt Test/ctest:** the applicable command that must run and pass, or `BLOCKED` when required infrastructure is missing.
+- **Configure/build:** the applicable command and result, `BLOCKED` when required infrastructure is missing, or `N/A with reason` for a docs-only/non-executable change.
+- **Qt Test/ctest:** the affected command and result; otherwise `GAP with evidence`, or `BLOCKED` when an unverified high-consequence behavior or release criterion requires it.
 - **Lint/static:** the applicable command that must run and pass, or `N/A with evidence` that no relevant repository check exists.
 
-Never use `N/A` for a required build or test gate.
+Never use `N/A` for a required executable build, and never turn an unverified changed behavior into a pass.
 
 - **Project configure/build:** the existing CMake, qmake, preset, or wrapper command for the real UI target.
 - **Qt Test/ctest:** the affected Qt Test executable or focused `ctest` invocation, followed by the project's required suite.
@@ -26,15 +26,15 @@ Keep the command output as evidence. Use official [`qmllint`](https://doc.qt.io/
 
 ## State matrix
 
-Exercise every applicable row with both behavior checks and visual inspection:
+Build the state matrix from the applicable changed journey and adjacent regression risk. Exercise every selected row with behavior checks; add visual inspection for a changed visual claim or an interaction with a visible-state/layout consequence.
 
 | Surface/state | Required coverage |
 | --- | --- |
 | Core control | Normal, hover when supported, pressed, focused, selected/checked, disabled, and inactive |
 | Transient/data | Popups/editors and empty, loading, and error states |
-| Environment | Localization including CJK/RTL/long text, resizing at minimum and expanded sizes, and representative DPR/mixed-screen movement |
+| Environment | Applicable localization including CJK/RTL/long text, target window classes or orientations, and representative supported DPR/display transitions |
 
-Record a reason for every non-applicable state. Test keyboard, pointer, touch when supported, and assistive-technology actions against the same semantic outcome; interrupt motion and asynchronous state changes before also checking their settled state.
+Record a reason for every non-applicable state. Test keyboard, pointer, touch, pen, switch, and assistive-technology actions when supported against the same semantic outcome; interrupt motion and asynchronous state changes before also checking their settled state.
 
 ## Deterministic branded gallery
 
@@ -44,13 +44,13 @@ Keep Qt Test behavior and accessibility checks beside the gallery. An offscreen 
 
 ## Capture contract
 
-Capture the real target application built from the candidate revision in the named platform, style, theme, graphics backend, locale, and DPR. Wait for fonts, data, layout, transitions, and scene-graph presentation to settle, then show the exercised state rather than a replica or isolated mock.
+When a visual claim changes, or an interaction claim has a visible-state or layout consequence, capture the real target application built from the candidate revision in the named platform, style, theme, graphics backend, locale, and DPR. Wait for fonts, data, layout, transitions, and scene-graph presentation to settle, then show the exercised state rather than a replica or isolated mock. A narrow nonvisual change still needs real-target behavioral evidence for the affected claim, but it may do so without a decorative screenshot.
 
 Use an OS-level capture for native window chrome, platform dialogs, IME/candidate UI, native menus, and separate-window popups. A `QQuickWidget::grabFramebuffer()`, `QQuickWindow`/client grab, offscreen renderer, virtual display, or headless image is functional evidence for the pixels it contains; **offscreen capture is not native evidence** and cannot verify surfaces outside that client/framebuffer boundary. If OS capture of a required target is unavailable, list that surface as unverified rather than substituting a browser or synthetic frame.
 
 ## `VISUAL_QA.md` fields
 
-Create `VISUAL_QA.md` under the active evidence root and fill every field:
+Create `VISUAL_QA.md` under the active evidence root for a visual claim or an interaction claim with a visible-state or layout consequence. For a narrow nonvisual change, record `VISUAL_QA.md: not applicable` with the reason in the run receipt and retain behavioral, accessibility, and regression evidence instead. When the file is required, fill every applicable field and mark unsupported fields not applicable with a reason:
 
 ```markdown
 Platform:
@@ -77,6 +77,6 @@ Pixel diffs and ranked hotspots are **screenshot guidance, never a verdict**. Th
 
 ## Qt exclusions
 
-Lighthouse is not Qt proof. React Doctor, CSS compliance, and a browser viewport matrix are also not evidence for a Qt surface. Use them only for a separately scoped web route; never substitute them for Qt build/tests, real-target interaction, or native capture.
+Lighthouse is not Qt proof. React Doctor, CSS compliance, and a browser viewport matrix do not prove Qt build, QML behavior, or renderer semantics. Use them only for the separately scoped Web owner of an embedded client or Qt WebAssembly target; never substitute them for Qt build/tests, Qt-owned interaction/renderer proof, or applicable native capture.
 
-The Qt gate passes only when the commands succeed, applicable states are exercised, findings are fixed and recaptured, and every uncaptured target surface is disclosed under `Unverified surfaces`.
+The Qt gate passes only when the applicable commands succeed, selected states are exercised, visual findings are fixed and recaptured when relevant, and every claimed but unverified target surface is disclosed.

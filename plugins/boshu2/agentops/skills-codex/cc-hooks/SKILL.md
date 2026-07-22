@@ -1,6 +1,6 @@
 ---
 name: cc-hooks
-description: Claude Code hooks and the AgentOps
+description: Configure default Claude Code enforcement
 ---
 # Claude Code Hooks
 

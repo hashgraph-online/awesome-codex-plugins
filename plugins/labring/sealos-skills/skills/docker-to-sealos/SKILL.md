@@ -1,6 +1,6 @@
 ---
 name: docker-to-sealos
-description: Convert Docker Compose files or installation docs into production-grade Sealos templates. Use when user has a docker-compose.yml and wants a Sealos or Kubernetes template, wants to migrate from Docker Compose to Sealos, needs to convert container orchestration configs to Sealos format, or mentions compose-to-template conversion. Also triggers on "/docker-to-sealos".
+description: Convert Docker Compose files or installation docs into production-grade Sealos templates with role-specific personal low-load resource sizing. Use when user has a docker-compose.yml and wants a Sealos or Kubernetes template, wants to migrate from Docker Compose to Sealos, needs to convert container orchestration configs to Sealos format, or mentions compose-to-template conversion. Also triggers on "/docker-to-sealos".
 ---
 
 # Docker to Sealos Template Converter
@@ -244,7 +244,7 @@ For managed or private object storage, live validation must upload known bytes t
 
 ### Baseline runtime defaults
 
-Unless source docs explicitly require otherwise, use the lightweight app ladder entry:
+Unless source docs explicitly require otherwise, use this lightweight app ladder entry as the initial personal low-load candidate:
 
 - container limits: `cpu=200m`, `memory=256Mi`
 - container requests: `cpu=20m`, `memory=25Mi`
@@ -252,25 +252,25 @@ Unless source docs explicitly require otherwise, use the lightweight app ladder 
 - `automountServiceAccountToken: false` by default; set it to `true` only when the application has explicit Kubernetes API/service account token requirements, evidenced by Kubernetes integration settings, `serviceAccountName`, or a `sealos.io/service-account-token-reason` workload annotation.
 - If a workload emits PodSecurity admission warnings and the image runs as a non-root user, add the restricted-compatible security context before reporting the template ready.
 
-For higher resource needs, move only to another allowed `limits` ladder entry and recompute `requests` from that `limits` value.
+Static generation cannot prove the final resource tier. Complete live resource validation before treating the candidate as the final template value.
 
-### Browser / remote desktop resource validation
+### Personal low-load resource validation
 
-For browser, VNC, WebRTC desktop, Xvfb, Selkies, noVNC, Kasm, or remote-desktop-style containers:
+Apply the resource ladder independently to every application main container, sidecar, initContainer, and Job:
 
-- Do not treat a short smoke test as proof of a stable minimum memory value.
-- Validate memory with a fresh deployment, not only a patched warm pod.
-- Exercise cold start until readiness, a lightweight page, a real/medium page, an interactive/search page, and a 60s post-smoke stability check.
-- If observed cgroup memory reaches more than 80% of the limit during smoke, move to the next allowed Sealos memory ladder value.
+- The final CPU and memory limits must be the lowest Sealos ladder tiers that pass role-specific personal low-load validation, while an explicit source hard minimum remains the lower bound.
+- Tune CPU and memory separately, one ladder step at a time, and use a fresh rollout or cold execution for every candidate.
+- A passing long-running workload must complete cold start, become Ready, complete registration or login when applicable, complete at least two representative low-load actions, and remain stable for 60 seconds with zero `OOMKilled` terminations, restarts, readiness flaps, or resource-related timeouts.
+- A passing one-shot initContainer or Job must complete successfully from a cold run and allow every dependent workload to become Ready.
+- If a lower tier fails any acceptance signal, use the next passing tier and repeat final validation from a fresh rollout.
+- Treat observed CPU and memory peaks and utilization percentages as diagnostic evidence; acceptance failures trigger tier promotion.
 - Keep requests derived from limits according to the Sealos resource ladder.
 
-Example:
-- Bad: Chrome passes a short smoke at `512Mi` but reaches `503Mi`; shipping `512Mi` as the stable minimum is unsafe.
-- Good: raise to `1024Mi`, set request to `102Mi`, rerun smoke and stability checks.
+### In-container browser / remote desktop validation
 
-For Chrome + Xvfb + Selkies with 4K max display, use at least:
-- limits: `cpu=200m`, `memory=1024Mi`
-- requests: `cpu=20m`, `memory=102Mi`
+- Apply browser-specific validation only to containers that run Chrome, Chromium, VNC, WebRTC desktop, Xvfb, Selkies, noVNC, Kasm, or a similar remote-desktop stack; browser-accessed web applications such as Langflow use the general personal low-load policy.
+- Exercise cold start through readiness, a lightweight page, a real or medium page, an interactive or search action, and the 60-second stability window.
+- For Chrome + Xvfb + Selkies with a 4K maximum display, start validation at `limits(cpu=200m,memory=1024Mi)` with derived `requests(cpu=20m,memory=102Mi)`, then test adjacent ladder tiers under the same acceptance contract.
 
 ### Defaults vs inputs
 

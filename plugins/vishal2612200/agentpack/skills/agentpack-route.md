@@ -1,6 +1,7 @@
 ---
 name: agentpack-route
 description: Run read-only AgentPack task routing for ranked files, tests, rules, commands, and warnings.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Route

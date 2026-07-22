@@ -178,7 +178,7 @@ That puts `emulo` on your path. `emulo` runs the miner, `emulo --dry-run` prints
 The native plugin adds `emulo:mine`, `emulo:work`, `emulo:design`, `emulo:write`, and `emulo:video`:
 
 ```bash
-codex plugin marketplace add ohad6k/emulo --ref v0.5.0 --json
+codex plugin marketplace add ohad6k/emulo --ref v0.6.0 --json
 codex plugin add emulo@emulo --json
 ```
 
@@ -291,7 +291,7 @@ See [SECURITY.md](SECURITY.md) for the exact boundary.
 The legacy extractor remains available and backward compatible:
 
 ```bash
-curl -O https://raw.githubusercontent.com/ohad6k/emulo/v0.5.0/emulo.py
+curl -O https://raw.githubusercontent.com/ohad6k/emulo/v0.6.0/emulo.py
 python emulo.py --dry-run
 python emulo.py --chunks 4 --out emulo-out
 ```

@@ -1,0 +1,30 @@
+{
+  "name": "hera-unity",
+  "version": "1.0.0",
+  "description": "Low-token live Unity Editor workflows through the Hera CLI.",
+  "author": {
+    "name": "NotNull92"
+  },
+  "homepage": "https://github.com/NotNull92/hera-agent-unity#agent-integrations",
+  "repository": "https://github.com/NotNull92/hera-agent-unity",
+  "license": "MIT",
+  "keywords": [
+    "unity",
+    "game-development",
+    "cli",
+    "qa"
+  ],
+  "interface": {
+    "displayName": "Hera Unity",
+    "shortDescription": "Control and verify a live Unity Editor with a low-token CLI.",
+    "longDescription": "Connect Codex to a running Unity Editor through the Hera CLI to inspect scenes, edit objects and assets, run tests, drive Play Mode, and verify results against live Editor state.",
+    "developerName": "NotNull92",
+    "category": "Development",
+    "composerIcon": "./assets/icon.svg",
+    "defaultPrompt": "Use Hera Unity to inspect the running Unity Editor, make the requested change, and verify the result.",
+    "capabilities": [
+      "Skills"
+    ]
+  },
+  "skills": "./skills/"
+}

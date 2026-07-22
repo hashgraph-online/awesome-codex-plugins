@@ -166,7 +166,7 @@ npx spec-superflow list          # 或通过 npx 使用
 
 ### 版本
 
-- 当前版本：`v0.10.0`
+- 当前版本：`v0.11.0`
 - v0.9.1 highlights：DP-4 执行模式推荐、跨 17 个平台的 portable runtime，以及无插件根路径的 raw-package smoke；详见 [CHANGELOG.md](CHANGELOG.md)
 - v0.9.0 highlights：支持 Node 20/22、model profiles 只读解析，以及 code-reviewer 的最小性审查
 - 自包含插件，不需要运行时安装 OpenSpec 或 Superpowers

@@ -1104,8 +1104,21 @@ resources:
 
 1. Move only between allowed `limits` ladder values.
 2. Recompute `requests` from the selected `limits`; do not preserve old requests.
-3. If a StatefulSet fails readiness at a lower resource tier, recreate or cleanly roll the Pod before testing the next tier so a stale non-ready Pod is not mistaken for the next tier's result.
-4. Choose the lowest tier that becomes Ready and passes application-level probes.
+3. Treat `cpu=200m` and `memory=256Mi` as initial candidates when source evidence provides no explicit hard minimum. Static generation does not establish the final tier.
+4. Tune each application main container, sidecar, initContainer, and Job independently. Change CPU and memory one dimension and one ladder step at a time so failures remain attributable.
+5. Use an explicit source hard minimum as the lower bound. For each candidate, recreate or cleanly roll the Pod or rerun the one-shot workload from a cold state.
+6. Accept a long-running candidate after it completes cold start, becomes Ready, completes registration or login when applicable, completes at least two representative low-load actions, and remains stable for 60 seconds with zero `OOMKilled` terminations, restarts, readiness flaps, or resource-related timeouts.
+7. Accept a one-shot initContainer or Job after it completes successfully from a cold run and every dependent workload becomes Ready.
+8. Record observed CPU and memory peaks and utilization ratios as diagnostic evidence. Use acceptance failures as the tier-promotion signal.
+9. When a lower candidate fails, select the next passing tier and repeat the full acceptance flow from a fresh rollout before updating the template.
+10. Apply the browser and remote-desktop scenario only when the container itself runs Chrome, Chromium, VNC, WebRTC desktop, Xvfb, Selkies, noVNC, Kasm, or a similar stack. A web application that users access from their own browser follows the general personal low-load flow.
+
+**Personal low-load examples:**
+
+- Langflow at `limits.memory=2048Mi` with an observed peak of `1851Mi` keeps `2048Mi` after cold start, login or registration, two representative actions, and the 60-second stability window all pass without failure signals.
+- A candidate that OOMs, restarts, loses readiness, or times out moves to the next memory or CPU ladder tier. The selected tier receives one final cold validation.
+- A high utilization ratio remains eligible when the complete acceptance flow passes. The ratio stays in the runtime evidence for future tuning.
+- For Chrome + Xvfb + Selkies with a 4K maximum display, begin at `limits(cpu=200m,memory=1024Mi)` and derived `requests(cpu=20m,memory=102Mi)`, then test adjacent ladder tiers with the browser-specific interaction flow.
 
 ## Image Configuration Specification
 

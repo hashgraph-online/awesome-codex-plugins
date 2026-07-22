@@ -1076,7 +1076,11 @@ metadata:
 - Docker volumes → StatefulSet + volumeClaimTemplates
 
 ### Existing Template Resource Tuning
-- Tune CPU and memory through the Sealos resource ladder.
+- Tune CPU and memory through the Sealos resource ladder, one dimension and one step at a time for each application main container, sidecar, initContainer, and Job.
+- Select the lowest tier that passes a fresh role-specific personal low-load validation: cold start, readiness or successful completion, registration or login when applicable, at least two representative actions for long-running workloads, and a 60-second stability observation.
+- Promote a candidate when OOM kills, restarts, readiness flaps, or resource-related timeouts occur. Record peak utilization percentages as diagnostic evidence.
+- Treat `200m/256Mi` as the static initial candidate when source evidence supplies no explicit hard minimum. Keep KubeBlocks database components on their separate `500m/512Mi` contract.
+- Apply the browser and remote-desktop interaction scenario only when the container itself runs that stack. Browser-accessed web applications use the general personal low-load flow.
 - Preserve existing `ephemeral-storage` requests and limits exactly during template refreshes.
 - Change `ephemeral-storage` only when live evidence shows `EphemeralStorage`, eviction, or disk-pressure failures for that workload.
 - Adjust `requests.ephemeral-storage` and `limits.ephemeral-storage` together for the same container.

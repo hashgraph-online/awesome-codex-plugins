@@ -1,28 +1,32 @@
 ---
 name: agentpack
-description: Explain AgentPack status and choose the next local context step in a Codex session.
+description: Route normal development through AgentPack's work, learn, finish, and doctor loop.
+license: AGPL-3.0-only
 ---
 
 # AgentPack
 
-Use when the user invokes `$agentpack` or asks whether AgentPack context is ready.
+Use when the user invokes `$agentpack`, asks what to do next, or wants the normal AgentPack product workflow.
 
 AgentPack is not a coding agent. AgentPack is a local context engine that helps Codex start with ranked repo context.
 
-## Steps
+## Product Loop
 
-1. Check whether `.agentpack/context.md` exists.
-2. If it exists, inspect its freshness block and task summary before editing.
-3. If context is missing or stale, suggest `$agentpack-route <task>` for read-only orientation or `$agentpack-pack <task>` for a context pack.
-4. Tell Codex to treat selected files as a starting map, not proof of correctness.
-5. Use normal repo search when AgentPack output looks incomplete.
+1. Start concrete work with `agentpack work "<task>"`.
+2. During or after work, use `agentpack learn --json` to present the next three evidence-backed topics.
+3. Finish with `agentpack finish` so checks and task memory are recorded.
+4. Use `agentpack doctor` when integration or context health is unclear.
+
+Use `$agentpack-review`, `$agentpack-resolve`, `$agentpack-pack`, `$agentpack-route`, and `$agentpack-handoff` for those specialized workflows. Treat selected files as a starting map, not proof of correctness, and use normal repository search when AgentPack context is incomplete.
 
 ## Local commands
 
 ```bash
 agentpack status
-agentpack route --task "<task>"
-agentpack pack --task "<task>"
+agentpack work "<task>"
+agentpack learn --json
+agentpack finish
+agentpack doctor
 ```
 
 Prefer AgentPack MCP tools when available: route first, then fetch full context only when needed.

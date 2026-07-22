@@ -2,7 +2,12 @@
 
 ## Purpose
 
-Based on the assessment score and artifact detection results, determine the next action.
+Based first on deployment eligibility, then on the assessment score and artifact
+detection results, determine the next action.
+
+If eligibility is `ineligible` or unresolved `needs_review`, report its evidence and
+STOP. Do not route to artifact detection or `dockerfile-skill`. The matrix below
+applies only to an `eligible` target.
 
 ## Decision Matrix
 
@@ -25,8 +30,12 @@ Based on the assessment score and artifact detection results, determine the next
 
 Read the assessment result and artifact inventory from previous modules.
 
+Confirm that the in-memory eligibility result is `eligible` before reading or using
+the readiness score. A score never overrides an eligibility stop.
+
 ```yaml
 input:
+  eligibility_status: "eligible"
   assessment_score: {0-12}
   assessment_rating: "{Excellent | Good | Fair | Poor}"
   artifacts_status: "{complete | partial | none}"

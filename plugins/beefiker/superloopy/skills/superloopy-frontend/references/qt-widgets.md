@@ -1,6 +1,6 @@
 # Qt Widgets route
 
-Apply [`qt.md`](qt.md), then choose exactly one appearance strategy for each affected widget subtree. Preserve the repository's existing strategy unless the task explicitly changes ownership.
+Apply [`qt.md`](qt.md) with the actual desktop or mobile/tablet target contract, or with the Web plus renderer contracts for Qt Widgets WebAssembly, then choose exactly one appearance strategy for each affected widget subtree. Preserve the repository's existing strategy unless the task explicitly changes ownership. Desktop window, menu, multi-screen, pointer, keyboard, shortcut, and mnemonic obligations apply only when the named target and supported inputs expose them; the mobile contract owns system bars, insets, lifecycle, orientation/posture, and touch behavior on mobile/tablet. WebAssembly keeps browser loading, input, accessibility integration, renderer, and supported-browser proof and does not inherit native-shell behavior.
 
 ## Strategy quick reference
 
@@ -28,19 +28,19 @@ New presentation hooks default to no-op or legacy-equivalent output, and a froze
 
 Use layouts, truthful `sizeHint()`/`minimumSizeHint()`, and `QSizePolicy` to negotiate geometry. Do not position responsive content with fixed rectangles or compensate for a style by hard-coding its current metrics. Let [layout management](https://doc.qt.io/qt-6/layout.html), [size policies](https://doc.qt.io/qt-6/qsizepolicy.html), and the selected [QStyle](https://doc.qt.io/qt-6/qstyle.html) determine usable sizes; verify minimum, preferred, expanded, translated, and enlarged-font cases.
 
-Consume semantic [QPalette](https://doc.qt.io/qt-6/qpalette.html) roles from the effective widget/style palette. Handle and test the `Active`, `Inactive`, and `Disabled` color groups instead of painting one literal "normal" state. Do not assume every native style paints every palette brush; inspect the rendered target when product color ownership is required.
+Consume semantic [QPalette](https://doc.qt.io/qt-6/qpalette.html) roles from the effective widget/style palette. Handle and test the `Active`, `Inactive`, and `Disabled` color groups that the selected style and named target expose or that the product claims, rather than painting one literal "normal" state; record unsupported groups as not applicable with a reason. Do not assume every native style paints every palette brush; inspect the rendered target when product color ownership is required.
 
 ## Interaction and geometry
 
 Initialize the correct `QStyleOption` from the widget or delegate and carry its enabled, active, selected, pressed, direction, and focus state into style drawing. Ask [QStyle](https://doc.qt.io/qt-6/qstyle.html) for metrics, content sizes, sub-element rectangles, and subcontrol rectangles rather than duplicating native geometry.
 
-A custom or composite control must have one semantic part model: the same part identifiers and rectangles drive **paint, event hit-testing, keyboard focus/activation, and accessibility**. A part that is only painted or pointer-clickable is incomplete. Use `QStyleOption` state for visible focus and preserve standard keyboard activation. For a `QStyle::ComplexControl`, make painting and `hitTestComplexControl()` agree; for an ordinary custom widget, use the same geometry in its pointer-event hit testing. Verify both paths at every scale and layout direction.
+A custom or composite control must have one semantic part model: the same part identifiers and rectangles drive **paint, event hit-testing, supported-input focus/activation, and accessibility**. A part that is only painted or invocable through one supported input is incomplete. Use `QStyleOption` state for visible focus and preserve standard keyboard activation when hardware keyboard input is supported. For a `QStyle::ComplexControl`, make painting and `hitTestComplexControl()` agree; for an ordinary custom widget, use the same geometry in its applicable pointer, touch, or pen-event hit testing. Verify every supported path at each selected target scale and layout direction.
 
 For dynamic model/view rows, keep data in the model and implement appearance, `sizeHint()`, editing, and hit behavior with [QStyledItemDelegate](https://doc.qt.io/qt-6/qstyleditemdelegate.html). Do not create a persistent child-widget tree per row merely to style repeated content. Initialize and use the supplied style option so selection, focus, enabled state, palette, direction, and the current style remain coherent.
 
 ## Native and inclusive behavior
 
-Keep native top-level chrome, menus, standard dialogs, focus conventions, and system shortcuts by default; brand the content area inside that boundary. If custom chrome is an explicit requirement, verify window movement/resizing, system controls, modality, multi-screen behavior, keyboard access, and assistive technology on every named target.
+Keep target-native top-level chrome or system bars, standard dialogs, focus conventions, and platform actions by default as applicable; brand the content area inside that boundary. Desktop menus, window movement/resizing, system controls, system shortcuts, and multi-screen behavior are required only on named targets that expose those capabilities. If a custom replacement is explicit, verify the target-applicable window or inset behavior, modality, supported input, system actions, lifecycle, and assistive technology on every named target.
 
 Stock widgets already expose accessibility semantics. Custom widgets and virtual subparts must provide the corresponding `QAccessibleInterface` roles, names, states, values, relationships, and actions, then emit the appropriate accessibility event after state changes. Keep the accessible tree and bounds aligned with the shared paint/hit-test geometry; follow [Accessibility for QWidget Applications](https://doc.qt.io/qt-6/accessible-qwidget.html).
 
@@ -50,10 +50,10 @@ Keep geometry and custom painting device-independent and provide high-density ra
 
 Use [Qt Test](https://doc.qt.io/qt-6/qtest-overview.html) to exercise behavior, not screenshots alone:
 
-- pointer and keyboard paths trigger the same action exactly once;
-- focus traversal, visible focus, shortcuts/mnemonics, enabled/disabled behavior, and cancellation work;
-- paint and hit-test boundaries agree in LTR and RTL at representative scale factors;
-- `Active`, `Inactive`, and `Disabled` palette groups remain legible under each supported style/theme;
+- every supported pointer, touch, pen, keyboard, switch, or assistive action path triggers the same action exactly once;
+- focus traversal, visible focus, shortcuts/mnemonics, enabled/disabled behavior, and cancellation work where the named target and supported inputs expose or require them;
+- paint and hit-test boundaries agree in applicable LTR and RTL layouts at target-selected scale factors;
+- each target-applicable `Active`, `Inactive`, and `Disabled` palette group remains legible under the selected supported style/theme;
 - dynamic rows preserve selection, focus, editing, accessibility, and size hints with long/CJK/emoji text; and
 - custom accessibility state/value changes emit the expected events.
 

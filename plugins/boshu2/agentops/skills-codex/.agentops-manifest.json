@@ -369,8 +369,8 @@
     {
       "name": "cc-hooks",
       "source_skill": "skills/cc-hooks",
-      "source_hash": "1e17e091dea81183aef666cf27321f8f03992ef1cdcdfbc7b3890d842a474b51",
-      "generated_hash": "06a47649e0d36e8ec423031df8f769a181ea10f1d2bcc369063f9bf11017d227"
+      "source_hash": "07547a37d876995ae378c7a458c15c0edf9fef8d0f553c4b64fe89b7881dacde",
+      "generated_hash": "daf70aaf9e19555859ed14177ac44bcb7f29fe7a8e6377df63e5db3b6e62db2b"
     },
     {
       "name": "codebase-recon",
@@ -405,8 +405,8 @@
     {
       "name": "doc",
       "source_skill": "skills/doc",
-      "source_hash": "6ebe03e1bade16684819e9b2dddc7b55d06513904d19f946099615266bd91f8e",
-      "generated_hash": "1743038084a42d861465d7c6bae53f45919da7b43df004ed36fa36e21cce2499"
+      "source_hash": "2c8bac339d06f5fd1f712a1bb1cb7cb5bf4441be20fd07176e557fac8b44e62f",
+      "generated_hash": "02cbcf8758647c0ae661300748a1709883c05cb44b80e6076a624247bb82419f"
     },
     {
       "name": "domain",
@@ -495,8 +495,8 @@
     {
       "name": "rch",
       "source_skill": "skills/rch",
-      "source_hash": "b87b7b2f45670de2b8de531e1a507530aa406de831c91067d68cfcd0de096f7a",
-      "generated_hash": "8181461a3fda8896797484ead3e901a1fe4f2900c295224948a04b4d328f548e"
+      "source_hash": "b1181403f349967821fadf1daa1140035707b2f88f9602dc53fe0ef0519b37f0",
+      "generated_hash": "b57b475bfada95fcfe66665ab45dd977d74d58e36179856c054fd40a90b8ecec"
     },
     {
       "name": "reality-check",

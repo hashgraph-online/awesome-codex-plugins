@@ -1,6 +1,7 @@
 ---
 name: agentpack-review
 description: Run the full AgentPack PR review flow for the current branch or PR with an optional reviewer lens.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Review

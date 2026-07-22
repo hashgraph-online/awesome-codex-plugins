@@ -111,25 +111,30 @@ Good:
 
 ### Rule 3 — Subscripts
 
-- Single Unicode-renderable index: prefer the glyph (x₁, x₂, xᵢ, xⱼ)
-- Multi-character or non-mappable subscript: keep `_{...}` syntax for clarity
+- Single Unicode-renderable index: prefer the glyph (x₁, x₂, xᵢ, xⱼ, xₙ)
+- Multi-character or non-mappable subscript: keep `_{...}` syntax — the
+  underscore reads unambiguously as a subscript and stays more legible than
+  bracket-style indexing:
   - `n_{s,r}` ← (s,r) has no Unicode subscript form
   - `x_max`, `σ_obs` ← multi-letter
 - Never mix: don't write `x_₁` or `x_{1}` when `x₁` works.
 
 ### Rule 4 — Superscripts (powers)
 
-- Integer powers, simple: x², x³, xⁿ, e^x → eˣ
-- Multi-character / non-mappable: `x^{T}`, `x^{(i)}`, `A^{-1}` (or A⁻¹ if the exponent is simple)
+- Simple / Unicode-mappable exponent: prefer the glyph — x², x³, xⁿ, eˣ, A⁻¹,
+  and the transpose xᵀ / vᵀ.
+- Multi-character or expression exponent: use **caret + parentheses**, never
+  `^{...}` — `x^(k+1)`, `x^(i)`, `e^(iπ)`. A bare `x^{T}` / `x^{(i)}` leaks
+  LaTeX source; write `xᵀ` (single glyph) or `x^(i)` (parenthesized).
 
-### Rule 5 — Big operators with indices
+### Rule 5 — Big operators with bounds
 
-Use Unicode operator + ASCII bounds:
+Unicode operator + a **bracketed inline range** — never `_{...}^{...}`. Use `..`
+for a numeric/expression range, `∈` for set membership, `→` for a limit target:
 
 ```
-∑_{i=1}^{n} aᵢ
-∏_{k ∈ K} pₖ
-∫_a^b f(x) dx
+∑[i=1..n] aᵢ            ∏[k ∈ K] pₖ            ∫[a..b] f(x) dx
+∫[-∞..∞] e^(-x²) dx     ⋃[i=1..n] Aᵢ           lim[x→0] f(x)
 ```
 
 ### Rule 6 — Fractions
@@ -172,7 +177,7 @@ Q  =  { (s,r) ∈ T  :  n_{s,r} ≥ 18  ∧  p⁰_{s,r} < 0.9 }
 If a glyph chain becomes denser than the LaTeX it replaces, switch to readable ASCII pseudo-LaTeX and annotate it. Example:
 
 ```
-H(p) = − Σ_{x ∈ X} p(x) · log p(x)        (Σ = sum over the support X)
+H(p) = − ∑[x ∈ X] p(x) · log p(x)        (∑ = sum over the support X)
 ```
 
 The reader's comprehension is the only metric. Choose whichever form is clearest, then stay consistent within a passage.
@@ -193,8 +198,8 @@ Variance          Var(X) = 𝔼[X²] − 𝔼[X]²
 Gradient          ∇f = ( ∂f/∂x₁ , ... , ∂f/∂xₙ )
 Norm              ‖x‖₂ = √(Σᵢ xᵢ²)
 Big-O             T(n) = O(n log n)
-Limit             lim_{n → ∞} aₙ = L
-Sum bounds        ∑_{i=1}^{n} i  =  n(n+1)/2
+Limit             lim[n → ∞] aₙ = L
+Sum bounds        ∑[i=1..n] i  =  n(n+1)/2
 Quantile          q_α = inf{ x : F(x) ≥ α }
 ```
 
@@ -205,6 +210,7 @@ Quantile          q_α = inf{ x : F(x) ≥ α }
 ✗   \( a^2 + b^2 = c^2 \)
 ✗   $$\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}$$
 ✗   \[ |Q|/|T| \approx 16.9\% \]
+✗   ∑_{i=1}^{n}  or  ∫_a^b  or  x^{T}   (stacked bounds / brace exponent leak source even without $…$ — write ∑[i=1..n], ∫[a..b], xᵀ)
 ✗   Let 𝑉𝑎𝑟 = …   or   matrix 𝐀 = …   (math-alphanumeric styling; garbles on copy/search — write Var, A)
 ```
 

@@ -1,0 +1,37 @@
+{
+  "name": "token-optimizer",
+  "version": "5.1.2",
+  "description": "Context-window optimization: caching, compression, and smart file tooling that cut token usage 60-90%.",
+  "author": {
+    "name": "ooples",
+    "url": "https://github.com/ooples"
+  },
+  "homepage": "https://github.com/ooples/token-optimizer-mcp#readme",
+  "repository": "https://github.com/ooples/token-optimizer-mcp",
+  "license": "MIT",
+  "keywords": [
+    "token-optimization",
+    "context-window",
+    "caching",
+    "compression",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Token Optimizer",
+    "shortDescription": "Cut token usage 60-90% with caching, compression, and smart file tools.",
+    "longDescription": "Bundles the token-optimizer MCP server plus a usage skill. smart_read returns diffs on re-reads, smart_glob returns paths only, optimize_session stashes bulky output out-of-context, and get_optimization_report shows total tokens saved.",
+    "developerName": "ooples",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/ooples/token-optimizer-mcp",
+    "defaultPrompt": [
+      "Use token-optimizer smart_read to re-read this large file as a diff.",
+      "Show my token savings with get_optimization_report."
+    ]
+  }
+}

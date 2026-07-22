@@ -1,6 +1,7 @@
 ---
 name: agentpack-pack
 description: Generate a local AgentPack context pack for Codex before editing.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Pack

@@ -1,6 +1,6 @@
 # cc-hooks
 
-Claude Code hooks and the AgentOps admission-control layer. Enforcement hooks ship by DEFAULT: the plugin auto-wires the policy dispatcher; skill copies carry scripts/install-hooks.sh. Injection hooks stay dead (#511). Triggers: "cc-hooks", "configure Claude Code hooks", "install hooks".
+Configure default Claude Code enforcement hooks and opt-in injection recipes. Triggers: "cc-hooks", "configure Claude Code hooks", "install hooks".
 
 ## Instructions
 

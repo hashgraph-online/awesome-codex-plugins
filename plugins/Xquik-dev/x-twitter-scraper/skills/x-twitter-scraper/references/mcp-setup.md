@@ -10,7 +10,7 @@ API keys.
 | Protocol | Streamable HTTP |
 | Endpoint | `https://xquik.com/mcp` |
 | Authentication | OAuth 2.1 discovery; API key fallback |
-| Version | `2.5.3` |
+| Version | `2.5.4` |
 
 Xquik publishes these discovery documents:
 
@@ -280,7 +280,7 @@ Full account keys expose 118 operations. Active guest `paid_reads` keys expose
 
 ## MCP Server Architecture
 
-The MCP server (v2.5.3) at `https://xquik.com/mcp` exposes 118 operations through 2 structured API tools:
+The MCP server (v2.5.4) at `https://xquik.com/mcp` exposes 118 operations through 2 structured API tools:
 
 | Tool | Description | Usage |
 |------|-------------|------|
@@ -291,7 +291,7 @@ The MCP server (v2.5.3) at `https://xquik.com/mcp` exposes 118 operations throug
 operations with normalized snake_case responses. Authentication is injected, so
 tool code must never include credentials.
 
-MCP v2.5.3 exposes 118 of 126 documented REST operations. These 8 credential or
+MCP v2.5.4 exposes 118 of 126 documented REST operations. These 8 credential or
 session-bound operations remain direct REST or dashboard workflows:
 
 - API key creation, listing, and revocation

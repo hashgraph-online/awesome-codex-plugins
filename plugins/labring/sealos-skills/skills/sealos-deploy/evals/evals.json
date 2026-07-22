@@ -17,25 +17,25 @@
     {
       "id": 1,
       "prompt": "/sealos-deploy https://github.com/sharkdp/bat",
-      "expected_output": "Low readiness score (0-3), identifies as CLI tool not suitable for cloud deployment, recommends STOP",
+      "expected_output": "Eligibility gate identifies a CLI-only target, reports an ineligible decision with evidence, and stops before readiness scoring, Dockerfile generation, build, template, or deploy without writing project files",
       "files": [],
       "assertions": [
         {"name": "identifies-cli-tool", "description": "Correctly identifies bat as a CLI tool / non-web application"},
-        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for cloud deployment)"},
+        {"name": "eligibility-ineligible", "description": "Classifies the selected target as ineligible before readiness scoring"},
         {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
       "id": 2,
       "prompt": "/sealos-deploy",
-      "expected_output": "Low readiness score (0-3), identifies the current repository as a skills pack or tooling repo rather than a deployable web service, recommends STOP",
+      "expected_output": "Eligibility gate cannot establish a supported deployment unit for the skills/tooling repository and fails closed before readiness scoring or build",
       "files": [],
       "assertions": [
         {"name": "identifies-skill-pack", "description": "Identifies the current repository as a skills pack or tooling repo rather than a standalone web app"},
-        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for direct cloud deployment)"},
+        {"name": "eligibility-unresolved", "description": "Returns ineligible or needs_review because no supported deployment unit is proven"},
         {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
@@ -65,13 +65,13 @@
     {
       "id": 5,
       "prompt": "/sealos-deploy https://github.com/jgraph/drawio-desktop",
-      "expected_output": "Very low readiness score (0-1), identifies as Electron desktop GUI app unsuitable for cloud deployment, recommends STOP",
+      "expected_output": "Eligibility gate identifies an Electron desktop-only unit, reports DESKTOP_GUI_ONLY evidence, and stops before readiness scoring, Dockerfile generation, build, template, or deploy without writing project files",
       "files": [],
       "assertions": [
         {"name": "identifies-desktop-app", "description": "Correctly identifies drawio-desktop as an Electron / desktop GUI application"},
-        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for cloud deployment)"},
+        {"name": "eligibility-ineligible", "description": "Returns an ineligible desktop_gui decision with DESKTOP_GUI_ONLY evidence"},
         {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not score readiness, generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
@@ -89,13 +89,13 @@
     {
       "id": 7,
       "prompt": "/sealos-deploy https://github.com/pallets/flask",
-      "expected_output": "Low score or STOP, correctly identifies Flask as a Python web framework library not a deployable application",
+      "expected_output": "Eligibility gate identifies Flask itself as a framework/library rather than a deployable application and stops before readiness scoring or build",
       "files": [],
       "assertions": [
         {"name": "identifies-library", "description": "Correctly identifies Flask as a framework/library, not a standalone deployable app"},
-        {"name": "score-below-7", "description": "Readiness score is < 7 (library should not be considered highly deployable)"},
+        {"name": "eligibility-ineligible", "description": "Classifies the selected target as a library or otherwise unresolved, not as a web service"},
         {"name": "explains-not-standalone", "description": "Explains why this repository is not directly deployable as a service"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
@@ -125,10 +125,11 @@
     {
       "id": 10,
       "prompt": "/sealos-deploy https://github.com/toeverything/affine",
-      "expected_output": "Runs Phase 0.5 template fast-path detection before source analysis; if no configured template exists, writes template-match.json with matched=false and continues the normal deploy pipeline",
+      "expected_output": "Runs the workload eligibility gate before Phase 0.5 template matching; after an eligible result, writes template-match.json and continues normally when no materialized template exists",
       "files": [],
       "assertions": [
-        {"name": "runs-template-fast-path", "description": "Checks configured GitHub repo to Sealos template mappings before Phase 1 assessment"},
+        {"name": "runs-eligibility-first", "description": "Resolves a supported deployment target before template matching or Phase 1 scoring"},
+        {"name": "runs-template-fast-path", "description": "Checks configured GitHub repo to Sealos template mappings after eligibility and before Phase 1 assessment"},
         {"name": "writes-template-match", "description": "Writes .sealos/template-match.json for both matched and unmatched outcomes"},
         {"name": "does-not-false-positive", "description": "Does not skip source analysis/build/template generation unless a matched template is materialized"}
       ]
@@ -144,6 +145,17 @@
         {"name": "compares-app-url-host", "description": "Compares the App URL host with the Launchpad public or custom domain"},
         {"name": "inventories-live-resources", "description": "Checks manager-labeled Ingresses, Services, ready endpoints, App, Instance, and orphan resource footprint"},
         {"name": "protects-sensitive-data", "description": "Keeps kubeconfig, environment values, and Secret data out of diagnostic output"}
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Classify this deployment target before continuing: package.json has scripts.start='node server.js', dependencies.express='^5', and devDependencies.electron='^35'. There are no Electron scripts, desktop API imports, or desktop packaging files.",
+      "expected_output": "Treats Electron as an uncorroborated dependency signal rather than a desktop entry point, identifies the Express start command as a web_service candidate, and allows deployment eligibility to pass",
+      "files": [],
+      "assertions": [
+        {"name": "does-not-reject-on-dependency-alone", "description": "Does not return desktop_gui or DESKTOP_GUI_ONLY solely because Electron appears in devDependencies"},
+        {"name": "uses-server-entrypoint-evidence", "description": "Uses the Express dependency plus node server start command as affirmative web-service evidence"},
+        {"name": "eligibility-passes", "description": "Returns an eligible web_service decision and permits readiness assessment to continue"}
       ]
     }
   ]

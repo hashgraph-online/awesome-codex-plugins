@@ -1,4 +1,4 @@
 interface:
   display_name: "Superloopy Frontend"
-  short_description: "Explicit web and Qt desktop GUI workflow"
-  default_prompt: "Use Codex `$superloopy:superloopy-frontend` or Claude Code `/superloopy:superloopy-frontend` only for a web frontend or Qt desktop GUI task after explicit invocation or an explicit route from an active `loopy`/`루피` task; do not use it for non-web/non-Qt visual deliverables. Enforce the DESIGN.md token gate and require real-browser rendered-surface evidence for web or native rendered-application evidence for Qt."
+  short_description: "Explicit cross-platform application UI workflow"
+  default_prompt: "Use `$superloopy:superloopy-frontend` only after explicit invocation for browser-hosted or interactive content-led Web, desktop, mobile/tablet, embedded/hybrid, Qt, custom-rendered, or mixed application UI; exclude TV, wearable, XR, automotive, game UI, TUI, static media/document artifacts, and non-UI work, and require proportional evidence per owner and target."

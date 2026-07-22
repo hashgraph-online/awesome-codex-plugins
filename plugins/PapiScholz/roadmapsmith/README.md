@@ -77,10 +77,22 @@ npx skills find roadmap
 ## Update
 
 ```bash
-npx skills update roadmapsmith
+npx skills update
 ```
 
-Sin argumentos (`npx skills update`) actualiza todos los skills instalados.
+Actualiza todos los skills instalados. Para actualizar solo uno: `npx skills update roadmap-init` o `npx skills update roadmap-update` (nombres de los skills, no del repo).
+
+> **Warning esperado** — vas a ver `the following skills appear to have been deleted upstream` listando ~19 nombres viejos (`roadmap-sync`, `audit`, `zero`, `road`, etc.) y una cascada de `No matching skills found`. Es ruido cosmético del catálogo público de skills.sh, que todavía cachea entries de pre-v1.3.0. Ya está reportado upstream — respondé `Yes` para limpiar, los `No matching skills found` que siguen son no-ops porque nunca los tuviste instalados.
+
+### ¿Ya tenías el CLI viejo instalado global?
+
+Pre-v1.0.0 el paquete era un CLI y se instalaba con `npm i -g roadmapsmith`. Si `roadmapsmith --version` te devuelve `0.14.x`, tenés ese binario colgado — la instalación de skills es una ruta paralela y no lo pisa. Podés dejarlo (no molesta) o limpiarlo:
+
+```bash
+npm uninstall -g roadmapsmith
+```
+
+Post-v1.0.0 la única "instalación" que necesitás es la de skills; ya no hay CLI global que actualizar.
 
 ## Estado
 

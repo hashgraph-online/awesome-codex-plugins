@@ -1,6 +1,6 @@
 {
   "name": "claude-math",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Render math legibly in Claude Code. Emits Unicode glyphs instead of unrenderable LaTeX in the terminal. (Graphical sixel/kitty rendering is on the roadmap.)",
   "keywords": [
     "claude",

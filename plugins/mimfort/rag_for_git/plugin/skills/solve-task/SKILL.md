@@ -167,6 +167,11 @@ brief to `superpowers:brainstorming` (which leads to writing-plans → subagent-
      `include_tests=False`) returns deduplicated, line-numbered, test-free snippets — expand only the
      few symbols central to the task (feed graph tools the code node_ids, not test-exemplar ones), and cite
      `path:line` from the line-numbered snippets directly (no re-Read needed for grounding).
+     For OO/registry/dispatch tasks («add a new provider / handler»), prefer directed
+     `implementations(node_id)` (incoming IMPLEMENTS — who subclasses/overrides X) over the
+     undirected `related_symbols`, which mixes callers/tests/implements. A class node → its
+     subclasses; a method node → its overrides. Accurate after a full `reviewer index` with SCIP;
+     fail-soft `(implementations не найдены)` is non-fatal — continue.
      Pass the same `branch` you pass to `search_codebase`.
      Fail-open: a `(граф недоступен)` / `(нет связей)` / `(вызовов не найдено)` note is non-fatal — continue.
    - **Lazy PR diff (optional).** `get_task_context` surfaces a task and its PRs (id form

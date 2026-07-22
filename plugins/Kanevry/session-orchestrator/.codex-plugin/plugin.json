@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "3.16.0+codex.20260719182053",
+  "version": "3.17.0+codex.20260721060103",
   "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "keywords": [
     "session",

@@ -1,6 +1,6 @@
 ---
 name: cloud-native-readiness
-description: Assess whether a project is ready for cloud-native deployment. Evaluates statelessness, config, scalability, and produces a readiness score (0-12). Use when user asks about containerization readiness, Docker/Kubernetes compatibility, deployment feasibility, whether their app can run in containers or the cloud, or wants a pre-deployment assessment. Also triggers on "/cloud-native-readiness".
+description: Determine whether a repository contains a supported cloud workload, then assess eligible targets for cloud-native readiness with a 0-12 score. Use for containerization readiness, Docker/Kubernetes compatibility, deployment feasibility, workload eligibility, or pre-deployment assessment. Also triggers on "/cloud-native-readiness".
 ---
 
 # Cloud Native Readiness Assessment Skill
@@ -9,7 +9,7 @@ description: Assess whether a project is ready for cloud-native deployment. Eval
 
 This skill evaluates a repository's readiness for cloud-native microservice deployment through a 3-phase workflow:
 
-1. **Assess** - Analyze the project against cloud-native criteria and produce a readiness report
+1. **Assess** - Reject unsupported workload types, then score eligible targets
 2. **Detect** - Check if Docker artifacts already exist (Dockerfile, docker-compose, container images)
 3. **Route** - If artifacts exist, return the result directly; if not, invoke `dockerfile-skill` to containerize
 
@@ -19,8 +19,8 @@ This skill evaluates a repository's readiness for cloud-native microservice depl
 cloud-native-readiness
   │
   ├─ Phase 1: Cloud-Native Assessment
-  │    ├─ NOT suitable → Report reasons, suggest remediation, END
-  │    └─ Suitable → Continue
+  │    ├─ Eligibility fails or needs review → Report evidence, END
+  │    └─ Eligible → Calculate readiness score
   │
   ├─ Phase 2: Existing Artifacts Detection
   │    ├─ Found Dockerfile/docker-compose/image → Report existing setup, END
@@ -49,6 +49,10 @@ When invoked, ALWAYS follow this sequence:
 ## Phase 1: Cloud-Native Readiness Assessment
 
 Load and execute: [modules/assess.md](modules/assess.md)
+
+Apply [knowledge/deployment-eligibility.md](knowledge/deployment-eligibility.md)
+before assigning a readiness score. Continue only when the requested root is
+classified `eligible`.
 
 **Evaluates 6 dimensions** (each scored 0-2):
 
@@ -90,6 +94,9 @@ Load and execute: [modules/route.md](modules/route.md)
 
 **Decision Matrix**:
 
+An `ineligible` or unresolved `needs_review` result always stops before artifact
+detection or Dockerfile generation. Apply the score matrix only to `eligible` targets.
+
 | Readiness Score | Artifacts Exist | Action |
 |-----------------|-----------------|--------|
 | ≥ 7 | Yes, complete | Report existing setup. Done. |
@@ -102,11 +109,15 @@ Load and execute: [modules/route.md](modules/route.md)
 
 The final output MUST use this format:
 
+For a stopped eligibility result, report its workload type, reason codes, evidence,
+and next action without inventing a readiness score.
+
 ```markdown
 # Cloud-Native Readiness Report
 
 ## Summary
 - **Project**: {name}
+- **Eligibility**: {eligible | ineligible | needs_review} — {workload type}
 - **Score**: {score}/12 ({rating})
 - **Verdict**: {Ready | Ready with caveats | Needs work | Not recommended}
 
@@ -141,6 +152,7 @@ The final output MUST use this format:
 
 ## Supporting Resources
 
+- **Deployment Eligibility**: [knowledge/deployment-eligibility.md](knowledge/deployment-eligibility.md) — Supported workload types and fail-closed routing
 - **Assessment Criteria**: [knowledge/criteria.md](knowledge/criteria.md) — Detailed scoring rubrics
 - **Anti-Patterns**: [knowledge/anti-patterns.md](knowledge/anti-patterns.md) — Common cloud-native anti-patterns
 - **Examples**: [examples/](examples/) — Sample readiness reports

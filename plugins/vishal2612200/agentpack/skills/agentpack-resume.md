@@ -1,6 +1,7 @@
 ---
 name: agentpack-resume
 description: Claim and resume a handoff from another real agent session.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Resume

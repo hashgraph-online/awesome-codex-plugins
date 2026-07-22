@@ -15,7 +15,7 @@ This is a Superloopy skill: the deck is done only when a real-browser visual art
 
 Open your reply with `SUPERLOOPY SLIDES ENABLED`. If another active Superloopy mode mandates its own first line, print that first and this marker on the next line.
 
-The anti-slop design rules below are this skill's own instance of the `superloopy-frontend` rule set, specialized for the fixed 1920×1080 slide stage. Do not open a second superloopy-frontend pass on top of a deck — this skill owns the visual layer for presentations, including the evidence gate.
+The anti-slop design rules below are this skill's own instance of the `superloopy-frontend` [anti-slop contract](../superloopy-frontend/references/anti-slop.md), specialized for the fixed 1920×1080 slide stage. A presentation is campaign/editorial surface, so that contract's non-waivable core binds every deck: honest assets (no div-mock passed off as a product capture, no unauthorized marks, no invented metrics or testimonials), no shipped placeholder names/brands/filler copy, and a named authority for every kept default or waived check. Do not open a second superloopy-frontend pass on top of a deck — this skill owns the visual layer for presentations, including the evidence gate.
 
 ## Core Principles
 
@@ -131,7 +131,7 @@ If user provides an image folder:
 
 1. **Scan** — List all image files (.png, .jpg, .svg, .webp, etc.)
 2. **Inspect each image** — Use the agent's available image-understanding capability. If image reading is unavailable, use filenames/metadata and ask the user to clarify only when needed
-3. **Evaluate** — For each: what it shows, USABLE or NOT USABLE (with reason), what concept it represents, dominant colors
+3. **Evaluate** — For each: what it shows, USABLE or NOT USABLE (with reason), what concept it represents, dominant colors. Classify each asset's authority the way [`image-first.md`](../superloopy-frontend/references/image-first.md) does — authorized capture, approved generated asset, or supplied reference — and never present a rebuilt mock as a real product screenshot or use marks the user is not authorized to show
 4. **Co-design the outline** — Curated images inform slide structure alongside text. This is NOT "plan slides then add images" — design around both from the start (e.g., 3 screenshots → 3 feature slides, 1 logo → title/closing slide)
 5. **Confirm the outline** using the same structured-question mechanism when available: "Does this slide outline and image selection look right?" Options: Looks good / Adjust images / Adjust outline
 
@@ -154,6 +154,8 @@ If the user already gave a vibe, use it. If they did not, infer the likely mood 
 If the user explicitly names a preset or bold template, honor that as one option and generate the remaining preview slots around it.
 
 Read [STYLE_PRESETS.md](STYLE_PRESETS.md) for safe preset candidates. If [bold-template-pack/selection-index.json](bold-template-pack/selection-index.json) exists, read that compact index too, but do not read any `design.md` files yet.
+
+**Brand-named direction (StyleGallery):** when the user names a specific brand — directly or as a mood reference ("Stripe 느낌", "Linear처럼", "like Notion") — consult the frontend skill's brand library index at [`design/_INDEX.md`](../superloopy-frontend/references/design/_INDEX.md), pick ONE matching teardown, and derive one preview slot's tokens from it — palette, type scale and weight attitude, radius, and motion tone — translated into 1920×1080 stage proportions. Inherit that library's contract: a teardown is scoped reference input, never automatic token authority; use public brand facts only, never clone a logo or trade dress, and name the teardown file in your message (and later in `VISUAL_QA.md`) as the provenance of that direction. Without a user-named brand or mood, do not open the gallery — the preset/bold-template mix below stays the default.
 
 | Mood                | Suggested Presets                                  |
 | ------------------- | -------------------------------------------------- |
@@ -249,7 +251,7 @@ If the user selected a self-generated custom wildcard, treat that preview's CSS 
 
 - [html-template.md](html-template.md) — HTML architecture and JS features
 - [viewport-base.css](viewport-base.css) — Mandatory CSS (include in full)
-- [animation-patterns.md](animation-patterns.md) — Animation reference for the chosen feeling
+- [animation-patterns.md](animation-patterns.md) — Animation reference for the chosen feeling. Its patterns follow the frontend skill's shared motion floor ([`motion-core.md`](../superloopy-frontend/references/motion-core.md)): animate transform/opacity/filter only, and respect `prefers-reduced-motion`
 
 **Key requirements:**
 
@@ -276,12 +278,12 @@ When converting PowerPoint files:
 
 ## Phase 5: Visual-QA Evidence Gate + Delivery
 
-A deck that parses is not verified. Before declaring done, capture real-browser evidence under `.superloopy/evidence/slides/<timestamp>-<slug>/`:
+A deck that parses is not verified. Before declaring done, capture real-browser evidence under `.superloopy/evidence/slides/<timestamp>-<slug>/`. Create and verify that run root with the frontend skill's portable helper so path rules stay identical across skills — `node "$SKILL_DIR/../superloopy-frontend/scripts/evidence-root.mjs" create <slug> slides` to create it (`$SKILL_DIR` is this skill's base directory, announced when the skill loads, and `superloopy-frontend` is packaged as its sibling), and `... verify <root> <file...>` to prove each artifact is a non-empty regular file confined beneath it:
 
 1. **Screenshot representative slides** — title slide, one content-heavy slide, and any slide with a complex layout (grid, table, image composition), rendered headless at 1280×720. Also capture one narrow viewport (e.g. 390×844) to prove the stage letterboxes instead of reflowing.
 2. **Prove embed mode** — write a throwaway harness page with the deck in an iframe at a collapsed initial height (e.g. `width="900" height="60"`), serve the directory over local HTTP (`python3 -m http.server`; `file://` iframes are opaque-origin and skip the same-origin resize path), and screenshot it: the deck must grow the iframe to 16:9 of its width with no overlap and with chrome scaled. Delete the harness after capture or keep it in the evidence directory.
 3. **Inspect every screenshot** — no text overflow, no overlapping panels, stage stays 16:9, fonts actually loaded (not fallback serif). `scrollHeight` checks alone are not enough; grid panels can visually cover each other.
-4. **Write `VISUAL_QA.md`** in the evidence directory listing each screenshot, what it proves, and any finding fixed. An open finding is a FAIL — fix and re-capture.
+4. **Write `VISUAL_QA.md`** in the evidence directory listing each screenshot, what it proves, and any finding fixed. An open finding is a FAIL — fix and re-capture. Also record the non-waivable core check (assets honest, no placeholder names/brands/filler copy shipped) and, when a StyleGallery teardown informed the style, name that teardown file as provenance.
 5. **Record the evidence** — end completed deck work with a Superloopy record, e.g. `superloopy loop evidence --status pass --artifact .superloopy/evidence/slides/<slug>/VISUAL_QA.md --notes "<deck, style, slide count>"`, and end the reply with `SUPERLOOPY_EVIDENCE: <that path>`.
 
 Then deliver:

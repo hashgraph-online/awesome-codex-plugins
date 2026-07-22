@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-// Dependency-free Design System Compliance gate for the Superloopy frontend skill.
-// Turns "is the UI on-system?" into a measurable pass/fail: it flags raw hex colors
-// not declared in DESIGN.md and off-scale spacing (px not on the base unit) — the
-// "Lighthouse 100 but 14 undeclared hex codes" failure that reads as AI slop.
+// Compatibility filename for the dependency-free partial color/spacing token lint.
+// It flags raw hex colors not declared in DESIGN.md and off-scale spacing (px not
+// on the base unit); it makes no broader typography, component, or accessibility claim.
 //
 // Exits non-zero when violations exist, so it drops straight into the loop:
 //   superloopy loop prove -- node skills/superloopy-frontend/scripts/ds-compliance.mjs DESIGN.md src/**/*.css
@@ -11,15 +10,17 @@
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const HEX = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/g;
-const SPACING_PROP = /\b(padding|margin|gap|inset|top|right|bottom|left|row-gap|column-gap)\b[^:;{}]*:\s*([^;{}]+)/gi;
-const PX = /\b(\d+)px\b/g;
+const HEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})(?![0-9a-fA-F])/g;
+const BOX_AXIS = "(?:top|right|bottom|left|block(?:-start|-end)?|inline(?:-start|-end)?)";
+const SPACING_NAME = `(?:(?:padding|margin|scroll-padding|scroll-margin)(?:-${BOX_AXIS})?|gap|row-gap|column-gap|grid-gap|grid-row-gap|grid-column-gap|inset(?:-(?:block(?:-start|-end)?|inline(?:-start|-end)?))?|top|right|bottom|left)`;
+const SPACING_DECL = new RegExp(`(?:^|[;{])\\s*(${SPACING_NAME})\\s*:\\s*([^;{}]+)(?=;|\\})`, "gimu");
+const PX = /(?<![\w.])(-?(?:\d*\.\d+|\d+))px\b/g;
 // 0 and 1px (hairline borders/insets) are always allowed; do not flag them as magic.
 const ALLOWED_PX = new Set([0, 1]);
 
 function normalizeHex(hex) {
   let h = hex.replace("#", "").toLowerCase();
-  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length === 3 || h.length === 4) h = h.split("").map((c) => c + c).join("");
   return `#${h}`;
 }
 
@@ -27,7 +28,7 @@ function normalizeHex(hex) {
 export function parseDesignTokens(designText) {
   const colors = new Set();
   for (const m of designText.matchAll(HEX)) colors.add(normalizeHex(m[0]));
-  const baseMatch = designText.match(/base[^\n]*?\b(\d+)\s*px/i);
+  const baseMatch = designText.match(/\bbase\b[^\n]*?\b(\d+)\s*px/i);
   const base = baseMatch ? Number.parseInt(baseMatch[1], 10) : 4;
   return { colors, base: base > 0 ? base : 4 };
 }
@@ -43,15 +44,26 @@ export function scanContent(content, tokens, file = "<content>") {
         violations.push({ file, line: i + 1, kind: "undeclared-color", value: m[0], snippet: line.trim().slice(0, 120) });
       }
     }
-    for (const decl of line.matchAll(SPACING_PROP)) {
-      for (const px of decl[2].matchAll(PX)) {
-        const n = Number.parseInt(px[1], 10);
-        if (!ALLOWED_PX.has(n) && n % tokens.base !== 0) {
-          violations.push({ file, line: i + 1, kind: "off-scale-spacing", value: `${n}px`, snippet: line.trim().slice(0, 120) });
-        }
+  });
+
+  for (const decl of content.matchAll(SPACING_DECL)) {
+    const valueOffset = decl[0].lastIndexOf(decl[2]);
+    const valueStart = decl.index + valueOffset;
+    for (const px of decl[2].matchAll(PX)) {
+      const n = Number.parseFloat(px[1]);
+      const magnitude = Math.abs(n);
+      if (!ALLOWED_PX.has(magnitude) && magnitude % tokens.base !== 0) {
+        const line = content.slice(0, valueStart + px.index).split("\n").length;
+        violations.push({
+          file,
+          line,
+          kind: "off-scale-spacing",
+          value: `${px[1]}px`,
+          snippet: lines[line - 1].trim().slice(0, 120),
+        });
       }
     }
-  });
+  }
   return violations;
 }
 
