@@ -31,9 +31,9 @@ Drive appearance from semantic model/control states such as enabled, pressed, ch
 
 ## Preserve interaction and accessibility
 
-Use a standard Control when it supplies the required behavior. A custom interactive item is complete only when pointer, touch, keyboard, and assistive-technology actions invoke the same semantic command. Documented `Accessible` attached properties provide accessibility metadata, supported state flags, relationships, and actions; they do not replace ordinary properties required by a role.
+Use a standard Control when it supplies the required behavior. A custom interactive item is complete only when every target-supported pointer, touch, keyboard, switch, and assistive-technology action invokes the same semantic command; unsupported input modes are not invented. Documented `Accessible` attached properties provide accessibility metadata, supported state flags, relationships, and actions; they do not replace ordinary properties required by a role.
 
-For value roles, expose the declared-version-supported ordinary properties `value`, `minimumValue`, `maximumValue`, and `stepSize`. Availability derives from the item's `enabled` property. Keep supported attached metadata and state such as role, name, checked, and selected synchronized with the same visual/model truth, and wire supported accessibility actions to the same command as keyboard and pointer input. If required semantics are unavailable at the declared minimum version, use a standard Control that exposes them or a validated custom accessibility-interface path. Verify logical focus traversal, visible focus, cancellation, action parity, and change notifications. Follow [Accessibility for Qt Quick](https://doc.qt.io/qt-6/qml-qtquick-accessible.html).
+For value roles, expose the declared-version-supported ordinary properties `value`, `minimumValue`, `maximumValue`, and `stepSize`. Availability derives from the item's `enabled` property. Keep supported attached metadata and state such as role, name, checked, and selected synchronized with the same visual/model truth, and wire each supported accessibility or input action to the same command. If required semantics are unavailable at the declared minimum version, use a standard Control that exposes them or a validated custom accessibility-interface path. Verify target-applicable focus traversal, visible focus, cancellation, action parity, and change notifications. Follow [Accessibility for Qt Quick](https://doc.qt.io/qt-6/qml-qtquick-accessible.html).
 
 Treat popup presentation as part of the component contract. Test the actual supported `Popup.Item`, `Popup.Window`, or `Popup.Native` path and its documented fallback; a separate or platform-native popup is not part of the parent scene's pixels. Guard `popupType` or any other newer API at the declared minimum Qt version. See the [Popup type](https://doc.qt.io/qt-6/qml-qtquick-controls-popup.html).
 
@@ -46,7 +46,7 @@ Use repository commands and module metadata rather than linting an isolated file
 - run affected C++/Qt tests and [Qt Quick Test](https://doc.qt.io/qt-6/qtquicktest-index.html) cases; and
 - inspect startup and scene-graph warnings on the named graphics backend.
 
-Exercise long translations, CJK and emoji fallback, RTL and mixed direction, enlarged text, keyboard and IME input, minimum and expanded window sizes, live resizing, representative DPRs, mixed-DPR screen moves, every popup/editor, and scene-graph initialization/failure handling. Profile an observed problem with the QML Profiler before rewriting bindings, delegates, loaders, or animations; speculative performance rewrites are not evidence. Follow Qt's [performance guidance](https://doc.qt.io/qt-6/qtquick-performance.html).
+Exercise long translations, CJK and emoji fallback, RTL and mixed direction, enlarged text, supported keyboard and IME input, target-applicable minimum and expanded window classes, representative DPRs, affected popup/editor paths, and selected scene-graph initialization/failure handling. Add live resizing and mixed-DPR screen moves only when the named desktop/windowing target exposes them; on mobile/tablet, use the current-window, orientation, posture, inset, and display-transition cases selected by `mobile.md` instead of importing desktop-only behavior. Profile an observed problem with the QML Profiler before rewriting bindings, delegates, loaders, or animations; speculative performance rewrites are not evidence. Follow Qt's [performance guidance](https://doc.qt.io/qt-6/qtquick-performance.html).
 
 ## `QQuickWidget` mixed boundary
 
@@ -54,10 +54,10 @@ Use this branch only when QML is embedded in a Widgets hierarchy, and apply [`qt
 
 Validate the boundary on the real target:
 
-- traverse focus in both directions between Widgets and QML, then exercise text selection, CJK composition/preedit, candidate placement, and input-method dismissal; synthetic key events are not IME proof;
-- resize continuously and move the host across screens with different DPRs, checking geometry, pointer coordinates, text/icon sharpness, and scene-graph recovery;
-- compare active, inactive, disabled, light/dark, and runtime palette changes across the widget and QML sides instead of assuming a custom token bridge follows `QPalette`;
-- open in-scene, separate-window, and native popups used by the product, checking focus, modality, placement, stacking, and fallback; and
+- exercise bidirectional focus traversal between Widgets and QML when the named target supports hardware keyboard focus; on touch-only or switch-driven targets, prove the corresponding touch and assistive action crosses the boundary with the same result. Exercise text selection, CJK composition/preedit, candidate placement, and input-method dismissal when editable text is supported; synthetic key events are not IME proof;
+- exercise continuous resize and mixed-DPR screen movement on desktop/windowing targets only when the named target exposes them. On mobile/tablet, use the selected current-window, orientation, posture, inset, and display-transition cases instead, checking target-applicable geometry, input coordinates, text/icon sharpness, and scene-graph recovery;
+- compare active, inactive, disabled, light/dark, and runtime palette changes across the widget and QML sides only when the selected style and named target expose or claim those states, rather than assuming a custom token bridge follows `QPalette`;
+- open the in-scene, separate-window, or native popup forms actually used by the affected journey, checking target-applicable focus, modality, placement, stacking, and fallback; and
 - treat `grabFramebuffer()` as an expensive readback of the Quick scene only. An offscreen/client grab cannot prove native widget chrome, platform dialogs, IME UI, or separate/native popups; capture those through the OS under [`qt-qa.md`](qt-qa.md).
 
 These constraints come from the official [`QQuickWidget` documentation](https://doc.qt.io/qt-6/qquickwidget.html). Do not claim native parity until both the embedded scene and every surface outside its framebuffer have real-target evidence.

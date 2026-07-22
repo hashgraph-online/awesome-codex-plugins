@@ -1,0 +1,36 @@
+{
+  "name": "codex-process-jobs",
+  "version": "0.1.0",
+  "description": "Launch and manage durable, detached local process jobs from Codex.",
+  "author": {
+    "name": "Joel Farthing"
+  },
+  "homepage": "https://github.com/joelfarthing/codex-process-jobs#readme",
+  "repository": "https://github.com/joelfarthing/codex-process-jobs",
+  "license": "Apache-2.0",
+  "keywords": [
+    "background-jobs",
+    "detached-processes",
+    "builds",
+    "benchmarks",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Process Jobs",
+    "shortDescription": "Durable detached process jobs for Codex",
+    "composerIcon": "./assets/icon.png",
+    "longDescription": "Launch long-running local commands as tracked detached process groups, inspect bounded output, wait for completion, retrieve results, and cancel safely on macOS or Linux.",
+    "developerName": "Joel Farthing",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Run this build as a tracked background job.",
+      "Show my active and recent process jobs.",
+      "Open the result of the latest finished job."
+    ]
+  }
+}

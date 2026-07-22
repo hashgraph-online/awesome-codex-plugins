@@ -27,3 +27,4 @@ Tool discipline (shared):
 - `related_symbols(repo, node_id, branch?)` — graph neighbours;
 - `callers(repo, node_id, branch?)` — direct callers (impact);
 - `definition(repo, symbol, branch?)` — where a symbol is defined.
+- `implementations(repo, node_id, branch?)` — directed subclasses/overrides (incoming IMPLEMENTS).

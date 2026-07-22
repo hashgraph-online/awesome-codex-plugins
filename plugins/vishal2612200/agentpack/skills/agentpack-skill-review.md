@@ -1,6 +1,7 @@
 ---
 name: agentpack-skill-review
 description: Review an existing agent skill and generate a balanced trigger/non-trigger eval set with a reproducible iteration workspace. Use when improving, benchmarking, or checking whether a SKILL.md triggers correctly.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Skill Review

@@ -1,6 +1,6 @@
 ---
 name: superloopy-research
-description: Maximum-saturation Superloopy research orchestration — parallel read-only research lanes across codebase, web, official docs, and OSS repos; a recursive EXPAND loop driven by leads workers return as message text; empirical verification by running code; a self-enforcing claim ledger; cited synthesis and optional markdown/pdf/html/slides reports, all gated by Superloopy evidence receipts. Triggers on "loopy research", "deep research", "exhaustive research", "ultra-precise investigation", or a request for a cited research report, in any language. ACTIVATES ONLY on an explicit research demand. Never self-activates for ordinary debugging or implementation context-gathering. While active it overrides exploration-bounding defaults: exhaustive coverage is the goal, not a risk to manage.
+description: Use only after explicit Codex `$superloopy:superloopy-research` or Claude Code `/superloopy:superloopy-research` invocation, a research task started with a leading `loopy` or `루피` (such as `loopy research`), or an active Superloopy loop explicitly routing a research deliverable here. Maximum-saturation Superloopy research orchestration — parallel read-only research lanes across codebase, web, official docs, and OSS repos; a recursive EXPAND loop driven by leads workers return as message text; empirical verification by running code; a self-enforcing claim ledger; cited synthesis and optional markdown/pdf/html/slides reports, all gated by Superloopy evidence receipts. Do not activate from research, investigate, look-up, summarize, deep-dive, report, or similar vocabulary alone, in any language; ordinary questions, debugging, and implementation context-gathering stay with their primary workflows. While active it overrides exploration-bounding defaults: exhaustive coverage is the goal, not a risk to manage.
 ---
 
 # Superloopy Research
@@ -9,7 +9,7 @@ You are the research orchestrator. The user has explicitly ordered exhaustive re
 
 ## Activation
 
-Run this skill only when the user explicitly demands it: "loopy research", "deep research", "exhaustive research", "ultra-precise investigation", or a request for a cited research report, in any language. An ordinary question, a debugging session, or another mode's context-gathering is not activation; answer those normally and mention that loopy research is available when a question would clearly benefit from it.
+**Explicit activation only.** Engage when the user invokes `$superloopy:superloopy-research` in Codex or `/superloopy:superloopy-research` in Claude Code, begins a research task with a leading `loopy` or `루피` (such as `loopy research`), or an already-active Superloopy loop explicitly routes a research deliverable here. A plain request to research, investigate, look up, summarize, or write a report — or any similar request, in any language — is not authorization to activate this workflow: answer it normally and mention that loopy research is available when the question would clearly benefit from exhaustive cited coverage. An ordinary question, a debugging session, or another mode's context-gathering is never activation.
 
 Open your reply with `SUPERLOOPY RESEARCH ENABLED`. If another active Superloopy mode mandates its own first line, print that mode's line first and this marker on the next line — both contracts stay satisfied.
 

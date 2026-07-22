@@ -2,7 +2,7 @@
 
 Codex plugin package for OrgX:
 
-- OrgX MCP server wiring via `https://mcp.useorgx.com/mcp`
+- OrgX MCP server wiring via `https://mcp.useorgx.com/mcp?profile=commander`
 - Operator chronicle reporting for yesterday/week/30-day decisions, PRs,
   artifacts, goals, gaps, and priorities
 - Initiative-aware Codex skills for OrgX execution
@@ -300,7 +300,7 @@ The bundled `.mcp.json` config uses the hosted OrgX streamable HTTP endpoint:
   "mcpServers": {
     "orgx": {
       "type": "http",
-      "url": "https://mcp.useorgx.com/mcp"
+      "url": "https://mcp.useorgx.com/mcp?profile=commander"
     }
   }
 }

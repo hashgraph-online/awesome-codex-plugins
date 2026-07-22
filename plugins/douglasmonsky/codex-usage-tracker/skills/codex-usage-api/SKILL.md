@@ -44,6 +44,12 @@ For maintainer dogfood or plugin-quality checks, prefer the MCP polling flow whe
 9. Use `usage_content_search(...)` and `usage_thread_trace(...)` only for explicit local content-index exploration when the user agrees transcript-level indexed snippets are needed.
 10. Use `usage_call_context(...)` only when the user explicitly asks for raw local context and the MCP server has raw context enabled.
 
+## Dashboard Evidence Targets
+
+- When an MCP result includes `dashboard_target.absolute_url`, surface **Open evidence** with that exact loopback URL.
+- When `absolute_url` is absent, show `dashboard_target.relative_url` and the exact `fallback_instruction` launch guidance. Do not invent or infer a service origin.
+- Never infer task-level MCP availability from a dashboard target, local readiness result, installed skill, or healthy service. Verify the current task's exposed tools separately.
+
 ## Tool Stance
 
 - `usage_suggest_investigations` is the front door for ideas. It should return a short, goal-led menu with adjacent safe next options.
@@ -51,6 +57,8 @@ For maintainer dogfood or plugin-quality checks, prefer the MCP polling flow whe
 - `usage_investigate` and `usage_action_brief` are compact compatibility routers for broad waste goals. Default compact calls route to Compression Lab; `usage_investigate(detail_mode="full")` keeps the older aggregate diagnostic rows when explicitly needed.
 - Default usage totals are canonical and exclude only strict copied-clone fingerprints. Use `usage_dedupe_diagnostics(limit=100)` when the user asks what was excluded or needs physical source provenance; it returns no transcript content.
 - `usage_test_hypotheses` is the first-class hypothesis runner. Use it when the user wants explicit `true`, `false`, `partially_true`, or `insufficient_evidence` decisions and the "I would like / I will use / I'm missing" framing.
+- Use `subagent_usage(response_format="json")` for observed subagent spawn counts, role/type mix, parent-thread fan-out, subagent usage share, per-spawn usage, and descriptive direct-versus-subagent comparisons.
+- An observed spawn is a distinct persisted subagent session. Agents that produced no usage event are not visible, and comparison results are descriptive rather than causal.
 - `usage_allowance_status` is the default allowance tool. It uses canonical/deduped rows and reports copied clone rows excluded. Follow with bounded series/evidence and persisted analysis; treat weekly windows as primary and 5-hour windows as noisy rolling-window context.
 - `usage_large_low_output_calls`, `usage_shell_churn`, and `usage_repeated_file_rediscovery` are the most actionable token-waste probes. Use them to turn broad findings into concrete next steps.
 - `usage_investigation_walk` can use local content/event-index signals for deeper pattern scans, but it is not the default shareable report.

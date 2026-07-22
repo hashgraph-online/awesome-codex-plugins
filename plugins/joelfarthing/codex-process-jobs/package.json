@@ -1,0 +1,24 @@
+{
+  "name": "codex-process-jobs",
+  "version": "0.1.0",
+  "description": "Portable detached process job runtime for Codex",
+  "type": "module",
+  "private": true,
+  "license": "Apache-2.0",
+  "author": "Joel Farthing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joelfarthing/codex-process-jobs.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "codex-process-jobs": "./scripts/job.mjs"
+  },
+  "scripts": {
+    "check": "node --check scripts/job.mjs && node --check scripts/worker.mjs && node --check scripts/notifier.mjs && node --check scripts/preferences.mjs && node --check scripts/desktop-ipc.mjs && node --check scripts/session.mjs && node --check scripts/cli-entry.mjs && node --check scripts/install.mjs && node --check scripts/smoke.mjs && node --check hooks/unread-result-hook.mjs && node --check benchmarks/token-savings/evidence.mjs && node --check benchmarks/token-savings/synthetic-build.mjs && node --check benchmarks/token-savings/run.mjs && node --test",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node --test"
+  }
+}

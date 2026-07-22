@@ -79,7 +79,7 @@ function parseArgs(argv) {
     else if (a === '--skip-rule-scoping') out.skipRuleScoping = true;
     else if (a === '--skip-docs-parity') out.skipDocsParity = true;
     else if (a === '--help' || a === '-h') {
-      process.stdout.write('Usage: checker.mjs [--mode hard|warn|off] [--include-path GLOB]... [--repo OWNER/NAME] [--commands-dir PATH] [--config-template PATH] [--skip-surface-count] [--skip-command-count] [--skip-generated-rule-staleness] [--skip-rule-scoping] [--skip-docs-parity] [--skip-*]\n');
+      process.stdout.write('Usage: checker.mjs [--mode strict|warn|off] [--include-path GLOB]... [--repo OWNER/NAME] [--commands-dir PATH] [--config-template PATH] [--skip-surface-count] [--skip-command-count] [--skip-generated-rule-staleness] [--skip-rule-scoping] [--skip-docs-parity] [--skip-*]\n');
       process.exit(0);
     } else {
       process.stderr.write(`{"status":"infra-error","reason":"unknown arg: ${a}"}\n`);
@@ -585,10 +585,14 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   const vaultDir = resolve(process.env.VAULT_DIR || process.cwd());
 
-  if (!['hard', 'warn', 'off'].includes(args.mode)) {
+  if (!['strict', 'hard', 'warn', 'off'].includes(args.mode)) {
     process.stderr.write(`{"status":"infra-error","reason":"invalid --mode: ${args.mode}"}\n`);
     process.exit(2);
   }
+  // `hard` is a legacy alias for `strict` (#217 enum migration — parity with
+  // the vault-sync validator, which normalizes the reverse direction). Collapse
+  // to a single blocking value so exactly one internal value flows downstream.
+  if (args.mode === 'hard') args.mode = 'strict';
 
   // Alias-aware instruction file resolution (issue #33).
   // CLAUDE.md (Claude Code / Cursor IDE) and AGENTS.md (Codex CLI) are
@@ -1212,7 +1216,7 @@ function main() {
       files_scanned: 0, checks_run: checksRun, checks_skipped: checksSkipped,
       errors, warnings, reason: 'no scope files matched',
     }) + '\n');
-    process.exit(errors.length > 0 && args.mode === 'hard' ? 1 : 0);
+    process.exit(errors.length > 0 && args.mode === 'strict' ? 1 : 0);
   }
 
   for (const abs of scopeFiles) {
@@ -1374,7 +1378,7 @@ function main() {
   }
   process.stdout.write(JSON.stringify(result) + '\n');
 
-  process.exit(errors.length > 0 && args.mode === 'hard' ? 1 : 0);
+  process.exit(errors.length > 0 && args.mode === 'strict' ? 1 : 0);
 }
 
 main();

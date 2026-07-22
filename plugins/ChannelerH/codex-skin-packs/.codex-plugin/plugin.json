@@ -1,0 +1,43 @@
+{
+  "name": "codex-skin-pack-installer",
+  "version": "0.1.0",
+  "description": "Install and stage verified public-safe Codex desktop skin packs with validation and restore guidance.",
+  "author": {
+    "name": "ChannelerH",
+    "url": "https://github.com/ChannelerH"
+  },
+  "homepage": "https://codex-theme-gallery.howardhua.chatgpt.site/codex-skin-pack-installer",
+  "repository": "https://github.com/ChannelerH/codex-skin-packs",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "codex-plugin",
+    "openai-codex-plugin",
+    "codex-skill",
+    "codex-theme",
+    "codex-skin",
+    "skin-pack",
+    "plugin-marketplace",
+    "theme-pack"
+  ],
+  "skills": "./skills",
+  "interface": {
+    "displayName": "Codex Skin Pack Installer",
+    "shortDescription": "Install verified Codex desktop skin packs.",
+    "longDescription": "Stages public-safe Codex desktop skin packs from GitHub releases, validates theme.json/background.png, avoids private screenshots, and keeps restore guidance visible before finishing.",
+    "developerName": "ChannelerH",
+    "category": "Productivity",
+    "capabilities": [
+      "Codex Skill",
+      "Theme Install",
+      "Restore Guidance"
+    ],
+    "websiteURL": "https://codex-theme-gallery.howardhua.chatgpt.site/codex-skin-pack-installer",
+    "defaultPrompt": [
+      "Install the caishen-lite Codex skin pack.",
+      "List available Codex skin packs.",
+      "Restore my default Codex appearance."
+    ],
+    "brandColor": "#D98B2B"
+  }
+}

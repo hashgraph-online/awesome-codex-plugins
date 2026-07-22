@@ -1,6 +1,6 @@
 {
   "name": "x-developer",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "description": "Xquik agent skill & plugin bundle for REST, MCP, webhooks, exports & confirmation-gated X workflows. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",
@@ -74,6 +74,7 @@
   ],
   "scripts": {
     "check-versions": "node scripts/check-versions.mjs",
-    "prepublishOnly": "node scripts/check-versions.mjs"
+    "test": "node --test tests/*.test.mjs && npm run check-versions",
+    "prepublishOnly": "npm test"
   }
 }

@@ -384,42 +384,46 @@ must_rules:
     enforcement:
       type: rule
       target: R038
-  - must: "Do not treat a short smoke test as proof of a stable minimum memory value."
+  - must: "The final CPU and memory limits must be the lowest Sealos ladder tiers that pass role-specific personal low-load validation, while an explicit source hard minimum remains the lower bound."
     enforcement:
       type: manual
-      note: "Review browser/remote desktop templates and smoke evidence before lowering memory."
-  - must: "Validate memory with a fresh deployment, not only a patched warm pod."
+      note: "Requires role-specific runtime evidence for the selected minimum tiers."
+  - must: "Tune CPU and memory separately, one ladder step at a time, and use a fresh rollout or cold execution for every candidate."
     enforcement:
       type: manual
-      note: "Requires deployment evidence outside static YAML validation."
-  - must: "Exercise cold start until readiness, a lightweight page, a real/medium page, an interactive/search page, and a 60s post-smoke stability check."
+      note: "Requires review of the tuning sequence and fresh candidate executions."
+  - must: "A passing long-running workload must complete cold start, become Ready, complete registration or login when applicable, complete at least two representative low-load actions, and remain stable for 60 seconds with zero `OOMKilled` terminations, restarts, readiness flaps, or resource-related timeouts."
     enforcement:
       type: manual
-      note: "Requires runtime smoke coverage evidence."
-  - must: "If observed cgroup memory reaches more than 80% of the limit during smoke, move to the next allowed Sealos memory ladder value."
+      note: "Requires end-to-end runtime and stability evidence."
+  - must: "A passing one-shot initContainer or Job must complete successfully from a cold run and allow every dependent workload to become Ready."
     enforcement:
       type: manual
-      note: "Requires runtime memory observation."
+      note: "Requires cold execution and dependent workload readiness evidence."
+  - must: "If a lower tier fails any acceptance signal, use the next passing tier and repeat final validation from a fresh rollout."
+    enforcement:
+      type: manual
+      note: "Requires failure evidence and a final fresh validation at the selected tier."
+  - must: "Treat observed CPU and memory peaks and utilization percentages as diagnostic evidence; acceptance failures trigger tier promotion."
+    enforcement:
+      type: manual
+      note: "Requires runtime metrics and acceptance evidence."
   - must: "Keep requests derived from limits according to the Sealos resource ladder."
     enforcement:
       type: rule
       target: R038
-  - must: "Bad: Chrome passes a short smoke at `512Mi` but reaches `503Mi`; shipping `512Mi` as the stable minimum is unsafe."
+  - must: "Apply browser-specific validation only to containers that run Chrome, Chromium, VNC, WebRTC desktop, Xvfb, Selkies, noVNC, Kasm, or a similar remote-desktop stack; browser-accessed web applications such as Langflow use the general personal low-load policy."
     enforcement:
       type: manual
-      note: "Negative example for reviewer guidance."
-  - must: "Good: raise to `1024Mi`, set request to `102Mi`, rerun smoke and stability checks."
+      note: "Requires workload classification from the image and runtime process stack."
+  - must: "Exercise cold start through readiness, a lightweight page, a real or medium page, an interactive or search action, and the 60-second stability window."
     enforcement:
       type: manual
-      note: "Positive example for reviewer guidance."
-  - must: "limits: `cpu=200m`, `memory=1024Mi`"
+      note: "Requires browser or remote-desktop interaction evidence."
+  - must: "For Chrome + Xvfb + Selkies with a 4K maximum display, start validation at `limits(cpu=200m,memory=1024Mi)` with derived `requests(cpu=20m,memory=102Mi)`, then test adjacent ladder tiers under the same acceptance contract."
     enforcement:
       type: manual
-      note: "Browser/remote desktop minimum; applied when source workload matches that class."
-  - must: "requests: `cpu=20m`, `memory=102Mi`"
-    enforcement:
-      type: manual
-      note: "Browser/remote desktop minimum request; applied when source workload matches that class."
+      note: "Requires browser-specific ladder testing from the initial candidate."
   - must: "MongoDB: `${{ defaults.app_name }}-mongo-mongodb-account-root` (or `${{ defaults.app_name }}-mongodb-mongodb-account-root` when the MongoDB cluster name uses `-mongodb`)"
     enforcement:
       type: rule

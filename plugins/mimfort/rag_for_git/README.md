@@ -128,6 +128,10 @@ If a review is abandoned between `prepare_review` and `publish_review` (user can
 LLM session died), publish never runs — such an overlay is collected by GC: opportunistically on the
 next `prepare_review`, and via the `reviewer gc` command.
 
+Session liveness is extended by activity (keepalive): review tool calls bump
+`last_seen_at`, so a review running longer than `review_session_ttl_hours` keeps its
+overlay; an idle review is still collected once the TTL elapses.
+
 > Status: working v1. Target analysis language is **Python**; VCS is **GitHub** (behind a
 > `VCSProvider` interface). Proven live: it catches real bugs and sees the impact on calling code
 > and existing tests.
@@ -588,7 +592,8 @@ GEMINI.md / .cursorrules — whichever your client uses).
 > connected and its base index is fresh (`reviewer status --json` -> `drift == 0`), prefer the
 > session-less reviewer tools over grep to ground cross-file facts during planning and review:
 > `search_codebase` (relevant code), `callers` (blast-radius of a signature you are about to
-> change), `related_symbols`, `definition`. Be targeted — skip small/familiar edits and files
+> change), `related_symbols`, `definition`, `implementations` (directed subclasses/overrides).
+> Be targeted — skip small/familiar edits and files
 > already in context (Voyage is rate-limited). The base index tracks the target branch, not
 > your working tree: grounding is reliable for existing code but blind to symbols you just
 > edited locally — verify those with Read. If reviewer is absent or the index is stale, fall
@@ -678,7 +683,7 @@ and enters brainstorming. It disciplines context-gathering — it does **not** w
 - **Arguments:** a task key (e.g. `PRI-4`, must match `key_pattern`) **or** a free-text description
   (e.g. "add a logout endpoint"). Board-less mode falls back to description + code search.
 - **MCP tools used:** `get_board_config`, `get_subsystem_summaries`, `get_task`, `index_task`, `get_task_context`, `search_tasks`,
-  `search_codebase`, `related_symbols`, `callers`, `definition`, `get_pr_diff`; plus the connected
+  `search_codebase`, `related_symbols`, `callers`, `definition`, `implementations`, `get_pr_diff`; plus the connected
   board MCP (`mcp__<board>__*`) to read the task. All task tools are scoped via `project=<task_board.project>`.
 - **Flow:** preflight (index freshness check → task corpus warmup via `sync_board`) → subsystem prior via `get_subsystem_summaries` → resolve board config → identify task (key vs free text) → store-first task read via `get_task(key, project=...)` (hit = use directly; miss = board MCP fallback) → best-effort, fail-open context
   gathering (task graph, similar tasks, relevant code, lazy PR diffs of similar tasks) → distill a
@@ -751,7 +756,7 @@ index.
 
 - **Arguments:** a free-text question (e.g. "where is authentication", "how does index freshness
   work", "explain the retrieval pipeline", "как устроено…").
-- **MCP tools used:** `search_codebase`, `related_symbols`, `callers`, `definition`; plus harness
+- **MCP tools used:** `search_codebase`, `related_symbols`, `callers`, `definition`, `implementations`; plus harness
   `Read`/`Grep`/`Glob`.
 - **Flow:** on first use per session — `reviewer status` freshness check with drift warning → resolve repo/branch → optional: `get_subsystem_summaries` for architectural prior → `search_codebase` → optionally expand via the graph → answer with
   an Evidence list of `path:line` citations.
@@ -820,6 +825,7 @@ code_quote, message, suggestion, fix:{start_line,end_line,replacement}|null, con
 | `search_codebase` | `(repo, query, top_k=10, branch=None, include_tests=False)` | Hybrid search over a repo's base index; line-numbered, deduped, tests excluded by default. |
 | `related_symbols` | `(repo, node_id, branch=None)` | Graph neighbors (calls/implements/tests) of a symbol. |
 | `callers` | `(repo, node_id, branch=None)` | Incoming `CALLS` of `node_id` `path#fqn`. |
+| `implementations` | `(repo, node_id, branch=None)` | Incoming `IMPLEMENTS` of `node_id` `path#fqn` — subclasses/overrides. |
 | `definition` | `(repo, symbol, branch=None)` | Symbol definition (graph → index → semantic fallback). |
 | `get_pr_diff` | `(repo, number: int)` | Unified diff of any (historical) PR; capped, fail-soft. |
 | `get_task` | `(key: str, project: str \| None = None)` | Read one task's normalized `TaskBrief` from the store (`{key, aliases, title, description, status, url, criteria}`). Returns `null` if not found. |

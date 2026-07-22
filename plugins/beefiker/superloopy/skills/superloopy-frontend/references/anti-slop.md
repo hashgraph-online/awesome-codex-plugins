@@ -1,64 +1,70 @@
 # Anti-Slop Rules
 
-Generic AI UI is recognizable because models converge on the same defaults and ship them unseen. This file converts "taste" into rules a model can self-audit against: each rule **names the default, bans it, and gives a concrete replacement plus an override path**. Phrase every limit as binary (`zero`), never graduated (`sparingly`) — models honor a hard zero and quietly defeat "use sparingly".
+Use this visual-direction check for marketing, editorial, campaign, greenfield presentation pages, or work that explicitly creates a new visual direction. It prevents unexamined model defaults; it is not a universal product-UI style guide.
+
+For authenticated, private, or internal product Web, preserve the existing design system and product conventions first. Apply only checks relevant to the changed visual claim. This contract does not require imagery, layout-family variety, or font replacement for a workflow screen, dense tool, settings form, accessibility fix, or narrow nonvisual change.
+
+## Non-waivable core
+
+Proportionality selects which rows apply; it does not make waivers free. Whenever this contract is selected at all, these minimums hold and no row below is eligible for a bare `N/A`:
+
+- **Honest assets:** div-based mock UI presented as a real product capture, unauthorized marks, and invented metrics or testimonials are defects at any scope.
+- **No shipped placeholders:** accidental placeholder names, brands, or filler copy in shipped strings are defects at any scope.
+- **Named waiver authority:** every `N/A`, override, or kept default cites the specific authority that justifies it — the approved criterion, brand rule, source text, or file. "Not selected by risk" with no named authority does not close a row.
+- **Grounded impact records:** a `Design impact: unchanged`, `Layout impact: unchanged`, or `Motion impact: unchanged` record is valid only when the change introduces no new visible string, style, composition, or motion; otherwise the relevant rows apply and are answered with evidence.
 
 ## Named-default bans
 
-Each ban: the signature → why it's a tell → what to do instead. Override only when the brand genuinely demands it (state the reason).
+For a generated visual direction, each check names a common default and a deliberate replacement. An existing brand, approved target, organizational system, or user requirement is authority and must be recorded as the override.
 
-- **AI-purple / glow (the LILA tell)**: purple→blue gradients, glowing mesh backgrounds. The #1 visual tell. → Pick a committed accent from the DESIGN.md palette (emerald, electric blue, deep rose, amber) and use it once, consistently. Override: brand color is genuinely violet.
-- **Inter/Roboto by default**: the most-tested typographic tell. → Choose a deliberate stack per the Design Read (e.g. Geist, Satoshi, Cabinet Grotesk, a real serif with intent). Override: existing brand ships Inter.
-- **Premium beige + brass palette**: `#f5f1ea`/`#f7f5f1` backgrounds with `#b08947`/`#b6553a` accents and espresso text — the "premium consumer" cliché that makes every such site look identical. → Use a distinct committed palette (cold luxury, forest, cobalt+cream, terracotta+slate). Don't reuse the same family twice in a row.
-- **True black + one generic shadow**: `#000000` text and a single flat `box-shadow` everywhere. → Use the DESIGN.md foreground token (near-black, not pure) and a multi-level, optionally tinted elevation ladder.
-- **Glassmorphism on everything / three equal feature cards / centered hero on dark mesh**: the default landing composition. → Vary composition; above `DESIGN_VARIANCE` 4, avoid the symmetric three-card row and the centered hero.
+- **AI-purple or glow:** do not reach for a purple-to-blue gradient or glowing mesh without brand evidence. Choose and consistently apply the approved accent.
+- **Inter/Roboto by reflex:** use the existing product type system. For a new campaign direction, choose a deliberate, licensed stack rather than replacing a working font merely to look different.
+- **Premium beige plus brass:** do not reuse the stock beige, brass, espresso palette without an approved brand reason.
+- **True black plus one generic shadow:** use the project foreground and elevation tokens.
+- **Glass everywhere, three equal cards, centered hero on a dark mesh:** compose from the content and approved direction instead of a landing-page template.
 
-## Countable rules (verify by counting, no judgment needed)
+## Countable review flags
 
-- **Em-dash: zero.** No `—` or separator `–` anywhere visible (headlines, body, captions, buttons, alt text). A single one = fail. Rewrite with commas, periods, or parentheses.
-- **Eyebrow restraint**: count uppercase tracked labels across sections; if `count > ceil(sectionCount / 3)`, fail.
-- **Zigzag cap**: the 3rd consecutive image+text split row = fail. Break the pattern.
-- **Bento integrity**: N items → exactly N cells, no empty filler cell.
-- **Layout-family variety**: 8 sections must use ≥4 distinct layout families; reject if one composition anchor repeats 3+ rows.
+Apply these only to campaign or editorial composition selected by the delivery contract; mark each irrelevant row `N/A` with a reason. A count is a review flag, not an automatic blocker, unless an approved brand, content, or campaign criterion selects that threshold. Otherwise record the task/content warrant for keeping or changing the composition.
 
-## Consistency locks (one decision holds page-wide)
+- **Em-dash:** zero in newly generated campaign copy unless the language, brand style, quotation, or source text requires one.
+- **Eyebrow restraint:** review uppercase tracked labels when they exceed `ceil(sectionCount / 3)` and keep each one that serves navigation, hierarchy, or an approved editorial voice.
+- **Zigzag cap:** break a third consecutive image-and-text split row.
+- **Bento integrity:** N items use N meaningful cells; never add an empty filler cell.
+- **Layout-family variety:** for eight or more editorial sections, use at least four content-appropriate layout families and avoid repeating one anchor three or more times.
 
-- **Color lock**: one accent everywhere — a warm-grey site does not get a blue CTA in section 7.
-- **Shape lock**: one corner-radius scale across all components.
-- **Theme lock**: no section inverts light/dark mid-page (a lone dark section reads as a copy-paste accident).
-- **One system lock**: one palette, one icon family, one type system, one component library per project.
+## Consistency locks
+
+- **Color lock:** accents follow the approved token hierarchy.
+- **Shape lock:** radii follow the component and platform system.
+- **Theme lock:** a theme change is intentional, accessible, and documented rather than pasted in mid-page.
+- **One-system lock:** do not mix icon, type, palette, or component systems accidentally. A migration names its boundary.
 
 ## Real-asset mandate
 
-- **No div-based fake screenshots** — the strongest "AI-made wireframe" tell. Use a real image, a real source, or a clearly-labeled placeholder slot.
-- **Real SVG logos** for logo walls (not styled text wordmarks); **icon libraries** (Phosphor, Radix, Tabler, Lucide), never hand-rolled decorative SVG paths.
-- Even minimalist pages need real imagery — a pure-text page is incomplete work, not minimalism.
+- Do not present div-based mock UI as a real product screenshot. Use a real authorized capture, an approved generated asset, or a clearly labeled placeholder.
+- Logo walls use authorized real marks; interface icons follow the existing icon system. Do not add an icon-library dependency without approval.
+- Imagery is required only when the content and approved direction call for it. Text-led editorial pages and product workflows may be intentionally image-free.
 
-## Copy self-audit (slop prose is as strong a tell as slop visuals)
+## Copy self-audit
 
-Re-read every visible string before shipping. Ban:
+Check newly authored copy for generic claims, fake authority, placeholders, and invented precision. Avoid unsupported superlatives, fake-perfect statistics, generic names, and placeholder brands. Keep source quotations and established product terminology intact.
 
-- AI clichés: *Elevate, Seamless, Unleash, Delve, Empower, Supercharge*.
-- "Quietly trusted by…" / performative-craftsman labels (*Field notes, From the field*).
-- Generic names (*John Doe*), placeholder brands (*Acme*).
-- Fake-perfect stats (`99.99%`) — prefer organic figures (`47.2%`) or omit. No fake-precise spec numbers unless real or labeled mock.
+## Micro-tell catalogue
 
-## Micro-tell catalogue (small details that collectively scream "AI")
+For generated campaign directions, review ungrounded hero version labels, section-number eyebrows, decorative status dots, fake version footers, weather or locale strips, fake photo credits, and generic stage labels. Keep any item that serves a documented user, content, or brand need.
 
-Banned by default (narrow override only): version labels in the hero (`v0.6`, `BETA`), section-number eyebrows (`00 / INDEX`, `001 Capabilities`), middle-dot overuse, decorative status dots, br-broken italicized headlines, vertical rotated text, fake version footers (`v1.4.2 · last sync 4s ago`), weather/locale strips (`LIS 14:23 18°C`), pills overlaid on images, fake photo-credit captions, generic step labels (`Stage 1/2/3`).
+## Pre-flight checklist
 
-## Pre-Flight checklist (run before declaring done; any unticked box = not done)
-
-- [ ] Zero em-dashes anywhere visible.
-- [ ] Eyebrow count ≤ `ceil(sectionCount / 3)`.
-- [ ] No AI-purple/glow default (or brand-justified).
-- [ ] Non-default, deliberate font stack.
-- [ ] No banned premium beige+brass palette as default.
-- [ ] Color / shape / theme consistency locks hold across all sections.
-- [ ] ≥4 layout families across the page; no anchor repeats 3+ rows.
-- [ ] No div-based fake screenshots; real or generated imagery; real SVG logos.
-- [ ] Copy passed the self-audit (no clichés, no fake-perfect numbers, no placeholder names).
-- [ ] No micro-tells from the catalogue.
-- [ ] Motion claimed = motion implemented (transform/opacity/filter only); reduced-motion respected.
-- [ ] Every color/size/spacing/radius/shadow traces to a DESIGN.md token; no orphan hex, no magic spacing.
-- [ ] All interactive states (hover/active/focus/disabled) and empty/loading/error states handled.
-- [ ] No horizontal scroll at 390 / 768 / 1280 px.
+- [ ] Non-waivable core holds: honest assets, no shipped placeholders, named waiver authority, grounded impact records.
+- [ ] Scope is marketing, editorial, campaign, or an explicit new visual direction; otherwise only relevant rows were applied.
+- [ ] Existing brand, design-system, platform, and product conventions remain authoritative.
+- [ ] Named defaults have evidence-backed decisions or recorded overrides.
+- [ ] Applicable countable composition flags have evidence-backed decisions; selected pass/fail criteria and `N/A` rows have reasons.
+- [ ] Color, shape, theme, icon, and type decisions are internally consistent.
+- [ ] Captures, logos, metrics, testimonials, and other assets are real, authorized, generated as disclosed, or clearly labeled placeholders.
+- [ ] New copy contains no unsupported claims, fake precision, or accidental placeholder content.
+- [ ] Motion claimed is implemented and respects reduced motion.
+- [ ] Applicable visual values trace to the existing or scoped design contract.
+- [ ] Interactive and operating states required by the shared UX contract are handled.
+- [ ] No unintended root/page horizontal overflow at the target-derived minimum, maximum, breakpoints, zoom, or text scaling; 390 / 768 / 1280 are baseline samples only when selected. Intentional task- or content-owned horizontal regions remain valid and follow `layout.md`'s spatial and scroll ownership contract.

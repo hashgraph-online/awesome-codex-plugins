@@ -146,7 +146,7 @@ Subagent (general-purpose):
     command for the controller:
 
     ```bash
-    npx --yes --package spec-superflow@0.10.0 ssf execution review <change-dir> --wave [WAVE_ID] --base [BASE_SHA] --head [HEAD_SHA] --report [REVIEW_REPORT_FILE] --verdict <pass|fail>
+    npx --yes --package spec-superflow@0.11.0 ssf execution review <change-dir> --wave [WAVE_ID] --base [BASE_SHA] --head [HEAD_SHA] --report [REVIEW_REPORT_FILE] --verdict <pass|fail>
     ```
 
     Use `fail` for any Critical/Important finding. A repair must be re-reviewed

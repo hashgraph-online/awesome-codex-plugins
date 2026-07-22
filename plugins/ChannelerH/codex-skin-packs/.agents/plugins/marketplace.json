@@ -1,0 +1,20 @@
+{
+  "name": "codex-skin-packs",
+  "interface": {
+    "displayName": "Codex Skin Packs"
+  },
+  "plugins": [
+    {
+      "name": "codex-skin-pack-installer",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-skin-pack-installer"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

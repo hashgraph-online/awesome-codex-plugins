@@ -1,6 +1,7 @@
 ---
 name: agentpack-refresh
 description: Refresh AgentPack context when task, git state, or repo files changed.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Refresh

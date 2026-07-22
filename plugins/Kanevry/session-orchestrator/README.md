@@ -1,7 +1,7 @@
 # Session Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.16.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.17.0-blue.svg)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/session-orchestrator.svg)](https://www.npmjs.com/package/session-orchestrator)
 [![Tests](https://img.shields.io/badge/tests-10%2C000%2B-brightgreen.svg)](docs/telemetry/telemetry-claims.md)
 
@@ -127,16 +127,16 @@ The system is markdown-driven config plus a thin Node runtime — skills, comman
 - **Cross-session learning is opt-in and inspectable.** Every session writes a record; after 5+ sessions `/evolve analyze` extracts confidence-scored patterns you can read and prune. Nothing is hidden.
 - **VCS dual support, no lock-in.** Auto-detects GitLab or GitHub from your remote and drives the full lifecycle for both.
 
-## Recent highlights (v3.16.0)
+## Recent highlights (v3.17.0)
 
-Every release is additive and backward-compatible. Highlights of the v3.16.0 line:
+Every release is additive and backward-compatible. Highlights of the v3.17.0 line:
 
-- **Class-wide bold-key parser fix (`matchBlockHeader`)** — the `- **key:**` blind spot #823 fixed for one parser is now closed across all 34 Session-Config block parsers via a shared zero-import helper, with the inline-comment gotcha and drift-check raw-parity preserved.
-- **Vault-namespace de-collapse (`VAULT_CLEAR_SLUGS`)** — already-public repo slugs regain distinct vault namespaces (no more shared `redacted-repo/` bucket) while the public-mirror tracked-file scanner keeps blocking all private slugs.
-- **Vault board TTL self-healing** — preserved in-progress rows past the heartbeat TTL now flip to `force-closed`; narrative folders loose-match existing `01-projects/` folders instead of minting duplicates.
-- **Actionable freshness remediation (`/bootstrap --refresh-lock`)** — reason-aware banners plus a provenance-honest lock refresher (only two refresh fields written, original bootstrap provenance byte-identical).
+- **Opt-in anonymous usage telemetry (#841)** — consent-gated client (`scripts/lib/telemetry/`) with anonymous IDs, a local queue, and record_kind-generic ingest. Off by default; nothing leaves the machine without explicit opt-in.
+- **Vault-curation probes (#831 B2/B4/B5)** — MOC-staleness banner, context-coverage line, and a candidates-only worktree-orphan sweep (never deletes — PSA-003), plus the completed abandoned-session sweep.
+- **Review-panel & gates hardening** — base-branch injection, fail-open quality gates, torn-write `jq`, vault-sync register/mode vocabulary, and enumerate scan depth fixed in one pass.
+- **npm distribution line complete** — first publish shipped (v3.16.0 on npm, #825); this line adds the `npm-publish` token-runbook skill and broadened registry metadata.
 
-Previous line (v3.15.0): `/eval` session-process evaluation (standard v1), out-of-scope shell-write guard, per-context `baselines:` in owner.yaml, `bash-harness-pitfalls` rule, distribution foundation (landing page + submission kit), parser/config hardening bundle.
+Previous line (v3.16.0): class-wide bold-key parser fix (`matchBlockHeader`), vault-namespace de-collapse (`VAULT_CLEAR_SLUGS`), vault-board TTL self-healing, provenance-honest `/bootstrap --refresh-lock`.
 
 Full version history: [CHANGELOG.md](CHANGELOG.md).
 
@@ -209,7 +209,7 @@ What it is **not**:
 
 - **Not an official product of any agent vendor.** An independent, community-maintained project — not affiliated with, endorsed by, or sponsored by Anthropic, OpenAI, Cursor, or any agent it integrates with. (It is distributed through the Claude Code plugin marketplace, but is not an Anthropic product.)
 - **Not a replacement** for Claude Code / Codex CLI / Cursor / Pi. It is a workflow layer that runs *on top of* your existing agent — you still need one of those installed.
-- **Not a hosted service.** Runs locally — no server, account, or cloud component.
+- **Local by default.** Runs locally — no account required. Optional, strictly opt-in anonymous usage telemetry (off until you consent; see [docs/telemetry.md](docs/telemetry.md)).
 - **No guarantee that telemetry numbers transfer to your repo.** Reported test counts and metrics describe *this* repository under its own conditions ([details](docs/telemetry/telemetry-claims.md)). Your results will vary by stack, project size, and configuration.
 
 ## Documentation
@@ -219,6 +219,7 @@ What it is **not**:
 - [Components & Reference](docs/components.md) — full skill/command/agent/hook inventory, repository anatomy, comparisons
 - [Plugin Architecture (v3)](docs/plugin-architecture-v3.md) — contributor guide, layering, hook anatomy, testing
 - [Migration to v3](docs/migration-v3.md) — upgrade path from v2.x, known issues, rollback
+- [Telemetry](docs/telemetry.md) — what the optional opt-in usage telemetry collects, and how to turn it off
 - [Telemetry claims](docs/telemetry/telemetry-claims.md) — how reported metrics are measured, and why they may not transfer
 - [Example Configs](docs/examples/) — Session Config examples for Next.js, Express, Swift
 - [CHANGELOG.md](CHANGELOG.md) — version history

@@ -157,7 +157,7 @@ Use `POST /api/v1/extractions` ONLY for bulk data that simpler endpoints cannot 
 
 ## REST-only operations
 
-MCP v2.5.3 exposes 118 of 126 REST operations. These 8 credential or session-bound operations remain outside MCP:
+MCP v2.5.4 exposes 118 of 126 REST operations. These 8 credential or session-bound operations remain outside MCP:
 
 - API key creation
 - API key listing

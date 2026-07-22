@@ -10,7 +10,7 @@ Before the final `executing → closing` transition, delta specs (ADDED/MODIFIED
 ## Execution-State Guard
 
 Before `ssf sync` or any other write, run
-`npx --yes --package spec-superflow@0.10.0 ssf state get <change-dir> state`.
+`npx --yes --package spec-superflow@0.11.0 ssf state get <change-dir> state`.
 Continue only when the persisted state is exactly `executing`. If it is
 `closing` → STOP: "Closing is terminal. Do not route this change to spec-merger;
 synchronization belongs before the final executing → closing transition." For
@@ -20,7 +20,7 @@ any other state, or if the state cannot be read → STOP and route through
 ## Pre-Flight Checks
 
 ### Conflict Detection
-Run `npx --yes --package spec-superflow@0.10.0 ssf sync <change-dir>`. If conflicts are detected (same requirement modified by multiple changes), present the conflict list to the user for resolution order.
+Run `npx --yes --package spec-superflow@0.11.0 ssf sync <change-dir>`. If conflicts are detected (same requirement modified by multiple changes), present the conflict list to the user for resolution order.
 
 ## Sync Process
 
@@ -62,7 +62,7 @@ Output sync report table: Capability, ADDED/MODIFIED/REMOVED/RENAMED counts, Sta
 2. Change folder (including deltas) remains for traceability.
 3. Record that merging is complete so the `executing → closing` guard allows closure:
    ```bash
-   npx --yes --package spec-superflow@0.10.0 ssf state set <change-dir> spec_merged true
+   npx --yes --package spec-superflow@0.11.0 ssf state set <change-dir> spec_merged true
    ```
    (If the change had no delta sections, still set `spec_merged true` — there was nothing to merge.)
 

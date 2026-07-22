@@ -1,6 +1,6 @@
 ---
 name: sealos-deploy
-description: Deploy any GitHub project to Sealos Cloud in one command. Assesses readiness, generates Dockerfile, builds image, creates Sealos template, and deploys — fully automated. Use when user says "deploy to sealos", "deploy this project", "deploy to cloud", "deploy this repo", mentions Sealos deployment, wants to deploy a GitHub URL or local project to a cloud platform, or asks about one-click deployment. Also triggers on "/sealos-deploy".
+description: Deploy compatible server, static-web, worker, scheduled-job, or reviewed remote-desktop workloads from GitHub or local source to Sealos Cloud. Reject unsupported desktop, mobile, CLI, library, extension, hardware-dependent, mixed, and unidentified targets before readiness scoring or build. Use when the user asks to deploy a repository to Sealos or another cloud platform, or invokes "/sealos-deploy".
 metadata:
   author: labring
   compatibility: Sealos auth/workspace are required for deploys. Docker, buildx, and gh CLI are required only when the selected path needs local build/push. git is required when cloning from a GitHub URL or when git metadata is needed. Node.js 18+ and Python 3.8+ remain optional accelerators.
@@ -13,7 +13,8 @@ metadata:
 Sealos auth/workspace are required for deploys. Docker, buildx, and gh CLI are required only when the selected path needs local build/push. git is required when cloning from a GitHub URL or when git metadata is needed. Node.js 18+ and Python 3.8+ remain optional accelerators.
 
 
-Deploy any GitHub project to Sealos Cloud — from source code to running application, one command.
+Deploy compatible cloud workloads to Sealos Cloud, stopping unsupported targets
+before build or deployment.
 
 ## kubectl Safety Rules (all phases)
 
@@ -138,6 +139,7 @@ Located in `scripts/` within this skill directory (`<SKILL_DIR>/scripts/`):
 
 | Script | Usage | Purpose |
 |--------|-------|---------|
+| `workload-eligibility.mjs` | `node workload-eligibility.mjs <repo-dir>` | Read-only fail-closed workload classification; decision is stdout-only |
 | `score-model.mjs` | `node score-model.mjs <repo-dir>` | Deterministic readiness scoring (0-12) |
 | `detect-template.mjs` | `node detect-template.mjs [--github-url <url>] --work-dir <repo-dir> --skill-dir <SKILL_DIR>` | Detect configured GitHub repo → Sealos template fast-path matches |
 | `validate-artifacts.mjs` | `node validate-artifacts.mjs --dir <work-dir>` | Validate `.sealos` JSON artifacts against enforced schemas |
@@ -170,7 +172,7 @@ This skill references knowledge files from co-installed internal skills. These a
 <SKILL_DIR>/../
 ├── sealos-deploy/           ← this skill (user entry point) = <SKILL_DIR>
 ├── dockerfile-skill/        ← Phase 3: Dockerfile generation knowledge
-├── cloud-native-readiness/  ← Phase 1: assessment criteria
+├── cloud-native-readiness/  ← Phase 0.4 eligibility policy + Phase 1 assessment criteria
 └── docker-to-sealos/       ← Phase 5: Sealos template rules
 ```
 
@@ -186,6 +188,7 @@ Paths used in pipeline.md follow the pattern:
 | Phase | Action | Skip When |
 |-------|--------|-----------|
 | 0 — Preflight | Capability scan, path-specific warnings, Sealos auth | Initial blockers resolved |
+| 0.4 — Eligibility | Confirm the repository root is a supported cloud workload | Any non-eligible result → stop |
 | 0.5 — Template Fast Path | Match GitHub repo to a configured Sealos template | No match, or match cannot materialize template YAML |
 | 1 — Assess | Clone repo (or use current project), analyze deployability | Score too low → stop |
 | 2 — Detect | Find existing image (Docker Hub / GHCR / README) | Found → jump to Phase 5 |

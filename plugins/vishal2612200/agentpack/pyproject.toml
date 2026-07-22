@@ -1,6 +1,6 @@
 [project]
 name = "agentpack-cli"
-version = "0.4.0"
+version = "0.4.1"
 description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -47,14 +47,14 @@ watch = [
 ]
 
 mcp = [
-  "mcp>=1.0.0"
+  "mcp>=1.28.1"
 ]
 
 tree-sitter = []
 
 all = [
   "watchdog>=4.0.0",
-  "mcp>=1.0.0",
+  "mcp>=1.28.1",
   "tree-sitter>=0.23.2",
   "tree-sitter-language-pack>=0.7.4"
 ]

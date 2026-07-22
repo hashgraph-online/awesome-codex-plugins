@@ -3,6 +3,8 @@ name: ui-theme-qa
 description: "Use this skill to find and fix undisciplined Control-node UI in a Godot project — spacing that follows no ladder, font sizes with no modular scale, near-duplicate colours, and text that fails WCAG contrast — by measuring the live editor with the `hera` CLI and snapping theme tokens to a reference corpus. It also reports (without changing) inert container wrappers and decorative nodes. Triggers: \"clean up the UI spacing/type/contrast\", \"the UI values look arbitrary\", \"tidy the Godot UI\", \"check UI contrast\", or any request to mechanically remove statistical UI-design defects without a redesign. Reductive only; edits per-node theme overrides (undoable), never copy or layout content."
 ---
 
+<!-- markdownlint-disable MD013 -->
+
 # UI Theme QA (Godot, reductive)
 
 Mechanically remove statistical design defects from a live Godot editor, over
@@ -12,7 +14,7 @@ corpus and never touches copy, information order, or layout structure.
 Six areas, split by what they may do:
 
 | | areas | effect |
-|---|---|---|
+| --- | --- | --- |
 | **enforcing** | `spacing` · `type-scale` · `color` · `contrast` | set `theme_override_*` (undoable) |
 | **report-only** | `containers` · `decoration` | proposals in the report; **no mutation** |
 
@@ -45,6 +47,7 @@ context.
 
 Dispatch one inspector per area (`spacing`, `type-scale`, `color`, `contrast`,
 `containers`, `decoration`). Each:
+
 - reads **only its area section** of `references/ui-theme-areas.md`,
 - measures the live editor with the read commands listed there
   (`node get --props`, `eval get_theme_color`, `game ui tree` rects),
@@ -66,6 +69,7 @@ link only.
 
 One area enforcer at a time, in order. `containers` and `decoration` are skipped
 here — they enforce nothing. Each enforcing area:
+
 - loads `findings-<area>.md` + its area section,
 - **re-measures each `check` from the live editor**; applies the fix only where
   the predicate is currently false (never trust the finding text),
@@ -116,8 +120,16 @@ Fast, mechanical, non-interactive. Ambiguous items are proposed in the report,
 not asked. Redesign-scale decisions (which accent, is this density right) are
 out of scope — surface them, do not silently pick.
 
-## Out of scope
+## Companion primitives and boundaries
 
-Project-wide `Theme` resource construction (needs a `hera theme set` primitive),
-before/after pixel diffing, and any wholesale restyle. See the repo's
-`docs/UI_THEME_QA_DESIGN.md` (§6 gaps, §11 phasing).
+Project-wide Theme construction is available through
+`resource create Theme <res://theme.tres>` plus `theme set`, and
+`screenshot diff` can locate before/after pixel changes. They complement this
+skill but do not change its safe default: enforcement remains undoable per-node
+theme overrides, while project-wide resource writes are persistent and not
+undoable.
+
+Automatic wholesale restyling remains out of scope. Hera can apply a style an
+agent or user has already chosen, but this workflow does not invent taste or
+silently replace the project's visual language. See the repo's
+`docs/UI_THEME_QA_DESIGN.md` §11.1.

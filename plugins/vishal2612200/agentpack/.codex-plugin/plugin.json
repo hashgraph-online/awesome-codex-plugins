@@ -1,6 +1,6 @@
 {
   "name": "agentpack",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Thin Codex plugin for AgentPack ranked repo context.",
   "author": {
     "name": "AgentPack",
@@ -8,7 +8,7 @@
   },
   "homepage": "https://vishal2612200.github.io/agentpack/codex-plugin/",
   "repository": "https://github.com/vishal2612200/agentpack",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "keywords": [
     "agentpack",
     "codex",

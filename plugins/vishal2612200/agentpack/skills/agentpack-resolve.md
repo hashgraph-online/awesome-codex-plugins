@@ -1,6 +1,7 @@
 ---
 name: agentpack-resolve
 description: Resolve all actionable PR review comments with cited fixes, validation, and replies.
+license: AGPL-3.0-only
 ---
 
 Use when the user invokes `$agentpack-resolve`.

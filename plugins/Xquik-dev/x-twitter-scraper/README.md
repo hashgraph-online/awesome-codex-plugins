@@ -3,6 +3,16 @@
 > **Xquik is an independent third-party service.** Not affiliated with X Corp.
 > "Twitter" and "X" are trademarks of X Corp.
 
+[![Apify Actor](https://apify.com/actor-badge?actor=xquik/x-tweet-scraper)](https://apify.com/xquik/x-tweet-scraper)
+[![npm downloads](https://img.shields.io/npm/dt/x-developer?style=for-the-badge&logo=npm&label=downloads)](https://www.npmjs.com/package/x-developer)
+[![npm monthly downloads](https://img.shields.io/npm/dm/x-developer?style=for-the-badge&logo=npm&label=downloads%2Fmonth)](https://www.npmjs.com/package/x-developer)
+[![npm version](https://img.shields.io/npm/v/x-developer?style=for-the-badge&logo=npm&label=npm)](https://www.npmjs.com/package/x-developer)
+
+[![CI](https://github.com/Xquik-dev/x-twitter-scraper/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Xquik-dev/x-twitter-scraper/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Xquik-dev/x-twitter-scraper/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/Xquik-dev/x-twitter-scraper/actions/workflows/codeql.yml)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13731/badge)](https://www.bestpractices.dev/projects/13731)
+[![MIT license](https://img.shields.io/npm/l/x-developer?logo=opensourceinitiative)](LICENSE)
+
 <table>
   <tr>
     <td align="center">
@@ -25,7 +35,7 @@ The npm package `x-developer` is this agent skill and plugin bundle. The separat
 
 Includes 126 REST API operations, HMAC webhooks, 23 extraction tools, SDK pointers, and confirmation-gated writes.
 
-MCP v2.5.3 exposes 118 MCP operations through 2 tools. Add `https://xquik.com/mcp`, then follow the [current client compatibility path](https://docs.xquik.com/mcp/overview#client-compatibility). OAuth-capable clients complete OAuth 2.1; API-key fallback is client-specific; ChatGPT custom apps require OAuth. Eight credential or session-bound REST operations remain outside MCP: 3 account API-key operations, saved-payment top-up, account top-up redirect, and 3 guest-wallet credential operations.
+MCP v2.5.4 exposes 118 MCP operations through 2 tools. Add `https://xquik.com/mcp`, then follow the [current client compatibility path](https://docs.xquik.com/mcp/overview#client-compatibility). OAuth-capable clients complete OAuth 2.1; API-key fallback is client-specific; ChatGPT custom apps require OAuth. Eight credential or session-bound REST operations remain outside MCP: 3 account API-key operations, saved-payment top-up, account top-up redirect, and 3 guest-wallet credential operations.
 
 > **Codex OAuth compatibility:** Affected Codex releases discard the RFC 9207 `iss` callback value even though Xquik returns it. If Codex reports `Authorization server response missing required issuer: expected https://xquik.com`, use `XQUIK_API_KEY` through the Codex `bearer_token_env_var` setting. Follow the [Codex OAuth troubleshooting guide](https://docs.xquik.com/guides/troubleshooting#codex-oauth-issuer-validation-error) and track [openai/codex#31573](https://github.com/openai/codex/issues/31573).
 
@@ -176,7 +186,7 @@ When installed, this skill gives your AI coding assistant deep knowledge of the 
 - **Tweet composition**: Algorithm-optimized tweet composer with scoring
 - **Usage guardrails**: Check balance and estimate usage; dashboard handles plan and credit changes
 - **Support tickets**: Open and manage support tickets via API
-- **MCP server**: MCP v2.5.3 exposes 118 operations through 2 tools with OAuth 2.1 discovery
+- **MCP server**: MCP v2.5.4 exposes 118 operations through 2 tools with OAuth 2.1 discovery
 
 ## Capabilities
 

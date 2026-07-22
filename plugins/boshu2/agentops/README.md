@@ -14,12 +14,14 @@ RPI -> Plan -> Implement -> fresh Validate -> durable verdict -> report and stop
 ## Quickstart
 
 ```bash
-brew install beads
 npx skills@latest add boshu2/agentops --all -g
 ```
 
-Use `plan`, `implement`, `validate`, and `learn` — or
-`rpi` to run the loop once.
+One command, every coding agent — `npx skills` installs the corpus into all
+your agents at once. The loop runs as skills **inside your coding agent**
+(Claude Code, Codex, Cursor, …): type `/rpi` — or ask for `plan`,
+`implement`, `validate`, `learn` by name — in that agent's chat. No other
+runtime is required.
 
 ## Plugins (Claude Code / Codex)
 
@@ -35,10 +37,12 @@ codex plugin marketplace add boshu2/agentops
 codex plugin add agentops@agentops-marketplace
 ```
 
-Two install paths:
+Three install paths:
 
-- **npx / [skills.sh](https://skills.sh)** copies skills you can edit.
-- **Plugins** keep a read-only bundle current with the repo.
+- **npx / [skills.sh](https://skills.sh)** — universal; copies skills you can edit.
+- **Plugins** — a read-only bundle that stays current with the repo.
+- **Checkout + `ao skills link`** — source-tracked symlinks for contributors
+  (see [Install and day-2 operations](docs/install-day2-ops.md)).
 
 ## Admission-control hooks (on by default)
 
@@ -61,7 +65,8 @@ directories.
 
 ## Intent lives in a bead
 
-[Beads](https://github.com/steveyegge/beads) is the preferred tracker. Plan
+[Beads](https://github.com/steveyegge/beads) is the preferred tracker
+(optional — `brew install beads`). Plan
 writes [BDD](https://cucumber.io/docs/bdd/) acceptance and DDD [ubiquitous
 language](https://martinfowler.com/bliki/UbiquitousLanguage.html) into the bead;
 Implement builds against it; Validate judges a hashed snapshot under

@@ -284,7 +284,7 @@ rch fleet deploy --verify
 
 **Symptom:** Recurring `RCH-E507`, `Telemetry database integrity check failed`, empty `rch speedscore --history`, daemon log lines mentioning `database disk image is malformed`.
 
-**Self-fix:** See `references/TELEMETRY_RECOVERY.md`. Short version: stop daemon, move `~/.local/share/rch/telemetry/telemetry.db*` aside, restart. Telemetry is derived data; you lose history but nothing operational.
+**Self-fix:** Stop the daemon, move `~/.local/share/rch/telemetry/telemetry.db*` aside, restart. Telemetry is derived data; you lose history but nothing operational.
 
 ---
 
@@ -295,9 +295,9 @@ rch fleet deploy --verify
 **Self-fix:**
 
 1. Force visibility: `RCH_VISIBILITY=verbose <your-command>`. If you now see `[RCH] local (...)`, follow `references/FAIL_OPEN.md` to map the reason to a fix.
-2. If still no `[RCH]` line, the hook never fired. Probe the protocol directly:
+2. If still no `[RCH]` line, the hook never fired. Probe the protocol directly with a hand-crafted request (see the Wire-Level Hook Protocol section of `references/MACHINE_INTROSPECTION.md`):
    ```bash
-   .claude/skills/rch/scripts/protocol_test.sh "<your-command>"
+   printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"<your-command>"}}' | rch
    ```
    If stdout is empty, the classifier is rejecting your command. Common causes: shell pipe (`cargo build | tee log`), backgrounded with `&`, env-prefixed in an unusual form. Restructure or use `rch exec -- <cmd>` directly.
 3. If the hook fires but the command still runs locally, the rewrite isn't being honored — check that `~/.claude/settings.json` has the right hook command path (`rch hook install` re-resolves it).
@@ -310,17 +310,7 @@ See `references/FAIL_OPEN.md` for the full taxonomy.
 
 - `references/FAIL_OPEN.md` — the canonical guide for `[RCH] local (...)` reasons
 - `references/ERROR_CODES.md` — the full RCH-Exxx catalog
-- `references/PATH_DEPENDENCIES.md` — multi-repo workspace problems
-- `references/MULTI_AGENT_CONTENTION.md` — TOCTOU, fleet deploy races, autostart cooldown
-- `references/DISK_AND_PRESSURE.md` — RCH-E210..217 + sbh handoff
-- `references/SELF_HEALING.md` — autostart cooldown, daemon supervision
-- `references/SSH_KEY_RECOVERY.md` — host-doesn't-have-the-key recovery
-- `references/SSH_TUNING.md` — ControlMaster, keepalives, retry semantics
-- `references/TELEMETRY_RECOVERY.md` — corrupt telemetry.db recovery
-- `references/MACHINE_INTROSPECTION.md` — JSON/schema/capability surfaces
 - `references/RECOVERY_PLAYBOOKS.md` — symptom→fix in ≤90s
-- `scripts/auto_recover.sh` — heuristic, dry-run-by-default recovery
-- `scripts/worker_disk_triage.sh` — read-only disk report per worker
-- `scripts/protocol_test.sh` — probe the hook protocol directly
-- `scripts/multi_agent_safety.sh` — flock wrapper for fleet ops
-- `scripts/mine_rch_history.sh` — search prior incidents in agent session history
+- `references/MACHINE_INTROSPECTION.md` — JSON/schema/capability surfaces, wire-level hook protocol
+- `references/CONFIGURATION.md` — config keys and precedence
+- `references/WORKERS.md` — worker inventory and health

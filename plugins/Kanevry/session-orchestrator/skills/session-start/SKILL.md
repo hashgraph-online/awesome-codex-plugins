@@ -952,6 +952,69 @@ if (bannerText) {
 
 Cross-reference: PRD F2.3 acceptance criteria (#505); `scripts/lib/memory-banner.mjs` API (`renderMemoryBanner`, `readBannerInputs`; test-only exports `_formatBanner`, `_extractCardExcerpt` carry the `_`-prefix per #542 convention).
 
+## Phase 6.8: Telemetry Consent (one-time, #845)
+
+> Skip this phase silently when `persistence: false` in Session Config. Also skip silently when non-interactive (headless / CI — no TTY to prompt on), and when the consent decision has already been made (stored `granted`/`denied`, an env override, or the fleet flag). In all of these `resolveConsent().prompt` is `false` and the phase is a no-op — it must NEVER print anything or slow session-start in the common (already-decided / headless) case.
+
+Anonymous usage telemetry is **strictly opt-in** and, on a host that has never decided, is offered exactly once via a single interactive AskUserQuestion. The consent machine lives in `scripts/lib/telemetry/consent.mjs`; this phase only decides *whether* to prompt and then records the operator's answer. The `resolveConsent()` precedence machine is fail-closed — `prompt` is `true` only for a fresh, interactive, not-yet-decided, not-fleet, not-env-overridden host.
+
+```javascript
+import { readTelemetryState, resolveConsent, isHeadless, grantConsent, denyConsent } from '${PLUGIN_ROOT}/scripts/lib/telemetry/consent.mjs';
+import { loadOwnerConfig } from '${PLUGIN_ROOT}/scripts/lib/owner-yaml.mjs';
+
+const c = resolveConsent({
+  env: process.env,
+  ownerConfig: loadOwnerConfig().config,       // fleet flag lives at .telemetry.enabled (host-local owner.yaml, never committed)
+  state: readTelemetryState().record,          // persisted per-user decision (~/.config/session-orchestrator/telemetry.json)
+  interactive: !isHeadless(),                  // fail-closed toward headless — anything but a confirmed TTY counts as headless
+});
+if (!c.prompt) {
+  // silent no-op — already decided, env-override, fleet-enabled, or headless. Do NOT print, do NOT prompt.
+}
+```
+
+**When `c.prompt === true`**, the coordinator renders EXACTLY ONE `AskUserQuestion` (per `.claude/rules/ask-via-tool.md` AUQ-003 — the tool, never inline prose):
+
+```js
+AskUserQuestion({
+  questions: [{
+    question: "Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, whitelist-projiziert (keine Repo-Namen/Pfade/Prompts), jederzeit abschaltbar — Details: docs/telemetry.md",
+    header: "Usage Telemetry",
+    multiSelect: false,
+    options: [
+      { label: "Ja, aktivieren", description: "Anonymer Zähl-/Struktur-Datensatz (Skill-/Phasen-Nutzung, Erfolg/Abbruch) — whitelist-projiziert, keine Pfade/Prompts/Repo-Namen. Details: docs/telemetry.md" },
+      { label: "Nein", description: "Keine Telemetrie senden. Jederzeit später aktivierbar via node scripts/telemetry.mjs." },
+    ],
+  }],
+});
+```
+
+> **Consent-Neutralität (deliberate AUQ-003 deviation):** this is the ONE AskUserQuestion in the session flow that carries **no `(Recommended)` label on either option** — neither "Ja" nor "Nein" is tagged. AUQ-003's "option 1 is always the recommendation" convention is intentionally NOT applied here, so the operator's consent is unbiased. Do not add a recommendation to either option.
+
+- **Codex CLI / Cursor IDE fallback (numbered Markdown list — AUQ-004 exception 1):**
+  ```
+  Anonyme Usage-Telemetrie aktivieren? Strikt opt-in, whitelist-projiziert (keine Repo-Namen/Pfade/Prompts), jederzeit abschaltbar — Details: docs/telemetry.md
+  1. Ja, aktivieren — anonymer Zähl-/Struktur-Datensatz, keine Pfade/Prompts/Repo-Namen.
+  2. Nein — keine Telemetrie senden.
+  Reply with the number of your choice. (No option is pre-recommended — the choice is yours.)
+  ```
+
+On the operator's answer:
+- **"Ja, aktivieren"** → call `grantConsent()`. Then add a single confirmation line to the Session Overview: `Telemetry: enabled — ändern via node scripts/telemetry.mjs`.
+- **"Nein"** → call `denyConsent()`. Then add: `Telemetry: disabled — ändern via node scripts/telemetry.mjs`.
+
+Both helpers atomically persist the decision (read-modify-write, `anon_id` fields preserved) to `~/.config/session-orchestrator/telemetry.json`.
+
+### Fleet mode (host-local, no prompt)
+
+Setting `telemetry:\n  enabled: true` in the host-local `~/.config/session-orchestrator/owner.yaml` (never committed — same host-local-data contract as `.claude/rules/owner-persona.md`) enables telemetry across every repo on the host WITHOUT ever prompting: `resolveConsent()` then returns `prompt: false` with state `enabled-fleet`, so this phase is a silent no-op. The per-shell escape hatches `SO_TELEMETRY_DISABLED=1` and `DO_NOT_TRACK` outrank the fleet flag for a single shell. See `docs/telemetry.md` for the full precedence table (PRD FA5).
+
+### One-time guarantee
+
+The decision persists host-locally in `~/.config/session-orchestrator/telemetry.json`; once `consent` is non-`null` (granted or denied), `resolveConsent().prompt` stays `false` and this phase never fires again on that host — no repeat prompting across repos or sessions.
+
+Cross-reference: GitLab #845 (Epic #841); `docs/prd/2026-07-20-anonymous-usage-telemetry.md` §3 FA1/FA5; `docs/telemetry.md`; consent API in `scripts/lib/telemetry/consent.mjs` (`resolveConsent`, `grantConsent`, `denyConsent`, `isHeadless`, `readTelemetryState`).
+
 ## Phase 7: Research (session type dependent)
 
 > **Note:** Implementation-specific research (library APIs, best practices for specific code changes) is deferred to session-plan, which knows the exact scope. Session-start focuses on state analysis.
@@ -1050,6 +1113,7 @@ After user alignment:
 | (inline) Phase 2.7 | GitLab Portfolio Snapshot — dry-run aggregation banner; gated on `gitlab-portfolio.enabled: true` + `vault-integration.enabled: true`; dispatches `scripts/lib/gitlab-portfolio/cli.mjs --dry-run`; 8s timeout; never blocks session-start |
 | `phase-4-5-resource-health.md` | Phase 4.5 full procedural body — resource probe, adaptive thresholds table, AUQ presentation, session-plan cap handoff |
 | (inline) Phase 6.7 | Memory Banner — `renderMemoryBanner` from `scripts/lib/memory-banner.mjs` (#505); silent no-op when `memory.banner.enabled: false` or `persistence: false` |
+| (inline) Phase 6.8 | Telemetry Consent (one-time, #845) — `resolveConsent()` from `scripts/lib/telemetry/consent.mjs` decides `prompt`; when true, ONE consent-neutral `AskUserQuestion` (no `(Recommended)` on either option) → `grantConsent()`/`denyConsent()`; silent no-op when `persistence: false`, headless/CI, already-decided, fleet-enabled (`owner.yaml telemetry.enabled`), or env-overridden (`SO_TELEMETRY_DISABLED=1`/`DO_NOT_TRACK`); host-local one-time guarantee via `~/.config/session-orchestrator/telemetry.json` |
 | `phase-7-1-premise-check.md` | Phase 7.1 full procedural body — claim extraction, one-grep-per-claim verification, verdict table, emission block format |
 | `phase-7-5-mode-selector.md` | Phase 7.5 full procedural body — buildLiveSignals, selectMode invocation, banner rendering, AUQ ordering protocol, graceful no-op rules, accuracy learning write |
 | `phase-8-5-express-path.md` | Phase 8.5 full procedural body — activation conditions, banner, coordinator-direct execution, STATE.md logging, condition examples table |

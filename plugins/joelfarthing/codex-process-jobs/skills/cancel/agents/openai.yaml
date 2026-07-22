@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cancel Process Job"
+  short_description: "Safely cancel a tracked process group"
+  default_prompt: "Use $cancel to stop this tracked process job safely."

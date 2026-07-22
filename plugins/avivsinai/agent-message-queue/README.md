@@ -198,6 +198,8 @@ amq doctor --ops
 amq doctor --ops --json
 amq doctor --ops --fix-wake-locks
 amq wake repair --me codex
+amq wake retire --me codex --inject-via /absolute/injector \
+  --inject-arg exec --inject-arg terminal-id
 ```
 
 Wake locks reported by `doctor --ops` can be `stale`, `unverified`, or, in JSON
@@ -218,6 +220,22 @@ locks, and `unverified` locks to avoid double-injecting into an active session
 or injecting into the wrong terminal. Repaired wake output goes to
 `agents/<agent>/.wake.repair.log`; `doctor --ops` can report whether repair is
 available, but it never starts a wake process.
+
+`amq wake retire` is the exact managed-shutdown path. It requires the caller's
+expected `--inject-via` executable and ordered `--inject-arg` values. A live
+wake is retired only when its process identity, unchanged lock generation, and
+saved target all match: Linux signals through its pidfd capability and macOS
+uses the generation-bound cooperative control socket. An exactly-bound
+proven-stale lock may be removed without signaling. The mailbox and saved
+target are preserved in either case; raw and unverified wakes fail closed.
+
+The lifecycle boundaries are:
+
+- repair = replace a proven-stale inject-via wake.
+- `doctor --ops --fix-wake-locks` = remove a proven-stale lock.
+- retire = stop an identity-confirmed live inject-via wake.
+- launchd, systemd, or the owning shell = stop a raw wake.
+- retire neither unloads supervisors nor promises that they will not restart a wake.
 
 `amq who` and `amq doctor --ops` distinguish two activity sources:
 
@@ -376,7 +394,7 @@ Common command groups:
 | Core messaging | `init`, `send`, `list`, `read`, `drain`, `reply`, `thread`, `watch`, `monitor`, `receipts` |
 | Collaboration | `coop init`, `coop exec`, `swarm list`, `swarm join`, `swarm tasks`, `swarm bridge` |
 | Integrations | `integration symphony init`, `integration symphony emit`, `integration kanban bridge` |
-| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `wake repair`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
+| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `wake repair`, `wake retire`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
 
 For the full CLI syntax, examples, and message schema, see [CLAUDE.md](CLAUDE.md).
 

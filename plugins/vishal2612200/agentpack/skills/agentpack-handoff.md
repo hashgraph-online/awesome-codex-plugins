@@ -1,6 +1,7 @@
 ---
 name: agentpack-handoff
 description: Package current work for another real agent session.
+license: AGPL-3.0-only
 ---
 
 # AgentPack Handoff
