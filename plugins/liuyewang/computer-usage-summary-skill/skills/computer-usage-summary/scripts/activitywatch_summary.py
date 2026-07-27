@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DEFAULT_API = "http://127.0.0.1:5600/api/0"
 URL_PATTERN = re.compile(r"(?:https?://|www\.|\b[\w.-]+\.(?:com|net|org|cn|io|app|dev)\b)", re.I)
@@ -48,7 +48,10 @@ def seconds(value):
 
 def resolve_timezone(value):
     if value:
-        return ZoneInfo(value)
+        try:
+            return ZoneInfo(value)
+        except ZoneInfoNotFoundError as error:
+            raise ValueError(f"unknown IANA time zone: {value}") from error
     return dt.datetime.now().astimezone().tzinfo
 
 
@@ -349,8 +352,8 @@ def main():
     args = parser.parse_args()
     if args.csv_bom and args.format != "csv":
         parser.error("--csv-bom requires --format csv")
-    timezone = resolve_timezone(args.timezone)
     try:
+        timezone = resolve_timezone(args.timezone)
         start_day, end_day = parse_date_range(args.date, args.start, args.end, args.period, timezone)
         rules = load_rules(args.rules)
     except (ValueError, RulesConfigurationError) as error:

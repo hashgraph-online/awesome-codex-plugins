@@ -33,8 +33,8 @@ Use this section only when ActivityWatch is missing, stopped, or needs repair.
 3. Enable only the window and AFK watchers. Let macOS request Accessibility
    permission through its normal interface; never bypass or change privacy
    permissions programmatically.
-4. On Windows, install the bundled `requirements.txt` once so Python can
-   resolve IANA time zones such as `Asia/Singapore` consistently.
+4. On Windows, run `python -m pip install tzdata` once so Python can resolve
+   IANA time zones such as `Asia/Singapore` consistently.
 5. Confirm the local `http://127.0.0.1:5600` server has `currentwindow` and
    `afkstatus` buckets containing events. The default AFK threshold is 180
    seconds.
