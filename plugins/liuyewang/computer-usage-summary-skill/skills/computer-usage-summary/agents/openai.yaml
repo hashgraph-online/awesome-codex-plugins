@@ -1,0 +1,4 @@
+interface:
+  display_name: "Computer Usage Summary"
+  short_description: "Private local app, project, and billable reports"
+  default_prompt: "Use $computer-usage-summary to create a private weekly local activity review with a paste-ready project and app table."
