@@ -137,7 +137,6 @@ Each plugin entry includes a `source.path` pointing at a mirrored bundle under `
 Third-party plugins built by the community. [PRs welcome](#contributing)!
 
 ### Development & Workflow
-- [skill-sync-publisher](https://github.com/liuyewang/skill-sync-publisher) - Safely synchronize this Codex skill across public agent-skill registries.
 
 <!-- pinned -->
 
@@ -225,6 +224,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Secret Guard](./plugins/mturac/secret-guard) - Pre-commit secret scanner using pattern and entropy detection.
 - [Session Orchestrator](https://github.com/Kanevry/session-orchestrator) - Session orchestration for Claude Code, Codex, and Cursor IDE — structured planning, wave-based execution, VCS integration (GitLab + GitHub), quality gates, and clean session close-out with issue tracking.
 - [Simple Man](https://github.com/Maksim-Burtsev/simple-man) - High-compression communication mode for Codex agents that removes filler while preserving search, validation, and implementation effort.
+- [skill-sync-publisher](https://github.com/liuyewang/skill-sync-publisher) - Safely synchronize this Codex skill across public agent-skill registries.
 - [Spec-Driven Development](https://github.com/Habib0x0/spec-driven-plugin) - Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.
 - [spec-superflow](https://github.com/MageByte-Zero/spec-superflow) - Spec-first workflow with nine skills, auditable recovery commands, guarded workflow-path recommendations, Node 20 support, and evidence-based review gates.
 - [Spellbook Skills](https://github.com/yyykf/spellbook-skills) - Practical Claude Code and Codex skills for worktrees, PR/MR automation, review cleanup, YApi lookup, and Java DDD guidance.
