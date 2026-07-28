@@ -137,6 +137,7 @@ Each plugin entry includes a `source.path` pointing at a mirrored bundle under `
 Third-party plugins built by the community. [PRs welcome](#contributing)!
 
 ### Development & Workflow
+- [skill-sync-publisher](https://github.com/liuyewang/skill-sync-publisher) - Safely synchronize this Codex skill across public agent-skill registries.
 
 <!-- pinned -->
 
