@@ -94,6 +94,19 @@ The per-action minimum role is a compile-time exhaustive match in
 are denied unconditionally. The caller's role is never supplied by the
 client — it is always derived server-side from kernel credentials.
 
+The same `SO_PEERCRED` read yields the peer's **uid**, which is recorded as the
+caller principal alongside the role and signed into the audit chain
+(`chain_version = 3`). Role answers "was this permitted"; principal answers
+"which account asked", and two members of `sysknife-admin` are no longer
+indistinguishable in the signed record. Three forms exist, and the scheme is
+part of the signed value so an auditor can tell them apart:
+
+| Principal | Meaning |
+|---|---|
+| `uid:<n>` | Unix-socket peer, uid attested by the kernel at `connect()` |
+| `token:vsock` | vsock peer authenticated by the pre-shared token: possession of a file, not an account |
+| `none:unattributed` | The daemon could not establish an account: `SO_PEERCRED` failed, returned no usable pid, or reported the overflow uid because the peer is not representable in this daemon's namespaces. The connection is handled at `Observer` and the row admits attribution failed rather than naming `nobody` |
+
 ### Layer 4 — One-time approval receipt (sysknife-daemon)
 
 Every mutating action requires a preview→approve→execute round-trip:
@@ -323,4 +336,5 @@ security certification work.
 | Tool output injection | [#98](https://github.com/lacs-project/sysknife/issues/98) | `query_*` results re-enter the LLM context unsanitized. A crafted service description or package name could attempt prompt injection. Impact is bounded by Layer 2–5. |
 | Action param validation | — | Action params are typed per-handler but not validated at a shared schema boundary. A compromised LLM could propose valid action + malicious params (e.g. `AddAuthorizedKey` with an attacker-controlled key). |
 | UDP audit forwarding | — | External RFC 5424 forwarding is best effort and provides no delivery acknowledgement. Use the transaction database and tested backups as the durable record. |
-| Caller attribution granularity | — | The signed chain binds each row to the caller's *role* (`chain_version = 2`), not to the individual account. Two members of `sysknife-admin` produce indistinguishable signed records, so the trail establishes "an Admin did this", not which Unix account. The uid is available at the `SO_PEERCRED` boundary where the role is already derived; recording it means a new signed row encoding (`chain_version = 3`) across both storage backends, and is tracked separately rather than bundled into an unrelated change. |
+| Caller attribution strength | — | Rows written under `chain_version = 3` name the account (`uid:<n>`), but a uid is only as meaningful as account hygiene on the host: shared logins, `su` into a service account, or a uid reused after a user is deleted all weaken the claim. vsock callers are recorded as `token:vsock` because a pre-shared secret proves possession of a file, not a person. Rows written before the upgrade remain role-only by design, since backfilling them would rewrite what was signed. |
+| Unattributed callers verify as intact | — | A row whose principal is `none:unattributed` is authentic and verifiable, but names no account, and a chain composed entirely of such rows still reports `Intact`. That verdict is about tampering only. `sysknife audit verify` reports `unattributed_rows` alongside it, and the daemon logs a warning per occurrence, but an operator who reads only the verdict will overestimate what the trail can attribute. |
