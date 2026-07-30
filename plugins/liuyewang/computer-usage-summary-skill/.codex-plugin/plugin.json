@@ -9,13 +9,7 @@
   "homepage": "https://github.com/liuyewang/computer-usage-summary-skill",
   "repository": "https://github.com/liuyewang/computer-usage-summary-skill",
   "license": "MIT",
-  "keywords": [
-    "codex",
-    "activitywatch",
-    "productivity",
-    "privacy",
-    "time-tracking"
-  ],
+  "keywords": ["codex", "activitywatch", "productivity", "privacy", "time-tracking"],
   "skills": "./skills/",
   "interface": {
     "displayName": "Computer Usage Summary",
@@ -24,10 +18,7 @@
     "developerName": "liuyewang",
     "category": "Productivity",
     "composerIcon": "./assets/icon.svg",
-    "capabilities": [
-      "Local analysis",
-      "Spreadsheet export"
-    ],
+    "capabilities": ["Local analysis", "Spreadsheet export"],
     "websiteURL": "https://github.com/liuyewang/computer-usage-summary-skill",
     "privacyPolicyURL": "https://github.com/liuyewang/computer-usage-summary-skill/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/liuyewang/computer-usage-summary-skill/blob/main/LICENSE",
