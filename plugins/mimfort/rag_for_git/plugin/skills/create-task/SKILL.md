@@ -1,5 +1,5 @@
 ---
-name: reviewer_create-task
+name: create-task
 description: Create a task on a configured board with canonical server-side structure. Use when the user asks to file or create a task on the board.
 ---
 

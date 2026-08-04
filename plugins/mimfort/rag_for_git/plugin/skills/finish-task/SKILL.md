@@ -1,5 +1,5 @@
 ---
-name: reviewer_finish-task
+name: finish-task
 description: After a task's PR is created, offer to close the task on the configured board and reindex it. Use when the user says a PR is up or asks to close or finish a task.
 ---
 

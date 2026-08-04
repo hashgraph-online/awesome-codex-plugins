@@ -7,7 +7,7 @@
   },
   "homepage": "https://github.com/NotNull92/hera-agent-unity#agent-integrations",
   "repository": "https://github.com/NotNull92/hera-agent-unity",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "unity",
     "game-development",

@@ -1,4 +1,8 @@
 {
-  "apps": {}
+  "apps": {
+    "graymatter": {
+      "id": "asdk_app_6a590a1720808191b3909ed57132a25d",
+      "required": true
+    }
+  }
 }
-

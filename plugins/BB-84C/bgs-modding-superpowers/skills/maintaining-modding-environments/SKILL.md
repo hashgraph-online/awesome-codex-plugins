@@ -642,10 +642,8 @@ if ($mo2Hash -ne $refHash) {
 Also surface mtimes for human readability — a 10-day gap with non-matching
 hashes is a real version drift, not a build metadata glitch.
 
-For the `xEditHookBridge.dll`: compare against the plugin-tree source
-`<plugin>\tools\xedit-hook-bridge\dist\xEditHookBridge.dll`. If hashes match,
-no swap needed. The HookBridge is owned by THIS plugin and follows the
-plugin's release cadence, not the xEdit binary's.
+`xEditHookBridge.dll` is retired and must not be hash-checked, copied, or
+deployed. Native `xEdit.exe -automation-serve` is the supported path.
 
 ### Reference source — contrib build vs release channel
 
@@ -682,10 +680,7 @@ Copy-Item "$refSource\xEdit.exe"   "$MO2_Root\tools\xEdit\xEdit.exe"     -Force
 # (For other games: FO4Edit64.exe, SSEEdit64.exe, etc. — the xEdit binary
 #  detects game mode from its filename when launched directly.)
 
-# 3. (Optional) Swap HookBridge.dll if hash differs from plugin-tree source
-& "<plugin>\scripts\install-xedit-hook-bridge.ps1" -MO2Root "$MO2_Root"
-
-# 4. INVALIDATE CACHE — mandatory after any binary swap
+# 3. INVALIDATE CACHE — mandatory after any binary swap
 $cacheDir = "$MO2_Root\overwrite\<Game>Edit Cache"  # e.g. SF1Edit Cache
 Move-Item -LiteralPath $cacheDir "$MO2_Root\overwrite\<Game>Edit Cache.stale-$ts" -ErrorAction SilentlyContinue
 ```

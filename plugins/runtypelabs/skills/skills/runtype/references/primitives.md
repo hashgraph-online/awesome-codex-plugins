@@ -296,7 +296,7 @@ Reference syntax — same everywhere (tool configs, FPO templates, runtime): `{{
 Two adjacent syntaxes that look similar but are different:
 
 - `{{secrets:KEY}}` — **plural with colon is invalid**. The resolver rejects it.
-- `{{secrets.key}}` — plural with **dot** is a different system entirely: per-request dispatch-scoped values (passed in at dispatch time), not managed secrets.
+- `{{secrets.key}}` — plural with **dot** is a legacy agent/external-tool dispatch namespace, not a managed secret. Hosted FLOW execution ignores it.
 
 **Always redacted in logs at every level.** If a value matches a known secret, it's stripped from log output across the platform.
 

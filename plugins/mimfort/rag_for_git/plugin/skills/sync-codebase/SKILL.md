@@ -1,5 +1,5 @@
 ---
-name: reviewer_sync-codebase
+name: sync-codebase
 description: Build or update the reviewer base index (vector store + code graph) from a local repo clone. Use when the user asks to "index the codebase", "build the index", "sync the code", "rebuild the graph", "просиндексируй код", "построй индекс".
 ---
 
@@ -67,7 +67,7 @@ Parse from $ARGUMENTS (all optional):
   npm install -g @sourcegraph/scip-python
   ```
   Then re-run — `GRAPH_BACKEND=auto` picks it up automatically.
-- After `reviewer index`, individual PR reviews (`reviewer_review-pr`) trigger **incremental**
+- After `reviewer index`, individual PR reviews (`rag-reviewer:review-pr`) trigger **incremental**
   re-sync of changed files automatically via `prepare_review`. Full re-index is only needed when
   the base branch diverges significantly or after a fresh deploy.
-- To sync tasks from the configured registered task board, use `reviewer_sync-tasks` instead.
+- To sync tasks from the configured registered task board, use `rag-reviewer:sync-tasks` instead.

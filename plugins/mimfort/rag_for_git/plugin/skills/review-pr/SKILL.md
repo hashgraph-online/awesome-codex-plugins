@@ -1,5 +1,5 @@
 ---
-name: reviewer_review-pr
+name: review-pr
 description: Review a GitHub pull request with the RAG + code-graph pipeline (reviewer MCP server). Use when the user asks to review a PR ("review PR 123", "заревьюй PR", a PR URL). Requires ParadeDB/Neo4j running and a built base index.
 ---
 

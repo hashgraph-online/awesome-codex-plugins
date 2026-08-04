@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.49.9 # x-release-please-version
+version: 0.52.0 # x-release-please-version
 description: >-
   Coordinate agents via the AMQ CLI for file-based inter-agent messaging. Use
   this skill whenever you need to send messages to another agent (codex, claude,
@@ -219,6 +219,8 @@ amq integration kanban bridge --me codex --workspace-id my-workspace
 amq doctor --ops
 amq doctor --ops --json
 amq doctor --root <exact-root> --ops
+amq wake check --me <agent>
+amq wake check --me <agent> --json
 
 # Base-config-only session repair outside the current pin
 amq doctor --root <session-root> --base-root <base-root> \
@@ -278,6 +280,15 @@ notification, not message consumption. `recent_activity` means only that
 `last_seen` is fresh. Use `drain` or `monitor` when consumption is required;
 run long-lived wake/monitor commands under launchd, systemd, or another
 supervisor rather than treating AMQ itself as a daemon.
+
+Before replacing a wake, run `amq wake check --me <agent> --json`. It is
+read-only and reports the running/current image path and version plus an exact
+`next_action`. An automated agent may act only when
+`restart_capability=agent_safe`. For `operator_only`, leave the live wake
+running and hand off to its owning terminal or supervisor. For `unavailable`,
+preserve the state and diagnose it. Never kill a live raw wake from a non-TTY
+process, and never accept an attention-only fallback as a replacement for
+full-strength input delivery.
 
 Those consuming commands, `watch`, and all DLQ commands refuse a raw
 target that conflicts with a complete `AM_BASE_ROOT`/`AM_SESSION` pin before
@@ -449,6 +460,8 @@ echo "evidence: tests green" | amq send --to codex --subject "done" --body -   #
 ```
 
 **Body is fail-closed.** `--body -` (or `--body @-`, or omitting `--body`) reads stdin; a literal string or `@file` is used as-is. A send whose resolved body is empty/whitespace is **rejected** with a usage error instead of delivering a blank message — so `--body -` with nothing piped fails loudly rather than shipping an empty body. Pass `--allow-empty` only when you truly want a blank body (subject carries everything).
+
+**Unrouted self-addressing is fail-closed.** When `--to` resolves to your own handle and no `--project`, `--session`, or `--from-session` routing dimension is present, `amq send` refuses the ambiguous same-root send. Use routing to reach another instance of the same handle. Pass `--allow-self` only to confirm an intentional same-root self-send; it does not bypass cross-tree or session-pin guards.
 
 **Send file paths, not file contents.** When attaching source code, configs, or large text for review, send the file path in the message body, not the contents inline. The receiver can open the file with their local tools. If the receiver cannot access that worktree, send a short diff instead of the full source.
 

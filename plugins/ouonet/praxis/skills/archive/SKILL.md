@@ -26,7 +26,7 @@ use-case:     <key scenarios, one line each>
 architecture: <structural shape — one line, or see docs/architecture.md>
 stack:        <language, runtime, frameworks, key deps>
 entry:        <where execution starts>
-contract:     <full documented public surface, including stability obligations for APIs / interfaces that must not break>
+contract:     <public APIs / interfaces that must not break — stability set; full surface by doc-coverage>
 flow:         <name>: <trigger> → <steps> → <output>
               (complex — branching/async/multi-actor: one-line summary here, diagram in docs/specs/<flow>.md)
 invariant:    <what must always hold>
@@ -36,6 +36,8 @@ milestone:    <current milestone> (see docs/ROADMAP.md)
 ```
 
 # Archive
+
+If `topology=multi-module` (triage announcement or coordinator spec/plan declaration), read `../references/multi-module.md`. Merge each module's artifacts in its own repository first. Then merge shared contracts and integration facts in the coordinator, record the revision set, and archive it last. Keep module-local facts in module repos.
 
 `<gate>`Before proceeding: (1) verify `tdd`/`subagents` have completed all tasks listed in the plan; (2) confirm the user has provided explicit written approval.`</gate>`
 

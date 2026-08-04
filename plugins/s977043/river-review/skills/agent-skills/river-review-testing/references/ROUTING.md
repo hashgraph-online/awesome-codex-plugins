@@ -32,9 +32,15 @@
 - 英語: test plan, test strategy, edge case, test perspective
 - → `test-plan-review`
 
+### アサーション有効性
+
+- 日本語: アサーション, 常に PASS, 恒真, 空の検証, 期待値が古い, スコープ不足
+- 英語: assertion, always passing, vacuous, tautological, stale expectation, unscoped
+- → `test-assertion-effectiveness`
+
 ## 自動判定ルール
 
-1. テストファイルのみ変更 → `test-naming` + `flaky-test`
+1. テストファイルのみ変更 → `test-naming` + `flaky-test` + `test-assertion-effectiveness`
 2. ソースファイルのみ変更 → `test-existence` + `coverage-gap`
 3. テスト + ソース両方 → 全スキル実行
 4. 10ファイル以上の変更 → `test-plan-review` を追加

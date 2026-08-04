@@ -10,6 +10,8 @@
         <img src="https://badgen.net/github/release/GanyuanRan/Aegis?label=Latest%20Release" /></a>
     <a href="https://github.com/GanyuanRan/Aegis" alt="GitHub Stars">
         <img src="https://img.shields.io/github/stars/GanyuanRan/Aegis?style=flat&label=Stars" /></a>
+    <a href="https://olud.ai/project/ganyuanran-aegis.html" alt="Aegis on olud.ai">
+        <img src="https://olud.ai/badge.php?tool=ganyuanran-aegis" alt="Aegis on olud.ai" /></a>
 </p>
 
 <p align="center">
@@ -46,6 +48,25 @@ software work. It keeps the useful idea of composable skills, then adds:
 
 Aegis is useful when agents otherwise start coding before the goal, owner,
 architecture boundary, or verification path is clear.
+
+## Measured Agentic Benchmark
+
+A frozen held-out A/B benchmark used the same Codex client, requested
+`gpt-5.6-sol` model, `xhigh` reasoning effort, prompts, projects, and tool
+policy in both arms; only the Aegis method-pack projection differed. Across 120
+valid runs on 20 cases, the observable contract pass rate rose from **60% to
+90% (+30 pp)**, while unsafe outcomes fell from **11.67% to 5%**.
+
+![Aegis agentic benchmark: with and without Aegis](benchmarks/results/gpt-5-6-sol-xhigh-extended-20260731.svg)
+
+This is bounded advisory evidence, not a universal quality, runtime-authority,
+or completion-authority claim. Full details and limitations remain in the
+published report and methodology.
+
+[Sanitized JSON](benchmarks/results/gpt-5-6-sol-xhigh-extended-20260731.json)
+· [English table](benchmarks/results/gpt-5-6-sol-xhigh-extended-20260731.en.md)
+· [中文表格](benchmarks/results/gpt-5-6-sol-xhigh-extended-20260731.zh-CN.md)
+· [Methodology and evidence boundary](docs/current/AEGIS_AGENTIC_BENCHMARK_BASELINE.md)
 
 ## Quick Install
 

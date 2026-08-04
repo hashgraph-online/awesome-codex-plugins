@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "3.17.0",
+  "version": "3.18.0",
   "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
@@ -49,6 +49,7 @@
     "test": "node scripts/check-package-manager.mjs && vitest --run",
     "test:coverage": "node scripts/check-package-manager.mjs && vitest --run --coverage",
     "test:watch": "node scripts/check-package-manager.mjs && vitest",
+    "quality-gate": "node scripts/run-quality-gate.mjs --variant full-gate",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "node scripts/typecheck.mjs",

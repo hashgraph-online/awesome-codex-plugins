@@ -13,7 +13,7 @@ Read `.spec-superflow.yaml` (especially `dp_0_decisions`, `dp_0_confirmed`) and 
 
 ## Config Check
 
-Run: `npx --yes --package spec-superflow@0.12.1 ssf runtime config --get artifacts.order` — generate in configured order (default: proposal → specs → design → tasks). Run with `artifacts.skip` — skip any listed artifacts.
+Run: `ssf runtime config --get artifacts.order` — generate in configured order (default: proposal → specs → design → tasks). Run with `artifacts.skip` — skip any listed artifacts.
 
 ## Artifact Roles
 
@@ -27,54 +27,43 @@ Run: `npx --yes --package spec-superflow@0.12.1 ssf runtime config --get artifac
 **Honor DP-0**: Read `dp_0_decisions`, respect confirmed constraints, don't silently expand scope. Pause on unconfirmed decisions.
 
 ### proposal.md
-Must state: problem, what changes, capabilities affected, impact areas.
+Must state: observed problem, what changes, in/out scope, impact areas, and proof of completion. Prefer concrete facts over empty adjectives such as “better”, “robust”, or “efficient”.
 
 ### specs/
 Every requirement must be testable. Use SHALL or MUST. Every requirement must have at least one `#### Scenario:` with WHEN/THEN. Group under ADDED/MODIFIED/REMOVED Requirements headers.
 
 ### design.md
-Must have: Context (current state, constraints, stakeholders), Goals, Decisions (Choice + Rationale + Alternatives considered), Risks And Trade-Offs.
+Must have: relevant facts and constraints, goals and non-goals, decisions (Choice + Rationale + Alternatives + Consequences), and risks with verification evidence. Do not invent stakeholders, migration steps, or open questions when they do not affect the decision.
 
 ### tasks.md
-Must include:
-- **File Structure**: all files with one-sentence responsibility (Create/Modify)
-- **Interfaces**: cross-batch Consumes/Produces with exact types
-- **Per-task**: exact file paths, expanded TDD phases (5 steps), Interfaces block
-- **Granularity**: each step 2-5 min, atomic
-- **Zero placeholders**: no TBD, TODO, "figure out", "add appropriate"
-- **Dependency ordering**: depends only on prior tasks, explicit "Depends on: Batch N"
+Must include a delivery/proof map and dependency-aware tasks. Each task names the affected path or bounded area, the observable outcome, and the evidence command. Keep RED/GREEN details, review receipts, and dispatch mechanics in the execution contract/task brief; do not inflate reader-facing tasks into five ritual substeps.
 
 ## Artifact Generation
 
-Generate one at a time. Confirm each before next. This prevents scope drift — if proposal has errors, downstream artifacts are wrong.
-
-1. `proposal.md` → present summary → wait for confirm
-2. `specs/` → present requirement list → wait for confirm
-3. `design.md` → present key decisions → wait for confirm
-4. `tasks.md` → present batch breakdown → wait for confirm
+When DP-0 has made the scope clear, generate the configured planning pack (proposal, delta specs from `templates/spec.md`, design, and tasks) in order without pausing between individual artifacts. Validate the pack, then request one DP-2 review. Pause earlier only when the missing decision can change user-visible behavior, compatibility, security, delivery scope, or the selected design; or when artifacts state incompatible scope.
 
 ## Validation Checklist
 
 ### proposal.md
-- `## Why` > 50 chars, `## What Changes`, `## Scope` (In/Out), `## Impact`, `## Capabilities`, no TBD/TODO
+- `## Why` > 50 chars, `## What Changes`, `## Scope` (In/Out), `## Impact`, no TBD/TODO; claims name an observed problem and a completion proof
 
 ### specs/
 - SHALL/MUST for required behavior, `#### Scenario:` with WHEN/THEN per requirement, grouped under delta headers, no contradictions
 
 ### design.md
-- `## Context`, `## Goals`, `## Decisions` (≥1, with Choice+Rationale+Alternatives), `## Risks And Trade-Offs`
+- facts/constraints, goals/non-goals, `## Decisions` (≥1, with Choice+Rationale+Alternatives+Consequences), risks and verification
 
 ### tasks.md
-- `## File Structure`, `## Interfaces`, numbered tasks, exact file paths, TDD phases, ≤5 min steps, no placeholders, every requirement mapped, explicit dependencies
+- delivery/proof map, numbered tasks, affected paths or bounded areas, observable outcomes, no placeholders, every requirement mapped, explicit dependencies
 
 **If any artifact fails validation, fix before handing off to contract-builder.**
 
 ## DP-2: Artifact Review Gate
 
-Present summary of all 4 artifacts (2-3 sentences each). Ask user for adjustments. After approval:
+Present a concise summary of all 4 artifacts, then ask one DP-2 question for material adjustments. For Full changes, run one independent five-question blind reader check (problem, command boundary, invalidation boundary, continuation boundary, and document flow) before recording approval; repair only answers the reader cannot derive. After approval:
 ```bash
-npx --yes --package spec-superflow@0.12.1 ssf state set <change-dir> dp_2_result "approved: <summary>"
-npx --yes --package spec-superflow@0.12.1 ssf state set <change-dir> dp_2_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+ssf state set <change-dir> dp_2_result "approved: <summary>"
+ssf state set <change-dir> dp_2_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
 ```
 
 ## Handoff Rule
@@ -87,3 +76,36 @@ Do not start implementation after writing planning artifacts. Once stable, valid
 - **Missing templates**: Fall back to artifact structure defined in this skill
 - **User interruption**: Artifacts on disk are the recovery checkpoint; resume from first missing/incomplete one
 - **Validation failure**: Fix before handoff — do not hand off broken artifacts
+
+## Standard User-Facing Handoff
+
+End every user-facing phase report with this concise handoff. Only a successfully
+persisted `closing` state and `abandoned` are terminal.
+
+### Normal report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<completed work>`.
+- Next stage: `<next workflow stage or skill>`.
+- Entry condition: `<what must be true to enter it>`.
+
+### Blocked report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<blocking fact or missing evidence>`.
+- Next stage: `<stage that resumes after the blocker>`.
+- Entry condition: `<the approval, artifact, validation, or fix required>`.
+
+### Approval-wait report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<work ready for the named decision>`.
+- Next stage: `<stage that follows approval>`.
+- Entry condition: `<explicit user approval or recorded decision>`.
+
+### Successful terminal report
+
+- Current stage: successfully persisted `closing` or `abandoned`.
+- Completed / blocker: `<persisted terminal outcome>`.
+- Next stage: `none`.
+- Entry condition: no further transition exists.

@@ -15,16 +15,24 @@
 
 ---
 
-**Praxis** is a discipline framework for AI coding agents. Tell your agent *what you need* and *what done looks like*—not *how to do it*. As AI gets smarter, this gap widens: the agent can apply domain expertise, handle edge cases, and adapt faster than step-by-step instructions allow.
+**Praxis** is a discipline framework for AI coding agents to build complex, multi-module, multi-repository projects through structured workflows—delivering **high quality**, **high efficiency**, and **extreme token savings**.
 
-Inspired by [Superpowers](https://github.com/obra/superpowers), rewritten to be significantly cheaper while keeping the core capabilities.
+Tell your agent *what you need* and *what done looks like*—not *how to do it*. As AI gets smarter, declarations of intent, trigger-based spec review gates, 3D quality standards, and multi-module topology ensure robust, enterprise-grade execution without context bloat.
 
-**📖 [Full documentation](https://ouonet.github.io/praxis/)**
+### Core Value Pillars
+
+- **Workflow-Driven**: Inline triage routes tasks to precise skill chains (`design` → `plan` → `tdd` → `review` → `ship`).
+- **High Quality**: Parallel spec review gates and 3D quality standards (mechanical checks, convention adherence, design cohesion, doc-coverage) guarantee production readiness.
+- **High Efficiency & Token-Lean**: Inline triage loads only required skills (~150 to ~1,180 tokens per skill; ~3,600 tokens for a standard feature cycle). No ceremony for trivial edits.
+- **Multi-Module & Multi-Repo**: Coordinate complex changes across multiple repositories seamlessly via designated coordinator specs and change-set manifests.
+
+**[Full documentation](https://ouonet.github.io/praxis/)**
+
+> 💡 **Looking for the single-module version (v2.4.0)?** If you prefer the legacy single-module setup of Praxis without multi-module topology or spec review gates, checkout or install from the [`single-module`](https://github.com/ouonet/praxis/tree/single-module) branch.
 
 ## Quick Start
 
 **Claude Code**
-
 ```bash
 claude plugins marketplace add ouonet/praxis 
 claude plugins install praxis@praxis
@@ -32,7 +40,6 @@ claude 'do a todo list app'
 ```
 
 **pi CLI**
-
 ```bash
 pi install git:github.com/ouonet/praxis
 pi 'do a todo list app'
@@ -40,40 +47,89 @@ pi 'do a todo list app'
 
 ## How it works
 
-At session start, the harness integration injects the `praxis:using-praxis` startup skill. It tells your agent:
+At session start, a hook injects the `praxis:using-praxis` startup skill. It tells your agent:
 
 1. Classify scope inline using the triage table embedded in `using-praxis` — no Skill call needed.
 2. Load only the skills that scope needs. **Trivial tasks skip the waterfall entirely.**
 3. Follow the loaded skill literally; don't freelance past `<gate>` markers.
 
-Before writing a spec, `design` resolves facts available from the repository and tools, then asks only for the current decision frontier in prerequisite order. Clarification stops when implementation-affecting contract, data, failure, and test decisions are decided or explicitly deferred.
+Multi-module is a **topology**, declared alongside scope: when one change spans multiple modules or repositories, the agent adds `topology=multi-module` to the announcement and every loaded skill follows the multi-module protocol. See [Multi-module work](#multi-module-work) below.
 
 ## Skills
 
-| Skill     | When                                        |
-| --------- | ------------------------------------------- |
-| [onboard](skills/onboard/SKILL.md)   | existing project with no docs/tech-spec.md  |
-| [design](skills/design/SKILL.md)    | scope ≥ standard, anything new; also handles vague goals — clarifies before designing |
-| [plan](skills/plan/SKILL.md)      | after design                                |
-| [tdd](skills/tdd/SKILL.md)       | implementing or fixing                      |
-| [debug](skills/debug/SKILL.md)     | something broken                            |
-| [review](skills/review/SKILL.md)    | before merge / after subagent task          |
-| [worktree](skills/worktree/SKILL.md)  | non-trivial or parallel work                |
-| [subagents](skills/subagents/SKILL.md) | independent tasks, fan-out                  |
-| [ship](skills/ship/SKILL.md)      | merge / PR / cleanup                        |
-| [release](skills/release/SKILL.md)   | version / tag / publish                     |
+| Skill | Description | Tokens |
+| ----- | ----------- | ------ |
+| [onboard](skills/onboard/SKILL.md) | existing project with no docs/tech-spec.md | ~450 |
+| [design](skills/design/SKILL.md) | scope ≥ standard, anything new; handles vague goals & trigger-based spec reviewers | ~1,180 |
+| [plan](skills/plan/SKILL.md) | after design approval; milestone tasks | ~740 |
+| [tdd](skills/tdd/SKILL.md) | implementing or fixing; 3D quality refactor gate | ~590 |
+| [debug](skills/debug/SKILL.md) | something broken; root cause isolation | ~160 |
+| [review](skills/review/SKILL.md) | before merge / after subagent task; checks standards & doc-coverage | ~420 |
+| [worktree](skills/worktree/SKILL.md) | non-trivial or parallel work in Git worktrees | ~320 |
+| [subagents](skills/subagents/SKILL.md) | independent tasks, fan-out; includes ROLE charters and MODEL tiers | ~1,030 |
+| [ship](skills/ship/SKILL.md) | merge / PR / cleanup | ~430 |
+| [archive](skills/archive/SKILL.md) | merge spec into living docs, delete staging files | ~730 |
+| [release](skills/release/SKILL.md) | version / tag / publish | ~230 |
 
-Skills range from ~100 to ~400 tokens each. Compare to Superpowers' 2,500–3,500 per skill.
+Shared protocols & reference standards:
+- [Quality Standard](skills/references/quality.md) (~430 tokens): mechanical checks, convention adherence, design assessment, and doc-coverage rules.
+- [Spec Reviewers](skills/references/reviewers.md) (~1,640 tokens): trigger table and charters for parallel spec review subagents.
+- [Multi-Module Protocol](skills/references/multi-module.md) (~870 tokens): topology specification for cross-repository/module changes.
 
 ## Token budget
 
-|                              | Superpowers   | Praxis                        |
-| ---------------------------- | ------------- | ----------------------------- |
-| Bootstrap (every session)    | ~2,200        | ~450 (using-praxis + inline triage) |
-| Per skill load               | ~2,500–3,500 | ~100–400                            |
-| Trivial task                 | ~11,000       | ~450 (bootstrap only)               |
-| Standard task (design→ship) | ~30–50k      | ~1,300 (bootstrap + 4 skills)       |
-| Complex task (all skills)    | ~40–60k      | ~2,900 (all skills combined)  |
+Praxis minimizes prompt overhead by executing triage inline at session start and loading skills only when their scope is required:
+
+| Task Scope | Loaded Skills | Approximate Token Budget |
+| ---------- | ------------- | ------------------------ |
+| Bootstrap (session start) | `using-praxis` (inline triage) | ~680 |
+| Trivial task | None (bootstrap only) | ~680 |
+| Small task | `tdd` | ~1,270 |
+| Standard task | `design` + `plan` + `tdd` + `review` | ~3,600 |
+| Complex task | `design` + `plan` + `worktree` + `subagents` + `review` + `ship` | ~4,800 |
+
+## Model tiers
+
+When dispatching subagents (`subagents` skill) or design reviewers (`design` review gate), Praxis uses three capability tiers instead of hardcoded model IDs:
+
+| Tier | Use when | Examples |
+|------|----------|----------|
+| `fast` | Mechanical edits, simple checks | rename a constant, pattern-match review |
+| `balanced` | Standard implementation, single-file work | add a function, write routine tests |
+| `strongest` | Complex reasoning, safety review | implement a protocol, review crash-recovery |
+
+Resolution: `.praxis/model-tiers.yaml` in project root or user home maps each tier to a concrete model ID. No config file → all subagents use the harness default. Template: [`model-tiers.example.yaml`](model-tiers.example.yaml).
+
+## Multi-module work
+
+> **Availability:** Multi-module topology is fully supported in Praxis v4.0+.
+
+When one change spans multiple modules or repositories, Praxis runs in **multi-module topology**. The agent declares it at triage and carries it on every turn:
+
+```
+praxis: scope=complex, topology=multi-module, loading=design,plan,worktree,subagents,review,ship
+```
+
+(`topology=multi-module` is omitted on ordinary single-module turns.)
+
+**Coordinator.** You designate one *existing* repository as the coordinator - the agent won't infer this. It owns the cross-module spec/plan and the change manifest.
+
+**Mode marker.** The coordinator spec (created at `design`) and workspace plan (created at `plan`) each open with a declaration block. This on-disk declaration is what keeps the agent in multi-module mode across a long change - it reads the declaration to re-establish mode instead of relying on session memory:
+
+```
+topology: multi-module
+change-set: <topic-id>
+coordinator: <repo path>
+repos: <repo paths>
+```
+
+The workspace plan adds module plan paths and the integration task. Each module also gets its own spec and plan in its owning repository, referencing shared contracts defined once in the coordinator - never duplicated.
+
+**Lifecycle.** `design` (coordinator + per-module specs) → `plan` (workspace + per-module plans) → `tdd`/`subagents` per module → integrate against the coordinator's acceptance → commit in dependency order, coordinator last, recording each SHA as the revision set.
+
+**Safety.** Each repo is inspected before editing - a missing repo, red baseline, or unrelated dirty change blocks the change. Praxis never auto-clones, resets, rebases, or discards. Put the change-set ID in branch names and commit subjects, e.g. `[praxis:checkout-v2]`. Cross-repo commits aren't atomic; the recorded revision set is the reproducibility boundary.
+
+Full protocol: [`skills/references/multi-module.md`](skills/references/multi-module.md) (experimental).
 
 ## Documentation Structure
 
@@ -121,7 +177,7 @@ Praxis enforces synchronization at multiple checkpoints:
 - **At [`ship`](skills/ship/SKILL.md) gate**: Staging spec must reflect actual code behavior.
 - **At [`review`](skills/review/SKILL.md)**: Check that README/comments reflect actual behavior.
 
-**Quality and documentation coverage** are also gated. `tdd` and `review` run the declared lint, format, and typecheck tools; assess project conventions and design quality; and report what was checked. `review` and `ship` verify that public contracts, configuration, environment variables, and error modes are documented and that README commands are runnable. See [`skills/references/quality.md`](skills/references/quality.md).
+**Quality and doc-coverage** are verified: `tdd` runs lint/format/typecheck + checks against `convention`; `review`/`ship` verify `contract` covers the full surface, env/errors documented, README commands runnable. See [`skills/references/quality.md`](skills/references/quality.md).
 
 **The rule**: Code changes without doc updates fail review. Docs that don't match code block merge.
 
@@ -129,33 +185,9 @@ Praxis enforces synchronization at multiple checkpoints:
 
 ### Install from a branch
 
-To try an unreleased branch before it merges:
+To pin or test a specific git branch or tag, append `#<branch>` (or `--ref <branch>`) to the install source URL as supported by your agent harness.
 
-**Claude Code**
-```bash
-claude plugins marketplace add ouonet/praxis#<branch>
-claude plugins install praxis
-```
-
-**OpenCode** — set in `opencode.json`:
-```json
-{
-  "plugin": ["praxis@git+https://github.com/ouonet/praxis.git#<branch>"]
-}
-```
-
-**Qoder CLI CN** — clone and checkout:
-```bash
-git clone --branch <branch> https://github.com/ouonet/praxis.git ~/.qoder-cn/praxis
-ln -s ~/.qoder-cn/praxis/skills ./skills
-```
-
-**pi CLI**
-```bash
-pi install git:github.com/ouonet/praxis@<branch>
-```
-
-Replace `<branch>` with the branch name.
+> **Single-module (v2.4.0 legacy):** Append `#single-module` or `@single-module` to install from the legacy single-module branch (e.g. `pi install git:github.com/ouonet/praxis@single-module`).
 
 ---
 
@@ -236,32 +268,28 @@ The extension loads `skills/using-praxis/SKILL.md` as session context, so triage
 pi install git:github.com/ouonet/praxis
 ```
 
-Praxis is a native pi package. Pi discovers the extension and skills from `package.json`; the extension injects `skills/using-praxis/SKILL.md` once per session.
+Praxis is distributed as a native pi package — pi auto-discovers skills from the `package.json` manifest. The `using-praxis` bootstrap is injected at session start automatically.
 
-Install for the current project instead of globally (writes `.pi/settings.json`, which can be shared with the team):
+> **Specific branch/tag:** append `@<branch>` to install from a specific branch or tag (e.g. `pi install git:github.com/ouonet/praxis@single-module`).
+
+**Install to project scope** (`.pi/settings.json`, shared with team):
 
 ```bash
 pi install -l git:github.com/ouonet/praxis
 ```
 
-Update one package, all packages, or pi plus its packages:
+**Update**:
 
 ```bash
-pi update git:github.com/ouonet/praxis
-pi update --extensions
-pi update
+pi update git:github.com/ouonet/praxis      # update one package
+pi update --extensions                       # update all packages
+pi update --all                              # update pi + packages
 ```
 
-Uninstall:
+**Uninstall**:
 
 ```bash
 pi remove git:github.com/ouonet/praxis
-```
-
-To pin any branch, append `@<branch>`:
-
-```bash
-pi install git:github.com/ouonet/praxis@<branch>
 ```
 
 ### Qoder CLI CN
@@ -283,6 +311,7 @@ The `using-praxis` skill is auto-discovered and triggered at session start by it
 
 For harnesses without plugin support, add an instruction that reads `skills/using-praxis/SKILL.md` first.
 
+
 ## Verify it's working
 
 Start a fresh session. Send: `let's build a react todo list`.
@@ -299,7 +328,7 @@ Expected: agent outputs `praxis: scope=trivial, loading=` and just fixes it. **N
 
 ```
 You: I want to build something that helps developers manage their workflow
-Agent: triage -> vague -> design
+Agent: triage → vague → design
 ```
 
 Design asks one clarifying question per turn until the problem is concrete enough to spec. If exploration produces a knowledge artifact (protocol spec, RE findings), it goes to `docs/decisions/` via `archive`.
@@ -308,32 +337,41 @@ Design asks one clarifying question per turn until the problem is concrete enoug
 
 ```
 You: fix the typo "teh" in README
-Agent: triage -> trivial -> edit -> done
+Agent: triage → trivial → edit → done
 ```
 
 ### Standard feature
 
 ```
 You: add OAuth login with GitHub
-Agent: triage -> design -> plan -> tdd -> review -> ship
+Agent: triage → design → plan → tdd → review → ship
 ```
 
-Design investigates discoverable facts and asks only the current decision frontier in dependency order; plan writes milestone tasks; ship updates living specs and CHANGELOG `Unreleased`.
+Design investigates facts and asks only the current decision frontier in dependency order; plan writes milestone tasks; ship updates living specs and CHANGELOG `Unreleased`.
 
 ### Parallel work
 
 ```
 You: migrate the entire API from REST to tRPC
-Agent: triage -> design -> plan -> worktree -> subagents -> review -> ship
+Agent: triage → design → plan → worktree → subagents → review → ship
 ```
 
 Subagents expand milestones at dispatch time; the coordinator reviews and marks tasks complete.
+
+### Multi-module change
+
+```
+You: add a shared checkout flow across the api and web repos
+Agent: triage → topology=multi-module → design (asks you to designate coordinator) → plan → tdd/subagents per module → integrate → ship
+```
+
+You designate one existing repo as coordinator; it holds the shared contract and integration check. Each module keeps its own spec/plan in its owning repo. At ship, non-coordinator repos commit in dependency order and the coordinator commits last, all sharing the change-set ID; their SHAs form the revision set.
 
 ### Onboard existing project
 
 ```
 You: take over this project / add Praxis to this codebase
-Agent: triage -> onboard
+Agent: triage → onboard
 ```
 
 Onboard explores the codebase and produces `docs/tech-spec.md` — a factual record of stack, contracts, conventions, and invariants. No code changes, no plans. After confirmation, the normal `design → plan → tdd` flow resumes.
@@ -342,7 +380,7 @@ Onboard explores the codebase and produces `docs/tech-spec.md` — a factual rec
 
 ```
 You: release 1.2.0
-Agent: triage -> release
+Agent: triage → release
 ```
 
 Release confirms the version, moves CHANGELOG `Unreleased`, then asks before commit, tag, push, or publish.
@@ -353,46 +391,13 @@ Release confirms the version, moves CHANGELOG `Unreleased`, then asks before com
 | ---------------------- | ---------------------------------- |
 | I want to build X (vague) | vague → design (clarifies first) |
 | fix typo               | trivial                            |
-| add small field        | small -> tdd                       |
-| add feature            | standard -> design/plan/tdd/review |
-| migrate module         | complex -> worktree/subagents      |
+| add small field        | small → tdd                       |
+| add feature            | standard → design/plan/tdd/review |
+| migrate module         | complex → worktree/subagents      |
+| change spans repos/modules | topology=multi-module (coordinator) |
 | failing behavior       | debug                              |
 | take over this project | onboard                            |
 | release 1.2.0          | release                            |
-
-## Compared to Superpowers
-
-Praxis is directly inspired by [Superpowers](https://github.com/obra/superpowers). The core idea is the same: inject structured discipline into an agent session via skill files.
-
-| Superpowers skill                                                 | Praxis equivalent                          |
-| ----------------------------------------------------------------- | ------------------------------------------ |
-| `using-superpowers`                                             | `using-praxis` (triage inline)         |
-| `brainstorming`                                                 | `design`                                 |
-| `writing-plans`                                                 | `plan`                                   |
-| `executing-plans`                                               | `tdd`                                    |
-| `test-driven-development`                                       | `tdd`                                    |
-| `systematic-debugging`                                          | `debug`                                  |
-| `requesting-code-review` / `receiving-code-review`            | `review`                                 |
-| `using-git-worktrees`                                           | `worktree`                               |
-| `dispatching-parallel-agents` / `subagent-driven-development` | `subagents`                              |
-| `finishing-a-development-branch`                                | `ship`                                   |
-| `verification-before-completion`                                | gate markers in `tdd` / `ship`         |
-| `writing-skills`                                                | — (not needed; skills are plain Markdown) |
-| —                                                                | `onboard` (no Superpowers equivalent)    |
-| —                                                                | `archive` (no Superpowers equivalent)    |
-| —                                                                | `release` (no Superpowers equivalent)    |
-
-**Philosophy difference:** Superpowers gives agents detailed recipes—prose specs, step-by-step plans, narrative reasoning. Praxis gives agents *declarations of intent*—decisions, contracts, validation gates. This works because:
-
-- Agents get smarter; recipes become obsolete. Declarations stay relevant.
-- Leaner artifacts = faster iteration and long-term maintainability.
-- The agent brings domain knowledge; Praxis provides *what matters*, not *how to do it*.
-
-**Token savings:** The skill files are smaller (avg ~230 vs ~1,760 tokens), and artifacts are too. Praxis `design` outputs a spec (decisions, contracts, invariants) with no narrative; `plan` outputs milestone stubs with one-line goals. At `ship`, working notes are archived and the spec merges into living docs—context stays lean across sessions.
-
-**When to use Superpowers:** You want battle-tested, narrative-rich workflows and token cost isn't a constraint.
-
-**When to use Praxis:** You want agents to think, not follow recipes. You want specs and plans that survive across sessions and scale with AI capability.
 
 ## Philosophy
 
@@ -406,13 +411,13 @@ Praxis is directly inspired by [Superpowers](https://github.com/obra/superpowers
 
 ```
 skills/<name>/SKILL.md # skills (using-praxis is the entrypoint; manual/fallback reads it directly)
+skills/references/     # shared protocols (multi-module, quality, reviewers)
+model-tiers.example.yaml # template for .praxis/model-tiers.yaml
 hooks/
   hooks.json           # hook registry
   run-hook.cmd         # Windows hook runner
   session-start        # session-start hook script
-extensions/
-  praxis.js            # pi once-per-session bootstrap extension
-package.json           # npm metadata + pi extension/skills manifest
+package.json           # npm package + pi package manifest (pi auto-discovers skills)
 .claude/               # Claude Code settings
 .claude-plugin/        # Claude Code plugin manifest
 .codex-plugin/         # Codex plugin manifest

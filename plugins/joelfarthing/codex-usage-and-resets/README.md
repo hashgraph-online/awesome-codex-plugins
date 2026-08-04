@@ -3,6 +3,8 @@
 [![CI](https://github.com/joelfarthing/codex-usage-and-resets/actions/workflows/ci.yml/badge.svg)](https://github.com/joelfarthing/codex-usage-and-resets/actions/workflows/ci.yml)
 [![HOL Plugin Scanner](https://github.com/joelfarthing/codex-usage-and-resets/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/joelfarthing/codex-usage-and-resets/actions/workflows/hol-plugin-scanner.yml)
 
+**Canonical project site:** [Codex Usage and Resets on Filament Labs](https://filamentlabs.io/CUAR/) — a visual tour, installation guidance, and field notes.
+
 Codex Usage and Resets (CUAR) is a local Codex plugin from Filament Labs. It
 turns the current Codex weekly usage window, banked reset inventory, and a tiny
 local observation ledger into deterministic usage-planning facts:
@@ -35,6 +37,13 @@ comparison chain, so a later report cannot infer across the blind interval.
 
 The same packaged skill and CLI are intended for Codex in the ChatGPT desktop
 app, the Codex VS Code extension, and Codex CLI.
+
+## Installation
+
+Install from [the direct Codex Usage and Resets listing in the OpenAI Plugins
+Directory](https://chatgpt.com/plugins/plugins_6a6920fb32b48191b80cb783761d4cd5):
+open it and choose **Install plugin**. The directory copy is a reviewed,
+versioned snapshot and does not automatically track this repository.
 
 ## Use
 

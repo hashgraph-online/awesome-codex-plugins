@@ -1,7 +1,7 @@
 <h1 align="center">spec-superflow</h1>
 
 <p align="center">
-  <strong>源码级融合 OpenSpec 规划引擎 + Superpowers 执行纪律的 AI 编程工作流插件</strong>
+  <strong>按改动风险选择轻量或完整路径的 AI 编程工作流插件</strong>
 </p>
 
 <p align="center">
@@ -77,7 +77,7 @@ codex plugin marketplace add hashgraph-online/awesome-codex-plugins
 codex plugin add spec-superflow@awesome-codex-plugins
 
 # 直接从指定 release tag 安装（不等待社区镜像同步）
-codex plugin marketplace add MageByte-Zero/spec-superflow --ref v0.9.0
+codex plugin marketplace add MageByte-Zero/spec-superflow --ref v1.0.0
 codex plugin add spec-superflow@spec-superflow
 
 # 升级并验证社区 marketplace 安装
@@ -169,9 +169,8 @@ npx spec-superflow list          # 或通过 npx 使用
 
 ### 版本
 
-- 当前版本：`v0.12.1`
-- v0.9.1 highlights：DP-4 执行模式推荐、跨 17 个平台的 portable runtime，以及无插件根路径的 raw-package smoke；详见 [CHANGELOG.md](CHANGELOG.md)
-- v0.9.0 highlights：支持 Node 20/22、model profiles 只读解析，以及 code-reviewer 的最小性审查
+- 当前版本：`v1.0.0`
+- v1.0：默认按风险走 Quick、direct Hotfix、Tweak 或 Full；小改动只保留边界与验证，复杂改动才进入完整规划、契约和审查
 - 自包含插件，不需要运行时安装 OpenSpec 或 Superpowers
 - 上游来源：[Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) 和 [obra/superpowers](https://github.com/obra/superpowers)
 - 版本历史见 [CHANGELOG.md](CHANGELOG.md)
@@ -262,22 +261,21 @@ overlay，不会增加第九个状态；其 CLI 与 CodeBuddy/WorkBuddy Markdown
 
 ## 为什么需要它
 
-用 AI 写代码时，最常碰到两个失控点：
+用 AI 写代码时，最常见的两个问题是：
 
 - **还没想清楚要做什么，AI 就开始写代码。** 你说了句"帮我加个权限控制"，它就开始改几十个文件。改到一半才发现 —— 到底要 RBAC 还是 ABAC？
 
 - **规划文档写得明明白白，但执行阶段还是会跑偏。** proposal 写了、design 画了，但实现过程中没人盯着测试、没人卡 review，等到合并才发现行为不对。
 
-**spec-superflow 在这两个失控点之间建起一道硬墙：** 需求澄清 → 工件沉淀（Schema 引擎验证格式）→ 执行契约桥接 → TDD + SDD + Review Gate 三重纪律强制执行 → 验证收口 → delta spec 同步防止规范腐烂。
+spec-superflow 把这两类问题分开处理：先判断改动风险；小改动直接在明确边界内完成并验证，复杂改动再经过需求、规格、执行契约、实现和审查。这样既不让简单问题变成流程项目，也不让高风险改动跳过必要检查。
 
 | 设计原则 | 说明 |
 |---|---|
-| Spec First | 没有稳定的规划工件，不允许进入实现 |
-| Guarded Handoff | `execution-contract.md` 是规划到实现的唯一交接层 |
-| Strong Guardrails | 实现中违反契约的行为被明确拦截并回退 |
-| Schema Validated | 规划期工件经过 Schema 引擎验证 |
-| Execute Disciplined | TDD 铁律 + SDD 子代理驱动 + Review Gate |
-| Self-Contained | 不需要安装 OpenSpec 或 Superpowers，一个插件全包 |
+| 先选路径 | 根据文件数、边界和风险选择 Quick、Hotfix、Tweak 或 Full |
+| 复杂改动先对齐 | Full 路径用规格与执行契约确认范围和验收方式 |
+| 实现可验证 | 每条路径都要求与风险相称的测试或检查 |
+| 有问题先定位 | 遇到失败先复现和找根因，不连续试错 |
+| 自包含 | 不需要额外安装 OpenSpec 或 Superpowers |
 
 ### 适用场景
 
@@ -334,7 +332,7 @@ overlay，不会增加第九个状态；其 CLI 与 CodeBuddy/WorkBuddy Markdown
    closing            CLOSED 成功终态（无 next skill）
 ```
 
-**关键约束：** Full/legacy Hotfix 没有 `execution-contract.md`、current execution plan 或 `pass` review receipt → 不允许推进；Quick/direct Hotfix/Tweak 以有效 receipt、边界检查与 `test_result: pass` 放行。风险只触发建议与用户选择，绝不自动升级到 Full。
+**如何选择：** Quick、direct Hotfix、Tweak 默认保持轻量，只记录范围和验证；Full 与 legacy Hotfix 才要求执行契约、执行计划和 review receipt。风险会说明原因并交给用户选择，不会擅自升级路径。
 
 ### 快速路径（Quick / Hotfix / Tweak）
 

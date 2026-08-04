@@ -12,7 +12,7 @@ Add a reviewable design-quality gate that runs without an LLM. Memi writes a pol
 Inspect the worktree first. When the task authorizes setup, run:
 
 ```bash
-npx -y @memi-design/cli@2.6.4 init --team --kit universal --json
+npx -y @memi-design/cli@2.7.8 init --team --kit universal --json
 ```
 
 Review the generated policy and baseline before committing them. Existing debt remains visible but does not block unrelated pull requests.
@@ -20,7 +20,7 @@ Review the generated policy and baseline before committing them. Existing debt r
 ## Verify Locally
 
 ```bash
-npx -y @memi-design/cli@2.6.4 ci . --no-scope --report --json
+npx -y @memi-design/cli@2.7.8 ci . --no-scope --report --json
 ```
 
 The command may exit nonzero when findings exceed the configured gate. Treat that as a quality result, not a tool crash.
@@ -44,7 +44,7 @@ jobs:
           fetch-depth: 0
       - uses: memi-design/memi@v2
         with:
-          version: "2.6.4"
+          version: "2.7.8"
 ```
 
 ## Completion Criteria

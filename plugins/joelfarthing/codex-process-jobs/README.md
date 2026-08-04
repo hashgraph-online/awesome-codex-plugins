@@ -4,7 +4,7 @@
 [![HOL Plugin Scanner](https://github.com/joelfarthing/codex-process-jobs/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/joelfarthing/codex-process-jobs/actions/workflows/hol-plugin-scanner.yml)
 [![GitHub release](https://img.shields.io/github/v/release/joelfarthing/codex-process-jobs)](https://github.com/joelfarthing/codex-process-jobs/releases/latest)
 
-**Project site:** [filamentlabs.io/CPJ](https://filamentlabs.io/CPJ/) — a visual tour, installation guidance, and field notes.
+**Canonical project site:** [Codex Process Jobs on Filament Labs](https://filamentlabs.io/CPJ/) — a visual tour, installation guidance, and field notes.
 
 > **Community beta:** This independently developed community plugin is published in the OpenAI Plugins Directory, but it is not developed, supported, or endorsed by OpenAI. Detached job state is durable, while automatic conversational completion uses consent-gated hooks and experimental local Codex transports on a best-effort basis.
 
@@ -43,10 +43,10 @@ remain the compatibility baseline.
 
 ## Quick start with Codex
 
-Choose exactly one provider. The recommended installation is the OpenAI Plugins
-Directory: open the directory, search for **Codex Process Jobs**, and choose
-**Install plugin**. This is the simplest Codex-managed path and avoids a
-separate package manager and personal marketplace.
+Choose exactly one provider. The recommended installation is [the direct Codex
+Process Jobs listing in the OpenAI Plugins Directory](https://chatgpt.com/plugins/plugins_6a61beec4ad881919a00a6f0c6158796):
+open it and choose **Install plugin**. This is the simplest Codex-managed path
+and avoids a separate package manager and personal marketplace.
 
 Homebrew distribution is deprecated as of July 24, 2026. Existing Homebrew and
 personal-marketplace installations should
@@ -145,9 +145,9 @@ No third-party runtime packages are required. Missing desktop-notification suppo
 
 ### OpenAI Plugins Directory (recommended)
 
-In Codex or ChatGPT's Plugins Directory, search for **Codex Process Jobs** and
-choose **Install plugin**. The directory copy is a reviewed versioned snapshot;
-it does not automatically track this repository, GitHub Releases, or Homebrew.
+Open [the direct Codex Process Jobs listing](https://chatgpt.com/plugins/plugins_6a61beec4ad881919a00a6f0c6158796) and choose
+**Install plugin**. The directory copy is a reviewed versioned snapshot; it
+does not automatically track this repository, GitHub Releases, or Homebrew.
 
 After installation, restart or reload Codex, review every CPJ definition and
 referenced source through `/hooks`, and begin a fresh task. Do not use this route
@@ -167,9 +167,8 @@ longer a supported source of CPJ updates.
    `brew untap joelfarthing/tap` if the tap supplies nothing else you use.
 4. Restart or reload Codex and confirm a fresh task no longer catalogs the
    personal CPJ skills.
-5. Install **Codex Process Jobs** from the OpenAI Plugins Directory, restart or
-   reload again, review `/hooks`, and verify a harmless detached job in a fresh
-   task.
+5. Install from [the direct Codex Process Jobs listing](https://chatgpt.com/plugins/plugins_6a61beec4ad881919a00a6f0c6158796), restart or reload
+   again, review `/hooks`, and verify a harmless detached job in a fresh task.
 
 The optional managed `AGENTS.md` block is provider-independent and may remain in
 place. Removing a provider does not delete durable job records or saved logs.

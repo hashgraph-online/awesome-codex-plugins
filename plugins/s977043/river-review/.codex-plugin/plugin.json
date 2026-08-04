@@ -1,7 +1,7 @@
 {
   "name": "river-review",
-  "version": "1.64.0",
-  "description": "Capability pack that strengthens AI review for Codex: your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that runs perspective-based reviewer roles (code, security, performance, architecture, testing, adversarial) and verifies findings against the diff so humans keep the high-risk judgment.",
+  "version": "1.71.0",
+  "description": "Turn review into an organizational judgment asset. Review Judgment as Code for AI-assisted development, delivered as a capability pack for Codex: your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that runs perspective-based reviewer roles (code, security, performance, architecture, testing, adversarial) and verifies findings against the diff so humans keep the high-risk judgment.",
   "author": {
     "name": "river-review maintainers",
     "url": "https://github.com/s977043/river-review"
@@ -21,8 +21,8 @@
   "skills": "./skills/agent-skills/",
   "interface": {
     "displayName": "River Review",
-    "shortDescription": "Capability pack: a Skill Registry of review skills, driven by a review agent",
-    "longDescription": "River Review is a capability pack that strengthens AI review. It runs your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that executes perspective-based reviewer roles (code, security, performance, architecture, testing) plus an adversarial pass, and verifies findings against the diff so human reviewers keep the high-risk judgment.",
+    "shortDescription": "Turn review into an organizational judgment asset: a Skill Registry of review skills, driven by a review agent",
+    "longDescription": "River Review turns review into an organizational judgment asset. It is Review Judgment as Code for AI-assisted development: a capability pack that runs your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that executes perspective-based reviewer roles (code, security, performance, architecture, testing) plus an adversarial pass, and verifies findings against the diff so human reviewers keep the high-risk judgment.",
     "developerName": "river-review maintainers",
     "category": "Developer Tools",
     "capabilities": [

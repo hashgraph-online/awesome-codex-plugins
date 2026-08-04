@@ -1,5 +1,5 @@
 ---
-name: reviewer_sync-tasks
+name: sync-tasks
 description: Warm the task graph and vector store by synchronizing a configured task board through the reviewer MCP server. Use when the user asks to sync or index board tasks.
 ---
 

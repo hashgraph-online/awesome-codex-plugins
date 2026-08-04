@@ -278,6 +278,68 @@ class ValidateV2Tests(unittest.TestCase):
             self.assertEqual(artifact["subject_manifest_digest"], manifest["canonical_manifest_digest"])
             self.assertEqual(artifact["verdict"], "PASS")
 
+    def test_honest_scoped_pass_round_trips_through_documented_homes(self):
+        """An honest draft with declared non-goals is representable as PASS.
+
+        Both drafts below carry the same honest content. Draft A parks the
+        declared non-goals in ``not_checked``, which is reserved for unverified
+        in-scope acceptance: the result is NOT_PROVEN and the finding names
+        where each caveat belongs. Draft B moves the same caveats into the
+        documented homes and stores PASS with every caveat still readable in
+        the persisted artifact. Nothing is deleted to earn the PASS.
+        """
+        bounded = "proven by the unit suite; the full integration matrix was not replayed"
+        boundary = "declared non-goal; the diff proves cli/** untouched"
+
+        with tempfile.TemporaryDirectory() as raw:
+            draft_a = self.draft()
+            draft_a["not_checked"] = [
+                "cli/** (declared non-goal)",
+                "Windows runners (declared non-goal)",
+            ]
+            artifact_a, _path, _existed = self.store_bound(draft_a, Path(raw))
+            self.assertEqual(artifact_a["verdict"], "NOT_PROVEN")
+            summary = artifact_a["findings"][-1]["summary"]
+            self.assertIn("PASS cannot contain not_checked items", summary)
+            for home in ("criteria[].reason", "non-goal", "report"):
+                self.assertIn(home, summary)
+            self.assert_schema_valid(artifact_a)
+
+        with tempfile.TemporaryDirectory() as raw:
+            draft_b = self.draft()
+            draft_b["criteria"][0]["reason"] = bounded
+            draft_b["criteria"].append(
+                {
+                    "id": "non-goal:cli-untouched",
+                    "result": "PASS",
+                    "evidence_refs": ["git-diff:cli"],
+                    "reason": boundary,
+                }
+            )
+            draft_b["evidence_refs"] = ["e1", "git-diff:cli"]
+            draft_b["not_checked"] = []
+            artifact_b, path, _existed = self.store_bound(draft_b, Path(raw))
+            self.assertEqual(artifact_b["verdict"], "PASS")
+            self.assert_schema_valid(artifact_b)
+            # Round-trip: the caveats survive in the persisted PASS artifact.
+            stored = json.loads(path.read_text(encoding="utf-8"))
+            reasons = [criterion.get("reason") for criterion in stored["criteria"]]
+            self.assertIn(bounded, reasons)
+            self.assertIn(boundary, reasons)
+            self.assertEqual(stored["not_checked"], [])
+            self.assertEqual(stored["verdict"], "PASS")
+
+    def test_criteria_field_error_names_the_allowed_set(self):
+        with tempfile.TemporaryDirectory() as raw:
+            draft = self.draft()
+            draft["criteria"][0]["confidence"] = "high"
+            with self.assertRaisesRegex(
+                tool.ContractError,
+                r"unknown confidence.*allowed fields are \{id, result, evidence_refs, reason\}",
+            ):
+                self.store_bound(draft, Path(raw))
+            self.assertEqual(list(Path(raw).iterdir()), [])
+
     def test_runtime_scope_failure_forces_fail(self):
         with tempfile.TemporaryDirectory() as raw:
             artifact, _path, _existed = self.store_bound(self.draft(), Path(raw), scope="FAIL")

@@ -101,7 +101,38 @@ amq coop exec codex
 ```
 
 Each command sets up the environment, starts wake notifications, and launches
-the agent.
+the agent. The wake child appends full diagnostics to the private
+`agents/<agent>/.wake.log`; a separate inherited descriptor carries only
+terminal-safe attention to the controlling terminal. This process boundary
+keeps runtime and fatal-error text out of Codex and Claude full-screen
+composers. Accumulated diagnostics are truncated when a new wake starts after
+the log reaches 1 MiB and checked again on the wake's 30-second maintenance
+tick, so long-lived ordinary and repair wakes bound their own logs.
+
+Wake treats terminal notification as an attempt, not delivery, and retries on
+a capped backoff until the inbox makes durable progress. The first notification
+is immediate. Attempts that inject the fixed doorbell start at 5 seconds because
+they drive the agent; attention-only attempts start at 30 seconds because they
+alert a human. Input attempts double to a 2-minute cap; attention-only attempts
+continue through 4 and 8 minutes to a 15-minute cap. Retries never give up while
+the cohort remains unread. Contextual peer headers appear only in terminal
+output or attention; terminal input always uses the fixed doorbell. The delay
+starts after the preceding injector process exits or times out. Because
+`--wake-inject-via` executes arbitrary local code, a retry can repeat
+injector-side effects. Added messages join the pending cohort and share its next
+notification without resetting the retry ladder. Input-delivery additions may
+pull a decayed deadline forward to the delivery floor 5 seconds after the last
+input attempt, or immediately if that floor has already passed; attention-only
+additions retain the cohort's current decayed deadline. Bursts within the
+debounce window remain one notification.
+Removals or replacements immediately rearm the cohort.
+A successful input attempt does not also emit attention. Transient foreground
+authority or input-quiet refusals keep the input retry armed while rate-limiting
+their separate attention output. Output-only delivery repeats on its slower
+cadence, and a short or failed attention write stays pending on that cadence
+instead of terminating the notifier. Recovery-required state never retries
+uncertain terminal input; it repeats the manual drain-and-restart notice on that
+same attention cadence until the unread cohort drains.
 
 > **First-message check:** start both agents before sending the test message.
 > A newly started wake deliberately baselines messages that were already
@@ -206,10 +237,13 @@ exact root and `AM_SESSION` is empty. `read`, `drain`, `monitor`, `watch`,
 with that pin before reading, moving, or delivering mailbox state. An implicit
 participating command also refuses when the active pin conflicts with an
 initialized cwd-local queue discovered from a project `.amqrc` or repo-local
-`.agent-mail`; AMQ does not silently choose between the two roots. Repin to the
-cwd-local queue, use deliberate `--session`/`--project` routing, or pass an
-explicit `--root` to confirm the active queue. Explicit roots remain subject
-to the ordinary pin checks. For deliberate raw-root access,
+`.agent-mail`; AMQ does not silently choose between the two roots. The narrow
+exception is a live identity-bound sessionless pin: when both identity tokens
+authenticate its exact root, that explicit context outranks ambient cwd
+discovery. Named, legacy, incomplete, stale, or mismatched pins still refuse.
+Otherwise, repin to the cwd-local queue, use deliberate `--session`/`--project`
+routing, or pass an explicit `--root` to confirm the active queue. Explicit
+roots remain subject to the ordinary pin checks. For deliberate raw-root access,
 `--ignore-session-pin` is accepted only together with a non-empty explicit
 `--root`; blank `--root` and `--session` values are usage errors. `list`
 remains a non-destructive inspection path: it warns on a pin mismatch but
@@ -265,12 +299,35 @@ silently select a different project's mailbox.
 amq doctor
 amq doctor --ops
 amq doctor --ops --json
+amq wake check --me codex
+amq wake check --me codex --json
+amq wake check --me codex --json --json-schema=2
+amq doctor --ops --json --json-schema=2
 amq doctor --ops --fix-wake-locks
 amq wake repair --me codex
 amq wake recover-owner --me codex
 amq wake retire --me codex --inject-via /absolute/injector \
   --inject-arg exec --inject-arg terminal-id
 ```
+
+`amq wake check` is read-only. It reports whether the current process can start
+a full-strength wake, whether a saved inject-via target can repair the exact
+stale wake, and the running and current AMQ image path and version. Its
+`restart_capability` is one of `agent_safe`, `operator_only`, or `unavailable`,
+with an exact `next_action`. Automated agents may act only on `agent_safe`.
+They must leave a live wake running for `operator_only`, and must never turn a
+TIOCSTI refusal into an attention-only downgrade. `doctor --ops` exposes the
+same image and restart fields for every discovered wake lock.
+
+JSON schema 1 remains the byte-compatible default. Schema 2 is explicit with
+`--json-schema=2` and is available only with `--json`. It replaces prose
+parsing with a closed action kind, actor, reason code, and an argv command
+object when one action is directly executable. Missing evidence is an explicit
+JSON `null`; `image.status="unknown"` remains a real classification. In doctor
+schema 2, each wake-lock entry contains the same decision under `wake_check`
+rather than duplicating the wake advice as flat fields. Check output is advice,
+not authority: every advertised mutating command revalidates current wake state
+before changing it.
 
 Wake locks reported by `doctor --ops` can be `stale`, `unverified`, or, in JSON
 output, any current lock state. With `--fix-wake-locks`, fixed and error states
@@ -499,7 +556,16 @@ Common command groups:
 | Core messaging | `init`, `send`, `list`, `read`, `drain`, `reply`, `thread`, `trace`, `watch`, `monitor`, `receipts` |
 | Collaboration | `coop init`, `coop exec`, `swarm list`, `swarm join`, `swarm tasks`, `swarm bridge` |
 | Integrations | `integration symphony init`, `integration symphony emit`, `integration kanban bridge` |
-| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `wake repair`, `wake recover-owner`, `wake retire`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
+| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `wake check`, `wake repair`, `wake recover-owner`, `wake retire`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
+
+Canonical schema-selecting diagnostic forms:
+
+```text
+amq wake check --me <agent> [--root <path>] [--strict] [--json] [--json-schema <1|2>]
+amq doctor [--root <path>] [--base-root <path>] [--ignore-session-pin] [--ops] [--fix-wake-locks] [--fix-mailboxes] [--json] [--json-schema <1|2>]
+```
+
+`--json-schema` requires `--json`.
 
 ### Exit codes
 

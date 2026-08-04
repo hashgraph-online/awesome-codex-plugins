@@ -1,0 +1,14 @@
+.git/
+.github/
+.firecrawl/
+.wiki-cache/
+.venv/
+__pycache__/
+examples/
+knowledge/
+labs/
+modules/
+resources/
+scripts/
+*.pyc
+*.log

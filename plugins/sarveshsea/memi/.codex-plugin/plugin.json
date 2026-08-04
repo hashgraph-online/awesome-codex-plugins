@@ -1,7 +1,7 @@
 {
   "name": "memoire",
-  "version": "2.6.4",
-  "description": "Memi is the read-only design engineering audit and skill layer for coding agents.",
+  "version": "2.7.8",
+  "description": "Memi is the design layer for agentic AI.",
   "author": {
     "name": "Sarvesh Chidambaram",
     "url": "https://github.com/sarveshsea"
@@ -9,8 +9,6 @@
   "homepage": "https://www.memoire.cv/codex-plugin",
   "repository": "https://github.com/sarveshsea/memi",
   "license": "MIT",
-  "privacyPolicyURL": "https://www.memoire.cv/privacy",
-  "termsOfServiceURL": "https://www.memoire.cv/terms",
   "keywords": [
     "codex",
     "memoire",

@@ -77,11 +77,20 @@ Review in this method pack is advisory and evidence-oriented. It is not authorit
 
 If you cannot answer these, stop and gather them before dispatching review.
 
-**2. Get git SHAs:**
+**2. Define the Git review scope:**
 ```bash
-BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
+# Before the coordinator's task commit
+REVIEW_SCOPE=working-tree
+BASE_SHA=$(git rev-parse HEAD)
+
+# Or for already committed work
+REVIEW_SCOPE=committed-range
+BASE_SHA=<known-start>
 HEAD_SHA=$(git rev-parse HEAD)
 ```
+
+For working-tree review, identify task-owned untracked paths explicitly. Do not
+stage merely to make them visible to a reviewer.
 
 **3. Dispatch reviewer subagent:**
 
@@ -95,8 +104,9 @@ separate named agent prompt.
 - `{EVIDENCE}` - Fresh tests, commands, logs, or verification already available
 - `{COMPATIBILITY_BOUNDARY}` - What existing behavior or interfaces must not break
 - `{RETIREMENT_NOTES}` - Old owner / fallback / patch / duplicate branch and expected disposition
+- `{REVIEW_SCOPE}` - `working-tree` or `committed-range`
 - `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
+- `{HEAD_SHA}` - Ending commit, or `WORKTREE`
 - `{DESCRIPTION}` - Brief summary
 
 **4. Act on feedback:**

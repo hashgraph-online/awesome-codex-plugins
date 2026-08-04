@@ -312,7 +312,7 @@ spec:
       secretName: ${{ SEALOS_CERT_SECRET_NAME }}
 ```
 
-Keep `Service.spec.ports[].name` populated, and route root-path Prefix Ingress backends through the matching numeric `service.port.number`. Launchpad public-address discovery compares that number with `Service.spec.ports[].port`.
+Keep `Service.spec.ports[].name` populated, put the root-path Prefix route first in each HTTP `paths` list, and route it through the matching numeric `service.port.number`. Launchpad public-address discovery compares that number with `Service.spec.ports[].port`.
 
 #### WebSocket Ingress Mapping
 
@@ -618,6 +618,14 @@ Classify every Compose service before generic workload generation. A service who
 
 Before returning the generated template, verify that every detected database type has a matching KubeBlocks `Cluster` and that no Deployment, StatefulSet, DaemonSet, Job, or CronJob main container uses a database-server image.
 
+Classify the application's database mode from official installation evidence before emitting conditional resources:
+
+- `embedded-only`: keep the documented SQLite or local persistence path and emit no managed database Cluster.
+- `required-managed`: emit the KubeBlocks Cluster, its RBAC, bootstrap gates, Secret wiring, and business connection fields unconditionally.
+- `optional-managed`: mark the artifact with `docker-to-sealos.database-mode: optional-managed`, gate the Cluster and every related resource with one boolean `inputs.<name> === 'true'` branch, and configure the documented SQLite or local false branch.
+
+When official evidence cannot distinguish these modes, stop conversion and request the source installation contract. Do not infer an optional database branch from an arbitrary Compose service name.
+
 ### Docker Compose
 ```yaml
 services:
@@ -789,6 +797,29 @@ spec:
 - A generic `${{ random(n) }}` value is opaque alphabetic text. Do not use it for runtime values that require hex, base64, UUID, or another documented format. Emit a valid literal or use a required input without a generated default.
 - If a runtime profile fixes an external provider such as `openai`, wire a non-empty required credential for that provider. An optional credential input with `default: ''` does not satisfy startup requirements.
 - Readiness of the database process is not equivalent to readiness of application schema state. When an official runtime profile requires an extension or object, use an initContainer that waits for the database and verifies that final state before starting the business container.
+
+### Runtime-Derived Internal Credentials
+
+When an official runtime library derives internal credentials from entropy, keep the deployment input-free while preserving one stable credential set for all consuming roles:
+
+1. Store a quoted opaque instance seed in `spec.defaults`, for example `"${{ random(64) }}"`.
+2. Pass that same seed to every consuming role through a component-scoped ConfigMap or equivalent non-secret runtime input.
+3. Derive the canonical credential with the official runtime library or compatible documented cryptography, then validate its format and length before startup.
+4. Set the final credential in the child process environment, remove the seed variable before `exec`, and keep the seed out of logs and user-facing inputs.
+5. Record every consuming workload and critical final env name in `RuntimeBundleEvidence`; verify the values across all roles during live validation.
+6. Compare hashes or authenticated behavior across roles without persisting the private credential in ConfigMaps, template inputs, or evidence files.
+
+This contract gives each instance a fresh key set, keeps the final values stable across restarts and rolling updates, and avoids exposing derived credentials as deployment inputs.
+
+### Persisted Runtime Secret
+
+For a credential that the application requires to persist across restarts, use an initContainer to create the file on the durable application volume only when it is absent or invalid:
+
+1. Set `umask 077`, read entropy from `/dev/urandom`, and validate the required format and length.
+2. Write to a temporary file, apply `0600`, and atomically replace `/app/data/<secret-file>` with `mv`.
+3. Read and validate the persisted value in the main startup wrapper, export the final environment variable, remove seed material from the child environment, and `exec` the official entrypoint.
+4. Use the durable file for a single-replica workload. High-availability Pods with independent volumes use a shared Secret or external key source so every replica receives the same credential.
+5. Keep key material out of ConfigMap diagnostics, log output, evidence files, and user inputs.
 
 ## Command and Arguments Mapping
 
@@ -1050,8 +1081,12 @@ metadata:
   name: ${{ defaults.app_name }}
 spec:
   policy: private
+${{ else() }}
+# Configure the application's documented storage-disabled or local-filesystem mode here.
 ${{ endif() }}
 ```
+
+The false branch must set the application's documented local path, filesystem backend, or disabled-storage flag. Keep the branch explicit even when the application's local mode relies on image defaults.
 
 Provider/backend/type/mode/driver selectors stay out of `spec.inputs`. Names such as `use_sealos_objectstorage`, `object_storage_provider`, and `storage_backend` represent conversion decisions rather than application feature toggles.
 

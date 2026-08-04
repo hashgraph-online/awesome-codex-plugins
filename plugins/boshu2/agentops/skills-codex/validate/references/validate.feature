@@ -1,4 +1,4 @@
-Feature: Validate writes one fresh verdict over exact content
+Feature: Validate returns one fresh judgment over exact content
   @covered-by:skills/validate/scripts/test_validate.py::test_verdict_identity_floor_and_idempotence
   Scenario: Identity gaps stay unproven
     Given missing, colliding, or unattested author and validator identities
@@ -24,8 +24,14 @@ Feature: Validate writes one fresh verdict over exact content
     Then the snapshot path is its SHA-256 identity
 
   @covered-by:skills/validate/scripts/test_validate.py::test_verdict_identity_floor_and_idempotence
-  Scenario: Validation stops after persistence
+  Scenario: Validation stops without requiring persistence
     Given any PASS, FAIL, or NOT_PROVEN verdict
-    When Validate atomically persists it
-    Then Validate returns the artifact digest and path
+    When Validate returns the fresh result
+    Then Validate does not require an artifact digest or path
     And performs no repair, retry, Git, closure, release, or delivery action
+
+  @covered-by:skills/validate/scripts/test_validate.py::test_verdict_identity_floor_and_idempotence
+  Scenario: Declared consumers may request durable evidence
+    Given a caller or declared downstream consumer requests machine-readable evidence
+    When Validate atomically persists the result
+    Then Validate returns the verdict.v2 artifact digest and path

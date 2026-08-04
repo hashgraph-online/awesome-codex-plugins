@@ -8,7 +8,7 @@ Tool discipline (shared):
 - If a signature or contract changes, use `find_callers` to locate all call
   sites and verify with `read_file` / `get_changed_file_diff` that they stay consistent.
 
-## PR-session tools (inside `/reviewer_review-pr`)
+## PR-session tools (inside `rag-reviewer:review-pr`)
 
 - `search_code` — usages of a symbol/string;
 - `get_related_symbols` — graph neighbours (calls / implementations / tests);

@@ -1,17 +1,17 @@
 # Dodo Payments Agent Plugin
 
 [![License](https://img.shields.io/github/license/dodopayments/dodo-agent-plugin.svg?style=flat-square)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg?style=flat-square)](./CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/@dodopayments/opencode-plugin.svg?style=flat-square)](https://www.npmjs.com/package/@dodopayments/opencode-plugin)
 [![Discord](https://img.shields.io/discord/1305511580854779984?label=discord&style=flat-square)](https://discord.gg/bYqAp4ayYh)
 
-The official Dodo Payments plugin for AI coding agents. Installs eight integration skills and two MCP servers across **Claude Code**, **Codex CLI**, **Cursor**, and **OpenCode** from a single source of truth.
+The official Dodo Payments plugin for AI coding agents. Installs seventeen integration skills and two MCP servers across **Claude Code**, **Codex CLI**, **Cursor**, and **OpenCode** from a single source of truth.
 
 ## What you get
 
 - **Dodo Payments API MCP server** - Live API access (payments, subscriptions, customers, products, refunds, licenses, usage). Authenticates via browser OAuth, no local credentials required.
 - **Dodo Knowledge MCP server** - No credentials. Semantic search over the current Dodo Payments documentation.
-- **Eight agent skills** - Written as `SKILL.md` files with YAML frontmatter. Your agent loads the relevant skill on its own when a task calls for it.
+- **Seventeen agent skills** - Written as `SKILL.md` files with YAML frontmatter. Your agent loads the relevant skill on its own when a task calls for it.
 
 ## Install
 
@@ -71,7 +71,7 @@ OpenCode distributes via npm. Add the plugin to your `opencode.json`:
 }
 ```
 
-Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook, and the eight skills are auto-discovered from the installed package. No manual `mcp` block required.
+Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook, and the seventeen skills are auto-discovered from the installed package. No manual `mcp` block required.
 
 If you prefer the local stdio API server with your own API key instead of the default remote OAuth server, declare `dodopayments-api` yourself in `opencode.json` - your entry wins over the plugin default:
 
@@ -95,16 +95,52 @@ If you prefer the local stdio API server with your own API key instead of the de
 
 ## Included Skills
 
+**Getting started**
+
 | Skill | Description |
 |-------|-------------|
-| `best-practices` | Comprehensive guide to integrating Dodo Payments with best practices |
-| `checkout-integration` | Creating checkout sessions and payment flows |
-| `subscription-integration` | Implementing subscription billing flows |
-| `webhook-integration` | Setting up and handling webhooks for payment events |
-| `usage-based-billing` | Implementing metered billing with events and meters |
-| `credit-based-billing` | Credit entitlements, balances, and metered credit deduction |
-| `license-keys` | Managing license keys for digital products |
-| `billing-sdk` | Using BillingSDK React components |
+| `best-practices` | SDK setup, environments, API keys, and the canonical checkout-to-webhook architecture |
+| `framework-adapters` | Official `@dodopayments/*` handlers for Next.js, Express, Hono, Astro, Remix, SvelteKit, Nuxt, Fastify, TanStack, Bun, Convex |
+| `testing-and-go-live` | Test mode, test payment methods, webhook testing, production launch checklist |
+
+**Accepting payments**
+
+| Skill | Description |
+|-------|-------------|
+| `checkout-integration` | Checkout Sessions, payment links, and overlay checkout |
+| `subscription-integration` | Subscription lifecycle, trials, plan changes, proration, on-demand charges |
+| `mobile-checkout` | In-app checkout for React Native, Flutter, iOS, and Android |
+| `webhook-integration` | Receiving and verifying webhooks via the Standard Webhooks spec |
+
+**Billing models**
+
+| Skill | Description |
+|-------|-------------|
+| `credit-based-billing` | Credit entitlements, balances, ledger, rollover, overage, meter-based deduction |
+| `usage-based-billing` | Meters, event ingestion, aggregation, and per-unit pricing |
+| `license-keys` | License key activation, validation, and instance management |
+
+**Catalog and pricing**
+
+| Skill | Description |
+|-------|-------------|
+| `product-catalog-management` | Products, pricing, add-ons, collections, images, digital delivery |
+| `discounts-and-promotions` | Discount codes, eligibility, stacking, subscription-cycle limits |
+| `localized-pricing` | Localized pricing, adaptive currency, and purchasing power parity |
+
+**Customers and operations**
+
+| Skill | Description |
+|-------|-------------|
+| `customer-management` | Customers, self-service portal, payment methods, wallets |
+| `refunds-and-disputes` | Refunds, disputes and chargebacks, access reconciliation |
+
+**UI and integrations**
+
+| Skill | Description |
+|-------|-------------|
+| `billing-sdk` | BillingSDK React components for pricing tables and billing UI |
+| `better-auth-integration` | The `@dodopayments/better-auth` plugin for customer sync, checkout, portal |
 
 Skills source: [`dodopayments/skills`](https://github.com/dodopayments/skills) (bundled as a git submodule in `skills-src/`).
 

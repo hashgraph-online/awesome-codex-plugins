@@ -1,43 +1,56 @@
 ---
-name: reviewer_configure-review
-description: Configure or update a repo's .review.yml context layer and generic task-board metadata without secrets. Use when the user asks to set up or tune review config, context depth, ignored tracked paths, retrieval limits, or board selection.
+name: configure-review
+description: Use when configuring or changing a repository's layered review policy, ignored tracked paths, retrieval limits, summary depth, or non-secret task-board metadata.
 ---
 
 # Configure Review
 
-Always answer the user in Russian. Update only the requested `.review.yml` values; **Never clobber**
-foreign keys such as `categories`. This skill is standalone: no reviewer MCP, database, or board
-connection is required for the baseline.
+Always answer the user in Russian. Update only the requested policy values; **Never clobber** foreign
+keys such as `categories`. This skill is standalone: no reviewer MCP, database, or board connection
+is required for the baseline.
 
 ## Scope
 
 Manage `summary_cluster_depth`, `summary_cluster_depth_overrides`, `summary_topk_threshold`,
 `paths.ignore`, `context_limits`, and the optional `task_board` block. An empty `task_board:`
-disables the board for this repository. Never put credential values in `.review.yml`.
+disables the board for this repository. Never read, request, display, or write credential values in
+either policy target.
 
 Untracked `.venv`, `node_modules`, `__pycache__`, `dist`, and `build` are gitignored and never
 enter the index. Do not use a filesystem walk to find them.
 
 ## Pipeline
 
-1. Resolve the repository and branch, verify it with `git rev-parse --git-dir`, and read the
-   existing `.review.yml` without changing unrelated keys or comments.
-2. Scan only tracked Python files:
+1. Resolve the canonical lowercase repository id and the target branch. Present these targets in
+   this order and ask the user to select one:
+   - **Recommended/default:** `home:repos/<owner>/<name>.yml`, stored at
+     `$XDG_CONFIG_HOME/rag-reviewer/repos/<owner>/<name>.yml` (or
+     `~/.config/rag-reviewer/...` when `XDG_CONFIG_HOME` is unset). It needs no commit and is not
+     visible to the team.
+   - **Team-visible:** committed `.review.yml` at the selected target ref. It is committed and
+     visible to the team; read it from that ref, never from an uncommitted worktree file.
+   For a nested id such as `group/service`, use `home:repos/group/service.yml`. A home policy is
+   owned by the OS account running reviewer: on a shared service account it can affect that
+   account's workloads, so use committed policy for team-owned settings.
+2. After the target is selected, verify the repository with `git rev-parse --git-dir` and read the
+   selected file, preserving unrelated keys and comments. Do not inspect or copy credentials.
+3. Scan only tracked Python files:
    ```bash
    git -C <path> ls-tree -r --name-only <branch> | grep '\.py$'
    ```
    Count directory prefixes at depths 1–3. This is not a filesystem walk.
-3. Measure churn with `git log --since="6 months ago" --name-only --pretty=format: -- '*.py'`.
+4. Measure churn with `git log --since="6 months ago" --name-only --pretty=format: -- '*.py'`.
    If history is too short or unavailable, say so and recommend from structure alone.
-4. Propose depth and ignore changes. Ask the user about every candidate for `paths.ignore` and
-   **never write it silently**. Follow the exact rebuild map below; suggest but **do NOT run** a
-   follow-up skill.
+5. Propose depth and ignore changes. Ask the user about every candidate for `paths.ignore` and
+   **never write it silently**. Assemble a draft that preserves the selected file's unrelated
+   keys/comments, then request final confirmation before writing it. Follow the exact rebuild map
+   below; suggest but **do NOT run** a follow-up skill.
 
 ## Rebuild guidance
 
-- Changed `paths.ignore` → suggest `/reviewer_sync-codebase`.
-- Changed `summary_cluster_depth` → suggest `/reviewer_summarize-subsystems`.
-- Changed `summary_cluster_depth_overrides` → suggest `/reviewer_summarize-subsystems`.
+- Changed `paths.ignore` → suggest `rag-reviewer:sync-codebase`.
+- Changed `summary_cluster_depth` → suggest `rag-reviewer:summarize-subsystems`.
+- Changed `summary_cluster_depth_overrides` → suggest `rag-reviewer:summarize-subsystems`.
 - Changed `summary_topk_threshold` → no rebuild needed.
 - Changed `context_limits` → no rebuild needed.
 

@@ -79,6 +79,25 @@ After installation in Claude Code, use `/sealos`:
 /sealos create private S3 object storage for uploads and wire env vars
 ```
 
+### Test in Qoder
+
+Build the Qoder plugin package from the repository root:
+
+```bash
+python3 scripts/package-qoder-plugin.py
+```
+
+Import `dist/sealos-1.2.0.zip` into Qoder. The package exposes the same eight root-level skills as the Codex plugin and provides `/sealos` as its command entry point.
+
+Qoder examples:
+
+```text
+/sealos deploy this repo to Sealos Cloud
+/sealos create a cloud Postgres database for this repo and wire DATABASE_URL
+/sealos create private S3 object storage for uploads and wire env vars
+/sealos show the resources created by the last deployment
+```
+
 ### Other supported AI tools
 
 | Tool | Install | Usage |
@@ -86,6 +105,7 @@ After installation in Claude Code, use `/sealos`:
 | Codex CLI / Codex App | `codex plugin marketplace add labring/sealos-skills` then `codex plugin add sealos@sealos` | `$sealos` in Codex CLI, or **+** → **Plugins** → **Sealos** in Codex App |
 | Claude Code | `claude plugin marketplace add labring/sealos-skills` then `claude plugin install sealos@sealos` | `/sealos` |
 | Claude Code compatibility path | `npx plugins add https://github.com/labring/sealos-skills --target claude-code` | `/sealos` |
+| Qoder | Build with `python3 scripts/package-qoder-plugin.py`, then import the ZIP | `/sealos` or automatic skill selection |
 | OpenClaw / ClawHub | `clawhub install labring/sealos-skills` | Host command exposure depends on the ClawHub runtime |
 | CodeBuddy | `/plugin marketplace add labring/sealos-skills` | Host command exposure depends on the CodeBuddy runtime |
 | Gemini CLI | `gemini extensions install https://github.com/labring/sealos-skills` | Context-only extension; ask Gemini to use Sealos Skills |
@@ -118,7 +138,7 @@ After a project has been deployed, use the `sealos-canvas` skill through your in
 
 ## Why Use the Plugin
 
-Prefer the plugin install for Codex and Claude Code because it:
+Prefer the plugin install for Codex, Claude Code, and Qoder because it:
 
 - installs all Sealos skills as one managed package
 - exposes the same skills across supported agent tools
@@ -132,9 +152,12 @@ The Codex integration follows [OpenAI's Codex plugin build guide](https://develo
 - `.codex-plugin/plugin.json` contains plugin identity, discovery metadata, interface copy, default prompts, brand metadata, and asset paths relative to the repository root.
 - `.agents/plugins/marketplace.json` registers this repo-local plugin for local Codex marketplace testing.
 - `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` define the Claude Code-compatible plugin surface.
+- `.qoder-plugin/plugin.json` defines the Qoder plugin surface and explicitly exposes all eight Codex skills.
+- `qoder.md` provides Qoder-level routing and safety instructions without copying skill implementations.
 - `distribution/platforms.json` records platform support claims and evidence.
 - `marketplaces/README.md` owns marketplace rules and prevents command-support overclaims.
 - `scripts/validate-codex-plugin.py` validates the Codex manifest, Claude Code metadata, repo marketplaces, platform registry, and asset paths.
+- `scripts/package-qoder-plugin.py` builds a Qoder-compatible ZIP with the plugin manifest at the archive root.
 - `skills/**/SKILL.md` remains the only skill source; do not add a second packaged copy of the skills.
 
 Validate plugin metadata before publishing or pushing manifest changes:
@@ -147,6 +170,7 @@ python3 -m json.tool .agents/plugins/marketplace.json >/dev/null
 python3 -m json.tool marketplace.json >/dev/null
 python3 -m json.tool .claude-plugin/plugin.json >/dev/null
 python3 -m json.tool .claude-plugin/marketplace.json >/dev/null
+python3 -m json.tool .qoder-plugin/plugin.json >/dev/null
 python3 -m json.tool distribution/platforms.json >/dev/null
 ```
 
@@ -230,6 +254,8 @@ Important distribution files:
 - [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json) — Codex plugin manifest
 - [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json) — local Codex marketplace entry
 - [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) — Claude Code-compatible plugin manifest
+- [`.qoder-plugin/plugin.json`](./.qoder-plugin/plugin.json) — Qoder plugin manifest
+- [`qoder.md`](./qoder.md) — Qoder plugin routing and safety instructions
 - [`marketplace.json`](./marketplace.json) and [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json) — Claude-compatible marketplace entries
 - [`.codebuddy-plugin/marketplace.json`](./.codebuddy-plugin/marketplace.json) — CodeBuddy marketplace entry
 - [`gemini-extension.json`](./gemini-extension.json) — Gemini CLI context extension
@@ -239,6 +265,7 @@ Important distribution files:
 - [`distribution/platforms.json`](./distribution/platforms.json) — platform support registry
 - [`marketplaces/README.md`](./marketplaces/README.md) — marketplace rules and support-claim ownership
 - [`scripts/validate-codex-plugin.py`](./scripts/validate-codex-plugin.py) — Codex plugin validation
+- [`scripts/package-qoder-plugin.py`](./scripts/package-qoder-plugin.py) — Qoder ZIP packager
 
 Do not add a second packaged copy of the skills. Root `skills/**` is the only skill source for all installation paths.
 

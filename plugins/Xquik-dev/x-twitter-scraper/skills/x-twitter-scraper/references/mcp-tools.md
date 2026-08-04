@@ -2,6 +2,10 @@
 
 The MCP server at `https://xquik.com/mcp` provides 2 structured API tools. The agent sends API requests through the server, which handles authentication and execution for `xquik.com/api/v1`.
 
+MCP v2.6.1 supports `2026-07-28` through `server/discover`.
+Current MCP SDKs add request metadata and headers automatically.
+Modern calls need no initialization session.
+
 ## Contents
 
 - [Tools](#tools)
@@ -141,6 +145,7 @@ Use `POST /api/v1/extractions` ONLY for bulk data that simpler endpoints cannot 
 | **Post a tweet** | `GET /x/accounts` -> `POST /x/tweets` with `account` + `text` |
 | **Get trending news** | `GET /radar` (supported sources, via `xquik` tool) -> `POST /compose` with trending topic |
 | **Open support ticket** | `POST /support/tickets` -> `GET /support/tickets/{id}` |
+| **Collect maximum-coverage replies** | `GET /x/tweets/{id}/replies?mode=complete&limit=<1-25000>` -> filter direct rows by `inReplyToId` -> keep `nested_replies` separate -> inspect `diagnostic` |
 
 ## Common Mistakes
 
@@ -154,10 +159,14 @@ Use `POST /api/v1/extractions` ONLY for bulk data that simpler endpoints cannot 
 | Passing API keys in code | Auth is injected automatically. Never include keys |
 | Using `explore` for API calls | `explore` is read-only spec search. Use `xquik` for actual API calls |
 | Looking up follow/DM by username | Follow and DM endpoints need numeric user ID. Look up via `GET /x/users/{id}` first; that route accepts usernames and IDs |
+| Treating nested replies as direct replies | Match `inReplyToId` to the root ID. Keep `nested_replies` separate |
+| Treating 424 as an empty failure | Keep safe partial rows. Follow `diagnostic.recommendedFallback` and disclose coverage |
 
 ## REST-only operations
 
-MCP v2.5.6 catalogs 119 of 127 REST operations. Of these, 118 support JSON or text. Binary support downloads use REST. These 8 credential or session operations remain outside MCP:
+MCP v2.6.1 catalogs 120 of 128 REST operations.
+Of these, 119 support JSON or text. Binary support downloads use REST.
+These 8 credential, checkout, or guest-wallet operations remain outside MCP:
 
 - API key creation
 - API key listing

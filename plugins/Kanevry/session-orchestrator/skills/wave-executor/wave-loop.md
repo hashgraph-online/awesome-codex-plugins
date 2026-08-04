@@ -207,6 +207,49 @@ Before dispatching each agent whose fileScope contains a NEW (non-existent) file
 
 **If 0 candidates:** dispatch unchanged — same silent-no-op convention as Grounding Injection / Frontmatter-Guard above. Never blocks dispatch.
 
+#### Pre-Dispatch: Fact-Staleness Annotation (#908)
+
+Facts an earlier wave measured get quoted into this wave's prompts as briefing truth — and they decay. In the #908 incident the impl agents found 14 commits where the brief said 9, a clean tree where it said 5 dirty, 92 learnings where it said 40, a file that no longer existed, and a closed epic briefed as critical-open; the worst class was line numbers, which drifted three times and forced 225 citations onto symbol+grep form. Annotating a fact costs one prompt line. Re-briefing a wave on wrong numbers costs the wave.
+
+**What is a fact here:** any repo-state value carried from an earlier wave's report into this prompt — counts (commits, files, tests, issues, learnings), line numbers, file existence, "session X is running", issue/epic open-closed state. NOT design decisions, task assignments, or judgements: those do not decay.
+
+**Trigger — annotate when ANY of these holds (no judgement call):**
+
+1. `now − measured_at ≥ 5 min`
+2. `measured_at` is absent
+3. the peer probe below reported `live: true` for the repo the fact is about
+
+Threshold derived from `.orchestrator/metrics/subagents.jsonl` (n=340 wave boundaries, agent runtime median 3.5 min): a fact's age at its FIRST cross-wave citation brackets [median 2.5 min, median 9.9 min] depending on where in the producing agent's run it was measured. 5 min sits at the conservative end of that bracket; the cost asymmetry breaks the tie downward. **Corollary: a fact from an earlier wave almost always trips rule 1 — when in doubt, annotate.** `measured_at` comes from the producing agent's report, which `hooks/post-subagent-discovery-validator.mjs` already asks for (PSA-006 point 4).
+
+**Peer signal — once per wave, plus once per distinct foreign repo cited:**
+
+```bash
+node "$PLUGIN_ROOT/scripts/lib/peer-discovery.mjs" --check-live "<repoRoot>" --json
+# → {"live":false,"reason":"no-lock","probe":"lock-only","peerCount":0,"peer":null}
+```
+
+Read `live` from the payload; the exit code reports whether the probe RAN (`0` verdict produced, `1` usage error, `2` internal failure), never the verdict itself. Probe selection is automatic and needs no flag: the coordinator's own working copy takes the `full` probe (worktrees + registry + STATE.md), any other repo takes `lock-only` (two sync calls, no git). Own-vs-foreign is decided by repo IDENTITY, not path nesting — a parent directory that is itself a repo (`~/Projects/<workspace>`) is foreign, not "mine".
+
+Call it for the coordinator's own repo even when every cited fact is about that repo — the own-repo probe self-excludes this session and answers "is another operator session writing into my working copy right now", which is exactly the #908 "14 vs 9 commits" class. `live: true` sets the threshold to **0** for that repo: every state fact about it is asserted, never established, however fresh. The probe is fail-safe (unmeasurable ⇒ `live: true`, including `probe: "full-degraded"` when the peer surfaces returned demonstrably incomplete data), so a probe failure annotates more, never less — and so does a non-zero exit: treat exit `1`/`2` as `live: true`.
+
+**Annotation format** — in the agent prompt, replace the bare value with:
+
+    ASSERTED (age <N> min, source W<k>/<agent>): <value>. Verify command: <cmd>. Run it before relying on this.
+
+**When no measurement command can be named** (rule 2, and the case the validator is meant to catch upstream), do not restate the value at all — a number nobody can re-derive is not a fact:
+
+    UNVERIFIED (no measurement command, source W<k>/<agent>): <claim>. Establish it yourself before relying on this.
+
+**Worked examples:**
+
+| Fact | Decision |
+|---|---|
+| "13 broken paths", W1-D2, `measured_at` 10:35, cited at 11:20 | Rule 1 (45 min ≥ 5) → `ASSERTED (age 45 min, source W1/D2): 13 broken paths. Verify command: <the grep D2 ran>. Run it before relying on this.` |
+| "the coordinator mis-measured 4 numbers" — no measurement command | Rule 2 → `UNVERIFIED` form; the value is dropped, the claim becomes the agent's own task |
+| Any count about a foreign repo whose peer probe reports `live: true` | Rule 3 → annotate regardless of age; age may still be printed but is not the reason |
+
+**Never blocks dispatch** — same silent-no-op convention as the injectors above. When facts cannot be annotated for any reason, dispatch proceeds; annotating more is always the safe direction.
+
 #### Agent-Type Resolution
 
 Each agent in the session plan specifies a `subagent_type`. Use that value directly when dispatching:
@@ -220,6 +263,7 @@ For each agent in this wave:
       - Which files to read/modify (exact paths)
       - Acceptance criteria (how to verify done)
       - Relevant patterns — injected automatically as the <APPLICABLE-RULES> block (see Pre-Dispatch: Glob-Scoped Rule Injection below)
+      - Any repo-state fact carried from an earlier wave: in the ASSERTED/UNVERIFIED form, never as a bare value (see Pre-Dispatch: Fact-Staleness Annotation above)
       - VCS issue reference if applicable
       - What NOT to touch (other agents' files)
       >",
@@ -349,6 +393,8 @@ Behaviour change: agents writing vault notes now receive the canonical schema en
 #### Pre-Dispatch: Glob-Scoped Rule Injection (#336/#694)
 
 After `wave-scope.json` is written for this wave and before assembling the `Agent()` prompt, inject the wave's applicable rule set into each dispatched agent's prompt. This wires the `loadApplicableRules()` loader (`scripts/lib/rule-loader.mjs`) — dormant since #336 — into the live per-wave prompt assembly via the thin CLI `scripts/print-applicable-rules.mjs`.
+
+> **⚠ Measure before you inject — on Claude Code this step is usually a NET LOSS (#931b).** `docs/instruction-delivery.md` measured the delivery path on 2026-07-30: every `.claude/rules/*.md` already reaches a dispatched agent through Claude Code's **native project-instruction loading**, so a `$RULES_BLOCK` prepended on top arrives a *second* time. Measured on a real wave: the scoped block was 122,875 B against a 169,961 B corpus — glob scoping saved **4.0%**, of which 85.5% came from the tier axis alone, while injecting alongside undiminished native delivery cost **+72%** (292,836 B). The coordinator SHOULD therefore check the block's size before prepending it, and MAY skip the injection with a logged Deviation when the harness already delivers the corpus natively — that is not a shortcut, it is the measured decision. Inject unconditionally only on a harness that does NOT auto-load `.claude/rules/` (Codex CLI, Pi, Cursor), where this block is the sole delivery path and the saving is real. See `docs/instruction-delivery.md` §1.2 and §5.
 
 **Gate:** runs when `.claude/rules/` exists. When it does not, the CLI prints nothing and exits 0 — zero behaviour change. This step never blocks dispatch: any non-zero exit or empty output means "inject nothing, continue" (same best-effort framing as Pre-Dispatch Grounding Injection above).
 
@@ -769,6 +815,19 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
    - `planned_files_count`: size of this wave's Planned set (union of agent file scopes) as computed in step 3c File-level grounding above. Reuse that value — do not recompute.
    - `over_delivery_ratio`: files_changed / max(planned_files_count, 1), rounded to 2 decimals. > 1 = agents touched more files than briefed (under-sizing signal, #730/H4). Omit both fields when `grounding-check: false`.
    - `quality_check`: incremental check result (pass/fail/skipped)
+   - `suite_passed` / `suite_failed` (+ optional `suite_platform`): the full-suite counts feeding the § 3a Wave History header `— suite <passed>/<failed> on <platform>`. `quality_check` is a traffic light; these are the number the light was derived from, and unlike STATE.md (gitignored, demoted to `## Previous Session` and then overwritten) the metrics record survives the session.
+     **Copy the two counts off the gate's own event — do not re-read them from the terminal (#966 step 3).** `scripts/run-quality-gate.mjs`, the wrapper that fires between waves, emits `orchestrator.quality_gate.{passed,failed}` carrying a machine-measured `counts: {passed, failed, total}` (admitted by `admitSuiteCounts()`) plus the `wave_number` it resolved from `wave-scope.json`. Payload fields are flat at the record's top level:
+
+     ```bash
+     jq -c --argjson w <wave_number> --arg s "<semantic_session_id>" '
+       select(.event | startswith("orchestrator.quality_gate."))
+       | select(.semantic_session_id == $s and .wave_number == $w and .counts != null)
+       | .counts' .orchestrator/metrics/events.jsonl | tail -1
+     ```
+
+     The session filter is not optional — `events.jsonl` accumulates across sessions and every past session also had a wave with this number.
+     **OMIT all three when that selector returns nothing** — absent = "not measured", `suite_failed: 0` = "measured, zero failures". Never write `0` for a suite that did not run. The event enforces the same distinction at the producer: `counts` is omitted, never zero-filled, when the run fail-fast'd before the test gate or its output carried no parseable count.
+     > **What is NOT on the event, and stays hand-written:** `suite_platform` — the payload has no platform field, so keep writing it from the § 3a header as before. Likewise, the auto-fix-loop producer (`scripts/lib/quality-gate.mjs`, active only under `verification-auto-fix.enabled: true`) emits `counts` WITHOUT `wave_number`, so its retry records correctly never match the selector above; they are mid-wave attempts, not the wave's verdict. If the wave's gate ran outside `run-quality-gate.mjs` entirely, no event exists — fall back to the gate output you read, and say so in the progress update. The reader side (`skills/session-end/metrics-collection.md` § 1.7) reads the event first and this hand-written trio second, so keep writing the trio: it is the compatibility path for those two cases and for sessions already in flight.
    Append this wave record to the session metrics `waves` array.
 
 7a. **Scope drift tripwire (S2 — #896, warn-only)**: distinct from `over_delivery_ratio` above — that metric is per-wave and unfiltered; this one is session-cumulative (since `session-start-ref`) and filtered through `DRIFT_EXCLUDE_PATTERNS`, so the two numbers are NOT expected to agree. Call `computeDrift()` from the same `scripts/lib/scope-baseline.mjs` module as § 0a Scope Baseline Freeze above. Never blocks — exit code stays 0 and the next wave is dispatched regardless of the result.
@@ -827,8 +886,12 @@ After each wave completes and before the progress update, update `<state-dir>/ST
 1. **Frontmatter**: set `current-wave` to the just-completed wave number; set `status` to `active` (or `paused` if waiting on user input)
 2. **`## Current Wave`**: replace contents with next wave info — wave number, role, agents to dispatch and count
 3. **`## Wave History`**: append an entry for the completed wave (the `(planned … → actual …, over-delivery …)` parenthetical is omitted when `grounding-check: false`, since the counts are unavailable):
+   > **Record the SUITE COUNT, not just "gates green" — and name the platform (#944).** The wave line MUST carry the full-suite pass/fail count from the gate that just ran (`<passed>/<failed>`), not merely that typecheck and lint were clean. A deep session on 2026-07-30 logged typecheck/lint/validate-plugin for every wave and no suite count; a test that had been vacuous for its entire life sat red on HEAD through three waves and was found only by the review panel — in a session whose own premise was turning CI from red to green.
+   >
+   > **A green gate on one platform is not evidence for another.** That same session's local gate reported 541/541 three times on a tree CI could not build: two tests encoded macOS assumptions (a `TMPDIR` that carries a trailing slash; an `ARG_MAX` that tolerates a 200 KB argv entry). Both passed locally and failed on the Linux runner. When the wave touched anything platform-sensitive — spawn/argv shapes, `os.tmpdir()`, path separators, file modes, `$PATH` lookups of external binaries — say so in the wave line, and treat CI, not the local run, as the verdict.
+
    ```
-   ### Wave N — <Role> (planned <P> files → actual <A>, over-delivery <R>)
+   ### Wave N — <Role> (planned <P> files → actual <A>, over-delivery <R>) — suite <passed>/<failed> on <platform>
    - Agent "<description>": <done|partial|failed> — <files changed> — <1-line note>
    - Agent "<description>": <done|partial|failed> — <files changed> — <1-line note>
    ```
@@ -1004,7 +1067,7 @@ This frames the nudge: the persistent artefacts (plan, scope, STATE.md, git diff
 
 | Wave boundary (completed → next) | Compact? | Why |
 |---|---|---|
-| Discovery → Impl-Core | Yes | Research/audit context is bulky; the plan + wave-scope.json is the distilled output. |
+| Discovery → Impl-Core | Yes — **but only after** Discovery's repo-state facts are written into the plan in annotated form (value + measurement command + `measured_at`) | Research/audit context is bulky and the plan + wave-scope.json is the distilled output. But compacting discards the raw evidence and leaves the briefing text as the only source of truth — the structural amplifier of the #908 damage. Un-annotated facts: re-measure or record them first, else **No**. See Pre-Dispatch: Fact-Staleness Annotation. |
 | Impl-Core → Impl-Polish (long Core) | Maybe | Compact only if Polish targets different files; keep if Polish builds on Core's changes. |
 | Impl-Polish → Quality | No | Quality references the just-written code; losing it is costly. |
 | Quality → Finalization | No | Finalization needs the full session diff. |
@@ -1070,20 +1133,53 @@ Before each wave dispatch:
 3. `allowedPaths` is the UNION of all agent file scopes for this wave
    To compute `allowedPaths`: read each agent's specification from the session plan. Each agent lists its "Files:" scope (e.g., `skills/session-end/SKILL.md`, `scripts/*.sh`). Collect all file paths and glob patterns from all agents in this wave into a single flat array. Deduplicate entries. If an agent's scope uses globs (e.g., `scripts/*.sh`), include the glob pattern as-is — the enforcement hook resolves globs at check time.
 
+   **Test-Sibling Expansion (#970):** an `allowedPaths` entry that names a production file but NOT its test sibling makes the wave's own regression test unwritable — the scope guard then mechanically enforces exactly the inconsistency the quality gate exists to catch. Cross-repo evidence, three occurrences in ONE session: a migrations glob without the SQL-test directory (the regression test could not be written); a lone `.actions.ts` file (the wave's cross-tenant security test stayed red); a dead-export deletion whose importing test lay outside every scope (the suite ended red). Do NOT hand-derive the sibling paths — expand through the shared helper so the hook, the validator and this prose state one rule:
+
+   ```js
+   import { expandTestSiblings } from '$PLUGIN_ROOT/scripts/lib/scope-gate.mjs';
+
+   // unionScopes: the deduplicated flat array from the paragraph above.
+   // role: this wave's role, verbatim from the session plan — the helper GATES on it.
+   const allowedPaths = expandTestSiblings(unionScopes, { role });
+   ```
+
+   The helper is pure (same input → same output, no filesystem writes) and is also surfaced by `scripts/validate-wave-scope.mjs`. **The role decides, inside the helper** — `scripts/lib/scope-gate.mjs` `TEST_SIBLING_EXPANSION_ROLES` is THE list (currently `Impl-Core`, `Impl-Polish` — exactly where the incident occurred), and #5/#6 below describe that gate rather than restating it. Pass the role string; do not pre-filter by role in prose, and do not hand-roll the equivalent `{ enabled: … }`. Matching is trimmed + case-insensitive, so `impl-core` behaves as `Impl-Core`.
+
+   > **Fail-closed:** an ABSENT or unrecognised `role` does **not** expand. Omitting it fails loudly (an agent's write to its own test is blocked, recoverable by one re-union); the opposite default would silently hand a Quality phase-1 simplification agent write access to the suite. `{ enabled: false }` is the unconditional opt-out and `{ enabled: true }` the explicit opt-in — both override the role.
+
+   **It emits a GLOB, never a computed concrete path.** Resolve via the production file's basename, e.g. `foo.mjs` → `tests/**/foo*.test.mjs` — the same form `§ 4. Test-consolidation branch` already uses, stated once. Measured over all **439** tracked production `.mjs` in THIS repo (production = `scripts/**` + `hooks/**` + `skills/**`; tests = a top-level `tests/**` mirror with the `scripts/` prefix dropped): a same-basename test exists somewhere under `tests/` for **375/439 (85.4%)**, whereas a naive 1:1 mirror path resolves for only **272/439 (62.0%)**. So the glob is right ~85% of the time and *harmless* when wrong — it grants write access to a path that may not exist; a computed concrete path would be wrong ~38% of the time **and still deny the real test**. The ~15% residual is real, mostly semantic naming (`scripts/lib/learnings/*.mjs` → `tests/unit/learnings.test.mjs`): when an agent's test sibling does not match the glob, add it by hand to that agent's "Files:" scope in the session plan. This is an 85% default, not a guarantee.
+
+   > Measured at `HEAD=730ee9d`, 2026-08-03, clean-tree, via `git ls-files | grep -E '^(scripts|hooks|skills)/.*\.mjs$'` for the denominator, matched against `git ls-files | grep -E '^tests/.*\.test\.mjs$'` by basename (85.4% figure) and by mirrored path (62.0% figure). Re-measure before citing these downstream — a count re-briefed later is a claim about the past (`.claude/rules/parallel-sessions.md` § PSA-006).
+
+   **The sibling rule is repo-configurable, not a hardcoded layout.** THIS repo has zero `__tests__/` directories and no co-located tests; consumer-repo shapes (`<file>.test.*` beside the source, `<dir>/__tests__/**`, `supabase/migrations/** → supabase/tests/**`) are configured per repo and do not apply here.
+
+   Three ordering constraints, all load-bearing:
+   - Expand each agent's `fileScope` **before** the overlap/deconfliction check, so a test file newly shared by two agents is visible to the check that exists to catch that collision.
+   - Expand **before** `wave-scope.json` is written, in ONE pass. `hooks/post-bash-write-verify.mjs` fingerprints `allowedPaths` via `scopeSignature()` and fires a control notice on change, so a later mutation reads as tampering.
+   - Skip **absolute** entries entirely — expanding a Gate-5b out-of-repo grant would sprout a synthetic `tests/**` sibling outside the repo.
+
    **Pre-Dispatch Scope-Union Assertion (#796):** `wave-scope.json` is GLOBAL per wave — `hooks/enforce-scope.mjs` Gate 7 checks EVERY agent against the same `allowedPaths` union, so a union that (re)written for only ONE agent silently denies its siblings' legitimate writes. Before each `Agent()` batch, mechanically assert — for EVERY agent in the batch — that its fileScope ⊆ `wave-scope.allowedPaths`. Write the agent's "Files:" scope as a JSON array of strings to a temp file (`$AGENT_FILESCOPE_JSON`) and run:
 
    ```bash
    node "$PLUGIN_ROOT/scripts/validate-wave-scope.mjs" \
-     --assert-subset "$AGENT_FILESCOPE_JSON" < <state-dir>/wave-scope.json
+     --assert-subset "$AGENT_FILESCOPE_JSON" --expand-test-siblings \
+     < <state-dir>/wave-scope.json
    ```
+
+   `--expand-test-siblings` (#970) is the mechanical half of the Test-Sibling Expansion rule above: it re-derives each agent's siblings and requires the union to grant them, so "the coordinator ran the expansion" stops being a matter of prose compliance. Pass it on **every** batch — the flag is gated on the manifest's own `role` through the same `TEST_SIBLING_EXPANSION_ROLES` predicate the helper uses, so it is a self-announcing no-op (`WARN: … skipped for role "Quality"`) wherever expansion does not fire. Do not add a role condition in the shell; that would put the role list back in prose.
+
+   It only ever ADDS a requirement, so a manifest that passed the plain subset check can now fail — that is the point. On exit 1 (`allowedPaths does not grant the test sibling … missing: [...]`): the union was not produced by `expandTestSiblings`. Re-run the Scope Manifest step, rewrite `wave-scope.json`, re-assert. Do NOT hand-add the missing glob and move on — the next agent in the batch will hit the same gap. (If a legitimate test sibling does not match the emitted glob — the ~15% residual — it belongs in that agent's "Files:" scope in the session plan, which puts it in the union and satisfies the check honestly.)
 
    On exit 1 (`agent fileScope not ⊆ allowedPaths — missing: [...]`): re-union `allowedPaths` across ALL agents that will be in-flight — **including still-running siblings from this wave** — re-write `wave-scope.json`, then re-run the assertion before dispatching. `allowedPaths` MUST NEVER shrink while sibling agents of the same wave are still running. This applies to EVERY batch — including fix-pass and re-dispatch batches, the incident class that motivated #796 (a fix-pass batch rewrote the union for a single agent and denied a sibling's legitimate writes). The assertion runs uniformly, even for single-agent waves — cost is negligible and the invariant is the same.
 4. Read `enforcement` from Session Config (default: `warn`). The `enforcement` field is REQUIRED in `wave-scope.json` — always write it explicitly. The hooks default to `warn` if the field is missing, which would silently degrade strict enforcement. If jq was confirmed missing in Pre-Execution Check step 4, set `enforcement` to `off` and include a comment in the progress update noting that enforcement is disabled.
 5. For **Discovery** role waves, set `allowedPaths` to `[]` (empty array) — Discovery agents are read-only and must not modify files. Also add to each Discovery agent prompt: "You are READ-ONLY. Do NOT use Edit or Write tools."
    > **Defense in depth:** The empty `allowedPaths` enforcement hook is the PRIMARY barrier (blocks Write/Edit at the tool level). The prompt instruction is a SECONDARY safeguard. If jq is unavailable (enforcement set to `off`), the prompt instruction becomes the ONLY barrier — log a warning in this case.
+   > **Test-sibling expansion (#970) cannot reach here, twice over:** `Discovery` is not in `TEST_SIBLING_EXPANSION_ROLES`, and `expandTestSiblings([], …)` returns `[]` STRUCTURALLY — before any gate, so the empty case holds even for a caller that opts in explicitly. Discovery's deny-all is a contract with its own regression test (`tests/hooks/enforce-scope.test.mjs`, "enforces Discovery-wave deny-all semantics… (issue #256 NO-OP contract)") — nothing may re-populate it.
 6. For **Quality** role waves, use two-phase scope enforcement:
    - **Phase 1 (Simplification)**: Before dispatching simplification agents, set `allowedPaths` to the production files changed this session (`git diff --name-only $SESSION_START_REF..HEAD`, excluding test files). After simplification agents complete, **delete** `<state-dir>/wave-scope.json` before proceeding to Phase 2.
+     Test-sibling expansion (#970) does not fire here, because `Quality` is not in `TEST_SIBLING_EXPANSION_ROLES` — passing `{ role: 'Quality' }` is enough and no extra opt-out is needed. This phase's scope is production files with tests explicitly excluded, under a "do NOT change functionality" brief — expanding would hand simplification agents write access to the suite, which is the "agent deletes a dead export, then edits the test to match" failure mode. The pre-dispatch `--expand-test-siblings` assertion is gated on the same role and self-announces its skip, so it cannot block this phase either.
    - **Phase 2 (Test/Review)**: Before dispatching test and review agents, regenerate `<state-dir>/wave-scope.json` with `allowedPaths` restricted to test file patterns (`**/*.test.*`, `**/*.spec.*`, `**/__tests__/**`, plus test config files). Quality test/review agents must not modify production source code.
+     Test-sibling expansion (#970) is **inert** here — the scope is already test patterns. It must never add production paths; the inverse expansion (test → production sibling) does not exist and must not be introduced.
 
    **Phase transition sequence:**
    1. Compute production file list: `git diff --name-only $SESSION_START_REF..HEAD | grep -v -E '\.(test|spec)\.' | grep -v '__tests__/'`

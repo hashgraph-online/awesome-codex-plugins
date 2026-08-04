@@ -1,5 +1,6 @@
 # River Review
 
+**レビューを、組織の判断資産へ。**
 **Review Judgment as Code for AI-assisted development.**
 **AI支援開発のための Review Judgment as Code。レビュー判断を repo-owned skill としてコード化します。**
 
@@ -13,7 +14,7 @@
 
 日本語版READMEです。[English README is available here.](./README.en.md)
 
-River Review は、レビュー基準を **versioned / repo-owned な skill** として扱う OSS フレームワークです。plan / diff / tests / JUnit / 既存レビュー結果といった SDLC のアーティファクトをまたいで実行できます。
+River Review は、レビュー基準を **versioned / repo-owned な skill** として扱う OSS フレームワークです。plan / diff / tests / JUnit / 既存レビュー結果といった SDLC のアーティファクトをまたいで実行できます。いま提供しているのは、チームのレビュー判断を運用する **Review Judgment Platform**（チーム所有の監査レイヤー）です。コンセプトの全体像は [コンセプト](https://river-review.the3396.com/explanation/concept/) にまとめています。
 
 AI 支援開発（Claude Code / Codex / Cursor 等）でコードは速く書けるようになりました。一方で、**レビュー判断は依然としてチームのもの**として、明示的・再現可能・所有可能に保つ必要があります。
 
@@ -95,6 +96,7 @@ River Review には、レビューに特化した 3 つの実行形態があり�
 | W チェック（二重レビュー）を使う           | [W チェックガイド](pages/guides/w-check.md)                                                       |
 | AI エージェントから使う                    | [エージェント連携ガイド](pages/guides/agent-workflow.md)                                          |
 | リポジトリ全体を踏まえたレビュー           | [リポジトリ全体レビューガイド](pages/guides/repo-wide-review.md)                                  |
+| コンセプトを理解する                       | [コンセプト解説](https://river-review.the3396.com/explanation/concept/)                           |
 | 設計思想を理解する                         | [アーキテクチャ解説](https://river-review.the3396.com/explanation/river-architecture/)            |
 
 開発手順は [docs/runbook/dev.md](docs/runbook/dev.md) を参照してください。ライセンスは [本ファイル末尾](#ライセンス) に記載しています。
@@ -236,7 +238,7 @@ jobs:
 
 <!-- x-release-please-start-version -->
 
-最新リリース: [v1.64.0](https://github.com/s977043/river-review/releases/latest)
+最新リリース: [v1.71.0](https://github.com/s977043/river-review/releases/latest)
 
 <!-- x-release-please-end -->
 
@@ -517,6 +519,20 @@ npm run codex:exec -- "review this branch"
 5. コンテキスト/依存の制御: `RIVER_AVAILABLE_CONTEXTS=diff,tests` や `RIVER_AVAILABLE_DEPENDENCIES=code_search,test_runner` を設定すると、スキル選択時に要求を満たさないものを理由付きでスキップできます（未設定の場合は依存チェックをスキップ）。
 6. CLI で直接指定する場合: `--context diff,fullFile` や `--dependency code_search,test_runner` フラグで環境変数を上書きできます（逗号区切り）。
 7. 依存のスタブ有効化: `RIVER_DEPENDENCY_STUBS=1` を指定すると、既知の依存（`code_search`, `test_runner`, `coverage_report`, `adr_lookup`, `repo_metadata`, `tracing`）を「利用可能」とみなしてスキップを防ぎます。実装準備中の環境でプランだけ確認したいときに使用してください。
+
+### 出力形式（`--output`）
+
+CLI の `--output` と GitHub Action の `output_format` は次の形式を受け付けます。既定値は CLI が `text`、Action が `markdown` です。
+
+| 形式       | 内容                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------- |
+| `text`     | 端末向けのプレーンテキスト（CLI の既定）                                                    |
+| `markdown` | PR コメント向けのレポート（GitHub Action の既定）                                           |
+| `json`     | 機械可読な findings。inline comment やスクリプト連携で使う                                  |
+| `yaml`     | 構造化 YAML とスコア・判定 → [YAML 出力フォーマット](pages/reference/output-format-yaml.md) |
+| `html`     | 自己完結型の HTML レポート → [HTML 出力フォーマット](pages/reference/output-format-html.md) |
+
+`html` を実際に描画するのは `river run`（レビューレポート）と `river runs diff`（Loop Dashboard）です。`river review plan|exec` は exit 3、`river evolve` は exit 1 で `html` を拒否し、それ以外のコマンドは指定を無視します。
 
 ### CLI Runnerインターフェイス（runners/cli）
 

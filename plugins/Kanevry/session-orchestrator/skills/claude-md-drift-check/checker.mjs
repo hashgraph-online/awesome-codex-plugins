@@ -35,6 +35,7 @@ import { createRequire } from 'node:module';
 import { resolveInstructionFile } from '../../scripts/lib/common.mjs';
 import { _parseVaultIntegration } from '../../scripts/lib/config/vault-integration.mjs';
 import { _parseDriftCheck } from '../../scripts/lib/config/drift-check.mjs';
+import { isSessionConfigHeading } from '../../scripts/lib/config/section-extractor.mjs';
 import { parseGlobsFrontmatter } from '../../scripts/lib/rule-loader.mjs';
 import { resolveRepoSpec } from '../../scripts/lib/vcs-repo-spec.mjs';
 
@@ -152,7 +153,14 @@ function extractSessionConfigBlock(content, { occurrence = 'first' } = {}) {
   const lines = content.split('\n');
   const headingIdxs = [];
   for (let i = 0; i < lines.length; i++) {
-    if (/^##\s+Session Config\b/.test(lines[i])) headingIdxs.push(i);
+    // SSOT predicate (#968). The previous local `/^##\s+Session Config\b/`
+    // was the loosest JS comparator in the repo: no end anchor and `\s+`
+    // instead of a single space, so it accepted `##  Session Config` (two
+    // spaces) and `## Session Config Convention` — both of which the runtime
+    // parser rejects. This checker's whole job is to report on the block the
+    // runtime reads, so matching a heading the runtime cannot see made it
+    // audit a section that does not exist.
+    if (isSessionConfigHeading(lines[i])) headingIdxs.push(i);
   }
   if (headingIdxs.length === 0) return null;
 

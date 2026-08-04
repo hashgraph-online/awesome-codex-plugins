@@ -73,7 +73,8 @@ outcome; do not invent one universal budget.
   goal ledger. Root epic = outer intent; child bead = one experiment/RPI.
   **Why:** compaction must not erase the scientific record.
 - **RPI membrane:** One candidate gets one bounded RPI and an author-distinct
-  durable verdict. The goal consumes verdicts but never rewrites them.
+  fresh validation result. The goal may request durable verdict evidence but
+  never rewrites it.
   **Why:** orchestration cannot author its own proof.
 - **Brownian ratchet:** Continue only when a result adds non-duplicative,
   decision-relevant knowledge or advances acceptance. **Why:** activity without

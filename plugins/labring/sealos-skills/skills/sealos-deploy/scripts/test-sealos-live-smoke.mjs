@@ -108,3 +108,189 @@ test("cookie-json login sends dynamic CSRF header and keeps session cookies", as
     await close(server);
   }
 });
+
+test("json-token login accepts code 0, repeated token paths, and authenticated missing probes", async () => {
+  const requests = [];
+  const token = "sub2api-access-token-secret";
+  const server = await listen((request, response) => {
+    requests.push({ method: request.method, url: request.url, authorization: request.headers.authorization || "" });
+
+    if (request.url === "/") {
+      response.end("<html><body>SPA</body></html>");
+      return;
+    }
+    if (request.url === "/login" && request.method === "POST") {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ code: 0, data: { access_token: token } }));
+      return;
+    }
+    if (request.url === "/api/me") {
+      assert.equal(request.headers.authorization, `Bearer ${token}`);
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ code: 0, data: { user: "smoke" } }));
+      return;
+    }
+    if (request.url === "/api/missing") {
+      assert.equal(request.headers.authorization, `Bearer ${token}`);
+      response.statusCode = 404;
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ code: 404, message: "missing" }));
+      return;
+    }
+    if (request.url === "/page/missing") {
+      response.statusCode = 200;
+      response.setHeader("content-type", "text/html");
+      response.end("<html><body>SPA fallback</body></html>");
+      return;
+    }
+    response.statusCode = 404;
+    response.end("missing");
+  });
+
+  try {
+    const address = server.address();
+    const result = await runSmoke([
+      "--url",
+      `http://127.0.0.1:${address.port}`,
+      "--login-path",
+      "/login",
+      "--login-method",
+      "json-token",
+      "--username",
+      "admin",
+      "--password",
+      "secret",
+      "--token-path",
+      "data.missing",
+      "--token-path",
+      "data.access_token",
+      "--auth-path",
+      "/api/me",
+      "--missing-api-path",
+      "/api/missing",
+      "--missing-page-path",
+      "/page/missing",
+    ]);
+
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.ok, true);
+    assert.equal(report.error, null);
+    assert.equal(report.tokenPath, "data.access_token");
+    assert.equal(report.steps.find((step) => step.name === "missing-api:/api/missing").status, 404);
+    assert.equal(report.steps.find((step) => step.name === "missing-api:/api/missing").probeType, "api");
+    assert.equal(report.steps.find((step) => step.name === "missing-page:/page/missing").status, 200);
+    assert.equal(report.steps.find((step) => step.name === "missing-page:/page/missing").probeType, "page");
+    assert.equal(result.stdout.includes(token), false);
+    assert.ok(requests.some((request) => request.url === "/api/me" && request.authorization === `Bearer ${token}`));
+  } finally {
+    await close(server);
+  }
+});
+
+test("reports token_not_found when an authenticated JSON login has no configured token", async () => {
+  const server = await listen((request, response) => {
+    if (request.url === "/") {
+      response.end("ok");
+      return;
+    }
+    if (request.url === "/login" && request.method === "POST") {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ code: 0, data: { message: "logged in" } }));
+      return;
+    }
+    response.statusCode = 401;
+    response.end("unauthorized");
+  });
+
+  try {
+    const address = server.address();
+    const result = await runSmoke([
+      "--url",
+      `http://127.0.0.1:${address.port}`,
+      "--login-path",
+      "/login",
+      "--username",
+      "admin",
+      "--password",
+      "secret",
+      "--auth-path",
+      "/api/me",
+    ]);
+    assert.equal(result.code, 1);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.ok, false);
+    assert.equal(report.error, "token_not_found");
+    assert.equal(result.stdout.includes("logged in"), true);
+  } finally {
+    await close(server);
+  }
+});
+
+test("reports token_not_found for a JSON login even without follow-up probes", async () => {
+  const server = await listen((request, response) => {
+    if (request.url === "/") {
+      response.end("ok");
+      return;
+    }
+    if (request.url === "/login" && request.method === "POST") {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ code: 0, data: { message: "logged in" } }));
+      return;
+    }
+    response.statusCode = 404;
+    response.end("missing");
+  });
+
+  try {
+    const address = server.address();
+    const result = await runSmoke([
+      "--url",
+      `http://127.0.0.1:${address.port}`,
+      "--login-path",
+      "/login",
+      "--username",
+      "admin",
+      "--password",
+      "secret",
+    ]);
+    assert.equal(result.code, 1);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.error, "token_not_found");
+    assert.ok(report.findings.some((finding) => finding.code === "token_not_found"));
+  } finally {
+    await close(server);
+  }
+});
+
+test("rejects a missing-page probe that returns a non-HTML success body", async () => {
+  const server = await listen((request, response) => {
+    if (request.url === "/") {
+      response.end("ok");
+      return;
+    }
+    if (request.url === "/page/missing") {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+    response.statusCode = 404;
+    response.end("missing");
+  });
+
+  try {
+    const address = server.address();
+    const result = await runSmoke([
+      "--url",
+      `http://127.0.0.1:${address.port}`,
+      "--missing-page-path",
+      "/page/missing",
+    ]);
+    assert.equal(result.code, 1);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.ok, false);
+    assert.equal(report.findings[0].probe, "missing-page:/page/missing");
+  } finally {
+    await close(server);
+  }
+});

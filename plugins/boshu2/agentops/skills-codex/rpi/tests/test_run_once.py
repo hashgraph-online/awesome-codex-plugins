@@ -53,6 +53,12 @@ class RunOnceTests(unittest.TestCase):
                 "verdict": verdict,
                 "acceptance_digest": INTENT_DIGEST,
                 "subject_manifest_digest": "a" * 64,
+                "author_context_id": "author-ctx",
+                "validator_context_id": "validator-ctx",
+                "freshness_attestation": {
+                    "source": "runtime",
+                    "attester_identity": "runtime:rpi-test",
+                },
                 "verdict_digest": "b" * 64,
                 "verdict_ref": "/tmp/verdict.json",
                 "checked": ["acceptance"],
@@ -75,6 +81,39 @@ class RunOnceTests(unittest.TestCase):
         result = MODULE.invoke_once("intent", plan, implement, validate)
         self.assertEqual(calls, ["plan", "implement", "validate"])
         self.assertEqual(result["status"], "FAIL")
+
+    def test_fresh_validation_does_not_require_persisted_verdict(self):
+        calls, plan, implement, validate = self.phases()
+
+        def inline_result(resolved, subject):
+            result = validate(resolved, subject)
+            result.pop("verdict_digest")
+            result.pop("verdict_ref")
+            return result
+
+        result = MODULE.invoke_once("intent", plan, implement, inline_result)
+
+        self.assertEqual(calls, ["plan", "implement", "validate"])
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["subject_manifest_digest"], "a" * 64)
+        self.assertIsNone(result["verdict_ref"])
+        self.assertIsNone(result["verdict_digest"])
+
+    def test_fresh_validation_requires_distinct_contexts_and_attestation(self):
+        _calls, plan, implement, validate = self.phases()
+
+        for field, value in (
+            ("validator_context_id", "author-ctx"),
+            ("freshness_attestation", None),
+        ):
+            with self.subTest(field=field):
+                def invalid(resolved, subject, field=field, value=value):
+                    result = validate(resolved, subject)
+                    result[field] = value
+                    return result
+
+                with self.assertRaisesRegex(ValueError, "distinct context identities"):
+                    MODULE.invoke_once("intent", plan, implement, invalid)
 
     def test_missing_plan_stops_before_implement(self):
         calls: list[str] = []
@@ -191,6 +230,12 @@ class ComposedIdentityContractTests(unittest.TestCase):
                     "verdict": "PASS",
                     "acceptance_digest": bound["acceptance_digest"],
                     "subject_manifest_digest": "a" * 64,
+                    "author_context_id": "author-ctx",
+                    "validator_context_id": "validator-ctx",
+                    "freshness_attestation": {
+                        "source": "runtime",
+                        "attester_identity": "runtime:composed-test",
+                    },
                     "verdict_digest": "b" * 64,
                     "verdict_ref": str(Path(tmp) / "verdict.json"),
                     "checked": ["acceptance"],

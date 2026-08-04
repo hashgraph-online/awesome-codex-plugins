@@ -259,7 +259,7 @@ milestone.
 | **Ubuntu 22.04 / 26.04 VM tooling** — smoke tests pass on all three LTSes | ✅ |
 | Telegram approval interface | 📋 roadmap |
 
-**1,534 Rust tests and 72 frontend tests** form the current deterministic
+**1,561 Rust tests and 72 frontend tests** form the current deterministic
 release baseline.
 
 ## Configure your LLM
@@ -359,7 +359,7 @@ are scoped with clear acceptance criteria.
 |---------|---------|-------|
 | **npm** | `npx sysknife-setup` | [npmjs.com/package/sysknife-setup](https://www.npmjs.com/package/sysknife-setup) — setup wizard; needs Node 18+, no compile |
 | **crates.io** | `cargo install sysknife-cli` / `cargo install sysknife-daemon` | Needs `build-essential`; ~7-12 min build. Published by reviewed version tags; see [docs/release.md](docs/release.md) |
-| **MCP Registry** | `io.github.lacs-project/sysknife` | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io) — resolves to the crates.io install above |
+| **MCP Registry** | `io.github.lacs-project/sysknife` | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io) — resolves to the crates.io install above. Directory pages that sandbox a server list every tool but cannot call the ones needing the daemon; [docs/mcp-registry.md](docs/mcp-registry.md#what-a-directory-sandbox-can-and-cannot-tell-you) explains the split |
 | **GitHub Releases** | Download from [Releases](https://github.com/lacs-project/sysknife/releases) | Prebuilt x86_64 + aarch64 binaries with SHA-256 checksums on every tag |
 
 ## License

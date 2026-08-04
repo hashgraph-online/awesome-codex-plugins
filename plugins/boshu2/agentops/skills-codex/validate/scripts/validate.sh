@@ -6,8 +6,8 @@ repo_root="$(cd "$skill_dir/../.." && pwd)"
 
 grep -q '^name: validate$' "$skill_dir/SKILL.md"
 grep -Fq 'PASS`, `FAIL`, or `NOT_PROVEN`' "$skill_dir/SKILL.md"
-grep -Fq 'sole' "$skill_dir/SKILL.md"
-grep -Fq 'verdict writer' "$skill_dir/SKILL.md"
+grep -Fq 'sole `verdict.v2` writer when persistence is requested' "$skill_dir/SKILL.md"
+grep -Fq 'Only when the caller requests machine-readable evidence' "$skill_dir/SKILL.md"
 grep -Fq 'nonempty implementation candidate' "$skill_dir/SKILL.md"
 
 python3 "$skill_dir/scripts/validate.py" --help >/dev/null

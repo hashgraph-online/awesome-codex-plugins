@@ -5,11 +5,11 @@ description: Convert approved planning artifacts into an execution contract. Inv
 
 # Contract Builder
 
-Converts planning artifacts into a single execution handshake: `execution-contract.md`. Load the baseline with `npx --yes --package spec-superflow@0.12.1 ssf runtime asset read templates/execution-contract.md`.
+Converts planning artifacts into a single execution handshake: `execution-contract.md`. Load the baseline with `ssf runtime asset read templates/execution-contract.md`.
 
 Read before generating: `.spec-superflow.yaml` (especially `dp_0_decisions`),
 `proposal.md`, `specs/`, `design.md`, `tasks.md`, then load
-`docs/artifact-contract.md` with `npx --yes --package spec-superflow@0.12.1 ssf runtime asset read docs/artifact-contract.md`.
+`docs/artifact-contract.md` with `ssf runtime asset read docs/artifact-contract.md`.
 
 ## Artifact Language
 
@@ -47,8 +47,8 @@ Must make obvious: approved behavior, out-of-scope, constraints, batches, test o
 
 After drafting: summarize handoff rules, identify ambiguity, flag unmapped requirements, ask user to approve explicitly. After approval:
 ```bash
-npx --yes --package spec-superflow@0.12.1 ssf state set <change-dir> dp_3_result "approved: <summary>"
-npx --yes --package spec-superflow@0.12.1 ssf state set <change-dir> dp_3_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+ssf state set <change-dir> dp_3_result "approved: <summary>"
+ssf state set <change-dir> dp_3_timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
 ```
 DP-3 is a hard gate — no implementation without this record.
 
@@ -69,9 +69,9 @@ Generate a minimal contract only for a legacy Hotfix: Intent Lock (one sentence)
 
 ## Post-Generation
 
-Run `npx --yes --package spec-superflow@0.12.1 ssf state init <change-dir>` to create `.spec-superflow.yaml` with hashes.
+Run `ssf state init <change-dir>` to create `.spec-superflow.yaml` with hashes.
 
-For a legacy Hotfix, after writing the minimal contract, run `npx --yes --package spec-superflow@0.12.1 ssf state init <change-dir>` or `npx --yes --package spec-superflow@0.12.1 ssf state rebuild <change-dir>` so `contract_hash` is recorded. DP-3 remains mandatory before build.
+For a legacy Hotfix, after writing the minimal contract, run `ssf state init <change-dir>` or `ssf state rebuild <change-dir>` so `contract_hash` is recorded. DP-3 remains mandatory before build.
 
 ## Exception Handling
 
@@ -79,3 +79,36 @@ For a legacy Hotfix, after writing the minimal contract, run `npx --yes --packag
 - **Missing files**: List every missing artifact. Route back to `spec-writer`.
 - **User interruption**: Re-read all artifacts on resume; check contract staleness via content comparison.
 - **Validation failure**: Flag unmapped requirements in Escalation Rules and approval summary.
+
+## Standard User-Facing Handoff
+
+End every user-facing phase report with this concise handoff. Only a successfully
+persisted `closing` state and `abandoned` are terminal.
+
+### Normal report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<completed work>`.
+- Next stage: `<next workflow stage or skill>`.
+- Entry condition: `<what must be true to enter it>`.
+
+### Blocked report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<blocking fact or missing evidence>`.
+- Next stage: `<stage that resumes after the blocker>`.
+- Entry condition: `<the approval, artifact, validation, or fix required>`.
+
+### Approval-wait report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<work ready for the named decision>`.
+- Next stage: `<stage that follows approval>`.
+- Entry condition: `<explicit user approval or recorded decision>`.
+
+### Successful terminal report
+
+- Current stage: successfully persisted `closing` or `abandoned`.
+- Completed / blocker: `<persisted terminal outcome>`.
+- Next stage: `none`.
+- Entry condition: no further transition exists.

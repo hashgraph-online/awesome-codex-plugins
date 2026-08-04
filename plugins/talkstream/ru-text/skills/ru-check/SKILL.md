@@ -1,18 +1,21 @@
 ---
 name: ru-check
-description: Run a comprehensive Russian text quality check on provided text or recent output
+description: >
+  Full Russian text quality check against the whole corpus. Triggers: вычитай, вычитай через
+  ru-text, прогони ru-text, проверь текст по ru-text, ru-check, полная вычитка. Use when the
+  user asks to proofread Russian text, or when a project gate names ru-text. Returns findings
+  with the rule behind each and a proposed replacement; never edits a file. Self-initiated
+  runs start with a fast triage and escalate on evidence; an explicit request always runs the
+  full corpus.
 allowed-tools: Read, Grep, Glob
 disallowed-tools: Write, Edit, NotebookEdit, Bash, PowerShell, Monitor
 context: fork
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Russian Text Quality Check
 
 Review the text provided in $ARGUMENTS (or the most recent Russian text output if no arguments) using the ru-text skill.
-
-## Check order
 
 ## Where the reference files live
 
@@ -25,6 +28,47 @@ alongside it. Locate that folder once, then read the named files from it:
 - **Do not guess a path.** If the folder cannot be found, say so and stop — a check run
   against remembered rules instead of the corpus is not this command, and reporting one
   as the other is the failure this whole product exists to prevent.
+
+## Two depths, one command
+
+This check runs at one of two depths. Nobody chooses a depth; these rules do.
+
+**Full** — the «Check order» below, whole. Run it whenever a person asked for this check
+(«вычитай», «прогони ru-text», a gate that names ru-text, a golden-set run) or triage
+escalated. An explicit request is never answered with triage.
+
+**Triage** — for self-initiated runs only: you produced or encountered Russian text and are
+checking it out of discipline, with no instruction naming ru-text. Load three things and
+nothing else:
+
+1. The ru-text `SKILL.md` — its inline typography table and top stop-words. Skip if it is
+   already in context, which on an always-on host it usually is.
+2. The «Neuroslop index» section of `addenda.md`: from the `## Neuroslop index` heading to
+   the next `##`. Not the rest of the file — the rest is ten times the size.
+3. Section «B. Каталог стоп-слов» of `info-style.md`: from its `## B.` heading to the next
+   `##`. Not the rest of the file.
+
+Then check the text: typography mechanically (straight quotes, a hyphen doing a dash's work,
+`...` for an ellipsis, an ordinary space after в, к, с, о, у, и, а — verify by codepoint, not
+by eye); catalog stop-words including inflected forms, judging every candidate line yourself
+(«данные» the noun is not «данный» the stop-word); index tells by eye.
+
+Triage may **report** only what a single line decides: typography and confirmed catalog hits.
+**A neuroslop tell is never a triage finding.** Every AD rule carries carve-outs that live
+only in the full file, and «не X, а Y» with a real antecedent is ordinary prose — flagging it
+from an index alone is the false positive this command would lose the most trust for. A tell
+seen in triage is an escalation trigger and nothing else.
+
+**Escalate to full** when any one of these holds: a neuroslop candidate appeared · five
+findings are confirmed · the text is bound for a reader (a deliverable, a publication, a
+client). Escalating is silent — continue into the full procedure as though it had been asked
+for.
+
+A triage report names itself: «Быстрая проверка: типографика и стоп-слова. Полная вычитка по
+корпусу не выполнялась.» Reporting triage as the full check is the failure this product
+exists to prevent. No search tool on this host → no triage: run the full check.
+
+## Check order
 
 1. **Typography** — read `typography.md`, then apply:
    - Quotes: «» primary, „" nested
@@ -53,6 +97,20 @@ alongside it. Locate that folder once, then read the named files from it:
    - Preemptive virtue qualifier (AD-7) — «без воды», «чётко, по делу»
    - Assistant-register meta-commentary (AD-8) — «Отличный вопрос!», «Надеюсь, это помогло»
    - Hollow openers (AD-9) — «давайте разберёмся», «погрузимся», «важно понимать, что»
+   - Declared sincerity (AD-10) — «честный разбор», «давайте будем честны»: honesty predicated of the piece.
+     The same reflex on a single statement — «скажу честно: дедлайн сорван» — is AD-7
+   - Mandatory tricolon (AD-11) — «инновационный, трансформирующий, прорывной»
+   - Hollowed mechanism (AD-12) — «зависит от различных факторов», «свои особенности»
+   - Phantom attribution (AD-13) — «исследования показывают», «эксперты отмечают»
+   - Chat transcript as the artifact (AD-14) — the document's skeleton is a dialogue
+   - Search-engine addressee (AD-15) — the query phrase where a pronoun would serve
+   - Additive pseudo-pair (AD-16) — «не только X, но и Y» where Y adds nothing
+
+   The list above is a prompt for the eye, not the rule set. Two of these — AD-14 and AD-15
+   — are charged to the **document**, so ask them of the piece as a whole and not of any
+   one sentence. Every rule has carve-outs that decide as many cases as the triggers do;
+   they are in `addenda.md`, and a finding raised without checking them is the false
+   positive this command costs the most trust for.
 
 ## Output format
 

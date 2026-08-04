@@ -29,7 +29,7 @@ contract / flow / invariant / constraint / convention
 
 4. **Confirm** with user.
 
-<gate>`docs/tech-spec.md` must contain: `stack` + at least one `contract` + at least one `convention` (covering quality baseline — lint/format/typecheck tools, error-handling, test pattern, security baseline, naming/file structure — read from code; see `../references/quality.md`) before done.</gate>
+<gate>`docs/tech-spec.md` must contain: `stack` + at least one `contract` + at least one `convention` (covering quality baseline — lint/format/typecheck tools, error-handling, security — read from code; see `../references/quality.md`) before done.</gate>
 
 ## Don't
 - Invent facts not found in code or README.

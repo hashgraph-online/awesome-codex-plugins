@@ -1,6 +1,6 @@
 ---
-name: reviewer_solve-task
-description: Gather disciplined context for solving a task, then hand off to development. Use when the user asks to solve/implement a task ("solve PRI-4", "/reviewer_solve-task <key or description>", "реши задачу X"). Reads a keyed task from the reviewer store, pulls related/similar tasks and relevant code, distills a brief, and enters brainstorming. Requires the reviewer MCP server.
+name: solve-task
+description: Gather disciplined context for solving a task, then hand off to development. Use when the user asks to solve/implement a task ("solve PRI-4", "rag-reviewer:solve-task <key or description>", "реши задачу X"). Reads a keyed task from the reviewer store, pulls related/similar tasks and relevant code, distills a brief, and enters brainstorming. Requires the reviewer MCP server.
 ---
 
 # Solve Task
@@ -33,7 +33,7 @@ brief to `superpowers:brainstorming` (which leads to writing-plans → subagent-
       for that branch:
       - `drift == 0` → continue;
       - `drift > 0` → tell the user (in Russian) «индекс отстаёт на N коммитов» and **ask for
-        confirmation**: reindex now? **Yes** → delegate to `/reviewer_sync-codebase`
+        confirmation**: reindex now? **Yes** → delegate to `rag-reviewer:sync-codebase`
         (`--path <path> --ref <branch>`), which reindexes and reports problems, then continue;
         **No** → continue on the stale index and record the gap under **Constraints / open
         questions** in the brief;
@@ -61,7 +61,7 @@ brief to `superpowers:brainstorming` (which leads to writing-plans → subagent-
       - `summaries == 0` (summaries not built yet) → tell the user (in Russian): «Сводки подсистем
         не построены — архитектурный приор будет пустым. Как поступим?» and present **three
         options**:
-        1. «Прогреть сейчас» → delegate to `/reviewer_summarize-subsystems`, wait for it to
+        1. «Прогреть сейчас» → delegate to `rag-reviewer:summarize-subsystems`, wait for it to
            complete, then continue. (Good if using the default model.)
         2. «Прогрею сам» → **PAUSE HERE** and wait for the user to write something like «готово»,
            «прогрел», «done» or any confirmation that they have run their own tool (e.g. an
@@ -69,7 +69,7 @@ brief to `superpowers:brainstorming` (which leads to writing-plans → subagent-
            `uvx --from rag-reviewer reviewer status <path> --branch <branch> --json` and verify
            `summaries > 0`, then continue.
         3. «Пропустить» → note in brief under **Constraints**: «сводки подсистем не построены;
-           `/reviewer_summarize-subsystems` не запускался». Continue without them.
+           `rag-reviewer:summarize-subsystems` не запускался». Continue without them.
       - `summaries` is `null`, or the key is absent (deploy older than this field) → fall back to
         the legacy probe: call `get_subsystem_summaries(repo, branch)` and use the returned count
         with the same three options; unlike the main path, this fallback's option 2 re-verifies by
@@ -292,11 +292,11 @@ Use the session-less tools above.
    subagent-driven-development/TDD). Your job ends at the handoff — do NOT plan or implement here.
 
    **After the PR is created (later in the dev cycle):** offer to close the task with the
-   `/reviewer_finish-task` skill — it appends the PR link to the task and marks it done (bumping
+   `rag-reviewer:finish-task` skill — it appends the PR link to the task and marks it done (bumping
    last-modified so the sync re-indexes the closed task). Skip in board-less mode (no task key).
 
    **Board-less mode:** when the user's formulation has no task key and a board IS configured,
-   you may offer `/reviewer_create-task` first — it files the task with the canonical structure,
+   you may offer `rag-reviewer:create-task` first — it files the task with the canonical structure,
    so the work gets a key, a URL and a place in the task corpus before implementation starts.
 
 ## Failure handling (fail-open)
@@ -306,7 +306,7 @@ Use the session-less tools above.
   the missing task context.
 - Neo4j down → `get_task_context` / `index_task` graph parts degrade (empty + warning); build the
   brief from `search_tasks` + `search_codebase`.
-- Empty task corpus (no prior `/reviewer_sync-tasks` or reviews) → `search_tasks` is empty; use
+- Empty task corpus (no prior `rag-reviewer:sync-tasks` or reviews) → `search_tasks` is empty; use
   `search_codebase` + the user's formulation and note the missing task context.
 - Postgres down → `search_codebase` / `search_tasks` return empty; build the brief from the user's
   formulation alone and note the missing task context; still hand off to brainstorming.

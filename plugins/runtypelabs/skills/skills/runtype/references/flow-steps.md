@@ -247,7 +247,7 @@ Useful for waiting on external state (e.g., a webhook to fire, a record to updat
 
 **Variables and templating.** Most config fields that accept text support template syntax: `{{variable.path}}`. This works in `prompt`, `template`, `api-call`, `send-email`, etc. Inside `transform-data`, access the same data via JS: `input.variable.path`.
 
-**Secrets in config.** Use `{{secret:KEY}}` (singular `secret`, colon, UPPER_CASE) inside tool config when a step needs a secret. Don't inline values. `{{secrets:KEY}}` (plural) is invalid; `{{secrets.key}}` (plural with dot) is a different system for per-request dispatch-scoped values.
+**Secrets in config.** Use `{{secret:KEY}}` (singular `secret`, colon, UPPER_CASE) inside tool config when a step needs a secret. Don't inline values. `{{secrets:KEY}}` (plural) is invalid; `{{secrets.key}}` (plural with dot) is a legacy agent/external-tool dispatch namespace that hosted FLOW execution ignores.
 
 **Step ordering.** Steps run in declaration order. There's no native parallelism primitive — if you need parallel API calls, do them in a single `transform-data` step with `Promise.all`.
 

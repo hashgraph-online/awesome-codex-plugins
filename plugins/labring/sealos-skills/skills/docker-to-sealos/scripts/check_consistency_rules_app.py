@@ -189,8 +189,15 @@ LICENSE_GATED_TEXT_RE = re.compile(
     re.IGNORECASE,
 )
 OBJECT_STORAGE_BRANCH_MARKER_RE = re.compile(
-    r"\b(?:ObjectStorageBucket|object-storage-key|object\s+storage|s3[_-]|aws_access_key_id|"
-    r"aws_secret_access_key|storage_s3|s3-compatible|bucket|bucket_name|minio)\b",
+    r"(?:\bObjectStorageBucket\b|\bobject-storage-key\b|\bobject\s+storage\b|\bs3[_-]|\bs3\b|"
+    r"\baws_access_key_id\b|\baws_secret_access_key\b|\bstorage_s3\b|\bs3-compatible\b|"
+    r"\bbucket(?:_name)?\b|\bminio\b)",
+    re.IGNORECASE,
+)
+OBJECT_STORAGE_WIRING_BRANCH_MARKER_RE = re.compile(
+    r"(?:\bkind\s*:\s*secret\b|\bsecretkeyref\b|\b(?:aws_access_key_id|aws_secret_access_key)\b|"
+    r"\b(?:s3|object[_-]?storage|minio|bucket)[_-]?(?:access|secret|endpoint|bucket|key|credential|region|url)\b|"
+    r"\b(?:initcontainer|init-container)\b)",
     re.IGNORECASE,
 )
 OBJECT_STORAGE_PROVIDER_VALUE_RE = re.compile(
@@ -319,9 +326,12 @@ MANAGED_OBJECT_STORAGE_TOGGLE_NAMES = {
     "USE_SEALOS_S3",
 }
 TEMPLATE_IF_RE = re.compile(r"\$\{\{\s*if\s*\((.*?)\)\s*\}\}")
+TEMPLATE_ELSE_RE = re.compile(r"\$\{\{\s*else\(\)\s*\}\}")
 TEMPLATE_ENDIF_RE = re.compile(r"\$\{\{\s*endif\(\)\s*\}\}")
 TEMPLATE_INPUT_REF_RE = re.compile(r"\binputs\.([A-Za-z_][A-Za-z0-9_]*)\b")
 RUNTIME_BUNDLE_EVIDENCE_KIND = "RuntimeBundleEvidence"
+RUNTIME_SECRET_CONTRACT_ANNOTATION = "docker-to-sealos.runtime-secret-contract"
+DATABASE_MODE_ANNOTATION = "docker-to-sealos.database-mode"
 RUNTIME_BUNDLE_SOURCE_FIELD = "source"
 RUNTIME_BUNDLE_IMAGES_FIELD = "images"
 RUNTIME_BUNDLE_COMPONENTS_FIELD = "components"
@@ -1850,6 +1860,97 @@ def _iter_volume_mounts(template_spec: Dict[str, Any], volume_name: str) -> Iter
                 yield mount
 
 
+def _string_list(value: Any) -> List[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [str(item) for item in value if item is not None]
+    return []
+
+
+def _is_shell_command(value: str) -> bool:
+    return Path(value).name.lower() in {"sh", "bash", "ash", "zsh", "busybox"}
+
+
+def _check_configmap_script_execution(
+    doc: YamlDocument,
+    template_spec: Dict[str, Any],
+    volume_name: str,
+    configmap_doc: YamlDocument,
+    violations: List[Violation],
+) -> None:
+    data = configmap_doc.data.get("data") if isinstance(configmap_doc.data, dict) else None
+    if not isinstance(data, dict):
+        return
+    mounted_files = {
+        str(mount.get("mountPath")): str(mount.get("subPath"))
+        for mount in _iter_volume_mounts(template_spec, volume_name)
+        if isinstance(mount, dict)
+        and isinstance(mount.get("mountPath"), str)
+        and isinstance(mount.get("subPath"), str)
+    }
+    if not mounted_files:
+        return
+
+    for container in template_spec.get("initContainers") or []:
+        if not isinstance(container, dict):
+            continue
+        command = _string_list(container.get("command"))
+        if not command:
+            continue
+        command_path = command[0]
+        if command_path in mounted_files and not _is_shell_command(command_path):
+            violations.append(
+                Violation(
+                    rule_id="R043",
+                    path=doc.path,
+                    line=find_line(doc, r"^\s*command\s*:"),
+                    message=(
+                        "initContainer must invoke ConfigMap-mounted scripts through a shell interpreter; "
+                        f"direct execution of {command_path} is unsupported"
+                    ),
+                )
+            )
+
+    for container in template_spec.get("containers") or []:
+        if not isinstance(container, dict):
+            continue
+        command = _string_list(container.get("command"))
+        args = _string_list(container.get("args"))
+        if not command:
+            continue
+        command_path = command[0]
+        if command_path in mounted_files and not _is_shell_command(command_path):
+            violations.append(
+                Violation(
+                    rule_id="R043",
+                    path=doc.path,
+                    line=find_line(doc, r"^\s*command\s*:"),
+                    message=(
+                        f"main container must invoke ConfigMap-mounted scripts through a shell interpreter; "
+                        f"direct execution of {command_path} is unsupported"
+                    ),
+                )
+            )
+        referenced_paths = set(command[1:] + args).intersection(mounted_files)
+        for mount_path in referenced_paths:
+            key = mounted_files[mount_path]
+            script = data.get(key)
+            if not isinstance(script, str) or not mount_path.endswith((".sh", ".bash")):
+                continue
+            if not re.search(r"\bexec\s+", script):
+                violations.append(
+                    Violation(
+                        rule_id="R043",
+                        path=configmap_doc.path,
+                        line=find_line(configmap_doc, re.escape(key)),
+                        message=(
+                            f"main ConfigMap startup script {key} must end with exec of the official process"
+                        ),
+                    )
+                )
+
+
 def _iter_configmap_default_mode_lines(doc: YamlDocument) -> Iterable[Tuple[int, str]]:
     lines = doc.source.splitlines()
     in_config_map = False
@@ -2054,6 +2155,8 @@ def check_configmap_file_mount_contract(context: ScanContext) -> List[Violation]
                     )
                 )
 
+            _check_configmap_script_execution(doc, template_spec, volume_name, configmap_doc, violations)
+
     return violations
 
 
@@ -2077,6 +2180,26 @@ def _iter_root_prefix_ingress_backend_service_names(data: Dict[str, Any]) -> Ite
             service_name = service.get("name") if isinstance(service, dict) else None
             if isinstance(service_name, str) and service_name.strip():
                 yield service_name.strip()
+
+
+def _iter_ingress_http_path_lists(data: Dict[str, Any]) -> Iterable[List[Any]]:
+    spec = data.get("spec")
+    rules = spec.get("rules") if isinstance(spec, dict) else None
+    if not isinstance(rules, list):
+        return
+    for rule in rules:
+        http = rule.get("http") if isinstance(rule, dict) else None
+        paths = http.get("paths") if isinstance(http, dict) else None
+        if isinstance(paths, list):
+            yield paths
+
+
+def _is_root_prefix_ingress_path(path: Any) -> bool:
+    return (
+        isinstance(path, dict)
+        and path.get("pathType") == "Prefix"
+        and path.get("path") == "/"
+    )
 
 
 def _iter_ingress_backend_service_names(data: Dict[str, Any]) -> Iterable[str]:
@@ -2212,6 +2335,21 @@ def check_root_ingress_backend_port_numbers(context: ScanContext) -> List[Violat
             continue
         if doc.path.name != "index.yaml" or not isinstance(doc.data, dict):
             continue
+
+        for paths in _iter_ingress_http_path_lists(doc.data):
+            has_root_prefix = any(_is_root_prefix_ingress_path(path) for path in paths)
+            if has_root_prefix and not _is_root_prefix_ingress_path(paths[0] if paths else None):
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=r"^\s*path\s*:\s*['\"]?/['\"]?\s*$",
+                    default_pattern=r"^\s*paths\s*:",
+                    message=(
+                        "Root-path Prefix Ingress route must be first in its HTTP path list "
+                        "for Launchpad public-address discovery"
+                    ),
+                )
 
         for service in _iter_root_prefix_ingress_backend_services(doc.data):
             service_name = service.get("name")
@@ -3269,21 +3407,53 @@ def check_template_default_scalar_types(context: ScanContext) -> List[Violation]
     return violations
 
 
-def _find_branch_end(lines: List[str], start_index: int) -> int:
+def _find_branch_sections(lines: List[str], start_index: int) -> Tuple[int, Optional[int]]:
     depth = 0
+    else_index: Optional[int] = None
     for index in range(start_index, len(lines)):
         line = lines[index]
         if TEMPLATE_IF_RE.search(line):
             depth += 1
+        if TEMPLATE_ELSE_RE.search(line) and depth == 1 and else_index is None:
+            else_index = index
         if TEMPLATE_ENDIF_RE.search(line):
             depth -= 1
             if depth <= 0:
-                return index
-    return min(len(lines), start_index + 80)
+                return index, else_index
+    return min(len(lines), start_index + 80), else_index
+
+
+def _find_branch_end(lines: List[str], start_index: int) -> int:
+    return _find_branch_sections(lines, start_index)[0]
 
 
 def _branch_uses_object_storage(branch_text: str) -> bool:
     return OBJECT_STORAGE_BRANCH_MARKER_RE.search(branch_text) is not None
+
+
+def _branch_uses_object_storage_wiring(branch_text: str) -> bool:
+    return (
+        OBJECT_STORAGE_BRANCH_MARKER_RE.search(branch_text) is not None
+        and OBJECT_STORAGE_WIRING_BRANCH_MARKER_RE.search(branch_text) is not None
+    )
+
+
+def _branch_has_configuration(branch_text: str) -> bool:
+    return any(
+        line.strip() and not line.lstrip().startswith("#")
+        for line in branch_text.splitlines()
+    )
+
+
+def _branch_uses_local_storage_mode(branch_text: str) -> bool:
+    return re.search(
+        r"\b(?:local|sqlite|filesystem|file[-_ ]?system|file[-_ ]?storage|persistentvolumeclaim|pvc|"
+        r"disabled?|disable|off)\b|"
+        r"\b(?:storage|object_storage|s3)[_-]?(?:mode|backend|provider|enabled?)\s*[:=]\s*"
+        r"(?:['\"]?(?:false|local|disabled|off))",
+        branch_text,
+        re.IGNORECASE,
+    ) is not None
 
 
 def _condition_input_refs(condition: str) -> List[str]:
@@ -3591,6 +3761,9 @@ def check_object_storage_input_contract(context: ScanContext) -> List[Violation]
         lines = text.splitlines()
         input_types = inputs_by_path.get(path, {})
         seen: set[tuple[Path, int, str]] = set()
+        bucket_conditions: Set[str] = set()
+        wiring_conditions: Set[str] = set()
+        condition_lines: Dict[str, int] = {}
 
         for index, line in enumerate(lines):
             match = TEMPLATE_IF_RE.search(line)
@@ -3601,10 +3774,43 @@ def check_object_storage_input_contract(context: ScanContext) -> List[Violation]
             if not input_names:
                 continue
 
-            branch_end = _find_branch_end(lines, index)
-            branch_text = "\n".join(lines[index: branch_end + 1])
-            if not _branch_uses_object_storage(branch_text):
+            branch_end, else_index = _find_branch_sections(lines, index)
+            true_branch_end = else_index if else_index is not None else branch_end
+            true_branch_text = "\n".join(lines[index + 1 : true_branch_end])
+            normalized_condition = re.sub(r"\s+", " ", condition.strip())
+            condition_lines.setdefault(normalized_condition, index + 1)
+            if re.search(r"\bObjectStorageBucket\b|objectstorage\.sealos", true_branch_text, re.IGNORECASE):
+                bucket_conditions.add(normalized_condition)
+            elif _branch_uses_object_storage_wiring(true_branch_text):
+                wiring_conditions.add(normalized_condition)
+            if not _branch_uses_object_storage(true_branch_text):
                 continue
+
+            if not any(input_name in provider_inputs_by_path.get(path, set()) for input_name in input_names):
+                false_branch_text = (
+                    "\n".join(lines[else_index + 1 : branch_end])
+                    if else_index is not None
+                    else ""
+                )
+                if (
+                    else_index is None
+                    or not _branch_has_configuration(false_branch_text)
+                    or not _branch_uses_local_storage_mode(false_branch_text)
+                ):
+                    marker = (path, index + 1, "__false_branch__")
+                    if marker not in seen:
+                        seen.add(marker)
+                        violations.append(
+                            Violation(
+                                rule_id="R044",
+                                path=path,
+                                line=index + 1,
+                                message=(
+                                    "optional object storage/S3 branch must define an explicit else() "
+                                    "with the documented storage-disabled or local-filesystem mode"
+                                ),
+                            )
+                        )
 
             for input_name in input_names:
                 if input_name in provider_inputs_by_path.get(path, set()):
@@ -3633,6 +3839,21 @@ def check_object_storage_input_contract(context: ScanContext) -> List[Violation]
                         ),
                     )
                 )
+
+        mismatched_wiring = wiring_conditions - bucket_conditions
+        if bucket_conditions and mismatched_wiring:
+            first_condition = sorted(mismatched_wiring, key=lambda value: condition_lines.get(value, 0))[0]
+            violations.append(
+                Violation(
+                    rule_id="R044",
+                    path=path,
+                    line=condition_lines.get(first_condition, 1),
+                    message=(
+                        "object storage Bucket, provider, Secret, and initialization branches must share "
+                        "the same boolean condition; mismatched condition: " + first_condition
+                    ),
+                )
+            )
 
     artifact_paths = set(_iter_template_artifact_paths(context))
     object_storage_paths = {
@@ -3832,9 +4053,10 @@ def _object_storage_branch_inputs_by_path(context: ScanContext) -> Dict[Path, se
             input_names = _condition_input_refs(match.group(1))
             if not input_names:
                 continue
-            branch_end = _find_branch_end(lines, index)
-            branch_text = "\n".join(lines[index: branch_end + 1])
-            if not _branch_uses_object_storage(branch_text):
+            branch_end, else_index = _find_branch_sections(lines, index)
+            true_branch_end = else_index if else_index is not None else branch_end
+            true_branch_text = "\n".join(lines[index + 1 : true_branch_end])
+            if not _branch_uses_object_storage(true_branch_text):
                 continue
             inputs_by_path.setdefault(path, set()).update(input_names)
     return inputs_by_path
@@ -4763,6 +4985,158 @@ def check_image_pull_secret_refs(context: ScanContext) -> List[Violation]:
     return violations
 
 
+def _artifact_text(context: ScanContext, path: Path) -> str:
+    return "\n".join(str(doc.data) for doc in context.yaml_documents if doc.path == path and isinstance(doc.data, dict)).lower()
+
+
+def _runtime_secret_contract_requirements(text: str) -> List[str]:
+    text = text.replace("\\n", "\n").replace("\\t", "\t")
+    text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    format_shape = re.compile(r"\[[0-9a-f].*\]|\bhex\b|\b64\b")
+    format_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:grep|case|test|wc|expr)\b", text)
+        if format_shape.search(text[match.start() : match.start() + 256])
+    ]
+    entropy_position = text.find("/dev/urandom")
+    umask_match = re.search(r"\bumask\s+0*77\b", text)
+    chmod_match = re.search(r"\bchmod\s+(?:0*600|[\"']?0600[\"']?)\b", text)
+    move_match = re.search(r"\bmv\b", text)
+    temp_match = re.search(r"\b(?:mktemp|tmp)\b", text)
+    order_requirements = [
+        ("umask before entropy", umask_match is not None and entropy_position >= 0 and umask_match.start() < entropy_position),
+        ("format validation before replacement", move_match is not None and any(entropy_position < position < move_match.start() for position in format_positions)),
+        ("temporary file before replacement", move_match is not None and temp_match is not None and temp_match.start() < move_match.start()),
+        ("0600 permissions before replacement", move_match is not None and chmod_match is not None and chmod_match.start() < move_match.start()),
+    ]
+    requirements: List[Tuple[str, bool]] = [
+        ("/dev/urandom", "/dev/urandom" in text),
+        ("umask 077", re.search(r"\bumask\s+0*77\b", text) is not None),
+        (
+            "format validation",
+            bool(format_positions),
+        ),
+        ("temporary file", re.search(r"\b(?:mktemp|tmp)\b", text) is not None),
+        ("0600 permissions", re.search(r"\bchmod\s+(?:0*600|[\"']?0600[\"']?)\b", text) is not None),
+        ("atomic replacement", re.search(r"\bmv\b", text) is not None),
+        ("persistent data path", re.search(r"/app/data|persistentvolumeclaim|volumeclaimtemplates|claimname", text) is not None),
+        ("read and export", re.search(r"\b(?:cat|read|source|awk|sed)\b", text) is not None and re.search(r"\bexport\b", text) is not None),
+        (
+            "secret redaction",
+            re.search(
+                r"(?m)^[ \t]*(?:echo|printf|logger)\b(?![^\n]*(?:2)?>>?\s*(?:[\"'/]|[$A-Za-z_.-]))[^\n]*\$[A-Za-z_][A-Za-z0-9_]*",
+                text,
+            )
+            is None,
+        ),
+        ("exec", re.search(r"\bexec\b", text) is not None),
+    ]
+    requirements.extend(order_requirements)
+    return [label for label, present in requirements if not present]
+
+
+def check_persisted_runtime_secret_contract(context: ScanContext) -> List[Violation]:
+    """Validate opt-in persisted runtime-secret contracts without guessing app-specific env names."""
+    violations: List[Violation] = []
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        annotations = _metadata_annotations(doc.data)
+        if annotations.get(RUNTIME_SECRET_CONTRACT_ANNOTATION) != "persisted":
+            continue
+        artifact_text = _artifact_text(context, doc.path)
+        missing = _runtime_secret_contract_requirements(artifact_text)
+        high_availability = re.search(r"replicas\s*['\"]?\s*:\s*['\"]?(?:[2-9]|[1-9][0-9]+)", artifact_text) is not None
+        per_pod_storage = "volumeclaimtemplates" in artifact_text or "persistentvolumeclaim" in artifact_text
+        shared_source = re.search(r"secretkeyref|external|shared|clustersecret|secretname", artifact_text) is not None
+        if high_availability and per_pod_storage and not shared_source:
+            missing.append("shared secret source for high-availability per-Pod storage")
+        if missing:
+            add_doc_violation(
+                violations,
+                rule_id="R058",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(RUNTIME_SECRET_CONTRACT_ANNOTATION)}\s*:",
+                default_pattern=r"^\s*metadata\s*:",
+                message=(
+                    "persisted runtime-secret contract is missing: " + ", ".join(missing)
+                ),
+            )
+    return violations
+
+
+def check_optional_database_branch_contract(context: ScanContext) -> List[Violation]:
+    """Validate opt-in optional-managed database branches from explicit conversion metadata."""
+    violations: List[Violation] = []
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        annotations = _metadata_annotations(doc.data)
+        if annotations.get(DATABASE_MODE_ANNOTATION) != "optional-managed":
+            continue
+        artifact_text = (
+            _artifact_text(context, doc.path)
+            + "\n"
+            + context.file_texts.get(doc.path, "")
+        ).lower()
+        has_boolean_branch = "inputs." in artifact_text and "true" in artifact_text and "else" in artifact_text
+        has_local_mode = any(marker in artifact_text for marker in ("sqlite", "local", "filesystem", "disabled"))
+        has_managed_mode = "cluster" in artifact_text or "kubeblocks" in artifact_text
+        branch_conditions: Set[str] = set()
+        wiring_conditions: Set[str] = set()
+        invalid_condition = False
+        lines = artifact_text.splitlines()
+        condition_matches = list(re.finditer(r"\$\{\{\s*if\s*\((.*?)\)\s*\}\}", artifact_text))
+        for match in condition_matches:
+            condition = match.group(1).strip()
+            start = artifact_text[: match.start()].count("\n")
+            branch_end, else_index = _find_branch_sections(lines, start)
+            true_end = else_index if else_index is not None else branch_end
+            true_branch = "\n".join(lines[start + 1 : true_end])
+            managed_branch = re.search(r"\b(?:cluster|kubeblocks|database)\b", true_branch) is not None
+            wiring_branch = re.search(
+                r"\b(?:database[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|db[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|secretkeyref|postgres|mysql|mongodb|redis)\b",
+                true_branch,
+            ) is not None
+            if not managed_branch and not wiring_branch:
+                continue
+            refs = _condition_input_refs(condition)
+            if len(refs) != 1 or not _condition_uses_true_comparison(condition, refs[0]):
+                invalid_condition = True
+            else:
+                if managed_branch:
+                    branch_conditions.add(condition)
+                if wiring_branch:
+                    wiring_conditions.add(condition)
+            if else_index is None or not _branch_uses_local_storage_mode("\n".join(lines[else_index + 1 : branch_end])):
+                if managed_branch:
+                    invalid_condition = True
+
+        if re.search(
+            r"\b(?:database[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|db[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|secretkeyref)\b",
+            artifact_text,
+        ) and not wiring_conditions:
+            invalid_condition = True
+        if condition_matches and has_managed_mode and not branch_conditions:
+            invalid_condition = True
+        same_condition = len(branch_conditions | wiring_conditions) <= 1
+        if branch_conditions and not has_boolean_branch:
+            invalid_condition = True
+        if not (has_boolean_branch and has_local_mode and has_managed_mode and same_condition and not invalid_condition):
+            add_doc_violation(
+                violations,
+                rule_id="R059",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(DATABASE_MODE_ANNOTATION)}\s*:",
+                default_pattern=r"^\s*metadata\s*:",
+                message=(
+                    "optional-managed database contracts must include a boolean true branch for the managed "
+                    "Cluster path and an explicit false branch for SQLite or documented local storage"
+                ),
+            )
+    return violations
+
+
 APP_RULES: Dict[str, Rule] = {
     "R001": Rule("R001", check_no_latest_tags),
     "R016": Rule("R016", check_no_floating_image_tags),
@@ -4783,6 +5157,8 @@ APP_RULES: Dict[str, Rule] = {
     "R053": Rule("R053", check_runtime_env_value_constraints),
     "R054": Rule("R054", check_runtime_provider_credentials),
     "R055": Rule("R055", check_runtime_startup_gates),
+    "R058": Rule("R058", check_persisted_runtime_secret_contract),
+    "R059": Rule("R059", check_optional_database_branch_contract),
     "R046": Rule("R046", check_runtime_bundle_consistency),
     "R050": Rule("R050", check_topology_evidence_consistency),
     "R036": Rule("R036", check_cronjob_required_labels),

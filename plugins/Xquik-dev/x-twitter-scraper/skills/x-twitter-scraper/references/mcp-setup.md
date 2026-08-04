@@ -10,7 +10,14 @@ API keys.
 | Protocol | Streamable HTTP |
 | Endpoint | `https://xquik.com/mcp` |
 | Authentication | OAuth 2.1 discovery; API key fallback |
-| Version | `2.5.6` |
+| Version | `2.6.1` |
+
+Current clients negotiate MCP `2026-07-28` through `server/discover`.
+Use a current MCP SDK. It adds request `_meta` and protocol headers.
+Modern calls need no `initialize` request or session ID.
+Discovery and tool catalogs include private 5-minute cache hints.
+Reuse cached metadata only with the same authorization context.
+Stateless 2025-era clients remain compatible at the same endpoint.
 
 Xquik publishes these discovery documents:
 
@@ -275,12 +282,12 @@ this fallback. Codex uses the `bearer_token_env_var` configuration above.
 Client schemas and environment syntax differ, so do not copy a generic header
 object between clients or place a literal key in a configuration file.
 
-Full account keys expose 119 catalog routes. Of these, 118 support JSON or text.
+Full account keys expose 120 catalog routes. Of these, 119 support JSON or text.
 Active guest `paid_reads` keys expose 33 eligible GET routes.
 
 ## MCP Server Architecture
 
-The MCP server (v2.5.6) exposes 119 catalog routes through 2 structured API tools. Of these, 118 support JSON or text. Binary support downloads use REST.
+The MCP server (v2.6.1) exposes 120 catalog routes through 2 structured API tools. Of these, 119 support JSON or text. Binary support downloads use REST.
 
 | Tool | Description | Usage |
 |------|-------------|------|
@@ -291,8 +298,8 @@ The MCP server (v2.5.6) exposes 119 catalog routes through 2 structured API tool
 operations with normalized snake_case responses. Authentication is injected, so
 tool code must never include credentials.
 
-MCP v2.5.6 catalogs 119 of 127 documented REST operations. These 8 credential
-or session operations remain direct REST or dashboard workflows:
+MCP v2.6.1 catalogs 120 of 128 documented REST operations. These 8 credential,
+checkout, or guest-wallet operations remain direct REST or dashboard workflows:
 
 - API key creation, listing, and revocation
 - Saved-payment top-up

@@ -418,7 +418,7 @@ If the keychain is unavailable, the plugin logs a warning and falls back to JSON
 <summary><b>60-second recovery</b></summary>
 
 ```text
-codex-doctor --fix
+codex-doctor fix=true
 codex-next
 codex-status format="json"
 ```
@@ -477,13 +477,12 @@ codex-doctor deep=true format="json"
 - Maintainer architecture: [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md)
 - Testing: [docs/development/TESTING.md](docs/development/TESTING.md)
 - Discoverability guide: [docs/development/GITHUB_DISCOVERABILITY.md](docs/development/GITHUB_DISCOVERABILITY.md)
-- Audit index: [docs/audits/INDEX.md](docs/audits/INDEX.md)
 
 ---
 
 ## Release Notes
 
-- Current package version: `6.9.1`
+- Current published version: see the npm badge above, or run `npm view oc-codex-multi-auth version`
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Releases are automated with [release-please](https://github.com/googleapis/release-please)
 

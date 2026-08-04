@@ -93,8 +93,8 @@ match `format`). When `blockedCommands` is empty or absent, a hardcoded fallback
 list applies (`rm -rf`, `git push --force` / `-f`, `git reset --hard`,
 `drop table`, `git checkout -- .`).
 
-Both hooks **fail closed**: any unhandled internal error emits a deny (exit 2),
-never a silent allow.
+Both hooks **fail closed**: any unhandled internal error emits a deny, never a
+silent allow.
 
 ### Enforcement levels
 
@@ -102,9 +102,14 @@ Both wave guards read the `enforcement` field from `wave-scope.json`:
 
 | Level | Behavior | Exit code |
 |-------|----------|-----------|
-| `strict` | Deny the operation, return `permissionDecision: deny` | 2 |
+| `strict` | Deny the operation via `hookSpecificOutput.permissionDecision: deny` on stdout | 0 |
 | `warn` | Allow the operation, emit stderr warning | 0 |
 | `off` | Skip all checks | 0 |
+
+A deny exits **0**, not 2 (#906). Per the Claude Code hook contract a hook signals
+either by exit code alone or by exit 0 plus structured JSON — never both; under
+`exit 2` stdout JSON is discarded, which previously swallowed every deny reason.
+The emitter is `scripts/lib/io.mjs#emitDeny`; see its JSDoc for the full payload.
 
 **Default is `strict`** (fail-closed) when the `enforcement` field is missing.
 

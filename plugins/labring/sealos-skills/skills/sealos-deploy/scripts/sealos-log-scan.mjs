@@ -8,6 +8,7 @@ const SIGNALS = [
   { id: "http_exception", pattern: /\bHTTPException\b/ },
   { id: "not_found", pattern: /werkzeug\.exceptions\.NotFound|\bNotFound\b|404 Not Found/i },
   { id: "warning", pattern: /\bWARNING\b|:WARNING:/ },
+  { id: "deprecation", pattern: /\bDeprecationWarning\b|\bdeprecated\b/i },
   { id: "error", pattern: /\bERROR\b|:ERROR:/ },
   { id: "critical", pattern: /\bCRITICAL\b|:CRITICAL:/ },
   { id: "oom_killed", pattern: /\bOOMKilled\b|exit code 137|\bKilled\b/i },
@@ -111,6 +112,7 @@ function baseResult(args) {
       "active-failure": 0,
     },
     findings: [],
+    observations: [],
     errors: [],
   };
 }
@@ -321,6 +323,7 @@ function allContainerStatuses(pod) {
 function collectContainers(pod) {
   const containers = [];
   const add = (spec, status, type) => {
+    const terminated = status?.state?.terminated || null;
     containers.push({
       name: spec.name,
       type,
@@ -328,6 +331,10 @@ function collectContainers(pod) {
       restartCount: status?.restartCount || 0,
       state: status?.state || null,
       lastState: status?.lastState || null,
+      completionTime: terminated?.finishedAt || null,
+      exitCode: Number.isInteger(terminated?.exitCode) ? terminated.exitCode : null,
+      terminationReason: terminated?.reason || null,
+      historicalCompletedInit: false,
     });
   };
 
@@ -346,13 +353,26 @@ function collectContainers(pod) {
 
 function summarizePodState(pod) {
   const readyCondition = (pod.status?.conditions || []).find((condition) => condition.type === "Ready");
+  const statuses = allContainerStatuses(pod);
+  const terminated = statuses.filter((status) => status.state?.terminated);
+  const failedTermination = terminated.find((status) => status.state.terminated.exitCode !== 0);
+  const completed =
+    pod.status?.phase === "Succeeded" &&
+    terminated.length > 0 &&
+    terminated.length === statuses.length &&
+    terminated.every((status) => status.state.terminated.exitCode === 0);
+  const failed = pod.status?.phase === "Failed" || Boolean(failedTermination);
   return {
     uid: pod.metadata?.uid || null,
     name: pod.metadata?.name || "",
     phase: pod.status?.phase || "",
     ready: readyCondition?.status === "True",
+    completed,
+    failed,
+    lifecycle: completed ? "completed" : failed ? "failed" : pod.status?.phase || "unknown",
+    ownerKind: pod.metadata?.ownerReferences?.find((owner) => ["Job", "CronJob"].includes(owner.kind))?.kind || null,
     readyTransitionTime: readyCondition?.lastTransitionTime || null,
-    restartCount: allContainerStatuses(pod).reduce((total, status) => total + (status.restartCount || 0), 0),
+    restartCount: statuses.reduce((total, status) => total + (status.restartCount || 0), 0),
   };
 }
 
@@ -367,7 +387,41 @@ function baselinePodFor(baseline, podState) {
   );
 }
 
-function scanLogStream(namespace, podName, containerName, since, tail, previous = false) {
+function baselineContainerFor(baselinePod, container) {
+  return baselinePod?.containers?.find(
+    (candidate) => candidate.name === container.name && candidate.type === container.type,
+  ) || null;
+}
+
+function isHistoricalCompletedInit(container, baselineContainer, baseline, podState) {
+  if (
+    container.type !== "init" ||
+    !baselineContainer ||
+    podState.replaced ||
+    podState.restartDelta > 0 ||
+    container.restartCount !== baselineContainer.restartCount
+  ) {
+    return false;
+  }
+
+  const currentTerminated = container.state?.terminated;
+  const baselineTerminated = baselineContainer.state?.terminated;
+  const currentFinishedAt = toTimestamp(currentTerminated?.finishedAt);
+  const baselineFinishedAt = toTimestamp(baselineTerminated?.finishedAt);
+  const baselineGeneratedAt = toTimestamp(baseline?.generatedAt);
+
+  return Boolean(
+    currentTerminated?.exitCode === 0 &&
+      baselineTerminated?.exitCode === 0 &&
+      currentFinishedAt !== null &&
+      baselineFinishedAt !== null &&
+      baselineGeneratedAt !== null &&
+      currentFinishedAt === baselineFinishedAt &&
+      currentFinishedAt <= baselineGeneratedAt,
+  );
+}
+
+function scanLogStream(namespace, podName, containerName, since, tail, previous = false, sinceTime = null) {
   const args = [
     "-n",
     namespace,
@@ -378,7 +432,9 @@ function scanLogStream(namespace, podName, containerName, since, tail, previous 
     `--tail=${tail}`,
   ];
 
-  if (since) {
+  if (sinceTime) {
+    args.push(`--since-time=${sinceTime}`);
+  } else if (since) {
     args.push(`--since=${since}`);
   }
   if (previous) {
@@ -388,8 +444,78 @@ function scanLogStream(namespace, podName, containerName, since, tail, previous 
   return kubectl(args);
 }
 
-function appendFindings(result, podName, containerName, containerType, stream, signals) {
+const ALWAYS_BLOCKING_SIGNALS = new Set([
+  "traceback",
+  "http_exception",
+  "critical",
+  "oom_killed",
+  "backoff",
+  "migration_failure",
+  "bootstrap_failure",
+]);
+
+const OBSERVATION_RULES = {
+  warning: { rule: "startup-warning", reason: "warning signal observed in the log stream" },
+  not_found: { rule: "expected-probe-path", reason: "not-found output may come from an expected probe path" },
+  auth_failure: { rule: "expected-auth-probe", reason: "authentication output may come from an expected probe" },
+};
+
+function baselineSignalFor(baselinePod, containerName, containerType, stream, signalId) {
+  const baselineContainer = baselinePod?.containers?.find(
+    (candidate) => candidate.name === containerName && candidate.type === containerType,
+  );
+  if (stream === "status") {
+    return baselineContainer?.statusSignals?.find((signal) => signal.id === signalId) || null;
+  }
+  const baselineStream = baselineContainer?.streams?.find((entry) => entry.name === stream);
+  return baselineStream?.signals?.find((signal) => signal.id === signalId) || null;
+}
+
+function appendFindings(result, podName, containerName, containerType, stream, signals, context = {}) {
   for (const signal of signals) {
+    const previous = baselineSignalFor(context.baselinePod, containerName, containerType, stream, signal.id);
+    const delta = previous ? Math.max(0, signal.count - (previous.count || 0)) : signal.count;
+    const rule = OBSERVATION_RULES[signal.id] || null;
+    const stable = Boolean(context.baselineComplete && previous && delta === 0);
+    const historical = Boolean(context.historicalCompletedInit && stable);
+    const observation = rule && (stable || !context.baselineComplete || !previous);
+
+    if (historical || observation) {
+      result.observations.push({
+        source: "log",
+        pod: podName,
+        container: containerName,
+        containerType,
+        stream,
+        signal: signal.id,
+        count: signal.count,
+        delta: context.baseline ? delta : null,
+        rule: historical ? "historical-completed-init" : rule.rule,
+        reason: historical ? "completed init output predates the baseline" : rule.reason,
+        historicalCompletedInit: historical,
+        examples: signal.examples,
+      });
+      continue;
+    }
+
+    if (stable && !ALWAYS_BLOCKING_SIGNALS.has(signal.id)) {
+      result.observations.push({
+        source: "log",
+        pod: podName,
+        container: containerName,
+        containerType,
+        stream,
+        signal: signal.id,
+        count: signal.count,
+        delta,
+        rule: "stable-log-signal",
+        reason: "signal count is unchanged after the stability window",
+        historicalCompletedInit: false,
+        examples: signal.examples,
+      });
+      continue;
+    }
+
     result.findings.push({
       source: "log",
       pod: podName,
@@ -398,6 +524,8 @@ function appendFindings(result, podName, containerName, containerType, stream, s
       stream,
       signal: signal.id,
       count: signal.count,
+      baseline: previous ? { count: previous.count } : null,
+      delta: context.baseline ? delta : null,
       examples: signal.examples,
     });
   }
@@ -424,9 +552,18 @@ function scanPodLogs(result, pod, args, baseline) {
     labels: pod.metadata?.labels || {},
     containers: [],
   };
+  const baselineSinceTime = baseline?.generatedAt || null;
+  const findingContext = {
+    baseline,
+    baselineComplete: result.baseline.complete,
+    baselinePod,
+  };
 
-  if (!state.ready) {
+  if (!state.ready && !state.completed && !state.failed) {
     result.findings.push({ source: "pod", pod: state.name, signal: "pod_not_ready" });
+  }
+  if (state.failed) {
+    result.findings.push({ source: "pod", pod: state.name, signal: "pod_failed", lifecycle: state.lifecycle });
   }
   if (baseline && restartDelta > 0) {
     result.findings.push({ source: "pod", pod: state.name, signal: "restart_delta", count: restartDelta });
@@ -439,14 +576,37 @@ function scanPodLogs(result, pod, args, baseline) {
   }
 
   for (const container of collectContainers(pod)) {
+    const historicalCompletedInit = isHistoricalCompletedInit(
+      container,
+      baselineContainerFor(baselinePod, container),
+      baseline,
+      podResult,
+    );
     const containerResult = {
       ...container,
+      historicalCompletedInit,
       statusSignals: statusSignals(container),
       streams: [],
     };
-    appendFindings(result, state.name, container.name, container.type, "status", containerResult.statusSignals);
+    appendFindings(
+      result,
+      state.name,
+      container.name,
+      container.type,
+      "status",
+      containerResult.statusSignals,
+      { ...findingContext, historicalCompletedInit },
+    );
 
-    const current = scanLogStream(args.namespace, state.name, container.name, args.since, args.tail, false);
+    const current = scanLogStream(
+      args.namespace,
+      state.name,
+      container.name,
+      args.since,
+      args.tail,
+      false,
+      baselineSinceTime,
+    );
     const currentSignals = current.ok ? scanText(current.stdout) : [];
     containerResult.streams.push({
       name: "current",
@@ -455,7 +615,15 @@ function scanPodLogs(result, pod, args, baseline) {
       signals: currentSignals,
       error: current.ok ? null : trimLine(current.stderr || "kubectl logs failed"),
     });
-    appendFindings(result, state.name, container.name, container.type, "current", currentSignals);
+    appendFindings(
+      result,
+      state.name,
+      container.name,
+      container.type,
+      "current",
+      currentSignals,
+      { ...findingContext, historicalCompletedInit },
+    );
 
     if (!current.ok) {
       result.errors.push({
@@ -467,7 +635,15 @@ function scanPodLogs(result, pod, args, baseline) {
     }
 
     if (container.restartCount > 0 && (!baseline || restartDelta > 0)) {
-      const previous = scanLogStream(args.namespace, state.name, container.name, args.since, args.tail, true);
+      const previous = scanLogStream(
+        args.namespace,
+        state.name,
+        container.name,
+        args.since,
+        args.tail,
+        true,
+        baselineSinceTime,
+      );
       const previousSignals = previous.ok ? scanText(previous.stdout) : [];
       containerResult.streams.push({
         name: "previous",
@@ -476,7 +652,15 @@ function scanPodLogs(result, pod, args, baseline) {
         signals: previousSignals,
         error: previous.ok ? null : trimLine(previous.stderr || "kubectl logs --previous failed"),
       });
-      appendFindings(result, state.name, container.name, container.type, "previous", previousSignals);
+      appendFindings(
+        result,
+        state.name,
+        container.name,
+        container.type,
+        "previous",
+        previousSignals,
+        { ...findingContext, historicalCompletedInit },
+      );
     }
 
     podResult.containers.push(containerResult);
@@ -549,7 +733,8 @@ function classifyEvents(result, warnings, baseline, secretNames) {
       baseline &&
         (recurred ||
           secretExists === false ||
-          pod?.ready === false ||
+          (pod?.ready === false && !pod?.completed) ||
+          pod?.failed ||
           (pod?.restartDelta || 0) > 0 ||
           pod?.replaced ||
           pod?.readyTransitionChanged),

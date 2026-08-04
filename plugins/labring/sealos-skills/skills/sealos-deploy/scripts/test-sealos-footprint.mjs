@@ -63,3 +63,59 @@ test("footprint reports workload readiness and pod container readiness", () => {
   assert.equal(podSummary.containersReady, "1/1");
   assert.equal(podSummary.restartCount, 3);
 });
+
+test("footprint uses typed Job, PVC, controller, and ObjectStorageBucket status", () => {
+  const job = {
+    metadata: { name: "demo-init", labels: { app: "demo" } },
+    spec: { completions: 1 },
+    status: { succeeded: 1, conditions: [{ type: "Complete", status: "True" }] },
+  };
+  const pvc = {
+    metadata: { name: "demo-data", labels: { app: "demo" } },
+    status: { phase: "Bound" },
+  };
+  const app = {
+    kind: "App",
+    metadata: { name: "demo", labels: { app: "demo" } },
+    status: { phase: "Running" },
+  };
+  const bucket = {
+    kind: "ObjectStorageBucket",
+    metadata: { name: "demo-bucket", labels: { app: "demo" } },
+    status: { phase: "Ready", conditions: [{ type: "Ready", status: "True" }] },
+  };
+
+  const result = runFootprint({
+    job: [job],
+    pvc: [pvc],
+    "apps.app.sealos.io": [app],
+    "objectstoragebuckets.objectstorage.sealos.io": [bucket],
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.collectionOk, true);
+  assert.equal(report.runtimeReady, true);
+  const jobSummary = report.resources.find((item) => item.type === "job");
+  const pvcSummary = report.resources.find((item) => item.type === "pvc");
+  const appSummary = report.resources.find((item) => item.type === "apps.app.sealos.io");
+  const bucketSummary = report.resources.find((item) => item.objectStorageBucket);
+  assert.equal(jobSummary.completion, "Complete");
+  assert.equal(jobSummary.readiness, "Complete");
+  assert.equal(pvcSummary.readiness, "Bound");
+  assert.equal(appSummary.readiness, "Ready");
+  assert.equal(bucketSummary.kind, "ObjectStorageBucket");
+  assert.equal(bucketSummary.runtimeReady, true);
+});
+
+test("footprint exits non-zero when a collected workload is failed", () => {
+  const deployment = {
+    metadata: { name: "demo", labels: { app: "demo" } },
+    spec: { replicas: 1 },
+    status: { readyReplicas: 0, replicas: 1 },
+  };
+  const result = runFootprint({ deployment: [deployment] });
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.runtimeReady, false);
+});

@@ -110,7 +110,9 @@ path, schema, filename, validator, and downstream handoff.
 
 Structured outputs should name their schema and identity rules. Factual inline
 outputs should name the fields or sentence shape. Never imply PASS, readiness,
-or continuation unless the skill is Validate producing `verdict.v2`.
+or continuation unless the skill is Validate returning a fresh semantic result.
+`verdict.v2` is an optional representation for declared consumers, not the
+source of Validate's authority.
 
 The reference example of a structured-output validator is
 `skills/pattern-mining/scripts/validate-output.sh` — a small `jq` predicate that

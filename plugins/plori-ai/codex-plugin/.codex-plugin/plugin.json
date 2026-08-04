@@ -1,6 +1,6 @@
 {
   "name": "plori",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Create and drive plori cloud agents (each an AI agent on its own cloud computer) over MCP. Bundles the plori skill so Codex knows the connect flow and the tool surface.",
   "author": {
     "name": "plori",

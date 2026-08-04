@@ -8,9 +8,9 @@ Build the proposal around the solicitation, the review criteria, and the investi
 
 Use AI only as proposal-development support. Preserve the investigators' scientific direction, original technical content, preliminary results, and final responsibility. If the solicitation requires AI disclosure, flag the requirement and suggest wording for institutional review.
 
-## Proposal Corpus Lessons
+## Reusable Proposal Lessons
 
-This guidance is calibrated against a representative corpus of the investigator's awarded, declined, example, and pending proposals. Apply the patterns as reusable writing judgment, not as confidential proposal-specific examples.
+Apply these patterns as general proposal judgment derived from authorized professional examples. Do not expose private filenames, sponsor-specific content, reviewer identities, pending strategy, or unpublished results in reusable examples.
 
 ### Winning Narrative Signature
 
@@ -147,7 +147,7 @@ Use this flow:
 5. Explain why the gaps persist: coupled physics, missing diagnostics, scale mismatch, difficult measurements, limited models, lack of benchmark data, weak transferability, or insufficient collaboration access.
 6. End with the opportunity that the proposed project will address.
 
-For mature fields, target a selective and balanced reference set rather than every paper found. For a full DOE-style narrative, a working development draft may use 50-60 references, then compress the in-text review for page limits and move references to the required appendix if allowed.
+For mature fields, build a selective and balanced reference set that covers seminal work, current reviews, closest competing approaches, contradictory evidence, recent advances, and team capability within the solicitation's page limits. Do not use a fixed reference count as a proxy for coverage.
 
 ### 2. Project Objectives
 
@@ -202,16 +202,7 @@ When the user provides Google Scholar profiles or publication lists:
 - Cite team papers strategically where they substantiate capability: prior hardware, modeling, sensing, datasets, algorithms, facilities, standards experience, or National Lab relevance.
 - Avoid overciting the team at the expense of field-leading external experts.
 
-For a proposal on physics-informed acoustic diagnostics for power electronics reliability, organize literature around mechanisms:
-
-- Wide-bandgap/SiC power electronics, packaging, and reliability.
-- Partial discharge physics, standards, and nonconventional detection.
-- Acoustic emission sensing for PD, source localization, propagation, and limitations.
-- Thermal management, direct cooling, dielectric fluids, two-phase cooling, and electrical reliability.
-- Acoustic sensing and AI/ML for boiling, condensation, bubble dynamics, and phase-change diagnostics.
-- Physics-informed machine learning, transferability, uncertainty, and health-state estimation.
-
-The gap should follow naturally: existing work does not yet connect mechanism-labeled acoustic signatures to coupled electrical, thermal, mechanical, and cooling degradation in compact grid-relevant power electronics with synchronized reference data and transfer-tested diagnostics.
+Organize proposal literature around the mechanisms and evidence chain required by the current aims. Build the gap from what the cited work can and cannot support; do not preserve a topic-specific literature outline as a generic template.
 
 ## Preliminary Results Integration
 
@@ -221,13 +212,7 @@ For each thrust, use preliminary results to answer three reviewer questions:
 2. What expertise, hardware, data, or analysis capability does the team already have?
 3. What remains unknown enough to justify the new research?
 
-Good preliminary-result placement:
-
-- A PD/acoustic-camera result belongs in a discharge-characterization task.
-- A PDIV spectral-analysis result belongs in a task about distinguishing PD from artifacts.
-- A SiC junction-temperature ML result belongs in thermal/package health monitoring or multimodal diagnostics.
-- A boiling, hydrophone, bubble, or dielectric-fluid result belongs in cooling-instability acoustics.
-- A flow-boiling/condensation acoustic ML result belongs in physics-informed acoustic feature extraction and diagnostic transferability.
+Place each preliminary result under the task whose execution risk it reduces. Do not reuse a result merely because it is visually impressive or adjacent to the topic.
 
 Write preliminary-results paragraphs in this pattern:
 
@@ -327,4 +312,4 @@ A practical proposal-development sequence is:
 9. Expand the literature review with seminal, most-cited, recent, and team-specific papers.
 10. Compress and polish for final page limits and submission formatting.
 
-At each iteration, preserve prior drafts with versioned filenames when feasible so the user can compare structure and content choices.
+For text and code in Git, use commits or tags as the primary history. Use versioned binary snapshots when meaningful diffs are unavailable or the submission workflow requires them.

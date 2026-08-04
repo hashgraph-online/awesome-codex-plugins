@@ -32,17 +32,18 @@ license: MIT
 
 ## Routing / ルーティング
 
-| キーワード           | スキルID           | 説明                   |
-| -------------------- | ------------------ | ---------------------- |
-| カバレッジ, 網羅     | `coverage-gap`     | カバレッジギャップ検出 |
-| フレーキー, 不安定   | `flaky-test`       | フレーキーテストリスク |
-| テスト有無, 存在     | `test-existence`   | テスト存在確認         |
-| 命名, 構造, describe | `test-naming`      | テスト命名・構造       |
-| テスト観点, 計画     | `test-plan-review` | テスト観点レビュー     |
+| キーワード                    | スキルID                       | 説明                             |
+| ----------------------------- | ------------------------------ | -------------------------------- |
+| カバレッジ, 網羅              | `coverage-gap`                 | カバレッジギャップ検出           |
+| フレーキー, 不安定            | `flaky-test`                   | フレーキーテストリスク           |
+| テスト有無, 存在              | `test-existence`               | テスト存在確認                   |
+| 命名, 構造, describe          | `test-naming`                  | テスト命名・構造                 |
+| テスト観点, 計画              | `test-plan-review`             | テスト観点レビュー               |
+| アサーション, 常に PASS, 恒真 | `test-assertion-effectiveness` | アサーション有効性（無効な検証） |
 
 ### デフォルト動作
 
-- テストファイルの変更 → `test-naming` + `flaky-test`
+- テストファイルの変更 → `test-naming` + `flaky-test` + `test-assertion-effectiveness`
 - ソースコードの変更 → `test-existence` + `coverage-gap`
 - 大規模変更 → 全スキル実行
 
@@ -59,7 +60,8 @@ license: MIT
    ├─ coverage-gap: カバレッジギャップ検出
    ├─ test-naming: 命名・構造検証
    ├─ flaky-test: フレーキーリスク検出
-   └─ test-plan-review: テスト観点の妥当性
+   ├─ test-plan-review: テスト観点の妥当性
+   └─ test-assertion-effectiveness: アサーション有効性（常に PASS する検証）
 
 3. 統合サマリの生成
 ```

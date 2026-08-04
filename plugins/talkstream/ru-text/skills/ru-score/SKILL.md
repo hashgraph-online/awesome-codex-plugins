@@ -1,11 +1,14 @@
 ---
 name: ru-score
-description: Score Russian text quality on a 0.0–10.0 scale across 5 dimensions
+description: >
+  Score Russian text 0.0–10.0 across five dimensions: typography, clean language, grammar,
+  structure, precision for the reader. Triggers: оцени текст, ru-score, оценка качества
+  текста, насколько хорош текст, балл за текст. Use when the user wants a number rather than
+  a list of findings. Never edits a file.
 allowed-tools: Read, Grep, Glob
 disallowed-tools: Write, Edit, NotebookEdit, Bash, PowerShell, Monitor
 context: fork
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Russian Text Quality Score

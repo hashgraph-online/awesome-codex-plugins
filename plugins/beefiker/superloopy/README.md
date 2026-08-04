@@ -46,10 +46,11 @@ Superloopy keeps the command layer small. Skills carry the specialist workflow: 
 | --- | --- | --- |
 | `superloopy-loop` | You type `loopy <task>` or `loopy team <task>` for a full loop; use `loopywork`, `lpy`, or `$lpy` for guidance-only context. | Full loops produce a lightweight plan, guided next actions, command-backed proof, a quality gate, and a final evidence report. Guidance aliases do not mutate state. |
 | `superloopy-doctor` | You diagnose install, wrapper, plugin cache, hook/bootstrap, agent, Codex/Claude Code host wiring, or stale-version problems. | A read-only health report with wrapper/cache/version evidence, failing checks, and the exact repair command to run only if approved. |
-| `superloopy-research` | You explicitly invoke Codex `$superloopy:superloopy-research` or Claude Code `/superloopy:superloopy-research`, or start the research task with a leading `loopy`/`루피` (such as `loopy research`). Plain research, investigate, or summarize requests do not activate it. | Research axes, expansion waves, a claim ledger, verification notes, and a cited synthesis artifact. |
+| `superloopy-research` | You explicitly invoke Codex `$superloopy:superloopy-research` or Claude Code `/superloopy:superloopy-research`, or start the research task with a leading `loopy`/`루피` (such as `loopy research`). Plain research, investigate, or summarize requests do not activate it. | Research axes, expansion waves, a verdict on every retrieval, graded and dated sources, a priced claim ledger, verification notes, and a cited synthesis artifact. |
 | `superloopy-clone` | You ask for `loopy clone`, authorized website cloning, rebuilding, migration, or pixel-focused page recovery. | Browser captures, page topology, design tokens, asset inventory, implementation notes, build output, and visual QA evidence. |
 | `superloopy-frontend` | You explicitly invoke Codex `$superloopy:superloopy-frontend` or Claude Code `/superloopy:superloopy-frontend` for supported screen-based application UI across browser-hosted Web (public, authenticated, private/internal, installed PWA, or extension), interactive deployed content-led Web (campaign, publication, or landing experiences with a user journey), desktop, mobile/tablet, embedded/hybrid clients, custom-rendered UI, Qt, or mixed targets, or start that work with a leading `loopy`/`루피`. Plain UI, platform, or framework terms do not activate it; TV, wearable, XR, automotive, game UI, TUI, static media/document artifacts, and non-UI work stay excluded. | One shared UX contract plus platform/composition routes. Evidence is proportional to changed claims and independently covers each browser, native target/shell, renderer, and mixed target. Standalone runs retain run-scoped receipts; active loops bind them to the goal and criterion. |
 | `humanize-korean` | Use when Korean users ask to remove AI tone, fix 번역투, or make Korean text sound human without changing facts. | Writes `final.md`, `summary.md`, and `audit.json`; in Superloopy loops it records evidence under `.superloopy/evidence/humanize-korean/`. |
+| `i-have-adhd` | You explicitly invoke Codex `$superloopy:i-have-adhd` or Claude Code `/superloopy:i-have-adhd`, or a leading `loopy`/`루피` brief directly asks for ADHD-friendly, action-first, one-step, or easy-to-scan output. Writing style alone never activates it. | Shapes progress updates so the next action stays visible. It does not create a Superloopy evidence artifact or weaken planning, safety, validation, or completion gates. |
 | `superloopy-slides` | You ask for slides, a presentation, a deck, or a PPT/PPTX-to-web conversion. | A zero-dependency single-file HTML deck on a fixed 16:9 stage, three style previews to pick from, and a rendered-screenshot visual-QA artifact under `.superloopy/evidence/slides/`. |
 
 The loop skill is the default guardrail. A complete leading `loopy` token starts or resumes the evidence loop; `loopy team` escalates to crew mode. Leading `loopywork`, `lpy`, and `$lpy` tokens only inject starter guidance. Structured `SUPERLOOPY_STEER` directives can adjust an active loop. The prompt hook does not infer frontend or Korean-writing modes from ordinary text; invoke specialist skills explicitly or let an already-active loop route a real specialist subtask.
@@ -135,7 +136,7 @@ For agent-driven installs such as `install https://github.com/beefiker/superloop
 
 ### Codex
 
-Needs Node.js ≥ 20 and Codex CLI ≥ 0.131.0 for `codex plugin add`. Superloopy is dependency-free — zero runtime dependencies, just Node.
+Needs Node.js ≥ 22 and Codex CLI ≥ 0.131.0 for `codex plugin add`. Superloopy is dependency-free — zero runtime dependencies, just Node.
 
 ```
 codex plugin marketplace add https://github.com/beefiker/superloopy
@@ -148,7 +149,7 @@ Installing from a checkout instead? Run `node src/cli.js install --json`.
 
 ### Claude Code
 
-Needs Node.js ≥ 20. From the same repo:
+Needs Node.js ≥ 22. From the same repo:
 
 ```
 /plugin marketplace add beefiker/superloopy

@@ -479,6 +479,21 @@
       "icon": "./plugins/yimwoo/codex-agenteam/assets/agenteam-icon.png"
     },
     {
+      "name": "codex-howto",
+      "displayName": "Codex How To",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Phelan164/codex-howto"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Engineering-first Codex curriculum and plugin with 9 skills, measured token-efficiency experiments, bounded orchestration, testing, review, and living knowledge maintenance.",
+      "icon": "./plugins/Phelan164/codex-howto/assets/icon.svg"
+    },
+    {
       "name": "codex-multi-auth",
       "displayName": "Codex Multi Auth",
       "source": {
@@ -711,6 +726,21 @@
       },
       "category": "Development & Workflow",
       "description": "Full token-saving stack in one plugin - output compression, global rules, RTK hook, Caveman ultra, GitNexus config. Detects existing setup, installs only what's missing. Works on Claude Code and Codex."
+    },
+    {
+      "name": "falsegreen-skill",
+      "displayName": "falsegreen-skill",
+      "source": {
+        "source": "local",
+        "path": "./plugins/vinicq/falsegreen-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Finds tests that stay green when the code they cover is broken, applying six ordered judgments over Python, TypeScript, JavaScript, and Robot Framework suites in Codex CLI and Claude Code.",
+      "icon": "./plugins/vinicq/falsegreen-skill/assets/icon.svg"
     },
     {
       "name": "frappe-agent",
@@ -2187,6 +2217,20 @@
       "icon": "./plugins/sergebulaev/linkedin-skills/assets/icon.svg"
     },
     {
+      "name": "x-skills",
+      "displayName": "X (Twitter) Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sergebulaev/x-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Codex-ready X (Twitter) marketing bundle with a native .codex-plugin manifest: tweet and thread writing with corpus-validated hook formulas (validated against ~450 top tweets), AI-tell humanizer, hook extraction, reply drafting, content planning, and audience insights; also works in Claude Code."
+    },
+    {
       "name": "costguard",
       "displayName": "Maestro: Costguard",
       "source": {
@@ -2524,6 +2568,20 @@
       "description": "Publish short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook from Codex with the Taisly MCP server and bundled social media posting skill."
     },
     {
+      "name": "talivia-agent-kit",
+      "displayName": "Talivia Agent Kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/talivia-group/agent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Install and verify revenue-first website analytics from Codex, connect payment attribution, and identify which traffic sources and customer journeys become revenue."
+    },
+    {
       "name": "task-scheduler",
       "displayName": "Task Scheduler",
       "source": {
@@ -2581,6 +2639,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Search and install AI assets from TokRepo with a bundled skill and MCP server for Codex."
+    },
+    {
+      "name": "unified-ai-system",
+      "displayName": "Unified AI System",
+      "source": {
+        "source": "local",
+        "path": "./plugins/happy520ai/unified-ai-system"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Self-hosted AI gateway for Codex with provider-free prompt enhancement, nine governed MCP tools, and a credential-free Docker path.",
+      "icon": "./plugins/happy520ai/unified-ai-system/assets/icon.png"
     },
     {
       "name": "unslop",

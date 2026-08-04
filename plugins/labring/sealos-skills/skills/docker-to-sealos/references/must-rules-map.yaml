@@ -104,7 +104,7 @@ must_rules:
     enforcement:
       type: rule
       target: R043
-  - must: "Omit ConfigMap volume `defaultMode` unless the application explicitly needs a non-default mode. ConfigMap scripts invoked through `/bin/sh /path/script` do not need executable bits."
+  - must: "Omit ConfigMap volume `defaultMode` in managed templates. Invoke mounted scripts through `/bin/sh /path/script`; copy to persistent storage and apply `chmod` in an initContainer when an application truly requires an executable file."
     enforcement:
       type: rule
       target: R043
@@ -121,6 +121,10 @@ must_rules:
       type: rule
       target: R031
   - must: "Root-path `Ingress` resources (`pathType: Prefix`, `path: /`) must use `backend.service.port.number`, and the number must match a declared `spec.ports[*].port` on the referenced application `Service`."
+    enforcement:
+      type: rule
+      target: R051
+  - must: "Root-path Prefix routes must be the first entry in each HTTP `paths` list so Launchpad public-address discovery selects the application entry route."
     enforcement:
       type: rule
       target: R051
@@ -248,6 +252,10 @@ must_rules:
     enforcement:
       type: rule
       target: R044
+  - must: "The false branch of an optional object-storage input must configure the storage-disabled/local mode documented by the official source."
+    enforcement:
+      type: rule
+      target: R044
   - must: "Use a compatibility proxy only when official protocol evidence requires request adaptation."
     enforcement:
       type: manual
@@ -276,6 +284,15 @@ must_rules:
     enforcement:
       type: rule
       target: R053
+  - must: "Internal credentials that an official runtime library can deterministically derive from opaque entropy may use a quoted instance seed in `spec.defaults`; every consuming role must derive and validate the same final values, remove the seed before exec, and expose no user input for the derived values."
+    enforcement:
+      type: manual
+      target: R053
+      note: "Requires app-specific cryptographic derivation, cross-role consistency, child-process environment, and live runtime validation."
+  - must: "Persisted runtime-secret contracts marked with `docker-to-sealos.runtime-secret-contract: persisted` must generate from durable runtime entropy, apply restrictive permissions with an atomic replacement, validate before `exec`, and keep the final secret out of diagnostics."
+    enforcement:
+      type: rule
+      target: R058
   - must: "When an official runtime profile selects an external provider, the workload must wire a non-empty required credential for that provider; an optional input with an empty default is invalid."
     enforcement:
       type: rule
@@ -508,7 +525,7 @@ must_rules:
     enforcement:
       type: rule
       target: R044
-  - must: "The false branch of an optional object-storage input must configure the storage-disabled/local mode documented by the official source."
+  - must: "Optional-managed database contracts marked with `docker-to-sealos.database-mode: optional-managed` must share one boolean condition across the managed Cluster plane and database wiring while defining the documented SQLite or local false branch."
     enforcement:
-      type: manual
-      note: "Requires semantic comparison with the application's official storage-mode documentation."
+      type: rule
+      target: R059

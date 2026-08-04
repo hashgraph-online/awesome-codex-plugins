@@ -10,8 +10,8 @@ description: "Use when executing implementation plans with independent tasks in 
   2. Per task: dispatch implementer → answer questions → implementer completes
   3. Review stage 1 (spec compliance) → fix gaps → re-review until ✅
   4. Review stage 2 (code quality) → fix issues → re-review until ✅
-  5. Mark complete, update checkpoint, drift check → next task
-→ All tasks done: dispatch final code reviewer → finishing-a-development-branch.
+  5. Coordinator verifies, commits the coherent task, updates checkpoint/drift → next task
+→ All tasks done: final review → verification receipt; branch finishing only when needed.
 
 # Subagent-Driven Development
 
@@ -31,8 +31,17 @@ Use when you have a written implementation plan with mostly independent tasks an
 2. Per task: dispatch implementer with task text + baseline refs + checkpoint + non-goals
 3. Implementer completes → dispatch spec compliance reviewer → fix gaps → re-review until ✅
 4. Dispatch code quality reviewer → fix issues → re-review until ✅
-5. Mark task complete, update checkpoint, drift check → next task
-6. All tasks done → final code reviewer → finishing-a-development-branch
+5. Coordinator runs fresh verification, stages only task-owned paths, commits the
+   coherent task, reads back Git state, updates checkpoint/drift → next task
+6. All tasks done → final code reviewer → completion verification; use branch
+   finishing only for a task-created branch/worktree or requested integration
+
+Before the first repo write, the coordinating agent records
+`TaskStartSnapshot`. Same-task agents share the current workspace. The
+coordinator is the only default Git mutation owner for staging, commits,
+branches, and worktrees; implementers and reviewers edit/verify/report but do
+not mutate Git lifecycle state. Task complexity, TDD, planning, subagents, or a
+`main`/`master` name does not justify isolation by itself.
 
 Before multi-task plans: load long-task-continuation, create checkpoint, include in every implementer prompt.
 
@@ -72,6 +81,8 @@ Each implementer prompt must include:
 - verification expected for the task
 
 The implementer may update task-local evidence, but the controller owns the consolidated checkpoint.
+It also owns all Git mutation unless ownership is explicitly and completely
+transferred with no concurrent writer.
 
 Implementer subagents report one of four statuses. Handle each appropriately:
 
@@ -98,7 +109,6 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ## Red Flags
 
 **Never:**
-- Start implementation on main/master branch without explicit user consent
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)
@@ -110,6 +120,8 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 - Let implementer self-review replace actual review (both are needed)
 - **Start code quality review before spec compliance is ✅** (wrong order)
 - Move to next task while either review has open issues
+- Let implementers/reviewers stage, commit, branch, or create/remove worktrees
+- Create per-subagent worktrees for agents working on the same task
 
 **If subagent asks questions:**
 - Answer clearly and completely
@@ -123,6 +135,8 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 - Don't skip the re-review
 
 After spec compliance and code quality review pass, update the consolidated checkpoint and run a drift check before moving to the next task.
+The coordinator first runs fresh verification, performs one scoped task commit,
+and reads back `HEAD`, the committed file list, and remaining task delta.
 
 **If subagent fails task:**
 - Dispatch fix subagent with specific instructions
@@ -131,10 +145,10 @@ After spec compliance and code quality review pass, update the consolidated chec
 ## Integration
 
 **Required workflow skills:**
-- **aegis:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **aegis:writing-plans** - Creates the plan this skill executes
 - **aegis:requesting-code-review** - Code review template for reviewer subagents
-- **aegis:finishing-a-development-branch** - Complete development after all tasks
+- **aegis:using-git-worktrees** - Conditional exception for a necessary concurrent checkout
+- **aegis:finishing-a-development-branch** - Conditional integration/cleanup for a task-created branch or worktree
 
 **Subagents should use:**
 - Inherit the parent TDD decision. With `off`, do not auto-load `aegis:test-driven-development` or force RED / GREEN; use the task's proportional verification. Load it only for `TDD Route: strict` or an explicit user/project TDD request.

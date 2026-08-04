@@ -39,6 +39,22 @@ amq send --to codex@proj-b:auth --body "to specific session"
 
 Flags take precedence over inline syntax.
 
+## Same-Handle Messages
+
+A matching sender and recipient handle has three distinct meanings:
+
+| Route | Meaning |
+|---|---|
+| `--project` is present | A different agent instance in another project. AMQ stamps `from_project` and reply routing metadata. |
+| `--session` or `--from-session` is present | A different agent instance in another session. AMQ stamps session reply routing metadata. |
+| No routing dimension is present | A same-root self-send with no provenance beyond the handle. `amq send` refuses it by default. |
+
+Use `--allow-self` only to confirm an intentional same-root self-send. The flag
+does not make `--root` a routing dimension, add reply metadata, or bypass the
+cross-tree and session-pin guards. To reach another instance of your handle,
+use `--project` or `--session` instead; routed same-handle sends do not require
+`--allow-self`.
+
 ## Session Defaults
 
 `--project proj-b` without `--session` delivers to the **same session name** in the peer project. If your source root is `.agent-mail/collab`, the message goes to `proj-b's .agent-mail/collab`. Override with explicit `--session`.

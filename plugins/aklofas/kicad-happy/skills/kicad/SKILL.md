@@ -13,7 +13,8 @@ description: >-
   tracing, power budget, DFM, or wants to understand, debug, compare, or
   review any hardware design. Also for "check my board", "review before fab",
   "what's wrong with my schematic", "is this ready to order", "check my power
-  supply", "verify this circuit", or any electronics/PCB design question.
+  supply", "verify this circuit", OSHWA certification readiness, or any
+  electronics/PCB design question.
 ---
 
 # KiCad Project Analysis Skill
@@ -739,6 +740,7 @@ Detailed methodology and format documentation lives in reference files. Read the
 | `manual-gerber-parsing.md` | 621 | Fallback when Gerber script fails |
 | `report-generation.md` | 614 | Report template (critical findings at top), analyzer output field reference (schematic/PCB/gerber), severity definitions, writing principles, domain-specific focus areas, known analyzer limitations |
 | `standards-compliance.md` | 638 | IPC/IEC standards tables: conductor spacing (IPC-2221A Table 6-1), current capacity (IPC-2221A/IPC-2152), annular rings, hole sizes, impedance, via protection (IPC-4761), creepage/clearance (ECMA-287/IEC 60664-1). Consider for all boards; auto-trigger for professional/industrial designs, high voltage, mains input, or safety isolation. |
+| `oshwa-certification.md` | — | OSHWA open-source hardware certification readiness: editable KiCad sources, public documentation, licensing, version registration, certification-mark use. Read when the user asks about OSHWA certification or an open-source hardware release — a documentation/licensing audit with explicit approval gates, not an electrical check |
 | `design-intent.md` | — | Design intent resolution, target market / certification / power constraints that gate findings by context |
 | `diff-analysis.md` | — | How `diff_analysis.py` compares two analyzer runs and emits severity-ranked change reports |
 | `what-if.md` | — | How `what_if.py` patches component values, recalculates derived fields, and suggests fixes for feedback dividers / crystal load caps / cap derating |

@@ -94,6 +94,19 @@ The per-action minimum role is a compile-time exhaustive match in
 are denied unconditionally. The caller's role is never supplied by the
 client — it is always derived server-side from kernel credentials.
 
+The same `SO_PEERCRED` read yields the peer's **uid**, which is recorded as the
+caller principal alongside the role and signed into the audit chain
+(`chain_version = 3`). Role answers "was this permitted"; principal answers
+"which account asked", and two members of `sysknife-admin` are no longer
+indistinguishable in the signed record. Three forms exist, and the scheme is
+part of the signed value so an auditor can tell them apart:
+
+| Principal | Meaning |
+|---|---|
+| `uid:<n>` | Unix-socket peer, uid attested by the kernel at `connect()` |
+| `token:vsock` | vsock peer authenticated by the pre-shared token: possession of a file, not an account |
+| `none:unattributed` | The daemon could not establish an account: `SO_PEERCRED` failed, returned no usable pid, or reported the overflow uid because the peer is not representable in this daemon's namespaces. The connection is handled at `Observer` and the row admits attribution failed rather than naming `nobody` |
+
 ### Layer 4 — One-time approval receipt (sysknife-daemon)
 
 Every mutating action requires a preview→approve→execute round-trip:
@@ -132,6 +145,48 @@ do not promise constant-time string comparison, but the high-entropy,
 single-use, 15-minute bearer value makes timing recovery impractical. The
 daemon uses constant-time comparison when validating the signed commitment
 before issuing a receipt.
+
+### vsock transport authentication — threat model and residual risk
+
+Over a Unix socket the caller's identity is attested by the kernel
+(`SO_PEERCRED`) and cannot be forged or replayed. Over **vsock** (the daemon in
+a VM) there is no equivalent: the client authenticates with a **pre-shared
+bearer token** sent as the first frame, and possession of the token — a file,
+not an account — is the whole of the proof (`token:vsock` in the principal
+table above).
+
+This has a residual risk that cannot be fully closed at the application layer
+([#152](https://github.com/lacs-project/sysknife/issues/152)):
+
+- **The token is a replayable bearer credential over an unencrypted channel.**
+  An adjacent party that can observe one legitimate vsock connection (a
+  co-located guest that can see the traffic, a compromised hypervisor path, a
+  vsock proxy) reads the token from the first frame and can open its own
+  connection, authenticate as the configured role (`SYSKNIFE_TOKEN_ROLE`,
+  default `Dev`), and from there mint a fresh one-time approval receipt. The
+  approval-receipt and atomic-claim layers above stop *replay of a captured
+  request*, but not an attacker who holds the token and constructs their own.
+
+- **Why it is inherent.** A bearer token over a channel with no confidentiality
+  or peer authentication is, by construction, replayable by anyone who can read
+  the channel. Closing it fully requires either confidentiality + peer
+  authentication under the vsock (TLS or a WireGuard underlay), or a
+  per-connection challenge so the token is never sent in the clear (a
+  nonce/HMAC handshake, which defeats a *passive* observer but still not an
+  active man-in-the-middle). Both are larger changes tracked on #152.
+
+**Operator guidance (do this until the deeper mitigation lands):**
+
+- Treat the vsock token as a secret with the blast radius of `SYSKNIFE_TOKEN_ROLE`.
+  Prefer the lowest role that works; do not give the vsock path `admin`.
+- Run the daemon only where the vsock namespace is **isolated**: a single
+  trusted host↔guest pair on a hypervisor you control, not a multi-tenant host
+  where other guests share the vsock namespace.
+- Rotate the token file on any suspicion of exposure; the daemon reloads it.
+- For anything crossing an untrusted boundary, forward the daemon's **Unix**
+  socket over an authenticated, encrypted transport (`ssh -L`) instead of
+  exposing vsock directly — SSH gives the confidentiality and peer
+  authentication vsock does not.
 
 ---
 
@@ -323,4 +378,8 @@ security certification work.
 | Tool output injection | [#98](https://github.com/lacs-project/sysknife/issues/98) | `query_*` results re-enter the LLM context unsanitized. A crafted service description or package name could attempt prompt injection. Impact is bounded by Layer 2–5. |
 | Action param validation | — | Action params are typed per-handler but not validated at a shared schema boundary. A compromised LLM could propose valid action + malicious params (e.g. `AddAuthorizedKey` with an attacker-controlled key). |
 | UDP audit forwarding | — | External RFC 5424 forwarding is best effort and provides no delivery acknowledgement. Use the transaction database and tested backups as the durable record. |
-| Caller attribution granularity | — | The signed chain binds each row to the caller's *role* (`chain_version = 2`), not to the individual account. Two members of `sysknife-admin` produce indistinguishable signed records, so the trail establishes "an Admin did this", not which Unix account. The uid is available at the `SO_PEERCRED` boundary where the role is already derived; recording it means a new signed row encoding (`chain_version = 3`) across both storage backends, and is tracked separately rather than bundled into an unrelated change. |
+| Caller attribution strength | — | Rows written under `chain_version = 3` name the account (`uid:<n>`), but a uid is only as meaningful as account hygiene on the host: shared logins, `su` into a service account, or a uid reused after a user is deleted all weaken the claim. vsock callers are recorded as `token:vsock` because a pre-shared secret proves possession of a file, not a person. Rows written before the upgrade remain role-only by design, since backfilling them would rewrite what was signed. |
+| Unattributed callers verify as intact | — | A row whose principal is `none:unattributed` is authentic and verifiable, but names no account, and a chain composed entirely of such rows still reports `Intact`. That verdict is about tampering only. `sysknife audit verify` reports `unattributed_rows` alongside it, and the daemon logs a warning per occurrence, but an operator who reads only the verdict will overestimate what the trail can attribute. Rows signed before `chain_version = 3` are counted separately as `rows_without_principal`, because they name nobody for a different reason and cannot be repaired. Every count is `null` rather than `0` when the store could not be read at all, so a database nobody could open cannot read as an empty one that opened fine. |
+| `caller_principal` is unsigned on pre-v3 rows | — | The column enters the signed message only under `chain_version = 3`. On a v1 or v2 row it is unsigned free space: anyone who can write to the transaction table can populate it, and the chain still verifies as `Intact`, because no signature covers it. `sysknife audit verify` therefore buckets by the encoding rather than by the column, counts such a value as `rows_unattested`, and never as an account. Losing attribution is a gap; inventing it would be a lie, so the census refuses the second even at the cost of reporting less. |
+| An action that cannot be stopped is reported, not hidden | [#140](https://github.com/lacs-project/sysknife/issues/140), [#142](https://github.com/lacs-project/sysknife/issues/142) | Actions run in their own process group and the timeout signals the group, which stops non-privileged commands. An unprivileged daemon cannot signal a root child, so a `sudo` action's real work cannot be force-killed; the timeout detects this (the group probe returns `EPERM`, meaning members remain but are unsignalable) and returns `ActionNotStopped` rather than a false success. On that verdict the daemon skips the automatic rollback and holds the exclusion slot, so no second mutating action can race the first: starting `rpm-ostree rollback` over a transaction that may still be live is worse than leaving it. An operator seeing that error should inspect the host before retrying; a daemon restart clears the held slot. Forcible termination of a root child is follow-up work (#142). |
+| Attribution counts on a broken chain are claims | — | The census spans every row read while verification stops at the first break, so when the chain verdict is not `intact` `rows_censused` can exceed `rows_checked`, and the surplus is the part of the trail this command did not vouch for. Not every surplus row is forged: deleting or reordering one breaks the link while leaving later signatures valid, and an aggregate count cannot say which is which. The counts carry that caveat in words, `rows_censused` makes the gap measurable, and the MCP report exposes `chain_status` because the top-level `status` is the worst of three checks. A reader who takes `attributed_rows` from a chain that did not verify as established attribution is reading an unchecked claim. |

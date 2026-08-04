@@ -12,10 +12,14 @@ Task tool (general-purpose reviewer):
 
   WHAT_WAS_IMPLEMENTED: [from implementer's report]
   PLAN_OR_REQUIREMENTS: Task N from [plan-file]
+  REVIEW_SCOPE: working-tree
   BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
+  HEAD_SHA: WORKTREE
   DESCRIPTION: [task summary]
 ```
+
+The reviewer inspects the task-owned working-tree diff before the coordinator
+commits. Review is read-only; only the coordinator mutates Git state.
 
 **In addition to standard code quality concerns, the reviewer should check:**
 - Does each file have one clear responsibility with a well-defined interface?

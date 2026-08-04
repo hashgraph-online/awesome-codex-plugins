@@ -1,200 +1,129 @@
 ---
 name: finishing-a-development-branch
-description: "Use when implementation is complete, verification has passed, and the user needs to choose merge, PR, branch cleanup, or follow-up integration handling."
+description: "Use when verified work has an Aegis-created branch/worktree to integrate or clean up, or the user explicitly requests merge, PR, or branch lifecycle handling."
 ---
 
 # Finishing a Development Branch
 
 ## Overview
 
-Guide completion of development work by presenting clear options and handling chosen workflow.
+Integration choice and checkout lifetime are separate. Verify first, mutate only
+task-owned resources, then prove what was removed or retained.
 
-**Core principle:** Verify tests → Present options → Execute choice → Clean up.
+**Core principle:** fresh evidence -> authorized integration -> ownership-aware
+cleanup -> Git/path readback.
 
-**Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
+**Announce at start:** explain which branch/worktree lifecycle is being closed.
 
-## The Process
+## Step 1: Environment and Ownership Detection
 
-### Step 1: Verify Tests
+Read the task's `TaskStartSnapshot` and current repository state. Record:
 
-**Before presenting options, verify tests pass:**
+- root, `HEAD`, branch/detached state, upstream divergence, and active Git ops;
+- staged/unstaged/untracked paths and the task-owned delta;
+- `git worktree list --porcelain`;
+- branch/worktree creator, task ownership, base branch, and cleanup trigger.
 
-```bash
-# Run project's test suite
-npm test / cargo test / pytest / go test ./...
-```
+Stop on conflicts, detached state, failed verification, dirty/untracked state in
+a cleanup target, or unknown ownership. Do not infer the base from the names
+`main` or `master`; use task records, repository authority, or explicit user
+direction. Never auto-stash, reset, clean, pull, rebase, amend, force-push, or
+bypass hooks.
 
-**If tests fail:**
-```
-Tests failing (<N> failures). Must fix before completing:
+If no task-created branch/worktree exists and integration was not requested,
+skip this workflow: report the local task commit plus `Task clean` and
+`Repository clean`; do not invent merge/PR ceremony.
 
-[Show failures]
+## Step 2: Fresh Verification
 
-Cannot proceed with merge/PR until tests pass.
-```
+Run the smallest current-authority test set that proves the completed task. If
+it fails, preserve all work and return to diagnosis. Do not present the branch
+as ready.
 
-Stop. Don't proceed to Step 2.
+## Step 3: Choose the Authorized Outcome
 
-**If tests pass:** Continue to Step 2.
+When a task branch actually needs disposition, present only applicable choices:
 
-### Step 2: Determine Base Branch
+1. merge into the recorded base locally;
+2. push and create/update a PR;
+3. keep the branch for later integration;
+4. discard the exact task-owned branch/worktree.
 
-```bash
-# Try common base branches
-git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
-```
+Push, PR, remote deletion, release, and force operations require explicit user
+authorization. Discard requires a fresh, exact typed confirmation naming branch,
+worktree path, and commits/delta to lose. Generic agreement is insufficient.
 
-Or ask: "This branch split from main - is that correct?"
+## Step 4: Execute Without Hidden Mutation
 
-### Step 3: Present Options
+### Local merge
 
-Present exactly these 4 options:
+Verify the target checkout is safe, switch to the recorded base, merge without an implicit pull,
+and rerun verification on the merged result. If integration
+or verification fails, preserve both histories and stop.
 
-```
-Implementation complete. What would you like to do?
+### Push or PR
 
-1. Merge back to <base-branch> locally
-2. Push and create a Pull Request
-3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
+Push only the authorized task branch and create/update the PR with summary and
+fresh test evidence. PR creation does not itself prove merge and does not
+require the temporary worktree to remain.
 
-Which option?
-```
+### Keep branch
 
-**Don't add explanation** - keep options concise.
+Retain the branch. Remove a clean task-created temporary worktree by default;
+retain it only for an explicit ongoing-checkout need and report why.
 
-### Step 4: Execute Choice
+### Discard
 
-#### Option 1: Merge Locally
+After exact confirmation, remove only the named clean task-owned worktree, then
+the named branch. If either differs from the confirmation, stop and ask again.
 
-```bash
-# Switch to base branch
-git checkout <base-branch>
+## Step 5: Prove Integration Before Branch Deletion
 
-# Pull latest
-git pull
+Use evidence matching the merge strategy:
 
-# Merge feature branch
-git merge <feature-branch>
+- merge/fast-forward: prove the task tip is an ancestor of the recorded base;
+- squash/rebase: use fresh PR merge metadata plus strategy-appropriate patch
+  equivalence (`git cherry` for rebased commits; stable patch-id or bounded
+  changed-path/tree comparison for squashes), not an ancestor-only test;
+- unmerged/open PR: keep the branch unless discard was exactly confirmed.
 
-# Verify tests on merged result
-<test command>
+Never delete a branch merely because a PR was opened or a similarly named
+commit exists.
 
-# If tests pass
-git branch -d <feature-branch>
-```
+## Step 6: Cleanup in Dependency Order
 
-Then: Cleanup worktree (Step 5)
+For a clean task-owned resource:
 
-#### Option 2: Push and Create PR
+1. move to another safe registered checkout; never remove the current working directory;
+2. remove/unregister the worktree first with `git worktree remove <exact-path>`;
+3. read back `git worktree list --porcelain`;
+4. verify the exact path no longer exists;
+5. only then delete an integrated or exactly confirmed branch;
+6. read back branch refs, `HEAD`, and repository status.
 
-```bash
-# Push branch
-git push -u origin <feature-branch>
+Do not use routine `--force`, global `git worktree prune`, wildcard deletion, or
+cleanup of resources absent from the task ownership record. On Windows, Git may
+unregister a worktree while its directory remains locked: re-check registration
+and the exact resolved path, remove only a proven task-owned clean residual when
+safe, otherwise retain it and report the lock/path. Never widen deletion scope.
 
-# Create PR
-gh pr create --title "<title>" --body "$(cat <<'EOF'
-## Summary
-<2-3 bullets of what changed>
+## Final Git Receipt
 
-## Test Plan
-- [ ] <verification steps>
-EOF
-)"
-```
+Report:
 
-Then: Cleanup worktree (Step 5)
+- current branch and commit SHA/message, or the reason no commit exists;
+- `Task clean: yes|no` and `Repository clean: yes|no` independently;
+- branch/worktree created, removed, or retained, with evidence/reason;
+- integration evidence and any remaining user action.
 
-#### Option 3: Keep As-Is
+`Task clean` means no uncommitted task-owned delta remains. `Repository clean`
+means no staged, unstaged, or untracked repository state remains.
 
-Report: "Keeping branch <name>. Worktree preserved at <path>."
-
-**Don't cleanup worktree.**
-
-#### Option 4: Discard
-
-**Confirm first:**
-```
-This will permanently delete:
-- Branch <name>
-- All commits: <commit-list>
-- Worktree at <path>
-
-Type 'discard' to confirm.
-```
-
-Wait for exact confirmation.
-
-If confirmed:
-```bash
-git checkout <base-branch>
-git branch -D <feature-branch>
-```
-
-Then: Cleanup worktree (Step 5)
-
-### Step 5: Cleanup Worktree
-
-**For Options 1, 2, 4:**
-
-Check if in worktree:
-```bash
-git worktree list | grep $(git branch --show-current)
-```
-
-If yes:
-```bash
-git worktree remove <worktree-path>
-```
-
-**For Option 3:** Keep worktree.
-
-## Quick Reference
-
-| Option | Merge | Push | Keep Worktree | Cleanup Branch |
-|--------|-------|------|---------------|----------------|
-| 1. Merge locally | ✓ | - | - | ✓ |
-| 2. Create PR | - | ✓ | ✓ | - |
-| 3. Keep as-is | - | - | ✓ | - |
-| 4. Discard | - | - | - | ✓ (force) |
-
-## Common Mistakes
-
-**Skipping test verification**
-- **Problem:** Merge broken code, create failing PR
-- **Fix:** Always verify tests before offering options
-
-**Open-ended questions**
-- **Problem:** "What should I do next?" → ambiguous
-- **Fix:** Present exactly 4 structured options
-
-**Automatic worktree cleanup**
-- **Problem:** Remove worktree when might need it (Option 2, 3)
-- **Fix:** Only cleanup for Options 1 and 4
-
-**No confirmation for discard**
-- **Problem:** Accidentally delete work
-- **Fix:** Require typed "discard" confirmation
-
-## Red Flags
-
-**Never:**
-- Proceed with failing tests
-- Merge without verifying tests on result
-- Delete work without confirmation
-- Force-push without explicit request
-
-**Always:**
-- Verify tests before offering options
-- Present exactly 4 options
-- Get typed confirmation for Option 4
-- Clean up worktree for Options 1 & 4 only
+This is a local Git receipt, not authoritative completion or merge truth beyond
+the evidence read back.
 
 ## Integration
 
-**Called by:**
-- **subagent-driven-development** (Step 7) - After all tasks complete
-- **executing-plans** (Step 5) - After all batches complete
-
-**Pairs with:**
-- **using-git-worktrees** - Cleans up worktree created by that skill
+Called only when branch/worktree integration or explicit lifecycle handling is
+in scope. Pairs with `using-git-worktrees` and
+`verification-before-completion`.

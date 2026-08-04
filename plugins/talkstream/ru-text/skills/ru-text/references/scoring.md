@@ -1,7 +1,7 @@
 # Scoring: text quality assessment (0–10)
 
 Analytic rubric for evaluating Russian text quality across 5 dimensions.
-Context-aware LLM evaluation against ~1 044 independently formulated rules (informed by 16 published sources; see sources.md).
+Context-aware LLM evaluation against a corpus of over 2,000 independently formulated linguistic atoms (informed by 16 published sources; see sources.md).
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ Context-aware LLM evaluation against ~1 044 independently formulated rules (in
 
 Formula-based tools (Glavred, Turgenev, Advego) count surface features: stop-words, sentence length, keyword density. Removing «очень» raises the score without improving the text. An SEO text scored 9.1 on Glavred without any real quality.
 
-This rubric evaluates text contextually against ~1 044 rules. «Очень» in quoted direct speech is not penalized. «Инновационный» without evidence is penalized. Five orthogonal dimensions cannot be optimized simultaneously without genuinely improving the text.
+This rubric evaluates text contextually against the whole corpus. «Очень» in quoted direct speech is not penalized. «Инновационный» without evidence is penalized. Five orthogonal dimensions cannot be optimized simultaneously without genuinely improving the text.
 
 The only way to raise the score is to write better.
 
@@ -50,7 +50,7 @@ The only way to raise the score is to write better.
 
 ### T — Typography (weight 0.15)
 
-Type: hard (objective). Rule source: [typography.md](typography.md) (96 rules).
+Type: hard (objective). Rule source: [typography.md](typography.md).
 
 | Score | Criteria |
 |---|---|
@@ -62,11 +62,11 @@ Type: hard (objective). Rule source: [typography.md](typography.md) (96 rules).
 
 ### Ч — Clarity (weight 0.25)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [anti-patterns.md](anti-patterns.md) (138 rules). Secondary signals (low weight): [addenda.md](addenda.md) AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception), AD-6 (manufactured antithesis), AD-7 (preemptive virtue qualifier), AD-8 (assistant-register meta-commentary).
+Type: soft (expert). Rule sources: [info-style.md](info-style.md), [anti-patterns.md](anti-patterns.md). Primary signal from [addenda.md](addenda.md): AD-10 (declared sincerity — **Medium**: honesty predicated of the text itself. A label in a heading, or two instances in one text, lands this dimension in the 5–6 band or lower; a single instance in the body does not). Secondary signals (low weight): AD-3 (patronizing explanation), AD-5 (subject-predicate mismatch, with technical-context exception), AD-6 (manufactured antithesis), AD-7 (preemptive virtue qualifier), AD-8 (assistant-register meta-commentary), AD-11 (mandatory tricolon — a supporting signal here; its home is С, and a triple that praises the author's own delivery goes to AD-7, never to both — AD-11.5).
 
 | Score | Criteria |
 |---|---|
-| 9–10 | No stop-words, no bureaucratic language, no clichés. Active voice. Every word works. No false intensifiers or unsubstantiated claims |
+| 9–10 | No stop-words, no bureaucratic language, no clichés. Active voice. Every word works. No false intensifiers or unsubstantiated claims. Honesty is demonstrated by what the text does with an inconvenient fact, never announced («честный разбор», «давайте будем честны») |
 | 7–8 | 1–3 minor stop-words or passive constructions. Overall tone is clean |
 | 5–6 | Noticeable stop-words (5+), several passive constructions, 1–2 clichés. Readable but loose |
 | 3–4 | Bureaucratic language dominates: deverbal nouns, genitive chains, split predicates |
@@ -74,7 +74,7 @@ Type: soft (expert). Rule sources: [info-style.md](info-style.md) (197 rules), [
 
 ### Г — Grammar (weight 0.20)
 
-Type: hard (objective). Rule sources: [editorial-grammar.md](editorial-grammar.md) (171 rules), [editorial-punctuation.md](editorial-punctuation.md) (88 rules).
+Type: hard (objective). Rule sources: [editorial-grammar.md](editorial-grammar.md) — including §I government, §J gerund phrases and §K contextual homophones — and [editorial-punctuation.md](editorial-punctuation.md).
 
 | Score | Criteria |
 |---|---|
@@ -86,19 +86,19 @@ Type: hard (objective). Rule sources: [editorial-grammar.md](editorial-grammar.m
 
 ### С — Structure (weight 0.20)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (structure section), [addenda.md](addenda.md) — AD-1 (dash overuse) and AD-6 (manufactured antithesis — **Medium**: the strongest machine-generation tell. A cluster of two or more manufactured pairs within ~150 words lands this dimension in the 5–6 band or lower; a single antecedent-backed pair does not move it), plus secondary signals (low weight): AD-2 (excessive parcellation), AD-4 (unprovoked rebuttal), AD-7 (preemptive virtue qualifier), AD-9 (hollow opener).
+Type: soft (expert). Rule sources: [info-style.md](info-style.md) (structure section), [addenda.md](addenda.md) — AD-1 (dash overuse); AD-6 (manufactured antithesis — **Medium**: the strongest machine-generation tell. A cluster of two or more manufactured pairs within ~150 words lands this dimension in the 5–6 band or lower; a single antecedent-backed pair does not move it); AD-14 (chat transcript as the artifact — **High**, and charged to the **document**, not to a fragment: a piece whose skeleton is a conversation cannot reach the upper bands, because no local edit repairs it), plus secondary signals (low weight): AD-2 (excessive parcellation), AD-4 (unprovoked rebuttal), AD-7 (preemptive virtue qualifier), AD-9 (hollow opener), AD-11 (mandatory tricolon), AD-16 (additive pseudo-pair).
 
 | Score | Criteria |
 |---|---|
-| 9–10 | Inverted pyramid (main point first). One paragraph = one idea. Logical transitions. Headings where needed. No monotonous dash rhythm. No manufactured antithesis («не X, а Y» / «не просто X, а Y» with no antecedent). No hollow openers |
+| 9–10 | Inverted pyramid (main point first). One paragraph = one idea. Logical transitions. Headings where needed. No monotonous dash rhythm. No manufactured antithesis («не X, а Y» / «не просто X, а Y» with no antecedent). No hollow openers. The piece is written rather than transcribed: its shape is an argument, not a sequence of exchanges |
 | 7–8 | Logical structure, but 1–2 overloaded paragraphs or implicit transitions; at most an isolated antecedent-backed antithesis |
-| 5–6 | Structure is guessable but ideas are mixed, uneven paragraphs; a cluster of manufactured antitheses (two or more within ~150 words) recurs — this band or lower |
+| 5–6 | Structure is guessable but ideas are mixed, uneven paragraphs; a cluster of manufactured antitheses (two or more within ~150 words) recurs — this band or lower. A document that is a chat transcript rather than a piece of writing (AD-14) belongs here at best, whatever the quality of the individual answers |
 | 3–4 | No structure: stream of consciousness without paragraph breaks |
 | 1–2 | Chaotic exposition, impossible to identify the main point |
 
 ### Ц — Reader precision (weight 0.20)
 
-Type: soft (expert). Rule sources: [info-style.md](info-style.md) (facts/evidence section), domain-specific file when applicable.
+Type: soft (expert). Rule sources: [info-style.md](info-style.md) (facts/evidence section), domain-specific file when applicable. From [addenda.md](addenda.md): AD-12 (hollowed mechanism — **Medium**: two or more clauses whose operative term is a placeholder land this dimension in the 5–6 band or lower), AD-13 (phantom attribution — **Medium**: a citation gesture with no identifiable source, which suppresses the reader's question instead of answering it), AD-15 (search-engine addressee — **High**, charged to the **document**: a piece written for the crawler cannot reach the upper bands, because the reader it names is not the reader it serves).
 
 Domain routing for this dimension:
 
@@ -110,10 +110,10 @@ Domain routing for this dimension:
 
 | Score | Criteria |
 |---|---|
-| 9–10 | Concrete facts and numbers. Clear reader benefit. Examples and evidence. No empty declarations. Actionable for the reader |
+| 9–10 | Concrete facts and numbers. Clear reader benefit. Examples and evidence. No empty declarations. Actionable for the reader. Sources are named and checkable, never gestured at («исследования показывают»); mechanisms are named, never replaced by placeholders («различные факторы») |
 | 7–8 | Mostly concrete, but 1–2 claims without evidence or abstract phrases |
 | 5–6 | Mix of concrete and abstract. Some claims are unsubstantiated. Reader benefit unclear |
-| 3–4 | Declarations and promises dominate over facts. Text says nothing |
+| 3–4 | Declarations and promises dominate over facts. Text says nothing. Here too: a piece addressed to a search engine rather than a reader (AD-15), which answers the query and leaves the reader unable to act |
 | 1–2 | Fully abstract: «Мы предлагаем комплексные решения для вашего бизнеса» |
 
 ---
@@ -140,6 +140,30 @@ These caps prevent high scores in other dimensions from masking critical weaknes
 
 Apply the most restrictive cap when multiple conditions trigger.
 
+**Severity in `addenda.md` does not add a cap.** Two rules there are graded High — AD-14
+(chat transcript as the artifact) and AD-15 (search-engine addressee) — and both are
+charged to the document rather than to a fragment. High says how far the dimension moves
+and that no local edit repairs the defect; it does not mean a fourth row belongs in the
+table above. The caps stay where they were: two hard dimensions and the global floor. This
+is a deliberate choice and not an omission — a cap keyed to a soft, judgement-heavy
+dimension would put a hard ceiling on a score behind a call a reader could reasonably
+dispute, which is the failure mode the five orthogonal dimensions exist to avoid.
+
+**But the label has a floor, and it is not the same thing as a cap.** A document charged
+with AD-14 or AD-15 is never labelled «Эталонный» or «Хороший», whatever the arithmetic
+returns. Report the number as computed and the label as capped at «Средний», with one line
+saying which rule capped it.
+
+The number is not touched, so nothing about the five dimensions is overridden: this
+constrains only the word a reader takes away. It exists because the arithmetic can be
+right and the summary still false. Measured: a search-engine stub — grammatical,
+typographically clean, and of no use to anyone — scored 6.7 on Typography 9.5 and Grammar
+9.5, because the two hard dimensions carry 0.35 of the weight and the whole harm sits in
+Reader precision, which was already at 3.0 with nowhere left to fall. A flawless chat
+transcript is the same shape and worse: with nothing wrong in any sentence it reaches 9.2,
+«Эталонный», for a genre that platforms remove on sight. No rule about words can lower
+either one, because neither has a defect in its words.
+
 ## Score interpretation
 
 | Score | Label (RU) | Label (EN) | Meaning |
@@ -151,6 +175,11 @@ Apply the most restrictive cap when multiple conditions trigger.
 | 0.0–2.9 | Критический | Critical | Full rewrite required |
 
 A score of 8+ is a strong result. 10.0 is a theoretical ideal, not a practical target.
+
+The two top labels have a floor above them: a document charged with AD-14 or AD-15 does not
+receive them (see «Non-compensatory rules»). Say so in one line — «ярлык ограничен: AD-15» —
+so the reader learns which rule capped it rather than wondering why the number and the word
+disagree.
 
 ## Output format
 
@@ -167,6 +196,7 @@ A score of 8+ is a strong result. 10.0 is a theoretical ideal, not a practical t
 
 **Формула:** T×0.15 + Ч×0.25 + Г×0.20 + С×0.20 + Ц×0.20 = X.X
 [Non-compensatory cap note, if triggered]
+[Label floor note, if triggered: «Ярлык ограничен до «Средний»: AD-14» / «: AD-15»]
 
 ### Что оценка не измеряет
 [Limitations list]

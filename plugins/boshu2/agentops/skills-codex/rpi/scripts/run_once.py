@@ -102,10 +102,36 @@ def invoke_once(
     if validation.get("acceptance_digest") != acceptance_digest:
         raise ValueError("Validate verdict does not match the resolved intent digest")
     subject_digest = validation.get("subject_manifest_digest")
+    if not valid_digest(subject_digest):
+        raise ValueError("Validate must return the exact subject manifest digest")
+    candidate_digest = subject.get("subject_manifest_digest")
+    if candidate_digest is not None and subject_digest != candidate_digest:
+        raise ValueError("Validate result does not match the implemented subject digest")
+    author_context_id = validation.get("author_context_id")
+    validator_context_id = validation.get("validator_context_id")
+    freshness = validation.get("freshness_attestation")
+    if (
+        not isinstance(author_context_id, str)
+        or not author_context_id
+        or not isinstance(validator_context_id, str)
+        or not validator_context_id
+        or author_context_id == validator_context_id
+        or not isinstance(freshness, Mapping)
+        or freshness.get("source") not in {"runtime", "caller"}
+        or not isinstance(freshness.get("attester_identity"), str)
+        or not freshness.get("attester_identity")
+    ):
+        raise ValueError("Validate must return distinct context identities and explicit freshness")
     verdict_digest = validation.get("verdict_digest")
     verdict_ref = validation.get("verdict_ref")
-    if not all(isinstance(value, str) and value for value in (subject_digest, verdict_digest, verdict_ref)):
-        raise ValueError("Validate must return durable verdict and subject identities")
+    if (verdict_digest is None) != (verdict_ref is None):
+        raise ValueError("Validate must return both verdict_ref and verdict_digest when persistence is requested")
+    if verdict_ref is not None and (
+        not isinstance(verdict_ref, str)
+        or not verdict_ref
+        or not valid_digest(verdict_digest)
+    ):
+        raise ValueError("Persisted verdict identity is invalid")
     return report(
         status,
         intent_ref=intent_ref,

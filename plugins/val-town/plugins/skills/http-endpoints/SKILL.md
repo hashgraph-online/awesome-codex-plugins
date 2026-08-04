@@ -25,14 +25,15 @@ When using Hono, export `app.fetch` (not `app`):
 
 ```ts
 import { Hono } from "npm:hono";
-import { parseVal, serveFile } from "https://esm.town/v/std/utils/index.ts";
+import { parseVal, serveImmutableFile } from "https://esm.town/v/std/utils/index.ts";
 
 const app = new Hono();
 
 app.get("/", (c) => c.text("hello"));
 
-// Serve all frontend files, transpiled, with correct content types
-app.get("/frontend/**/*", (c) => serveFile(c.req.path));
+// Immutable asset caching (see the client-side-js skill): serves the
+// current-version URLs your HTML shell stamps with immutableFileUrl()
+app.get("/__immutable/*", (c) => serveImmutableFile(c.req.path));
 
 // View source redirect
 app.get("/source", (c) => c.redirect(parseVal().links.self.val));

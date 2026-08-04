@@ -8,6 +8,7 @@ The OpenAPI surface includes dashboard-owned account connection routes:
 
 ```
 POST /x/accounts
+GET /x/account-connection-attempts/{id}
 POST /x/account-connection-challenges/{id}/submit
 POST /x/accounts/{id}/reauth
 POST /x/accounts/bulk-retry

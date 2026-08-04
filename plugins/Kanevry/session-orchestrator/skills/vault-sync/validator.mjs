@@ -62,6 +62,7 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import YAML from 'yaml';
 import { resolveInstructionFile } from '../../scripts/lib/common.mjs';
+import { findSessionConfigBlock } from '../../scripts/lib/config/section-extractor.mjs';
 import {
   computeSchemaHash,
   writeBaseline,
@@ -296,18 +297,38 @@ function isExcluded(relPath) {
 // Returns true if dir contains at least one recognized vault marker:
 //   1. _meta/ directory
 //   2. CLAUDE.md or AGENTS.md (alias — see skills/_shared/instruction-file-resolution.md)
-//      containing both "## Session Config" and "vault-sync:". The instruction
-//      file is resolved via resolveInstructionFile() so CLAUDE.md wins ties and
-//      AGENTS.md is accepted on Codex CLI repos.
+//      whose `## Session Config` block declares a `vault-sync:` key. The
+//      instruction file is resolved via resolveInstructionFile() so CLAUDE.md
+//      wins ties and AGENTS.md is accepted on Codex CLI repos.
 //   3. .obsidian/ directory
+//
+// Marker 2 was two whole-file substring tests until #968:
+//   content.includes('## Session Config') && content.includes('vault-sync:')
+// A substring test is the wrong instrument for "does this directory look like
+// a vault" in three independent ways, all reachable:
+//   (a) `'### Session Config'.includes('## Session Config')` is TRUE (from
+//       index 1), so an H3 — or any deeper heading — passed the marker.
+//       HTML comment matched. Any document ABOUT session-orchestrator config
+//       reads as a vault marker.
+//   (b) A `## Session Config` mention in ordinary prose (not at line start)
+//       matched, e.g. "see the ## Session Config block" mid-sentence.
+//   (c) `vault-sync:` was accepted ANYWHERE in the file — a prose sentence or
+//       a doc-comment sufficed; it never had to be a config key, let alone one
+//       inside the Session Config block.
+// Misclassifying a directory as a vault is not cosmetic: it makes the
+// validator crawl and enforce vault frontmatter over an arbitrary tree, and
+// (via the cwd branch below) silently adopt it as VAULT_DIR.
+//
+// The fix uses the SSOT block extractor, so the heading must be a real
+// heading LINE and `vault-sync:` must be a key INSIDE that block.
 function isVaultDir(dir) {
   if (existsSync(join(dir, '_meta')) && statSync(join(dir, '_meta')).isDirectory()) return true;
   if (existsSync(join(dir, '.obsidian')) && statSync(join(dir, '.obsidian')).isDirectory()) return true;
   const instr = resolveInstructionFile(dir);
   if (instr) {
     try {
-      const content = readFileSync(instr.path, 'utf8');
-      if (content.includes('## Session Config') && content.includes('vault-sync:')) return true;
+      const block = findSessionConfigBlock(readFileSync(instr.path, 'utf8'));
+      if (block && /^\s*(?:-\s+)?(?:\*\*)?vault-sync(?:\*\*)?\s*:/m.test(block.body)) return true;
     } catch {
       // unreadable instruction file — not a vault marker
     }

@@ -11,18 +11,15 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
-For non-trivial plan execution, include `Aegis Visibility` in natural prose:
-name why Aegis is keeping the current slice tied to the approved plan,
-checkpoint, drift check, pre-edit governance, or verification boundary. This
-visibility belongs to the active execution workflow; do not replace it with a
-generic used-skills log.
+For non-trivial execution, include `Aegis Visibility`: briefly tie the active
+slice to its plan, checkpoint, drift or verification boundary. At completion,
+pass plan adherence, evidence, complexity and residual risk to
+`verification-before-completion` for the unified receipt.
 
-When execution reaches completion, do not invent a separate final report shape
-for this workflow. Pass plan adherence, checkpoint/drift status, verification,
-complexity, and residual risk into `verification-before-completion` so the
-user-facing closeout uses the unified Aegis impact/safety receipt.
-
-**Note:** Tell your human partner that Aegis works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use aegis:subagent-driven-development instead of this skill.
+If subagents are available and the plan has genuinely independent tasks,
+prefer `subagent-driven-development`; lack of subagent support does not block
+inline execution. Same-task agents share one workspace, and the coordinator
+remains the only Git mutation owner.
 
 ## The Process
 
@@ -36,21 +33,24 @@ user-facing closeout uses the unified Aegis impact/safety receipt.
 3. Review critically - identify any questions or concerns about the plan
 4. If the view contradicts the plan, baseline, or current worktree evidence,
    return to plan review or refresh the advisory handoff before editing.
-5. Run the TDD Route Guard before implementation:
-   - confirm the plan records `Mode`, `Decision`, `Strict authority`, `Test
-     posture`, and verification;
-   - treat plan approval, a bug label, architecture risk, contract risk, and
-     shared-module wording as non-authoritative for strict TDD;
-   - allow `Write failing test`, `Verify RED`, `GREEN`, or `REFACTOR` task
-     steps only when `Decision: strict` and its strict authority are both
-     recorded;
-   - in `off`, a missing record may be repaired only as `Mode: off / Decision:
-     skipped` unless an explicit user/project strict request is present; this
-     record does not load `test-driven-development`;
-   - in `auto`, a missing decision or a strict-looking task without strict
-     authority returns to plan review. Do not infer `strict` during execution.
+5. Run the TDD Route Guard before implementation: confirm `Mode`, `Decision`, `Strict authority`,
+   `Test posture`, and verification. Strict steps require recorded explicit
+   user/project authority; plan approval or risk labels are not authority. An
+   off-mode missing record may be repaired only as `Mode: off / Decision:
+   skipped` without loading TDD. Missing/unsupported auto decisions return to
+   plan review. Only `Decision: strict` with recorded strict authority may
+   authorize steps named `Write failing test`, `Verify RED`, `GREEN`, or
+   `REFACTOR`. Do not infer `strict` during execution.
 6. If concerns: Raise them with your human partner before starting
-7. If no concerns: Create TodoWrite and proceed
+7. Before the first write, capture `TaskStartSnapshot`: root, `HEAD`, branch or
+   detached state, upstream divergence, staged/unstaged/untracked paths, active
+   Git operations, and `git worktree list --porcelain`. Preserve task-preexisting
+   state; do not stash, reset, clean, or commit it.
+8. Reuse the current branch unless rules require independent history or another
+   goal owns it. If justified, switch/create it in the
+   current workspace when safe; a worktree still requires
+   concurrent checkout or blocking dirty state.
+9. If no concerns: Create TodoWrite and proceed
 
 ### Step 1.5: Long-Task Checkpoint Setup
 
@@ -136,19 +136,26 @@ For each task:
    boundary is clear. `emergency / compatibility patch` requires residual risk
    and a retirement trigger.
 5. Run verifications as specified
-6. Update `TodoCheckpointDraft` and `DriftCheckDraft` before marking the task completed.
+6. The coordinator is the Git mutation owner. After the coherent Task passes
+   its planned verification, use `verification-before-completion` before a
+   default local commit, stage only task-owned paths, and read back `HEAD`, the
+   committed file list, and remaining task delta. `no commit`, read-only,
+   no-change, and failed-verification tasks create no normal commit.
+7. Update `TodoCheckpointDraft` and `DriftCheckDraft` before marking the task completed.
    When an `Execution Readiness View` exists, the drift check must explicitly
    compare the active slice against the view's intent lock, scope fence,
    baseline lock, compatibility boundary, retirement boundary, test
    obligations, and review gates.
-7. Mark as completed
+8. Mark as completed
 
 ### Step 3: Complete Development
 
 After all tasks complete and verified:
-- Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use aegis:finishing-a-development-branch
-- Follow that skill to verify tests, present options, execute choice
+
+- if Aegis created a branch/worktree or the user requests integration handling,
+  use `aegis:finishing-a-development-branch`;
+- otherwise use `verification-before-completion`, report the local task commit
+  and `Task clean` / `Repository clean`, and do not invent merge/PR ceremony.
 
 ## When to Stop and Ask for Help
 
@@ -174,11 +181,12 @@ After all tasks complete and verified:
 - Don't skip verifications
 - Reference skills when plan says to
 - Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+- Do not create a branch merely because the current branch is `main`/`master`
+- Do not let task complexity, TDD, planning, or subagents alone trigger a worktree
 
 ## Integration
 
 **Required workflow skills:**
-- **aegis:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **aegis:writing-plans** - Creates the plan this skill executes
-- **aegis:finishing-a-development-branch** - Complete development after all tasks
+- **aegis:using-git-worktrees** - Only when the approved Git lifecycle says a concurrent checkout is necessary
+- **aegis:finishing-a-development-branch** - Only when branch/worktree integration or cleanup is in scope

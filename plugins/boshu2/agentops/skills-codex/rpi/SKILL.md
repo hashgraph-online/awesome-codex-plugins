@@ -48,8 +48,10 @@ authorization by itself.
 3. Invoke Validate once in a context distinct from the author's context. Pass
    the intent reference and digest, exact subject manifest, factual receipts,
    validator identity, and freshness attestation.
-4. Return the durable `verdict.v2` reference and a short report. Stop regardless
-   of `PASS`, `FAIL`, or `NOT_PROVEN`.
+4. Return the fresh validation result and a short report. Persist and link
+   `verdict.v2` only when the caller requests machine-readable evidence or a
+   declared downstream consumer requires it. Stop regardless of `PASS`, `FAIL`,
+   or `NOT_PROVEN`.
 
 `NOT_PLANNED` and `NOT_BUILT` are report statuses, never semantic verdicts.
 A caller may revise the bead or caller intent and start a new invocation. RPI
@@ -65,9 +67,9 @@ one outcome and one acceptance boundary.
 If control artifacts or fresh-validation cycles are multiplying faster than
 implementation evidence, stop dispatching more lanes. Return to one
 outcome-level intent and continue with targeted deterministic checks, reserving
-the full integration check and fresh verdict for the frozen subject. This
+the full integration check and fresh validation for the frozen subject. This
 changes orchestration cost, never acceptance, exact identity, fail-closed
-scope, or verdict authority.
+scope, or validation authority.
 
 ## Continuation envelope
 
@@ -81,11 +83,13 @@ run — report `NOT_BUILT` when no implementation subject exists yet;
 when a subject already exists, stop and report its current status without
 dispatching further lanes. Neither breaker dispatches a repair revision. An
 orchestration without a declared envelope does not converge; it accretes
-lanes. The 2026-07-15
-heal-skill fold ran three intent revisions
-(`.agents/ao/intents/sha256/26a4f2be...eb48` lineage) and a `NOT_PROVEN` then
-PASS verdict pair (`.agents/ao/verdicts/sha256/b6e759dd...cb6a`,
-`e9b6cdb8...37b9`) before an enforced two-stop checkpoint ended the wave.
+lanes. For example, a plan that keeps failing acceptance on the same criterion
+might tempt three intent revisions in a row
+(`.agents/ao/intents/sha256/<rev1>...` superseded by `<rev2>...` superseded by
+`<rev3>...`) chasing a `NOT_PROVEN` then a second `NOT_PROVEN`
+(`.agents/ao/verdicts/sha256/<verdict1>...`, `<verdict2>...`) — the declared
+envelope's two-stop checkpoint ends the wave there instead of dispatching a
+third attempt.
 
 Delegate with minimal context: a lane receives the frozen intent reference and
 the established facts it needs, never the orchestrator's full conversation
@@ -107,18 +111,43 @@ disjoint regen surfaces may run in parallel.
   explicit freshness attestation.
 - Optional Premortem, Postmortem, Council, genie, factory, tracker, and runtime
   adapters are caller-selected. They do not alter phase order or core outcomes.
+  When a factory adapter is selected, work enters it through that factory's
+  coordinator (for Gas City, the Mayor — see
+  [using-gc](../using-gc/SKILL.md)); RPI hands over intent and never dispatches
+  factory runs itself.
 - Learn is an optional later consumer of verdict collections and is not part of
   this invocation.
 
 ## Report
 
-RPI has two report surfaces. Keep them distinct:
+RPI has one required report surface and one optional representation:
 
-1. **Machine artifact:** return or persist the exact
-   [`rpi-report.v1`](../../schemas/rpi-report.v1.schema.json) object for
-   adapters, automation, and audit.
-2. **Interactive response:** summarize that object for the caller in natural
+1. **Interactive response:** return the result to the caller in natural
    language. This is the default assistant response.
+2. **Machine artifact:** return or persist the exact `rpi-report.v1` object
+   only when the caller requests machine-readable evidence or a declared
+   adapter consumes it. The schema ships in a repo checkout at
+   `schemas/rpi-report.v1.schema.json`; the minimal required shape is:
+
+   ```json
+   {
+     "schema_version": "rpi-report.v1",
+     "status": "PASS",
+     "intent_ref": ".agents/ao/intents/sha256/<64-hex-digest>.intent",
+     "acceptance_digest": "<64-hex-char-sha256-or-null>",
+     "subject_manifest_digest": "<64-hex-char-sha256-or-null>",
+     "verdict_ref": "<verdict-location-or-null>",
+     "verdict_digest": "<64-hex-char-sha256-or-null>",
+     "checked": ["<criterion satisfied by evidence>"],
+     "not_checked": ["<criterion not covered>"]
+   }
+   ```
+
+   `status` is one of `PASS | FAIL | NOT_PROVEN | NOT_PLANNED | NOT_BUILT`; the
+   three digest fields, when present, are 64-character lowercase hex SHA-256
+   strings; `checked` and `not_checked` are arrays of strings. All nine keys
+   are required (use `null` for an inapplicable ref or digest), and no
+   additional properties are allowed.
 
 Lead the interactive response with the status and one sentence stating the
 caller-visible outcome. Lead with the subject, not the process: production
@@ -129,10 +158,8 @@ unchecked scope, and a clickable verdict reference when one exists. Name why
 no subject exists for `NOT_PLANNED` or `NOT_BUILT`. Keep the response to one
 short paragraph or at most four bullets.
 
-The machine artifact remains behind the verdict/report link. Emit its full
-JSON or YAML object only when the caller explicitly requests machine-readable
-output or an adapter consumes the response. Raw digests, schema fields, and
-exhaustive check lists stay in the artifact unless an integrity failure makes
-one necessary to explain the result.
+When no machine artifact was requested, do not create a hidden one. Raw digests,
+schema fields, and exhaustive check lists stay out of the interactive response
+unless an integrity failure makes one necessary to explain the result.
 
 Do not append a next action. The caller owns continuation.

@@ -35,7 +35,7 @@ Build the introduction as a narrowing funnel:
 1. Establish the application importance and technical need.
 2. Define the key thermal-fluid phenomenon or performance metric.
 3. Summarize state of the art by category, not paper by paper.
-4. Identify what existing approaches have established.
+4. Identify the specific mechanisms, capabilities, quantitative relations, and limits supported by existing approaches.
 5. State what remains difficult to measure, predict, isolate, generalize, or design.
 6. Explain why the gap persists, such as coupled physics, limited diagnostics, expensive CFD, uncertain boundary conditions, scale mismatch, or insufficient data.
 7. Introduce the present work as a targeted response to that gap.
@@ -52,7 +52,7 @@ At the end of the introduction, include a contribution paragraph that answers:
 - What comparisons or validation are performed?
 - What physical insight or practical capability is obtained?
 
-Prefer concrete contribution verbs:
+Prefer concrete contribution verbs only when the evidence supports them:
 
 - develops
 - validates
@@ -61,7 +61,7 @@ Prefer concrete contribution verbs:
 - demonstrates
 - reveals
 - identifies
-- establishes
+- resolves
 - enables
 
 Avoid vague verbs such as "explores" unless the work is explicitly exploratory.
@@ -102,23 +102,16 @@ For AI/ML papers, include:
 
 Write results as a sequence of figure-led arguments.
 
-For each major figure or table:
+For each major figure or table, develop this logic without forcing stock sentence stems:
 
-1. Orient: "Fig. X shows..." with variables, conditions, cases, and uncertainty representation.
+1. Orient the reader to variables, conditions, cases, and uncertainty representation.
 2. Observe: state the main trend, regime, threshold, error pattern, or comparison.
 3. Quantify: provide key values, relative changes, slopes, errors, or performance metrics when useful.
 4. Explain: connect the observation to physical mechanisms, model structure, measurement effects, or data features.
 5. Compare: relate to literature, baseline cases, simulations, correlations, or other surfaces/regimes.
 6. Imply: state what this means for the research question, design guidance, measurement capability, or next analysis.
 
-Use transition sentences to make the analysis cumulative:
-
-- "To understand the role of..."
-- "To isolate the effect of..."
-- "To validate the model..."
-- "To examine whether this trend generalizes..."
-- "This observation indicates..."
-- "These results suggest..."
+Use varied transitions that make the analysis cumulative. Avoid repeating canned phrases such as "Figure X shows," "It is observed that," or "Physically, this can be attributed to" in every paragraph.
 
 Do not present plots as isolated results. Each figure should either answer a question, motivate the next analysis, or close a gap from the introduction.
 
@@ -160,6 +153,10 @@ Use literature comparison to establish generality or positioning, not as decorat
 - Explain differences through geometry, regime, fluid, material, diagnostic method, or data reduction.
 - State whether the present result confirms, extends, or challenges prior understanding.
 - If performance is not better than literature, identify the actual contribution, such as measurement access, transient behavior, multimodal data, model interpretability, uncertainty quantification, or practical implementation.
+
+## Main Manuscript And Supplement
+
+Keep evidence required for a main conclusion in the main manuscript and discuss it there. Use the supplement for derivations, preprocessing, robustness detail, secondary diagnostics, and extensive tables that support but do not carry the central argument. Respect venue page limits while keeping the main paper self-contained.
 
 ## Sentence-Level Preferences
 

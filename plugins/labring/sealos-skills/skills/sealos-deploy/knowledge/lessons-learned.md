@@ -68,7 +68,7 @@ verification:
   - "First boot logs are clear"
   - "Login or setup works with deploy-time credentials"
   - "At least one authenticated API/page works"
-  - "Random authenticated missing path returns 404"
+  - "Documented authenticated API negative route returns 404, or a unique missing static asset is used for SPA fallback"
   - "Footprint shows expected ready/desired counts and zero restarts"
 ```
 
@@ -319,3 +319,33 @@ rule:
 verification:
   - "git diff -U0 -- template/<app>/index.yaml | rg ephemeral-storage returns no lines for unrelated changes"
 ```
+
+## Consolidated Runtime Truth Contract
+
+The following rules combine the reusable runtime, authentication, route, Job, log, footprint, Secret, and S3/database lessons. Apply them to every live deployment and keep app-specific examples below this contract aligned with them.
+
+### Runtime identity, root routes, and authentication
+
+- Read the actual Instance/App names and App URL host from the Template API response or live App resource. A requested `app_name` can produce a different Instance or ingress host.
+- Run the Launchpad public-network check before HTTP smoke. For an HTTP Ingress with several paths, the root Prefix path `/` appears first; its numeric backend port matches the public Service port and its host matches the App URL.
+- Exercise the configured entrance path and `/` from a fresh session. Pick the entry that reaches the real first-run or login screen without SSR/browser failure text.
+- Use the exact deploy-time administrator values for login/setup. JSON-token flows and cookie-session flows are both valid; cookie-session flows derive the dynamic CSRF header from the CSRF cookie before posting credentials and reuse the session on authenticated routes.
+- Redact passwords, bearer tokens, cookies, CSRF values, captcha payloads, and derived credentials from command output, logs, and reports.
+
+### Jobs, logs, and database final state
+
+- Keep database bootstrap and compatibility repair in idempotent initContainers or Jobs while the main container stays close to the official entrypoint and ends wrappers with `exec`.
+- A completed or TTL-expired Job proves execution history. Acceptance requires the live database final state: required databases, tables/views, extensions, indexes, roles, grants, search paths, and migration markers.
+- PostgreSQL custom-database Jobs wait for database readiness and create the target database idempotently. Migration-dependent workers gate on required tables or app-specific markers, not only a database port.
+- Capture a no-baseline log report after readiness, then compare after the stability window. A `Succeeded` Pod with zero exit codes is completed workload evidence; failed or non-zero completion remains blocking. Completed init output may be retained as `historicalCompletedInit: true` when completion time and exit code predate `baseline.generatedAt`, Pod UID/restarts/completion markers stay unchanged, and output is unchanged; the scan uses the baseline timestamp as the log increment boundary. Active init/main failures, restart deltas, readiness flaps, advancing Warning Events, unresolved referenced Secrets, OOM/CrashLoop, and repeated tracebacks fail acceptance.
+
+### Footprint and object storage
+
+- Inventory `Instance`, App, workloads, CronJobs, Jobs, Services, Ingresses, PVCs, KubeBlocks Clusters, and `ObjectStorageBucket` resources before cleanup or handoff.
+- `sealos-footprint.mjs` must complete every requested listing successfully before `cleanupComplete: true` is accepted. Permission errors keep cleanup unresolved even when the visible resource list is empty.
+- Managed or private S3 acceptance requires authenticated upload, application read/download with matching content, proxy or time-bounded presigned delivery, restricted anonymous raw-object access, and smoke-object deletion when supported. Optional S3 requires independent local and managed-bucket branch evidence.
+
+### Runtime-derived secrets and S3/DB coupling
+
+- A template may carry a quoted opaque seed in `spec.defaults` only when the runtime library deterministically derives and validates the final credential before `exec`. The seed and derived value stay out of reports, and the application must fail before serving traffic when validation fails.
+- S3 and database readiness are separate contracts. Verify approved KubeBlocks Secret keys and required database objects alongside managed object-storage Secret wiring and the `ObjectStorageBucket`; a Ready Pod or successful Job alone does not prove either data plane.

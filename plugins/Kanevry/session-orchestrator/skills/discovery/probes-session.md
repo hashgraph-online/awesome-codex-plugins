@@ -231,13 +231,34 @@ Actual: <what was found or NOT found>
 
 5. Token efficiency — CLAUDE.md size:
 ```bash
-# Count lines in CLAUDE.md
-wc -l CLAUDE.md
+# Delegate the threshold — do NOT re-implement it here. This probe used to
+# carry its own numbers (`wc -l` > 150 warn / > 250 high); both the unit and
+# the value were wrong. The ceiling is `DEFAULT_MAX_LINES = 80` and it applies
+# to NON-EXEMPT effective lines: the runtime-critical `## Session Config` block
+# is machine-parsed configuration, not trimmable prose, so a raw `wc -l` gate
+# flags a compliant lean-root file (this plugin's own CLAUDE.md: 209 raw lines,
+# 61 non-exempt — a `wc -l` rule fires, the lint passes).
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+node "${PLUGIN_ROOT}/scripts/lib/claude-md-budget-lint.mjs" \
+  --repo-root "$REPO_ROOT" --mode warn --json
+# → {"status":"ok"|"invalid","file":…,"lineCount":…,"exemptLines":…,
+#    "effectiveLineCount":…,"maxLineCharsSeen":…,"hasProvenance":…,
+#    "violations":[{"rule":"max-lines"|"max-line-chars"|…,"message":…}]}
+# Flag ONLY on a violations[] entry — never on lineCount vs a local number.
+# `--mode warn` keeps the exit code 0, so read the JSON, not `$?`.
 
-# Flag if > 150 lines (warning) or > 250 lines (high)
+# Ceiling value, when a finding needs to quote it (e.g. a 2x high tier):
+node --input-type=module -e "
+import { DEFAULT_MAX_LINES } from '${PLUGIN_ROOT}/scripts/lib/claude-md-budget-lint.mjs';
+process.stdout.write(String(DEFAULT_MAX_LINES));
+"
+
+# Heuristics the lint does NOT measure — still eyeball these:
 # Identify sections > 30 lines that could move to <state-dir>/rules/ or <state-dir>/docs/
 # Check for inline code blocks > 10 lines (should be in separate files)
 ```
+
+**Dependencies (probe 5):** requires `${PLUGIN_ROOT}/scripts/lib/claude-md-budget-lint.mjs` (#722 Epic A). Degrades gracefully when the helper is absent (pre-#722 plugin install) — skip the size finding with a note, do not fall back to a hand-rolled `wc -l` threshold, which is the drift this delegation removes.
 
 6. Token efficiency — .claudeignore coverage:
 ```bash

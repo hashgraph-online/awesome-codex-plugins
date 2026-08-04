@@ -85,6 +85,7 @@ Waggle is a local MCP server that gives coding agents persistent graph memory.
 Recommended:
 
 - VS Code: install the live `Waggle: Local Memory for AI Agents` extension from the Marketplace for one-click setup
+- Codex: install the self-hosted Codex MCP plugin from the GitHub Release marketplace bundle
 - MCP clients: use [docs/install](./docs/install/README.md) and Smithery metadata in `smithery.yaml`
 - Claude: use [docs/install/claude-code.md](./docs/install/claude-code.md) or [docs/install/claude-desktop.md](./docs/install/claude-desktop.md)
 - Developers: `pipx install waggle-mcp`
@@ -399,13 +400,20 @@ Claude Code also supports **automatic memory hooks** — see the [Hooks](#automa
 
 ### Codex
 
-The easiest install path is the Codex app plugin via the marketplace bundle
-published on the [`v0.1.17` release](https://github.com/Abhigyan-Shekhar/Waggle-mcp/releases/tag/v0.1.17)
-— download `waggle-codex-marketplace-v0.1.17.zip`, extract it, then run
-`codex plugin marketplace add /path/to/waggle-codex-marketplace-v0.1.17` and
-install `Waggle` from the added marketplace. `v0.1.16` was a partial release
-and is not a viable Codex marketplace install source. See
-[`docs/install/codex.md`](docs/install/codex.md) for full details.
+Waggle is available for Codex as a self-hosted local MCP plugin. No hosted
+backend, Apple Developer ID, or Windows Authenticode certificate is required:
+users download the marketplace zip from GitHub Releases, add it to Codex, and
+the bundled MCP runtime runs on their own machine.
+
+The easiest install path is the Codex app plugin marketplace bundle published
+on the [`v0.1.18` release](https://github.com/Abhigyan-Shekhar/Waggle-mcp/releases/tag/v0.1.18):
+download `waggle-codex-marketplace-v0.1.18.zip`, extract it, then run
+`codex plugin marketplace add /path/to/waggle-codex-marketplace-v0.1.18` and
+install `Waggle` from the added marketplace. The runtime is intentionally
+unsigned, so macOS Gatekeeper or Windows SmartScreen may show a first-run
+warning; verify the checksum or GitHub attestation before approving it.
+`v0.1.16` was a partial release and is not a viable Codex marketplace install
+source. See [`docs/install/codex.md`](docs/install/codex.md) for full details.
 
 For direct Codex CLI usage instead, add Waggle to `~/.codex/config.toml`:
 

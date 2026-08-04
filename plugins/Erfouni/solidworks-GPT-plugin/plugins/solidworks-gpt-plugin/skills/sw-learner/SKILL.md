@@ -54,6 +54,25 @@ Follow `../../schemas/feedback-submission.schema.json`. Always include:
 
 Add arrays only when they contain at least one item. Omit empty arrays entirely.
 
+### Classification hints
+
+You know what you were asked to build. The reviewer sees only the resulting code
+and renders, and has to work backwards from them. Pass that knowledge forward so
+they confirm rather than deduce:
+
+- `suggestedCategory`: an exact category `name` from `GET {SW_KB_HOST}/api/categories`.
+  Fetch the list; never invent a name. Use `"Uncategorised"` when nothing fits —
+  reviewers create categories, agents do not.
+- `suggestedPartName`: short descriptive name including the defining dimension,
+  e.g. `"Cardan yoke, 30mm bore"`.
+- `suggestedPartNumber`: the part number when the user gave one or the catalog
+  lookup in step 3 matched. **Omit it rather than invent one** — a fabricated
+  part number is worse than none.
+
+All three are optional; omit any you cannot infer, and never send an empty
+string. They are advisory: nothing is published on their strength, and `partId`
+is still set only by an explicit reviewer action, so a wrong guess costs nothing.
+
 ### Instructions
 
 Include exact ordered build steps with the SolidWorks version, material, final

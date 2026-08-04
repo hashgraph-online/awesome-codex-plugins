@@ -33,6 +33,63 @@ Do **not** run it for the quick bug lane when the fix is at the canonical owner
 of a single-component, single-owner bug and no patch-shape signal fires. Keep
 simple tasks cheap.
 
+## Deeper Cause Challenge
+
+Before any non-trivial root claim, account for the mechanism that can regenerate
+the failure. A locally effective intervention proves that the selected point is
+causal; it does not prove that the point is the recurrence generator.
+
+Run the full challenge when an upstream producer, configuration, default,
+contract, policy, or specification dependency has not been excluded. Record:
+
+```text
+Deeper Cause Challenge:
+- Claimed cause:
+- Causal status: root | proximate | contributing | deepest-confirmed-root-unknown | external-terminal
+- Upstream generator:
+- Recurrence path:
+- Counterfactual intervention:
+- Plausible deeper candidate:
+- Rejection evidence:
+- Recurrence status: closed | open
+- Topology / anti-disguise proof:
+```
+
+The causal statuses mean:
+
+- `root`: the recurrence generator is accounted for and closed;
+- `proximate`: the mechanism directly produces the symptom but can be regenerated upstream;
+- `contributing`: the mechanism changes likelihood or severity without independently generating the bug class;
+- `deepest-confirmed-root-unknown`: evidence confirms the deepest observed mechanism but ends before root closure;
+- `external-terminal`: the actionable chain ends at a proven T-class boundary.
+
+A `root` claim requires all of these: the upstream generator is accounted for,
+the recurrence path is closed, the counterfactual eliminates the relevant bug
+class rather than one sample, at least one plausible deeper candidate is
+rejected with evidence, and the topology / anti-disguise proof passes. If any
+item remains open, use `proximate`, `contributing`, or
+`deepest-confirmed-root-unknown`; never promote the deepest observed mechanism
+to root by default.
+
+### Quick Exit Proof
+
+The quick bug lane may skip the full challenge only with explicit negative
+proof:
+
+```text
+Quick Exit Proof:
+- Canonical local owner:
+- Origin and termination: bad value/state originates and terminates here
+- Upstream producer/config/default/contract/policy/spec: excluded with evidence
+- History and same-pattern searches: negative
+- Variant counterfactual: eliminates the bug class
+- Causal status: root
+```
+
+If any quick-exit field is unknown or positive, leave the quick lane and run the
+full challenge. A familiar file, canonical owner, or green local test is not a
+substitute for this proof.
+
 ## The Five Gate Checks
 
 A root-cause claim passes only when all five are satisfied. Each turns a
@@ -97,24 +154,53 @@ before it may collapse to a single-root claim.
 | `single-root` | A → symptom | Layer Ceiling Proof at A | fix A |
 | `single-root-multi-symptom` | A → B, C, D | Layer Ceiling Proof at A | fix A, symptoms self-resolve |
 | `chain` | A → B → C → symptom | Layer Ceiling Proof at A | drill to A, fix A |
-| `independent-compound` | A → symptom, Y → symptom, A ⊥ Y | each root independently satisfies Gate 1/2/5; prove no shared upstream | fix A **and** Y; missing one leaves symptom |
+| `independent-compound` | A and Y are both active in the same incident; each independently produces an anchored manifestation; A ⊥ Y | prove same-incident activity, each root's Gate 1/2/5, and no shared upstream | fix **all active roots**; missing one leaves its causal path |
 | `conjunctive-cluster` | A ∧ B ∧ C → symptom (each necessary, none sufficient) | enumerate members, necessity test each, sufficiency test the set, anti-disguise check | fix **all** members; missing one leaves symptom |
-| `disjunctive-or` | A ∨ B → symptom (any one suffices) | enumerate all disjuncts | fix one to stop symptom; enumerate rest for defense-in-depth |
+| `disjunctive-or` | A ∨ B can cause symptom; current evidence shows one or an unknown active disjunct | identify the incident's active root and enumerate alternatives | fix the observed active root; enumerate alternatives for defense-in-depth |
 
-### Member proof for cluster / compound
+Classification boundary: `independent-compound` requires evidence that two or
+more causally independent roots are active in the same observed incident. If
+evidence identifies one active root while other roots are alternative sufficient
+mechanisms, classify `disjunctive-or`; if activity is unresolved, keep topology
+`unknown`. Alternative mechanisms alone do not prove simultaneous activity.
 
-For `conjunctive-cluster` and `independent-compound`, each claimed member must
-pass a **necessity test**: "if this member alone were removed, would the
-symptom still occur?" If the answer is "no, it would still occur," this is not
-a member — it is noise, or a downstream effect of another member. The cluster
-as a whole must pass a **sufficiency test**: together, the members must explain
-every observed manifestation of the symptom, not just the headline failure.
+```text
+ClassificationRules:
+- independent-compound: multiple active roots in same incident
+- disjunctive-or: one active root plus alternative sufficient roots
+```
 
-Necessity tests in a method-pack context are **conceptual proofs**, not
-empirical test runs — you reason about removal rather than performing it. This
-is a known ceiling: proving cluster completeness beyond doubt requires runtime
-coverage that a method pack cannot grant. State this honestly when the cluster
-has many members.
+### Topology-specific member proof
+
+#### Conjunctive cluster proof
+
+For `conjunctive-cluster`, each member must pass a **necessity test**: with all
+other claimed members present, conceptually remove this member. If the symptom
+still occurs, the member is not necessary for that cluster. The full set must
+also pass a **sufficiency test** by explaining every observed manifestation,
+not only the headline failure.
+
+#### Independent compound proof
+
+For `independent-compound`, do not reuse the conjunctive removal test. Prove
+that every claimed root is active in the same incident and independently passes
+Gates 1, 2, and 5: under evidence excluding the other roots, it can produce its
+anchored manifestation. Removing it must eliminate its own causal path, although
+the overall symptom may persist through another independent root. Also prove no
+shared upstream and enumerate conditions/manifestations assigned to every root.
+
+```text
+TopologyEvidence:
+- Candidate: independent-compound | disjunctive-or | unknown
+- Same-incident active roots:
+- Alternative sufficient roots:
+- Shared upstream: none | found | unknown
+- Repair obligation:
+```
+
+These are **conceptual proofs**, not empirical removals. Complete topology proof
+may require runtime coverage that a method pack cannot grant; state that ceiling
+honestly when member completeness remains uncertain.
 
 ### Anti-disguise check (the step most often skipped)
 
@@ -169,21 +255,28 @@ Running the Topology Gate against that stop:
 - The agent had **two** causal paths to the 10-row symptom: (A) no
   full-document conversion family, and (B) the artifact projection sourced
   content from the visible answer text rather than the parsed rows.
-- Necessity test on B alone: "if only B were fixed, would the symptom stop?"
-  No — without a contract driving full-row reads, the projection still has no
-  full input to draw on. B is a genuine member.
-- Necessity test on A alone: "if only A were fixed, would the symptom stop?"
-  No — even with a conversion family, the projection still reads visible text.
-  A is a genuine member.
-- This is a `conjunctive-cluster` of {A, B} — **not** a single root.
+- Independent proof for A: with B excluded (projection reads parsed rows), the
+  missing full-document contract still produces the incomplete-row symptom.
+- Independent proof for B: with A excluded (the contract requires all rows),
+  visible-answer projection still produces the incomplete-row symptom.
+- Fixing only A or B leaves the other causal path active. This is an
+  `independent-compound` candidate {A, B} — **not** a single root.
 - **Anti-disguise check:** do A and B share a deeper cause? Yes. Neither
   exists because the system never defined "whole-file artifact generation" as
   a first-class workflow with a completeness obligation — an L7 Spec Gap. A
   and B are two manifestations of that single deeper cause.
 
-Final classification: topology collapses from `conjunctive-cluster` to
+Final classification: topology collapses from `independent-compound` to
 `single-root-multi-symptom` rooted at the L7 Spec Gap, with two ripple paths
 (A, B) that must both be repaired when the spec gap is addressed.
+
+```text
+ExampleTopologyEvidence:
+- Candidate: independent-compound
+- Same-incident active roots: A, B
+- Anti-disguise result: shared upstream L7 Spec Gap
+- Final: single-root-multi-symptom
+```
 
 Without the gate, the first turn would have shipped an L4 non-root as a root,
 and the second turn would have shipped an L6 half-root and silently dropped

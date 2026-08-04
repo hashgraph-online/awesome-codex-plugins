@@ -1,6 +1,6 @@
 {
     "name": "@dodopayments/opencode-plugin",
-    "version": "0.3.3",
+    "version": "0.4.0",
     "description": "Dodo Payments skills and MCP server hints for OpenCode.",
     "type": "module",
     "main": "opencode-plugin/index.js",

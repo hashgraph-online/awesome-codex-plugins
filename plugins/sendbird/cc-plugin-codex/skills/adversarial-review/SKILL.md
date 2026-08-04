@@ -41,9 +41,10 @@ Execution mode rules:
   - Recommend waiting only when the scoped review is clearly tiny, roughly 1-2 files total and no sign of a broader directory-sized change.
   - In every other case, including unclear size, recommend background.
   - When in doubt, run the review instead of declaring that there is nothing to review.
-- Then use `AskUserQuestion` exactly once with two options, putting the recommended option first and suffixing its label with `(Recommended)`:
+- Then ask the user once which execution mode to use, offering two options with the recommended one first and its label suffixed `(Recommended)`:
   - `Wait for results`
   - `Run in background`
+- Use a question tool for that ask only when this thread actually has one. Codex exposes `request_user_input` only behind `[tools] experimental_request_user_input`, and it does not exist in non-interactive threads. If you have no question tool but a user is reading this thread, ask in your own reply and stop there. In a non-interactive thread with no user to answer, skip the ask and proceed with the recommended mode. Never spin on a wait or collaboration tool looking for a picker this thread does not have.
 
 Argument handling:
 - Preserve the user's arguments exactly.

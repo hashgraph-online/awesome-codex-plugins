@@ -63,6 +63,25 @@ For local development, run Claude Code with this plugin directory:
 claude --plugin-dir /path/to/reviewable-html-workbench
 ```
 
+#### Turning off the built-in Artifact tool
+
+Claude Code ships an `Artifact` tool that publishes a page to `claude.ai`. When you ask for
+HTML output, Claude may reach for that tool instead of this plugin's skills, which sends your
+content to an external host. If you want HTML to stay local, disable the tool in
+`~/.claude/settings.json`:
+
+```json
+{
+  "disableArtifact": true
+}
+```
+
+Claude Code checks this key together with the `CLAUDE_CODE_DISABLE_ARTIFACT` environment
+variable, so either one works. Unlike `permissions.deny`, this removes the tool from the
+session entirely rather than rejecting calls to it. The `/config` screen has an equivalent
+`Artifacts` toggle, but that writes to `~/.claude.json` instead, which is outside version
+control — prefer `settings.json` when you want the choice recorded in your dotfiles.
+
 ### Codex CLI
 
 Add the GitHub repository as a plugin marketplace, then add the plugin. This
@@ -342,6 +361,18 @@ codex plugin add reviewable-html-workbench@reviewable-html-workbench-local
 ```
 
 Codex CLI で marketplace 名を確認したい場合は `codex plugin marketplace list` の左列を見ます。
+
+#### Claude Code 内蔵の Artifact tool を止める
+
+Claude Code には、生成したページを `claude.ai` 上に公開する `Artifact` tool が組み込まれています。「HTML で出して」と依頼したときに、この plugin の skill ではなく Artifact tool が発火することがあり、その場合は内容が外部へ送られます。HTML を手元に留めたい場合は `~/.claude/settings.json` の top-level に次を追加します。
+
+```json
+{
+  "disableArtifact": true
+}
+```
+
+環境変数 `CLAUDE_CODE_DISABLE_ARTIFACT` でも同じ判定になるため、どちらか一方で足ります。`permissions.deny` と違い、呼び出しを拒否するのではなく tool 自体がセッションに現れなくなります。`/config` 画面の `Artifacts` トグルでも切り替えられますが、そちらは `~/.claude.json` へ書かれて version 管理の外に出るため、設定を dotfiles に残したい場合は `settings.json` を使ってください。
 
 Codex CLI は plugin 全体を導入する形で、現行の公開操作では言語だけを選んでインストールする方式ではありません。この plugin は同じ runtime に英語・日本語の skill 文書を同梱します。
 

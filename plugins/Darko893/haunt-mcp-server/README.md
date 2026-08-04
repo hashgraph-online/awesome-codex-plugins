@@ -16,7 +16,7 @@
 
 ---
 
-Built for agent workflows that need product data, competitor prices, article text, page metadata, lead lists, or research snippets, without brittle CSS selectors. Try it with **no API key** using the `try_demo_extract` tool. Free tier: 1,000 credits a month, no card.
+Built for agent workflows that need product data, competitor prices, article text, page metadata, small site-wide datasets, lead lists, or research snippets, without brittle CSS selectors. Try it with **no API key** using the `try_demo_extract` tool. Free tier: 1,000 credits a month, no card.
 
 ## Quick Start
 
@@ -56,19 +56,29 @@ Use Haunt's try_demo_extract tool and show me the signup and docs links.
 ### 3. Ask for real data
 
 ```text
-Use Haunt to extract the product name, price, availability, and review count from https://example.com/product
+Use Haunt to extract the top five story titles from https://news.ycombinator.com/
 ```
 
 For Markdown output:
 
 ```text
-Use Haunt extract_markdown to turn https://example.com/docs into clean Markdown.
+Use Haunt extract_markdown to turn https://fastapi.tiangolo.com/tutorial/ into clean Markdown.
 ```
 
 Reddit, with no Reddit app and no OAuth:
 
 ```text
 Use Haunt read_reddit to get the top 10 posts from r/webscraping.
+```
+
+Map or crawl a small site:
+
+```text
+Use Haunt map_site on https://fastapi.tiangolo.com/ and return the first 100 URLs under /tutorial/.
+```
+
+```text
+Use Haunt crawl_site on https://fastapi.tiangolo.com/tutorial/ for up to 10 pages. Extract each page title and main summary.
 ```
 
 
@@ -111,6 +121,18 @@ Returns title, body text, author, and publish date when available.
 
 Extract page metadata including title, description, Open Graph tags, Twitter Card tags, canonical URL, and related metadata.
 
+### `map_site`
+
+Discover up to 500 public same-site URLs from robots.txt, sitemaps, and bounded
+link traversal. Mapping costs no credits and is available on paid plans.
+
+### `crawl_site`
+
+Discover and apply one prompt and optional JSON Schema across up to 20 public
+same-site pages. Complete pages use normal extraction credits; partial and failed
+pages cost nothing. Discovery respects robots rules and fetched crawl content is
+not stored.
+
 ### `read_reddit`
 
 Read Reddit posts or a post's comment thread as structured JSON. No Reddit app, no OAuth, no developer account. Accepts a subreddit URL, a post URL, or shorthand like `r/webdev`. Set `comments` to true to read a thread.
@@ -137,6 +159,7 @@ Check current plan, monthly credit limit, used credits, reserved credits, and re
 
 - Reddit posts and comments with no Reddit app, OAuth, or developer account
 - Natural-language prompts instead of fragile CSS selectors
+- Robots-aware site mapping and bounded multi-page extraction
 - Supported fetch paths for JavaScript-heavy pages
 - Challenge-aware extraction with machine-readable verification signals (`error_code`, `captcha_provider`, `requires_human_verification`)
 - Clean JSON output for agents, databases, and workflows

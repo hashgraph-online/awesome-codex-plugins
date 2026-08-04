@@ -287,7 +287,9 @@ Every Codex/OpenClaw/agent process using GrayMatter should:
 4. let `scripts/graymatter_api.sh` and the MCP server refresh expired process-scoped auth automatically
 5. use `scripts/gm-openapi-sync` for online-first ETag validation; scoped metadata must report freshness, revision, API base, tenant/principal fingerprints, and document SHA-256
 6. run `scripts/gm-doctor --quick` after startup, plugin updates, or suspicious auth/transport behavior
-7. run `scripts/gm-replay-deferred` only after authenticated connectivity and authorized tenant context are restored
+7. rely on bounded automatic replay after authenticated connectivity and
+   authorized tenant context are restored; use `scripts/gm-replay-deferred`
+   only for an explicit operator retry or verification
 
 User-facing progress should stay simple:
 

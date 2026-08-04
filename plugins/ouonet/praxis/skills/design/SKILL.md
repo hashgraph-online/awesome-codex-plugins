@@ -14,6 +14,17 @@ Clarify in dependency order. Resolve facts from the repo/tools; ask only the cur
 
 Goal clear? Propose 2-3 approaches with trade-offs; recommend one. Then write the spec.
 
+## Multi-module changes
+
+If `topology=multi-module` (triage announcement or coordinator spec/plan declaration), read `../references/multi-module.md` before designing. Create the coordinator spec with the declaration block (`topology: multi-module`, `change-set`, `coordinator`, `repos`) - this declaration is the on-disk mode marker downstream skills rely on.
+
+- Identify workspace modules and Git boundaries separately.
+- For multiple repositories, ask the user to designate one existing repository as coordinator. This is an implementation-affecting decision; do not infer it.
+- Put only shared contracts and integration acceptance needed by this change in the coordinator spec.
+- Put module-local decisions and acceptance in a spec inside each module's owning repository. Reference shared contracts; never duplicate them.
+- Assign one stable change-set ID (in the declaration block) and declare every participating repository path relative to the coordinator.
+- A missing repository or unresolved shared contract blocks handoff.
+
 ## Spec = list of decisions
 
 A spec answers the open questions for THIS change. Typical:
@@ -27,7 +38,7 @@ A spec answers the open questions for THIS change. Typical:
 
 Do spec idiomatically. Record `convention` — stack best practices + project conventions for this change (see `../references/quality.md`); `tdd`/`review` verify against it.
 
-**No question -> no section.** Don't fill "Risks" / "Non-goals" if empty.
+**No question → no section.** Don't fill "Risks" / "Non-goals" if empty.
 
 Use declarations, not narrative:
 ```
@@ -68,6 +79,16 @@ If roadmap exists or was created, reference the current milestone in staging spe
 milestone: M1 (see docs/ROADMAP.md)
 ```
 
+## Spec review gate
+
+After spec is written to disk and before handing off to `plan`, inspect the spec to decide how many reviewers to dispatch. Read `../references/reviewers.md` for the trigger table and reviewer charters.
+
+Count the triggers that match the spec. If only trigger 1 fires (the baseline), dispatch a single `spec-compliance` reviewer — this is the default behavior, same cost as today. If multiple triggers fire, dispatch each reviewer as an independent subagent in parallel.
+
+All reviewers receive the spec path (not the spec content — let them read it). Collect findings, then synthesize: evaluate each finding critically, resolve conflicts between reviewers, spot what was missed, judge severity, and patch the spec once. Present to user: what was found, fixed, deferred — and why.
+
+Report to user: which triggers fired, which reviewers ran, what was found and fixed.
+
 ## Abandon
 
 If the user decides not to proceed after clarification, stop here. No spec, no plan, no ship. Record reason briefly in working notes. If exploration produced a knowledge artifact (protocol spec, RE findings, data structure map), save it to `docs/decisions/` via `archive`.
@@ -75,7 +96,7 @@ If the user decides not to proceed after clarification, stop here. No spec, no p
 ## Gates
 `<gate>`
 
-1. `docs/staging/specs/YYYY-MM-DD-<topic>.md` must exist on disk before handing off to `plan`.
+1. `docs/staging/specs/YYYY-MM-DD-<topic>.md` must exist on disk before handing off to `plan`. For multi-module work, the coordinator spec and every affected module spec must exist in their owning repositories.
 2. Confirm with the user.
 
 `</gate>`

@@ -1,135 +1,293 @@
 ---
 name: using-gc
-description: Drive a caller-selected Gas City through its
+description: Operate a caller-selected Gas City 1.4 with
 ---
 # Using GC
 
 Use Gas City only when the caller explicitly selects it. Treat it as a
-replaceable execution adapter, not a completion or correctness boundary. This
-skill teaches an agent to ORCHESTRATE the Mayor, which in turn propels the city —
-the same standing session a human drives, steered through native primitives.
+replaceable execution adapter, not a correctness or completion boundary.
 
-## The model: one shepherd, two doors
+## Choose the factory first
 
-The city has a standing city-scoped **Mayor** session. It is a DISPATCH
-SHEPHERD: it watches ready rig step beads and slings each to its run-target with
-a nudge, which spawns that worker to claim the rig-scoped bead. Workers claim;
-**the Mayor never claims and never authors work.** You reach the one Mayor
-session through two doors:
+AgentOps supports both Gas City and the
+[Agentic Coding Flywheel](https://agent-flywheel.com) as external
+software-factory runtimes. Use this skill only for Gas City. If the caller
+selects the Flywheel, switch to [using-flywheel](../using-flywheel/SKILL.md)
+and its native workflow instead of wrapping it in Gas City.
 
-- **Human door:** `invoke.sh --city C mayor status` prints a `tmux -L <socket>
-  attach -t <session>` line; the human attaches and drives interactively.
-- **Agent door:** `invoke.sh --city C mayor tell "dispatch <bead-id>"` delivers a
-  notified mail message. No keystroke injection — GC ships mail/sling as
-  first-class control, so an agent steers the resident session the way a human
-  would, NTM-style.
+AgentOps supplies skills and evidence contracts to either factory. It does not
+need its own Gas City formula or role pack. Install or link AgentOps skills into
+the provider runtime before starting workers; the upstream Mayor, coordinator,
+and workers can then discover and select `plan`, `implement`, `test`,
+`validate`, and other AgentOps skills normally.
 
-One-line why: on GC v1.3.5 demand-spawn is broken for rig work (#4586), so a
-shepherd that sling-nudges ready steps is the propulsion path — and it is also
-the stock GC mayor pattern, so this flow survives the upstream fix.
+## Gas City 1.4 operating model
 
-## The drive loop (for an orchestrating agent)
+Gas City 1.4 is run-centered. The supervisor serves the dashboard and typed,
+paginated session/run APIs. Every graph-owning city or rig scope needs its own
+`core.control-dispatcher`; that deterministic worker advances formula control
+beads. Agent workers claim routed work. The upstream `gc.mayor` skill is the
+guided coordinator; `gc.run-operator` launches and supervises formulas.
 
-1. **Author intent — caller-owned.** `invoke.sh --city C create "<title>" -d
-   "<why/how>"` writes one source bead with EXACT acceptance; `invoke.sh --city C
-   feed <bead-id>` homes it and attaches the native formula. Intent lives in the
-   bead, never in a chat paraphrase.
-2. **Dispatch by id (on-demand).** `invoke.sh --city C mayor tell "dispatch
-   <bead-id>"`. Hand the Mayor BEAD IDS ONLY — never prose work. A paraphrased
-   task is a telephone game that drifts from the acceptance the bead already
-   carries; the id is the one unambiguous reference. Steady-state propulsion is
-   the scheduled heartbeat (the Mayor runs a dispatch pass every few minutes);
-   `mayor tell` is for on-demand nudges. Dispatch each bead once — for a bead
-   already routed, see Stall protocol (re-dispatch is a no-op).
-3. **Read state from GC, not from prose.** The exact surfaces:
-   - `invoke.sh --city C mayor status` — Mayor session state + attach line.
-   - `invoke.sh --city C status` — city/session health.
-   - `gc bd --rig <N> ready --json` / `gc bd --rig <N> show <id> --json` — what is
-     ready and each step's `gc.run_target`.
-4. **Completion is bead/verdict state, never pane prose.** A step is done when the
-   bead graph and the fresh validate verdict say so — not because a pane printed
-   "done".
+The normal AgentOps path is:
 
-## Liveness truth stack (GC edition)
+1. Install and pin the upstream `gascity` workflow and rig-role imports.
+2. Add the project as a rig, prepare its stock maintainer runtime, and make
+   AgentOps skills visible to its provider sessions.
+3. Create a caller-owned source intent bead and hand its id to the Mayor,
+   which authors the workflow beads and dispatches the upstream `build-basic`,
+   continuation, review, or implementation formula that matches the available
+   artifacts.
+4. Read run, session, bead, artifact, and verdict state. Completion is never
+   inferred from chat or pane prose.
 
-Robot/session state can report a session **active** while the provider pane is
-wedged on an interactive prompt doing nothing. Trust ground truth:
+Prepare and qualify a rig before its first build with the shipped AgentOps
+CLI (no repo checkout required):
 
-- `gc session list --json` / `mayor status` is the roster claim.
-- `tmux -L <socket> capture-pane -pt <session>` is ground truth — read the pane.
-  The `<socket>` and `<session>` here (and at every `tmux -L` site below) are the
-  ones `mayor status` prints in its `tmux -L <socket> attach -t <session>` line.
-- Two known codex wedge classes and their durable fixes:
-  - **Update nag:** codex blocks on an "update available" prompt. Fix: update
-    codex so no pending-update prompt exists before the run. Updating the codex
-    binary is a host mutation — make it only with explicit caller authorization,
-    the same bar as the trust-config edit below.
-  - **Folder trust:** codex blocks asking to trust the working directory. Fix:
-    add exact-path `trust_level` entries for the rig and worktree-root in
-    `~/.codex/config.toml` (bootstrap does not write them yet). This edits the
-    user's global codex config — a host-configuration mutation; make it only
-    with explicit caller authorization, scoped to those exact paths.
+```sh
+ao gc prepare --city /path/to/city --rig /path/to/rig
+ao gc check --city /path/to/city --rig /path/to/rig
+```
 
-When the roster says active but the pane is wedged, the pane wins.
+The command verifies the exact official workflow and role pins, snapshots the
+upstream validation scripts and schemas unchanged inside the rig's `.gc`
+runtime, installs only small AgentOps-owned wrappers at the formula check
+paths, selects an existing Python that can import PyYAML, and links the
+AgentOps skills into the city and rig Codex sinks. Skills come from the
+enclosing AgentOps checkout when one is present, otherwise from the installed
+skills root; pass `--skills-source` to pin a different directory. It never
+modifies the GC binary, cache, formulas, roles, or upstream pack. `check`
+issues only native inspection commands, writes no adapter files, and fails
+before model spend when that runtime contract is missing or drifted.
+
+## Preferred pack and registries
+
+The built-in `main` registry catalogs official packs. The community registry is
+optional configuration:
+
+```sh
+gc pack registry list
+gc pack registry refresh
+gc pack registry search --all
+gc pack registry show main:gascity
+gc pack registry add community https://registry.gascity.com/registry.toml
+gc pack registry search --registry community --all
+```
+
+`search` reads the local registry cache; `show` reports release provenance and
+exact import commands. `gc import add` declares a source/version, and `gc import
+install` resolves it into `packs.lock`. Prefer an exact accepted release for
+reproducible cities.
+
+AgentOps prefers the official `gascity` build pack, the workflow family visible
+in the public Maintainer City factory. The current accepted reference is
+`gascity` 0.1.6 at commit
+`3b3b89f2011e06d84459aa7bea1552382f13930a`:
+
+- dashboard: `https://factory.gascity.com`;
+- workflows: `build-basic`, `build-from-*`, `implement`, review, issue, and PR
+  flows;
+- stock rig roles: `gc.run-operator`, `gc.implementation-worker`, planners,
+  reviewers, and publisher;
+- scope-local formula control: `core.control-dispatcher`;
+- guided coordination: the upstream `gc.mayor` skill.
+
+Install the workflow pack at city scope and its sibling roles pack on every rig
+that runs work, following the exact commands returned by
+`gc pack registry show main:gascity`. Keep the stock `gc.*` namespace; do not
+nest or rename the roles behind an AgentOps pack.
+
+Work enters the city through the Mayor. The caller authors ONE source intent
+bead with acceptance, then hands the Mayor its id — the Mayor decomposes,
+authors the workflow beads, and dispatches. The caller never runs `gc sling`
+itself; an operator-slung run bypasses the coordinator that owns retries,
+re-dispatch, and tending for that workflow.
+
+```sh
+gc bd create "Add a --json flag to the export command"
+gc mail send mayor -s "Build ago-XXXX" \
+  -m "Decompose and launch build-basic for bead ago-XXXX with push=true open_pr=true." --notify
+```
+
+Or, in an interactive Mayor session:
+
+```text
+Use skill gc.mayor
+```
+
+A multi-behavior intent arrives as a plan manifest (see plan's manifest mode):
+one caller-owned document with stable slugs, dependency edges, and per-child
+acceptance and write scopes, tracker IDs left `TBD`. Mail the Mayor the
+document path once it is on the rig's mainline; the Mayor materializes the
+epic and children from the manifest and owns their dispatch order. Reference
+example: `docs/plans/2026-07-30-ponytail-whole-repo-contraction.md`.
+
+Direct `gc sling` remains a debugging tool for a city with no live Mayor; a
+run started that way has no coordinator and the operator inherits its tending.
+
+AgentOps skills are tools available to those factory agents, not a replacement
+workflow. Explicitly name a skill in the bead or prompt when its behavior is
+required. The current upstream decomposition does not automatically propagate a
+free-form `Required Skills` section from the caller-owned source bead into every
+generated work item. Inspect the decomposition before implementation; put a
+required skill name on the actual work item or worker prompt when its use is an
+acceptance condition. Skill presence and skill invocation are different facts.
+
+## Upgrade an existing city to 1.4
+
+Before starting its orchestrator, run once per city:
+
+```sh
+gc doctor --fix
+gc import install
+gc supervisor stop --wait   # macOS when an older direct supervisor remains
+gc start
+```
+
+Then confirm:
+
+- `gc version` reports `1.4.0` from the intended path;
+- `gc doctor` has no blocking failures;
+- each graph-owning rig has an unsuspended `core.control-dispatcher`;
+- imports and `packs.lock` resolve;
+- `ao gc check` accepts the contained maintainer runtime and
+  AgentOps skill links;
+- on macOS, the supervisor LaunchAgent resolves to the same executable as the
+  selected `gc` binary;
+- old standalone-dashboard bookmarks or reverse proxies are removed.
+
+A stale registered city may block every start. Repair that city with `gc doctor
+--fix`, or explicitly unregister it if it is intentionally retired.
+
+Retire an old HQ/canary by exact registered name or path, without stopping the
+machine-wide supervisor needed by its replacement:
+
+```sh
+gc cities --json
+gc stop /path/to/old-city --timeout 45s
+gc unregister /path/to/old-city
+gc cities --json
+```
+
+`unregister` fails rather than silently accepting an unknown target. Preserve
+the city directory until its Beads state is backed up or confirmed disposable.
+Create the replacement from the upstream Gas City template, install its pinned
+imports, and verify it with `gc cities --json`, `gc --city <new-city> status`,
+and `gc --city <new-city> doctor --json`.
+
+## Orchestrating through the Mayor: the tending loop
+
+After handing intent to the Mayor, the orchestrator runs five verbs. Each verb
+has one owner; crossing owners is the recurring failure class this section
+exists to stop.
+
+| Verb | Owner | Surface |
+|---|---|---|
+| Monitor | orchestrator | `$API/runs/census` and `$API/runs/<run-id>` on a fixed cadence, plus `gc mail inbox` for Mayor replies. `failed > 0` in the census, a run in `failed`/`canceled`, or unread Mayor mail is the act signal; everything else is a tick. |
+| Observe | orchestrator | On an act signal, walk the visibility layers in order — census, run detail, bead graph, session roster, pane truth — and stop at the first layer that explains. Do not start at pane truth. |
+| Nudge | orchestrator, once | A `ready` bead: dispatch once to its `gc.run_target`. A routed bead with a live session: `gc session wake <run_target>` once. A second nudge on the same subject means the diagnosis is wrong — mail the Mayor instead. |
+| Redirect | Mayor | Priority, scope, cancellation, or model/provider changes travel by mail with bead/run ids. The orchestrator never re-slings, edits workflow beads, or patches a live run. |
+| Rework | GC first, then Mayor | Failed review findings re-enter the run through its native fix loop (`review_fix_formula`, default `fix-loop-base`); bounded gated retries are `gc converge` loops. Only a TERMINAL `failed`/`canceled` run — or a completed run whose result misses caller acceptance — goes back: mail the Mayor the run id and the failure evidence for re-decompose and relaunch. |
+
+Rework the orchestrator performs by hand (editing a failed run's worktree,
+re-slinging its formula, closing its beads) creates a second uncoordinated
+author for the same intent; the Mayor's relaunch then races it.
 
 ## Stall protocol
 
-First classify what is stalled — the fix differs, and the obvious retry is a
-dead path.
+First classify the bead.
 
-- **A bead that is still `ready` (never routed).** `mayor tell "dispatch <id>"`
-  once to route it, then STOP and classify.
-- **A bead already routed to its run-target (`in_progress`).** Re-telling
-  `dispatch <id>` or re-slinging it is a **NO-OP** — do not cargo-cult it. `gc
-  sling` takes an idempotent early-return for an already-routed bead and sends NO
-  nudge, and an `in_progress` bead is not in `gc bd ready`, so nothing re-fires.
-  The recovery is to wake the WORKER that holds it, not to re-dispatch the bead:
+- Still `ready`: dispatch it once to its `gc.run_target`, then stop and inspect.
+- Already routed/in progress: re-slinging is a **NO-OP**. Wake its owning worker
+  once:
 
   ```sh
-  gc session wake <run_target>    # the rig-qualified worker alias, e.g.
-                                  # <rig>/agentops.implementer, from gc.run_target
+  gc session wake <run_target>
   ```
 
-  Then inspect pane-truth (below). One wake, maximum, then STOP and classify.
+Then capture the exact tmux pane named by session state and run `gc doctor`.
+Never repair a city from inside that city.
 
-Ground-truth every stall before you report it: capture the pane (`tmux -L
-<socket> capture-pane -pt <session>`) and run `invoke.sh --city C doctor`. No
-hidden retries, no lifecycle bypass. **Never repair the city from inside the
-city** — diagnose from the invoke surface and hand the finding out.
+Never create pack-owned sessions by hand. `gc session new` for a singleton or
+scaled agent (`core.control-dispatcher`, role workers) makes a mis-scoped
+session that squats the canonical name in `start-pending` and blocks the
+reconciler from spawning the real one — extending the exact stall being
+repaired. Session lifecycle belongs to the reconciler and demand scaling.
+When the city itself needs tending (a stalled reconciler, sessions that never
+leave draining, model or provider rewiring), send the request to the Mayor:
 
-## Visibility: the four layers
+```sh
+gc mail send mayor -s "<subject>" -m "<request with bead ids>" --notify
+```
 
-Every canary stall was invisible to at least one layer and visible in another.
-Cycle all four; each lies in its own way.
+The upstream pack may leave a future affinity-bound step assigned to a session
+that has already drain-acked. Diagnose this only from outside the city:
 
-- **Layer 1 — Robot state.** `gc session list` / `invoke.sh --city C status` —
-  reports "active" even when the provider pane is wedged on a prompt or the
-  network is dead. Lifecycle shape only, never proof of thinking.
-- **Layer 2 — Bead graph.** `gc bd --rig <rig> ready` / `gc bd --rig <rig> show
-  <id>` (workflow/step statuses) — the only completion truth; but a claimed step
-  with a wedged worker looks identical to a working one from here.
-- **Layer 3 — Pane truth.** `tmux -L <socket> capture-pane -t <session> -p` —
-  ground truth for wedges (update nags, trust prompts, API/DNS failures print
-  here first). It is a snapshot, not history.
-- **Layer 4 — Health machinery.** `gc doctor`, `gc order history <order>` (e.g.
-  shepherd-heartbeat) — proves the city's metabolism (orders firing, stores
-  resolving), not whether any specific work is progressing.
+```sh
+ao gc recover-affinity --city /path/to/city --rig /path/to/rig
+```
 
-Native `gc dashboard` aggregates layers 1-2; the metrics/logs plane (OTel to
-local collectors, Grafana) is the 3.3.1 roadmap layer and not required for
-operating a city today. When layers disagree, trust the LOWER layer (pane over
-robot state) and run the Stall protocol.
+The default is a dry run. If every listed assignment is correct, repeat with
+`--apply`. The bounded repair only clears the assignee on a currently ready
+formula bead whose `gc.session_affinity=require` session is no longer live. It
+does not sling, retry, close, restart, or select work.
 
-## Boundaries (kept)
+## Visibility: four layers
 
-- GC state stays in GC. GC quests, attempts, stalls, and internal `close` do not
-  become Plan, Candidate, RPI, or verdict state. Named failure mode —
-  **quest-state leakage**: a GC stall, retry, or internal close surfacing in a
-  report as if it were an RPI phase or verdict.
-- A GC `close` is **not** an AgentOps completion. A fresh GC judge may supply
-  evidence to Validate; only Validate writes `verdict.v2`.
-- Explicit selection only. Falling back to Gas City because it happens to be
-  running is the anti-pattern; an available substrate is not a selected one.
+1. **Supervisor/run state** — `gc dashboard`, run detail, `gc status`, and
+   `gc session list --json`. Run detail unifies the stage ladder, structured
+   transcripts, token rate, and estimated burn rate. A roster may still report
+   active while a provider is wedged.
 
-This skill performs no automatic selection, retry, semantic validation, Git,
-integration, closure, release, or delivery.
+   Programmatic run status comes from the supervisor's typed run API — the
+   same data the dashboard renders. `gc status` prints the API base; neither
+   `gc status --json` nor any other CLI subcommand carries run objects.
+
+   ```sh
+   API="http://127.0.0.1:<port>/v0/city/<city-name>"
+   curl -s "$API/runs/<run-id>"   # {run_id, title, status, target, scope, started_at, updated_at}
+   curl -s "$API/runs/census"     # {status_counts: {pending, active, waiting, canceling, completed, failed, canceled, skipped}}
+   ```
+
+   Poll run status and census for progress; a nonzero `failed` count is the
+   first machine-readable failure signal. The dashboard's run page
+   (`/city/<city-name>/runs/<run-id>`) is the human view of the same objects.
+2. **Bead graph** — `gc bd --rig <rig> ready --json` and `show <id> --json`.
+   This is workflow-state truth, but a claimed bead cannot reveal a wedged pane.
+3. **Pane truth** — `tmux -L <socket> capture-pane -pt <session>`. This exposes
+   trust prompts, update nags, API/DNS failures, and interactive wedges.
+4. **Health machinery** — `gc doctor`, `gc order history`, storage health, and
+   events. This proves metabolism, not semantic acceptance.
+
+When layers disagree, trust the more direct observation: pane over roster for a
+session wedge, bead/run state over prose for workflow completion.
+
+`gc status` may return a partial `no_agents_running` snapshot while
+`gc session list --json` shows a live Mayor or worker. Treat that as an
+observability disagreement, not permission to restart. Use session and pane
+truth for liveness, bead/run state for workflow progress, and Doctor for
+metabolism. A supervisor with abnormal CPU, a timed-out native stop, or a
+recurring hook rewrite remains an upstream operational defect; this helper
+reports it but never kills or patches GC processes.
+
+The caller-owned input bead and the generated workflow root have separate
+lifecycles. A successful `build-basic` run may close its workflow root while
+leaving the input bead open. Likewise, `push=false` and `open_pr=false` produce
+a successful no-op publish while the approved commit remains in its source
+anchor worktree. Neither state is semantic completion by itself.
+
+## Boundaries
+
+- GC quests, runs, attempts, stalls, cancellations, and internal close state
+  stay in GC. They never become AgentOps Plan, Candidate, RPI, or verdict state.
+- A GC close or completed run is not AgentOps completion. Only a fresh Validate
+  context issues the semantic result or, when requested, persists `verdict.v2`.
+- This skill performs no automatic selection, retry, semantic validation, Git,
+  integration, closure, release, or delivery.
+- The operator lane into a city is a closed set: author source intent beads,
+  `gc mail` (work dispatch and city tending both go to the Mayor),
+  `gc doctor [--fix]`, supervisor start/stop from outside,
+  `ao gc prepare|check|recover-affinity`, and reading state. The Mayor authors
+  workflow beads and dispatches; creating, scaling, or repairing pack-owned
+  sessions by hand is outside the lane, and the reconciler owns session
+  lifecycle.

@@ -174,13 +174,13 @@ mechanical-engineering-research = thermal-fluid domain judgment layer
 | [`me-lit-matrix.md`](commands/me-lit-matrix.md) | Build a mechanism-based literature matrix with methods, metrics, validity limits, and gaps. |
 | [`me-figure-discussion.md`](commands/me-figure-discussion.md) | Turn a figure into a physical explanation with claims, comparisons, and limitations. |
 | [`me-proposal-aims.md`](commands/me-proposal-aims.md) | Rewrite aims around barrier, hypothesis, approach, metrics, risk, and impact. |
-| [`me-code-sanity.md`](commands/me-code-sanity.md) | Review research code for units, reproducibility, leakage, baselines, and physics checks. |
+| [`me-code-sanity.md`](commands/me-code-sanity.md) | Run a fast preflight for units, leakage, baselines, and physics checks. |
 | [`me-lit-review.md`](commands/me-lit-review.md) | Develop a critical thermal-fluid literature review and gap synthesis. |
 | [`me-proposal.md`](commands/me-proposal.md) | Develop or revise a solicitation-aligned research proposal. |
 | [`me-write-section.md`](commands/me-write-section.md) | Draft or revise manuscript, proposal, report, or thesis sections. |
 | [`me-data-analysis.md`](commands/me-data-analysis.md) | Plan baseline-first thermal-fluid data analysis and hypothesis-driven DOE. |
 | [`me-build-slides.md`](commands/me-build-slides.md) | Build graphics-first research presentations and speaker notes. |
-| [`me-code-review.md`](commands/me-code-review.md) | Review and refactor reproducible thermal-fluid research code. |
+| [`me-code-review.md`](commands/me-code-review.md) | Perform a full architecture, reproducibility, testing, and release review. |
 
 ## Showcase
 
@@ -200,12 +200,21 @@ The examples are synthetic, public-safe artifacts designed to show the plugin's 
 |---|---|---|
 | Research workflow | Source-aware thermal-fluid research, assumptions, correlations, trade studies, validation | [`SKILL.md`](skills/mechanical-engineering-research/SKILL.md) |
 | Literature review | Critical review, seminal-work tracing, citation path, review figures, benchmark tables | [`literature-review.md`](skills/mechanical-engineering-research/references/literature-review.md) |
+| Citation integrity | Claim-level support, bibliography checks, numeric citation repair | [`citation-integrity.md`](skills/mechanical-engineering-research/references/citation-integrity.md) |
+| Dataset/software reviews | Multi-channel discovery, maturity labels, benchmark and repository synthesis | [`dataset-software-review.md`](skills/mechanical-engineering-research/references/dataset-software-review.md) |
 | Paper writing style | Abstracts, methods, figure-led results, conclusions, AI/ML paper style | [`paper-writing-style.md`](skills/mechanical-engineering-research/references/paper-writing-style.md) |
+| Revision and submission | Reviewer responses, highlighted manuscripts, source packages, release audits | [`manuscript-revision-submission.md`](skills/mechanical-engineering-research/references/manuscript-revision-submission.md) |
 | Technical writing | Methodology detail, modeling assumptions, results discussion | [`technical-writing-analysis.md`](skills/mechanical-engineering-research/references/technical-writing-analysis.md) |
+| Experiments and uncertainty | Measurement models, DOE, calibration, synchronization, uncertainty budgets | [`experimental-design-and-uncertainty.md`](skills/mechanical-engineering-research/references/experimental-design-and-uncertainty.md) |
+| Model credibility | CFD verification/validation, ROMs, surrogates, ML generalization | [`model-verification-and-ml-credibility.md`](skills/mechanical-engineering-research/references/model-verification-and-ml-credibility.md) |
+| Result-change audit | Construct, boundary, data, code, and assumption root-cause checks | [`result-change-and-construct-audit.md`](skills/mechanical-engineering-research/references/result-change-and-construct-audit.md) |
+| Data and release | Provenance, rights, benchmark design, reproducibility, public packages | [`data-provenance-and-release.md`](skills/mechanical-engineering-research/references/data-provenance-and-release.md) |
+| Figure and artifact QA | Final-size figures, tables, PDFs, Word, spreadsheets, and slides | [`scientific-figure-and-artifact-qa.md`](skills/mechanical-engineering-research/references/scientific-figure-and-artifact-qa.md) |
 | Proposal development | DOE/NSF/NASA-style narratives, solicitation alignment, milestones, risks | [`proposal-development.md`](skills/mechanical-engineering-research/references/proposal-development.md) |
 | Research coding | Reproducible scripts, notebooks, plotting, simulation automation, code review | [`research-coding.md`](skills/mechanical-engineering-research/references/research-coding.md) |
 | Presentations | Graphics-first research talks, slide logic, speaker notes, backup slides | [`presentation-slides.md`](skills/mechanical-engineering-research/references/presentation-slides.md) |
-| AI/ML tools | BubbleID, SeqReg, CFDTwin, DataDroid-LAM, sensor fusion, surrogate modeling | [`ai-tools-thermal-fluids.md`](skills/mechanical-engineering-research/references/ai-tools-thermal-fluids.md) |
+| AI/ML tools | Computer vision, sequence models, sensor fusion, surrogate modeling | [`ai-tools-thermal-fluids.md`](skills/mechanical-engineering-research/references/ai-tools-thermal-fluids.md) |
+| Teaching | Engineering-first explanations, derivations, code, and transfer tasks | [`teaching-mechanical-engineering.md`](skills/mechanical-engineering-research/references/teaching-mechanical-engineering.md) |
 | Toolchain | Overleaf, VS Code, GitHub, git, releases, reproducibility hygiene | [`research-toolchain.md`](skills/mechanical-engineering-research/references/research-toolchain.md) |
 | Innovation | Invention disclosure, patent-support packets, commercialization briefs | [`innovation-commercialization.md`](skills/mechanical-engineering-research/references/innovation-commercialization.md) |
 
@@ -215,6 +224,7 @@ Run repository validation:
 
 ```powershell
 python scripts\validate_repo.py
+python -m unittest -v tests.test_skill_scripts
 ```
 
 Optional local Codex/plugin validation:

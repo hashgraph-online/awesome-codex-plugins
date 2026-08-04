@@ -117,7 +117,7 @@ export GRAYMATTER_PUBLIC_RESOURCE=https://api-0.valkyrlabs.com
 export GRAYMATTER_PUBLIC_MCP_PATH=/graymatter/mcp
 export GRAYMATTER_OAUTH_ISSUER=https://api-0.valkyrlabs.com
 export GRAYMATTER_OAUTH_JWKS_URI=https://api-0.valkyrlabs.com/oauth2/jwks
-export GRAYMATTER_ALLOWED_ORIGINS=https://chatgpt.com
+export GRAYMATTER_ALLOWED_ORIGINS=https://chatgpt.com,https://platform.openai.com
 export VALKYR_API_BASE=https://api-0.valkyrlabs.com/v1
 node mcp-server/index.js
 ```
@@ -217,7 +217,12 @@ Use local files only as:
 - temporary fallback when hosted `api-0` is unavailable or authentication is genuinely blocked
 - temporary replayable backup when a write path is blocked
 
-Local fallback is degraded-mode replay, not source-of-truth memory. Once auth or connectivity returns, agents must replay local records into `api-0`, confirm durable sync, and remove synchronized local copies.
+Local fallback is degraded-mode replay, not source-of-truth memory. The first
+successful authenticated request after connectivity and authorized tenant
+context recover automatically replays both API-deferred operations and
+`gm-write` fallback records into `api-0`. Local copies are removed only after
+the durable write succeeds; `scripts/gm-replay-deferred` remains available for
+an explicit operator retry.
 
 ### Durable memory targets
 
@@ -433,7 +438,7 @@ Supported env inputs:
 
 `scripts/gm-mcp-launcher` is the normal MCP entrypoint. It runs a bounded `gm-self-update startup`, auth/connectivity check, conditional schema refresh, and replay preflight before handing stdout to Node. `scripts/gm-self-update` accepts only signed stable manifests with content-addressed, signature-verified artifacts; it stages into a versioned installation root, switches state atomically, preserves rollback, and never rewrites a running Codex plugin-cache directory. Provision `GRAYMATTER_RELEASE_PUBLIC_KEY_FILE` or `GRAYMATTER_RELEASE_PUBLIC_KEY` with the trusted release key; failures are recorded and surfaced.
 
-`scripts/graymatter_api.sh` and the MCP server perform autonomous auth refresh when the stored token expires or api-0 returns a refreshable auth failure. A schema revision/route failure gets one bounded online schema resync and retry; cached schema is discovery-only during outage. Replay-safe write operations blocked by credits or transport can be deferred and retried with `scripts/gm-replay-deferred` only after authenticated connectivity and authorized tenant context are restored.
+`scripts/graymatter_api.sh` and the MCP server perform autonomous auth refresh when the stored token expires or api-0 returns a refreshable auth failure. A schema revision/route failure gets one bounded online schema resync and retry; cached schema is discovery-only during outage. Replay-safe writes blocked by credits, transport, or a temporarily unresolved tenant context are queued locally and replayed automatically, with a bounded limit and process lock, on the first successful authenticated request after authorized tenant context is restored. `scripts/gm-replay-deferred` remains the explicit retry surface.
 
 At that point the install should be immediately usable.
 

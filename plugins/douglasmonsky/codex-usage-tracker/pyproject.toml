@@ -38,6 +38,7 @@ dev = [
   "build>=1.2",
   "jsonschema>=4.23",
   "mypy>=1.10",
+  "psutil==7.2.2",
   "pytest>=8.0",
   "pyright>=1.1.405",
   "ruff>=0.8",
@@ -53,6 +54,7 @@ include-package-data = false
 [tool.setuptools.packages.find]
 where = ["src"]
 include = [
+  "codex_usage_tracker.agent_kernel*",
   "codex_usage_tracker.kernel*",
   "codex_usage_tracker.release*",
 ]
@@ -62,6 +64,7 @@ namespaces = true
 "*" = ["__pycache__/*", "*.py[cod]"]
 
 [tool.setuptools.package-data]
+"codex_usage_tracker.agent_kernel.storage" = ["*.sql"]
 "codex_usage_tracker.kernel.interfaces" = ["schemas/*.json"]
 "codex_usage_tracker.kernel.interfaces.http" = [
   "console_assets/*.css",
@@ -71,7 +74,7 @@ namespaces = true
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/agent_kernel", "tests/kernel", "tests/release"]
+testpaths = ["tests/agent_kernel", "tests/experiments", "tests/kernel", "tests/release"]
 pythonpath = [".", "src"]
 addopts = ["--import-mode=importlib"]
 
@@ -86,9 +89,15 @@ ignore = ["E501", "SIM300"]
 [tool.mypy]
 python_version = "3.10"
 warn_unused_configs = true
-mypy_path = "src"
+mypy_path = ["src", "experiments/physical-architecture"]
 explicit_package_bases = true
 files = [
+  "experiments/physical-architecture/qualification.py",
+  "experiments/physical-architecture/run_bakeoff.py",
+  "experiments/physical-architecture/shared",
+  "experiments/physical-architecture/candidate_a",
+  "experiments/physical-architecture/candidate_c",
+  "experiments/physical-architecture/candidate_d",
   "scripts/aggregate_performance_qualification.py",
   "scripts/performance_budget_contract.py",
   "scripts/run_performance_suite.py",
@@ -105,6 +114,7 @@ files = [
   "scripts/smoke_installed_catalog.py",
   "scripts/smoke_installed_package.py",
   "src/codex_usage_tracker/release/artifact_manifest.py",
+  "src/codex_usage_tracker/agent_kernel",
   "src/codex_usage_tracker/kernel",
   "tests/agent_kernel/contracts/reference",
   "tests/agent_kernel/fixtures",
@@ -112,6 +122,12 @@ files = [
 
 [tool.pyright]
 include = [
+  "experiments/physical-architecture/qualification.py",
+  "experiments/physical-architecture/run_bakeoff.py",
+  "experiments/physical-architecture/shared",
+  "experiments/physical-architecture/candidate_a",
+  "experiments/physical-architecture/candidate_c",
+  "experiments/physical-architecture/candidate_d",
   "scripts/aggregate_performance_qualification.py",
   "scripts/performance_budget_contract.py",
   "scripts/run_performance_suite.py",
@@ -125,9 +141,12 @@ include = [
   "scripts/generate_kernel_manifests.py",
   "scripts/smoke_installed_console.py",
   "scripts/smoke_installed_catalog.py",
+  "src/codex_usage_tracker/agent_kernel",
   "src/codex_usage_tracker/kernel",
   "tests/agent_kernel/contracts/reference",
   "tests/agent_kernel/fixtures",
+  "tests/agent_kernel/storage",
 ]
+extraPaths = ["src", "experiments/physical-architecture"]
 pythonVersion = "3.10"
 typeCheckingMode = "standard"

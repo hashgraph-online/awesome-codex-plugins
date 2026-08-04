@@ -35,6 +35,16 @@ any file is written. Advisory-only — rules are NEVER auto-applied.
 - **Engine never writes `.claude/rules/`.** `runReconcile` computes proposals and records
   them in the idempotency sidecar only. The only module that writes `.claude/rules/` is
   `writer.mjs`, and only AFTER the operator approves proposals via AUQ.
+- **The candidate store belongs to `mergeCandidates` — nothing else writes it.**
+  `.orchestrator/runtime/reconcile-candidates.jsonl` is a mutable work-queue whose only
+  sanctioned writer is `mergeCandidates` (`scripts/lib/reconcile/idempotency.mjs`); it is
+  not a scratch pad, and no report, analysis run, or agent may append to it by hand. A
+  hand-written record there corrupts downstream readers — the session-start reconcile nudge
+  banner derives "last run" from `created_at`, so a foreign-shaped record makes a non-empty
+  store report *no reconcile run on record*. Candidate analyses and dry-run reports write
+  their findings to `docs/reconcile/<date>-<topic>.md`, never into the store. (Since
+  2026-07-31 a read-side shape guard drops records lacking `learning_key`/`created_at` and
+  `mergeCandidates` reports the count as `skipped` — that guard is a backstop, not a licence.)
 - **Same pipeline as session-end Phase 3.6.8.** This skill uses the identical engine and
   writer seams as the automatic session-end reconciliation phase — operator experience is
   consistent, and any fixes to the engine benefit both paths.
@@ -167,7 +177,10 @@ List `rejected[].reason` and exit.
 
 **Only when `DRY_RUN=true`.**
 
-Print the proposals in a readable table. Do NOT write the sidecar, do NOT render an AUQ.
+Print the proposals in a readable table. Do NOT write the sidecar, do NOT render an AUQ, and
+do NOT write candidates into `.orchestrator/runtime/reconcile-candidates.jsonl` — that store
+is `mergeCandidates`' alone (see Posture Contract). A dry-run write-up belongs in
+`docs/reconcile/`.
 
 ```
 ## Reconcile — Dry Run  (N proposals, M rejected)

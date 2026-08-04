@@ -419,22 +419,15 @@ Boss Mode 通过 Hooks 机制在关键时点注入行为，实现流水线自动
 
 ### 状态报告
 
-每个 Agent 任务完成后必须输出结构化状态块：
+每个 Agent 任务完成后必须通过命令上报终态（状态值在工具层校验）：
 
+```bash
+boss runtime report-agent-status <feature> <stage> <agent> <STATUS> --reason "<一句话总结>"
 ```
-[BOSS_STATUS]
-status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED | REVISION_NEEDED
-summary: 一句话总结执行结果
-conversation_id: [仅参与执行中会话时填写]
-resolution_summary: [仅会话已收敛时填写]
-todo_ids: [仅会话产出 todo 时填写]
-concerns: [仅 DONE_WITH_CONCERNS 时填写]
-missing: [仅 NEEDS_CONTEXT 时填写]
-blocker: [仅 BLOCKED 时填写]
-revision_target: [仅 REVISION_NEEDED 或会话升级为正式修订时填写，如 architecture.md]
-revision_reason: [仅 REVISION_NEEDED 时填写]
-[/BOSS_STATUS]
-```
+
+`STATUS` ∈ `DONE` | `DONE_WITH_CONCERNS` | `NEEDS_CONTEXT` | `BLOCKED` | `REVISION_NEEDED`。
+补充字段（concerns / missing / blocker / revision_target 等）在正文中给出证据，
+不参与状态判定。详见 `agents/prompts/subagent-protocol.md`。
 
 ### 执行中会话闭环
 

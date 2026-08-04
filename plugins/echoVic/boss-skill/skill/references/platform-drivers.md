@@ -7,6 +7,13 @@ Boss 使用统一 Runtime Core 和多个 Platform Driver。所有平台都以 `.
 - Runtime Core 负责状态、waves、gates、QA findings 和 final evidence。
 - Platform Driver 只决定 enforcement 方式，不改变状态语义。
 - Codex 适配是 additive，不得删除或弱化 Claude Code hooks。
+- **不重造宿主原语。** 子 Agent 派发、文件读写、代码检索、会话内临时清单一律使用当前宿主
+  提供的工具（各宿主命名不同，如子 Agent 派发在 Claude Code 是 `Task`、在其他宿主可能是
+  `Agent`），Boss 不自建等价物。Boss 只负责宿主不提供的三件事：事件溯源审计、不可绕过的
+  门禁、产物 provenance。
+- Boss 事件流中的 todo 与宿主的会话清单不是同一层：前者是会话收敛后带 owner 与
+  successCriteria 的跨 Agent 交付项，需持久化与审计；后者是单次会话内的工作记录。
+  不要用前者替代后者，也不要反过来。
 
 ## Claude Code Driver
 

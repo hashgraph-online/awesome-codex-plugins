@@ -13,3 +13,7 @@ The skill starts with `doctor --json`, `status`, and compact tool discovery. Aft
 ## Security
 
 Hera communicates with the local Unity Editor over localhost. Review commands before approving work that changes project assets or executes arbitrary C#.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

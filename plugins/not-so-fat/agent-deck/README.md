@@ -39,10 +39,16 @@ One MCP endpoint, registered once. Decks scope it per job; playbooks make it com
 
 ### 1. Install and launch
 
+**Recommended (managed install — auto-updates, keeps existing `~/.agent-deck` data):**
+
 ```bash
-npm install -g @agent-deck/cli
+curl -fsSL https://raw.githubusercontent.com/not-so-fat/agent_deck/main/scripts/install.sh | bash
+# or: npx @agent-deck/cli@latest install
+export PATH="$HOME/.local/bin:$PATH"
 agent-deck start --daemon
 ```
+
+Compat: `npm install -g @agent-deck/cli` still works; `agent-deck install` switches only the CLI binary (no data migration).
 
 Open `http://127.0.0.1:1111`. Day to day: `agent-deck start --daemon` / `agent-deck stop` · `agent-deck status` if something fails. Use plain `agent-deck start` only when you want a foreground process in an open terminal (logs go to stdout).
 

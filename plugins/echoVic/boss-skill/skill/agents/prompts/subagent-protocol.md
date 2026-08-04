@@ -20,7 +20,7 @@ Boss 以文档为正式媒介，但执行过程允许 Agent 之间通过短会�
 
 ### 最终状态块中的会话字段
 
-最终 `BOSS_STATUS` 除状态本身外，还要在相关时携带以下字段：
+最终上报除状态本身外，还要在相关时于正文说明以下字段：
 
 - `conversation_id`：本次任务引用的执行中会话线程 ID
 - `resolution_summary`：会话收敛后的 1 句结论
@@ -156,28 +156,32 @@ BLOCKED             → 暂停 → 报告用户 → 等待干预 → 重试
 REVISION_NEEDED     → 记录反馈 → 检查轮次 → 重派上游修订 → 重新验证（≤2轮）
 ```
 
-### 标准状态块格式
+### 标准上报方式
 
-```text
-[BOSS_STATUS]
-status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED | REVISION_NEEDED
-summary: 一句话总结执行结果
-conversation_id: [仅参与执行中会话时填写]
-resolution_summary: [仅会话已收敛时填写]
-todo_ids: [仅会话已 materialize 出 todo 时填写]
-concerns: [仅 DONE_WITH_CONCERNS 时填写]
-missing: [仅 NEEDS_CONTEXT 时填写]
-blocker: [仅 BLOCKED 时填写]
-revision_target: [仅 REVISION_NEEDED 或会话升级为正式修订时填写]
-revision_reason: [仅 REVISION_NEEDED 时填写]
-[/BOSS_STATUS]
+状态是控制流输入，必须通过命令上报，由工具层校验枚举；不得用自然语言描述状态，
+编排器也不会从散文中解析状态。
+
+```bash
+boss runtime report-agent-status <feature> <stage> <agent> <STATUS> --reason "<一句话总结>"
 ```
+
+- `STATUS` ∈ `DONE` | `DONE_WITH_CONCERNS` | `NEEDS_CONTEXT` | `BLOCKED` | `REVISION_NEEDED`
+- 非法值会返回 `invalid_agent_status` 且 `retryable: true`，需改用合法枚举重试
+- 未上报视为「未推进」，不会被记为失败 —— 但下游门禁同样不会放行
+
+补充字段（`concerns` / `missing` / `blocker` / `revision_target` / `revision_reason` /
+`conversation_id` / `resolution_summary` / `todo_ids`）在正文中说明，并按上文各状态的
+「报告要求」给出证据；它们是给人和评审看的上下文，不参与状态判定。
 
 ---
 
 ## Wave 派发前写集校验
 
-进入 code 阶段时，编排器不得只按角色或前后端标签决定并行度。必须先从 `tasks.md` 中每个 Task 的「文件输出列表 / 写集」解析计划写入路径，构建冲突图，再决定哪些任务可进入同一 Wave。
+进入 code 阶段时，编排器不得只按角色或前后端标签决定并行度。必须先从 `waves.json` 的 `writeSet`
+（或 `tasks.md` 中每个 Task 的「文件输出列表 / 写集」）解析计划写入路径，构建冲突图，再决定哪些任务可进入同一 Wave。
+
+运行时的节点级调度遵循同一原则：`boss` 按写集不重叠分组派发，而非按 stage 分批 ——
+DAG 的 `inputs` 已表达数据依赖，写集冲突才是并行度的真实约束。
 
 **派发规则**：
 - 同一 Wave 的任务写集必须互斥；写同一文件、同一中央索引、同一依赖清单、锁文件、全局配置、`i18n.ts`、`store.ts` 等共享文件时，视为冲突。

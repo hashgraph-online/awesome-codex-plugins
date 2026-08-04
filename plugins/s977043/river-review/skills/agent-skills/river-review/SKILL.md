@@ -92,7 +92,7 @@ review 実行プランを組むときに参照する入力は、以下の優先�
    └─ river-review-code: 一般コード品質（フォールバック）
 
 3. Finding verification
-   └─ VERIFICATION.md の 6 項目 self-check を全件通過したものだけ出力
+   └─ VERIFICATION.md の 7 項目 self-check を全件通過したものだけ出力
 
 4. Unknown Coverage 合成（finding verification 後のメタ観点）
    └─ 検証済み finding + artifact を横断し、unknown-coverage-review へ委譲して残存 Unknown / 証拠不足を合成（report-only・マージは止めない・plan 欠損時は skippedSkills でデグレード）

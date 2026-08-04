@@ -188,6 +188,72 @@
         {"name": "fails-closed-before-deploy", "description": "Runs the complete docker-to-sealos quality gate after final template mutation and does not deploy while the gate is failing"},
         {"name": "keeps-existing-artifact-inventory", "description": "Introduces no generated artifact type beyond the full deploy skill's existing artifact inventory"}
       ]
+    },
+    {
+      "id": 15,
+      "prompt": "Deploy a login-gated web app in the default execution mode. The Template API response returns an Instance and App host that differ from the requested app name. Verify the live application before reporting success.",
+      "expected_output": "Runs the Runtime Truth Pass against the returned App URL, checks both the configured entrance path and root path, completes the real login/setup flow with deploy-time credentials, verifies an authenticated route, scans logs after the workflow and a documented API negative route or unique missing static asset, and keeps credentials redacted.",
+      "files": [],
+      "assertions": [
+        {"name": "uses-returned-app-url", "description": "Uses the actual App URL and live Instance/App identity from the deploy response or live resource rather than reconstructing a host from the requested app name"},
+        {"name": "checks-root-and-entrance", "description": "Exercises both the configured entrance path and the root path from a fresh session and rejects SSR/browser failure text"},
+        {"name": "proves-authenticated-action", "description": "Completes setup or login with deploy-time credentials and verifies at least one authenticated page or API route"},
+        {"name": "redacts-runtime-secrets", "description": "Masks passwords, tokens, cookies, CSRF values, captcha payloads, and derived credentials in command output and reports"},
+        {"name": "scans-after-workflow", "description": "Runs log scans after login or setup and after a documented API or missing-static-asset request before acceptance"},
+        {"name": "distinguishes-spa-fallback", "description": "Uses a documented API or missing static asset for negative-route checks when arbitrary SPA routes return the HTML shell with HTTP 200"}
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "The public URL serves the app, but Launchpad shows no public address after a template edit. The HTTP Ingress contains a root path and more specific API paths.",
+      "expected_output": "Runs the Launchpad public-network check, places the root Prefix path first, matches its numeric backend port to the public Service port, and compares the Launchpad host with the live App URL host.",
+      "files": [],
+      "assertions": [
+        {"name": "checks-launchpad-before-http", "description": "Uses sealos-launchpad-network.mjs or the equivalent public-network contract before declaring the deployment reachable"},
+        {"name": "root-route-is-first", "description": "Requires the root Prefix path / to appear before more specific HTTP paths so Launchpad discovers the intended public entry"},
+        {"name": "matches-numeric-port", "description": "Requires backend.service.port.number and matches it to Service.spec.ports[].port"},
+        {"name": "matches-live-host", "description": "Compares the Launchpad public or custom domain with the actual App URL host and manager-labeled backend resources"}
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "A database-backed app has a completed init Job, historical init output, and a worker that depends on migrations. Validate runtime convergence after a cold deployment.",
+      "expected_output": "Treats completed or TTL-expired Jobs and unchanged completed-init output as historical evidence, verifies required live database objects directly, gates migration-dependent workloads on application state, and fails on active log, restart, readiness, or Warning advances.",
+      "files": [],
+      "assertions": [
+        {"name": "checks-database-final-state", "description": "Verifies required databases, tables or views, extensions, indexes, roles, grants, search paths, and migration markers directly"},
+        {"name": "keeps-job-history-scoped", "description": "Uses completed or TTL-expired Job status as historical evidence and does not treat it as proof of current database state"},
+        {"name": "gates-migrations", "description": "Requires migration-dependent workers or gateways to wait for application tables or markers rather than only a database port"},
+        {"name": "classifies-historical-init", "description": "Allows unchanged completed init output marked historicalCompletedInit when completion metadata predates the baseline and remains stable, while retaining blocking status for active init or main-container failures"},
+        {"name": "checks-event-convergence", "description": "Fails on restart deltas, readiness flaps, advancing Warning Events, unresolved Secrets, or recurring traceback signals during the stability window"}
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "Clean up a test deployment that used an Instance, App, PostgreSQL Cluster, PVC, Jobs, and a managed ObjectStorageBucket. Confirm the cleanup result.",
+      "expected_output": "Inventories the complete Sealos footprint, including ObjectStorageBucket resources, and reports cleanup complete only after every listing succeeds and no matching resources remain.",
+      "files": [],
+      "assertions": [
+        {"name": "includes-instance-layer", "description": "Checks instances.app.sealos.io in addition to the App and workload resources"},
+        {"name": "includes-job-and-database-resources", "description": "Inventories Jobs, KubeBlocks Clusters, Services, Ingresses, and PVCs before cleanup"},
+        {"name": "includes-object-storage", "description": "Inventories and accounts for managed ObjectStorageBucket resources and their app-scoped footprint"},
+        {"name": "blocks-on-list-errors", "description": "Keeps cleanup unresolved when a footprint listing has a permission or kubectl error even if visible resources are empty"},
+        {"name": "proves-empty-footprint", "description": "Accepts cleanupComplete only when the successful filtered inventory returns no matching resources"},
+        {"name": "requires-runtime-readiness", "description": "Requires collectionOk and runtimeReady to be true with the expected resource inventory before deployment acceptance"}
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Convert an app that needs an internal runtime credential and optional S3 storage with a PostgreSQL backend. The runtime accepts a quoted opaque seed and derives the final credential before starting.",
+      "expected_output": "Emits a deterministic runtime-derived credential contract, validates the derived value before exec, keeps credential material out of output, and validates local-storage and managed-bucket branches alongside KubeBlocks database Secret keys and final database objects.",
+      "files": [],
+      "assertions": [
+        {"name": "requires-deterministic-secret-derivation", "description": "Allows an opaque spec.defaults seed only when startup deterministically derives and validates the final runtime credential before exec"},
+        {"name": "fails-before-serving-on-invalid-secret", "description": "Stops startup before serving traffic when the derived credential fails the application format or length contract"},
+        {"name": "keeps-secret-material-private", "description": "Keeps the seed, derived credential, database password, and object-storage credentials out of diagnostics and summaries"},
+        {"name": "validates-both-s3-branches", "description": "Validates authenticated upload/read/content/deletion for both local storage and managed ObjectStorageBucket branches, with restricted anonymous raw-object access"},
+        {"name": "verifies-s3-and-db-together", "description": "Checks approved KubeBlocks database Secret keys and required database objects alongside managed object-storage Secret wiring"}
+      ]
     }
   ]
 }

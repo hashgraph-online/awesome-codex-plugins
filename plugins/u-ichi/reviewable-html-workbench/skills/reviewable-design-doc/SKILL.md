@@ -65,6 +65,163 @@ Follow the language of the latest user request for progress updates, final respo
 - 既存資料を取り込む場合も、既存ファイルをそのまま表示へ流し込まず、`visual-html-renderer` のHTML情報設計規約に従って文書モデルへ再構成する。
 - `build-model` は最終HTMLモデルを作るplannerではなく、入力退避用のsource-capture draftに限る。既存本文やユーザー指定内容を取り込む場合も、そのdraftをそのままrenderせず、agentが設計構造を判断して文書モデルを直接作る。
 
+<!-- BEGIN SHARED: html-style-classes -->
+## html block で使える表現部品
+
+同梱の `style.css` には、`html` block 内でそのまま使える表現 class が実装済みである。比較・評価・推奨・決定がある内容では、素の `<table>` / `<p>` で終えず、該当する部品を選ぶ。
+
+| 用途 | class | 書き方 |
+|---|---|---|
+| 表番号 + 表題 | `table-wrap` / `table-cap` / `t-no` / `t-title` / `table-scroll` | `<figure class="table-wrap"><figcaption class="table-cap"><span class="t-no">表 1</span><span class="t-title">3 案の比較</span></figcaption><div class="table-scroll"><table>…</table></div></figure>` |
+| 表ヘッダの補助説明 | `axis-sub` | `<th scope="col">実装量<span class="axis-sub">行数の目安</span></th>` |
+| 5 段階評価 | `rate` + `good`/`mid`/`low` + `r1`〜`r5` + `pips` / `pip` | `<span class="rate good r4"><span class="pips"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></span>容易</span>` (pip は常に 5 個。`rN` が塗る数、`good`/`mid`/`low` が色) |
+| 可否・対応状況 | `tag-yes` / `tag-no` / `tag-cell-note` | `<td><span class="tag-yes">対応</span><span class="tag-cell-note">v2.0 以降</span></td>` |
+| 桁揃え数値 | `num` | `<td><span class="num">1,024</span></td>` (表中の数値列に使う) |
+| 推奨パネル | `reco` / `reco-tag` | `<div class="reco"><span class="reco-tag">推奨</span><p>案 B を採る。理由は…</p></div>` |
+| 決定の枠囲み | `decision-panel` | `<div class="decision-panel"><p>…</p></div>` |
+| コード内の着色 | `tok-k` (keyword) / `tok-f` (function) / `tok-s` (string) / `tok-c` (comment) / `tok-n` (number) | `<pre><code><span class="tok-k">def</span> <span class="tok-f">main</span>():</code></pre>` |
+
+### 多軸の比較表 (`table.cmp`)
+
+軸が 3 つ以上ある比較、または行数が多くて横スクロールが要る比較には `<table class="cmp">` を使う。通常の `<table>` と違い、ヘッダ行と最初の列 (比較軸) がスクロール中も固定され、推奨案の列を緑で浮かせられる。
+
+| class | 効果 |
+|---|---|
+| `cmp` (table に付ける) | 比較表本体。`thead th` が sticky ヘッダになる。最小幅 720px のため `table-scroll` の中に入れる |
+| `axis` (最初の列の `th` / `td` に付ける) | 比較軸の列が横スクロール中も左端に残る |
+| `pick` (`<col>` / `th` / `td` に付ける) | 推奨する案の列を緑系で強調する。`<colgroup><col><col class="pick"></colgroup>` で列単位、または個別セルに付ける |
+
+```html
+<figure class="table-wrap">
+  <figcaption class="table-cap"><span class="t-no">表 1</span><span class="t-title">3 案の比較</span></figcaption>
+  <div class="table-scroll">
+    <table class="cmp">
+      <colgroup><col><col><col class="pick"><col></colgroup>
+      <thead><tr>
+        <th scope="col" class="axis">評価軸</th>
+        <th scope="col">案 A</th><th scope="col" class="pick">案 B</th><th scope="col">案 C</th>
+      </tr></thead>
+      <tbody>
+        <tr><th scope="row" class="axis">実装量<span class="axis-sub">行数の目安</span></th>
+            <td><span class="num">40</span></td><td class="pick"><span class="num">180</span></td><td><span class="num">920</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</figure>
+```
+
+軸が 2 つだけ、または行が少なく横スクロールが不要な表では、`cmp` を使わず素の `<table>` にする。sticky と最小幅は狭い表では邪魔になる。
+
+使い分けの基準:
+
+- 比較表には `table-wrap` + `table-cap` で番号と表題を付ける。本文からの参照は「表 1」で行う。
+- 軸が 3 つ以上あるなら `table.cmp` + `axis` を使い、推奨案の列に `pick` を付ける。
+- 評価軸 (容易さ・成熟度・リスク等) は文字だけでなく `rate` の点表示でも符号化する。
+- 推奨・決定は本文の段落に埋めず、`reco` または `decision-panel` で独立させる。
+- 段落を文字の大きさで強調しない。強調したい段落があるなら、それは推奨・決定・注意のいずれかなので、`reco` / `decision-panel` / `callout` block のうち内容に合うものを使う。文書全体の導入は `metadata.deck` が担うので、節ごとに導入段落を作らない。
+- これらは class 指定だけで効く。`style` 属性の直書きで同等の見た目を再実装しない。
+- 色は `metadata.palette` の `brand` / `brand_soft` だけ主題に合わせて上書きできる。コントラスト比は `check-model` / `render` / `validate` が WCAG 4.5:1 で検査し、不足すると error で止まる (brand は最も薄い地色との比、brand_soft は本文色との比、両方指定時は 2 色の相互比も見る)。
+
+## Style Classes Available in html Blocks
+
+The bundled `style.css` ships ready-to-use presentation classes for `html` blocks. When the content contains comparisons, ratings, recommendations, or decisions, do not stop at bare `<table>` / `<p>`: use `table-wrap` + `table-cap` (numbered table captions), `axis-sub` (header sub-labels), `rate good|mid|low r1..r5` with five `pip` elements (dot ratings), `tag-yes` / `tag-no` / `tag-cell-note` (availability cells), `num` (tabular figures), `reco` + `reco-tag` (recommendation panel), `decision-panel` (decision box), and `tok-k` / `tok-f` / `tok-s` / `tok-c` / `tok-n` (code token coloring). Reference numbered tables from body text as "表 1" / "Table 1". These work by class alone; do not re-implement the same look with inline `style` attributes. Do not emphasize a paragraph by making its type larger — if a paragraph deserves emphasis it is a recommendation, a decision, or a warning, so use `reco`, `decision-panel`, or a `callout` block instead. The document-level intro is `metadata.deck`; do not add a per-section intro paragraph.
+
+For comparisons with three or more axes, use `<table class="cmp">` inside `table-scroll`: the header row stays sticky while scrolling, `axis` on the first column keeps the comparison axis pinned during horizontal scroll, and `pick` on a `<col>`, `th`, or `td` tints the recommended option's column green. Keep plain `<table>` for narrow two-column comparisons — the sticky behavior and 720px minimum width get in the way there.
+<!-- END SHARED: html-style-classes -->
+
+<!-- BEGIN SHARED: html-design-guidance -->
+## 表現の質の指針
+
+見た目の判断に迷った時は、次の 4 つに従う。ユーザーが見た目の方向を明示した場合は、その指定が常に優先する。
+
+1. **AI が作りがちな見た目を避ける。** 次の定番の組み合わせは、指定が無い限り選ばない: cream 地 (#F4F1EA) + serif 見出し + terracotta accent / near-black 地 + acid-green や vermilion の一点差し / 絵文字を節の目印にする / 全要素センタリング / 一様な大きい角丸 / 角丸カードの左端 accent バー。
+2. **構造装飾は内容の事実を符号化する。** 01 / 02 / 03 のような番号は、内容が本当に順序を持つ時 (手順・時系列) だけ使う。区切り線・eyebrow・ラベルも、内容の区分を実際に表す時だけ入れ、装飾目的では入れない。
+3. **読む文書と操作する画面で作法を変える。** 一覧・ダッシュボード的な内容は上から順に読まれず走査される。要約を詳細より先に置き、状態は数値だけでなく形 (rate の点、tag-yes の色、callout の左帯) でも符号化して、注意が要る箇所が一目で分かるようにする。
+4. **余白は layout で作る。** 兄弟要素の間隔は `gap` を持つ flex / grid で作り、要素ごとの margin を積まない。幅の広い表・コード・図は自前の `overflow-x: auto` コンテナ (表は `table-scroll`) に入れ、ページ全体を横スクロールさせない。
+
+## Design Quality Guidance
+
+When unsure about visual choices, follow four rules; explicit user direction always wins. (1) Avoid stereotypical AI-generated looks — cream (#F4F1EA) with serif display and terracotta accent, near-black with a lone acid-green pop, emoji as section markers, centering everything, uniformly large border radii, accent bars on rounded cards. (2) Structural devices must encode facts: numbered markers (01/02/03) only when the content truly is a sequence; rules, eyebrows, and labels only when they mark real divisions. (3) Documents are read, dashboards are scanned: put summaries before detail and encode state in form (rating dots, tag colors, callout stripes), not numbers alone. (4) Create spacing with `gap` in flex/grid rather than stacked per-element margins, and give wide tables/code/diagrams their own `overflow-x: auto` container (`table-scroll` for tables) so the page body never scrolls sideways.
+<!-- END SHARED: html-design-guidance -->
+
+<!-- BEGIN SHARED: html-interactive-controls -->
+## 操作部品 (触って試す / 触った結果を作業へ戻す)
+
+読むだけでなく触って決める資料では、`html` block に操作部品を直接書ける。値を試すスライダー、切り替えのトグル、並べ替えできるカードなどが対象。
+
+### 書ける範囲
+
+- `html` block の中に `<script>` を inline で書ける。`onclick=` 等の inline event handler も使える。
+- 外部 host からの読み込みは `check-model` が error にする (`<script src="…">` と `<link rel="stylesheet" href="https://…">` の両方)。bundle が手元で完結する性質を保つため。図表の描画ライブラリが要る場合は Mermaid の `diagram` block を使う。
+- 部品の見た目は既存の class (`rate` / `tag-yes` / `num` 等) と揃える。inline `style` の直書きは最小限にする。
+
+### 触った結果を保存する
+
+同梱の `RHWState` を使う。preview server があれば `PUT /annotations/state/<name>.json` で保存し、端末をまたいで同じ状態を見せる。server が無い場合 (publish した standalone、`file://` で開いた場合) は localStorage に落ち、どちらも使えない環境ではメモリ上だけで動く。操作そのものは止まらない。
+
+```html
+<label>duration <input type="range" id="dur" min="0" max="2000" value="300"></label>
+<output id="durOut">300</output>ms
+<script>
+  (async function () {
+    var dur = document.getElementById("dur");
+    var out = document.getElementById("durOut");
+    // 保存済みの値があれば復元する
+    var saved = await window.RHWState.load("tuning");
+    if (saved && saved.duration) { dur.value = saved.duration; out.textContent = saved.duration; }
+    dur.addEventListener("input", function () {
+      out.textContent = dur.value;
+      // 動かしている間の表示更新と一緒に呼んでよい。debounce が server への PUT をまとめる
+      window.RHWState.save("tuning", { duration: dur.value }, { debounce: 300 });
+    });
+  })();
+</script>
+```
+
+`<name>` は英数字とハイフン・アンダースコアだけ (最大 64 文字)。保存した内容は agent が `annotations/state/<name>.json` として読める。触って決めた結果を作業へ戻す経路がこれになる。文書の中で用途ごとに名前を分ける (`tuning` / `priority-order` など)。
+
+連続して動く部品 (スライダー、テキスト入力) では `{ debounce: 300 }` を渡す。手元の保存 (localStorage) は毎回すぐ行い、server への書き込みだけを入力が止まってから 1 回にまとめる。これを渡さずに `input` で呼ぶと、つまみを端から端まで動かすだけで PUT が 100 回以上飛ぶ。
+
+逆に `debounce` を渡さないのは、操作が 1 回で完結する部品 (ボタン、`dragend`、チェックボックス) のとき。その場で保存され、戻り値の `saved` が `remote` / `local` / `memory` のどれかになる。
+
+`debounce` 付きで待っている間の戻り値は `superseded` になる (新しい値で予約が取り直された、という意味)。最後の呼び出しだけが実際の保存結果を返す。画面に保存状態を出す場合は `superseded` を「保存中」として扱う。
+
+### 使う判断
+
+- 値の範囲を試したい、順序を決めたい、選択肢を絞りたい場面で使う。読んで終わる資料には入れない。
+- 操作した結果を agent が受け取る必要があるなら `RHWState.save()` を必ず呼ぶ。呼ばないと結果は画面上だけで消える。
+- 操作部品を入れた資料は、`preview` で server 越しに開いて動作を確認する。`file://` で開くと状態が端末間で共有されない状態の確認になる。
+
+## Interactive Controls (Try Values, Return the Result to the Session)
+
+For documents where the reader decides by manipulating rather than only reading, write controls directly into an `html` block: sliders for trying values, toggles, reorderable cards.
+
+Inline `<script>` and inline event handlers are allowed inside `html` blocks. Loading from an external host is rejected by `check-model` — both `<script src="…">` and `<link rel="stylesheet" href="https://…">` — so the bundle stays self-contained. Use the `diagram` block when you need diagram rendering.
+
+To persist what the reader manipulated, use the bundled `RHWState`. With a preview server it saves through `PUT /annotations/state/<name>.json` so state is shared across devices; without one (published standalone, opened via `file://`) it falls back to localStorage, and to memory when neither is available. The interaction never breaks.
+
+```html
+<label>duration <input type="range" id="dur" min="0" max="2000" value="300"></label>
+<output id="durOut">300</output>ms
+<script>
+  (async function () {
+    var dur = document.getElementById("dur");
+    var out = document.getElementById("durOut");
+    var saved = await window.RHWState.load("tuning");
+    if (saved && saved.duration) { dur.value = saved.duration; out.textContent = saved.duration; }
+    dur.addEventListener("input", function () {
+      out.textContent = dur.value;
+      window.RHWState.save("tuning", { duration: dur.value }, { debounce: 300 });
+    });
+  })();
+</script>
+```
+
+`<name>` accepts alphanumerics, hyphens, and underscores (64 chars max). Saved state is readable by the agent at `annotations/state/<name>.json` — that is the path by which a decision made in the browser returns to the session. Use distinct names per purpose (`tuning`, `priority-order`). For continuously moving controls (sliders, text inputs) pass `{ debounce: 300 }`: local storage is written on every call, while the server write is coalesced into one after input stops. Omit `debounce` for one-shot interactions (buttons, `dragend`, checkboxes). While a debounced write is waiting, `save()` resolves with `saved: "superseded"` — treat that as "saving" in any status display; only the final call reports the real result.
+
+Add controls only when the reader needs to try values, decide an order, or narrow options; leave them out of read-only documents. If the agent must receive the outcome, `RHWState.save()` is required — otherwise the result stays on screen and disappears. Verify interactive documents through `preview` over the server, since opening via `file://` exercises the fallback path instead.
+<!-- END SHARED: html-interactive-controls -->
+
 <!-- BEGIN SHARED: mermaid-kinds -->
 ## Mermaid 対応 kind と最小サンプル
 

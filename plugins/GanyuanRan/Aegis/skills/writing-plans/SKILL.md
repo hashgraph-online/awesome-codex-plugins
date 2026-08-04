@@ -14,7 +14,7 @@ description: "Use when you have a spec or requirements for a multi-step task, be
   2. File map: what files created/modified, clear boundaries, follow existing patterns
   3. Bite-sized tasks (2-5 min each): exact file paths, complete code, exact commands, expected output
   4. Self-review: spec coverage, placeholders, type consistency, compatibility, verification, dual-track
-  5. Save → offer execution choice (subagent-driven or inline)
+  5. Save → select and announce the execution route; proceed unless a real authorization or safety boundary requires the user
 → Plan must answer: problem, baseline, files, compat, verification, risks, retirement.
 → Escalate from Planless Slice Lane to a durable plan when the slice adds a new owner, contract, schema, public API, architecture boundary, migration, persistence, security/permission, distribution/release surface, or unclear verification boundary.
 
@@ -22,7 +22,7 @@ description: "Use when you have a spec or requirements for a multi-step task, be
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Chosen TDD route. Frequent commits.
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Chosen TDD route. One verified commit per coherent Task or slice.
 
 Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
 
@@ -62,7 +62,9 @@ during decomposition.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+**Execution context:** Reuse the current branch/workspace by default. A branch
+needs independent history; a worktree needs concurrent checkout, blocking
+unrelated dirty state, or explicit user/repository authority.
 
 **Input:** approved requirements, a Spec Brief, or a Design Spec.
 
@@ -91,6 +93,10 @@ available, initialize the target project first:
 ```bash
 python <aegis-workspace-helper> init --root <target-project-root>
 ```
+
+Project authority overrides workspace initialization. In particular, the
+Aegis Method Pack repository must not create or ship a live `docs/aegis/`
+workspace; use its formal `docs/adr/`, `docs/current/`, and active session plan.
 
 If installed Aegis workspace support is unavailable, initialize the workspace manually:
   1. Create `docs/aegis/README.md` and `docs/aegis/INDEX.md`
@@ -372,7 +378,10 @@ Before you leave this workflow, the written plan must make these items answerabl
 **Each step is one action (2-5 minutes):**
 - Under `TDD Route: strict`: write the failing test → verify RED → implement minimal code → verify GREEN.
 - Otherwise: make the minimum change → run the focused regression or verification that proves it.
-- Commit.
+
+Steps are execution units, not Git history units. Commit once after every
+coherent Task is complete and freshly verified, or after an independently
+verifiable/revertible long-task slice. Do not commit each 2-5 minute step.
 
 ## Plan Document Header
 
@@ -380,7 +389,7 @@ Every plan MUST start with: Goal, Architecture, Tech Stack, Baseline/Authority R
 
 ## Task Structure
 
-Each task: Files (create/modify/test paths), Why (user/business value), Change Necessity (why source edits are needed and the minimum boundary), Impact/Compatibility, Verification (exact commands), then steps matching the TDD route. Strict routes use Write test → Verify RED → Minimal code → Verify GREEN → Commit; `off`, light, and skipped routes use the minimum change plus proportional regression/verification → Commit. Every step must include complete code and exact commands.
+Each task: Files (create/modify/test paths), Why (user/business value), Change Necessity (why source edits are needed and the minimum boundary), Impact/Compatibility, Verification (exact commands), then steps matching the TDD route. Strict routes use Write test → Verify RED → Minimal code → Verify GREEN; `off`, light, and skipped routes use the minimum change plus proportional regression/verification. The executing coordinator captures `TaskStartSnapshot` before the first write and creates one scoped commit only after the whole Task passes review and verification. Every step must include complete code and exact commands.
 
 For bug fixes, refactors, contract changes, or governance cleanup, add Repair
 Track (root cause, canonical owner, minimal sufficient stable repair, compat
@@ -414,21 +423,36 @@ Fix issues inline. Re-review is not needed — just fix and move on.
 ## Execution Handoff
 
 After saving the plan, render the `Execution Readiness View` when the handoff
-criteria above apply. Then offer execution choice:
+criteria above apply. The agent owns the execution-route decision; do not ask
+the user to choose merely because both routes are viable.
 
-**"Plan complete and saved to `docs/aegis/plans/<filename>.md`. Two execution options:**
+Select `subagent-driven` when subagents are available, the plan has
+genuinely independent tasks with bounded ownership, and the
+review/context benefit justifies the coordination. Otherwise select `inline`.
+Lack or denial of subagent support falls back to inline execution instead of blocking the task.
+A dirty workspace alone does not select either route; apply the Git ownership,
+overlap, and isolation rules separately.
 
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
+Ask the user only when route selection crosses an unresolved authorization,
+privacy, paid-resource, external-action, or irreversible boundary; changes the
+approved scope or acceptance contract; or no safe route can preserve existing
+workspace ownership. When no such boundary exists, proceed immediately.
 
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
+State the decision compactly:
 
-**Which approach?"**
+```text
+Execution Route:
+- Decision: subagent-driven | inline
+- Evidence:
+- Fallback:
+- User confirmation required: no | yes — <specific unresolved boundary>
+```
 
-**If Subagent-Driven chosen:**
+**If `subagent-driven`:**
 - **REQUIRED SUB-SKILL:** Use aegis:subagent-driven-development
 - Fresh subagent per task + two-stage review
 
-**If Inline Execution chosen:**
+**If `inline`:**
 - **REQUIRED SUB-SKILL:** Use aegis:executing-plans
 - Batch execution with checkpoints for review
 

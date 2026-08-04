@@ -1,6 +1,6 @@
 {
   "name": "x-developer",
-  "version": "2.5.6",
+  "version": "2.6.1",
   "description": "Xquik agent skill & plugin bundle for REST, MCP, webhooks, exports & confirmation-gated X workflows. Not affiliated with X Corp.",
   "author": {
     "name": "Xquik",
@@ -59,6 +59,7 @@
     ".codex-plugin",
     ".claude-plugin",
     ".mcp.json",
+    "CHANGELOG.md",
     "assets",
     "commands",
     "context7.json",
@@ -78,5 +79,8 @@
     "check-versions": "node scripts/check-versions.mjs",
     "test": "node --test --experimental-test-coverage --test-coverage-branches=80 --test-coverage-functions=90 --test-coverage-lines=90 tests/*.test.mjs",
     "prepublishOnly": "npm test && npm run check:reproducible"
+  },
+  "devDependencies": {
+    "fast-check": "4.9.0"
   }
 }

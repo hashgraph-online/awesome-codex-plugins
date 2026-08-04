@@ -1,6 +1,6 @@
 {
   "name": "spec-superflow",
-  "version": "0.12.1",
+  "version": "1.0.0",
   "description": "Spec-first workflow: integrates OpenSpec planning engine + Superpowers execution discipline via bridge contract. 9 collaborative skills for multi-agent coding tools.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "test": "node --test tests/e2e.test.mjs tests/lib/*.test.mjs",
+    "test": "node --test --test-concurrency=2 tests/e2e.test.mjs tests/lib/*.test.mjs",
     "test:raw-mode": "node --test tests/lib/raw-mode-smoke.test.mjs",
     "validate": "node scripts/validate-artifacts",
     "version": "node scripts/spec-superflow.mjs version $npm_new_version && node scripts/check-version-consistency.mjs && git add -A",

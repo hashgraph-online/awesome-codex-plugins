@@ -246,3 +246,76 @@ test("log findings and kubectl errors exit 1 while parameter errors exit 2", () 
   assert.equal(integerResult.status, 2);
   assert.equal(reportFrom(integerResult).ok, false);
 });
+
+test("completed Job Pods are terminal success and unchanged init output is historical", () => {
+  const completedInitPod = {
+    metadata: {
+      name: "demo-job-0",
+      uid: "job-pod-uid",
+      labels: { app: APP },
+      ownerReferences: [{ kind: "Job", name: "demo-init" }],
+    },
+    spec: {
+      initContainers: [{ name: "init" }],
+      containers: [{ name: APP }],
+    },
+    status: {
+      phase: "Succeeded",
+      conditions: [{ type: "Ready", status: "False" }],
+      initContainerStatuses: [{
+        name: "init",
+        restartCount: 0,
+        state: { terminated: { exitCode: 0, finishedAt: "2026-07-15T00:00:10Z" } },
+      }],
+      containerStatuses: [{
+        name: APP,
+        restartCount: 0,
+        state: { terminated: { exitCode: 0, finishedAt: "2026-07-15T00:00:11Z" } },
+      }],
+    },
+  };
+  const runtimeFixture = fixture({
+    pods: [completedInitPod],
+    events: [warning({ podUid: "job-pod-uid" })],
+    logs: {
+      "demo-job-0/init/current": "WARNING bootstrap completed\n",
+      "demo-job-0/demo/current": "migration complete\n",
+    },
+  });
+  const baseline = agedBaseline(runtimeFixture, 120);
+  const result = compare(runtimeFixture, baseline);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const report = reportFrom(result);
+  assert.equal(report.ok, true);
+  assert.equal(report.pods[0].lifecycle, "completed");
+  assert.equal(report.pods[0].containers.find((item) => item.name === "init").historicalCompletedInit, true);
+  assert.ok(report.observations.some((item) => item.historicalCompletedInit === true));
+  assert.equal(report.findings.some((item) => item.signal === "pod_not_ready"), false);
+  assert.equal(report.events[0].classification, "historical-transient");
+});
+
+test("failed Job Pods remain blocking findings", () => {
+  const failedPod = {
+    metadata: {
+      name: "demo-job-0",
+      uid: "failed-job-pod-uid",
+      labels: { app: APP },
+      ownerReferences: [{ kind: "Job", name: "demo-init" }],
+    },
+    spec: { containers: [{ name: APP }] },
+    status: {
+      phase: "Failed",
+      conditions: [{ type: "Ready", status: "False" }],
+      containerStatuses: [{
+        name: APP,
+        restartCount: 0,
+        state: { terminated: { exitCode: 1, reason: "Error" } },
+      }],
+    },
+  };
+  const result = runScan(fixture({ pods: [failedPod] }));
+  assert.equal(result.status, 1);
+  const report = reportFrom(result);
+  assert.equal(report.ok, false);
+  assert.ok(report.findings.some((item) => item.signal === "pod_failed"));
+});

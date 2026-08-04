@@ -24,7 +24,7 @@ npx skills add memi-design/memi --skill audit-frontend-design
 ## Compact Preflight
 
 ```bash
-npx -y @memi-design/cli@2.6.4 agent brief . --intent "<interface task>" --detail compact --json
+npx -y @memi-design/cli@2.7.8 agent brief . --intent "<interface task>" --detail compact --json
 ```
 
 Use `--detail standard` only when the compact brief lacks evidence needed for the edit.

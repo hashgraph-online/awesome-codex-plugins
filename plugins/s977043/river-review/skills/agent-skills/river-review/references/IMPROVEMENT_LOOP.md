@@ -35,7 +35,7 @@ ad hoc な prompt 修正で終わらせない。
 
 ### 3. Verify
 
-- [VERIFICATION.md](./VERIFICATION.md) の self-check 6 項目を全て通過した finding のみ出力する。
+- [VERIFICATION.md](./VERIFICATION.md) の self-check 7 項目を全て通過した finding のみ出力する。
 - Reject 条件に該当した finding は **どこで弾かれたか** を内部 trace に残しておく（後で eval fixture 化に使える）。
 
 ### 4. Classify Feedback

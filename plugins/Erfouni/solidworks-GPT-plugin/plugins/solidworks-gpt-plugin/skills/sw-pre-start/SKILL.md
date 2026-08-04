@@ -9,6 +9,60 @@ Run all phases in order. Do not model, generate CAD code, or call a SolidWorks
 API until Phases 1 through 4 complete or a documented KB outage forces the
 offline fallback.
 
+## Phase 0: non-negotiable engineering requirement (ENG-001)
+
+**This phase has no network dependency and is exempt from the offline fallback.**
+The KB carries the same rule as a convention, but a documented outage must never
+be the reason it stops applying.
+
+Do not create schematic, decorative, conceptual, simplified, placeholder, or
+visually representative components.
+
+**Every component must be a real, functional, manufacturable, technically
+accurate part. No component - regardless of size or importance - may be created
+merely for visual representation.**
+
+For every individual component, including a single screw:
+
+1. Research it against reliable technical sources: peer-reviewed papers,
+   engineering references, manufacturer documentation, and the latest
+   applicable standards.
+2. Design from validated research - engineering principles, formulas,
+   calculations, material properties, manufacturing constraints, tolerances,
+   and safety requirements.
+3. Justify every value. Dimensions, geometries, connections, interfaces, loads,
+   clearances, fasteners, materials and mechanical properties must all be
+   realistic and technically defensible.
+4. Never invent. No assumptions, invented specifications, arbitrary dimensions,
+   fake mechanisms, or purely visual detail.
+5. Cite the standards, formulas, calculations and references used for each part.
+
+**Model every physical component separately.** If an assembly contains 10,000
+parts, all 10,000 are researched, engineered and modelled individually. No group
+of parts may be replaced by a simplified block, visual shell, placeholder,
+texture, or symbolic representation. This covers screws, nuts, washers,
+bearings, seals, cables, connectors, welds, joints, gears, springs, housings,
+electronic components and internal mechanisms alike.
+
+The finished design must be fully functional, physically realistic,
+engineering-accurate, dimensionally consistent, manufacturable, properly
+assembled, based on validated calculations, compliant with the latest applicable
+standards, and free of decorative, fictional or representational parts.
+
+### When the information is not available
+
+If sufficient technical information or reliable references are unavailable for a
+component, **do not fabricate or guess.** State plainly what is missing and what
+must be researched or specified before that component can be designed accurately.
+
+Stopping to ask is the correct outcome. A plausible-looking part built from
+invented numbers is a failure, not a partial success - it looks finished and
+will therefore be trusted.
+
+An offline KB makes this *more* likely to be the right answer, not less: losing
+the standards tables means less grounding for a dimension, never permission to
+invent one.
+
 Set `KB_HOST` from `SW_KB_HOST`; default to
 `https://sw-plugin.ideep.org`. Use `curl` through the shell for every runtime
 request. Quote the complete URL. Do not use browser or web-fetch tools for this

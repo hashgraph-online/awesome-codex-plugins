@@ -1,6 +1,6 @@
 [project]
 name = "waggle-mcp"
-version = "0.0.1"
+version = "0.1.0rc1"
 description = "MCP server that gives LLMs persistent graph-structured memory"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,7 +23,8 @@ dependencies = [
   "google-api-python-client>=2.170.0",
   "google-auth>=2.40.0",
   "google-genai>=1.56.0",
-  "mcp>=1.0.0",
+  "jsonschema>=4.23.0",
+  "mcp>=2.0.0,<3.0.0",
   "networkx>=3.2.1",
   "numpy>=1.26.0",
   "openai>=2.14.0",
@@ -155,3 +156,8 @@ ignore_missing_imports = true
 warn_unused_ignores = true
 warn_return_any = false
 disallow_untyped_defs = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

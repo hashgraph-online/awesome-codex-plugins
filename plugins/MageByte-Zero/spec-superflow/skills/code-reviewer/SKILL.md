@@ -16,7 +16,7 @@ Two responsibilities: requesting review (dispatching a reviewer subagent) and re
 1. Get SHAs: `BASE_SHA=$(git rev-parse HEAD~1)` and `HEAD_SHA=$(git rev-parse HEAD)`
 2. Dispatch `general-purpose` subagent using template at `skills/code-reviewer/code-reviewer-prompt.md`
 3. Fill placeholders: `[DESCRIPTION]` (what was built), `[PLAN_OR_REQUIREMENTS]` (contract/spec reference), `[BASE_SHA]`, `[HEAD_SHA]`, `[WAVE_ID]`, and a distinct `[REVIEW_REPORT_FILE]`.
-4. Require the reviewer to write a non-empty persisted review report at `[REVIEW_REPORT_FILE]`, then record that exact path in the wave receipt: `npx --yes --package spec-superflow@0.12.1 ssf execution review <change-dir> --wave <id> --base <sha> --head <sha> --report <review-report-path> --verdict <pass|fail>`.
+4. Require the reviewer to write a non-empty persisted review report at `.superpowers/sdd/reviews/<wave-id>.md`, then record that exact in-overlay path in the wave receipt with `ssf execution review <change-dir> --wave <wave-id> --base <base-sha> --head <head-sha> --report .superpowers/sdd/reviews/<wave-id>.md --verdict <pass|fail>`. The execution plan initializes this directory; paths outside it are rejected for audit safety.
 5. Act on feedback: Critical/Important findings require a `fail` receipt, focused repair, re-review, and replacement `pass` receipt before a dependent wave or closing can proceed. Note Minor for later, push back with reasoning if reviewer is wrong.
 
 ### Minimality And Scope
@@ -72,7 +72,7 @@ Suggestion breaks existing functionality, reviewer lacks context, violates YAGNI
 | Performative agreement | State requirement or just act |
 | Blind implementation | Verify against codebase first |
 | Batch without testing | One at a time, test each |
-| Proceeding without a wave receipt | Record `pass`/`fail` via `npx --yes --package spec-superflow@0.12.1 ssf execution review` before the next dependent wave |
+| Proceeding without a wave receipt | Record `pass`/`fail` via `ssf execution review` before the next dependent wave |
 | Assuming reviewer is right | Check if breaks things |
 | Avoiding pushback | Technical correctness > comfort |
 | Partial implementation | Clarify all items first |
@@ -82,3 +82,36 @@ Suggestion breaks existing functionality, reviewer lacks context, violates YAGNI
 - **Parse failures**: Report specific file, request regenerated review package
 - **Missing files**: Regenerate via `scripts/review-package`. Empty diff = nothing to review
 - **User interruption**: Re-read review report on resume, continue from next unreviewed batch
+
+## Standard User-Facing Handoff
+
+End every user-facing phase report with this concise handoff. Only a successfully
+persisted `closing` state and `abandoned` are terminal.
+
+### Normal report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<completed work>`.
+- Next stage: `<next workflow stage or skill>`.
+- Entry condition: `<what must be true to enter it>`.
+
+### Blocked report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<blocking fact or missing evidence>`.
+- Next stage: `<stage that resumes after the blocker>`.
+- Entry condition: `<the approval, artifact, validation, or fix required>`.
+
+### Approval-wait report
+
+- Current stage: `<detected workflow stage>`.
+- Completed / blocker: `<work ready for the named decision>`.
+- Next stage: `<stage that follows approval>`.
+- Entry condition: `<explicit user approval or recorded decision>`.
+
+### Successful terminal report
+
+- Current stage: successfully persisted `closing` or `abandoned`.
+- Completed / blocker: `<persisted terminal outcome>`.
+- Next stage: `none`.
+- Entry condition: no further transition exists.

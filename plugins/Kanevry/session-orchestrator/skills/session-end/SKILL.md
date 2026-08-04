@@ -1069,7 +1069,7 @@ Present to the user:
   - Wave 1 (Discovery): [duration] — [N agents] — [K files]
   - Wave 2 (Impl-Core): [duration] — [N agents] — [K files]
   - ...
-- Tests: [passing/total] · Δ this session: +[added] / −[removed] / ~[consolidated] · tests:src LOC ratio [x.xx] (advisory ceiling 1.20)
+- Tests: [passing/total] · Δ this session: +[added] / −[removed] / ~[consolidated] · tests:src LOC ratio [x.xx] (advisory ceiling 1.60)
 - TypeScript: 0 errors
 - Commits: [N] pushed to [branch]
 - Mirror: [synced/skipped]

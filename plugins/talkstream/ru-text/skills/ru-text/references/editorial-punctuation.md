@@ -13,6 +13,8 @@ Subordinate clause is separated by comma. Conjunctions: **что, который
 
 Base rule: comma before the conjunction starting the subordinate clause.
 
+A restrictive or intensifying particle standing in front of the conjunction takes the comma with it: the boundary moves left, it does not disappear. `вызывай ru-text только когда я прошу` -> `вызывай ru-text, только когда я прошу`. Particles: только, лишь, исключительно, как раз, даже, ведь, всё же. (ПАС §116–117; Розенталь §33.6.) The mistake is dropping the comma altogether because the particle looks like part of the main clause — it is not, and the clause it introduces is still subordinate.
+
 When comma before "что" is NOT needed:
 
 construction|comma?|rule

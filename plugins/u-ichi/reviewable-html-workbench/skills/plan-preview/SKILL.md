@@ -57,43 +57,20 @@ Do not use this skill for final HTML artifacts, reviewable design documents, com
 
 ## 入力payload
 
-agentは `<proposed_plan>` に入れる直前の計画全文を `source_text` にそのまま入れる。
-`summary` / `phases` / `key_changes` / `flow` / `test_plan` / `assumptions` / `sections` / `visual_notes`
-は、全文の代替ではなくHTML上の補助ビューとして使う。preview用に情報を削らない。
-CLI本文では読み取りにくい依存関係、判断材料、検証観点、未決事項は `sections` や `visual_notes`
-で追加表示してよい。
+agentは `<proposed_plan>` に入れる直前の計画全文を `source_text` にそのまま入れる。要約・並べ替え・削除・言い換えは禁止。
+受理されるトップレベル key は `title` / `source_text` / `diagrams` だけ。`source_text` は必須。
+`diagrams` は図が理解を助ける章だけに絞り、各図の `after_heading` は原文見出しのプレーンテキストと完全一致させる。
 
 ```json
 {
   "title": "Plan Preview",
-  "summary": "この計画で何を達成するか",
-  "source_text": "<proposed_plan> に出す計画本文全文",
-  "phases": [
-    {"title": "Phase 1", "detail": "調査と境界確認"}
-  ],
-  "key_changes": [
-    "CLIを追加する",
-    "skill metadataを追加する"
-  ],
-  "flow": [
-    {"from": "計画作成", "to": "preview生成", "label": "agent内部"}
-  ],
-  "sections": [
+  "source_text": "<proposed_plan> に出す計画本文 markdown 全文をそのまま",
+  "diagrams": [
     {
-      "title": "判断材料",
-      "content": "CLI本文では長くなりやすい背景・比較・依存関係を補足する",
-      "items": ["元本文にない実装範囲は追加しない"]
+      "after_heading": "実装手順",
+      "title": "処理フロー",
+      "mermaid": "flowchart TD\n  plan --> implementation"
     }
-  ],
-  "test_plan": [
-    "unit test",
-    "CLI疎通確認"
-  ],
-  "assumptions": [
-    "hookは初期版では追加しない"
-  ],
-  "visual_notes": [
-    "図とリストで依存関係を補助表示する"
   ]
 }
 ```
@@ -102,7 +79,7 @@ CLI本文では読み取りにくい依存関係、判断材料、検証観点�
 
 ## Input Payload
 
-Put the full plan text that will appear in `<proposed_plan>` into `source_text`. Use summary, phases, key changes, flow, test plan, assumptions, sections, and visual notes only as supplemental HTML views, not as replacements for the original text. Do not drop information for preview generation; add dependencies, review context, verification details, and unresolved points that are hard to inspect in CLI text. Do not include external image URLs, external assets, secrets, or unconfirmed secret values.
+Put the full markdown plan text that will appear in `<proposed_plan>` into `source_text` exactly as-is. Do not summarize, reorder, delete, or rephrase it for preview generation. The accepted top-level keys are only `title`, `source_text`, and `diagrams`; `source_text` is required. Use `diagrams` only for sections where a diagram helps comprehension, and make each `after_heading` exactly match the plain-text heading in the source plan. Do not include external image URLs, external assets, secrets, or unconfirmed secret values.
 
 ## CLI手順
 
@@ -137,13 +114,13 @@ Run the CLI from the renderer repo root. Pass the plan payload through standard 
 
 - 正式な実装基準は `<proposed_plan>` のテキスト。previewだけに存在する項目を作らない。
 - preview URLは本文の冒頭または末尾ではなく、計画の確認に自然な位置へ置く。
-- preview作成のために計画を短縮しない。HTML上では元の計画本文を全文表示し、構造化ビューは補助表示として追加する。
-- CLI本文では表現しにくい図示、依存関係、比較、検証の広がりはHTML側で情報量を増やす。ただし実装範囲や約束をpreviewだけに追加しない。
+- preview作成のために計画を短縮しない。HTMLは原文と同じ章構成・同じ内容で表示する。
+- HTMLに追加されるのは、agentが `diagrams` で指定した図だけ。実装範囲や約束をpreviewだけに追加しない。
 - previewの生成に失敗した場合でも、`<proposed_plan>` 自体は成立させる。
 
 ## Relationship to the Plan Text
 
-The authoritative implementation plan is the `<proposed_plan>` text, not the preview alone. Do not add implementation scope that exists only in the preview. Place the URL where it helps review the plan. Do not shorten the plan to make preview generation easier. The HTML preview must show the original plan text in full, then add structured supplemental views for relationships, comparisons, verification context, and unresolved points that are hard to inspect in CLI text. If preview generation fails, still produce the plan with the unavailable reason.
+The authoritative implementation plan is the `<proposed_plan>` text, not the preview alone. Do not add implementation scope that exists only in the preview. Place the URL where it helps review the plan. Do not shorten the plan to make preview generation easier. The HTML preview must show the same section structure and same content as the original plan. The only added content is the diagrams explicitly provided by the agent in `diagrams`. If preview generation fails, still produce the plan with the unavailable reason.
 
 ## 禁止事項
 

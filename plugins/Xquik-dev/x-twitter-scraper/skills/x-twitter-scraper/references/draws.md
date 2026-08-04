@@ -52,6 +52,6 @@ const details = await xquikFetch(`/draws/${draw.id}`);
 const exportUrl = `${BASE}/draws/${draw.id}/export?format=csv`;
 ```
 
-## Usage
+## Twitter Giveaway Draw Usage
 
 Metered per participant entry.

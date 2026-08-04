@@ -22,6 +22,33 @@ from typing import Any, Iterable
 
 HEX64 = set("0123456789abcdef")
 
+# ``not_checked`` names the *in-scope acceptance surface a validator did not
+# verify*.  PASS asserts that the whole declared acceptance surface was
+# verified, so a PASS carries no ``not_checked`` entries by construction.
+#
+# That rule only pays for honest disclosure if every kind of scope limit has a
+# home that survives inside a PASS.  Each does, so nothing is ever deleted to
+# earn a PASS:
+#
+#   * a bounded proof of a criterion  -> ``criteria[].reason``
+#   * a declared non-goal             -> the intent source's non-goals, and
+#                                        optionally an evidence-backed boundary
+#                                        criterion in ``criteria``
+#   * residual risk                   -> the caller-facing report
+#
+# ``not_checked`` stays reserved for its one meaning: acceptance that genuinely
+# went unverified, which is NOT_PROVEN and not PASS.
+NOT_CHECKED_HOMES = (
+    "not_checked lists unverified in-scope acceptance surface, so a PASS has none by "
+    "construction; record a bounded proof of a criterion in criteria[].reason, a declared "
+    "non-goal in the intent source's non-goals (optionally as an evidence-backed boundary "
+    "criterion), and residual risk in the report; keep a not_checked entry only when "
+    "acceptance genuinely went unverified, which is NOT_PROVEN"
+)
+
+CRITERION_KEYS = ("id", "result", "evidence_refs", "reason")
+CRITERION_REQUIRED = ("id", "result", "evidence_refs")
+
 
 class ContractError(ValueError):
     pass
@@ -263,7 +290,7 @@ def enforce_identity(draft: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(freshness, dict) or freshness.get("source") not in ("runtime", "caller") or not freshness.get("attester_identity"):
         problems.append("freshness attestation is missing or invalid")
     if draft.get("verdict") == "PASS" and (draft.get("not_checked") or []):
-        problems.append("PASS cannot contain not_checked items")
+        problems.append(f"PASS cannot contain not_checked items: {NOT_CHECKED_HOMES}")
     criteria = draft.get("criteria")
     if draft.get("verdict") == "PASS" and (
         not isinstance(criteria, list)
@@ -312,6 +339,20 @@ def require_string_list(value: Any, field: str, *, nonempty: bool = False) -> No
         raise ContractError(f"verdict.v2 {field} entries must be nonempty strings")
 
 
+def criterion_fields_error(index: int, *, missing: list[str], unknown: list[str]) -> str:
+    """Return an actionable criteria-shape message naming the allowed field set."""
+    detail: list[str] = []
+    if missing:
+        detail.append(f"missing {', '.join(missing)}")
+    if unknown:
+        detail.append(f"unknown {', '.join(unknown)}")
+    problem = "; ".join(detail) if detail else "not an object"
+    return (
+        f"verdict.v2 criteria[{index}] has invalid fields ({problem}); allowed fields are "
+        f"{{{', '.join(CRITERION_KEYS)}}}, of which {', '.join(CRITERION_REQUIRED)} are required"
+    )
+
+
 def validate_verdict_v2(artifact: dict[str, Any]) -> None:
     """Enforce the complete bundled verdict.v2 contract before persistence."""
     missing = sorted(VERDICT_KEYS - artifact.keys())
@@ -345,9 +386,14 @@ def validate_verdict_v2(artifact: dict[str, Any]) -> None:
     if not isinstance(criteria, list) or not criteria:
         raise ContractError("verdict.v2 criteria must be a nonempty array")
     for index, criterion in enumerate(criteria):
-        allowed = {"id", "result", "evidence_refs", "reason"}
-        if not isinstance(criterion, dict) or not {"id", "result", "evidence_refs"}.issubset(criterion) or not set(criterion).issubset(allowed):
-            raise ContractError(f"verdict.v2 criteria[{index}] has invalid fields")
+        if not isinstance(criterion, dict):
+            raise ContractError(criterion_fields_error(index, missing=[], unknown=[]))
+        missing_keys = [key for key in CRITERION_REQUIRED if key not in criterion]
+        unknown_keys = sorted(set(criterion) - set(CRITERION_KEYS))
+        if missing_keys or unknown_keys:
+            raise ContractError(
+                criterion_fields_error(index, missing=missing_keys, unknown=unknown_keys)
+            )
         if not isinstance(criterion["id"], str) or not criterion["id"]:
             raise ContractError(f"verdict.v2 criteria[{index}].id must be nonempty")
         if criterion["result"] not in {"PASS", "FAIL", "NOT_PROVEN"}:
@@ -386,7 +432,9 @@ def validate_verdict_v2(artifact: dict[str, Any]) -> None:
         if any(not criterion["evidence_refs"] for criterion in criteria) or not artifact["evidence_refs"] or not artifact["checked"]:
             raise ContractError("verdict.v2 PASS requires criterion evidence plus nonempty evidence_refs and checked")
         if artifact["not_checked"]:
-            raise ContractError("verdict.v2 PASS cannot contain not_checked items")
+            raise ContractError(
+                f"verdict.v2 PASS cannot contain not_checked items: {NOT_CHECKED_HOMES}"
+            )
 
 
 def artifact_bytes(draft: dict[str, Any]) -> tuple[dict[str, Any], bytes]:

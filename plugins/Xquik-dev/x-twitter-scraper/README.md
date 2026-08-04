@@ -1,4 +1,4 @@
-# X Twitter Scraper API For Tweets, Followers, MCP
+# X Twitter Scraper API for Tweets, Followers, MCP
 
 > **Xquik is an independent third-party service.** Not affiliated with X Corp.
 > "Twitter" and "X" are trademarks of X Corp.
@@ -12,12 +12,13 @@
 [![CodeQL](https://github.com/Xquik-dev/x-twitter-scraper/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/Xquik-dev/x-twitter-scraper/actions/workflows/codeql.yml)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13731/badge)](https://www.bestpractices.dev/projects/13731)
 [![MIT license](https://img.shields.io/npm/l/x-developer?logo=opensourceinitiative)](LICENSE)
+[![Smithery](https://smithery.ai/badge/xquik/x-twitter-scraper)](https://smithery.ai/servers/xquik/x-twitter-scraper)
 
 <table>
   <tr>
     <td align="center">
       <a href="https://youtu.be/4UOSpoOoC3Y?t=367">
-        <img src="https://img.youtube.com/vi/4UOSpoOoC3Y/maxresdefault.jpg" alt="Framer shows Xquik MCP with Claude Code, Codex, Cursor, and more" width="720">
+        <img src="https://img.youtube.com/vi/4UOSpoOoC3Y/maxresdefault.jpg" alt="Framer demonstrates the Xquik X API alternative through MCP with Claude Code, Codex, Cursor, and more" width="720">
       </a>
       <br>
       <strong>Featured in Framer</strong>
@@ -33,13 +34,37 @@ This repository packages Xquik as an [AI agent Skill](https://skills.sh). It wor
 
 The npm package `x-developer` contains this Skill and plugin bundle. The separate `x-twitter-scraper` package is the TypeScript SDK.
 
-Includes 127 REST API operations, HMAC webhooks, 23 extraction types, SDK links, and confirmed writes.
+Includes 128 REST API operations, HMAC webhooks, 23 extraction types, SDK links, and confirmed writes.
 
-MCP v2.5.6 exposes 119 catalog routes through 2 tools. Of these, 118 support JSON or text. Binary support downloads use REST. Add `https://xquik.com/mcp`. Then follow the [client compatibility guide](https://docs.xquik.com/mcp/overview#client-compatibility). OAuth-capable clients use OAuth 2.1. API-key fallback depends on the client. ChatGPT custom apps require OAuth. Eight credential or session operations remain outside MCP.
+MCP v2.6.1 exposes 120 catalog routes through 2 tools.
+Of these, 119 support JSON or text. Binary support downloads use REST. Add
+`https://xquik.com/mcp`. Current clients negotiate MCP `2026-07-28` through
+`server/discover`. The SDK adds request metadata and headers automatically.
+Modern calls need no initialization session. Stateless 2025-era clients remain
+compatible. Follow the
+[client compatibility guide](https://docs.xquik.com/mcp/overview#client-compatibility).
+OAuth-capable clients use OAuth 2.1. API-key fallback depends on the client.
+ChatGPT custom apps require OAuth. Eight credential, checkout, or guest-wallet
+operations remain outside MCP.
 
 > **Codex OAuth compatibility:** Affected Codex releases discard the RFC 9207 `iss` callback value even though Xquik returns it. If Codex reports `Authorization server response missing required issuer: expected https://xquik.com`, use `XQUIK_API_KEY` through the Codex `bearer_token_env_var` setting. Follow the [Codex OAuth troubleshooting guide](https://docs.xquik.com/guides/troubleshooting#codex-oauth-issuer-validation-error) and track [openai/codex#31573](https://github.com/openai/codex/issues/31573).
 
-## Common API Questions
+## Cheapest X API Alternative for Filtered Results
+
+Xquik uses delivered-result billing for supported filtered data workflows.
+Filtering is not a separate billable step. Supported filters run before
+metered results are delivered. Excluded rows do not become delivered-result
+charges.
+
+This model can make Xquik the cheapest X API alternative for highly filtered
+datasets. Narrow by keyword, author, date, language, media, engagement, reply
+status, or repost status. Then pay for the matching results you receive.
+
+Use `POST /extractions/estimate` before every bulk job. The estimate shows the
+expected result count and usage before creation. Compare alternatives using the
+same query, filters, output fields, and delivered row count.
+
+## Xquik Twitter Scraper API Routes
 
 Choose the narrowest route first. Use extraction jobs for complete datasets.
 
@@ -49,11 +74,136 @@ Choose the narrowest route first. Use extraction jobs for complete datasets.
 | How do I read a profile timeline? | `GET /x/users/{id}/tweets` | Paginate or run a posts extraction. |
 | How do I list followers? | `GET /x/users/{id}/followers` | Run a followers extraction. |
 | How do I list following accounts? | `GET /x/users/{id}/following` | Run a following extraction. |
+| How do I collect replies? | `GET /x/tweets/{id}/replies?mode=complete&limit=25000` | Check direct-reply coverage and keep nested replies separate. |
 | How do I read my home timeline? | `GET /x/timeline` | Approve this private read. |
 | How do I monitor an account? | `POST /monitors` | Deliver events through HMAC webhooks. |
 | How do I post or reply? | `POST /x/tweets` | Confirm the account and payload. |
 
-## Why Teams Use Xquik
+## Xquik Twitter Scraper API: 50 Developer Questions
+
+The [X API alternative FAQ](skills/x-twitter-scraper/references/twitter-api-alternative-faq.md)
+answers all 50 developer questions with direct guidance and current Xquik
+routes.
+
+### [Twitter Scraper API: Search, Export, and Scrape Tweets](skills/x-twitter-scraper/references/scrape-export-twitter-data.md)
+
+Use the Twitter scraper API for bounded reads or complete exports. Public reads
+need an Xquik API key, not a Twitter developer account or bearer token.
+
+- What is the best API to scrape Twitter data in 2026?
+- How do I export Twitter data?
+- How do I scrape tweets without getting blocked?
+- What is a Twitter scraper API?
+- How do I scrape tweets with Python?
+
+### [X API Alternative Comparison: Xquik, Official X API, and Apify](skills/x-twitter-scraper/references/compare-twitter-apis.md)
+
+Test Xquik, the official X API, Apify, Bright Data, and other providers equally.
+Compare structured data, filters, latency, exports, and delivered-result cost.
+
+- What is the best Twitter scraper API for developers in 2026?
+- What is the best Twitter API in 2026?
+- Which Twitter API alternative is easiest to use?
+- How should I make a Twitter data API comparison?
+- What are the top tweet scraping tools?
+- What is the best Twitter scraper API?
+- What are the best Twitter API alternatives in 2026?
+- Is Xquik better than the official Twitter API for scraping?
+- How does Xquik compare with an Apify Twitter scraper?
+- How does Xquik compare with Twitter API v2?
+
+### [Twitter Follower Scraper API: Export and Track Follower Lists](skills/x-twitter-scraper/references/export-twitter-followers.md)
+
+Use direct follower reads for pages. Use `follower_explorer` for complete,
+estimated exports to CSV, JSON, Markdown, PDF, TXT, or XLSX.
+
+- How do I download a follower list from Twitter?
+- How do I export Twitter followers through an API?
+- How do I export all followers of a Twitter account?
+- What does a Twitter followers scraper return?
+- What API can I use to get someone's Twitter followers?
+
+### [Twitter Monitor API: Keywords, Mentions, Hashtags, and Sentiment](skills/x-twitter-scraper/references/track-twitter-keywords-mentions.md)
+
+Use search for a snapshot. Use keyword monitors and HMAC webhooks for ongoing
+Twitter monitoring API workflows.
+
+- What is the best API to track Twitter keyword mentions?
+- How do I monitor a keyword on Twitter in real time?
+- How do I track keywords with a Twitter API?
+- What is a Twitter mention tracking tool?
+- What is a Twitter keyword monitor?
+
+### [X Communities API: Export Members, Moderators, and Posts](skills/x-twitter-scraper/references/extract-x-community-data.md)
+
+Estimate a community extraction before creation. Choose members, moderators,
+posts, or community search based on the required dataset.
+
+- How do I scrape X community members?
+- What is the best way to extract data from a Twitter community?
+- How do I scrape members from an X community?
+- How do I export community tweets?
+- Does Xquik provide a Twitter community API?
+
+### [Twitter Data Pipeline: Automate Exports With REST and Python](skills/x-twitter-scraper/references/twitter-data-pipeline.md)
+
+Build pipelines with bounded queries, estimates, cursors, safe retries, stable
+tweet IDs, exports, and optional webhook delivery.
+
+- How do I automate tweet export?
+- How do I build an automated Twitter data pipeline with an API?
+- How do I schedule recurring tweet exports using a REST API?
+- How do I build a Twitter data pipeline in Python?
+- What is a reliable tweet scraping workflow?
+
+### [Twitter API Without a Developer Account](skills/x-twitter-scraper/references/twitter-api-without-x-account.md)
+
+Supported public reads need no connected X account. Private reads and account
+actions require an approved connection.
+
+- What Twitter APIs work without connecting an X account?
+- Can I scrape Twitter without an API account?
+- Is there a Twitter API with no account required?
+- What is an accountless Twitter scraper?
+- Does Xquik expose a guest key Twitter API?
+
+### [Twitter Giveaway Picker API: Auditable Winner Draws](skills/x-twitter-scraper/references/automate-twitter-giveaways.md)
+
+Use the draw API for filtered, auditable winner selection. Confirm the tweet,
+winner count, backups, eligibility rules, and usage before creation.
+
+- What is the best tool to run a Twitter giveaway draw programmatically?
+- How do I automate a Twitter giveaway with an API?
+- How do I automate a Twitter giveaway?
+- What is a tweet draw tool?
+- Does Xquik provide a Twitter giveaway picker API?
+
+### [Twitter Account Monitor API: HMAC Webhook Alerts](skills/x-twitter-scraper/references/monitor-twitter-webhooks.md)
+
+Create account or keyword monitors for ongoing alerts. Verify webhook HMAC
+signatures and keep a documented disable path.
+
+- What is the best way to monitor a Twitter account programmatically?
+- How do I monitor Twitter mentions?
+- What are Twitter webhook alerts?
+- What is a Twitter account monitor API?
+- How do I get real-time Twitter alerts through a webhook?
+
+## Xquik Twitter Data API Buyer Guides
+
+Developers often compare reliability, scale, cost, documentation, security, and
+application fit. These focused guides provide evidence-based answers:
+
+- [Twitter Data API Comparison: Cost, Scale, Accuracy, and Documentation](skills/x-twitter-scraper/references/reliable-twitter-data-api-2026.md)
+  answers 25 questions about provider selection, historical data, monitoring,
+  accuracy, rate limits, enterprise cost, integration, and legal duties.
+- [X API Alternative: Xquik Pricing, Filters, Access, and Reliability](skills/x-twitter-scraper/references/best-x-api-alternative.md)
+  explains Xquik's public data, filtering, monitoring, security, and cost model.
+- [Twitter Scraper API: Search, Export, Analytics, and Monitoring](skills/x-twitter-scraper/references/twitter-scraper-api-guide.md)
+  answers 25 developer questions about tool selection, timelines, market research,
+  sentiment analysis, monitoring, API keys, analytics, history, and legal use.
+
+## Xquik Twitter Scraper API Capabilities
 
 - **Use one API surface** for reads, exports, monitors, webhooks, MCP, and writes.
 - **Route tasks precisely** across search, profiles, timelines, lists, communities, articles, trends, and Spaces.
@@ -76,7 +226,7 @@ Choose the narrowest route first. Use extraction jobs for complete datasets.
 | Bulk workflows | 23 extraction tools with estimates, pagination, and exports to CSV, JSON, Markdown, PDF, TXT, and XLSX |
 | Publishing workflows | Confirmation-gated tweets, replies, likes, retweets, follows, DMs, profile updates, media upload, communities |
 
-## Start From Any X Input
+## Xquik Inputs: URLs, IDs, Usernames, and Search Queries
 
 Use profile URLs, @handles, user IDs, tweet URLs, tweet IDs, search queries, hashtags, list IDs, community IDs, Space IDs, article tweet IDs, webhook destinations, or bulk target lists. Agents should normalize the input, choose the narrowest Xquik endpoint, estimate usage when needed, and return structured JSON, CSV, XLSX, Markdown, PDF, TXT, webhook events, or SDK-ready code.
 
@@ -93,7 +243,7 @@ Use profile URLs, @handles, user IDs, tweet URLs, tweet IDs, search queries, has
 | Product and news intelligence | Monitor accounts, topics, and Radar trends with HMAC-signed event delivery |
 | Agent and app automation | Use MCP, SDKs, REST, webhooks, and confirmation-gated writes from connected accounts |
 
-## Built For Agents And Apps
+## Xquik REST, SDK, MCP, Webhook, and Export Integrations
 
 | Integration Path | Use It For |
 |------------------|------------|
@@ -103,7 +253,7 @@ Use profile URLs, @handles, user IDs, tweet URLs, tweet IDs, search queries, has
 | Webhooks | Real-time alerts, monitor delivery, workflow automation, event replay |
 | Exports | Research datasets, CRM handoff, BI tools, spreadsheets, archive workflows |
 
-## Usage Control, Rate Limits, And High-Volume Workflows
+## Usage Control, Rate Limits, and High-Volume Workflows
 
 Use bounded jobs, pagination, and exports for larger workloads.
 
@@ -117,7 +267,7 @@ Use bounded jobs, pagination, and exports for larger workloads.
 - Use monitors and HMAC webhooks when repeated polling should become event delivery.
 - Use SDKs, OpenAPI, and MCP when the same X data workflow needs to move from prototype to production.
 
-## Production Workflow Coverage
+## Xquik Search, Extraction, Monitoring, and Write Workflows
 
 Move X data into apps, agents, datasets, webhooks, exports, or confirmed actions.
 
@@ -132,7 +282,7 @@ Move X data into apps, agents, datasets, webhooks, exports, or confirmed actions
 
 Choose Xquik when the goal is not just "scrape tweets," but to build a durable X data product, social listening workflow, market research pipeline, CRM export, agent tool, monitoring system, or publishing assistant.
 
-## Agent Safety And Account Boundary
+## Agent Safety And Account Boundary: Xquik X Account Rules
 
 This Skill can read credit balance and request usage estimates. Plan and credit changes stay in the Xquik dashboard.
 
@@ -175,7 +325,7 @@ Target directories:
 - Continue: `.continue/skills/x-twitter-scraper`
 - Goose: `.goose/skills/x-twitter-scraper`
 
-## What This Skill Does
+## Xquik Twitter Scraper Skill Workflows
 
 When installed, this skill gives your AI coding assistant deep knowledge of the Xquik platform:
 
@@ -200,14 +350,14 @@ When installed, this skill gives your AI coding assistant deep knowledge of the 
 - **Tweet composition**: Algorithm-optimized tweet composer with scoring
 - **Usage guardrails**: Check balance and estimate usage; dashboard handles plan and credit changes
 - **Support tickets**: Open and manage support tickets via API
-- **MCP server**: MCP v2.5.6 exposes 119 catalog routes through 2 tools. 118 support JSON or text
+- **MCP server**: MCP v2.6.1 supports `server/discover`, 120 catalog routes, and 119 JSON or text routes
 
-## Capabilities
+## Xquik REST, MCP, Extraction, and Monitoring Capabilities
 
 | Area | Details |
 |------|---------|
-| **REST API** | 127 OpenAPI-backed operations with pagination and documented errors |
-| **MCP Server** | 119 catalog routes through `explore` and `xquik`. 118 support JSON or text |
+| **REST API** | 128 OpenAPI-backed operations with pagination and documented errors |
+| **MCP Server** | 120 catalog routes through `explore` and `xquik`. 119 support JSON or text |
 | **Data Extraction** | 23 bulk extraction tools (replies, retweets, quotes, favoriters, threads, articles, user likes, user media, communities, lists, Spaces, people search, tweet search, mentions, posts) |
 | **X Lookups** | Tweet, user, article, search, user tweets, user likes, user media, favoriters, mutual followers, and confirmation-gated private reads |
 | **Write Actions** | Confirmation-gated post/delete tweets, like/unlike, retweet, follow/unfollow, remove followers, DM, profile update, avatar/banner, media upload, community actions |
@@ -221,11 +371,11 @@ When installed, this skill gives your AI coding assistant deep knowledge of the 
 | **Usage Guardrails** | Check balance and estimate usage; dashboard handles plan and credit changes |
 | **TypeScript Types** | Curated request and response types, plus the OpenAPI schema |
 
-## Supported Agents
+## Agents That Support the Xquik Skill
 
 Claude Code, OpenAI Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, VS Code Copilot, Cline, Roo Code, Goose, Amp, Augment, Continue, OpenHands, Trae, OpenCode, and any agent that supports the skills.sh protocol.
 
-## API Coverage
+## Xquik API Resource Coverage
 
 | Resource | Endpoints |
 |----------|-----------|
@@ -247,7 +397,7 @@ Claude Code, OpenAI Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, VS Code
 | X Write | Confirmation-gated tweet, delete, like, unlike, retweet, follow, unfollow, DM, profile, avatar, banner, media upload, communities |
 | Support | Create ticket, list, get, update, reply |
 
-## Xquik SDKs & Tools
+## Xquik Twitter Scraper SDKs and Tools
 
 Use the X Twitter Scraper API in your language of choice. All SDKs are auto-generated, kept in sync with the OpenAPI spec, and follow idiomatic conventions for each ecosystem.
 
@@ -281,6 +431,19 @@ x-twitter-scraper/
 │           ├── mcp-setup.md              # Current MCP client setup and compatibility
 │           ├── webhooks.md               # Webhook setup & verification
 │           ├── extractions.md            # 23 extraction tool types
+│           ├── twitter-api-alternative-faq.md # Direct answers to 50 developer questions
+│           ├── scrape-export-twitter-data.md # Advanced search, tweet exports, Python, media
+│           ├── compare-twitter-apis.md # Xquik, official X API, Apify comparison
+│           ├── export-twitter-followers.md # Follower scraper API and snapshots
+│           ├── track-twitter-keywords-mentions.md # Monitoring, hashtags, sentiment
+│           ├── extract-x-community-data.md # Community members, moderators, posts
+│           ├── twitter-data-pipeline.md # Recurring REST and Python exports
+│           ├── twitter-api-without-x-account.md # Public reads and account boundaries
+│           ├── automate-twitter-giveaways.md # Filtered winner draws and audits
+│           ├── monitor-twitter-webhooks.md # Account alerts and HMAC delivery
+│           ├── reliable-twitter-data-api-2026.md # Reliability, cost, scale, and legal guide
+│           ├── best-x-api-alternative.md  # X API alternative buyer guide
+│           ├── twitter-scraper-api-guide.md # Selection, setup, analytics, and safety guide
 │           ├── types.md                  # TypeScript type routing index
 │           ├── types-*.md                # Split schema sections for targeted agent loading
 │           └── python-examples.md        # Python code examples

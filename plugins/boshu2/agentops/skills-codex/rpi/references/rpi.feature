@@ -13,9 +13,10 @@ Feature: RPI runs one bounded experiment
     Then RPI stops without repair, replan, helper, retry, or delivery
 
   @covered-by:skills/rpi/scripts/validate.sh
-  Scenario: Interactive output summarizes the machine artifact
-    Given RPI has produced an rpi-report.v1 machine artifact
+  Scenario: Interactive output does not require a machine artifact
+    Given RPI has received one fresh validation result
     When RPI responds to an interactive caller
     Then the response leads with status and the caller-visible outcome
-    And it includes only the strongest proof, material unchecked scope, and verdict link
-    And the full schema object is emitted only when machine-readable output was requested
+    And it includes only the strongest proof and material unchecked scope
+    And no hidden rpi-report.v1 or verdict.v2 is created
+    And a machine artifact is emitted only when a caller or declared consumer requested it

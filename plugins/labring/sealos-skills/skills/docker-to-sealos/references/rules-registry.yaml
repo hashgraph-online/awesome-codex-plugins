@@ -56,7 +56,7 @@ rules:
     description: Workloads with official health checks must define livenessProbe/readinessProbe and startupProbe using official endpoints/commands.
     severity: error
   - id: R053
-    description: Runtime-profile environment values with format contracts must use a concrete valid value or a required input without a generated default.
+    description: Runtime-profile environment values with format contracts must use a concrete valid value or a required input without a generated default; deterministic runtime-derived credentials may use a quoted opaque seed only when the runtime derives, validates, and removes it before exec.
     severity: error
   - id: R054
     description: Runtime profiles with a fixed external provider must wire at least one non-empty credential required by that provider.
@@ -118,6 +118,12 @@ rules:
   - id: R057
     description: MongoDB Cluster resources must use the pinned KubeBlocks API, labels, componentDef, component name, and serviceVersion contract.
     severity: error
+  - id: R058
+    description: Opt-in persisted runtime-secret contracts must generate formatted credentials from durable runtime entropy, apply restrictive permissions with an atomic replacement, validate before exec, and keep the final secret out of diagnostics.
+    severity: error
+  - id: R059
+    description: Opt-in optional-managed database contracts must share one boolean condition across the managed Cluster plane and database wiring while defining the documented SQLite or local false branch.
+    severity: error
   - id: R042
     description: Managed app main containers should keep startup command/args short and move bootstrap work to initContainers, Jobs, or ConfigMap scripts.
     severity: error
@@ -137,10 +143,10 @@ rules:
     description: Runtime component ConfigMaps must use one component name across metadata.name, labels.app, and cloud.sealos.io/app-deploy-manager; bootstrap-only init-copy ConfigMaps must not define either managed label.
     severity: error
   - id: R043
-    description: ConfigMaps mounted by managed Deployment/StatefulSet workloads must share the workload name, use a <workload>-cm volume, mount every data key through an independent volumeMount with matching subPath, and omit ConfigMap defaultMode unless explicitly required.
+    description: ConfigMaps mounted by managed Deployment/StatefulSet workloads must share the workload name, use a <workload>-cm volume, mount every data key through an independent volumeMount with matching subPath, omit ConfigMap defaultMode, invoke mounted scripts through a shell, and end main startup wrappers with exec.
     severity: error
   - id: R044
-    description: Optional object storage must use an application-level boolean input with an explicit true comparison; provider/backend selectors and managed ObjectStorageBucket plus bundled MinIO server combinations are invalid; compatibility proxies require structured source evidence and no persistent storage.
+    description: Optional object storage must use an application-level boolean input with an explicit true comparison and a documented storage-disabled/local false branch; provider/backend selectors and managed ObjectStorageBucket plus bundled MinIO server combinations are invalid; compatibility proxies require structured source evidence and no persistent storage.
     severity: error
   - id: R045
     description: Template artifacts must declare every referenced inputs.<name> key in the same Template CR spec.inputs.
@@ -155,7 +161,7 @@ rules:
     description: Root-path Prefix Ingress resources must use one component name across metadata.name, cloud.sealos.io/app-deploy-manager, and backend service names; non-root or non-Prefix routes may differ.
     severity: error
   - id: R051
-    description: Root-path Prefix Ingress backends must use a numeric service port that matches a declared port on the referenced application Service so Launchpad can discover the public address.
+    description: Root-path Prefix Ingress routes must be first in each HTTP path list, and their backends must use a numeric service port that matches a declared port on the referenced application Service so Launchpad can discover the public address.
     severity: error
   - id: R009
     description: Managed app workloads must explicitly set revisionHistoryLimit to 1.

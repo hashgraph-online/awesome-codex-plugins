@@ -27,6 +27,12 @@ class QualityGateArtifactTests(unittest.TestCase):
     def test_parse_args_accepts_artifacts(self):
         args = quality_gate.parse_args(["--artifacts", "template/demo/index.yaml"])
         self.assertEqual("template/demo/index.yaml", args.artifacts)
+        self.assertFalse(args.strict)
+
+    def test_parse_args_accepts_strict_aliases(self):
+        self.assertTrue(quality_gate.parse_args(["--strict"]).strict)
+        self.assertTrue(quality_gate.parse_args(["--strict-artifacts"]).strict)
+        self.assertTrue(quality_gate.parse_args(["--require-topology-evidence"]).strict)
 
     def test_resolve_artifact_targets_returns_empty_when_template_missing(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -48,6 +54,34 @@ class QualityGateArtifactTests(unittest.TestCase):
                 targets = quality_gate._resolve_artifact_targets(root)
             self.assertEqual(f"{app_a},{app_b}", targets)
 
+    def test_resolve_artifact_targets_discovers_evidence_files(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            template_file = root / "template" / "demo" / "index.yaml"
+            topology_file = root / ".sealos" / "topology-evidence" / "demo.yaml"
+            runtime_file = root / ".sealos" / "runtime-bundle.yaml"
+            template_file.parent.mkdir(parents=True, exist_ok=True)
+            topology_file.parent.mkdir(parents=True, exist_ok=True)
+            template_file.write_text("kind: Template\n", encoding="utf-8")
+            topology_file.write_text("kind: TopologyEvidence\n", encoding="utf-8")
+            runtime_file.write_text("kind: RuntimeBundleEvidence\n", encoding="utf-8")
+
+            with mock.patch.dict(os.environ, {}, clear=True):
+                targets = quality_gate._resolve_artifact_targets(root)
+
+            self.assertEqual(
+                ",".join(str(path) for path in sorted((template_file, topology_file, runtime_file), key=str)),
+                targets,
+            )
+
+    def test_resolve_artifact_targets_returns_empty_for_template_without_index(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "template" / "demo").mkdir(parents=True)
+            (root / "template" / "demo" / "README.md").write_text("demo\n", encoding="utf-8")
+            with mock.patch.dict(os.environ, {}, clear=True):
+                self.assertEqual("", quality_gate._resolve_artifact_targets(root))
+
     def test_validate_artifact_targets_fails_without_artifacts_by_default(self):
         ok, message = quality_gate.validate_artifact_targets("", allow_empty=False)
         self.assertFalse(ok)
@@ -57,6 +91,30 @@ class QualityGateArtifactTests(unittest.TestCase):
         ok, message = quality_gate.validate_artifact_targets("", allow_empty=True)
         self.assertTrue(ok)
         self.assertTrue(message.startswith("[WARN]"))
+
+    def test_validate_artifact_targets_strict_mode_overrides_empty_allowance(self):
+        ok, message = quality_gate.validate_artifact_targets("", allow_empty=True, strict=True)
+        self.assertFalse(ok)
+        self.assertIn("strict artifact mode", message)
+
+    def test_validate_artifact_targets_strict_mode_requires_evidence(self):
+        ok, message = quality_gate.validate_artifact_targets("template/demo/index.yaml", allow_empty=False, strict=True)
+        self.assertFalse(ok)
+        self.assertIn("TopologyEvidence", message)
+
+        ok, message = quality_gate.validate_artifact_targets(
+            "template/demo/index.yaml,.sealos/topology-evidence/demo.yaml",
+            allow_empty=False,
+            strict=True,
+        )
+        self.assertTrue(ok)
+        self.assertEqual(message, "")
+
+    def test_strict_artifact_environment_flag(self):
+        with mock.patch.dict(os.environ, {"DOCKER_TO_SEALOS_STRICT_ARTIFACTS": "true"}, clear=True):
+            self.assertTrue(quality_gate._strict_artifacts())
+        with mock.patch.dict(os.environ, {"DOCKER_TO_SEALOS_REQUIRE_TOPOLOGY_EVIDENCE": "true"}, clear=True):
+            self.assertTrue(quality_gate._strict_artifacts())
 
     def test_build_commands_includes_artifacts_argument(self):
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -1,6 +1,6 @@
 ---
 name: docker-to-sealos
-description: Convert Docker Compose files or installation docs into production-grade Sealos templates with role-specific personal low-load resource sizing. Use when user has a docker-compose.yml and wants a Sealos or Kubernetes template, wants to migrate from Docker Compose to Sealos, needs to convert container orchestration configs to Sealos format, or mentions compose-to-template conversion. Also triggers on "/docker-to-sealos".
+description: Convert Docker Compose files or installation docs into production-grade Sealos templates with role-specific personal low-load resource sizing, official route and runtime semantics, KubeBlocks database and Job gates, and managed or optional S3 storage contracts. Use when user has a docker-compose.yml and wants a Sealos or Kubernetes template, wants to migrate from Docker Compose to Sealos, needs to convert container orchestration configs to Sealos format, or mentions compose-to-template conversion. Also triggers on "/docker-to-sealos".
 ---
 
 # Docker to Sealos Template Converter
@@ -114,7 +114,7 @@ README authoring is out of scope for this skill. If the Template CR requires REA
 
 Run validator and self-tests before delivering template output.
 If validation fails, fix template/rules/examples first.
-For web applications, live validation must include runtime log hygiene: inspect init and main container logs after first readiness, after login or setup, and after one random missing-path HTTP request. Recurring traceback-style warnings are template failures even when pods are Ready.
+For web applications, live validation must include runtime log hygiene: inspect init and main container logs after first readiness, after login or setup, and after one documented API negative route or unique missing-static-asset request. SPA client routes may return the HTML shell with HTTP 200; recurring traceback-style warnings remain template failures even when Pods are Ready.
 For login-gated web applications, live validation must prove the real credential/session flow with one authenticated API or page before resource tuning or cleanup.
 For managed or private object storage, live validation must upload known bytes through the authenticated application flow, read or download the object, compare its SHA-256 digest, confirm delivery through the application proxy or a time-bounded presigned URL, and verify the raw anonymous object request remains restricted. Optional object storage must validate the local-storage and managed-bucket branches independently.
 
@@ -150,6 +150,7 @@ For managed or private object storage, live validation must upload known bytes t
 - Application `Service` resources must use the same component name across `metadata.name`, `metadata.labels.app`, `metadata.labels.cloud.sealos.io/app-deploy-manager`, and `spec.selector.app`.
 - Root-path `Ingress` resources (`pathType: Prefix`, `path: /`) must use the same component name across `metadata.name`, `metadata.labels.cloud.sealos.io/app-deploy-manager`, and backend `service.name`; non-root or non-Prefix Ingress rules may route to a different backend service.
 - Root-path `Ingress` resources (`pathType: Prefix`, `path: /`) must use `backend.service.port.number`, and the number must match a declared `spec.ports[*].port` on the referenced application `Service`.
+- Root-path Prefix routes must be the first entry in each HTTP `paths` list so Launchpad public-address discovery selects the application entry route.
 - Service `spec.ports[*].name` must be explicitly set (required for multi-port services).
 - HTTP Ingress must include required nginx annotations (`kubernetes.io/ingress.class`, `nginx.ingress.kubernetes.io/proxy-body-size`, `nginx.ingress.kubernetes.io/server-snippet`, `nginx.ingress.kubernetes.io/ssl-redirect`, `nginx.ingress.kubernetes.io/backend-protocol`, `nginx.ingress.kubernetes.io/client-body-buffer-size`, `nginx.ingress.kubernetes.io/proxy-buffer-size`, `nginx.ingress.kubernetes.io/proxy-send-timeout`, `nginx.ingress.kubernetes.io/proxy-read-timeout`, `nginx.ingress.kubernetes.io/configuration-snippet`) with expected defaults.
 - WebSocket Ingress must include required nginx annotations (`kubernetes.io/ingress.class`, `nginx.ingress.kubernetes.io/proxy-body-size`, `nginx.ingress.kubernetes.io/proxy-read-timeout`, `nginx.ingress.kubernetes.io/proxy-send-timeout`, `nginx.ingress.kubernetes.io/backend-protocol`, `nginx.ingress.kubernetes.io/ssl-redirect`) with `backend-protocol: WS` and `3600` read/send timeouts.
@@ -189,7 +190,7 @@ For managed or private object storage, live validation must upload known bytes t
 - ConfigMap data keys must follow vn naming (`scripts/path_converter.py`), including `/`, `-`, `.`, and other special characters.
 - ConfigMaps mounted by managed Deployment/StatefulSet workloads must use `metadata.name == workload.metadata.name`.
 - ConfigMap workload volumes must use `<workload-name>-cm`, and every ConfigMap `data` key must be mounted as its own `volumeMount` with `subPath` exactly equal to that key.
-- Omit ConfigMap volume `defaultMode` unless the application explicitly needs a non-default mode. ConfigMap scripts invoked through `/bin/sh /path/script` do not need executable bits.
+- Omit ConfigMap volume `defaultMode` in managed templates. Invoke mounted scripts through `/bin/sh /path/script`; copy to persistent storage and apply `chmod` in an initContainer when an application truly requires an executable file.
 - Avoid long inline startup scripts or heredocs in `command`/`args`; place initialization/start scripts in ConfigMap files and invoke them with a short command.
 - Classify object storage from official application docs before generating inputs: required capability, application-level optional capability, or externally managed storage.
 - If object storage/S3 integration is Enterprise, paid, commercial, subscription, or license-gated in the upstream application, keep the public template on the community-supported storage path (for example filesystem/PVC) and expose no standard `ObjectStorageBucket` or S3 input for that feature.
@@ -205,6 +206,8 @@ For managed or private object storage, live validation must upload known bytes t
 
 - Non-database sensitive values/inputs use direct `env[].value`.
 - When an official runtime profile constrains an env value's format or length, use a valid literal or a required input without a generated default; bare `${{ random(n) }}` is invalid for hex- or encoding-constrained values.
+- Internal credentials that an official runtime library can deterministically derive from opaque entropy may use a quoted instance seed in `spec.defaults`; every consuming role must derive and validate the same final values, remove the seed before exec, and expose no user input for the derived values.
+- Persisted runtime-secret contracts marked with `docker-to-sealos.runtime-secret-contract: persisted` must generate from durable runtime entropy, apply restrictive permissions with an atomic replacement, validate before `exec`, and keep the final secret out of diagnostics.
 - When an official runtime profile selects an external provider, the workload must wire a non-empty required credential for that provider; an optional input with an empty default is invalid.
 - Business containers must source database connection fields (`endpoint`, `host`, `port`, `username`, `password`) from approved Kubeblocks database secrets via `env[].valueFrom.secretKeyRef`; exception: Redis `host`/`port` may use Sealos Redis Service FQDN and `6379` when the Redis secret only exposes credentials, and MongoDB `host`/`port` or connection URLs may use the Sealos MongoDB Service FQDN plus `27017` when the MongoDB secret exposes credentials only.
 - Business containers must not use custom env/volume `Secret` references except approved Kubeblocks database secrets and object storage secrets.
@@ -287,6 +290,7 @@ Apply the resource ladder independently to every application main container, sid
 - If an application exits when a required input is weak or empty, treat the input default as part of the runtime contract. Live validation must include the first boot logs and login/setup path with the generated default value.
 - For application-level optional object storage documented by the official source, use a boolean input (for example `enable_s3_storage`) and test with `inputs.<name> === 'true'`. Resolve provider/backend/type/mode/driver selection during conversion and keep those selectors out of `spec.inputs`.
 - The false branch of an optional object-storage input must configure the storage-disabled/local mode documented by the official source.
+- Optional-managed database contracts marked with `docker-to-sealos.database-mode: optional-managed` must share one boolean condition across the managed Cluster plane and database wiring while defining the documented SQLite or local false branch.
 
 ## Validation Commands
 
@@ -299,8 +303,8 @@ Run all checks before final response:
 5. `python scripts/check_consistency.py --skill SKILL.md --references references --rules-file references/rules-registry.yaml`
 6. `python scripts/check_consistency.py --skill SKILL.md --references references --rules-file references/rules-registry.yaml --artifacts template/<app-name>/index.yaml,.sealos/topology-evidence/<app-name>.yaml` for existing-template updates and other topology-sensitive conversions
 7. `python scripts/check_must_coverage.py --skill SKILL.md --mapping references/must-rules-map.yaml --rules-file references/rules-registry.yaml`
-8. (CI / one-shot) `python scripts/quality_gate.py --artifacts /abs/path/template/<app-name>/index.yaml` or `DOCKER_TO_SEALOS_ARTIFACTS=/abs/path/template/<app-name>/index.yaml python scripts/quality_gate.py` (without explicit artifacts, it scans `template/*/index.yaml`; set `DOCKER_TO_SEALOS_ALLOW_EMPTY_ARTIFACTS=1` only for dev/debug without artifacts)
-9. Live deploy acceptance: after `sealos-deploy` creates the app, verify the actual App URL, login/setup flow for web apps, recent logs, a random missing-path 404 without noisy traceback logs, expected database objects, and full resource footprint before reporting success.
+8. (CI / one-shot) `python scripts/quality_gate.py --require-topology-evidence --artifacts /abs/path/template/<app-name>/index.yaml,.sealos/topology-evidence/<app-name>.yaml` or `DOCKER_TO_SEALOS_ARTIFACTS=/abs/path/template/<app-name>/index.yaml,.sealos/topology-evidence/<app-name>.yaml python scripts/quality_gate.py --require-topology-evidence` (without explicit artifacts, it scans `template/*/index.yaml` and `.sealos/*evidence*.yaml`; set `DOCKER_TO_SEALOS_ALLOW_EMPTY_ARTIFACTS=1` only for dev/debug without artifacts)
+9. Live deploy acceptance: after `sealos-deploy` creates the app, verify the actual App URL, login/setup flow for web apps, recent logs, a documented API negative route or unique missing static asset without noisy traceback logs, expected database objects, and full resource footprint before reporting success.
 
 `check_consistency.py` is registry-driven. Keep `references/rules-registry.yaml` in sync with implemented rules.
 Registry rule entries support `severity` and optional `scope.include_paths` metadata.

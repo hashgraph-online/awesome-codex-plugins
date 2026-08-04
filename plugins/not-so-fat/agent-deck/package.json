@@ -1,6 +1,6 @@
 {
   "name": "agent-deck",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "Agent Deck — decks of tools, keys, and self-improving playbooks",
   "private": true,
   "workspaces": [

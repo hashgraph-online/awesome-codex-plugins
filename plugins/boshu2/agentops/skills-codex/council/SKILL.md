@@ -80,4 +80,5 @@ Council does not mint a verdict of any version — no `PASS`/`FAIL`/`NOT_PROVEN`
 no `verdict.v*` — edit the subject, retry work, choose a next action, or
 authorize Git, closure, release, or delivery. When Council is used as a Validate
 strategy, one accountable fresh validator consumes its report and Validate
-remains the sole durable verdict writer.
+remains the sole semantic result owner and the only optional `verdict.v2`
+writer.

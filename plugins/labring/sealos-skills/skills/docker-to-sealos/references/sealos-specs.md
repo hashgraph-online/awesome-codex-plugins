@@ -218,7 +218,7 @@ defaults:
 1. `app_host` must include an application name prefix (e.g., `typesense-${{ random(8) }}`)
 2. `app_name` must include `${{ random(8) }}` to ensure uniqueness
 3. Randomly generated opaque configurations (secret keys, passwords, etc.) should be placed in `defaults`, not in `inputs`
-4. `${{ random(n) }}` does not satisfy hex, base64, UUID, or other format-specific runtime contracts. For those values, use a valid literal or a required input with no generated default.
+4. `${{ random(n) }}` does not directly satisfy hex, base64, UUID, or other format-specific runtime contracts. Use a valid literal or a required input with no generated default, or use a quoted opaque instance seed when the official runtime wrapper deterministically derives and validates the final credential before `exec`.
 
 ### Inputs Configuration
 
@@ -532,7 +532,7 @@ spec:
 5. Application Service must include `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and `metadata.name`, both labels, and `spec.selector.app` must be exactly the same
 6. Runtime component-level ConfigMap must include `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and both must be consistent with `metadata.name`; ConfigMaps used only by init containers to copy initial config into persistent storage must not include either label
 7. Root-path Ingress rules (`pathType: Prefix`, `path: /`) must keep `metadata.name` consistent with `metadata.labels.cloud.sealos.io/app-deploy-manager` and backend `service.name`; non-root or non-Prefix Ingress rules may use a distinct Ingress name and backend service
-8. Root-path Ingress backends must use `service.port.number`, and the number must match a declared `spec.ports[].port` on the referenced application Service so Launchpad can discover the public address
+8. Put the root-path Prefix route first in each HTTP `paths` list, use `service.port.number`, and match that number to a declared `spec.ports[].port` on the referenced application Service so Launchpad can discover the public address
 9. For a single-component StatefulSet without a documented headless or stable per-Pod DNS requirement, set `spec.serviceName` to the public application Service and keep the workload, Service, root Ingress, and manager identity aligned. Preserve documented HA/headless governing Services and route public traffic through a separate application Service
 
 ### Container Naming Rules

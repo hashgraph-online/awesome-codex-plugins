@@ -28,15 +28,23 @@ You need Python 3.11–3.13, [uv](https://docs.astral.sh/uv/), Docker, a Voyage 
 version-control system (VCS) token if reviewer should read or publish pull-request reviews. The
 stores run locally; embedding and reranking requests go to Voyage.
 
-1. Install the launcher, download the repository's Compose file, start the stores, and configure
-   reviewer:
+1. Install the launcher, download the repository's Compose file into reviewer's config directory,
+   start the stores, and configure reviewer:
 
    ```bash
-   uv tool install --from rag-reviewer reviewer
-   curl -O https://raw.githubusercontent.com/mimfort/rag_for_git/main/docker-compose.yml
-   docker compose up -d
+   uv tool install rag-reviewer
+   mkdir -p ~/.config/rag-reviewer
+   curl -o ~/.config/rag-reviewer/docker-compose.yml \
+     https://raw.githubusercontent.com/mimfort/rag_for_git/main/docker-compose.yml
+   docker compose -f ~/.config/rag-reviewer/docker-compose.yml up -d
    reviewer init
    ```
+
+   The Compose file lives next to the env file in `$XDG_CONFIG_HOME/rag-reviewer/`
+   (`~/.config/rag-reviewer/` by default), so one store stack serves every repository and the
+   Compose project name stays the same no matter which repository you are standing in. Plain
+   `curl -O` writes into the current directory instead; inside a clone of this repository it
+   overwrites the tracked `docker-compose.yml`.
 
 2. See the supported AI clients and connect one:
 
@@ -56,7 +64,7 @@ stores run locally; embedding and reranking requests go to Voyage.
 
    Indexing initializes the `chunks` schema that `reviewer check` queries, so a fresh installation
    must index before checking. The check currently requires `GITHUB_TOKEN`, even for a GitLab-only
-   setup; validate `GITLAB_TOKEN` with a dry-run `reviewer_review-pr` against a GitLab MR until
+   setup; validate `GITLAB_TOKEN` with a dry-run `/rag-reviewer:review-pr` against a GitLab MR until
    that limitation is removed. The status payload should show an indexed SHA and `drift == 0`.
    Full indexing sends code chunks to Voyage and can be slow on its free tier. Without a base
    index, PR review has only the diff and its temporary changed-file index (overlay), and therefore
@@ -66,10 +74,10 @@ stores run locally; embedding and reranking requests go to Voyage.
 
    ```text
    # Claude Code
-   /rag-reviewer:reviewer_review-pr owner/repo#123 --dry-run
+   /rag-reviewer:review-pr owner/repo#123 --dry-run
 
    # Codex
-   $rag-reviewer:reviewer_review-pr owner/repo#123
+   $rag-reviewer:review-pr owner/repo#123
    ```
 
    Invocation syntax differs by client. A dry run returns grounded findings without publishing;
@@ -94,8 +102,10 @@ reviewer env on every workstation instead of using the loopback Compose defaults
 1. **On the shared host, start the stores and configure secrets for the service account.**
 
    ```bash
-   curl -O https://raw.githubusercontent.com/mimfort/rag_for_git/main/docker-compose.yml
-   docker compose up -d
+   mkdir -p ~/.config/rag-reviewer
+   curl -o ~/.config/rag-reviewer/docker-compose.yml \
+     https://raw.githubusercontent.com/mimfort/rag_for_git/main/docker-compose.yml
+   docker compose -f ~/.config/rag-reviewer/docker-compose.yml up -d
    reviewer init
    ```
 
@@ -139,37 +149,40 @@ boundaries and confirmation gates; the MCP server performs storage, graph, VCS, 
 
 ### Review a pull request
 
-Use `reviewer_review-pr` for bug finding. It prepares a PR session, retrieves code and graph
+Use `review-pr` for bug finding. It prepares a PR session, retrieves code and graph
 context, analyzes changed files, verifies candidate findings, and publishes only grounded results.
 Use `--dry-run` first when validating a deployment. Inline comments can target only commentable
 diff lines; off-diff findings go to the summary.
 
 ### Solve a task
 
-Use `reviewer_solve-task` to turn a board task or free-text request into a persisted brief before
+Use `solve-task` to turn a board task or free-text request into a persisted brief before
 development. It checks index freshness, warms task context, gathers related work and code, then
 hands the brief to brainstorming. It does not implement the task by itself.
 
 ### Ask a grounded codebase question
 
-Use `reviewer_ask` for onboarding and codebase Q&A. Answers cite real `path:line` locations from
+Use `ask` for onboarding and codebase Q&A. Answers cite real `path:line` locations from
 the base index and code graph. It reads and explains; it neither reviews a PR nor modifies code.
 
 ### Walk a human reviewer through a PR
 
-Use `reviewer_pr-walkthrough` for a reading guide: where to start, what each file changes, and
+Use `pr-walkthrough` for a reading guide: where to start, what each file changes, and
 which callers are affected. It is intentionally separate from bug review.
 
 ### Run a focused review
 
-Use `reviewer_performance-review` for repeated I/O, N+1 work, poor asymptotics, batching, caching,
-and memory risks. Use `reviewer_maintainability-review` for complexity, duplication, readability,
+Use `performance-review` for repeated I/O, N+1 work, poor asymptotics, batching, caching,
+and memory risks. Use `maintainability-review` for complexity, duplication, readability,
 separation of concerns, and repository conventions. Both stay within the requested dimension.
 
-### Create and finish board tasks
+### Create, decompose, and finish board tasks
 
-`reviewer_create-task` drafts a canonical task body and writes only after confirmation.
-`reviewer_finish-task` links the PR, moves the task to a discovered done target, adds a task link
+`create-task` drafts a canonical task body and writes only after confirmation.
+`decompose-task` turns one stored parent into a fully previewed native-child batch, asks for one
+confirmation, preserves the previewed idempotency key on retries, then re-syncs and verifies every
+relationship and child read.
+`finish-task` links the PR, moves the task to a discovered done target, adds a task link
 to the PR body, and re-syncs the task corpus—also only after confirmation.
 
 ### Reviewer grounding in plan/review phases (optional)
@@ -224,9 +237,14 @@ For the module-level map and invariants, see [CLAUDE.md](CLAUDE.md).
 Persistent CLI:
 
 ```bash
-uv tool install --from rag-reviewer reviewer
+uv tool install rag-reviewer
 reviewer update
 ```
+
+`uv tool install` takes the package name and installs both of its commands, `reviewer` and
+`reviewer-mcp`. Its `--from` option only pins a different source for the same package
+(`--from rag-reviewer==0.4.2`, `--from git+…`); `--from PACKAGE COMMAND` is `uvx` syntax and
+`uv tool install` rejects it.
 
 Temporary/latest invocation:
 
@@ -265,6 +283,12 @@ claude plugin marketplace list --json
 ```
 
 After installation, start a new chat/CLI session; in an IDE, also use Reload Window.
+
+### Breaking skill-name migration
+
+This release removes the redundant `reviewer_` segment from every skill name. Legacy skill
+invocations are unsupported: update the plugin/cache, use the short names listed below, then open
+a New Chat or new CLI session. In an IDE, also use Reload Window.
 
 ### Required services and credentials
 
@@ -315,7 +339,44 @@ context_limits:
     hops: 1
 ```
 
-Use `reviewer_configure-review` to update context fields without clobbering unrelated keys.
+### Layered repository policy
+
+Policy is resolved in this exact order; each later source wins for the same top-level key:
+
+```text
+ENV
+  < $XDG_CONFIG_HOME/rag-reviewer/review.yml
+  < committed .review.yml at the selected target ref
+  < $XDG_CONFIG_HOME/rag-reviewer/repos/<owner>/<name>.yml
+```
+
+When `XDG_CONFIG_HOME` is unset, the home root is `~/.config/rag-reviewer`. Merging is only at the
+top level: a later mapping, list, or `null` replaces the complete earlier value; nested mappings
+are not deep-merged. That replacement is **shadowing**. Inspect the effective policy, source for
+each key, and shadowed sources with:
+
+```bash
+reviewer config show --repo group/service --branch main --json
+```
+
+The committed layer is fetched at the selected ref, so review/config resolution never reads an
+uncommitted worktree `.review.yml`. To copy a safe committed policy into the repo-specific home
+layer without modifying the committed file, run:
+
+```bash
+reviewer config migrate --repo group/service --branch main
+```
+
+Migration is non-destructive: an equivalent destination is a no-op, while a differing destination
+is reported as a conflict and left unchanged. Home files with credential-like keys are rejected as
+policy layers and their values are never displayed; keep credentials in server environment instead.
+Home configuration belongs to the OS account running reviewer. On a shared service account it can
+silently affect that account's workloads, so use committed `.review.yml` for team-visible policy and
+restrict the service account's home configuration permissions.
+
+Use `configure-review` to update context fields without clobbering unrelated keys. It
+recommends the per-repo home target first, or can explicitly update the committed `.review.yml` for
+team-visible policy.
 
 ### Task boards
 
@@ -344,6 +405,8 @@ The server-side flow is **store-first**:
    `tasks:<type>:<board>`.
 2. Skills call `get_task(key, project=...)`; linked tasks/PRs/code come from task context tools.
 3. Client models never enumerate the provider directly and never send credentials.
+
+The MCP server currently exposes **38 tools**, including the native-subtask batch operation.
 
 Legacy aliases remain **legacy metadata for older clients** for one compatibility window:
 `TASK_BOARD_API_KEY → YOUGILE_API_KEY` and
@@ -375,103 +438,146 @@ Use `reviewer COMMAND --help` for the current option set. `status` does not spen
 The examples below use Claude-style `/rag-reviewer:...` invocation. Codex exposes the same
 namespaced skills with `$rag-reviewer:...`.
 
-### `reviewer_review-pr` — full PR review
+### `review-pr` — full PR review
 
 - **When:** find correctness, security, performance, and maintainability issues in a PR.
-- **Invoke:** `/rag-reviewer:reviewer_review-pr owner/repo#123 --dry-run`.
+- **Invoke:** `/rag-reviewer:review-pr owner/repo#123 --dry-run`.
 - **Needs:** reviewer MCP, VCS access, stores, and preferably a fresh base index/graph.
 - **Reads/writes:** reads PR/code/task context; publishes through `publish_review` unless dry-run.
 - **Result:** grounded inline comments plus a summary; deterministic publish handles dedup.
 
-### `reviewer_solve-task` — task to development brief
+### `solve-task` — task to development brief
 
 - **When:** start implementation from a key such as `PRI-220` or a free-text request.
-- **Invoke:** `/rag-reviewer:reviewer_solve-task PRI-220`.
+- **Invoke:** `/rag-reviewer:solve-task PRI-220`.
 - **Needs:** reviewer MCP; board context is optional and the pipeline continues board-less.
 - **Reads/writes:** reads task/code context and writes one brief under `docs/superpowers/briefs/`.
 - **Result:** a compact brief handed to brainstorming; implementation happens in later skills.
 
-### `reviewer_ask` — grounded codebase Q&A
+### `ask` — grounded codebase Q&A
 
 - **When:** ask where code lives or how a subsystem works.
-- **Invoke:** `/rag-reviewer:reviewer_ask how does index freshness work?`.
+- **Invoke:** `/rag-reviewer:ask how does index freshness work?`.
 - **Needs:** a built base index and graph.
 - **Reads/writes:** reads repository context and local files; does not modify or review code.
 - **Result:** a Russian explanation with real `path:line` citations.
 
-### `reviewer_pr-walkthrough` — human reading guide
+### `pr-walkthrough` — human reading guide
 
 - **When:** orient a human reviewer without running a bug review.
-- **Invoke:** `/rag-reviewer:reviewer_pr-walkthrough owner/repo#123`.
+- **Invoke:** `/rag-reviewer:pr-walkthrough owner/repo#123`.
 - **Needs:** reviewer MCP, PR access, base index, and graph.
 - **Reads/writes:** reads impact/diffs/callers; posts only on explicit request.
 - **Result:** centrality-first reading order, per-file summary, and grounded impact notes.
 
-### `reviewer_performance-review` — performance-only review
+### `performance-review` — performance-only review
 
 - **When:** inspect a diff for repeated work, N+1 I/O, asymptotics, batching, caching, or memory.
-- **Invoke:** `/rag-reviewer:reviewer_performance-review`.
+- **Invoke:** `/rag-reviewer:performance-review`.
 - **Needs:** a diff/PR or explicit change scope; reviewer context is fail-open.
 - **Reads/writes:** reads the selected changes and nearby context; does not publish by itself.
 - **Result:** only concrete performance findings, with assumptions stated.
 
-### `reviewer_maintainability-review` — maintainability-only review
+### `maintainability-review` — maintainability-only review
 
 - **When:** inspect complexity, readability, duplication, boundaries, and repository conventions.
-- **Invoke:** `/rag-reviewer:reviewer_maintainability-review`.
+- **Invoke:** `/rag-reviewer:maintainability-review`.
 - **Needs:** a diff/PR or explicit change scope plus repository guidance.
 - **Reads/writes:** reads changes and nearby patterns; does not change behavior.
 - **Result:** focused simplification findings, excluding unrelated correctness/performance advice.
 
-### `reviewer_create-task` — create a canonical board task
+### `create-task` — create a canonical board task
 
 - **When:** file a grounded task on the configured board.
-- **Invoke:** `/rag-reviewer:reviewer_create-task describe the requested change`.
+- **Invoke:** `/rag-reviewer:create-task describe the requested change`.
 - **Needs:** registered board config, discovered create target/options, and project credentials.
 - **Reads/writes:** reads code for evidence; calls `create_task` only after explicit confirmation.
 - **Result:** canonical body, task key/URL, and a refreshed task corpus.
 
-### `reviewer_finish-task` — close a task after its PR
+### `decompose-task` — create native child tasks from one parent
+
+- **When:** split an existing board task into grounded, independently actionable native children.
+- **Invoke:** `/rag-reviewer:decompose-task PRI-224`.
+- **Needs:** a stored parent, configured board, authoritative `native_subtasks` capability, task
+  context, similar tasks, and relevant code from `search_codebase`.
+- **Board config:** inspect the repository `task_board` key once. A present null/empty/disabled
+  explicitly disables board work and never calls deploy-wide `get_board_config`. Only an absent
+  repository key may call `get_board_config` once; a mapping freezes generic `type`, `project`, and
+  `options` for the entire flow.
+- **Preview/confirmation:** shows the provider, parent, idempotency key, and complete canonical body
+  of every child, then asks for one explicit confirmation of the whole preview; no earlier write.
+- **Write/verification:** sends exactly one confirmed initial batch. Every actually attempted batch
+  write is verified regardless of status (`ok`, `partial`, `error`, or timeout) before declaring
+  its outcome or offering recovery.
+- **Verification:** performs exactly one project-scoped sync, re-reads the parent with `get_task`
+  and graph/context with `get_task_context` even when no child keys were returned, and point-reads
+  every returned child key with `get_task`.
+- **Recovery:** partial, timeout, or error recovery is never automatic. The skill preserves and
+  reports `status`, `category`, and `retryable`. After verification, only transport timeout or
+  unknown outcome or `retryable=true` reaches a new explicit user choice between exact retry or
+  stop; `retryable=false`, and `unsupported`, `conflict`, and `parent_not_found` stop without retry.
+  Exact retry replays the same full payload, order, and idempotency key; it never mints a new key,
+  never edits wording, and never sends only the remainder.
+- **Result:** created/attached/unattached/pending children and warnings, reported without guessing.
+
+### `finish-task` — close a task after its PR
 
 - **When:** a PR exists and the board task should be linked and completed.
-- **Invoke:** `/rag-reviewer:reviewer_finish-task PRI-220 https://github.com/owner/repo/pull/123`.
+- **Invoke:** `/rag-reviewer:finish-task PRI-220 https://github.com/owner/repo/pull/123`.
 - **Needs:** task key, PR URL, registered board config, and discovered done target/options.
 - **Reads/writes:** after explicit confirmation, appends the PR idempotently, updates the task,
   prepends a task backlink to the PR body, and re-syncs.
 - **Result:** done state plus `already_closed`/`task_link_added` reporting without duplicate links.
 
-### `reviewer_sync-codebase` — build or update the base index
+### `sync-codebase` — build or update the base index
 
 - **When:** initialize an index, refresh stale code, or rebuild the graph.
-- **Invoke:** `/rag-reviewer:reviewer_sync-codebase --path /srv/repo --ref main`.
+- **Invoke:** `/rag-reviewer:sync-codebase --path /srv/repo --ref main`.
 - **Needs:** git clone, `uvx`, reviewer services, Voyage, and optional SCIP.
 - **Reads/writes:** reads the selected git ref and writes branch-scoped vectors/graph nodes.
 - **Result:** incremental index report; failures name the missing prerequisite.
 
-### `reviewer_sync-tasks` — warm task vectors and graph
+### `sync-tasks` — warm task vectors and graph
 
 - **When:** synchronize a configured board before task search or solve-task.
-- **Invoke:** `/rag-reviewer:reviewer_sync-tasks`.
+- **Invoke:** `/rag-reviewer:sync-tasks`.
 - **Needs:** use `reviewer init`, configure the selected provider as documented in
   `docs/board-providers.md`, then validate it with `reviewer check`.
 - **Reads/writes:** calls idempotent server-side `sync_board`; it reads the board and does not write
   back.
 - **Result:** compact counts and per-board warnings; missing config remains board-less/fail-open.
 
-### `reviewer_summarize-subsystems` — GraphRAG subsystem summaries
+### `summarize-subsystems` — GraphRAG subsystem summaries
 
 - **When:** build or refresh the architectural prior used by Q&A and PR walkthroughs.
-- **Invoke:** `/rag-reviewer:reviewer_summarize-subsystems`.
+- **Invoke:** `/rag-reviewer:summarize-subsystems`.
 - **Needs:** a fresh base index, code graph, reviewer MCP, and confirmation of cluster depth.
-- **Reads/writes:** reads cluster symbols and writes grounded summaries to the summary store.
-- **Result:** fresh/pruned summaries with deferred and orphan reporting.
+- **Reads/writes:** читает только добавленные/изменённые файлы, переиспользует сохранённые
+  пофайловые fragments и атомарно пишет fragments вместе со сводкой кластера.
+- **Result:** сводки и метрики `created`/`reused`/`removed`/`moved`,
+  `deferred`/`raced`, `fragments_pruned` и `embedded`.
 
-### `reviewer_configure-review` — update `.review.yml`
+Первый полный прогон после обновления создаёт fragments для всех текущих файлов, но не удаляет
+старые сводки: каждый кластер заменяется только после успешной атомарной записи нового bundle.
+При настроенном cap bootstrap может занять несколько проходов. Freshness считается по
+skeleton-коду, поэтому правка только тела функции намеренно остаётся невидимой, пока не изменится
+skeleton. Layout identity — canonical token от default `summary_cluster_depth` и
+нормализованных `summary_cluster_depth_overrides`: смена любого из них принудительно пересобирает
+все fragments, даже если default depth прежний. Частичный или ограниченный cap-ом прогон не
+запускает prune; optimistic race (`stored=false`) тоже считается отложенным, не успехом, и
+запрещает prune в этом проходе. Полный проход передаёт в prune token и точную карту
+`cluster_key → source_hash`; сервер повторно выводит layout и под advisory lock проверяет каждую
+summary и same-generation fragment coverage до удаления сирот и финализации state. Embedding
+backfill пишет вектор только по exact CAS `source_hash + title + summary`, поэтому конкурентная
+перезапись текста не получает устаревший вектор и не увеличивает `embedded`.
+
+### `configure-review` — update `.review.yml`
 
 - **When:** tune ignored paths, retrieval limits, summary clustering, or board metadata.
-- **Invoke:** `/rag-reviewer:reviewer_configure-review`.
+- **Invoke:** `/rag-reviewer:configure-review`.
 - **Needs:** a git repository; MCP and databases are not required for baseline analysis.
-- **Reads/writes:** reads tracked Python structure/history and changes only approved YAML fields.
+- **Reads/writes:** reads tracked Python structure/history and changes approved YAML fields in either
+  `home:repos/<owner>/<name>.yml` or committed `.review.yml`.
 - **Result:** preserved foreign keys/comments plus exact rebuild guidance.
 
 ## Operations, troubleshooting, and limitations
@@ -505,10 +611,10 @@ uncommitted files directly from disk.
 
 | Symptom | Likely cause | Next action |
 |---|---|---|
-| `reviewer check` reports Postgres/Neo4j unavailable | Default stores are not running or DSNs differ | Run `docker compose up -d`, then repeat `reviewer check` |
+| `reviewer check` reports Postgres/Neo4j unavailable | Default stores are not running or DSNs differ | Run `docker compose -f ~/.config/rag-reviewer/docker-compose.yml up -d`, then repeat `reviewer check` |
 | Voyage returns 429 | Free-tier RPM/TPM quota is exhausted | Wait for the quota window; rerun incremental indexing rather than deleting the index |
 | PR is skipped | Its target branch is outside `REVIEW_BRANCHES`, or draft policy skips it | Inspect `prepare_review` reason and update policy only if the target is intentional |
-| Task lookup is empty | Board is disabled/unconfigured or the corpus is cold | Validate [board setup](docs/board-providers.md), then run `reviewer_sync-tasks` |
+| Task lookup is empty | Board is disabled/unconfigured or the corpus is cold | Validate [board setup](docs/board-providers.md), then run `/rag-reviewer:sync-tasks` |
 | Q&A misses new local code | Base index contains only a committed ref | Read the local file or commit/index the intended branch |
 | AI client cannot see new skills | Client session predates installation | Start a New Chat/new CLI session; use Reload Window in an IDE |
 
@@ -549,7 +655,7 @@ errors are reported without preventing the process from starting where fail-soft
 - OAuth loopback flows are not supported in headless/SSH integrations; use documented PAT/API-key
   credentials.
 - `reviewer check` currently validates `GITHUB_TOKEN` and the GitHub API even in a GitLab-only
-  deployment; validate `GITLAB_TOKEN` with a dry-run `reviewer_review-pr` against a GitLab MR.
+  deployment; validate `GITLAB_TOKEN` with a dry-run `/rag-reviewer:review-pr` against a GitLab MR.
 - Board work is optional. Missing provider configuration keeps task-aware skills board-less rather
   than blocking code retrieval.
 

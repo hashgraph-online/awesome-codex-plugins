@@ -57,12 +57,26 @@ Boss does not mean "install once and get guaranteed autonomous delivery." It pro
 
 ### 1. Install
 
+Boss is a skill you install into your coding agent — not a tool that installs other skills.
+
+**Recommended — via the `skills` CLI ([vercel-labs/skills](https://github.com/vercel-labs/skills), skills.sh):**
+
 ```bash
+npx skills add echoVic/boss-skill
+```
+
+This is the standard, agent-agnostic way to install a skill: it discovers `boss` from the repo, prompts for target agent / scope (project vs global) / install method, and records a `skills-lock.json` you can commit. Boss ships a single skill root, so the picker shows just `boss` — its internal methodologies travel with it.
+
+**Alternative — Boss's own multi-agent installer** (auto-detects Claude Code, Codex, OpenClaw, Antigravity, Hermes and installs into all of them, plus merges Codex hooks):
+
+```bash
+# One-shot, no global install
+npx @blade-ai/boss-skill
+
+# Or install globally, then run the self-install wizard
 npm install -g @blade-ai/boss-skill
 boss-skill
 ```
-
-`boss-skill` auto-detects supported agents and installs the Boss skill bundle where possible.
 
 For Claude Code plugin mode:
 
@@ -128,6 +142,26 @@ Auto-detected targets:
 | Antigravity | `~/.gemini/antigravity/` | Copy to Antigravity skills directory and inject metadata |
 | Hermes | `~/.hermes/` | Copy to `~/.hermes/skills/boss/` and inject metadata |
 | Claude Code | Always available | Plugin mode with `--plugin-dir` |
+
+## Platform Support
+
+Boss targets Node.js `>=20` and runs on Linux, macOS, and Windows. The CLI shells out
+only through `spawnSync` with explicit argument arrays (never `shell: true`), and resolves
+`npm`/`npx` to their `.cmd` variants on Windows, so there is no POSIX-only assumption in
+the core pipeline.
+
+Two capabilities depend on optional external tools and degrade gracefully when they are
+absent:
+
+- **WIP checkpoints** (stash/commit/branch) require `git` and a git working tree. Outside a
+  repository, or without `git` on `PATH`, checkpointing is silently skipped — the pipeline
+  is unaffected.
+- **Legacy hand-written `gate.sh` plugins** are executed via `bash`. On Windows without a
+  bash in `PATH` these will fail to launch; prefer the cross-platform Node gate entry
+  (`gate.js` / `gate.mjs`) for portable plugins.
+
+Run `boss doctor` to see the resolved runtime environment (Node version, platform, and
+whether `git` is available) alongside install and event-stream health.
 
 ## Commands
 
@@ -251,6 +285,10 @@ Security-sensitive behavior to review before publishing or installing:
 - Hook entries execute `boss hooks run ...`, which dispatches scripts from `scripts/hooks/`.
 - Runtime plugins under `.boss/plugins/<name>/plugin.json` can register gate or reporter hooks; review project-local plugins before enabling them.
 - Use `BOSS_HOOK_PROFILE=minimal` or `BOSS_DISABLED_HOOKS=<ids>` when you need to reduce hook behavior in a sensitive environment.
+
+Boss is local-first and makes no outbound network requests by default; the only network
+surface is the opt-in, loopback-only `boss design preview` server. See [PRIVACY.md](PRIVACY.md)
+for the full data and network boundary.
 
 ## Pipeline Artifacts
 

@@ -30,6 +30,23 @@ user-invocable: true
 5. **渐进式披露。** 只读取当前步骤需要的 reference、Agent prompt、template；不要一次性加载所有协议全文。
 6. **平台适配不改变状态语义。** Claude Code、Codex、OpenClaw、Antigravity、Hermes 都以 Runtime Core 为准。
 7. **中文交付。** Boss 生成的 `.boss/<feature>/` 文档默认使用中文。
+8. **不重造宿主已有的能力。** Boss 只提供宿主没有的东西：事件溯源审计、不可绕过的门禁、
+   产物 provenance。派发子 Agent、读写文件、检索代码、会话内任务清单一律用宿主原语。
+
+## 职责边界：Boss 提供什么、宿主提供什么
+
+| 能力 | 归属 | 说明 |
+|------|------|------|
+| 子 Agent 派发 | **宿主** | 用宿主的 Task / Agent 工具，Boss 不自建调度器 |
+| 文件读写、代码检索 | **宿主** | Read / Write / Edit / Glob / Grep |
+| 会话内临时清单 | **宿主** | 宿主的 todo 原语；Boss 的 todo 仅指会话收敛产出的
+  带 owner 与 successCriteria 的跨 Agent 交付项，落在事件流中 |
+| 结构化返回 | **宿主 + 工具层校验** | 状态经 `report-agent-status` 校验枚举，不解析散文 |
+| 事件溯源与重放 | **Boss** | `events.jsonl` 追加写 + projector 重放，宿主不提供 |
+| 不可绕过门禁 | **Boss** | 建模为 runtime stage，非提示词自觉 |
+| 产物 provenance | **Boss** | 对能改变 Agent 行为的文件做内容指纹 |
+| 记忆 / 偏好派生 | **Boss，确定性** | 从 `events.jsonl` 规则化投影（含用户选择偏好聚合），
+  可完整重放；不外挂第二个 LLM 去二次抽取 |
 
 ## 什么时候读取什么
 
