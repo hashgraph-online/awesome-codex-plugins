@@ -4,9 +4,9 @@
   <br>
 </p>
 
-<h1 align="center">Awesome Codex Plugins</h1>
+<h1 align="center">Awesome Codex & ChatGPT Plugins</h1>
 
-<p align="center">A curated list of awesome OpenAI Codex plugins, skills, and resources.</p>
+<p align="center">A curated list of awesome plugins, skills, and resources for OpenAI Codex and ChatGPT.</p>
 
 <p align="center">
   <a href="https://hol.org/registry/plugins">
@@ -24,6 +24,10 @@
 
 <p align="center">
   OpenAI <a href="https://openai.com/academy/codex-plugins-and-skills/">documents plugins and skills for Codex</a>, packaging skills, MCP servers, and app integrations into shareable, installable bundles across the Codex app, CLI, and IDE extensions.
+</p>
+
+<p align="center">
+  Codex is now available inside the ChatGPT desktop app, while remaining a distinct coding workspace. OpenAI plugins can support workflows in ChatGPT, Codex, or both; this repository remains a Codex-compatible marketplace.
 </p>
 
 <br>
