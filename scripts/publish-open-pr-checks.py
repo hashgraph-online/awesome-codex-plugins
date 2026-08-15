@@ -160,7 +160,20 @@ def remediation_comment(
             f"[View the latest sweep]({run_url})."
         )
 
-    if result.get("state") == "failure":
+    failure_reasons = result.get("failure_reasons")
+    malformed_readme = any(
+        isinstance(reason, str) and "Community Plugins entries" in reason
+        for reason in (failure_reasons if isinstance(failure_reasons, list) else [])
+    )
+    if malformed_readme:
+        guidance = (
+            "1. Format each Community Plugins entry as "
+            "`- [Plugin Name](https://github.com/<owner>/<repo>) - Description`.\n"
+            "2. Keep the link at the repository root, use one sentence for the description, "
+            "and keep the entry in its category's alphabetical order.\n"
+            "3. Push the README correction and rerun the check."
+        )
+    elif result.get("state") == "failure":
         guidance = (
             "1. Add a workflow under `.github/workflows/` in the linked source repository.\n"
             "2. Trigger it on both `push` and `pull_request`, and invoke "

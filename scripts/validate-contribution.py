@@ -44,7 +44,7 @@ USER_AGENT = "awesome-codex-plugins-contribution-validator"
 
 README_ENTRY_RE = re.compile(
     r"^- \[([^\]]+)\]\((https://github\.com/"
-    r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)(?:[?#][^)]*)?)\)\s*[-\u2013\u2014]\s*(.+)$",
+    r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)(?:/)?(?:[?#][^)]*)?)\)\s*[-\u2013\u2014]\s*(.+)$",
     re.MULTILINE,
 )
 
@@ -119,6 +119,55 @@ def scanner_steps(document: object) -> list[str]:
     return references
 
 
+def reusable_workflow_references(document: object) -> list[str]:
+    """Return local reusable workflow filenames referenced by jobs."""
+
+    if not isinstance(document, dict):
+        return []
+    jobs = document.get("jobs")
+    if not isinstance(jobs, dict):
+        return []
+
+    references: list[str] = []
+    for job in jobs.values():
+        if not isinstance(job, dict):
+            continue
+        uses = job.get("uses")
+        if not isinstance(uses, str):
+            continue
+        workflow_ref = uses.split("@", 1)[0].strip().replace("\\", "/")
+        if not workflow_ref.startswith(".github/workflows/") and not workflow_ref.startswith(
+            "./.github/workflows/"
+        ):
+            continue
+        references.append(workflow_ref.rsplit("/", 1)[-1])
+    return references
+
+
+def workflow_reaches_scanner(
+    name: str,
+    documents: dict[str, object],
+    visiting: set[str] | None = None,
+) -> bool:
+    """Return whether a workflow directly or indirectly invokes the scanner."""
+
+    document = documents.get(name)
+    if document is None:
+        return False
+    if scanner_steps(document):
+        return True
+
+    active = set() if visiting is None else set(visiting)
+    if name in active:
+        return False
+    active.add(name)
+    names_by_lower = {workflow_name.lower(): workflow_name for workflow_name in documents}
+    return any(
+        workflow_reaches_scanner(names_by_lower.get(reference.lower(), ""), documents, active)
+        for reference in reusable_workflow_references(document)
+    )
+
+
 def parse_workflow_document(name: str, text: str) -> object:
     """Parse workflow YAML with a safe loader and a clear dependency error."""
 
@@ -178,6 +227,7 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
     readme_lines = head_readme.splitlines()
 
     entries: list[Contribution] = []
+    invalid_entries: list[str] = []
     seen_urls: set[str] = set()
     added_line_number = 0
     for line in diff.splitlines():
@@ -188,7 +238,12 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
         if line.startswith("+") and not line.startswith("+++"):
             content = line[1:]
             match = README_ENTRY_RE.match(content.strip())
-            if match and current_readme_section(readme_lines, added_line_number) == "Community Plugins":
+            in_community_plugins = (
+                current_readme_section(readme_lines, added_line_number) == "Community Plugins"
+            )
+            if in_community_plugins and content.strip().startswith("- ") and not match:
+                invalid_entries.append(f"line {added_line_number}: {content.strip()}")
+            if match and in_community_plugins:
                 url = normalize_url(match.group(2))
                 if url not in base_urls and url not in seen_urls:
                     seen_urls.add(url)
@@ -205,6 +260,15 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
             continue
         if not line.startswith("-"):
             added_line_number += 1
+
+    if invalid_entries:
+        details = "; ".join(invalid_entries[:3])
+        suffix = "" if len(invalid_entries) <= 3 else f"; and {len(invalid_entries) - 3} more"
+        raise ValidationError(
+            "Community Plugins entries must use "
+            "`- [Plugin Name](https://github.com/<owner>/<repo>) - Description`; "
+            f"could not parse {details}{suffix}"
+        )
 
     return entries
 
@@ -326,9 +390,11 @@ def validate_scanner_ci(contribution: Contribution) -> None:
             f"{contribution.url} does not expose readable GitHub Actions workflows: {error}"
         ) from error
 
+    documents: dict[str, object] = {}
     scanner_workflows: list[tuple[str, object, list[str]]] = []
     for name, text in files:
         document = parse_workflow_document(name, text)
+        documents[name] = document
         references = scanner_steps(document)
         if references:
             scanner_workflows.append((name, document, references))
@@ -339,10 +405,16 @@ def validate_scanner_ci(contribution: Contribution) -> None:
             "hashgraph-online/ai-plugin-scanner-action in .github/workflows"
         )
 
-    if not any(workflow_has_ci_trigger(document) for _, document, _ in scanner_workflows):
+    triggered_scanner_workflows = [
+        name
+        for name, document in documents.items()
+        if workflow_has_ci_trigger(document) and workflow_reaches_scanner(name, documents)
+    ]
+    if not triggered_scanner_workflows:
         names = ", ".join(name for name, _, _ in scanner_workflows)
         raise ValidationError(
-            f"{contribution.url} scanner workflow ({names}) must run on push or pull_request"
+            f"{contribution.url} scanner workflow ({names}) must run on push or pull_request "
+            "or be called by a push/pull_request workflow"
         )
 
 
@@ -641,7 +713,13 @@ def main() -> int:
         print(f"ERROR: base ref '{args.base_ref}' is not available", file=sys.stderr)
         return 1
 
-    entries = get_new_readme_entries(args.base_ref)
+    try:
+        entries = get_new_readme_entries(args.base_ref)
+    except ValidationError as error:
+        print(f"Contribution validation failed: {error}", file=sys.stderr)
+        if args.matrix_output:
+            write_matrix(args.matrix_output, [])
+        return 1
     if not entries:
         print("No new Community Plugins entries found; contribution checks are complete.")
         if args.matrix_output:
