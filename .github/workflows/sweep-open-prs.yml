@@ -1,0 +1,153 @@
+name: Sweep Open Codex Plugin Contributions
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Optional open PR number; omit to sweep every open PR"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  discover:
+    name: Validate open contribution requirements
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.export.outputs.matrix }}
+      has_failures: ${{ steps.export.outputs.has_failures }}
+      results: ${{ steps.export.outputs.results }}
+    steps:
+      - name: Check out validator
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install validator dependencies
+        run: python3 -m pip install --disable-pip-version-check --no-input "PyYAML==6.0.2"
+      - name: Validate open PRs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          MATRIX_FILE: ${{ runner.temp }}/open-pr-matrix.json
+          REPORT_FILE: ${{ runner.temp }}/open-pr-report.md
+          STATUS_FILE: ${{ runner.temp }}/open-pr-status.json
+        run: |
+          validator_args=(
+            --open-prs
+            --repository "$GITHUB_REPOSITORY"
+            --matrix-output "$MATRIX_FILE"
+            --report-output "$REPORT_FILE"
+            --status-output "$STATUS_FILE"
+          )
+          if [[ -n "$PR_NUMBER" ]]; then
+            validator_args+=(--pr-number "$PR_NUMBER")
+          fi
+          python3 scripts/validate-contribution.py "${validator_args[@]}"
+      - name: Export validation results
+        id: export
+        env:
+          MATRIX_FILE: ${{ runner.temp }}/open-pr-matrix.json
+          STATUS_FILE: ${{ runner.temp }}/open-pr-status.json
+        run: |
+          echo "matrix=$(cat \"$MATRIX_FILE\")" >> "$GITHUB_OUTPUT"
+          echo "has_failures=$(jq -r '.has_failures' \"$STATUS_FILE\")" >> "$GITHUB_OUTPUT"
+          echo "results=$(jq -c '.results' \"$STATUS_FILE\")" >> "$GITHUB_OUTPUT"
+
+  scan:
+    name: Scan PR #${{ matrix.contribution.pr_number }} source
+    needs: discover
+    if: needs.discover.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        contribution: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - name: Check out contributed repository
+        env:
+          CONTRIBUTION_URL: https://github.com/${{ matrix.contribution.owner }}/${{ matrix.contribution.repo }}.git
+        run: git clone --depth 1 "$CONTRIBUTION_URL" "$RUNNER_TEMP/contributed"
+      - name: Run HOL AI Plugin Scanner
+        uses: hashgraph-online/ai-plugin-scanner-action@55616c962cf86368423f7673b2ecdfdbe613d1af # v1.2.515
+        with:
+          plugin_dir: ${{ runner.temp }}/contributed
+          mode: scan
+          min_score: 80
+          fail_on_severity: high
+          pr_comment: off
+
+  gate:
+    name: Open Codex contribution gate
+    needs:
+      - discover
+      - scan
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report sweep result
+        env:
+          DISCOVER_RESULT: ${{ needs.discover.result }}
+          HAS_VALIDATION_FAILURES: ${{ needs.discover.outputs.has_failures }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+        run: |
+          if [[ "$DISCOVER_RESULT" != "success" ]]; then
+            echo "Open-PR discovery failed."
+            exit 1
+          fi
+          if [[ "$HAS_VALIDATION_FAILURES" == "true" ]]; then
+            echo "One or more open contributions are missing required scanner CI."
+            exit 1
+          fi
+          if [[ "$SCAN_RESULT" != "success" && "$SCAN_RESULT" != "skipped" ]]; then
+            echo "One or more source-repository scanner jobs failed."
+            exit 1
+          fi
+          echo "All checked open contributions satisfy the scanner gate."
+
+  publish:
+    name: Publish per-PR contribution checks
+    needs:
+      - discover
+      - scan
+      - gate
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Check out validator
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Publish checks on PR heads
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          OPEN_PR_RESULTS: ${{ needs.discover.outputs.results || '[]' }}
+          SWEEP_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/publish-open-pr-checks.py

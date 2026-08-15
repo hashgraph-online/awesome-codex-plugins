@@ -354,12 +354,23 @@ Before submitting, verify:
 
 ## CI Checks
 
-All PRs to this repo are automatically validated. The CI will check:
+All PRs to this repo are automatically validated. The contribution gate runs
+on the PR target event, so fork PRs do not wait for first-time workflow
+approval. It checks the source repository and publishes one status check on
+the PR head. When a requirement is missing, the gate updates one idempotent
+comment, tags the PR author, and includes the exact scanner workflow and
+remediation steps. The check is re-run on every push, reopen, and daily sweep.
+
+The CI will check:
 
 1. **Alphabetical order** - README entries must be sorted within each section
 2. **Plugin manifest** - For new README entries, the generator fetches your source repo and validates `plugin.json`, required fields, and icon presence
-3. **Scanner verification** - PR description must include scanner score or CI link
+3. **Scanner verification** - The source repo must invoke `hashgraph-online/ai-plugin-scanner-action` on `push` or `pull_request`, and the gate runs the scanner at the documented score/severity thresholds
 4. **Markdown links** - All URLs in README must be reachable
+
+If the gate comments on your PR, fix the linked source repository first, push
+the change there, then update the README PR if needed. The status check and
+comment will refresh automatically; do not post duplicate remediation comments.
 
 ## Getting Help
 
