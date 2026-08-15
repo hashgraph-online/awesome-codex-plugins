@@ -44,7 +44,9 @@ jobs:
         id: entries
         env:
           MATRIX_FILE: ${{ runner.temp }}/contributions.json
-        run: echo "matrix=$(cat \"$MATRIX_FILE\")" >> "$GITHUB_OUTPUT"
+        run: |
+          matrix="$(cat "$MATRIX_FILE")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   scan:
     name: Scan ${{ matrix.contribution.owner }}/${{ matrix.contribution.repo }}

@@ -65,9 +65,12 @@ jobs:
           MATRIX_FILE: ${{ runner.temp }}/open-pr-matrix.json
           STATUS_FILE: ${{ runner.temp }}/open-pr-status.json
         run: |
-          echo "matrix=$(cat \"$MATRIX_FILE\")" >> "$GITHUB_OUTPUT"
-          echo "has_failures=$(jq -r '.has_failures' \"$STATUS_FILE\")" >> "$GITHUB_OUTPUT"
-          echo "results=$(jq -c '.results' \"$STATUS_FILE\")" >> "$GITHUB_OUTPUT"
+          matrix="$(cat "$MATRIX_FILE")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          has_failures="$(jq -r '.has_failures' "$STATUS_FILE")"
+          echo "has_failures=$has_failures" >> "$GITHUB_OUTPUT"
+          results="$(jq -c '.results' "$STATUS_FILE")"
+          echo "results=$results" >> "$GITHUB_OUTPUT"
 
   scan:
     name: Scan PR #${{ matrix.contribution.pr_number }} source
