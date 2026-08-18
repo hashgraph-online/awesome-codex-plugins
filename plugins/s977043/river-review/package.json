@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.83.0",
+  "version": "1.85.0",
   "private": true,
   "workspaces": [
     "runners/node-api",
@@ -87,7 +87,7 @@
     "skills:validate:refs": "node scripts/check-skill-id-references.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
+    "@anthropic-ai/sdk": "^0.116.0",
     "@google/generative-ai": "^0.24.1",
     "@inquirer/prompts": "^8.5.2",
     "@opentelemetry/api": "^1.9.1",
@@ -107,13 +107,13 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.1",
-    "@commitlint/config-conventional": "^21.2.0",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@docusaurus/core": "^3.10.2",
     "@docusaurus/preset-classic": "^3.10.2",
     "@docusaurus/theme-mermaid": "^3.10.2",
     "@mermaid-js/layout-elk": "^0.1.9",
-    "@vercel/ncc": "^0.44.1",
+    "@vercel/ncc": "^0.45.0",
     "glob": "^13.0.6",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",

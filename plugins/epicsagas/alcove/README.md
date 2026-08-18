@@ -906,6 +906,10 @@ Bigger windows don't solve the relevance problem. Even a 200K-token window fille
 
 Bug reports, feature requests, and pull requests are welcome. Please open an issue on [GitHub](https://github.com/epicsagas/alcove/issues) to start a discussion.
 
+## Acknowledgments
+
+The temporal validity model (`valid_until` / `last_verified` with query-time expiry exclusion) was informed by the lifecycle schema of [Data Olympus](https://github.com/knaisoma/data-olympus) by [@ajdelaguila](https://github.com/ajdelaguila) (discussion in [#37](https://github.com/epicsagas/alcove/issues/37)).
+
 ## License
 
 Apache-2.0

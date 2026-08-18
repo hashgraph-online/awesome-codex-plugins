@@ -1,7 +1,8 @@
 # Rule Content Contract
 
 Plugin runtime asset. Loaded before composing any `rule`:
-`decide` (standard cascade in `skills/decide/references/continuations.md`),
+`document` (the decision track's standard cascade,
+`skills/_shared/tracks/decision.md`) and
 `init` (Tier-2 cross-cutting rules, per `magic-first-day-init.adr`). Companion to
 `skills/_shared/precision-rules.md` — its forbidden lexicon (Rule 1), imperative-voice
 mandate (Rule 2), and no-cross-document-section rule (Rule 5) all bind here.
@@ -68,8 +69,7 @@ The Archcore CLI reports the mechanical part of this contract in the post-tool-u
 hook: the mandatory sections, two modals in one numbered statement, a condition
 placed after the obligation, a statement past 25 words, an open-ended list, an
 Enforcement section naming no verifier, and a Rule section naming no path or glob
-anywhere. A CLI that predates a check reports nothing for it, and no version
-blocks a write.
+anywhere.
 
 The scope check is deliberately document-level. This contract accepts a **named
 situation** as scope, which is prose that no pattern finds — asking each statement

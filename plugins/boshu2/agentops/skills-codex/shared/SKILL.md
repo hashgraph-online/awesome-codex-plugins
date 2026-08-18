@@ -1,6 +1,6 @@
 ---
 name: shared
-description: Retired — its runtime-neutrality contract
+description: 'Retired — its runtime-neutrality contract Triggers: none — not routable.'
 ---
 # Shared — retired
 

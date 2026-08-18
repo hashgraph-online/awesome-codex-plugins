@@ -1,6 +1,6 @@
 ---
 name: dcg
-description: Handle blocked destructive commands and
+description: 'Handle blocked destructive commands and Triggers: "dcg", "handle a DCG block", "configure agent safety guardrails".'
 ---
 <!-- TOC: Core Insight | THE EXACT WORKFLOW | Quick Reference | Safe Alternatives | What Gets Blocked | Anti-Patterns | Configuration | References -->
 

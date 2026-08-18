@@ -1,10 +1,18 @@
 Feature: RPI runs one bounded experiment
-  @covered-by:skills/rpi/tests/test_run_once.py::test_each_phase_runs_once_and_pass_reports
-  Scenario: Core phases run once and stop
+  @covered-by:skills/rpi/tests/test_run_once.py::test_anti_ceremony_guard_runs_once_before_plan
+  Scenario: Guard CONTINUE preserves the single-pass core order
     Given one intent
     When RPI is invoked
-    Then Plan, Implement, and fresh Validate are each dispatched at most once
+    Then the anti-ceremony guard is invoked exactly once before Plan
+    And Plan, Implement, and fresh Validate are each dispatched at most once in that order
     And the final report contains no next action
+
+  @covered-by:skills/rpi/tests/test_run_once.py::test_anti_ceremony_stop_dispatches_no_core_phase
+  Scenario: Guard STOP admits no core phase
+    Given the anti-ceremony guard returns STOP with its required response fields
+    When RPI is invoked
+    Then Plan, Implement, and Validate are not dispatched
+    And RPI reports NOT_PLANNED and stops
 
   @covered-by:skills/rpi/tests/test_run_once.py::test_fail_reports_and_stops_without_another_dispatch
   Scenario: Validation failure does not loop

@@ -47,14 +47,14 @@ watch = [
 ]
 
 mcp = [
-  "mcp>=1.28.1,<2"
+  "mcp>=1.28.1,<3"
 ]
 
 tree-sitter = []
 
 all = [
   "watchdog>=4.0.0",
-  "mcp>=1.28.1,<2",
+  "mcp>=1.28.1,<3",
   "tree-sitter>=0.23.2",
   "tree-sitter-language-pack>=0.7.4"
 ]
@@ -65,7 +65,7 @@ dev = [
   "pytest-cov",
   "jsonschema>=4.20.0",
   "Pillow>=10.0.0",
-  "ruff>=0.15.0,<0.16.0",
+  "ruff>=0.15.0,<0.17.0",
   "mypy",
   "tomli>=2.0.0; python_version < '3.11'"
 ]
@@ -120,7 +120,7 @@ fail_under = 0
 show_missing = true
 
 [build-system]
-requires = ["hatchling==1.26.3"]
+requires = ["hatchling==1.32.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]

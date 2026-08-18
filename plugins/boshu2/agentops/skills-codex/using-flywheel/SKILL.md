@@ -1,6 +1,6 @@
 ---
 name: using-flywheel
-description: Operate the Agentic Coding Flywheel as a
+description: 'Operate the Agentic Coding Flywheel as a Triggers: "using flywheel", "agent flywheel".'
 ---
 # Using the Agentic Coding Flywheel
 

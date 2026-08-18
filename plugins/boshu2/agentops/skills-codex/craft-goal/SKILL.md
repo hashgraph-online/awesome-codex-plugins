@@ -1,6 +1,6 @@
 ---
 name: craft-goal
-description: Compile or lint a persistent Mayor-style
+description: 'Compile or lint a persistent Mayor-style Triggers: "craft a goal prompt", "mayor goal", "goal-runner prompt", "lint this goal", "is this goal safe". (Shaping one experiment''s intent routes to plan.)'
 ---
 # Craft Goal
 

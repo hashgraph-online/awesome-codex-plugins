@@ -1,6 +1,6 @@
 ---
 name: fitness
-description: Measure declared project fitness goals
+description: 'Measure declared project fitness goals Triggers: "fitness", "check project fitness", "measure goals".'
 ---
 # Fitness — read-only goal measurement
 

@@ -33,7 +33,7 @@ Add test levels only when each one covers a distinct risk. Do not require L2 by
 default, duplicate the same assertion at every level, or treat test count as
 evidence quality.
 
-## Operating-loop use
+## RPI traversal use
 
 - **Plan** names the active behavior, edge scenario, required evidence, and
   first acceptance check.

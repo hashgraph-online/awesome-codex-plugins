@@ -3,7 +3,7 @@
 ## Supported version
 
 Security and correctness fixes are applied to the current supported source line,
-currently `0.6.x`.
+currently `0.7.x`.
 
 ## Reporting a vulnerability
 

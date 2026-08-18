@@ -682,7 +682,8 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config."
+      "description": "Plug-and-play MCP that gives your agent UI superpowers. One install: design skill + MCP server, zero config.",
+      "icon": "./plugins/Pythoughts-labs/designer-skill/assets/icon.webp"
     },
     {
       "name": "dev-skills",
@@ -1481,7 +1482,7 @@
       },
       "category": "Development & Workflow",
       "description": "STOP UI SLOP. Gives Codex 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate before generic UI ships; connect it at https://uizze.com.",
-      "icon": "./plugins/uizze/uizze/plugins/openai-directory/uizze/assets/uizze-logo.png"
+      "icon": "./plugins/uizze/uizze/integrations/mcp/assets/uizze-logo-400x400.png"
     },
     {
       "name": "unforgit",

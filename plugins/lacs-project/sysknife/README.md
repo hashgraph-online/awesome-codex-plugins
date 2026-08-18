@@ -42,7 +42,9 @@
 </p>
 
 <p align="center">
-  <em>Illustrative reproduction of the Claude Code MCP flow — same flow works in Cursor and Codex CLI.</em><br/>
+  <em>A deterministic reproduction of the Claude Code MCP flow, rendered offline by
+  <a href="assets/demo/mcp-flow-mock.sh">mcp-flow-mock.sh</a> so it replays identically from a
+  fresh checkout. The same flow works in Cursor and Codex CLI.</em><br/>
   <em>Looking for the standalone CLI? See <a href="docs/cli.md">the CLI guide</a>.</em>
 </p>
 
@@ -160,6 +162,37 @@ newgrp sysknife                       # or log out and back in
 npx sysknife-setup --no-binary --daemon-mode=skip
 ```
 
+### Uninstall
+
+Whichever way you installed, there is one command for it.
+
+```sh
+# Removes what the wizard installed: the user service, the binaries in
+# ~/.local/bin, and the MCP + agent config in the current directory.
+npx sysknife-setup --uninstall
+
+# See exactly what that would touch, without touching it.
+npx sysknife-setup --uninstall --dry-run
+```
+
+**Your audit history is kept by default.** Removing the software should not
+destroy the record of what it did, so the audit database, the safety-audit log
+and `~/.config/sysknife` are left in place and their paths printed. Delete those
+too, only if you mean to, with:
+
+```sh
+npx sysknife-setup --uninstall --purge   # names each file before deleting it
+```
+
+If you installed the **system** service with `sudo make install`, remove it with
+the Makefile that owns its sudoers grants, polkit rules and privileged helpers.
+`--uninstall` deliberately will not touch those, because half a removed
+privilege boundary is worse than none:
+
+```sh
+sudo make uninstall
+```
+
 All three Ubuntu LTS releases record a live-VM run of the 79-story Ubuntu
 suite, and each run has a replay twin that reproduces it: 22.04, 24.04 and 26.04
 all at 79/79, every twin serving every call with zero misses. The runs are in
@@ -191,6 +224,13 @@ SysKnife, not an afterthought. See the [CLI guide](docs/cli.md).
 
 <p align="center">
   <img src="assets/demo/demo.gif" alt="sysknife CLI — plan, approve, and execute in the terminal" width="900"/>
+</p>
+
+<p align="center">
+  <em>A deterministic reproduction of a real planning and execution session, rendered offline by
+  <a href="assets/demo/demo-mock.sh">demo-mock.sh</a>. Live LLM calls are nondeterministic and the
+  tape has to render with no daemon or provider configured, so the recording is scripted rather
+  than captured; the output styling is generated from the same code paths as the real CLI.</em>
 </p>
 
 > **Also: a desktop GUI — development paused.** An experimental Tauri desktop
@@ -270,7 +310,7 @@ milestone.
 | **Every Ubuntu LTS validated** — 22.04, 24.04 and 26.04 all at 79/79, each with a replay twin that reproduces it | ✅ |
 | Telegram approval interface | 📋 roadmap |
 
-**1,758 Rust tests and 72 frontend tests** form the current deterministic
+**1,759 Rust tests and 72 frontend tests** form the current deterministic
 release baseline.
 
 ## Configure your LLM

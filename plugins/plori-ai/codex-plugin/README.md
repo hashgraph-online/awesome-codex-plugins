@@ -1,7 +1,7 @@
 # plori Codex plugin
 
-A one-install plugin for [plori](https://plori.ai): cloud computers for AI agents, with
-persistent disks, real tools, and memory that survives between sessions.
+A one-install plugin for [plori](https://plori.ai): persistent cloud environments for AI agents,
+with durable disks, real tools, and memory that stays with each agent.
 
 Installing this plugin gives Codex two things at once:
 

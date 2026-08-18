@@ -1,6 +1,6 @@
 ---
 name: doc
-description: Generate and validate repo docs, READMEs
+description: 'Generate and validate repo docs, READMEs Triggers: "doc", "generate and validate repo docs", "doc skill".'
 ---
 # Doc Skill
 

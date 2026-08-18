@@ -12,12 +12,18 @@ export BKT_PROJECT=MYPROJ   # optional default project
 export BKT_REPO=my-service  # optional default repo
 bkt pr list
 
-# Bitbucket Cloud — basic auth; username is required
+# Bitbucket Cloud user API token — basic auth; username is required
 export BKT_HOST=https://bitbucket.org
 export BKT_TOKEN=my-api-token
 export BKT_USERNAME=me@example.com
 export BKT_WORKSPACE=my-workspace
 export BKT_REPO=my-repo
+bkt pr list
+
+# Bitbucket Cloud repository/project/workspace access token — bearer auth
+export BKT_TOKEN=my-resource-access-token
+export BKT_AUTH_METHOD=bearer
+unset BKT_USERNAME
 bkt pr list
 ```
 
@@ -29,7 +35,9 @@ bkt pr list
 | DC, `BKT_USERNAME` set, no `BKT_AUTH_METHOD` | `basic` |
 | DC, `BKT_AUTH_METHOD=bearer` | `bearer` |
 | DC, `BKT_AUTH_METHOD=basic` + no `BKT_USERNAME` | **error** — set `BKT_USERNAME` |
-| Cloud | always `basic`; `BKT_USERNAME` is required |
+| Cloud, no `BKT_AUTH_METHOD` | `basic` (default); `BKT_USERNAME` is required |
+| Cloud, `BKT_AUTH_METHOD=basic` | `BKT_USERNAME` is required |
+| Cloud, `BKT_AUTH_METHOD=bearer` | bearer; `BKT_USERNAME` is not required |
 
 ## Environment variables
 
@@ -37,8 +45,8 @@ bkt pr list
 |---|---|
 | `BKT_TOKEN` | Authentication token. Bypasses keyring. |
 | `BKT_HOST` | Bitbucket server URL. Required with `BKT_TOKEN` for config-free use. |
-| `BKT_USERNAME` | Username for basic auth. Required for Cloud; optional for DC. |
-| `BKT_AUTH_METHOD` | Auth method: `basic` or `bearer`. DC defaults to `bearer` when no username is set. |
+| `BKT_USERNAME` | Username for basic auth. Required for Cloud basic auth; optional for DC and Cloud bearer auth. |
+| `BKT_AUTH_METHOD` | Auth method: `basic` or `bearer`. DC defaults to `bearer` when no username is set; Cloud defaults to `basic`. Use `bearer` for Cloud repository, project, or workspace access tokens. |
 | `BKT_PROJECT` | Default Data Center project key. |
 | `BKT_WORKSPACE` | Default Bitbucket Cloud workspace. |
 | `BKT_REPO` | Default repository slug. |
@@ -51,6 +59,10 @@ bkt pr list
 ## Saved-host behaviour
 
 When `BKT_HOST` matches a host already in `~/.config/bkt/config.yml`, the saved entry is used as the base (preserving fields like `username` and `auth_method`). `BKT_TOKEN` always overrides the stored token. `BKT_USERNAME` and `BKT_AUTH_METHOD`, when set, override the saved values.
+
+Cloud resource access tokens are not associated with a user. Commands that
+require authenticated-user identity, such as cross-repository
+`bkt pr list --mine`, still require user API-token or OAuth credentials.
 
 ## Bitbucket Pipelines example
 

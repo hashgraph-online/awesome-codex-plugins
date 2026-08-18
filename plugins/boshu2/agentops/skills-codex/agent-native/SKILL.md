@@ -1,6 +1,6 @@
 ---
 name: agent-native
-description: Operate explicit orchestrator, implementer
+description: 'Operate explicit orchestrator, implementer Triggers: "agent-native factory", "role-shaped agent panes", "persistent workers".'
 ---
 # Agent Native
 

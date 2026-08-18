@@ -104,21 +104,19 @@ core, an authoritative `GateDecision`, an authoritative `PolicySnapshot`, or
 final completion authority. User instructions and target-project rules outrank
 Aegis guidance.
 
-The following files are optional, manually copied host/profile projections.
-They do not install Aegis or prove skill discovery. If the host already has
-reliable Aegis bootstrap and routing, no extra global rule is usually needed
-for routing. Otherwise, copy Lite as the complete base profile. Advanced is a
-non-standalone additive overlay; append only the rules needed for persistent
-governance preferences:
+The [global routing prefix](GLOBAL_USER_RULES_TEMPLATE.md) is an optional,
+manually copied host/profile projection. It does not install Aegis or prove
+skill discovery. If the host already has reliable Aegis bootstrap and routing,
+no extra global rule is usually needed. Otherwise, add the prefix at the very
+beginning of the existing global user rules without changing unrelated
+content.
 
-- [Lite global rules](GLOBAL_USER_RULES_LITE.md)
-- [Advanced governance overlay](GLOBAL_USER_RULES_TEMPLATE.md)
-
-These copied rules are not managed by `aegis:update`. Lite owns the default
-`auto` activation profile and its explicit-mode replacement; Advanced inherits
-that choice instead of repeating it. When switching to `explicit`, update the
-copied Lite profile too; host-native skill matching may still remain
-host-controlled.
+This copied prefix is not managed by `aegis:update`. Users who previously
+copied the retired Lite / Advanced profiles should replace only those old
+Aegis blocks with the unified prefix. The prefix follows the host or session
+activation mode, defaults to `auto` when none is declared, and leaves detailed
+workflow governance to the loaded Aegis skills. Host-native skill matching may
+still remain host-controlled.
 
 Activation mode defaults to automatic. To switch to explicit mode, run this
 from the installed method-pack root:

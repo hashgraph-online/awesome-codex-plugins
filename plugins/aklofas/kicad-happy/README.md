@@ -7,7 +7,7 @@
 
 AI-powered design review for KiCad. Analyzes schematics, PCB layouts, and Gerbers. Catches real bugs before you order boards.
 
-Works with **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**, **[OpenAI Codex](https://github.com/openai/codex)**, **[GitHub Copilot CLI](https://docs.github.com/en/copilot)**, **[Gemini CLI](https://github.com/google-gemini/gemini-cli)**, and **[opencode](https://github.com/sst/opencode)**, as a **GitHub Action** for automated PR reviews, or as standalone Python scripts you can run anywhere.
+Works with **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**, **[OpenAI Codex](https://github.com/openai/codex)**, **[GitHub Copilot CLI](https://docs.github.com/en/copilot)**, **[Google Antigravity](https://antigravity.google)**, and **[opencode](https://github.com/sst/opencode)**, as a **GitHub Action** for automated PR reviews, or as standalone Python scripts you can run anywhere.
 
 These skills turn your AI coding agent into a full-fledged electronics design assistant that understands your KiCad projects at a deep level: parses schematics and PCB layouts into structured data, cross-references component values against datasheets, detects common design errors, and walks you through the full prototype-to-production workflow.
 
@@ -117,24 +117,30 @@ Use Codex's built-in skill installer first:
 
 If you prefer a manual install, install the skills into `~/.codex/skills/`.
 
-**Google Gemini CLI:**
+**Google Antigravity CLI (`agy`) / Gemini:**
 
-`gemini skills install <url>` does not recurse into this monorepo's `skills/` directory. Clone and link all 11 at once:
+Install directly from GitHub as an Antigravity plugin:
+
+```bash
+agy plugin install https://github.com/aklofas/kicad-happy.git
+```
+
+Or from a local checkout:
 
 ```bash
 git clone https://github.com/aklofas/kicad-happy.git
-gemini skills link ./kicad-happy/skills
+agy plugin install kicad-happy
 ```
 
-Or install all 11 skills directly from the URL using `--path` (requires Gemini CLI ≥ Jan 13 2026):
+Toggle when needed:
 
 ```bash
-for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway; do
-  gemini skills install https://github.com/aklofas/kicad-happy.git --path skills/$skill
-done
+agy plugin disable kicad-happy   # Disable when not doing electronics review
+agy plugin enable kicad-happy    # Enable when working on KiCad projects
 ```
 
-See [install-guidance.md](install-guidance.md#google-gemini-cli) for workspace-scope installs and upgrade notes.
+See [install-guidance.md](install-guidance.md#google-antigravity-cli-agy--gemini) for workspace-scope installs, slash commands, and upgrade notes.
+
 
 **opencode:**
 

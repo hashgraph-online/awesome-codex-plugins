@@ -30,6 +30,17 @@ VALIDATE_SPEC.loader.exec_module(VALIDATE)
 INTENT_DIGEST = "c" * 64
 
 
+def continue_guard(intent):
+    return {
+        "decision": "CONTINUE",
+        "reason": "The frozen outcome still requires implementation proof.",
+        "frozen_outcome": str(intent),
+        "parked_process_work": [],
+        "remaining_proof": ["implementation", "fresh validation"],
+        "stop_condition": "Stop after one fresh validation result.",
+    }
+
+
 class RunOnceTests(unittest.TestCase):
     def phases(self, verdict: str = "PASS"):
         calls: list[str] = []
@@ -67,9 +78,68 @@ class RunOnceTests(unittest.TestCase):
 
         return calls, plan, implement, validate
 
+    def test_anti_ceremony_guard_runs_once_before_plan(self):
+        calls, plan, implement, validate = self.phases()
+
+        def anti_ceremony(intent):
+            calls.append("anti-ceremony")
+            return {
+                "decision": "CONTINUE",
+                "reason": "The frozen outcome still requires implementation proof.",
+                "frozen_outcome": intent,
+                "parked_process_work": [],
+                "remaining_proof": ["implementation", "fresh validation"],
+                "stop_condition": "Stop after one fresh validation result.",
+            }
+
+        result = MODULE.invoke_once(
+            "intent",
+            anti_ceremony,
+            plan,
+            implement,
+            validate,
+        )
+
+        self.assertEqual(
+            calls,
+            ["anti-ceremony", "plan", "implement", "validate"],
+        )
+        self.assertEqual(result["status"], "PASS")
+
+    def test_anti_ceremony_stop_dispatches_no_core_phase(self):
+        calls: list[str] = []
+        reason = "The proposed traversal would create only process artifacts."
+
+        def anti_ceremony(_intent):
+            calls.append("anti-ceremony")
+            return {
+                "decision": "STOP",
+                "reason": reason,
+                "frozen_outcome": "Ship the already-proved caller outcome",
+                "parked_process_work": ["another plan", "another audit"],
+                "remaining_proof": [],
+                "stop_condition": "Stop before Plan.",
+            }
+
+        result = MODULE.invoke_once(
+            "intent",
+            anti_ceremony,
+            lambda _intent: calls.append("plan"),
+            lambda _plan: calls.append("implement"),
+            lambda _plan, _candidate: calls.append("validate"),
+        )
+
+        self.assertEqual(calls, ["anti-ceremony"])
+        self.assertEqual(result["status"], "NOT_PLANNED")
+        self.assertEqual(
+            result["checked"],
+            [f"anti-ceremony guard: STOP — {reason}"],
+        )
+        self.assertEqual(result["not_checked"], ["plan", "implement", "validate"])
+
     def test_each_phase_runs_once_and_pass_reports(self):
         calls, plan, implement, validate = self.phases()
-        result = MODULE.invoke_once("intent", plan, implement, validate)
+        result = MODULE.invoke_once("intent", continue_guard, plan, implement, validate)
         self.assertEqual(calls, ["plan", "implement", "validate"])
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["intent_ref"], "bead:agentops-test")
@@ -78,7 +148,7 @@ class RunOnceTests(unittest.TestCase):
 
     def test_fail_reports_and_stops_without_another_dispatch(self):
         calls, plan, implement, validate = self.phases("FAIL")
-        result = MODULE.invoke_once("intent", plan, implement, validate)
+        result = MODULE.invoke_once("intent", continue_guard, plan, implement, validate)
         self.assertEqual(calls, ["plan", "implement", "validate"])
         self.assertEqual(result["status"], "FAIL")
 
@@ -91,7 +161,7 @@ class RunOnceTests(unittest.TestCase):
             result.pop("verdict_ref")
             return result
 
-        result = MODULE.invoke_once("intent", plan, implement, inline_result)
+        result = MODULE.invoke_once("intent", continue_guard, plan, implement, inline_result)
 
         self.assertEqual(calls, ["plan", "implement", "validate"])
         self.assertEqual(result["status"], "PASS")
@@ -113,12 +183,13 @@ class RunOnceTests(unittest.TestCase):
                     return result
 
                 with self.assertRaisesRegex(ValueError, "distinct context identities"):
-                    MODULE.invoke_once("intent", plan, implement, invalid)
+                    MODULE.invoke_once("intent", continue_guard, plan, implement, invalid)
 
     def test_missing_plan_stops_before_implement(self):
         calls: list[str] = []
         result = MODULE.invoke_once(
             "intent",
+            continue_guard,
             lambda _intent: None,
             lambda _plan: calls.append("implement"),
             lambda _plan, _candidate: calls.append("validate"),
@@ -130,6 +201,7 @@ class RunOnceTests(unittest.TestCase):
         calls: list[str] = []
         result = MODULE.invoke_once(
             "intent",
+            continue_guard,
             lambda _intent: {
                 "intent_ref": "caller",
                 "acceptance": ["works"],
@@ -150,7 +222,7 @@ class RunOnceTests(unittest.TestCase):
             return result
 
         with self.assertRaisesRegex(ValueError, "resolved intent digest"):
-            MODULE.invoke_once("intent", plan, implement, mismatched)
+            MODULE.invoke_once("intent", continue_guard, plan, implement, mismatched)
 
     def test_plan_without_a_declared_digest_is_a_contract_error(self):
         _calls, _plan, implement, validate = self.phases()
@@ -159,7 +231,7 @@ class RunOnceTests(unittest.TestCase):
             return {"intent_ref": "caller", "acceptance": ["works"]}
 
         with self.assertRaisesRegex(ValueError, "acceptance_digest"):
-            MODULE.invoke_once("intent", undeclared, implement, validate)
+            MODULE.invoke_once("intent", continue_guard, undeclared, implement, validate)
 
     def test_plan_digest_must_be_a_sha256(self):
         _calls, _plan, implement, validate = self.phases()
@@ -174,7 +246,7 @@ class RunOnceTests(unittest.TestCase):
                     }
 
                 with self.assertRaisesRegex(ValueError, "acceptance_digest"):
-                    MODULE.invoke_once("intent", undeclared, implement, validate)
+                    MODULE.invoke_once("intent", continue_guard, undeclared, implement, validate)
 
 
 class ComposedIdentityContractTests(unittest.TestCase):
@@ -242,7 +314,13 @@ class ComposedIdentityContractTests(unittest.TestCase):
                     "not_checked": [],
                 }
 
-            result = MODULE.invoke_once(self.INTENT_BYTES, plan, implement, validate)
+            result = MODULE.invoke_once(
+                self.INTENT_BYTES,
+                continue_guard,
+                plan,
+                implement,
+                validate,
+            )
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(

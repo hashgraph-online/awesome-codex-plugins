@@ -1,11 +1,38 @@
 {
   "name": "hol-guard-plugin",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
-  "description": "Codex plugin for HOL Guard AI security workflows.",
+  "description": "HOL Guard security plugin for Codex, DeepSeek Harness, and agent ecosystems.",
   "license": "Apache-2.0",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "dsh.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "hol-guard",
+    "ai-security",
+    "agent-security"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
   "scripts": {
-    "test": "node tests/validate-plugin.mjs && node tests/validate-marketplace-manifests.mjs && node tests/validate-clawhub.mjs && node tests/validate-wshobson-agents.mjs"
+    "test": "node tests/validate-plugin.mjs && node tests/validate-marketplace-manifests.mjs && node tests/validate-clawhub.mjs && node tests/validate-wshobson-agents.mjs && node tests/validate-dsh-plugin.mjs && node --test tests/dsh-plugin.test.mjs",
+    "test:dsh-e2e": "node tests/dsh-e2e.mjs"
   },
   "engines": {
     "node": ">=20"

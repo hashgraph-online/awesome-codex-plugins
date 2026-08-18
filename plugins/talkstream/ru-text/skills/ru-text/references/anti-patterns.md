@@ -26,7 +26,7 @@ Wrong|Correct
 Знак номера: "No." или "#"|№ (знак номера)
 ЭТО НУЖНО СДЕЛАТЬ СЕГОДНЯ, ИНАЧЕ РЕЛИЗ СОРВЁТСЯ|Обычный регистр; одно-два слова прописными не трогать — правило и его карв-ауты в AD-18
 
-Remaining 10: nested quotes, en-dash in ranges, double dashes, space before comma, no space after period, latin x vs multiplication sign, inconsistent ё, double spaces, (c) vs ©, minus vs em-dash in text. All covered in [typography.md](typography.md).
+Remaining 10: nested quotes (R4), en-dash in ranges (R21–R26), double dashes (R14), space before comma (R40), no space after period (R41), latin x vs multiplication sign (R82), (c) vs © (R87), minus vs em-dash in text (R28) — all in [typography.md](typography.md). ⚠ Two of the ten are NOT in `typography.md` and were claimed to be. **Double spaces** have no rule anywhere in the corpus — they stay as hygiene the Quality Checklist asks for. **Inconsistent ё** is governed, but by [ux-writing.md](ux-writing.md) § L.3–L.5, not here. ⚠ An earlier repair of this sentence said the corpus has no rule for either, and that was the same error one layer down.
 
 ## Critical: Канцелярит и номинализация (32 entries)
 

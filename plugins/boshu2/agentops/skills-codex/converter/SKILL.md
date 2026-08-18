@@ -1,6 +1,6 @@
 ---
 name: converter
-description: Convert AgentOps skill formats.
+description: 'Convert AgentOps skill formats. Triggers: "converter", "convert agentops skill formats.", "converter skill".'
 ---
 # Converter — Cross-Platform Skill Converter
 

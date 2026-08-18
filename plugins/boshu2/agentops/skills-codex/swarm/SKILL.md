@@ -1,6 +1,6 @@
 ---
 name: swarm
-description: Dispatch explicit disjoint packets exactly
+description: 'Dispatch explicit disjoint packets exactly Triggers: "swarm", "dispatch disjoint packets", "parallel explicit tasks".'
 ---
 # Swarm
 
@@ -25,7 +25,8 @@ silently ignored, because the proof cannot honor it.
 
 Exactly-once dispatch over proven-disjoint scopes is why parallel failures stay
 independent: no packet can observe, block, or corrupt another, so N packets
-yield N verdicts about N experiments rather than one tangle.
+yield N factual results about N experiments rather than one tangle. Those
+results are not semantic verdicts.
 
 Named failure mode — **partial-batch launch**: dispatching valid packets before
 discovering an invalid one, leaving the batch half-run; validate the entire

@@ -1,0 +1,58 @@
+# Paths a plugin walker should skip when it reads this repository.
+#
+# Two kinds of entry live here, and the distinction matters more than the list:
+#
+#   Build output and local state, which is large, regenerated, and carries no
+#   information a reader of the plugin needs.
+#
+#   Local agent and VM artifacts, which hold absolute paths from whoever ran
+#   them last. One of them, .codex/config.toml, has reached a public commit
+#   before via an over-broad `git add -A`.
+#
+# Committed evidence stays visible on purpose. tests/e2e/cassettes/*.json are
+# the recorded provider runs that let the story suite replay offline, and
+# docs/action-reference.md is generated but tracked, because a drift guard
+# compares it against the live action catalogue. Hiding either would hide the
+# proof behind the support matrix.
+
+# Rust build output
+target/
+
+# Node
+node_modules/
+dist/
+/.pnpm-store/
+/.turbo/
+packages/setup/*.tgz
+
+# mdBook render
+book/
+
+# Python bytecode from the packaging scripts
+__pycache__/
+*.pyc
+
+# Local MCP wiring, written per machine
+.mcp.json
+.codex/
+
+# VM images and per-release runtime state for the E2E suite
+tests/e2e/vm/
+tests/e2e/ubuntu-vm/jammy/
+tests/e2e/ubuntu-vm/noble/
+tests/e2e/ubuntu-vm/resolute/
+/*.iso
+/*.qcow2
+
+# Per-run logs and replay ledgers, truncated on every run
+tests/e2e/logs/*.log
+tests/e2e/exec/logs/*.log
+tests/e2e/cassettes/*.replay-log.jsonl
+
+# Local-only docs
+docs/local/
+
+# Editor and OS scratch
+*.swp
+*.swo
+.DS_Store

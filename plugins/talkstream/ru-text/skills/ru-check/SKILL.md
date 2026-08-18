@@ -56,7 +56,7 @@ nothing else:
    `##`. Not the rest of the file.
 
 Then check the text: typography mechanically (straight quotes, a hyphen doing a dash's work,
-`...` for an ellipsis, an ordinary space after в, к, с, о, у, и, а — verify by codepoint, not
+`...` for an ellipsis, an ordinary space after в, к, с, о, у, и, а, я — verify by codepoint, not
 by eye); catalog stop-words including inflected forms, judging every candidate line yourself
 («данные» the noun is not «данный» the stop-word); index tells by eye.
 
@@ -80,7 +80,7 @@ exists to prevent. No search tool on this host → no triage: run the full check
 1. **Typography** — read `typography.md`, then apply:
    - Quotes: «» primary, „" nested
    - Dashes: — (em) in text, – (en) in ranges, - (hyphen) in compounds only
-   - Spaces: NBSP after single-letter prepositions, in digit groups, before units
+   - Spaces: NBSP after single-letter words, in digit groups, before units
    - Ellipsis, abbreviations, special characters
 
 2. **Anti-patterns** — read `anti-patterns.md`, then scan for:

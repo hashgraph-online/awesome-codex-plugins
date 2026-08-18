@@ -213,7 +213,19 @@ Choose one profile from tracked-file structure and write all real `context_limit
 | standard | 80–800 files | 4 / 15 / 0.50 / 0.30 / 30 / 0.65 | 1 / 25 |
 | large / monorepo | over 800 files or at least three large packages | 4 / 25 / 0.45 / 0.30 / 40 / 0.60 | 1 / 30 |
 
-Write the selected profile as:
+Map `count_tasks(project)` to `search_tasks` deterministically: `< 150` → `3 / 8`;
+`150–800` → `3 / 10`; `800+` → `4 / 14`. A missing tool, zero count, or unavailable corpus
+**falls back to asking** the user for small/medium/large, then uses the same mapping.
+
+`context_limits.code_section` is the file budget for the task-context `code` section
+(`prepare_task_context`): `max_files: 12`, `max_chunks_per_file: 1`, `chars_per_file: 1300`,
+`max_augmented_files: 3`. These four defaults are the same across all three profiles above —
+there is no measurement backing a per-profile split, so do not invent one. The budget unit here
+is the FILE, not the chunk; there is no separate character-cap key, the effective character
+ceiling is derived from `max_files`/`max_chunks_per_file`/`chars_per_file`. `max_augmented_files`
+(PRI-257) is a RESERVE of file slots inside `max_files` for diff paths mixed in from similar
+tasks (`similar-diffs`, the section's only augmentation source) — not a cap applied to whatever
+the hybrid search leaves over. Write it alongside the other real `context_limits` fields:
 
 ```yaml
 context_limits:
@@ -230,11 +242,12 @@ context_limits:
   graph:
     hops: <profile value>
     callers_topk: <profile value>
+  code_section:
+    max_files: 12
+    max_chunks_per_file: 1
+    chars_per_file: 1300
+    max_augmented_files: 3
 ```
-
-Map `count_tasks(project)` to `search_tasks` deterministically: `< 150` → `3 / 8`;
-`150–800` → `3 / 10`; `800+` → `4 / 14`. A missing tool, zero count, or unavailable corpus
-**falls back to asking** the user for small/medium/large, then uses the same mapping.
 
 Preserve every other configuration key and ask for confirmation before writing the assembled draft.
 

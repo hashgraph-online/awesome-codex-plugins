@@ -1,6 +1,6 @@
 ---
 name: test
-description: Generate tests and coverage plans.
+description: 'Generate tests and coverage plans. Triggers: "test", "generate tests and coverage plans.", "test skill".'
 ---
 # Test Skill
 

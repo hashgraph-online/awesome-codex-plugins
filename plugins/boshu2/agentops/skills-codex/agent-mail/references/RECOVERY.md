@@ -230,6 +230,8 @@ am acks remind /abs/path/project GreenCastle --min-age-minutes 30
 |---------|-----------|-----|
 | Stale reservations accumulating | Agent crashed without releasing | `doctor repair --yes` |
 | FTS search returns wrong results | Index out of sync | `doctor repair --yes` |
-| "database is locked" | Concurrent access issue | Restart server, retry |
+| "database is locked" | Another runtime may own or be actively using the selected storage root | Identify the owner and use that root's frozen access mode; report degraded if it remains busy, and do not restart the server as a coordination side effect |
+| "mailbox activity lock is busy" | A daemon or another direct runtime owns the same storage root | Use the running daemon through MCP, or a separately authorized isolated CLI root; do not restart or repair as a coordination side effect |
+| "refusing to traverse symlinked snapshot directory /var" on macOS | Direct-read snapshot temporary path resolves through macOS's `/var` symlink | For an isolated invocation, set `TMPDIR` to a non-symlinked caller-scoped temporary root; do not disable traversal protection |
 | Corrupted git archive | Interrupted write | Restore from backup |
 | Server won't start | Port conflict | `config set-port 9000` |

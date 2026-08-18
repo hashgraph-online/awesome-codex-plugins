@@ -19,6 +19,13 @@ SITEMAP="$TMP/sitemap.xml"
 rm -rf "$TMP"
 mkdir -p "$SRC" "$OUT1" "$OUT2"
 
+HELP="$(python3 "$SKILL/scripts/reverse_engineer.py" --help)"
+grep -Fq '.agents/scratch/reverse-engineer/<product>/' <<<"$HELP"
+grep -Fq '.agents/research/<product>/ path remains' <<<"$HELP"
+grep -Fq 'are never moved automatically.' <<<"$HELP"
+grep -Fq -- "- '.agents/scratch/reverse-engineer/*/'" "$SKILL/SKILL.md"
+echo "OK: output-path migration contract is visible in --help"
+
 python3 - "$SRC" <<'PY'
 import sys, zipfile
 from pathlib import Path
@@ -74,6 +81,33 @@ python3 "$SKILL/scripts/reverse_engineer.py" demo \
   --output-dir="$OUT1"
 
 python3 "$OUT1/validate-feature-registry.py"
+
+VALIDATE_OUTPUT="$SKILL/scripts/validate-output.sh"
+"$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase teardown \
+  --security-audit 0 --sbom 0 --upstream-ref-set 0
+if "$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase complete \
+  --security-audit 0 --sbom 0 --upstream-ref-set 0 >/dev/null 2>&1; then
+  echo "FAIL: complete validator accepted a missing steal-map.md" >&2
+  exit 1
+fi
+cat >"$OUT1/steal-map.md" <<'EOF'
+# Steal map: demo
+
+| Their capability | Our surface today | Verdict |
+|---|---|---|
+| Embedded archive inventory (`feature-registry.yaml`) | `skills/reverse-engineer/` | **have** |
+EOF
+"$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase complete \
+  --security-audit 0 --sbom 0 --upstream-ref-set 0
+cp "$OUT1/steal-map.md" "$OUT1/steal-map.valid"
+printf '# malformed map\n' >"$OUT1/steal-map.md"
+if "$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase complete \
+  --security-audit 0 --sbom 0 --upstream-ref-set 0 >/dev/null 2>&1; then
+  echo "FAIL: complete validator accepted a malformed steal-map.md" >&2
+  exit 1
+fi
+mv "$OUT1/steal-map.valid" "$OUT1/steal-map.md"
+echo "OK: exact output validator distinguishes teardown from complete decision output"
 
 # --- Binary mode capability assertions ---
 
@@ -193,6 +227,83 @@ if [ ! -f "$OUT_REF/clone-metadata.json" ]; then
 fi
 echo "OK: clone-metadata.json created with --upstream-ref"
 
+echo "--- existing-checkout ref mismatch test ---"
+WRONG_REPO="$TMP/local-wrong-ref"
+WRONG_OUT="$TMP/out-wrong-ref"
+mkdir -p "$WRONG_REPO"
+git -C "$WRONG_REPO" init -q
+git -C "$WRONG_REPO" config user.name reverse-self-test
+git -C "$WRONG_REPO" config user.email reverse-self-test@example.invalid
+printf 'one\n' >"$WRONG_REPO/unique.txt"
+git -C "$WRONG_REPO" add unique.txt
+git -C "$WRONG_REPO" commit -qm one
+first_commit="$(git -C "$WRONG_REPO" rev-parse HEAD)"
+printf 'two\n' >"$WRONG_REPO/unique.txt"
+git -C "$WRONG_REPO" commit -qam two
+second_commit="$(git -C "$WRONG_REPO" rev-parse HEAD)"
+git -C "$WRONG_REPO" checkout -q --detach "$first_commit"
+if python3 "$SKILL/scripts/reverse_engineer.py" wrong-ref \
+  --mode=repo --local-clone-dir="$WRONG_REPO" \
+  --upstream-ref="$second_commit" --output-dir="$WRONG_OUT" >/dev/null 2>&1; then
+  echo "FAIL: existing checkout at the wrong commit was analyzed" >&2
+  exit 1
+fi
+if [ -e "$WRONG_OUT/feature-registry.yaml" ]; then
+  echo "FAIL: ref mismatch wrote trusted teardown artifacts" >&2
+  exit 1
+fi
+echo "OK: existing checkout must match the requested ref"
+
+echo "--- explicit non-Git root test ---"
+EXPLICIT_TREE="$TMP/explicit-nongit"
+EXPLICIT_OUT="$TMP/out-explicit-nongit"
+mkdir -p "$EXPLICIT_TREE"
+printf 'only-in-explicit-tree\n' >"$EXPLICIT_TREE/unique-source.txt"
+python3 "$SKILL/scripts/reverse_engineer.py" explicit-nongit \
+  --mode=repo --local-clone-dir="$EXPLICIT_TREE" --output-dir="$EXPLICIT_OUT"
+if ! grep -Fqx "$EXPLICIT_TREE" "$EXPLICIT_OUT/analysis-root-path.txt"; then
+  echo "FAIL: explicit non-Git tree was replaced by the caller checkout" >&2
+  exit 1
+fi
+echo "OK: explicit non-Git analysis root wins"
+
+echo "--- output symlink refusal tests ---"
+SYMLINK_CASE="$TMP/symlink-case"
+SYMLINK_OUTSIDE="$TMP/symlink-outside"
+mkdir -p "$SYMLINK_CASE/.agents" "$SYMLINK_OUTSIDE" "$SYMLINK_CASE/local"
+printf 'outside sentinel\n' >"$SYMLINK_OUTSIDE/sentinel"
+ln -s "$SYMLINK_OUTSIDE" "$SYMLINK_CASE/.agents/scratch"
+if (
+  cd "$SYMLINK_CASE"
+  python3 "$SKILL/scripts/reverse_engineer.py" escaped \
+    --mode=repo --local-clone-dir="$SYMLINK_CASE/local" >/dev/null 2>&1
+); then
+  echo "FAIL: default output followed a symlinked scratch parent" >&2
+  exit 1
+fi
+if ! grep -Fqx 'outside sentinel' "$SYMLINK_OUTSIDE/sentinel" \
+  || [ -e "$SYMLINK_OUTSIDE/reverse-engineer" ]; then
+  echo "FAIL: symlinked parent allowed an outside write" >&2
+  exit 1
+fi
+
+MANAGED_OUT="$TMP/out-managed-link"
+MANAGED_OUTSIDE="$TMP/managed-outside.yaml"
+mkdir -p "$MANAGED_OUT"
+printf 'outside registry\n' >"$MANAGED_OUTSIDE"
+ln -s "$MANAGED_OUTSIDE" "$MANAGED_OUT/feature-registry.yaml"
+if python3 "$SKILL/scripts/reverse_engineer.py" managed-link \
+  --mode=repo --local-clone-dir="$EXPLICIT_TREE" \
+  --output-dir="$MANAGED_OUT" >/dev/null 2>&1; then
+  echo "FAIL: managed artifact symlink was followed" >&2
+  exit 1
+fi
+if ! grep -Fqx 'outside registry' "$MANAGED_OUTSIDE"; then
+  echo "FAIL: managed artifact symlink changed the outside target" >&2
+  exit 1
+fi
+echo "OK: output parent and managed-file symlinks fail closed"
+
 # --- Multi-language CLI graceful degradation test ---
 
 echo "--- multi-language CLI degradation test ---"
@@ -217,6 +328,54 @@ if ! grep -q "no CLI surface detected" "$OUT_NONCLI/spec-code-map.md" 2>/dev/nul
   exit 1
 fi
 echo "OK: multi-language CLI graceful degradation works"
+
+echo "--- default output-path parity test ---"
+DEFAULT_OUT="$TMP/.agents/scratch/reverse-engineer/default-demo"
+(
+  cd "$TMP"
+  python3 "$SKILL/scripts/reverse_engineer.py" default-demo \
+    --mode=repo \
+    --local-clone-dir="$TMP/local-noncli" \
+    --docs-sitemap-url="file://$SITEMAP"
+)
+if [ ! -s "$DEFAULT_OUT/feature-registry.yaml" ] \
+  || [ ! -s "$DEFAULT_OUT/contracts/repo-contract.json" ] \
+  || [ ! -s "$DEFAULT_OUT/reports/$(date +%F)-vibe-default-demo.md" ] \
+  || [ ! -s "$DEFAULT_OUT/docs-features.txt" ] \
+  || [ ! -s "$DEFAULT_OUT/validate-feature-registry.py" ]; then
+  echo "FAIL: executable default did not emit the declared product output directory" >&2
+  exit 1
+fi
+echo "OK: frontmatter output directory matches the executable default"
+
+echo "--- earlier output-path compatibility test ---"
+LEGACY_OUT="$TMP/.agents/research/legacy-demo"
+LEGACY_EXPECTED="$TMP/legacy-sentinel.expected"
+LEGACY_DEFAULT="$TMP/.agents/scratch/reverse-engineer/legacy-demo"
+mkdir -p "$LEGACY_OUT"
+printf 'caller-owned sentinel\n\n' > "$LEGACY_OUT/caller-sentinel.txt"
+cp "$LEGACY_OUT/caller-sentinel.txt" "$LEGACY_EXPECTED"
+(
+  cd "$TMP"
+  python3 "$SKILL/scripts/reverse_engineer.py" legacy-demo \
+    --mode=repo \
+    --local-clone-dir="$TMP/local-noncli" \
+    --output-dir="$LEGACY_OUT" \
+    --docs-sitemap-url="file://$SITEMAP"
+)
+if [ ! -s "$LEGACY_OUT/feature-registry.yaml" ]; then
+  echo "FAIL: explicit earlier-default output directory was not honored" >&2
+  exit 1
+fi
+if ! cmp -s "$LEGACY_EXPECTED" "$LEGACY_OUT/caller-sentinel.txt"; then
+  echo "FAIL: explicit earlier-default invocation changed a pre-existing artifact" >&2
+  exit 1
+fi
+if [ -e "$LEGACY_DEFAULT" ]; then
+  echo "FAIL: explicit earlier-default invocation also wrote to the scratch default" >&2
+  exit 1
+fi
+echo "OK: explicit earlier-default output directory remains supported"
 
 echo "--- generated-tree hygiene regression test ---"
 HYGIENE_REPO="$TMP/local-hygiene"

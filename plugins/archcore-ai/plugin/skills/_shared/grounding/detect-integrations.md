@@ -73,7 +73,15 @@ Body = one-liners grouped under category headings, in this order: **Payments / C
 - Anthropic — via `@anthropic-ai/sdk`, model completion calls.
 ```
 
-Line rules: each entry is `<Service> — via <dep>, <one-line role>`. The role names the function (payments, object storage, queue) — state the service only and omit the role when the use is ambiguous; never invent a role. The ≤ 15-line cap counts service lines only; category `##` headings do not count toward it. If detected services exceed the cap, keep the highest-signal integrations and drop the rest.
+Line rules: each entry is `<Service> — via <dep>, <one-line role>`. The role names the function (payments, object storage, queue) — state the service only and omit the role when the use is ambiguous; never invent a role. The ≤ 15-line cap counts service lines only; category `##` headings do not count toward it.
+
+**Overflow is stated, never silent.** IF detected services exceed the cap, THEN keep the highest-signal integrations within it and close the body with one line naming what was left out and where to read it:
+
+```
++7 more in `package.json` dependencies.
+```
+
+A reader who cannot see that the list was trimmed treats it as complete, and the doc then understates the repo's real external surface. Same convention as `detect-config.md`'s `+N more in <source>` and `detect-data-model.md`'s `+N more` row.
 
 ## When inconclusive / when to skip
 

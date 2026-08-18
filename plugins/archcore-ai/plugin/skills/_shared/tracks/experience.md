@@ -9,11 +9,15 @@ routing resolves to the `experience` track. Gate records and track state follow
 
 - Stages: `experience.detect` → `experience.offer` → exit.
 - The whole track is an offer. WHEN reviewed changes repeat an undocumented
-  pattern, the review skill SHOULD offer a `cpat` or `task-type` capture.
+  pattern, the review skill SHOULD offer a `cpat`, `task-type`, or `guide`
+  capture.
 - The review skill MUST NOT create a document on this track without the user's
   acceptance at `experience.offer`.
 - Produced types: `cpat` records a Before/After code-pattern change;
-  `task-type` records a typical task pattern.
+  `task-type` records a typical task pattern; `guide` records a repeatable
+  procedure whose step actor is a human.
+- Boundary rule — the actor decides the type: a human actor routes to
+  `guide`; an agent actor routes to `task-type`.
 - Each `budget` knob is the per-gate maximum, reached only in expert
   invocation; in auto mode every question draws from the shared per-invocation
   ceiling in `skills/_shared/elicitation-contract.md`.
@@ -59,21 +63,24 @@ write-back in `skills/_shared/elicitation-contract.md`.
     `skills/_shared/elicitation-contract.md` — exit without writing.
   - `experience.detect` passed its blocking exit check.
 - Elicitation knobs:
-  - trigger: entry into this gate — the offer is this gate's one question:
-    record the pattern as `cpat` (code-pattern change), record it as
-    `task-type` (typical task pattern), or decline.
+  - trigger: entry into this gate — the offer is this gate's one question.
+    The pattern kind preselects the offered type: a code-pattern change →
+    `cpat`; a procedure with an agent actor → `task-type`; a procedure with
+    a human actor → `guide`. The question asks accept or decline for the
+    preselected type.
   - taxonomy: none.
   - budget: 1
 - Produces:
-  - type: `cpat` or `task-type`, per the accepted answer
+  - type: `cpat`, `task-type`, or `guide`, per the accepted answer
   - status: draft
   - relations: none
 - Exit checks:
   - blocking: the recorded answer names accept with `cpat`, accept with
-    `task-type`, or decline.
+    `task-type`, accept with `guide`, or decline.
   - blocking: WHEN the answer is accept, the document exists with
     `status: draft`.
   - advisory: WHEN the answer is accept, a `cpat` draft body covers What
-    Changed, Why, Before, After, Scope or a `task-type` draft body covers
-    Context, Steps, Checklist, Pitfalls.
+    Changed, Why, Before, After, Scope; a `task-type` draft body covers
+    Context, Steps, Checklist, Pitfalls; a `guide` draft body carries every
+    section `skills/_shared/guide-contract.md` requires.
 - Next: exit. WHEN the answer is decline, exit without writing.

@@ -1,6 +1,6 @@
 ---
 name: toil-mining
-description: Mine caller-supplied usage history for
+description: 'Mine caller-supplied usage history for Triggers: "mine toil", "find repeated operational work".'
 ---
 # Toil Mining — rank repeated friction
 

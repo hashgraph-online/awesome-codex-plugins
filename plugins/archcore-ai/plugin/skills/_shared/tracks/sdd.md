@@ -1,7 +1,8 @@
-# SDD Track — Frame, Require, Design, Decompose
+# SDD Track — Concept, Intent, Contract, Decompose, Runbook Instruments
 
-Plugin runtime asset. Loaded by the `plan` skill (primary executor) when routing
-resolves to the `sdd` track. Gate execution, state block, and resume rules:
+Plugin runtime asset. Loaded by the `plan` skill (primary executor) when the
+conductor (`skills/_shared/delta-routing.md`) invokes an instrument this file
+hosts. Gate execution, state block, and resume rules:
 `skills/_shared/gate-contract.md`. Interview mechanics and question ceilings:
 `skills/_shared/elicitation-contract.md`. Coverage categories:
 `skills/_shared/coverage-taxonomy.md`. Per-type content contracts:
@@ -10,15 +11,20 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
 
 ## Track notes
 
-- Gate order: `sdd.frame` → `sdd.require` → `sdd.design` → `sdd.decompose`.
+- This file hosts five instruments the conductor invokes individually:
+  concept → `idea` at `sdd.frame`, intent → `prd` at `sdd.require`,
+  contract → `spec` at `sdd.design`, decompose → `plan` at `sdd.decompose`,
+  runbook → `guide` at `sdd.runbook`.
+- `skills/_shared/delta-routing.md` owns the sequence between instruments; no
+  gate here chains into another instrument — each gate exits to the conductor.
 - Each `budget` knob states this track's per-gate maximum, reached only in
   expert invocation. Auto mode draws every question from the shared
   per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
 - Content voice for produced documents: `skills/_shared/precision-rules.md`
   Rule 6.
 - Before the first gate, the `plan` skill calls `list_documents` for the types
-  `idea`, `prd`, `rnd`, `mrd`, `brd`, `urd`, `spec`, and `plan` and checks the
-  topic for duplicates and recorded discovery.
+  `idea`, `prd`, `rnd`, `mrd`, `brd`, `urd`, `spec`, `plan`, and `guide` and
+  checks the topic for duplicates and recorded discovery.
 - WHEN a `brd` or `urd` covers the topic, `sdd.require` composes Goals and
   Success Metrics from the `brd`'s success metrics and Requirements from the
   `urd`'s acceptance criteria — recorded requirements are never re-asked.
@@ -28,10 +34,11 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
 - The `task-type` offer that followed the plan in the source feature flow
   belongs to the experience track (`skills/_shared/tracks/experience.md`),
   not to `sdd`.
-- This track produces four documents on one topic. The content-kind ownership
-  table in `skills/_shared/prd-contract.md` names the one document that owns
-  each kind of statement; the `sdd.require`, `sdd.design`, and `sdd.decompose`
-  exit checks apply it.
+- A route can produce several documents on one topic through these
+  instruments. The content-kind ownership table in
+  `skills/_shared/prd-contract.md` names the one document that owns each kind
+  of statement; the `sdd.require`, `sdd.design`, and `sdd.decompose` exit
+  checks apply it.
 - [assumption] Taxonomy knob values are mapped from each source step's
   composed sections; the source flows predate
   `skills/_shared/coverage-taxonomy.md`.
@@ -45,6 +52,8 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
     `.archcore/` — an `rnd`'s Recommendation frames the topic the way an
     `idea` does; a complete sources set (`mrd`, `brd`, `urd`) on the topic
     also closes this gate — the `urd` records the concept's beneficiary.
+  - The conductor invokes this gate per sequencing rule 2 of
+    `skills/_shared/delta-routing.md` (the high-uncertainty portfolio).
   - The request text names the core concept and who benefits from it.
 - Elicitation knobs:
   - trigger: the request does not name the core concept or the beneficiary.
@@ -58,7 +67,8 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
 - Exit checks:
   - blocking: the idea draft contains the sections Idea, Value, Possible
     Implementation, and Risks and Constraints.
-- Next: `sdd.require`.
+- Next: exit — the conductor names the next instrument per
+  `skills/_shared/delta-routing.md`.
 
 ### gate: sdd.require
 
@@ -96,7 +106,8 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
   - advisory: a feature-scoped prd draft holds the body target the scope rule
     in `skills/_shared/prd-contract.md` sets; a product-level prd carries no
     line target.
-- Next: `sdd.design`.
+- Next: exit — the conductor names the next instrument per
+  `skills/_shared/delta-routing.md`.
 
 ### gate: sdd.design
 
@@ -105,9 +116,11 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
   calls `update_document` on the `prd` as well as creating the `spec`, per
   ownership rule 2 in `skills/_shared/prd-contract.md`.
 - Entry conditions:
-  - skip_when: a `spec` covering the topic exists in `.archcore/`, or no
-    consumer relies on the planned behavior as a contract, per the routing
-    gate in `skills/_shared/spec-contract.md`.
+  - skip_when: a `spec` covering the capability this invocation designs exists
+    in `.archcore/`, or no consumer relies on the planned behavior as a
+    contract, per the routing gate in `skills/_shared/spec-contract.md`.
+  - The conductor invokes this gate per its instrument-registry entry in
+    `skills/_shared/delta-routing.md` — one invocation per capability.
   - A `prd` on the topic exists, or `sdd.require` closed through the
     compression path in `skills/_shared/prd-contract.md` and the `idea`,
     `rnd`, or `adr` that closed it records the problem and the goals.
@@ -133,8 +146,9 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
   - blocking: WHEN this spec took over a prd statement, the executing skill
     edited that statement in the prd per ownership rule 2 of
     `skills/_shared/prd-contract.md`, in one `update_document` call.
-- Next: `sdd.decompose`. WHEN an answer at this gate settles a choice between
-  technical alternatives, record it via the decision track
+- Next: exit — the conductor names the next instrument per
+  `skills/_shared/delta-routing.md`. WHEN an answer at this gate settles a
+  choice between technical alternatives, record it via the decision track
   (`skills/_shared/tracks/decision.md`).
 
 ### gate: sdd.decompose
@@ -162,7 +176,38 @@ resolves to the `sdd` track. Gate execution, state block, and resume rules:
     requirement, a prd success metric, or a spec behavior line; the
     content-kind ownership table in `skills/_shared/prd-contract.md` assigns
     each statement to one document.
+  - blocking: the plan draft carries a `## Declared Delta` section recording
+    the declared Δ and the route rationale, per sequencing rule 9 of
+    `skills/_shared/delta-routing.md`.
   - advisory: the closing report lists candidate `add_relation` targets among
     existing `adr`, `rule`, `spec`, and `plan` documents, or states that none
     match.
-- Next: exit.
+- Next: exit — the conductor names the next instrument per
+  `skills/_shared/delta-routing.md`. WHEN decomposition surfaces a capability
+  outside the declared Δ, the executing skill revises Δ and re-announces per
+  `skills/_shared/delta-routing.md` before continuing.
+
+### gate: sdd.runbook
+
+- Purpose: Compose the operational `guide` for a capability whose delta
+  introduces an operational procedure — install, migrate, operate, or verify
+  steps.
+- Entry conditions:
+  - skip_when: the declared Δ introduces no operational procedure, or a
+    `guide` covering the procedure exists in `.archcore/`.
+  - A `spec` or `plan` draft on the topic exists.
+- Elicitation knobs:
+  - trigger: the reader or the step actor of the procedure is not recorded.
+  - taxonomy: Edge Cases & Failure Handling, Completion Signals from
+    `skills/_shared/coverage-taxonomy.md`.
+  - budget: 1
+- Produces:
+  - type: guide
+  - status: draft
+  - relations: `related` → the `spec` of the covered capability.
+- Exit checks:
+  - blocking: the guide draft carries every section
+    `skills/_shared/guide-contract.md` requires, composed after reading that
+    contract and `skills/_shared/precision-rules.md`.
+- Next: exit — the conductor names the next instrument per
+  `skills/_shared/delta-routing.md`.

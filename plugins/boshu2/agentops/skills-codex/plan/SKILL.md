@@ -1,14 +1,15 @@
 ---
 name: plan
-description: Shape or refine the existing bead or caller
+description: 'Shape or refine the existing bead or caller Triggers: "plan", "discover and plan", "shape this goal".'
 ---
 # Plan
 
 Turn the caller's intent into one bounded, testable behavior in the place that
-already owns the work. Prefer the caller's tracker, if any. When no tracker is
-available, use the caller's conversation or supplied issue text; the runtime
-snapshots the resolved intent bytes automatically so later contexts can read
-and hash the same source. Do not make the model restate those facts in a packet.
+already owns the work. Prefer the caller's tracker, if any. When no durable
+tracker or issue reference is available, use the caller's conversation or
+supplied text; the runtime snapshots those resolved intent bytes so later
+contexts can read and hash the same source. Do not make the model restate those
+facts in a packet.
 
 ## Workflow
 
@@ -32,32 +33,16 @@ and hash the same source. Do not make the model restate those facts in a packet.
 5. If authorized and the source is writable, update that bead or issue in
    place. Otherwise return a concise proposed amendment to the caller.
 
-Planning produces no AgentOps packet. The runtime stores and hashes the resolved
-source bytes to detect later acceptance drift. That content-addressed snapshot
-is derived automatically and is not another model-authored planning artifact.
+Planning produces no AgentOps packet. A durable caller-owned source stays in
+place; the runtime carries its reference and the digest of its exact resolved
+bytes to detect later acceptance drift. Only when no durable source exists does
+the runtime store those bytes under their digest as a content-addressed
+snapshot. That fallback is derived automatically and is not another
+model-authored planning artifact.
 
 Bound the work around the caller-visible outcome, not individual files, gates,
 or reviewer comments. Decomposition is useful only when it reduces reasoning
 cost; it must not multiply invocations or proof artifacts.
-
-## Manifest mode (many behaviors, zero beads)
-
-When the caller's goal genuinely decomposes into several bounded behaviors —
-an audit remediation, an epic, a contraction — shape one caller-owned
-specification manifest instead of one behavior:
-
-- One document in the caller's location (commonly `docs/plans/<date>-<slug>.md`)
-  holding a manifest table (stable slug, type, priority, parent, dependency
-  edges) plus one section per child with acceptance, non-goals, write scope,
-  and evidence commands. Each child must satisfy the same bar as a
-  single-behavior plan.
-- Tracker IDs stay `TBD`: manifest mode authors zero beads. The executing
-  substrate materializes tracker state — the caller's session in the default
-  loop, or the selected factory's coordinator (for Gas City the Mayor, per
-  [using-gc](../using-gc/SKILL.md); for the Flywheel, its native workflow per
-  [using-flywheel](../using-flywheel/SKILL.md)).
-- Reference example:
-  [2026-07-30-ponytail-whole-repo-contraction.md](../../docs/plans/2026-07-30-ponytail-whole-repo-contraction.md).
 
 ## Scope admission
 

@@ -91,8 +91,8 @@ All `bkt` behaviour can be configured via environment variables, which is especi
 |---|---|
 | `BKT_TOKEN` | Authentication token. Bypasses keyring storage entirely. |
 | `BKT_HOST` | Bitbucket server base URL (e.g. `https://bitbucket.example.com`). Required alongside `BKT_TOKEN` for config-free use. `bitbucket.org` is auto-detected as Cloud. |
-| `BKT_USERNAME` | Username for basic authentication in headless mode. |
-| `BKT_AUTH_METHOD` | Authentication method: `basic` or `bearer`. DC defaults to `bearer` when `BKT_USERNAME` is absent; Cloud always uses `basic`. |
+| `BKT_USERNAME` | Username for basic authentication in headless mode. Required for Cloud basic auth; not required for bearer auth. |
+| `BKT_AUTH_METHOD` | Authentication method: `basic` or `bearer`. DC defaults to `bearer` when `BKT_USERNAME` is absent; Cloud defaults to `basic`. Use `bearer` for Cloud repository, project, or workspace access tokens. |
 | `BKT_PROJECT` | Default Data Center project key (headless mode). |
 | `BKT_WORKSPACE` | Default Bitbucket Cloud workspace (headless mode). |
 | `BKT_REPO` | Default repository slug (headless mode). |
@@ -115,6 +115,7 @@ bkt pr create --title "Automated PR" --source feature/my-branch
 **Minimal headless example (Bitbucket Cloud):**
 
 ```bash
+# User API token — basic auth
 export BKT_HOST=https://bitbucket.org
 export BKT_TOKEN=my-api-token
 export BKT_USERNAME=me@example.com
@@ -122,7 +123,18 @@ export BKT_WORKSPACE=my-workspace
 export BKT_REPO=my-repo
 
 bkt pr list
+
+# Repository, project, or workspace access token — bearer auth
+export BKT_TOKEN=my-resource-access-token
+export BKT_AUTH_METHOD=bearer
+unset BKT_USERNAME
+
+bkt pr list
 ```
+
+Resource access tokens are not associated with a user. Commands that require
+authenticated-user identity, such as cross-repository `bkt pr list --mine`,
+still require user API-token or OAuth credentials.
 
 ### From Source
 

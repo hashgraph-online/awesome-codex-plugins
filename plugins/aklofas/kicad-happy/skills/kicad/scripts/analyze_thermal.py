@@ -442,7 +442,10 @@ def _compute_junction_temps(power_comps: list, pcb: dict,
             "category": "thermal",
             "severity": "info",
             "confidence": "heuristic" if rtheta_source == "default" else "deterministic",
-            "evidence_source": "datasheet" if rtheta_source == "package_table" else "heuristic_rule",
+            # rtheta_source is only ever "package_table" (footprint regex matched the
+            # generic PACKAGE_THERMAL_RESISTANCE average) or "default" — neither is
+            # per-MPN datasheet data, so neither may claim datasheet provenance.
+            "evidence_source": "heuristic_rule",
             "summary": f"Thermal: {ref} Tj={round(tj, 1)}C (margin {round(margin, 1)}C)",
             "description": f"Component {ref} in {pkg_name} package: Tj={round(tj, 1)}C, margin {round(margin, 1)}C to Tj_max ({tj_max}C).",
             "components": [ref],
@@ -483,8 +486,9 @@ def _generate_findings(assessments: list) -> list:
         pdiss = a["pdiss_w"]
         pkg = a["package"]
         confidence = _thermal_confidence(a)
-        ev_source = ("datasheet" if a.get("rtheta_ja_source") == "package_table"
-                     else "heuristic_rule")
+        # Both rtheta_ja_source values ("package_table", "default") are generic
+        # package averages, not per-MPN datasheet data. See analyze_thermal:394.
+        ev_source = "heuristic_rule"
 
         label = f"{ref} ({val})" if val else ref
 

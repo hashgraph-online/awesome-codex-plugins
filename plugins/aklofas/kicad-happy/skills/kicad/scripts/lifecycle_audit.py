@@ -107,6 +107,22 @@ def _normalize_status(raw: str | None) -> str:
 # Temperature parsing
 # ---------------------------------------------------------------------------
 
+def _temp_evidence_source(source: str | None) -> str:
+    """Map a temperature-range source tag to a finding evidence_source.
+
+    "extraction_cache" is a per-MPN datasheet extraction and is genuinely
+    datasheet-backed; "api:<distributor>" is a catalogue lookup. Anything else
+    (or nothing) is not evidence of either.
+    """
+    if not source:
+        return 'heuristic_rule'
+    if source == 'extraction_cache':
+        return 'datasheet'
+    if source.startswith('api:'):
+        return 'api_lookup'
+    return 'heuristic_rule'
+
+
 def _parse_temp_range(text: str) -> tuple[float, float] | None:
     """Parse temperature range from distributor attribute string.
 
@@ -759,7 +775,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                     'category': 'lifecycle',
                     'severity': 'info',
                     'confidence': 'deterministic',
-                    'evidence_source': 'datasheet',
+                    'evidence_source': 'api_lookup',
                     'summary': f'{mpn}: single source ({active_sources[0]})',
                     'description': f'Component {mpn} ({len(refs)} ref(s)) is only available from {active_sources[0]} out of {total_queried} sources checked.',
                     'components': sorted(refs),
@@ -800,7 +816,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                 'category': 'lifecycle',
                 'severity': severity,
                 'confidence': 'deterministic',
-                'evidence_source': 'datasheet',
+                'evidence_source': 'api_lookup',
                 'summary': f'{mpn}: {max_lead_weeks} week lead time',
                 'description': f'Component {mpn} has {max_lead_weeks} week lead time (from {lead_source}).',
                 'components': sorted(refs),
@@ -845,7 +861,9 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                     "rule_id": "LT-001",
                     "category": "temperature",
                     "confidence": "deterministic",
-                    "evidence_source": "api_lookup" if temp.get("source") else "heuristic_rule",
+                    # "extraction_cache" is a real per-MPN datasheet extraction and must
+                    # not be downgraded to api_lookup; "api:<distributor>" is a lookup.
+                    "evidence_source": _temp_evidence_source(temp.get("source")),
                     "summary": f"{mpn}: rated {comp_grade} ({comp_min}C to {comp_max}C), design needs {design_min}C to {design_max}C",
                     "components": sorted(refs),
                     "nets": [],

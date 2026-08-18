@@ -9,6 +9,10 @@ resolves to the `research` track. Gate execution, state block, and resume rules:
 ## Track notes
 
 - Gate order: `research.frame` → `research.gather` → `research.conclude`.
+- Spike entry: `research.spike` is a second entry point outside the frame
+  chain — the conductor engages it for an `empirical` Π source per
+  `skills/_shared/delta-routing.md`; the probe is timeboxed and its code is
+  throwaway. Spike code MUST NOT merge into the mainline.
 - Each `budget` knob states this track's per-gate maximum, reached only in
   expert invocation. Auto mode draws every question from the shared
   per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
@@ -107,10 +111,37 @@ resolves to the `research` track. Gate execution, state block, and resume rules:
     Findings, Recommendation, and Next Action.
   - blocking: the Recommendation section states one recommendation and names
     the findings that support it.
-  - blocking: the Next Action section names the follow-up route —
-    `/archcore:plan` to continue into the `sdd` track, `/archcore:document` to
+  - blocking: the Next Action section names the follow-up —
+    `/archcore:plan` to compute the follow-up route, `/archcore:document` to
     record the decision — or states that no follow-up is needed.
   - advisory: the closing report lists candidate `add_relation` targets among
     existing `idea`, `prd`, `adr`, and `rfc` documents, or states that none
     match.
 - Next: exit.
+
+### gate: research.spike
+
+- Purpose: Run a timeboxed empirical probe — answer one question only building
+  can answer, then hand the revised Δ back to the conductor.
+- Entry conditions:
+  - skip_when: existing evidence (code, git history, `.archcore/`, recorded
+    measurements) already answers the empirical question.
+  - The conductor names the empirical question and the timebox.
+- Elicitation knobs:
+  - trigger: none — the spike grounds from the probe itself.
+  - taxonomy: none.
+  - budget: 0
+- Produces:
+  - type: rnd
+  - status: draft
+  - relations: `related` → the `idea` or `prd` the spike informs, when one
+    exists.
+- Exit checks:
+  - blocking: the rnd draft holds the sections Goal, Questions, and Findings
+    only, with the probe outcome recorded under Findings.
+  - blocking: the closing report states the probe outcome and the revised Δ
+    handed to the conductor.
+  - blocking: no spike code was merged into the mainline; the report names
+    where the throwaway code lives or states that it was discarded.
+- Next: exit — the conductor re-enters Derivation per
+  `skills/_shared/delta-routing.md`.

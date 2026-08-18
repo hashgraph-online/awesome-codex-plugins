@@ -1,11 +1,11 @@
 ---
 name: plori
-description: Create and drive plori agents (each an AI agent on its own cloud computer) from any MCP client, the plori CLI, or over REST. Covers authentication (OAuth 2.1 or API key), creating agents, invoking them and reading replies, answering human-in-the-loop requests, and scheduling deferred runs.
+description: Create and drive plori agents (each an AI agent in its own cloud environment) from any MCP client, the plori CLI, or over REST. Covers authentication (OAuth 2.1 or API key), creating agents, invoking them and reading replies, answering human-in-the-loop requests, and scheduling deferred runs.
 ---
 
 # Using plori from an agent
 
-plori (https://plori.ai) gives you AI agents. Each agent runs on its own cloud computer with a
+plori (https://plori.ai) gives you AI agents. Each agent runs in its own cloud environment with a
 persistent disk, a shell, developer tools, and memory. You can create agents, send them
 work, and read their replies programmatically.
 

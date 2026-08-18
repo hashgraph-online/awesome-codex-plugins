@@ -1,8 +1,8 @@
 # Precision Rules — Forbidden Lexicon and Authoring Conventions
 
-Plugin runtime asset. Loaded by skills (`decide`, `capture`) before
-composing documents of type `adr`, `spec`, `rule`, `guide`. See also
-`skills/_shared/adr-contract.md`.
+Plugin runtime asset. Loaded by the `plan`, `document`, `review`, and `init`
+skills before composing any document, together with the produced type's
+content contract. See also `skills/_shared/adr-contract.md`.
 
 The forbidden lexicon in Rule 1 and the line form in Rule 7 mirror the canon the
 Archcore CLI ships in its document templates and measures in its post-tool-use
@@ -142,7 +142,9 @@ file is corrected — one canon with two owners is two canons.
   forbidden lexicon, the mandatory sections of each type, a heading another type
   owns, the line form and word metrics of Rule 7, the open-ended lists of Rule 8,
   and the per-type notation each content contract names. Findings are emitted as
-  `additionalContext`. The hook never blocks (always exits 0).
+  `additionalContext`. The hook never blocks (always exits 0), and a CLI that
+  predates a check reports nothing for it — this one sentence is the canonical
+  statement; the per-type content contracts do not restate it.
 - The hook reads the whole document rather than the added lines, so an edit to an
   older document surfaces that document's existing findings too.
 - Rules 3, 4, and 6 carry no automated check. A program finds a missing marker;

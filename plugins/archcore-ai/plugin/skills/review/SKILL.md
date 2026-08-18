@@ -6,7 +6,12 @@ description: "Review branch changes against Archcore docs, or report project hea
 
 # /archcore:review
 
-Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. On the default branch, or with an empty diff, the skill reports project health instead. Write affinity: experience types — `cpat` and `task-type` land through the experience track.
+Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. On the default branch, or with an empty diff, the skill reports project health instead. Write affinity: experience types — `cpat` and `task-type` land through the experience track. This is also the only skill that removes a document: `closeout.discharge` removes a completed `plan`, and `actualize.fix` may remove a long-stale draft of any type — both via `mcp__archcore__remove_document`, each under its own confirmation.
+
+Command tense: `/archcore:plan` declares a future canon delta, `/archcore:document`
+records the present state — including work that shipped without a plan — and
+`/archcore:review` reconciles a past declared delta. Δ vocabulary:
+`skills/_shared/delta-routing.md`.
 
 ## When to use
 
@@ -34,6 +39,8 @@ Review the changes on the current branch against the `.archcore/` knowledge base
 | Completion signals: "close out the feature", "ship the feature and close it out" — an explicit completion or acceptance verb, not mere branch readiness. A plain "review my branch" stays on branch review even for a merge-ready branch | → closeout track (`skills/_shared/tracks/closeout.md`), scope pre-filled from the step 1 `branch-state` block; exits into the step 4 experience offer |
 | Named track or type (`actualize`, `experience`, `closeout`, `cpat`, `task-type`) | → execute the named path without routing |
 
+On the closeout track, `closeout.verify` reconciles the plan's `## Declared Delta` section against the branch diff and reports drift as unplanned Δ — details in `skills/_shared/tracks/closeout.md`.
+
 ## Execution
 
 Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.md` before executing any track gate. Question budgets follow the elicitation contract.
@@ -42,7 +49,7 @@ IF `.archcore/` does not exist, THEN announce initialization in one line and cal
 
 **Grounding.** Search all three categories — vision, knowledge, experience — with `mcp__archcore__search_documents` / `mcp__archcore__list_documents`; never exclude a category from reads. Pass a type filter matched to the review moment — `spec`, `rule`, `adr`, `doc`, `guide` for claims on changed code; `cpat`, `task-type` for precedent; `plan`, `prd`, `idea`, `rnd` for the closeout track's plan-and-implements-chain scope — instead of relying on the global type ranking. When a found document has `implements` or `related` relations, pull the linked documents one hop across categories.
 
-**Global sources (only when present).** If any `list_documents` / `search_documents` result carries `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`. Never modify a global document and never add a relation to one. Exclude global documents from every local-health metric — counts, orphan detection, drift; you MAY add one separate line naming the mounted source and its document count.
+**Global sources (only when present).** If any `list_documents` / `search_documents` result carries `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`. Also load it when a `search_documents` response's `coverage` names a source other than `"local"` — even when `results` is empty: the empty page is exactly where that file's retry ladder applies. Never modify a global document and never add a relation to one. Exclude global documents from every local-health metric — counts, orphan detection, drift; you MAY add one separate line naming the mounted source and its document count.
 
 ### Step 1: Branch scope
 
@@ -81,7 +88,7 @@ Each conflict finding carries exactly one verdict: `spec-wrong` (the document is
 
 ### Step 3: Actualize gate
 
-WHEN step 2 surfaces a drift signal — any `spec-wrong` or `code-wrong` finding — or the user passed `--deep` or `--drift`, route into the actualize track (`skills/_shared/tracks/actualize.md`) and run its gates: `actualize.scope` (pre-filled with the step 1 `branch-state` block), `actualize.verdict`, `actualize.fix`. With `--deep`, widen the scope to all documents and report coverage gaps, relation health, status, and consistency findings alongside the drift verdicts.
+WHEN step 2 surfaces a drift signal — any `spec-wrong` or `code-wrong` finding — or the user passed `--deep` or `--drift`, route into the actualize track (`skills/_shared/tracks/actualize.md`) and run its gates: `actualize.scope` (pre-filled with the step 1 `branch-state` block), `actualize.verdict`, `actualize.fix`. With `--deep`, widen the scope to all documents and report coverage gaps, relation health, status, and consistency findings alongside the drift verdicts. Verdict vocabulary lives in `skills/_shared/verdict-contract.md`.
 
 ### Step 4: Experience offer
 
@@ -96,5 +103,6 @@ WHEN the reviewed changes repeat an undocumented pattern, offer a `cpat` or `tas
 
 - Branch review: findings grouped by verdict — `spec-wrong` / `code-wrong` / `ok` — with evidence, applied fixes, and declined fixes.
 - Health fallback: the dashboard, data only.
-- Closeout: per-task verdicts from `closeout.verify`, applied and declined document updates from `closeout.merge`, and status transitions grouped applied / declined / skipped from `closeout.accept`.
-- Produced documents grouped by category — experience: a `cpat` or `task-type` draft from the experience offer; knowledge / vision: documents updated at `actualize.fix` or `closeout.merge`.
+- Closeout: per-task verdicts from `closeout.verify`, applied and declined document updates from `closeout.merge`, status transitions grouped applied / declined / skipped from `closeout.accept`, residue routed at `closeout.capture` with the instrument that took it, and removed plans from `closeout.discharge`.
+- Produced documents grouped by category — experience: a `cpat` or `task-type` draft from the experience offer or from `closeout.capture`; knowledge: a `guide`, or an `adr` plus its standard cascade (`rule`, `guide`), when `closeout.capture` routes residue through the decision instrument; knowledge / vision: documents updated at `actualize.fix` or `closeout.merge`.
+- Removed documents: each `plan` that `closeout.discharge` removed, and each long-stale draft `actualize.fix` removed on the user's confirmation — each named with the commit that still carries the file.

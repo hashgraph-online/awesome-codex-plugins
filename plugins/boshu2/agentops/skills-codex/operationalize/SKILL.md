@@ -1,6 +1,6 @@
 ---
 name: operationalize
-description: Distill repeated, evidence-backed expertise
+description: 'Distill repeated, evidence-backed expertise Triggers: "operationalize this", "turn this expertise into a reusable capability".'
 ---
 # Operationalize
 

@@ -1,6 +1,6 @@
 ---
 name: workflow-builder
-description: Scaffold an explicit one-shot workflow
+description: 'Scaffold an explicit one-shot workflow Triggers: "build a workflow adapter", "scaffold a one-shot workflow".'
 ---
 # Workflow Builder — one-shot adapter authoring
 

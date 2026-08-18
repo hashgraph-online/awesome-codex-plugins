@@ -1,6 +1,6 @@
 ---
 name: rpi
-description: 'Coordinate one RPI traversal: one bounded'
+description: 'Coordinate one RPI traversal: one bounded Triggers: "run rpi", "run one traversal", "execute this plan", orchestration or worker delegation that implements changes.'
 ---
 # RPI
 
@@ -8,10 +8,12 @@ Run one experiment from the caller's existing intent source through three
 responsibilities and stop:
 
 ```text
-Plan -> Implement -> fresh Validate -> report
+anti-ceremony guard -> Plan -> Implement -> fresh Validate -> report
 ```
 
-RPI preserves the original intent and dispatches each core phase at most once.
+On `CONTINUE`, the core path remains Plan -> Implement -> fresh Validate ->
+report. RPI invokes the guard exactly once before Plan. It preserves the
+original intent and dispatches each core phase at most once.
 It does not own retries, budgets, queues, claims, leases, Git, delivery, release,
 closure, or the caller's next decision.
 
@@ -36,19 +38,25 @@ authorization by itself.
 
 ## Contract
 
-1. Resolve the existing bead or caller intent. Invoke Plan once only if that
+1. Invoke anti-ceremony's artifact-free quick guard once with the caller
+   outcome, proposed process work, remaining proof, and stop condition. On
+   `STOP`, dispatch no core phase, report `NOT_PLANNED` with the guard's
+   one-sentence reason, and stop. On `CONTINUE`, proceed without adding an
+   artifact, retry, repair, delivery, tracker, or Git action.
+2. Resolve the existing bead or caller intent. Invoke Plan once only if that
    source needs shaping; Plan updates the same source or proposes an amendment.
-   It creates no AgentOps packet. The runtime snapshots the exact resolved
-   source bytes under their digest, including when the conversation is the only
-   source, before dispatching Implement or a fresh Validate context. If usable
-   intent cannot be established, report `NOT_PLANNED` and stop.
-2. Invoke Implement once with the resolved intent. It performs one bounded
+   It creates no AgentOps packet. Preserve a durable caller-owned source by
+   reference and digest; only when no durable source exists does the runtime
+   snapshot the exact resolved source bytes under their digest before
+   dispatching Implement or a fresh Validate context. If usable intent cannot
+   be established, report `NOT_PLANNED` and stop.
+3. Invoke Implement once with the resolved intent. It performs one bounded
    experiment; the runtime derives subject identity and check receipts. If no
    subject is built, report `NOT_BUILT` and stop.
-3. Invoke Validate once in a context distinct from the author's context. Pass
+4. Invoke Validate once in a context distinct from the author's context. Pass
    the intent reference and digest, exact subject manifest, factual receipts,
    validator identity, and freshness attestation.
-4. Return the fresh validation result and a short report. Persist and link
+5. Return the fresh validation result and a short report. Persist and link
    `verdict.v2` only when the caller requests machine-readable evidence or a
    declared downstream consumer requires it. Stop regardless of `PASS`, `FAIL`,
    or `NOT_PROVEN`.
@@ -57,12 +65,14 @@ authorization by itself.
 A caller may revise the bead or caller intent and start a new invocation. RPI
 never creates a parallel revision artifact or selects the next work itself.
 
-## Proportionality guard
+## Anti-ceremony boundary
 
-RPI does not turn each component, gate failure, or specialist comment into a
-new planning artifact. A terminal caller goal
-may remain one bounded experiment across several source owners when they serve
-one outcome and one acceptance boundary.
+The hard [`anti-ceremony`](../anti-ceremony/SKILL.md) dependency owns the quick
+guard and its explicit-only full honesty audit. RPI does not duplicate that
+judgment or turn each component, gate failure, or specialist comment into a new
+planning artifact. A terminal caller goal may remain one bounded experiment
+across several source owners when they serve one outcome and one acceptance
+boundary.
 
 If control artifacts or fresh-validation cycles are multiplying faster than
 implementation evidence, stop dispatching more lanes. Return to one
@@ -83,9 +93,9 @@ repair revision. RPI owns no lane budget, repair budget, or retry policy.
 
 Delegate with minimal context: a lane receives the frozen intent reference and
 the established facts it needs, never the orchestrator's full conversation
-history. If a lane cannot proceed from the intent alone, the plan failed the
-fresh-context test and should be repaired at the source, not padded with chat
-transcript.
+history. If a lane cannot proceed from the intent alone, report that the plan
+failed the fresh-context test and stop; do not pad it with chat transcript or
+start another planning lane without explicit caller authorization.
 
 Lanes whose write scopes share a regen surface (the same generated outputs,
 mirrors, or manifests) serialize; only lanes with disjoint source scopes and
@@ -94,6 +104,8 @@ disjoint regen surfaces may run in parallel.
 ## Invariants
 
 - Acceptance and its runtime-derived digest do not change between phases.
+- The anti-ceremony guard runs once before Plan; `STOP` dispatches none of Plan,
+  Implement, or Validate, while `CONTINUE` preserves their order.
 - The runtime derives complete changed-path coverage or Validate returns
   `NOT_PROVEN`.
 - A proven change outside `write_scope` makes the verdict `FAIL`.
@@ -123,7 +135,7 @@ RPI has one required report surface and one optional representation:
    {
      "schema_version": "rpi-report.v1",
      "status": "PASS",
-     "intent_ref": ".agents/ao/intents/sha256/<64-hex-digest>.intent",
+     "intent_ref": "<durable-source-ref-or-fallback-snapshot-ref>",
      "acceptance_digest": "<64-hex-char-sha256-or-null>",
      "subject_manifest_digest": "<64-hex-char-sha256-or-null>",
      "verdict_ref": "<verdict-location-or-null>",
@@ -133,10 +145,12 @@ RPI has one required report surface and one optional representation:
    }
    ```
 
-   `status` is one of `PASS | FAIL | NOT_PROVEN | NOT_PLANNED | NOT_BUILT`; the
-   three digest fields, when present, are 64-character lowercase hex SHA-256
-   strings; `checked` and `not_checked` are arrays of strings. All nine keys
-   are required (use `null` for an inapplicable ref or digest), and no
+   `intent_ref` remains required: it names the durable caller-owned source when
+   one exists, otherwise the content-addressed fallback snapshot. `status` is
+   one of `PASS | FAIL | NOT_PROVEN | NOT_PLANNED | NOT_BUILT`; the three digest
+   fields, when present, are 64-character lowercase hex SHA-256 strings;
+   `checked` and `not_checked` are arrays of strings. All nine keys are required
+   (use `null` for an inapplicable ref or digest), and no
    additional properties are allowed.
 
 Lead the interactive response with the status and one sentence stating the
@@ -145,8 +159,9 @@ paths changed, commits, test results, and acceptance criteria satisfied or
 remaining. A rising artifact count over an unchanged subject is a stop
 signal, not progress. Follow with only the strongest proof, any material
 unchecked scope, and a clickable verdict reference when one exists. Name why
-no subject exists for `NOT_PLANNED` or `NOT_BUILT`. Keep the response to one
-short paragraph or at most four bullets.
+no subject exists for `NOT_PLANNED` or `NOT_BUILT`; for a guard `STOP`, use its
+one-sentence reason. Keep the response to one short paragraph or at most four
+bullets.
 
 When no machine artifact was requested, do not create a hidden one. Raw digests,
 schema fields, and exhaustive check lists stay out of the interactive response

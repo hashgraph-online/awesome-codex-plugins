@@ -1,6 +1,6 @@
 ---
 name: domain
-description: Load the AgentOps language and
+description: 'Load the AgentOps language and Triggers: "define this domain term", "check the bounded context".'
 ---
 # Domain — ubiquitous language
 

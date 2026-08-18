@@ -27,7 +27,7 @@ plugin. Until then, install from the project's marketplace:
 After installation, SessionStart reports `DEGRADED` protection whenever `jq`,
 `git`, gitleaks, or a bundled policy is unavailable. The warning names the
 host-appropriate skill: `$setup-agent-guard` in Codex or
-`agent-guard:setup-agent-guard` in Claude Code. You can also run the
+`/agent-guard:setup-agent-guard` in Claude Code. You can also run the
 plugin-local `agent-guard setup` directly. Dependency installation always
 requires explicit approval. Then verify:
 
@@ -86,8 +86,9 @@ policy, and template-named symlinks are checked against their resolved target.
 Template contents still undergo normal secret scanning on writes.
 
 Default processing is local, ephemeral, and has no telemetry. PII hook handling
-is off by default. Selecting the optional `pleno` or `http` PII provider sends
+is off by default. Selecting the experimental `http` PII adapter sends
 the text described in [PRIVACY.md](PRIVACY.md) to the user-configured endpoint.
+Compatibility with a specific external service is not guaranteed.
 
 ## Requirements and platforms
 
@@ -102,11 +103,11 @@ gitleaks 8.30 or newer (recommended).
 
 ## Skills
 
-- `agent-guard:setup-agent-guard` — resolve the plugin-local binary, diagnose
+- `/agent-guard:setup-agent-guard` — resolve the plugin-local binary, diagnose
   `jq`/gitleaks, and guide approved installation. Codex invokes the same skill
   as `$setup-agent-guard`; the skill selects the correct host verification path
   and runs live probes through that host's normal command surface.
-- `agent-guard:setup-shell` — install or refresh the optional shell integration
+- `/agent-guard:setup-shell` — install or refresh the optional shell integration
   through the plugin-local binary with approval before changing the shell rc.
   Codex invokes the same skill as `$setup-shell`.
 
