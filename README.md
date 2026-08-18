@@ -218,6 +218,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [LVTD Skills](https://github.com/LVTD-LLC/skills) - Reusable Agent Skills for Codex, Claude Code, and compatible clients, covering Django, Rust, Cookiecutter, SEO, traction, product marketing, and nonfiction publishing workflows.
 - [Maestro](https://github.com/mbanderas/maestro) - Opt-in local multi-CLI fusion engine and orchestration doctrine that fans a prompt across model CLIs, then judges and synthesizes one grounded answer.
 - [MailAgent](https://github.com/Alex0nder/MailAgent) - Temporary inboxes for Codex — OTP, magic links, signup QA, simulate-first autotests (23 MCP tools).
+- [Markdown Reader](https://github.com/JoseEstevez520/mcp-md-reader) - Navigate Markdown structure and retrieve only the relevant section through a portable Codex MCP plugin.
 - [memi](https://github.com/sarveshsea/memi) - Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin.
 - [Ontoly](https://github.com/0xsarwagya/ontoly-codex-plugin) - Deterministic Software Graph workflows for Codex: architecture review, dependency analysis, request tracing, configuration analysis, and impact analysis.
 - [Open Dynamic Workflows](https://github.com/Suraj1235/open-dynamic-workflows) - Local-first MIT dynamic multi-agent workflows for Codex, OpenCode, Antigravity, Cursor, and VS Code with a daemon, MCP bridge, Codex skills, OpenCode plugin, and bring-your-own-model support.
