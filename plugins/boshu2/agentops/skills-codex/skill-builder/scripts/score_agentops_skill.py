@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Score an AgentOps skill against the local product-grade skill rubric."""
+"""Score static package readiness for an AgentOps skill."""
 
 from __future__ import annotations
 
@@ -85,12 +85,11 @@ def score_trigger(description: str) -> tuple[int, str]:
     if not description:
         return 0, "Description missing."
     lowered = description.lower()
-    score = 1
-    if "triggers:" in lowered or "use when" in lowered:
-        score = 2
     if any(term in lowered for term in ("not for", "do not use", "not when", "only when")):
-        score = 3
-    return score, "Description and explicit trigger or false-positive boundary."
+        return 3, "Description contains a literal false-positive boundary phrase."
+    if "triggers:" in lowered or "use when" in lowered:
+        return 2, "Description contains a literal trigger marker."
+    return 1, "Description is present without a literal trigger or boundary marker."
 
 
 def score_kernel(metrics: dict) -> tuple[int, str]:
@@ -111,7 +110,7 @@ def score_progressive_disclosure(metrics: dict) -> tuple[int, str]:
     reference_files = metrics["reference_files"]
     reference_links = metrics["reference_links"]
     if not reference_files and metrics["skill_md_lines"] <= 100:
-        return 2, "Concise self-contained kernel; no reference split needed."
+        return 2, "SKILL.md is at most 100 lines with no reference files; loading semantics are not evaluated."
     score = min(3, (1 if reference_files else 0) + min(2, reference_links))
     return score, f"{reference_files} reference files, {reference_links} direct reference links."
 
@@ -119,36 +118,32 @@ def score_progressive_disclosure(metrics: dict) -> tuple[int, str]:
 def score_helper_scripts(path: Path, metrics: dict) -> tuple[int, str]:
     script_files = metrics["script_files"]
     if not script_files:
-        return 2, "No repeated deterministic mechanic requires a helper script."
-    score = 1
-    if script_files:
-        score = 1
-    if has_named_script(path, ("validate", "check", "audit", "score", "doctor")):
-        score = 2
+        return 1, "No helper scripts are visible; necessity is not inferred."
+    recognized_helper = has_named_script(path, ("validate", "check", "audit", "score", "doctor"))
+    score = 2 if recognized_helper else 1
     if script_files >= 2 and score == 2:
         score = 3
-    return score, f"{script_files} script files."
+    return score, f"{script_files} script files; recognized helper name={int(recognized_helper)}."
 
 
 def score_validation(path: Path, body: str, metrics: dict) -> tuple[int, str]:
     validation_terms = ("validate", "test", "check", "lint", "verify", "heal.sh")
-    if metrics["script_files"] == 0 and metrics["skill_md_lines"] <= 100:
-        return 2, "Concise non-executable skill states its evidence inline."
-    score = int(any(term in body.lower() for term in validation_terms))
-    score += int(has_named_script(path, ("validate", "check", "test", "audit")))
-    score += int(metrics["self_test_exists"])
-    return min(3, score), "Validation commands, scripts, and self-test presence."
+    keyword_signal = int(any(term in body.lower() for term in validation_terms))
+    named_helper = int(has_named_script(path, ("validate", "check", "test", "audit")))
+    self_test = int(metrics["self_test_exists"])
+    score = keyword_signal + named_helper + self_test
+    note = (
+        f"keyword signal={keyword_signal}, recognized helper={named_helper}, "
+        f"SELF-TEST.md={self_test}."
+    )
+    return min(3, score), note
 
 
 def score_self_test(path: Path, metrics: dict) -> tuple[int, str]:
     if not metrics["self_test_exists"]:
-        if metrics["script_files"] == 0 and metrics["skill_md_lines"] <= 100:
-            return 2, "Concise non-executable skill; a separate self-test is optional."
-        if any(path.rglob("*.feature")) or has_named_script(
-            path, ("validate", "check", "test", "audit")
-        ):
-            return 2, "Executable behavior has a feature or validation helper."
-        return 1, "Executable or broad skill has no focused self-test artifact."
+        if any(path.rglob("*.feature")):
+            return 2, "At least one .feature file is present."
+        return 1, "No focused self-test or feature artifact is visible."
     self_test = (path / "SELF-TEST.md").read_text(encoding="utf-8").lower()
     score = min(
         3,
@@ -161,19 +156,20 @@ def score_self_test(path: Path, metrics: dict) -> tuple[int, str]:
 
 def score_assets(path: Path, metrics: dict) -> tuple[int, str]:
     asset_files = metrics["asset_files"]
-    score = 2
-    if asset_files:
-        score = 2
-        if any("template" in p.name.lower() for p in (path / "assets").rglob("*") if p.is_file()):
-            score = 3
-    return score, f"{asset_files} asset files."
+    if not asset_files:
+        return 1, "No asset files are visible; necessity is not inferred."
+    template_named = any(
+        "template" in p.name.lower() for p in (path / "assets").rglob("*") if p.is_file()
+    )
+    score = 3 if template_named else 2
+    return score, f"{asset_files} asset files; template-named file={int(template_named)}."
 
 
 def score_subagents(metrics: dict) -> tuple[int, str]:
     subagent_files = metrics["subagent_files"]
-    score = 2
-    if subagent_files:
-        score = 2 if subagent_files < 3 else 3
+    if not subagent_files:
+        return 1, "No subagent files are visible; necessity is not inferred."
+    score = 2 if subagent_files < 3 else 3
     return score, f"{subagent_files} subagent files."
 
 
@@ -205,6 +201,17 @@ def add_score(
     scores[category], notes[category] = result
 
 
+def readiness_rating(total: int) -> str:
+    """Map a 0-30 static package-readiness score to its advisory band."""
+    if total >= 27:
+        return "S"
+    if total >= 21:
+        return "A"
+    if total >= 11:
+        return "B"
+    return "C"
+
+
 def score_skill(path: Path) -> dict:
     skill_md = path / "SKILL.md"
     if not skill_md.exists():
@@ -230,14 +237,7 @@ def score_skill(path: Path) -> dict:
     add_score(scores, notes, "packaging", score_packaging(metrics))
 
     total = sum(scores.values())
-    if total >= 27:
-        rating = "S"
-    elif total >= 21:
-        rating = "A"
-    elif total >= 11:
-        rating = "B"
-    else:
-        rating = "C"
+    rating = readiness_rating(total)
 
     gaps = [
         {"category": category, "score": scores[category], "note": notes[category]}
@@ -248,6 +248,9 @@ def score_skill(path: Path) -> dict:
     return {
         "skill": str(path),
         "name": path.name,
+        "scope": "static-package-readiness",
+        "safety_gate_evaluated": False,
+        "effectiveness_evaluated": False,
         "total_score": total,
         "max_score": 30,
         "rating": rating,
@@ -273,13 +276,16 @@ def score_skill(path: Path) -> dict:
 
 
 def audit_block(report: dict) -> dict:
-    """Compact rubric object for embedding in the skill-builder deep audit's audit-report.json (Pass 3).
+    """Compact static-readiness object for the deep audit report (Pass 3).
 
     Mirrors the rubric schema block: per-category 0-3 score plus an explainable
-    reason, the 0-30 total, max, and the C/B/A/S rating band. Deterministic —
-    derived only from the skill directory contents.
+    reason, the 0-30 total, max, and the C/B/A/S readiness band. It is derived
+    only from directory contents and cannot evaluate safety or effectiveness.
     """
     return {
+        "scope": report["scope"],
+        "safety_gate_evaluated": report["safety_gate_evaluated"],
+        "effectiveness_evaluated": report["effectiveness_evaluated"],
         "total_score": report["total_score"],
         "max_score": report["max_score"],
         "rating": report["rating"],
@@ -290,9 +296,11 @@ def audit_block(report: dict) -> dict:
 
 def markdown_report(report: dict) -> str:
     lines = [
-        f"# Skill Quality Score: {report['name']}",
+        f"# Static Skill Package Readiness: {report['name']}",
         "",
-        f"Score: {report['total_score']}/{report['max_score']} ({report['rating']})",
+        f"Static score: {report['total_score']}/{report['max_score']} ({report['rating']})",
+        "",
+        "This score does not evaluate the safety gate or behavioral effectiveness.",
         "",
         "## Category Scores",
         "",

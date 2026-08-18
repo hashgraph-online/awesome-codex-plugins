@@ -1,6 +1,6 @@
 ---
 name: reality-check
-description: Compare a claimed state with observable
+description: 'Compare a claimed state with observable Triggers: "reality check", "is this claim actually done", "compare claim to repo".'
 ---
 # Reality Check
 

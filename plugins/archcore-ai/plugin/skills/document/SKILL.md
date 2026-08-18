@@ -11,6 +11,11 @@ request, then executes one gated track: the decision track for ADRs and RFCs, or
 the describe track for specs, docs, and guides. Write affinity: knowledge types;
 the decision cascade can add a `plan` (vision) or `cpat` (experience).
 
+Command tense: `/archcore:plan` declares a future canon delta, `/archcore:document`
+records the present state — including work that shipped without a plan — and
+`/archcore:review` reconciles a past declared delta. Δ vocabulary:
+`skills/_shared/delta-routing.md`.
+
 Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.md` before executing any gate.
 
 ## When to use
@@ -62,9 +67,11 @@ zero documents were found.
 
 **Global sources.** If a `mcp__archcore__list_documents` /
 `mcp__archcore__search_documents` result has `global: true` / `read_only: true` /
-`source_kind: "global"`, load `skills/_shared/globals.md`. Never modify a global
-document and never target one with `add_relation`. Absent any global match,
-proceed as usual.
+`source_kind: "global"`, load `skills/_shared/globals.md`. Also load it when a
+`search_documents` response's `coverage` names a source other than `"local"` —
+even when `results` is empty: the empty page is exactly where that file's retry
+ladder applies. Never modify a global document and never target one with
+`add_relation`. Absent any global match, proceed as usual.
 
 ### Step 2: Expert form
 

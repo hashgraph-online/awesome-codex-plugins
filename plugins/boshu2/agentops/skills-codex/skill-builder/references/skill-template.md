@@ -158,7 +158,7 @@ Each NEW Pass-2 check maps to AgentOps' design principles in PRODUCT.md, so the 
 | `quality-rubric` | Operational Principle #3 (context quality determines output quality) |
 | `references-modularization` | Finding `f-2026-05-01-025` (SKILL.md churn budget — every Skill() invocation reloads 5-15KB) |
 | `trigger-clarity` | Operational Principle #1 (agents are ephemeral) — invocation criteria must be in artifact |
-| `description-has-triggers` (renamed from `description-multiline`) | Pillar #6 (knowledge flywheel) — searchability requires structured description. Three valid forms preserve AgentOps' single-line convention. |
+| `description-has-triggers` (renamed from `description-multiline`) | Product surfaces — structured invocation criteria make the right capability discoverable without loading every skill body. Three valid forms preserve AgentOps' single-line convention. |
 
 ---
 

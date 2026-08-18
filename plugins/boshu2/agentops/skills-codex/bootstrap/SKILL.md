@@ -1,12 +1,13 @@
 ---
 name: bootstrap
-description: Initialize minimal AgentOps documentation
+description: 'Initialize explicitly requested, missing Triggers: "bootstrap AgentOps", "initialize AgentOps docs".'
 ---
 # Bootstrap — minimal project setup
 
-Bootstrap fills only missing AgentOps entry documents and the default durable
-verdict directory. It does not initialize Git, install hooks, create tracker
-state, start runtimes, or impose a delivery workflow.
+Bootstrap fills only explicitly requested, missing AgentOps entry documents and,
+when requested, the durable verdict directory. It does not initialize Git,
+install hooks, create tracker state, start runtimes, or impose a delivery
+workflow.
 
 Never-overwrite is what makes bootstrap safe to run on any repository: a setup
 step that can only add is idempotent by construction, while one that can

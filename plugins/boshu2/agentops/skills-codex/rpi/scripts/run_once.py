@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Pure reference behavior for one RPI invocation.
 
-The caller supplies the three phase functions.  This module dispatches each at
-most once, translates missing phase output into an RPI report status, and never
-chooses a retry or next action.
+The caller supplies one anti-ceremony guard and the three core phase functions.
+This module invokes the guard once before Plan, dispatches each core phase at
+most once, and never chooses a retry or next action.
 """
 
 from __future__ import annotations
@@ -37,6 +37,50 @@ def valid_digest(value: Any) -> bool:
     return isinstance(value, str) and bool(DIGEST_PATTERN.match(value))
 
 
+def valid_string_list(value: Any) -> bool:
+    """True for the guard contract's JSON-shaped string lists."""
+    return isinstance(value, list) and all(
+        isinstance(item, str) and bool(item.strip()) for item in value
+    )
+
+
+def guard_result(value: Any) -> dict[str, Any]:
+    """Return one valid artifact-free anti-ceremony decision."""
+    if not isinstance(value, Mapping):
+        raise ValueError("anti-ceremony guard must return a mapping")
+    result = dict(value)
+    expected = {
+        "decision",
+        "reason",
+        "frozen_outcome",
+        "parked_process_work",
+        "remaining_proof",
+        "stop_condition",
+    }
+    if set(result) != expected:
+        raise ValueError("anti-ceremony guard returned the wrong fields")
+    if result["decision"] not in {"CONTINUE", "STOP"}:
+        raise ValueError("anti-ceremony decision must be CONTINUE or STOP")
+    reason = result["reason"]
+    if (
+        not isinstance(reason, str)
+        or not reason.strip()
+        or "\n" in reason
+        or reason[-1] not in ".!?"
+        or sum(reason.count(mark) for mark in ".!?") != 1
+    ):
+        raise ValueError("anti-ceremony reason must be exactly one sentence")
+    if not isinstance(result["frozen_outcome"], str) or not result["frozen_outcome"].strip():
+        raise ValueError("anti-ceremony frozen_outcome must be a nonempty string")
+    if not valid_string_list(result["parked_process_work"]):
+        raise ValueError("anti-ceremony parked_process_work must be a string list")
+    if not valid_string_list(result["remaining_proof"]):
+        raise ValueError("anti-ceremony remaining_proof must be a string list")
+    if not isinstance(result["stop_condition"], str) or not result["stop_condition"].strip():
+        raise ValueError("anti-ceremony stop_condition must be a nonempty string")
+    return result
+
+
 def report(
     status: str,
     *,
@@ -63,11 +107,19 @@ def report(
 
 def invoke_once(
     intent: Any,
+    anti_ceremony_guard: Callable[[Any], Mapping[str, Any]],
     plan_phase: Callable[[Any], Mapping[str, Any] | None],
     implement_phase: Callable[[Mapping[str, Any]], Mapping[str, Any] | None],
     validate_phase: Callable[[Mapping[str, Any], Mapping[str, Any]], Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """Dispatch Plan, Implement, and Validate no more than once each."""
+    """Invoke the guard once, then dispatch each core phase at most once."""
+    admission = guard_result(anti_ceremony_guard(intent))
+    if admission["decision"] == "STOP":
+        return report(
+            "NOT_PLANNED",
+            checked=[f"anti-ceremony guard: STOP — {admission['reason']}"],
+            not_checked=["plan", "implement", "validate"],
+        )
     resolved_intent = plan_phase(intent)
     if resolved_intent is None:
         return report("NOT_PLANNED", not_checked=["implement", "validate"])

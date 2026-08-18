@@ -38,23 +38,24 @@ copy this template:
 
 ## Example gate
 
-Non-normative example.
+Non-normative example with placeholder names — live gates stay in their track
+files, never copied here.
 
 ```markdown
-### gate: decision.classify
+### gate: track.classify
 
-- Purpose: Select the branch — settled decision (`adr`) or open proposal (`rfc`).
+- Purpose: Select the branch this track takes.
 - Entry conditions:
-  - skip_when: the request names the target type `adr` or `rfc`.
-  - The request describes one technical decision or proposal.
+  - skip_when: the request names the target branch.
+  - The request describes one subject for this track.
 - Elicitation knobs:
-  - trigger: the request does not state whether the decision is settled.
-  - taxonomy: Constraints & Tradeoffs, Completion Signals from `skills/_shared/coverage-taxonomy.md`.
-  - budget: 2
-- Produces: none — the `decision.adr` and `decision.rfc` gates produce the document.
+  - trigger: the request does not settle the branch choice.
+  - taxonomy: Constraints & Tradeoffs from `skills/_shared/coverage-taxonomy.md`.
+  - budget: 1
+- Produces: none — a later gate produces the document.
 - Exit checks:
-  - blocking: the recorded outcome names `decision.adr` or `decision.rfc`.
-- Next: `decision.adr` when the decision is settled; `decision.rfc` otherwise.
+  - blocking: the recorded outcome names one branch gate.
+- Next: `track.branch-a` when the choice is settled; `track.branch-b` otherwise.
 ```
 
 ## Track state block
@@ -66,12 +67,20 @@ artifact, identified by the marker `archcore:track`:
 <!-- archcore:track
 track: <track-id>
 gate: <track>.<stage>
+route: <computed route and size label per skills/_shared/delta-routing.md>
+delta: <declared Δ fields per skills/_shared/delta-routing.md>
 taxonomy: <coverage categories already covered by accepted answers>
 asked: <questions already asked in this track>
 budget: <remaining question budget per skills/_shared/elicitation-contract.md>
 deferred: <questions deferred to a later gate>
 -->
 ```
+
+The `route` and `delta` fields are written by the `plan` skill's conductor
+(`skills/_shared/delta-routing.md`); a skill that runs a track outside a
+computed route omits both fields. A `plan`-skill resume that finds them
+absent follows the conductor's resume rules; every other skill resumes per
+this file alone.
 
 ### State lifecycle
 

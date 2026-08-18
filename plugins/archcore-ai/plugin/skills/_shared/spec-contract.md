@@ -1,8 +1,8 @@
 # Spec Content Contract
 
-Plugin runtime asset. Loaded by skills creating specs: `capture` (Step 3, spec path),
-`decide` (architecture cascade in `skills/decide/references/continuations.md`), and
-`plan` (feature flow in `skills/plan/references/feature-flow.md`). Companion to
+Plugin runtime asset. Loaded by skills creating specs: `document` (the describe
+track and the decision track's architecture cascade), `plan` (the contract
+instrument at `sdd.design`), and `init` (Phase E hotspot specs). Companion to
 `skills/_shared/precision-rules.md`.
 
 ## What a spec is
@@ -90,16 +90,46 @@ trigger/state clauses when writing or editing a line whose behavior is condition
 
 ## Body cap
 
-- **Default: ≤ 80 lines.** Six sections, each a handful of numbered/bulleted points —
-  the "reference, don't reproduce" rule (Forbidden section below) is what keeps a spec
-  this short even for a complex subject.
-- **Flagship (size/churn-gated, `/archcore:init` hotspot synthesis only): ≤ 120
-  lines.** A hotspot module clearing `LOC > 3000` OR top-quartile churn
-  (`skills/_shared/grounding/detect-hotspots.md` "Flagship specs") MAY compose at this raised
-  cap instead of splitting — see that catalog for the decomposition alternative (≤ 3
-  sub-specs by separable sub-surface, each back at the default ≤ 80-line cap). The
-  extra room goes to Normative Behavior / Constraints & Invariants, never to
-  reproducing source.
+**≤ 120 lines, one number for every path.** Six sections, each a handful of
+numbered/bulleted points — the "reference, don't reproduce" rule (Forbidden section
+below) is what keeps a spec inside the cap even for a complex subject.
+
+The cap counts the whole body, headings and blank lines included; on the six-section
+form those alone take about 19 lines, so the room for requirements is nearer 100. The
+extra room over the former 80 goes to Normative Behavior / Constraints & Invariants,
+never to reproducing source.
+
+The separate flagship cap that `/archcore:init` hotspot synthesis carried is folded
+into this default — a synthesized spec and an authored one are now measured alike, and
+`skills/_shared/grounding/detect-hotspots.md` "Flagship specs" keeps only the
+decomposition treatment it always governed. The Archcore CLI enforces the same 120 in
+`@templates/precision.go` (`MaxSpecBodyLines`), so the contract and the hook agree.
+
+### Over the cap — decompose, never compress
+
+A subject that does not fit the cap is a routing signal, not a formatting problem.
+WHEN a draft exceeds its body cap, the composing skill MUST apply the first remedy
+below that the evidence supports.
+
+1. The skill MUST replace pasted source, schemas, and inventories with
+   `@path/to/file` citations (Forbidden section below).
+2. The skill MUST route foreign content to its owning type — rationale to an `adr`,
+   stories and metrics to a `prd`, reference material to a `doc`, steps to a `guide`.
+3. WHEN the subject exposes two or more independently consumable sub-surfaces, the
+   skill MUST compose one spec per sub-surface, each inside the default cap
+   (`filename=<subject-slug>-<sub-surface-slug>`).
+4. The skill MUST link sub-specs to each other with `related` via
+   `mcp__archcore__add_relation`.
+5. IF no sub-surface boundary is unambiguous, THEN the skill MUST keep the subject as
+   one spec — a cohesive contract is not split to satisfy a line count.
+6. WHEN a spec stays over the cap under rule 5, the skill MUST name the excess and its
+   reason in the closing report.
+7. The skill MUST NOT delete normative content to fit the cap.
+
+Rule 7 is the point of the whole section: truncation loses the contract, decomposition
+preserves it. Sizing a delta's capability list follows the same boundary — see
+`skills/_shared/capability-granularity.md`, which routes an over-cap capability to a
+split by the same sub-surface test.
 
 ## Status (init-synthesized specs)
 
@@ -132,30 +162,29 @@ from a verified one.
 The Archcore CLI reports the mechanical part of this contract in the post-tool-use
 hook: the mandatory sections, `SHALL` in place of a BCP 14 modal, two modals in
 one numbered line, a subjectless passive, a condition placed after the obligation
-it controls, and a clause past 25 words. A CLI that predates a check reports
-nothing for it, and no version blocks a write — the hook always exits 0.
+it controls, and a clause past 25 words.
 
-Two limits are worth knowing. The hook applies the **80-line default** to every
-spec: it cannot tell which subject qualifies for the flagship cap, so a spec
-composed at 120 lines reports one finding by design, and the composing skill is
-what decides the finding does not apply. And whether the spec covers **one**
-subject, and whether Surface references the source instead of reproducing it,
-is not decidable there at any version.
+The hook applies the same 120-line cap this contract states, so a spec composed at
+the cap no longer reports a finding it was never meant to trip. That agreement
+replaced an earlier split — an 80-line hook against a 120-line flagship allowance —
+in which one finding per flagship spec was expected and the composing skill was left
+to decide the finding did not apply.
+
+One limit remains, and no version removes it: whether the spec covers **one** subject,
+and whether Surface references the source instead of reproducing it, is not decidable
+in the hook. Both are judgments the composing skill owns. The hook can say how long a
+body is and where its mass sits; it cannot say whether that mass is one contract.
 
 ## Rationale
 
-One form, not profiles: no surveyed spec-driven tool maintains two shapes of one
-artifact — one template, varying content. What Kiro and GitHub Spec Kit call a "spec"
-is a pre-code, per-feature requirements bundle (Spec Kit's own maintainer calls it a
-PRD); Archcore keeps that material in `prd`/`srs` and reserves `spec` for the durable
-behavior contract no surveyed tool names — the gap this type fills. The notation is a
-deliberate hybrid: EARS clause templates carry peer-reviewed defect reduction and force
-the trigger/state to be stated explicitly — exactly where LLM agents otherwise guess —
-while BCP 14 keywords add the MUST/SHOULD/MAY grading that plain-`shall` EARS cannot
-express; protocol RFCs informally combine the two the same way ("When X, the server
-MUST Y"). The "reference, don't reproduce" rule keeps the spec from becoming a second,
-drifting copy of the code it describes — the spec states the contract, the code remains
-the implementation.
+One form, not profiles — one template, varying content: pre-code requirement
+bundles stay in `prd`/`srs`, and `spec` holds the durable behavior contract.
+The notation is a deliberate hybrid: EARS clause templates force the trigger or
+state to be stated explicitly — exactly where LLM agents otherwise guess —
+while BCP 14 keywords add the MUST/SHOULD/MAY grading that plain-`shall` EARS
+cannot express. The "reference, don't reproduce" rule keeps the spec from
+becoming a second, drifting copy of the code it describes — the spec states the
+contract, the code remains the implementation.
 
 ## Examples
 

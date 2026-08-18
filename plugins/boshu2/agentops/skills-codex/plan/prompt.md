@@ -1,6 +1,6 @@
 # plan
 
-Shape or refine the existing bead or caller intent without a second planning artifact. Triggers: "plan", "discover and plan", "shape this goal", "plan manifest".
+Shape or refine the existing bead or caller intent without a second planning artifact. Triggers: "plan", "discover and plan", "shape this goal".
 
 ## Instructions
 

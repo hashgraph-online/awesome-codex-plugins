@@ -464,11 +464,38 @@ context_limits:
     ceiling: 15
   graph:
     hops: 1
+  code_section:
+    max_files: 12
+    max_chunks_per_file: 1
+    chars_per_file: 1300
+    max_augmented_files: 3
 ```
 
 `summary_paths.ignore` only filters which files feed subsystem-summary clustering — unlike
 `paths.ignore`, it does not affect indexing or PR review. Default is `["tests", "test"]`; there
 is no env layer (like `context_limits`), and an explicit empty list disables the filter.
+
+`context_limits` has four subsections: `search_codebase` (hybrid + graph-expansion + Voyage
+rerank for `/ask`, priming, and PR review), `search_tasks` (RRF-only task retrieval), `graph`
+(traversal depth from top hits), and `code_section` — the file budget for the task context's
+`code` section (PRI-256). `code_section`'s budget unit is a file, not a chunk: the section holds
+up to `max_files` files, each contributing up to `max_chunks_per_file` chunks of `chars_per_file`
+characters. The section's
+character cap is not a separate key — it is derived: the operational budget is
+`max_files × max_chunks_per_file × chars_per_file`, while the post-render safety cap is
+`max_files × max_chunks_per_file × chars_per_file × 3 // 2`.
+
+`code_section.max_augmented_files` (default 3, PRI-257) mixes actual diff paths from similar
+tasks into the `code` section — a single source (`similar-diffs`, from the `brief_quality`
+table plus a git-log fallback keyed on the task ID). It is a *reserve* of file slots inside
+`max_files`, not a cap on what's left over: the hybrid retrieval fills its full `max_files`
+budget first, and only against that final output — not the raw retrieval pool — is a candidate
+path judged "already known" (checking against the raw pool would discard exactly the files this
+lever exists to surface). With no augmented candidates, the hybrid keeps the entire budget. A
+co-change (git file-pairs-changed-together) second source was built and measured — 4 core hits on
+34 mixed-in paths, a bulk-recall drop — and removed rather than kept disabled; only similar-diffs
+covers (median core-recall 0.5 → 0.75, precision 0.167 → 0.333, 28 hits on 35 paths). See
+`eval/replay_report.md`, "Приёмка PRI-257".
 
 ### Layered repository policy
 
@@ -632,6 +659,18 @@ namespaced skills with `$rag-reviewer:...`.
   empty search) is reported per-section in `gaps` instead of aborting the skill. Graph expansions
   (`get_related_symbols`, `callers`, `implementations`, `family`, …) and `get_pr_diff` stay
   separate calls made at the LLM's discretion, since they depend on what the brief turns up.
+- **Multi-query retrieval for `code`:** the `code` and `test_exemplars` sections are searched with a
+  *set* of subqueries, not one query over the whole task text. Subqueries are extracted
+  deterministically (`reviewer/mcp/subqueries.py`: list items under "what to do"/"acceptance"
+  headings, plus a pool of technical identifiers), capped at 20, embedded in a single Voyage batch,
+  run through hybrid search one by one, and merged with RRF. RRF is the *final* ranker here — no
+  reranker and no cliff cutoff, because the cliff scored against that same multi-topic query and
+  collapsed the output to the floor. Each block's text is trimmed on a line boundary so one huge
+  chunk cannot burn the whole render budget; the trim uses the per-file file budget
+  (`CodeSectionLimits.chars_per_file`, PRI-256) rather than a standalone module constant — the
+  earlier `MAX_BLOCK_CHARS` constant was removed once the file budget took over that role. The
+  public `search_codebase` tool stays single-query and unchanged, as does `Retriever.search_base`;
+  the `subsystems` section still gets one query.
 - **Startup survey:** one `AskUserQuestion` panel asks three things before anything else — the
   brief model tier (`cheap`/`mid`/`premium`), the interaction mode, and the execution strategy.
   No answer, or a headless run, applies the defaults `mid` / `normal` / `subagent` without
@@ -972,15 +1011,26 @@ Compose project, so that command can remove development volumes.
 
 An offline harness measures the cost of the solve-task stage and retrieval
 quality over the accumulated brief corpus (`docs/superpowers/briefs/`), stores a
-history of snapshots and compares runs. No Postgres, Neo4j or network needed —
-local git only.
+history of snapshots and compares runs. The retrospective commands need no
+Postgres, Neo4j or network — local git only; `replay` is the exception, it needs
+live retrieval.
 
 ```bash
 python -m eval.solve_task_metrics snapshot            # recompute metrics, store a snapshot, refresh the report
 python -m eval.solve_task_metrics stats --last 10     # trend of the latest snapshots as a table, no recompute
 python -m eval.solve_task_metrics compare --back 1    # deltas of the latest snapshot against N steps back
 python -m eval.solve_task_metrics forecast            # core-recall forecast with a spread
+python -m eval.solve_task_metrics replay              # re-run retrieval over the corpus (baseline)
+python -m eval.solve_task_metrics replay --variant limits --set search_codebase.ceiling=25 --baseline last   # A/B against a stored snapshot
 ```
+
+**`replay`** rebuilds the candidate set by calling production retrieval with the
+task text from the store (not the brief text) and compares configuration
+variants: the `eval/replay_report.md` report shows the delta both per aggregate
+and per task, snapshots go to `eval/replay_history.jsonl`. It requires Postgres,
+Neo4j, Voyage and a built base index. The `replay` line is **not comparable** to
+the `snapshot` line: snapshot counts the paths an LLM selected, replay counts the
+whole retrieval output.
 
 Cost is measured in weighted input-equivalents (`output ×5`, `cache-write ×1.25`,
 `cache-read ×0.1`); the raw token sum is shown for reference only — it is not

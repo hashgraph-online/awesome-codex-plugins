@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.83.0",
+  "version": "1.85.0",
   "description": "Turn review into an organizational judgment asset. Review Judgment as Code for AI-assisted development, delivered as a capability pack for Codex: your team's review criteria as versioned, repo-owned skills (a Skill Registry), driven by a review agent that runs perspective-based reviewer roles (code, security, performance, architecture, testing, adversarial) and verifies findings against the diff so humans keep the high-risk judgment.",
   "author": {
     "name": "river-review maintainers",

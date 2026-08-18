@@ -1,6 +1,6 @@
 ---
 name: account-rotation
-description: Switch a caller-selected coding-agent
+description: 'Switch a caller-selected coding-agent Triggers: "switch account", "rotate coding-agent account".'
 ---
 # Account rotation — credential adapter
 

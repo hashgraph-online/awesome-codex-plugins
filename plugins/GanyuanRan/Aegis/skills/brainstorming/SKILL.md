@@ -23,6 +23,22 @@ user explicitly named Aegis or this skill, proceed normally.
   5. Write spec → self-review → user review → transition to writing-plans
 → HARD GATE: For tasks that match this skill, do NOT write code, scaffold projects, or invoke implementation skills until design/spec approval is satisfied.
 
+## Route Fixtures
+
+These rows are calibration expectations for method behavior, not a runtime
+regex router. The Agent selects the route from evidence; route selection is
+not a user question.
+
+| Scenario | Route |
+| --- | --- |
+| 想法还没想清楚，先梳理功能设计 | normal brainstorming, compact output first |
+| 讨论公共 API 契约和兼容边界 | normal brainstorming, design sections before implementation |
+| 盘问/拷问/审问这个方案，不要顺着我 | `Grilling Mode` |
+| 修复登录按钮的空指针 | `systematic-debugging` |
+| review 当前 PR / diff / 当前代码 | `requesting-code-review` |
+| 给我一个有目标的方案 | `goal-framing` when goal intent is explicit; otherwise normal brainstorming |
+| 把按钮文案从保存改成提交 | fast-path; no design ceremony |
+
 # Brainstorming Ideas Into Designs
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
@@ -67,7 +83,17 @@ Pace: deep (default) | fast (user-requested)
 1. Explore the codebase and current authority docs for facts before asking. Do not ask the user for facts that can be found locally.
 2. The user owns the decision. Do not treat a recommendation, a tentative answer, or a shared-understanding checkpoint as final approval.
 3. Aside from the one-time opening card, keep the turn to the observation, recommendation, and the selected pace's questions. Do not emit a full design ceremony, write docs, create a plan, or implement while the interview is active.
-4. End when the user says to stop, defer, or that the questions are sufficient. Summarize confirmed decisions, assumptions, unresolved questions, and the next optional step. That summary does not grant completion authority.
+4. End when the user says to stop, defer, or that the questions are sufficient. Reconfirm in a structured `Challenge Result`. That summary does not grant completion authority.
+
+```text
+Challenge Result
+- Survived assumptions
+- Rejected assumptions
+- New evidence needed
+- Design changes required
+- Residual risks
+- Return state: interview | design | approaches | writing-plans
+```
 5. If the user asks to proceed after the interview, return to the normal brainstorming design gate. A design/spec still needs the required approval before planning or implementation.
 
 ## Route Away / Doc Necessity Gate
@@ -88,6 +114,52 @@ baseline artifact:
    -> No: write no document; keep compact drafts in-session.
 3. Re-check at edit time and at closeout; escalate to the smallest stabilizing
    spec if uncertainty or impact grows.
+
+### Route Precedence
+
+1. Route-away cases leave this workflow first (`systematic-debugging`,
+   `requesting-code-review`, `goal-framing` when goal intent is explicit,
+   fast-path micro-tasks).
+2. `Grilling Mode` requires explicit challenge intent. Ordinary discussion,
+   evaluation, or the need to clarify understanding is not grilling.
+3. Otherwise run the normal brainstorming flow and escalate depth on evidence:
+   contracts, owners, persistence, migration, security, consumer count, or
+   blast radius. Escalate after evidence, not merely because the first
+   request sounds ambitious.
+4. File count alone is not a design signal: a mechanical multi-file change
+   can still be fast-path, and a one-file contract change can still be full
+   design.
+
+## Role And Authority Contract
+
+### Agent-owned decisions
+
+Resolve these directly without asking the user:
+
+- repository investigation strategy and evidence gathering order
+- file and function organization inside an accepted owner
+- testing commands and proportional verification mechanics
+- inline versus subagent execution when policy already allows it
+- reversible implementation structure that does not change product behavior,
+  contract, authority, or durable boundaries
+
+### User-owned decisions
+
+Ask the user only for:
+
+- product behavior or preference
+- irreversible, destructive, external, public, production, or sensitive impact
+- explicit product/contract commitments only the user can make
+- necessary information unavailable from repository, tools, and authority docs
+
+Every user question must pass this test:
+
+> If the user chooses another answer, which design boundary, behavior, owner,
+> acceptance criterion, or risk decision changes?
+
+If none changes, do not ask. This classification clarifies which decisions are
+user-owned; it does not remove the approval points this workflow already
+defines.
 
 ## Checklist
 
@@ -293,6 +365,77 @@ create accepted architecture memory from unexecuted ideas.
 **Design for isolation:** Each unit = one clear purpose, well-defined interface, testable independently. Can someone understand it without reading internals? Can you change internals without breaking consumers?
 
 **Existing codebases:** Follow existing patterns. Include targeted improvements only when they serve the current goal. If the design touches contracts, compat, fallbacks, or duplicated owners → call it out directly.
+
+## Design Probe
+
+A probe is allowed only when it can change the design direction and existing
+repository evidence is insufficient:
+
+```text
+Design Probe
+- Question
+- Expected decision impact
+- Target and effect boundary
+- Why existing evidence is insufficient
+- Stop condition
+- Evidence produced
+- Cleanup
+```
+
+Prefer read-only execution. A disposable probe must not create a maintained
+owner, public contract, compatibility promise, or hidden persistence path. It
+is design evidence, not delivered implementation.
+
+## Software Scenario Profiles
+
+Apply only the relevant profile instead of loading every lens for every task:
+
+- `greenfield-feature`: value, smallest deliverable behavior, minimum owner,
+  acceptance, explicit future non-goals;
+- `existing-system-change`: current state, target state, the delta between
+  them, preserved invariants, callers, migration, and retirement;
+- `refactor`: preserved observable behavior, owner/coupling defect, dependency
+  direction, old-path retirement, behavior-preservation evidence;
+- `public-contract`: consumers, versioning, precedence, errors, compatibility,
+  migration, negative cases;
+- `persistence-migration`: data owner, schema evolution, partial migration,
+  crash recovery, backup/rollback, read/write cutover;
+- `ui-workflow`: user journey and loading/empty/error/partial/success/cancel/
+  retry states, accessibility, irreversible actions, recovery;
+- `security-permission`: trust boundary, attacker capability, authority owner,
+  sensitive data, downgrade/revocation, safe failure, auditability;
+- `operational-release`: deployment boundary, observability, partial rollout,
+  rollback, compatibility window, operator recovery.
+
+## Design Ready And Design Complete
+
+Approach selection is ready when:
+
+- the desired outcome and primary scenario are known;
+- scope and non-goals are explicit;
+- current behavior and the target delta are grounded;
+- key invariants and the likely canonical owner are identified;
+- at least one observable acceptance criterion exists;
+- no open unknown can still change the approach category.
+
+Not every unknown must be eliminated; only decision-changing unknowns block
+convergence.
+
+The design can hand off when all applicable conditions hold:
+
+- the selected approach and canonical owner are explicit;
+- fixed behavior/contract and implementation-owned choices are separated;
+- alternatives were materially compared or excluded by evidence;
+- critical assumptions have evidence or explicit acceptance;
+- failure/recovery and consumer impact are covered where applicable;
+- acceptance criteria are observable and usable by verification;
+- new owners, fallbacks, adapters, compatibility, or persistence have creation
+  proof and retirement/rollback treatment;
+- every user-owned decision has real user approval.
+
+Design Complete is method readiness, not completion authority. Transition to
+writing-plans only after these conditions hold; do not carry unresolved
+decision-changing unknowns into the plan.
 
 ## After the Design
 

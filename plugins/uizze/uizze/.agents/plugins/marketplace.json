@@ -7,9 +7,8 @@
     {
       "name": "uizze",
       "source": {
-        "source": "url",
-        "url": "https://github.com/uizze/uizze.git",
-        "ref": "main"
+        "source": "local",
+        "path": "./plugins/openai-directory/uizze"
       },
       "policy": {
         "installation": "AVAILABLE",

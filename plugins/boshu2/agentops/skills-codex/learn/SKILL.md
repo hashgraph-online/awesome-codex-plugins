@@ -1,6 +1,6 @@
 ---
 name: learn
-description: Optionally analyze collections of durable
+description: 'Optionally analyze collections of durable Triggers: "learn from verdicts", "mine validation history".'
 ---
 # Learn
 

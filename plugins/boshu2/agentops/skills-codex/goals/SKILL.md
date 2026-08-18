@@ -1,6 +1,6 @@
 ---
 name: goals
-description: Compatibility alias — renamed to fitness.
+description: 'Compatibility alias — renamed to fitness. Triggers: "goals" (deprecated).'
 ---
 # Goals — compatibility alias for fitness
 

@@ -1,6 +1,6 @@
 ---
 name: council
-description: Collect independent perspectives for an
+description: 'Collect independent perspectives for an Triggers: "council", "multi-judge review", "independent perspectives".'
 ---
 # Council
 

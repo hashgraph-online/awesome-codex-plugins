@@ -1,6 +1,6 @@
 ---
 name: standards
-description: Load only the standards relevant to a
+description: 'Load only the standards relevant to a Triggers: "check standards", "which standards apply".'
 ---
 # Standards — focused engineering guidance
 

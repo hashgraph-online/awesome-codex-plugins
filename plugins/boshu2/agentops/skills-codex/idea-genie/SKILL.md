@@ -1,6 +1,6 @@
 ---
 name: idea-genie
-description: Generate evidenced opportunities or
+description: 'Generate evidenced opportunities or Triggers: "idea genie", "what should we build", "challenge this idea", "compare proposals".'
 ---
 # Idea Genie
 

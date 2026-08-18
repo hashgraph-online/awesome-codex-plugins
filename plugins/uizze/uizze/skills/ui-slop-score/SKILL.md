@@ -4,7 +4,7 @@ description: Score a rendered web or iOS screen for generic UI risk before it sh
 license: MIT
 ---
 
-> ***If your UI screams AI, your app is dead.***
+> **Stop AI coding agents from shipping generic UI.**
 
 # Score UI Slop Before It Ships
 

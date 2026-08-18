@@ -68,10 +68,15 @@ skill. Advisory context belongs in prose links or `context_rel`; it is not a
 hard dependency. The core hard-dependency graph is only:
 
 ```text
+rpi -> anti-ceremony
 rpi -> plan
 rpi -> implement
 rpi -> validate
 ```
+
+RPI invokes the anti-ceremony quick guard once before Plan. `STOP` dispatches
+none of Plan, Implement, or Validate; `CONTINUE` preserves the ordered
+Plan -> Implement -> fresh Validate traversal.
 
 ## Body contract
 

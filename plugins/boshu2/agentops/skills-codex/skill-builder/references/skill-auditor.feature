@@ -2,8 +2,8 @@
 # skill template audit (BC1 Corpus / Skill Catalog).
 # The audit checks an existing SKILL.md against the unified template: Pass 1 gates
 # through heal.sh --strict, Pass 2 runs additional structural checks, then it emits a
-# density report and a productization score. Hexagon: supporting; consumes: a SKILL.md +
-# the template; produces: audit-report.json. (soc-qk4b)
+# density report and a static package-readiness score. Hexagon: supporting; consumes: a
+# SKILL.md + the template; produces: audit-report.json. (soc-qk4b)
 
 Feature: Skill-auditor scores a skill against the unified template
   As a catalog maintainer
@@ -21,6 +21,7 @@ Feature: Skill-auditor scores a skill against the unified template
     When Pass 1 completes
     Then Pass 2 runs the additional template-conformance checks
 
-  Scenario: A density report and productization score are emitted
+  Scenario: A density report and static package-readiness score are emitted
     When both passes complete
-    Then it emits an advisory density report and a productization score in audit-report.json
+    Then it emits an advisory density report and a static package-readiness score in audit-report.json
+    And the score says that safety and effectiveness were not evaluated

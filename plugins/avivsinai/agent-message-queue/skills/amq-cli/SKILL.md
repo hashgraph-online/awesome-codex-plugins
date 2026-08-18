@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.61.0 # x-release-please-version
+version: 0.63.3 # x-release-please-version
 description: >-
   Coordinate agents via the AMQ CLI for file-based inter-agent messaging. Use
   this skill whenever you need to send messages to another agent (codex, claude,
@@ -178,10 +178,15 @@ launcher validates them and includes them in the semantic trust digest. The
 first semantic plan, and each plan change, needs an interactive trust
 confirmation stored outside the worktree. Non-interactive or `--json` calls
 exit `6` until that digest is trusted. An unknown `session resume` name exits
-`3` and writes nothing. The `commands` backend prints complete `coop exec`
-commands and exits `6` because running them is the remaining operator action.
-Paste the emitted lines exactly, one per terminal; do not reconstruct them from
-generic `coop exec` examples.
+`3` and writes nothing. Registered launchers are `commands`, `tmux`, `cmux`,
+and `ghostty`. `--launcher auto` walks the local preference; an explicit
+`--launcher <name>` wins. Inside cmux (`CMUX_SURFACE_ID`) is preferred over
+inside Ghostty (`TERM_PROGRAM=ghostty`). Setup lists cmux and Ghostty as
+available only when Detect ping succeeds, not from LookPath alone. The
+`commands` backend prints complete `coop exec` commands and exits `6` because
+running them is the remaining operator action. Paste the emitted lines exactly,
+one per terminal; do not reconstruct them from generic `coop exec` examples.
+Managed `tmux`, `cmux`, and `ghostty` backends run the plan in-app instead.
 
 Without `--session` or `--root`, `coop exec` uses the declared `default_session` from `.amq/launch.json`, or `collab` when none is declared. Creating a missing session or root from `coop exec` is deprecated and prints `warning: creating a missing session or root from coop exec is deprecated; use 'amq session create <name>' or 'amq init --root'. The next major release makes this exit 3.`
 

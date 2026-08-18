@@ -1,6 +1,6 @@
 ---
 name: agent-mail
-description: Use Agent Mail as an optional messaging and
+description: 'Use Agent Mail as an optional messaging and Triggers: "coordinate writers", "reserve files".'
 ---
 # Agent Mail — optional coordination adapter
 
@@ -29,7 +29,9 @@ changes are the caller's call.
   create work ownership or affect Plan, Candidate, or verdict semantics.
 - Mail silence proves nothing about work status.
 - A message or acknowledgement is evidence that communication occurred, not
-  evidence that a change is correct or complete. The adapter cannot select AgentOps semantics, issue a binding verdict, or turn factory completion into delivery or validation proof.
+  evidence that a change is correct or complete. The adapter cannot select
+  AgentOps semantics, issue a binding verdict, or turn factory completion into
+  delivery or validation proof.
 - Release a reservation, including any `force_release`, only on the caller's
   explicit request for that exact reservation. Force-release has no autonomous
   trigger; a conflict is reported, not force-cleared.
@@ -54,20 +56,35 @@ Two disjoint surfaces; do not reach the second from the first:
 
 ## Surfaces
 
+Choose exactly one mailbox owner and access mode for each storage root. When an
+HTTP/MCP daemon owns the root, use its MCP tools; do not point the direct `am`
+CLI at the same database. Use the CLI fallback only with a root not owned by a
+running Agent Mail runtime. A busy mailbox activity lock or a bounded read
+timeout is a degraded adapter result, not permission to restart the service,
+repair the database, or silently switch roots.
+
 Use the MCP tools when they are present. Otherwise use the self-describing `am`
-CLI. Discover current syntax with `am mail --help`,
-`am file_reservations --help`, and related group help; do not infer commands
-from remembered aliases.
+CLI. Pin the intended storage root explicitly, and discover current syntax with
+`am mail --help`, `am file_reservations --help`, and related group help; do not
+infer commands from remembered aliases. If a direct macOS read rejects a
+symlinked snapshot directory such as `/var`, use a caller-scoped, non-symlinked
+temporary directory for that isolated invocation or report the adapter
+degraded; never weaken the traversal check.
 
 ## One-shot use
 
 1. Confirm that multiple explicitly coordinated writers share the repository.
-2. Register the caller-supplied identity against the same absolute project path.
-3. Reserve only the supplied paths, with a bounded TTL.
-4. Report conflicts without waiting, narrowing scope, or changing the plan.
-5. Send the supplied message once and record its id.
-6. Read or acknowledge only the requested thread.
-7. Release only reservations the caller explicitly asks to release.
+2. Freeze one storage root and either MCP/server mode or direct-CLI mode; never
+   mix both against the same live database.
+3. Register the caller-supplied identity against the same absolute project path.
+4. Reserve only the supplied paths, with a bounded TTL.
+5. Report conflicts without waiting, narrowing scope, or changing the plan.
+6. Send the supplied message once and record its id.
+7. Read or acknowledge only the requested thread.
+8. Before the caller advances a declared transition, verify every
+   acknowledgement-required message in that transition has the intended
+   recipient acknowledgement. Later traffic is not an implicit acknowledgement.
+9. Release only reservations the caller explicitly asks to release.
 
 ## Output
 
@@ -82,6 +99,12 @@ Terminal outcomes are explicit, never silent:
   hand-written coordination or treat the absence as "no conflicts".
 - **Reservation conflict** — report the conflicting reservation as-is; do not
   narrow, widen, renew, or force-release it.
+- **Mailbox ownership conflict** — a daemon and direct CLI contend for one
+  storage root: report the lock owner/mode and stop; do not restart, repair, or
+  bypass the lock as a coordination side effect.
+- **Required acknowledgement pending** — report the exact message and intended
+  recipient and stop the dependent transition. Do not infer acknowledgement
+  from a later reply or repair it after validation.
 - **Timeout / degraded surface** — report the operation as timed out or degraded
   with what was and was not observed; a timeout is evidence, not "done".
 - **Cleanup** — reservations released this session are listed by id; any left

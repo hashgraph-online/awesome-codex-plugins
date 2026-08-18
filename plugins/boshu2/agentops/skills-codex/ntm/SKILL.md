@@ -1,6 +1,6 @@
 ---
 name: ntm
-description: Use NTM as an optional pane adapter for
+description: 'Use NTM as an optional pane adapter for Triggers: "ntm", "tmux panes", "ntm robot state".'
 ---
 # NTM — optional pane adapter
 

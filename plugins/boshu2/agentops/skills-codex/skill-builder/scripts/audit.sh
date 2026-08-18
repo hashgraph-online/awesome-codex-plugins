@@ -314,24 +314,26 @@ else
   DENSITY_STATUS="warn"
 fi
 
-# --- Pass 3: rubric scoring (advisory) -----------------------------------
+# --- Pass 3: static package-readiness scoring (advisory) -----------------
 # Folds the 10-category Skill Quality Rubric (docs/reference/skill-quality-rubric.md)
 # into the report via score_agentops_skill.py --audit-block. Each category gets a
 # deterministic 0-3 score plus an explainable reason; total is 0-30 with a C/B/A/S
-# rating band. Advisory-only: it never changes the PASS/WARN/FAIL verdict — the
-# rubric measures market-facing maturity, not template conformance (which Pass 1+2
-# already gate). Reason: a low rubric score on a structurally-clean skill is a
-# productization backlog signal, not a ship blocker.
+# readiness band. Advisory-only: it never changes the PASS/WARN/FAIL verdict and
+# explicitly evaluates neither the safety gate nor behavioral effectiveness.
+# Reason: a low score on a structurally clean skill is a triage signal, while a
+# high score still cannot prove that the skill is safe or improves outcomes.
 RUBRIC_JSON="null"
 RUBRIC_SUMMARY=""
 RUBRIC_SCORE="n/a"
+RUBRIC_MAX="n/a"
 RUBRIC_RATING="?"
 if [[ -f "$SCORE_PY" ]] && command -v python3 >/dev/null 2>&1; then
   if rubric_out="$(python3 "$SCORE_PY" "$TARGET" --audit-block 2>/dev/null)"; then
     RUBRIC_JSON="$rubric_out"
     RUBRIC_SCORE="$(printf '%s' "$rubric_out" | awk -F': ' '/"total_score"/{gsub(/[, ]/,"",$2); print $2; exit}')"
+    RUBRIC_MAX="$(printf '%s' "$rubric_out" | awk -F': ' '/"max_score"/{gsub(/[, ]/,"",$2); print $2; exit}')"
     RUBRIC_RATING="$(printf '%s' "$rubric_out" | awk -F'"' '/"rating"/{print $4; exit}')"
-    RUBRIC_SUMMARY=" Rubric: ${RUBRIC_SCORE}/30 (${RUBRIC_RATING}) [advisory]."
+    RUBRIC_SUMMARY=" Static readiness: ${RUBRIC_SCORE}/${RUBRIC_MAX} (${RUBRIC_RATING}) [advisory; safety/effectiveness not evaluated]."
   fi
 fi
 
@@ -482,7 +484,7 @@ fi
     printf "  [%-4s] %s\n" "${CHECK_STATUS[$id]}" "$id"
   done
   echo "Density advisory: $density_present_count/6 fields present ($DENSITY_STATUS)"
-  echo "Pass 3 rubric (advisory): ${RUBRIC_SCORE}/30 (${RUBRIC_RATING})"
+  echo "Pass 3 static readiness (advisory): ${RUBRIC_SCORE}/${RUBRIC_MAX} (${RUBRIC_RATING}); safety/effectiveness not evaluated"
   if [[ -n "$CRAFT_LINES" ]]; then
     echo "$CRAFT_LINES"
   fi

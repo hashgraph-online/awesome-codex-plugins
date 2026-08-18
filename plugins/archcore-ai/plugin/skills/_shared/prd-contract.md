@@ -147,9 +147,8 @@ the one place that assignment lives.
 The Archcore CLI checks the mechanical part of this contract in the post-tool-use
 hook — the mandatory sections, the requirement form, the ownership headings, and
 near-verbatim restatement across an `implements` or `extends` link — under the
-advisory pattern in `skills/_shared/precision-rules.md`. A CLI that predates a
-check reports nothing for it and blocks nothing, so where the hook is silent the
-gate exit checks carry the contract alone.
+advisory pattern in `skills/_shared/precision-rules.md`. Where the hook is
+silent, the gate exit checks carry the contract alone.
 
 Whether a document **paraphrases** the document it links to is not decidable
 there at any version. That judgement stays with the executing skill at the gate

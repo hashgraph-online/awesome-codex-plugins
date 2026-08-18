@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Write compact caller-authored session
+description: 'Write compact caller-authored session Triggers: "handoff", "write compact session handoff".'
 ---
 # Handoff
 
@@ -36,5 +36,16 @@ The ao session handoff and ao session rehydrate commands implement the same
 boundary for JSON artifacts under `.agents/ao/handoff/`. The skill may write
 Markdown when that better serves a human, but the content semantics remain
 identical.
+
+### Earlier default compatibility
+
+JSON artifacts already stored under `.agents/handoff/` remain read-only
+evidence. `ao session handoff` writes new JSON to `.agents/ao/handoff/`, while
+`ao session rehydrate` searches both directories and selects the newest
+lexical handoff id; if an identical filename exists in both, the canonical
+`.agents/ao/handoff/` copy wins. No command moves or deletes the legacy files.
+Human-authored Markdown consumers receive the exact path, so they do not need
+to scan either default. This owning skill contract is the compatibility
+authority; no separate migration artifact is required.
 
 Return the artifact path and stop.

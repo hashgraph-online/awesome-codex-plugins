@@ -1,6 +1,6 @@
 ---
 name: cass
-description: Mine past agent sessions for working
+description: 'Mine past agent sessions for working Triggers: "cass", "mine past agent sessions for", "cass skill".'
 ---
 # cass Session Search
 

@@ -16,7 +16,7 @@ This file is the router. Substance lives in fifteen reference files under `refer
 When the **designer-skill** MCP server is connected:
 
 1. **`get_preflight_brief`** — compact binding rules (~500 tokens). Call first.
-2. **`commit_design_direction`** — declare register, aesthetic, physical scene, layouts, type direction, anti-slop risks, inverse test. Must **PASS** before code.
+2. **`commit_design_direction`** — declare a one-line design read, three calibration dials, register, aesthetic, physical scene, layouts, type direction, anti-slop risks, and inverse test. Must **PASS** before code.
 3. **`load_project_context`** — PRODUCT.md / DESIGN.md when present. If `NO_PRODUCT_MD` on greenfield, run `get_command({ verb: "setup" })`.
 4. **`dispatch_intent`** — map the user's request to verb(s) + which references to load (2–4 files, not all fifteen).
 5. **`get_reference`** — load only the files `dispatch_intent` recommends.
@@ -30,10 +30,20 @@ If MCP is unavailable, read local `reference/` files using the routing map below
 ## Session preflight (after MCP bootstrap)
 
 0. **Project context** — PRODUCT.md / DESIGN.md are authoritative when present. DESIGN.md wins visual decisions; PRODUCT.md wins strategic/voice; anti-references beat one-off prompts.
-1. **Register** — **brand** (distinctiveness) vs **product** (earned familiarity). Write one physical-scene sentence.
-2. **One aesthetic system** — from `reference/aesthetic-systems.md`. Never mix two signatures on one surface.
-3. **Positive direction** — `reference/differentiation-playbook.md`: inverse test, layout families, named references, one weird thing (brand).
-4. **Existing UI** — audit → diagnose → redesign in `reference/refactor-and-redesign.md`; preserve functionality.
+1. **Design read** — one sentence: surface + audience + visual language. Infer it from the brief and current UI; ask one question only when genuinely ambiguous.
+2. **Calibration** — commit `designVariance`, `motionIntensity`, and `visualDensity` as whole numbers from 1–10. Accessibility and established brand rules override the dials.
+3. **Register** — **brand** (distinctiveness) vs **product** (earned familiarity). Write one physical-scene sentence.
+4. **One aesthetic system** — from `reference/aesthetic-systems.md`. Never mix two signatures on one surface.
+5. **Positive direction** — `reference/differentiation-playbook.md`: inverse test, layout families, named references, one weird thing (brand).
+6. **Existing UI** — audit → diagnose → redesign in `reference/refactor-and-redesign.md`; preserve functionality.
+
+### Calibration dials
+
+| Dial | 1 | 10 |
+|---|---|---|
+| `designVariance` | Strict symmetry and convention | Expressive, off-grid composition |
+| `motionIntensity` | Static | Cinematic or physics-led |
+| `visualDensity` | Gallery-like and airy | Compact, information-dense cockpit |
 
 ## Project context files
 

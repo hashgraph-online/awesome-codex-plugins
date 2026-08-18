@@ -1,6 +1,6 @@
 ---
 name: ms
-description: meta_skill (ms) — the skill-search/load
+description: 'meta_skill (ms) — the skill-search/load Triggers: "ms", "meta_skill", "skill search", "find a skill for", "load skill guidance".'
 ---
 <!-- TOC: Core Insight | Constraints | Quick Start | Consume (MCP) | Write/Admin (CLI) | Output | Production Skill Handoff | Footguns | Concurrency | Scenarios | Quality | References -->
 

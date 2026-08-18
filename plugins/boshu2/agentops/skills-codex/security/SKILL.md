@@ -1,6 +1,6 @@
 ---
 name: security
-description: Run authorized repository security scans for
+description: 'Run authorized repository security scans for Triggers: "security", "run repository security scans for", "security skill".'
 ---
 # Security Skill
 

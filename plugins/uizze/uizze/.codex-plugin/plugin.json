@@ -1,7 +1,7 @@
 {
   "name": "uizze",
-  "version": "1.2.6",
-  "description": "If your UI screams AI, your app is dead. Stop UI slop with 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate.",
+  "version": "1.2.11",
+  "description": "Stop AI coding agents from shipping generic UI with a free anti-ui-slop Skill, a UI Slop Gate, and optional UIZZE research across 800,000+ real web and iOS screens.",
   "author": {
     "name": "UIZZE",
     "email": "business@uizze.com",
@@ -27,8 +27,9 @@
   "interface": {
     "displayName": "UIZZE",
     "shortDescription": "Stop UI slop before it ships",
-    "longDescription": "If your UI screams AI, your app is dead. Build distinctive UI with 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate.",
-    "composerIcon": "./plugins/openai-directory/uizze/assets/uizze-logo.png",
+    "longDescription": "Stop AI coding agents from shipping generic UI. Start with the free anti-ui-slop Skill and UI Slop Gate; add optional UIZZE research across 800,000+ real web and iOS screens when it materially improves the work.",
+    "composerIcon": "./integrations/mcp/assets/uizze-logo-400x400.png",
+    "logo": "./integrations/mcp/assets/uizze-logo-400x400.png",
     "developerName": "UIZZE",
     "category": "Developer Tools",
     "capabilities": [
@@ -38,7 +39,7 @@
     "privacyPolicyURL": "https://uizze.com/privacy",
     "termsOfServiceURL": "https://uizze.com/terms",
     "defaultPrompt": [
-      "Use UIZZE to kill the generic defaults and plan this interface from real product evidence.",
+      "Use UIZZE to plan this interface from real product evidence, then run the finish gate before shipping.",
       "Run the UIZZE finish gate and fix every blocking issue before shipping.",
       "Use UIZZE to make this interface unmistakably belong to this product."
     ],

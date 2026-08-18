@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: Optionally test a retrospective causal
+description: 'Optionally test a retrospective causal Triggers: "postmortem", "causal retrospective", "test a retrospective hypothesis".'
 ---
 # Postmortem
 

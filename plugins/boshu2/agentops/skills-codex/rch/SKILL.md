@@ -1,6 +1,6 @@
 ---
 name: rch
-description: Use RCH once to offload a build or collect
+description: 'Use RCH once to offload a build or collect Triggers: "use RCH", "offload this build".'
 ---
 # RCH — remote compilation specialist
 

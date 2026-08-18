@@ -62,7 +62,7 @@ Make Agent Guard operational without silently changing the machine. Diagnose fir
    - In Codex, confirm that the Agent Guard plugin is installed and enabled. In **Settings > Hooks**, inspect Agent Guard's `SessionStart`, `PreToolUse`, `PostToolUse`, and `Stop` hooks. Every hook must be enabled and trusted. Treat `Untrusted` and `Modified` as inactive; an updated hook must be reviewed and trusted again.
    - In Codex, do not edit `hooks.state` or copy trust hashes into `config.toml`. Hook trust is a user security decision and must go through the Codex trust UI. If `SessionStart` itself is untrusted, explain that it cannot emit the setup warning or invoke this skill automatically.
    - In Claude Code, confirm that the Agent Guard plugin is installed and enabled, then reload plugins after an install or update. Do not direct Claude Code users to Codex **Settings > Hooks**; Claude Code does not use that trust workflow. `/agent-guard:verify` can check the working tree, but it does not prove live hook dispatch.
-   - If the active host is unclear, infer it from the current product and invocation (`$setup-agent-guard` in Codex or `agent-guard:setup-agent-guard` in Claude Code). Do not apply one host's setup steps to the other.
+   - If the active host is unclear, infer it from the current product and invocation (`$setup-agent-guard` in Codex or `/agent-guard:setup-agent-guard` in Claude Code). Do not apply one host's setup steps to the other.
 
 8. Run live host probes through the normal command tool selected by the active host for the current task. Do not read a real sensitive file.
    - Pre-tool probe:

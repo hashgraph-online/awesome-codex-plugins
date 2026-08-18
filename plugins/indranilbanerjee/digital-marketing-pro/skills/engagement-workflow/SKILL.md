@@ -11,7 +11,7 @@ triggers:
   - re-run v2 documents
   - mark engagement part complete
   - what part of the engagement are we on
-allowed-tools: Read Write Edit Bash Glob Grep
+allowed-tools: Read Write Edit Bash Glob Grep Task
 engagement-part: orchestrator
 view-preference: both
 ---
