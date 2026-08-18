@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flexbox Math"
+  short_description: "Flex base, grow, and shrink math"
+  default_prompt: "Use $flexbox-math to explain why these flex items are growing or shrinking this way."

@@ -1,0 +1,50 @@
+{
+  "name": "agentry",
+  "version": "0.1.2",
+  "description": "Agent-native product analytics, error monitoring, and deploy attribution over the Agentry HTTP API.",
+  "author": {
+    "name": "Agentry",
+    "url": "https://agentry.sh"
+  },
+  "homepage": "https://agentry.sh/?distribution_surface=codex_plugin",
+  "repository": "https://github.com/fr33dr4g0n/agentry-public",
+  "license": "MIT",
+  "keywords": [
+    "agentry",
+    "observability",
+    "analytics",
+    "product-analytics",
+    "logging",
+    "error-monitoring",
+    "deploy-attribution",
+    "production-debugging",
+    "coding-agents",
+    "ai-coding-agents",
+    "agent-native"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agentry Observability",
+    "shortDescription": "Production context for coding agents",
+    "longDescription": "Give coding agents one HTTP API for product analytics, error monitoring, and deploy attribution. Use Agentry to install and verify telemetry, investigate production cases, answer product questions, and connect regressions to deploys from live data.",
+    "developerName": "Agentry",
+    "category": "Data & Analytics",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://agentry.sh/?distribution_surface=codex_plugin",
+    "privacyPolicyURL": "https://agentry.sh/privacy",
+    "termsOfServiceURL": "https://agentry.sh/terms",
+    "defaultPrompt": [
+      "Install and verify Agentry in this repo",
+      "Investigate what broke in production",
+      "Find where users are dropping off"
+    ],
+    "brandColor": "#0A0A0A",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": []
+  }
+}

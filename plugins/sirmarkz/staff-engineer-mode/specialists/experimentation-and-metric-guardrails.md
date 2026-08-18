@@ -46,29 +46,18 @@ Experiments are only useful when assignment, exposure, metrics, and decision rul
 
 1. **State the decision.** Define the hypothesis and what action the readout will drive.
 2. **Choose assignment unit.** Pick a stable unit that matches the effect being measured and avoids cross-contamination.
-3. **Define exposure.** Log when the user or entity could be affected, not only when assignment occurred.
+3. **Predeclare the decision estimand and populations.** Log assignment and when a unit could be affected. Always estimate assignment-wide policy impact. A triggered population may be the primary high-sensitivity estimand only when the trigger is pre-treatment or counterfactually measurable the same way for treatment and control, without selecting only on treatment-caused exposure. Predeclare its role, inspect the untriggered complement, and translate or dilute the effect to the ship population so the shipping decision is not made from the affected subset alone.
 4. **Predeclare metrics and power.** Name primary, guardrail, diagnostic, and segment metrics before reading results. Pre-register the minimum detectable effect, the required sample size and power to detect it, and the fixed analysis and readout plan; an underpowered test is a design blocker, not a caveat.
-5. **Check validity.** Test assignment balance, sample-ratio mismatch, missing telemetry, logging defects, and eligibility drift. Use an A/A check (or prior A/A evidence) to validate the assignment, logging, and analysis pipeline before trusting an A/B readout.
-6. **Plan interactions and comparisons.** Identify overlapping experiments, long-lived holdouts, novelty/primacy effects, network or interference (spillover) effects, and downstream metric coupling. When evaluating many metrics or slices, control the false-positive rate (pre-registered primary metric plus a correction for the rest) so slice mining does not manufacture significance.
+5. **Check validity.** Test assignment balance, sample-ratio mismatch, missing telemetry, logging defects, and eligibility or trigger drift. Use an A/A check or prior A/A evidence to validate the assignment, logging, and analysis pipeline before trusting an A/B readout.
+6. **Plan interactions and comparisons.** Identify overlapping experiments, long-lived holdouts, novelty or primacy effects, interference or spillover, and downstream metric coupling. When evaluating many metrics or slices, control the false-positive rate so slice mining does not manufacture significance.
 7. **Check ramps.** Combine experiment outcomes with operational guardrails; do not let positive primary metrics hide safety regressions.
-8. **Record the decision.** Capture result, caveats, decision, rollback trigger, and follow-up measurement.
+8. **Record the decision.** Capture the predeclared primary estimand, assignment-wide policy impact, any triggered estimate, complement and population translation, caveats, decision, rollback trigger, and follow-up measurement.
 
 ## Synthesized Default
 
-Use predeclared hypotheses, stable assignment, exposure-based analysis, primary and guardrail metrics, validity checks, segment readouts, and decision records. Treat metric trust failures as experiment blockers, not as minor caveats after the decision.
+Use predeclared hypotheses, stable assignment, a decision-matched estimand, assignment-wide policy impact, carefully defined triggered estimates where counterfactual triggering is valid, primary and guardrail metrics, validity checks, segment readouts, and decision records. Treat metric trust failures as experiment blockers, not as caveats after the decision.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -85,14 +74,16 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside experimentation and metric trust. Use rollout safety, service SLO, or AI eval skills only when those surfaces drive the decision.
 - Be concise: prefer experiment design and readout tables over generic testing background.
+- Scale the artifact to the request: a narrow design or readout needs the decision, assignment, predeclared estimand, assignment-wide policy impact, metrics, validity, and rule; add power, interaction, triggered-population, holdout, and ramp modules only when applicable.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
-- Experiment design with hypothesis, population, assignment unit, treatment, control, and exposure rule.
+- Experiment design with hypothesis, ship population, assignment unit, treatment, control, exposure rule, predeclared decision estimand, and assignment-wide policy-impact population.
 - Metric map: primary, guardrail, diagnostic, and segment metrics.
 - Power analysis: minimum detectable effect, required sample size, runtime, and false-positive control across metrics and slices.
 - Validity checks for assignment, sample ratio, telemetry, eligibility, contamination, and missingness.
+- Triggered-analysis plan, when used, with counterfactual trigger validity, untriggered-complement check, and translation to the ship population.
 - Ramp, stop, and readout decision rules.
 - Interaction and holdout notes.
 - Decision record with caveats and follow-up measurement.
@@ -102,6 +93,7 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 - `hypothesis_named`: experiment maps to a clear decision and expected effect.
 - `assignment_valid`: unit, eligibility, and balance checks are defined.
 - `exposure_logged`: exposure event records who could be affected.
+- `estimand_valid`: the primary estimand matches the decision; assignment-wide policy impact is retained; a triggered primary is used only with a valid counterfactual trigger, complement check, and ship-population translation.
 - `guardrails_set`: safety and quality metrics can block a positive primary result.
 - `validity_checked`: metric trust failures are checked before readout.
 - `power_planned`: minimum detectable effect, required sample size, and runtime are computed before launch.
@@ -110,6 +102,7 @@ Use predeclared hypotheses, stable assignment, exposure-based analysis, primary 
 ## Red Flags - Stop And Rework
 
 - Assignment exists but exposure is not logged.
+- A triggered analysis selects only post-treatment exposed units, has no counterfactual trigger or complement check, or is used to ship without assignment-wide population impact.
 - Metrics are chosen after the result is known.
 - Sample-ratio mismatch is ignored.
 - A positive primary metric hides reliability, safety, or accessibility harm.

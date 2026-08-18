@@ -1,0 +1,15 @@
+{
+  "eval_id": 1,
+  "eval_name": "leakage-scrub-review",
+  "prompt": "My source analyst wrote this draft behavior spec for the clean handoff (draft-behavior-spec.json). Is it safe to pass to the clean implementation team? If not, tell me exactly what has to be scrubbed.",
+  "assertions": [
+    {"text": "Concludes the draft is NOT safe to hand off / must be quarantined or rewritten", "name": "verdict_not_safe"},
+    {"text": "Flags private source identifiers (e.g. parseFooInternal, RetryScheduler, retryLater, failCount)", "name": "flags_private_identifiers"},
+    {"text": "Flags the copied comment and/or Jira tag FLOW-1234", "name": "flags_copied_comment"},
+    {"text": "Flags source-shaped code or pseudocode (the for-loop or 'if x == 7')", "name": "flags_pseudocode"},
+    {"text": "Flags the exact log string and/or magic value (flowpack: dropping malformed frame / 0xDEADBEEF)", "name": "flags_magic_string"},
+    {"text": "Flags the copied source test name TestParseFooInternal_Mode7", "name": "flags_source_test_name"},
+    {"text": "Challenges the false public_surface entry (_flushBuffer marked public without a real compatibility reason)", "name": "challenges_false_public"},
+    {"text": "Notes leakage_review.reviewer_role should be contaminated-handoff-sanitizer (analyst cannot self-approve)", "name": "flags_self_approval"}
+  ]
+}

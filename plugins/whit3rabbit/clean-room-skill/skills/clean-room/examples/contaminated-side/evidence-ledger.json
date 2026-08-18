@@ -1,0 +1,17 @@
+{
+  "ledger_id": "evidence-ledger-example",
+  "task_id": "task-example",
+  "domain": "contaminated",
+  "entries": [
+    {
+      "evidence_id": "item-001",
+      "source_unit_ref": "unit-example-flow",
+      "evidence_type": "source-observation",
+      "description": "Neutral note that a behavior exists; no source text included.",
+      "evidence_location_ref": "contaminated-only:unit-example-flow:item-001",
+      "source_hash": "not-recorded-in-example",
+      "sensitivity": "medium",
+      "retained_in_contaminated_domain": true
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"agent-drift-auditor","version":"1.0.0","description":"漂移检查 - 检查项目偏离原计划的情况","author":"1139030773-cmd","license":"MIT","capabilities":{"chat":true,"projectAnalysis":true},"keywords":["漂移检查","质量审计","合规性"]}

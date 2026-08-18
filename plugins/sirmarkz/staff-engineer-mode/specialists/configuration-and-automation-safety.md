@@ -44,7 +44,7 @@ Configuration and automation can change production faster than ordinary code pat
 - Rejected or pending config state, quarantine location, retry behavior, and whether later unrelated changes can carry failed config forward if validation is disabled or bypassed.
 - Bulk input semantics: required columns, row identity, duplicate handling, missing values, current-value preconditions, per-tenant caps, and aggregate blast-radius limits.
 - Temporary overrides with owner, expiry, validation evidence, cleanup action, and rollback target before cleanup automation can apply or remove them.
-- Change path, approval path, user confirmation, preview or dry-run output, execution identity, and change record.
+- Change path, approval path, user confirmation, preview or dry-run output, execution identity, change record, and the classification, access, and retention rules for records that may contain production values.
 - Tracking or shadow-mode behavior for protection algorithms, throttles, limiters, placement rules, load balancers, and other enforcement config before they affect production requests.
 - Blast radius, rollback or disable path, rate limit, lock, retry, and idempotency behavior.
 - Operational levers: name, expected effect, activation time, prerequisites, approval gates, safety thresholds, last test, and disable or revert path.
@@ -62,27 +62,16 @@ Configuration and automation can change production faster than ordinary code pat
 7. **Use tracking before enforcement.** For throttles, limiters, protection algorithms, placement policies, or load-balancing rules, run the new decision logic in tracking or shadow mode against representative production workload before enforcement. Compare predicted actions, false positives, tenant or scale-unit concentration, and downstream service impact before enabling the change.
 8. **Prove application state.** Distinguish accepted, persisted, propagated, and serving-applied states for config changes; require an application signal before declaring success when serving systems can accept a config mutation without applying it.
 9. **Bound execution.** Use fault-domain-aware batches, locks, rate limits, stop criteria, per-target and aggregate caps, and idempotency for automation that touches shared state. Stagger config fanout, readers, pullers, and processors when simultaneous reloads can overload the source of truth.
-10. **Make recovery concrete.** Define rollback, disable, restore, or roll-forward behavior for config, generated changes, and automation side effects; capture previous values in a replayable rollback artifact before mutating state. Include repair of polluted last-known-good state, stale queues, caches, client-held artifacts, and dependent records before promotion resumes.
+10. **Make recovery concrete.** Define rollback, disable, restore, or roll-forward behavior for config, generated changes, and automation side effects; capture the minimum prior state needed for recovery before mutating state. Protect rollback artifacts by classification, encryption where needed, least-privilege access, integrity checks, retention, and disposal. Store references or protected snapshots rather than raw secrets in ordinary change records. Include repair of polluted last-known-good state, stale queues, caches, client-held artifacts, and dependent records before promotion resumes.
 11. **Prepare operational levers.** For emergency adjustment or recovery levers, state the effect, prerequisites, approval gates, safety thresholds, activation time, last test, and disable or revert path before relying on them. If a lever can be blocked by quota, approval, blast-radius caps, or safety automation, make that block visible in the runbook and exercise the allowed path before an emergency.
 12. **Control drift.** Detect unmanaged overrides and stale settings; decide reconcile, exception, or removal.
-13. **Close the loop.** Record user confirmation, validation output, preview, execution result, and cleanup for temporary settings.
+13. **Close the loop.** Record user confirmation, a redacted validation and preview summary, execution result, and cleanup for temporary settings. Define prohibited fields and volume bounds so logs and records cannot become an ungoverned copy of production configuration or sensitive data.
 
 ## Synthesized Default
 
 Use typed config contracts, deterministic validation, effect preview, small fault-domain-aware execution batches, explicit user confirmation for production-impacting work, linked change records, drift checks, and tested recovery paths. Automation should be idempotent by default and should fail closed when it cannot confirm the intended target.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -100,13 +89,14 @@ Use typed config contracts, deterministic validation, effect preview, small faul
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside config and automation safety. Use rollout, infrastructure policy, or dependency hygiene skills only when that surface is the immediate risk.
 - Be concise: prefer compact contract and check tables over generic automation advice.
+- Scale the artifact to the request: a narrow config change needs its contract, preview, execution bounds, and recovery; add bulk-input, fanout, shadow-mode, lever, and drift modules only when those mechanisms apply.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Configuration or automation safety decision.
 - Change class and confirmation path: low-risk, standard production, or emergency, with required checks and decision rationale.
-- Production change record with user confirmation, expected effect, blast radius, and recovery results where the change can affect production state.
+- Production change record with user confirmation, expected effect, blast radius, recovery results, and record-safety rules where the change can affect production state.
 - Contract: schema, required and non-empty inputs, defaults, invariants, scheduling or priority class, unsafe combinations, allowed overrides, and local change path.
 - Dormant-feature guard check with disabled behavior, activation path, test evidence, and rollback or disable action.
 - Bulk input contract: required fields, row identity, duplicate behavior, current-value preconditions, per-tenant caps, skipped-row handling, and aggregate limits.
@@ -116,7 +106,7 @@ Use typed config contracts, deterministic validation, effect preview, small faul
 - Tracking or shadow-mode comparison for enforcement, throttling, protection, placement, or load-balancing changes.
 - Application-state and fanout plan for accepted, persisted, propagated, serving-applied, and simultaneous reload behavior.
 - Blast-radius and execution-control plan.
-- Recovery plan for rollback, disable, restore, or roll-forward.
+- Recovery plan for rollback, disable, restore, or roll-forward, including protected prior-state storage, access, integrity, retention, and disposal.
 - Derived-state cleanup plan for generated records, cached config, queues, last-known-good snapshots, and client-visible artifacts that rollback leaves behind.
 - Generated-config boundary check with producer validation, receiver reject behavior, last-known-good restore path, and known corruption forms.
 - Operational lever inventory with expected effect, activation time, prerequisites, approval gates, safety thresholds, last test, and disable or revert path.
@@ -126,7 +116,7 @@ Use typed config contracts, deterministic validation, effect preview, small faul
 ## Checks Before Moving On
 
 - `change_class_confirmed`: low-risk, standard production, or emergency class is named with the required checks for that class.
-- `change_record`: production-impacting config or automation has linked preview, user confirmation, execution identity, and recovery results.
+- `change_record`: production-impacting config or automation has a linked, minimized, and redacted preview, user confirmation, execution identity, recovery results, and retention rule.
 - `contract_defined`: schema, required and non-empty inputs, defaults, bounds, invariants, and local change path are explicit.
 - `preview_checked`: intended production effect is visible before execution.
 - `tracking_mode`: enforcement-style config changes compare predicted and actual effects in tracking mode before production enforcement.
@@ -156,6 +146,7 @@ Use typed config contracts, deterministic validation, effect preview, small faul
 - Defaults differ by environment without a documented reason.
 - Blank or missing inputs silently choose a destructive or time-delayed default.
 - Recovery depends on remembering the previous value manually.
+- Change or rollback records expose raw secrets, sensitive production values, or unbounded output without access and disposal rules.
 - Temporary overrides have no expiry or cleanup action.
 
 ## Common Mistakes

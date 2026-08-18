@@ -38,6 +38,21 @@
  *   will report drift in CI. Tracked as upstream-sync-debt in the #503 PRD.
  *   When upstream catches up, re-run `node scripts/sync-vault-schema.mjs --write`
  *   to confirm idempotency.
+ *
+ * 2026-07-02 (#725, D2): `'source-repo': z.string().optional()` appended to
+ *   vaultFrontmatterSchema (same vendored-ahead pattern as #503). vault-mirror
+ *   now emits `source-repo` in generated learning notes for cross-repo
+ *   attribution (scripts/lib/vault-mirror/render-learnings.mjs). The field is
+ *   OPTIONAL — pre-existing notes without it stay valid, and `.passthrough()`
+ *   already accepted the key; the explicit declaration adds string-type
+ *   enforcement. Upstream canonical is behind until #725 lands there, so
+ *   `sync-vault-schema.mjs --check` reports drift in CI (upstream-sync-debt).
+ *   Re-run `--write` once upstream catches up to confirm idempotency.
+ *
+ * 2026-07-03 (#738, I2): `board` appended to vaultNoteTypeSchema so the
+ *   generated `01-projects/_active-sessions.md` board validates as a
+ *   first-class vault note. Upstream canonical sync remains out of scope for
+ *   this worker because the baseline repo is intentionally dirty.
  * ────────────────────────────────────────────────────────────────────────────
  */
 
@@ -47,6 +62,7 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import YAML from 'yaml';
 import { resolveInstructionFile } from '../../scripts/lib/common.mjs';
+import { findSessionConfigBlock } from '../../scripts/lib/config/section-extractor.mjs';
 import {
   computeSchemaHash,
   writeBaseline,
@@ -73,6 +89,7 @@ const vaultNoteTypeSchema = z.enum([
   'learning',
   'session',
   'peer-card',
+  'board',
 ]);
 
 const vaultNoteStatusSchema = z.enum([
@@ -113,6 +130,7 @@ const vaultFrontmatterSchema = z
     source: z.string().optional(),
     sources: z.array(z.string()).optional(),
     aliases: z.array(z.string().min(1).max(200)).optional(),
+    'source-repo': z.string().optional(),
   })
   .passthrough();
 // ── END GENERATED SCHEMA ──
@@ -142,14 +160,27 @@ const _schemaHash = (() => {
 const args = process.argv.slice(2);
 const checkExpires = args.includes('--check-expires');
 
-// Parse --mode <hard|warn|off|baseline|diff|full> (default: hard)
+// Parse --mode <hard|strict|warn|off|baseline|diff|full> (default: hard)
 //   hard      — legacy alias; identical to full enforcement
+//   strict    — alias of hard (#835). The Session Config schema
+//               (scripts/lib/config-schema.mjs VAULT_MODE_VALUES) uses
+//               strict|warn|off, so a caller forwarding the configured value
+//               verbatim would otherwise hit exit 2. Normalized to 'hard' at
+//               parse time so exactly one internal value flows downstream.
 //   full      — enforce: exit 1 on errors
 //   warn      — report but exit 0
 //   off       — skip entirely
 //   baseline  — write snapshot then exit 0
 //   diff      — compare against snapshot, emit JSON diff
 // Parse --exclude <glob> (repeatable)
+const MODE_VALUES = new Set(['hard', 'strict', 'warn', 'off', 'baseline', 'diff', 'full']);
+const MODE_EXPECTED = 'hard|strict|warn|off|baseline|diff|full';
+
+/** Normalize CLI mode aliases to the single internal value used downstream. */
+function normalizeMode(v) {
+  return v === 'strict' ? 'hard' : v;
+}
+
 let mode = 'hard';
 const excludePatterns = [];
 
@@ -187,22 +218,22 @@ for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--mode') {
     const v = args[i + 1];
-    if (v === 'hard' || v === 'warn' || v === 'off' || v === 'baseline' || v === 'diff' || v === 'full') {
-      mode = v;
+    if (MODE_VALUES.has(v)) {
+      mode = normalizeMode(v);
     } else {
       process.stderr.write(
-        `validator.mjs: invalid --mode value "${v}" (expected hard|warn|off|baseline|diff|full)\n`,
+        `validator.mjs: invalid --mode value "${v}" (expected ${MODE_EXPECTED})\n`,
       );
       process.exit(2);
     }
     i++;
   } else if (a.startsWith('--mode=')) {
     const v = a.slice('--mode='.length);
-    if (v === 'hard' || v === 'warn' || v === 'off' || v === 'baseline' || v === 'diff' || v === 'full') {
-      mode = v;
+    if (MODE_VALUES.has(v)) {
+      mode = normalizeMode(v);
     } else {
       process.stderr.write(
-        `validator.mjs: invalid --mode value "${v}" (expected hard|warn|off|baseline|diff|full)\n`,
+        `validator.mjs: invalid --mode value "${v}" (expected ${MODE_EXPECTED})\n`,
       );
       process.exit(2);
     }
@@ -223,6 +254,14 @@ for (let i = 0; i < args.length; i++) {
 //   ?     — any single character except `/`
 //   literal path separators and characters otherwise
 // Operates on POSIX-style forward-slash relative paths.
+// `**` compiles to a SEGMENT-ANCHORED alternative, not a free `(?:.*?)` (#1013).
+// The free form ended anywhere, including mid-segment, so every `**/` pattern
+// silently grew a suffix-match: `**/README.md` matched `MYREADME.md`, and
+// `**/archive/**` matched `90-archive/...`. This matcher answers "is this path
+// EXCLUDED from validation", so an over-approximation is not a harmless
+// widening — it is a false negative: the file is never checked and the
+// validator still reports 0 errors. Anchoring narrows exclusion, i.e. it can
+// only ever add files to the checked set.
 function globToRegExp(glob) {
   // Normalise input
   const g = glob.replace(/\\/g, '/');
@@ -231,12 +270,18 @@ function globToRegExp(glob) {
     const c = g[i];
     if (c === '*') {
       if (g[i + 1] === '*') {
-        // `**` — match across path segments
-        // Also swallow a following `/` so that `**/foo` matches `foo` at root.
-        const nextSlash = g[i + 2] === '/';
-        re += '(?:.*?)';
-        if (nextSlash) i += 2;
-        else i += 1;
+        if (g[i + 2] === '/') {
+          // `**/` — zero or more WHOLE path segments. Zero repetitions is what
+          // makes `**/foo` match `foo` at the vault root, and it is why the
+          // trailing `/` is swallowed here rather than emitted literally.
+          re += '(?:[^/]+/)*';
+          i += 2;
+        } else {
+          // Trailing or standalone `**` (e.g. `a/**`) — everything below the
+          // preceding literal, segment boundaries included.
+          re += '.*';
+          i += 1;
+        }
       } else {
         re += '[^/]*';
       }
@@ -266,18 +311,38 @@ function isExcluded(relPath) {
 // Returns true if dir contains at least one recognized vault marker:
 //   1. _meta/ directory
 //   2. CLAUDE.md or AGENTS.md (alias — see skills/_shared/instruction-file-resolution.md)
-//      containing both "## Session Config" and "vault-sync:". The instruction
-//      file is resolved via resolveInstructionFile() so CLAUDE.md wins ties and
-//      AGENTS.md is accepted on Codex CLI repos.
+//      whose `## Session Config` block declares a `vault-sync:` key. The
+//      instruction file is resolved via resolveInstructionFile() so CLAUDE.md
+//      wins ties and AGENTS.md is accepted on Codex CLI repos.
 //   3. .obsidian/ directory
+//
+// Marker 2 was two whole-file substring tests until #968:
+//   content.includes('## Session Config') && content.includes('vault-sync:')
+// A substring test is the wrong instrument for "does this directory look like
+// a vault" in three independent ways, all reachable:
+//   (a) `'### Session Config'.includes('## Session Config')` is TRUE (from
+//       index 1), so an H3 — or any deeper heading — passed the marker.
+//       HTML comment matched. Any document ABOUT session-orchestrator config
+//       reads as a vault marker.
+//   (b) A `## Session Config` mention in ordinary prose (not at line start)
+//       matched, e.g. "see the ## Session Config block" mid-sentence.
+//   (c) `vault-sync:` was accepted ANYWHERE in the file — a prose sentence or
+//       a doc-comment sufficed; it never had to be a config key, let alone one
+//       inside the Session Config block.
+// Misclassifying a directory as a vault is not cosmetic: it makes the
+// validator crawl and enforce vault frontmatter over an arbitrary tree, and
+// (via the cwd branch below) silently adopt it as VAULT_DIR.
+//
+// The fix uses the SSOT block extractor, so the heading must be a real
+// heading LINE and `vault-sync:` must be a key INSIDE that block.
 function isVaultDir(dir) {
   if (existsSync(join(dir, '_meta')) && statSync(join(dir, '_meta')).isDirectory()) return true;
   if (existsSync(join(dir, '.obsidian')) && statSync(join(dir, '.obsidian')).isDirectory()) return true;
   const instr = resolveInstructionFile(dir);
   if (instr) {
     try {
-      const content = readFileSync(instr.path, 'utf8');
-      if (content.includes('## Session Config') && content.includes('vault-sync:')) return true;
+      const block = findSessionConfigBlock(readFileSync(instr.path, 'utf8'));
+      if (block && /^\s*(?:-\s+)?(?:\*\*)?vault-sync(?:\*\*)?\s*:/m.test(block.body)) return true;
     } catch {
       // unreadable instruction file — not a vault marker
     }
@@ -318,12 +383,28 @@ if (process.env.VAULT_DIR) {
   }
 }
 
+// Directories the crawler never descends into. These are structurally
+// invisible: their notes are neither checked NOR available as link targets.
 const EXCLUDED_DIRS = new Set([
   'node_modules',
   '.git',
   '.obsidian',
-  '90-archive',
 ]);
+
+// Top-level directories whose notes are skipped by the CHECK set but remain in
+// the link-target register (#833). Before this split, '90-archive' lived in
+// EXCLUDED_DIRS, so archiving a note silently turned every inbound
+// [[wiki-link]] into a dangling-link warning. The register and the check-set
+// are now decoupled: walk() still visits these notes (so they resolve links),
+// the validation loop skips them (so their frontmatter never blocks a close).
+const CHECK_EXCLUDED_TOP_DIRS = new Set(['90-archive']);
+
+/** True when relPath's FIRST path segment is a check-excluded top-level dir. */
+function isArchived(relPath) {
+  const p = String(relPath).replace(/\\/g, '/');
+  const top = p.split('/', 1)[0];
+  return CHECK_EXCLUDED_TOP_DIRS.has(top);
+}
 
 function emit(obj) {
   process.stdout.write(JSON.stringify(obj) + '\n');
@@ -337,6 +418,7 @@ if (mode === 'off') {
     vault_dir: vaultDir,
     files_checked: 0,
     excluded_count: 0,
+    archived_skipped_count: 0,
     files_skipped_no_frontmatter: 0,
     errors: [],
     warnings: [],
@@ -398,29 +480,177 @@ function parseFrontmatter(raw) {
   }
 }
 
-// ── Build link index (filename -> path) ─────────────────────────────────────
-const fileIndex = new Map(); // basename-without-ext -> [absolute paths]
-for (const f of mdFiles) {
-  const key = basename(f, '.md');
-  if (!fileIndex.has(key)) fileIndex.set(key, []);
-  fileIndex.get(key).push(f);
+// ── Wiki-link regex — captures link body for target parsing ─────────────────
+// NOTE: intentionally NOT module-level. A shared `/g` regex driven by
+// `.exec()` in a loop carries `lastIndex` state across calls; the previous
+// module-level `WIKILINK_RE` was safe only because the loop always ran to
+// exhaustion (never an early return/continue). Constructing a fresh regex
+// per `extractWikiLinks()` call removes that hazard structurally rather than
+// relying on "the loop happens to always finish" (#852).
+function wikilinkRegex() {
+  return /\[\[([^\]]+)\]\]/g;
 }
 
-// ── Wiki-link regex — captures target (pre-alias, pre-anchor) ───────────────
-const WIKILINK_RE = /\[\[([^\]|#]+?)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]/g;
+// ── Code-span stripping (#852, hardened post-review) ────────────────────────
+// A wikilink written as inline code (`` `[[target]]` ``) or inside a fenced /
+// indented code block is pedagogical prose ABOUT the Obsidian wiki-link
+// convention (#159 pattern: keep named invariants in backticks), not a real
+// link, and must never surface a dangling-wiki-link warning. All span kinds
+// are blanked out (non-newline chars -> space, newlines preserved) BEFORE the
+// wikilink regex runs, so their `[[...]]` content is invisible to
+// extractWikiLinks() while line count / offsets stay stable for any future
+// position-aware consumer.
+//
+// NOTE: intentionally functions, not module-level `/g` regex constants. Every
+// call below builds a fresh RegExp so no shared `lastIndex` state can leak
+// across calls (same rationale as wikilinkRegex() above, #852).
+//
+// Order: fenced blocks (multi-line) -> indented code blocks (line-based) ->
+// inline spans (single/double backtick, same line only). Fenced blocks run
+// first because they are the only multi-line shape; the other two are
+// line-local and their relative order does not change the result (a line
+// already blanked by an earlier pass is all-spaces and matches idempotently
+// under either later pass).
+//
+// Fenced-block fix (post-#852 QA review): the ORIGINAL `/```[\s\S]*?```/g`
+// paired ANY two ``` runs in the whole file — including a ``` merely
+// MENTIONED mid-sentence in prose — which silently blanked (and hid dangling
+// links inside) everything between an unrelated mention and the next real
+// fence. Real CommonMark fences must open at the START of a line (up to 3
+// leading spaces); this regex is now line-anchored so a mid-line mention can
+// never open a fence. The closing fence must reuse the SAME fence character
+// (backtick vs tilde) with a run of at least 3 — `(?:\1){3,}` repeats the
+// single captured fence character, so a backtick fence cannot be closed by a
+// tilde run or vice versa. Also handles `~~~` fences and fenced blocks that
+// carry an info string (e.g. ```` ```md ````) — the info string is just the
+// rest of the opening line, already consumed by `[^\n]*`.
+function fencedCodeRegex() {
+  return /^ {0,3}(`|~)\1{2,}[^\n]*\n[\s\S]*?^ {0,3}(?:\1){3,}[ \t]*$/gm;
+}
+
+// Indented code blocks (4+ leading spaces, or a leading tab) are CommonMark
+// code too. Required to be flanked by a blank line (or start/end of text) on
+// both sides — mirrors CommonMark's "separated from surrounding paragraph
+// text" rule closely enough to avoid blanking ordinary 4-space-indented list
+// continuation text that isn't actually a code block, while still catching
+// the FP shape this fixes.
+function indentedCodeRegex() {
+  return /(?<=^|\n\n)(?: {4,}|\t)[^\n]*(?:\n(?: {4,}|\t)[^\n]*)*/g;
+}
+
+// Inline code spans: single-backtick (`` ` `` ... `` ` ``) or double-backtick
+// (`` `` `` ... `` `` ``, used when the wrapped content itself contains a
+// backtick) delimiters, same line only. The closing delimiter must be the
+// SAME LENGTH as the opening one (`\1` backreference on the captured 1-2
+// backtick run) so a double-backtick span isn't mis-closed by the first lone
+// backtick inside its own content — the over-strip hazard called out in
+// #852. A lone/stray backtick with no same-length partner on the same line
+// therefore matches nothing and is left as plain text.
+function inlineCodeRegex() {
+  return /(`{1,2})[^\n]*?\1(?!`)/g;
+}
+
+function blank(match) {
+  return match.replace(/[^\n]/g, ' ');
+}
+
+function stripCodeSpans(text) {
+  let out = text.replace(fencedCodeRegex(), blank);
+  out = out.replace(indentedCodeRegex(), blank);
+  out = out.replace(inlineCodeRegex(), blank);
+  return out;
+}
+
+function findAliasSeparatorIndex(linkBody) {
+  for (let i = 0; i < linkBody.length; i++) {
+    if (linkBody[i] === '\\' && linkBody[i + 1] === '|') return i;
+    if (linkBody[i] === '|') return i;
+  }
+  return -1;
+}
+
+function extractWikiLinkTarget(linkBody) {
+  const aliasIndex = findAliasSeparatorIndex(linkBody);
+  const targetWithAnchor = aliasIndex === -1 ? linkBody : linkBody.slice(0, aliasIndex);
+  return targetWithAnchor.split('#', 1)[0].trim();
+}
 
 function extractWikiLinks(content) {
+  const stripped = stripCodeSpans(content);
   const targets = new Set();
+  const re = wikilinkRegex();
   let m;
-  while ((m = WIKILINK_RE.exec(content)) !== null) {
-    targets.add(m[1].trim());
+  while ((m = re.exec(stripped)) !== null) {
+    const target = extractWikiLinkTarget(m[1]);
+    if (target.length > 0) targets.add(target);
   }
   return [...targets];
 }
 
+// ── Pass 1: read every file ONCE ────────────────────────────────────────────
+// Builds the record set the link-target register (below) and the validation
+// loop (further down) both consume. Net-neutral on I/O versus the previous
+// shape, which read the file once but ran the frontmatter match twice.
+// A malformed note must never abort this pass — every failure is recorded on
+// the record and surfaced later by the validation loop.
+const records = [];
+for (const file of mdFiles) {
+  const rel = relative(vaultDir, file);
+  let raw;
+  try {
+    raw = readFileSync(file, 'utf8');
+  } catch (err) {
+    records.push({ file, rel, readError: err.message || String(err) });
+    continue;
+  }
+  let fm;
+  let links;
+  try {
+    fm = parseFrontmatter(raw);
+    const body = raw.slice(raw.match(FRONTMATTER_RE)?.[0].length || 0);
+    links = extractWikiLinks(body);
+  } catch (err) {
+    fm = { hasFrontmatter: true, parseError: err.message || String(err) };
+    links = [];
+  }
+  records.push({ file, rel, fm, links });
+}
+
+// ── Link-target register ────────────────────────────────────────────────────
+// Keys: basename-without-ext, frontmatter `id`, and every frontmatter `aliases`
+// entry (#833). Keys are normalized NFC + lowercase at BOTH insert and lookup:
+// NFC is required, not cosmetic — APFS returns decomposed (NFD) filenames and
+// this is a German-language corpus, so "Übung" from a filename and "Übung" from
+// a YAML string would otherwise be different strings. Values are already
+// arrays, so a case-collision (Topic.md + topic.md) merely appends.
+const fileIndex = new Map(); // normalized key -> [absolute paths]
+
+function indexKey(k) {
+  return String(k).normalize('NFC').toLowerCase();
+}
+
+function addIndexKey(key, file) {
+  if (typeof key !== 'string' || key.length === 0) return;
+  const k = indexKey(key);
+  if (!fileIndex.has(k)) fileIndex.set(k, []);
+  fileIndex.get(k).push(file);
+}
+
+for (const rec of records) {
+  addIndexKey(basename(rec.file, '.md'), rec.file);
+  const data = rec.fm && rec.fm.hasFrontmatter && !rec.fm.parseError ? rec.fm.data : null;
+  if (!data || typeof data !== 'object') continue;
+  // Type-guard: `id` must be a string, `aliases` an array of strings. A note
+  // with `aliases: some-scalar` contributes no alias keys instead of throwing.
+  if (typeof data.id === 'string') addIndexKey(data.id, rec.file);
+  if (Array.isArray(data.aliases)) {
+    for (const alias of data.aliases) addIndexKey(alias, rec.file);
+  }
+}
+
 function resolveWikiLink(target, sourceFile) {
   // Target may be a bare name ("my-note") or a path ("01-projects/foo/_overview").
-  // Try exact path first (relative to vault), then basename lookup.
+  // Try exact path first (relative to vault), then register lookup.
   const candidate1 = resolve(vaultDir, target.endsWith('.md') ? target : target + '.md');
   if (existsSync(candidate1)) return true;
 
@@ -431,9 +661,8 @@ function resolveWikiLink(target, sourceFile) {
   );
   if (existsSync(candidate2)) return true;
 
-  // Try basename lookup anywhere in index
-  const key = basename(target, '.md');
-  if (fileIndex.has(key)) return true;
+  // Try register lookup anywhere in the vault (basename / id / alias)
+  if (fileIndex.has(indexKey(basename(target, '.md')))) return true;
 
   return false;
 }
@@ -443,32 +672,52 @@ const errors = [];
 const warnings = [];
 let filesChecked = 0;
 let filesSkippedNoFrontmatter = 0;
+// The paths behind the count (#1013). A bare count made "0 errors" ambiguous:
+// it meant "everything CHECKED is valid", never "everything is valid", and the
+// operator had no way to see WHICH files were never checked. The list is
+// emitted only by the branches that actually ran the validation pass — so an
+// ABSENT `files_skipped_no_frontmatter_paths` means "never inspected" (mode=off,
+// no vault) while an EMPTY one means "inspected, nothing skipped". Same
+// absence-preserving contract as `scripts/lib/reconcile-nudge-banner.mjs`
+// (`skippedCandidates`), which distinguishes never-checked from checked-clean.
+const filesSkippedNoFrontmatterPaths = [];
+// Ceiling: 50 paths keeps the envelope bounded on a vault that has never been
+// backfilled (real measurement 2026-08-15: 2 of 8574 files in the live vault).
+// `paths.length < files_skipped_no_frontmatter` is itself the truncation
+// signal, so no extra flag is needed. Revisit if a consuming vault routinely
+// reports more than 50 — then the right fix is a backfill, not a bigger cap.
+const SKIPPED_PATHS_CAP = 50;
 let excludedCount = 0;
+let archivedSkippedCount = 0;
 
 const todayIso = new Date().toISOString().slice(0, 10);
 
-for (const file of mdFiles) {
-  const rel = relative(vaultDir, file);
+// ── Pass 2: validate ────────────────────────────────────────────────────────
+for (const rec of records) {
+  const { file, rel, fm } = rec;
   if (isExcluded(rel)) {
     excludedCount++;
     continue;
   }
-  let raw;
-  try {
-    raw = readFileSync(file, 'utf8');
-  } catch (err) {
+  // Archived notes stay in the link-target register but are never CHECKED.
+  if (isArchived(rel)) {
+    archivedSkippedCount++;
+    continue;
+  }
+  if (rec.readError) {
     errors.push({
       file: rel,
       path: '',
-      message: `Cannot read file: ${err.message || err}`,
+      message: `Cannot read file: ${rec.readError}`,
     });
     continue;
   }
 
-  const fm = parseFrontmatter(raw);
-
   if (!fm.hasFrontmatter) {
     filesSkippedNoFrontmatter++;
+    if (filesSkippedNoFrontmatterPaths.length < SKIPPED_PATHS_CAP) {
+      filesSkippedNoFrontmatterPaths.push(rel);
+    }
     continue;
   }
 
@@ -495,10 +744,8 @@ for (const file of mdFiles) {
     // Even if frontmatter is invalid, still check wiki-links to surface all problems.
   }
 
-  // Wiki-link check
-  const body = raw.slice(raw.match(FRONTMATTER_RE)?.[0].length || 0);
-  const links = extractWikiLinks(body);
-  for (const target of links) {
+  // Wiki-link check (links were extracted in pass 1)
+  for (const target of rec.links) {
     if (!resolveWikiLink(target, file)) {
       warnings.push({
         file: rel,
@@ -521,6 +768,19 @@ for (const file of mdFiles) {
 }
 
 const hasErrors = errors.length > 0;
+
+// Silence is not success: a skipped file contributes to neither `errors` nor
+// `files_checked`, so a bare "0 errors" line would let an unvalidated file pass
+// unremarked at the session-end hard gate (#1013). Surface the count on stderr
+// too — stdout stays pure JSON per the caller contract.
+if (filesSkippedNoFrontmatter > 0) {
+  const shown = filesSkippedNoFrontmatterPaths.slice(0, 5).join(', ');
+  const more = filesSkippedNoFrontmatter - Math.min(5, filesSkippedNoFrontmatterPaths.length);
+  process.stderr.write(
+    `WARN: ${filesSkippedNoFrontmatter} file(s) NOT validated — no frontmatter: ` +
+      `${shown}${more > 0 ? ` (+${more} more)` : ''}\n`,
+  );
+}
 
 // ── mode=baseline ─────────────────────────────────────────────────────────
 // Serialize current errors + warnings as a snapshot, then exit 0.
@@ -557,7 +817,9 @@ if (mode === 'diff') {
       vault_dir: vaultDir,
       files_checked: filesChecked,
       excluded_count: excludedCount,
+      archived_skipped_count: archivedSkippedCount,
       files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
+      files_skipped_no_frontmatter_paths: filesSkippedNoFrontmatterPaths,
       errors,
       warnings,
     });
@@ -576,7 +838,9 @@ if (mode === 'diff') {
       vault_dir: vaultDir,
       files_checked: filesChecked,
       excluded_count: excludedCount,
+      archived_skipped_count: archivedSkippedCount,
       files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
+      files_skipped_no_frontmatter_paths: filesSkippedNoFrontmatterPaths,
       errors,
       warnings,
     });
@@ -597,7 +861,9 @@ if (mode === 'diff') {
     vault_dir: vaultDir,
     files_checked: filesChecked,
     excluded_count: excludedCount,
+    archived_skipped_count: archivedSkippedCount,
     files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
+    files_skipped_no_frontmatter_paths: filesSkippedNoFrontmatterPaths,
   });
 
   process.stderr.write(
@@ -608,7 +874,8 @@ if (mode === 'diff') {
 }
 
 // ── mode=full | hard | warn ───────────────────────────────────────────────
-// 'full' and 'hard' are identical (hard is the legacy alias).
+// 'full' and 'hard' are identical (hard is the legacy alias; 'strict' was
+// normalized to 'hard' at parse time — see normalizeMode, #835).
 // In warn mode, errors are reported but the status is "ok" for exit-code purposes.
 // The errors array is still populated so the caller can surface them as warnings.
 const status = hasErrors ? (mode === 'warn' ? 'ok' : 'invalid') : 'ok';
@@ -618,7 +885,9 @@ emit({
   vault_dir: vaultDir,
   files_checked: filesChecked,
   excluded_count: excludedCount,
+  archived_skipped_count: archivedSkippedCount,
   files_skipped_no_frontmatter: filesSkippedNoFrontmatter,
+  files_skipped_no_frontmatter_paths: filesSkippedNoFrontmatterPaths,
   errors,
   warnings,
 });

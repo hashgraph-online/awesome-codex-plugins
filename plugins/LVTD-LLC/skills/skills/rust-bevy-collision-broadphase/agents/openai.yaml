@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Bevy Collision Broadphase"
+  short_description: "Scale Bevy 2D collision checks"
+  default_prompt: "Use $rust-bevy-collision-broadphase to optimize this Bevy collision system without changing gameplay behavior."

@@ -1,0 +1,19 @@
+{
+  "skill_name": "social-proof-evidence",
+  "evals": [
+    {
+      "id": 1,
+      "name": "b2b-proof-selection",
+      "prompt": "We have 12 customer quotes and usage data. Decide which proof to put on a B2B landing page and explain why.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "testimonial-audit",
+      "prompt": "Audit these testimonials for credibility, specificity, similarity, and fake-proof risk.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

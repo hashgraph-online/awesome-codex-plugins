@@ -1,0 +1,41 @@
+{
+  "name": "babok_analyst",
+  "version": "2.2.8",
+  "description": "BABOK v3 business analysis agent with 16 MCP tools, 9 stage resources, and human-in-the-loop approval gates.",
+  "author": {
+    "name": "Grzegorz Skuza",
+    "url": "https://github.com/GSkuza"
+  },
+  "homepage": "https://github.com/GSkuza/BABOK_ANALYST",
+  "repository": "https://github.com/GSkuza/BABOK_ANALYST",
+  "license": "MIT",
+  "keywords": [
+    "babok",
+    "business-analysis",
+    "requirements",
+    "mcp",
+    "productivity"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/claude-codex-hooks.json",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BABOK Analyst",
+    "shortDescription": "BABOK v3 business analysis pipeline",
+    "longDescription": "Structured 9-stage BABOK analysis with MCP project lifecycle tools, stage prompts, and human approval gates.",
+    "developerName": "Grzegorz Skuza",
+    "category": "Productivity",
+    "capabilities": [
+      "Instructions",
+      "Lifecycle hooks",
+      "MCP tools"
+    ],
+    "websiteURL": "https://github.com/GSkuza/BABOK_ANALYST",
+    "composerIcon": "./assets/icon.svg",
+    "defaultPrompt": [
+      "Start a new BABOK analysis project.",
+      "Continue the current BABOK project at the active stage.",
+      "Review the deliverable for the current stage."
+    ]
+  }
+}

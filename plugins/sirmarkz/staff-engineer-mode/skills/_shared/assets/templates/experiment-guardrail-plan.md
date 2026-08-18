@@ -2,10 +2,20 @@
 
 ## Hypothesis
 
-## Assignment And Exposure
+## Assignment, Exposure, And Primary Population
 
-| Unit | Assignment Method | Exposure Control | Collision/Leakage Check |
-| --- | --- | --- | --- |
+| Ship Population | Unit | Assignment Method | Exposure Rule | Intent-To-Treat Population | Collision/Leakage Check |
+| --- | --- | --- | --- | --- | --- |
+
+## Triggered Analysis
+
+| Trigger | Counterfactual Trigger Valid? | Treatment/Control Measurement Parity | Untriggered Complement | Ship-Population Translation | Predeclared Estimand Role |
+| --- | --- | --- | --- | --- | --- |
+
+## Power And Analysis Plan
+
+| Decision Estimand | Minimum Detectable Effect | Required Sample Size | Power | Runtime/Stopping Rule | Multiplicity/False-Positive Control |
+| --- | --- | --- | --- | --- | --- |
 
 ## Metrics
 

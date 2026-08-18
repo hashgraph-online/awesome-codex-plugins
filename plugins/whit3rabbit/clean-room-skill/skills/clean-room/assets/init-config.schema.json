@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Initialization Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "config_id",
+    "created_at",
+    "artifact_base_root",
+    "root_preferences",
+    "target_profile",
+    "model_preferences",
+    "clean_isolation",
+    "user_rules",
+    "reconfiguration_policy"
+  ],
+  "properties": {
+    "config_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artifact_base_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "root_preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_roots",
+        "contaminated_artifact_root",
+        "clean_root",
+        "implementation_roots",
+        "quarantine_root",
+        "approved_public_reference_roots"
+      ],
+      "properties": {
+        "source_roots": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "contaminated_artifact_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clean_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "quarantine_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approved_public_reference_roots": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "target_profile": {
+      "$ref": "#/$defs/target_profile"
+    },
+    "model_preferences": {
+      "$ref": "#/$defs/model_preferences"
+    },
+    "clean_isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "clean_agents_start_cwd",
+        "source_mounted"
+      ],
+      "properties": {
+        "mode": {
+          "const": "clean-workspace"
+        },
+        "clean_agents_start_cwd": {
+          "const": "clean_root"
+        },
+        "source_mounted": {
+          "const": false
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "execution_policy": {
+      "$ref": "#/$defs/execution_policy"
+    },
+    "user_rules": {
+      "$ref": "#/$defs/user_rules"
+    },
+    "reconfiguration_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root_changes_require_confirmation",
+        "schema_changes_require_confirmation",
+        "model_changes_require_confirmation",
+        "artifact_root_changes_start_new_generation"
+      ],
+      "properties": {
+        "root_changes_require_confirmation": {
+          "const": true
+        },
+        "schema_changes_require_confirmation": {
+          "const": true
+        },
+        "model_changes_require_confirmation": {
+          "const": true
+        },
+        "artifact_root_changes_start_new_generation": {
+          "const": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "target_profile": {
+      "enum": [
+        "openspec-delta",
+        "gsd-planning-package",
+        "speckit-feature-folder",
+        "kiro-spec-folder"
+      ]
+    },
+    "role": {
+      "enum": [
+        "contaminated-manager-verifier",
+        "contaminated-source-analyst",
+        "contaminated-handoff-sanitizer",
+        "clean-architect",
+        "clean-qa-editor"
+      ]
+    },
+    "execution_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend",
+        "preferred_container_profile",
+        "network_policy",
+        "dependency_install_policy",
+        "allow_native_toolchain",
+        "resource_limits"
+      ],
+      "properties": {
+        "backend": {
+          "enum": [
+            "host",
+            "docker",
+            "podman"
+          ]
+        },
+        "preferred_container_profile": {
+          "enum": [
+            "node22",
+            "python312",
+            "go126",
+            "rust-stable"
+          ]
+        },
+        "network_policy": {
+          "enum": [
+            "off",
+            "deps-only",
+            "on"
+          ]
+        },
+        "dependency_install_policy": {
+          "enum": [
+            "offline",
+            "locked",
+            "allow-new"
+          ]
+        },
+        "allow_native_toolchain": {
+          "type": "boolean"
+        },
+        "resource_limits": {
+          "$ref": "#/$defs/resource_limits"
+        }
+      }
+    },
+    "resource_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpus",
+        "memory_mb",
+        "timeout_seconds"
+      ],
+      "properties": {
+        "cpus": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 65536
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        }
+      }
+    },
+    "model_preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_model"
+      ],
+      "properties": {
+        "default_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contaminated": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clean": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "role_overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "model"
+            ],
+            "properties": {
+              "role": {
+                "$ref": "#/$defs/role"
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "user_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clean_safe",
+        "contaminated_only"
+      ],
+      "properties": {
+        "clean_safe": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "contaminated_only": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

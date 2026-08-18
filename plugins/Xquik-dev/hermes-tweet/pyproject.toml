@@ -1,0 +1,147 @@
+# SPDX-FileCopyrightText: 2026 Xquik Contributors
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hermes-tweet"
+version = "0.1.12"
+description = "Native Hermes Agent plugin for X/Twitter automation through Xquik. Not affiliated with X Corp."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Xquik" }]
+dependencies = [
+  "httpx>=0.28.1,<0.29",
+]
+keywords = [
+  "agent-skill",
+  "agent-tools",
+  "ai-agent",
+  "automation",
+  "hermes-agent",
+  "hermes-plugin",
+  "social-media",
+  "tweet",
+  "twitter",
+  "twitter-api",
+  "twitter-automation",
+  "x",
+  "x-api",
+  "x-automation",
+  "x-twitter",
+  "xquik",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Plugins",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Communications",
+  "Topic :: Internet",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[dependency-groups]
+dev = [
+  "bandit[toml]>=1.9.4",
+  "basedpyright>=1.39.9",
+  "build>=1.5.0",
+  "pip-audit>=2.10.1",
+  "PyYAML>=6.0.3",
+  "pytest>=9.1.1",
+  "pytest-cov>=7.1.0",
+  "ruff>=0.15.20",
+  "twine>=6.2.0",
+  "types-PyYAML>=6.0.12.20260518",
+]
+
+[project.urls]
+Homepage = "https://github.com/Xquik-dev/hermes-tweet#readme"
+Documentation = "https://github.com/Xquik-dev/hermes-tweet#readme"
+Repository = "https://github.com/Xquik-dev/hermes-tweet"
+Issues = "https://github.com/Xquik-dev/hermes-tweet/issues"
+ClawHub = "https://clawhub.ai/xquik/hermes-tweet"
+DeepWiki = "https://deepwiki.com/Xquik-dev/hermes-tweet"
+piwheels = "https://piwheels.org/project/hermes-tweet/"
+"Xquik Platform" = "https://xquik.com"
+
+[project.entry-points."hermes_agent.plugins"]
+hermes-tweet = "hermes_tweet"
+
+[tool.hatch.build.targets.wheel]
+packages = ["hermes_tweet"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/.claude-plugin",
+  "/.codex-plugin",
+  "/assets",
+  "/dashboard",
+  "/hermes_tweet",
+  "/scripts",
+  "/tests",
+  "/.codexignore",
+  "/.hermes-eco.json",
+  "/LICENSE",
+  "/MANIFEST.in",
+  "/README.md",
+  "/SECURITY.md",
+  "/after-install.md",
+  "/plugin.yaml",
+  "/pyproject.toml",
+  "/skill.json",
+  "/uv.lock",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["hermes_tweet", "scripts", "tests"]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "ANN401",
+  "BLE001",
+  "COM812",
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D203",
+  "D213",
+  "ISC001",
+  "N999",
+  "TRY300",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D105", "D107", "EM101", "PLR2004", "S101", "TRY003"]
+"scripts/**/*.py" = ["T201"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hermes_tweet"]
+
+[tool.basedpyright]
+include = ["hermes_tweet", "scripts", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+
+[tool.coverage.run]
+source = ["hermes_tweet", "tests"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = []

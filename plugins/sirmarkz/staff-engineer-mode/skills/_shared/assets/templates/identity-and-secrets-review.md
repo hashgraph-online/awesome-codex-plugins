@@ -67,13 +67,8 @@
 
 ## Audit Store Integrity
 
-| Record Class | Tamper-Evident Or Append-Only Mechanism | Completeness-Under-Load Check | Access Control | Retention |
-| --- | --- | --- | --- | --- |
-
-## Cryptography Decision
-
-| Use | Algorithm/Key Type | Decision | Rotation/Transition Note |
-| --- | --- | --- | --- |
+| Record Class | Minimum Fields | Prohibited Fields | Redaction | Tamper-Evident Or Append-Only Mechanism | Completeness-Under-Load Check | Access | Retention And Disposal | Volume Bounds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Migration Plan
 

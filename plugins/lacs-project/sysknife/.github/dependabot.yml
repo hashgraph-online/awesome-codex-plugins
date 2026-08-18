@@ -1,0 +1,90 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    # Cooldown holds version-update PRs until a freshly published crate has had
+    # time to be vetted by the wider ecosystem, mitigating the "install a
+    # compromised release within hours of publication" supply-chain risk. This
+    # only delays routine version bumps; Dependabot *security* updates are not
+    # subject to cooldown, so a real advisory still opens a PR immediately.
+    cooldown:
+      default-days: 5
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    # Bundle minor + patch bumps into a single PR; major bumps stay separate so
+    # a breaking change (e.g. sqlx 0.8 -> 0.9) is isolated and reviewable alone.
+    groups:
+      cargo-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/sysknife-shell"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    cooldown:
+      default-days: 5
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    # Actions are already SHA-pinned; a short cooldown still avoids racing to
+    # adopt a tag that was re-pointed at a bad commit moments earlier.
+    #
+    # This only works for pins that sit ON a release tag. Dependabot derives an
+    # action's current version from the tag containing the pinned SHA; pin an
+    # untagged commit and it has no version to reason about, so it follows the
+    # default branch instead — and cooldown, which ages *releases*, never fires.
+    #
+    # Two pins track a branch deliberately, because that is how those actions
+    # ship: `dtolnay/rust-toolchain` (comment `stable`) and
+    # `trufflesecurity/trufflehog` (comment `main`). Their comments name a
+    # branch, not a version, so the absent cooldown is visible on the line.
+    #
+    # Every other pin must carry an exact version comment (`# v2.9.2`) and the
+    # SHA must be that tag's commit. `Swatinem/rust-cache` was pinned to an
+    # untagged commit while its comment claimed `# v2`, so it silently tracked
+    # `master` HEAD across all six call sites, cooldown included nowhere. A
+    # comment that names a version the SHA is not on is the tell.
+    cooldown:
+      default-days: 5
+    # Action bumps are low-risk; keep them in one grouped PR.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    # The Glama MCP image (`Dockerfile`) pins its base images by floating tag
+    # (rust:1-bookworm, debian:bookworm-slim). Track them so a bad base-image
+    # publish is caught; same cooldown rationale as the other ecosystems.
+    cooldown:
+      default-days: 5

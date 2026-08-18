@@ -26,5 +26,5 @@ Gate: outline.md exists, all chapters specified, cross-reference map written.
 Update the project dashboard status:
 
 ```bash
-node {PLUGIN_ROOT}/skills/book-status/scripts/scan-project.js [project-dir] --plugin-root={PLUGIN_ROOT}
+node {PLUGIN_ROOT}/velith.mjs scan [project-dir] --plugin-root={PLUGIN_ROOT}
 ```

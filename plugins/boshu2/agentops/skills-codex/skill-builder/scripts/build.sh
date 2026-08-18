@@ -1,92 +1,54 @@
 #!/usr/bin/env bash
-# build.sh — skill-builder mode dispatcher
-# Usage:
-#   build.sh from-scratch <skill-name>
-#   build.sh from-template <skill-name> --like <existing-skill>
-#   build.sh absorb-external <skill-name> --from <path-to-external-SKILL.md>
-#   build.sh from-pattern   # alpha: passthrough to ao flywheel close-loop
-#
-# Always runs skill-auditor on the new skill as a self-check before declaring success.
-
+# Create, structurally check, and project one skill exactly once.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-INIT_SH="$SCRIPT_DIR/init.sh"
-AUDITOR_SH="$REPO_ROOT/skills/skill-auditor/scripts/audit.sh"
+REPO_ROOT="${SKILL_BUILDER_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 
 usage() {
-  cat <<EOF
-Usage:
-  $0 from-scratch <skill-name>
-  $0 from-template <skill-name> --like <existing-skill>
-  $0 absorb-external <skill-name> --from <path-to-external-SKILL.md>
-  $0 from-pattern    # alpha: passthrough to ao flywheel close-loop
-
-Modes:
-  from-scratch     Interactive scaffold from canonical template
-  from-template    Copy structure from a sibling skill
-  absorb-external  Wrap an external SKILL.md in AgentOps frontmatter
-  from-pattern     ALPHA — delegates to 'ao flywheel close-loop'.
-                   Outputs at .agents/knowledge/promoted/, NOT shaped as SKILL.md drafts.
-                   Use from-scratch or absorb-external for SKILL.md output today.
+  cat >&2 <<EOF
+usage:
+  build.sh from-scratch <slug>
+  build.sh from-template <slug> --like <existing-slug>
+  build.sh absorb-external <slug> --from <path>
 EOF
   exit 2
 }
 
-[[ $# -lt 1 ]] && usage
+[[ $# -ge 2 ]] || usage
+mode="$1"
+slug="$2"
+shift 2
 
-MODE="$1"
-shift
-
-case "$MODE" in
-  from-pattern)
-    # Alpha passthrough — explicitly documented in SKILL.md
-    echo "[skill-builder] from-pattern is ALPHA — delegating to 'ao flywheel close-loop'"
-    echo "[skill-builder] Output will NOT be a SKILL.md draft; it lands at .agents/knowledge/promoted/"
-    exec ao flywheel close-loop "$@"
-    ;;
-
-  from-scratch)
-    [[ $# -lt 1 ]] && { echo "Error: from-scratch requires <skill-name>" >&2; usage; }
-    SKILL_NAME="$1"; shift
-    bash "$INIT_SH" --interactive "$SKILL_NAME" "$@"
-    ;;
-
-  from-template)
-    [[ $# -lt 1 ]] && { echo "Error: from-template requires <skill-name>" >&2; usage; }
-    SKILL_NAME="$1"; shift
-    bash "$INIT_SH" --like-flag-mode "$SKILL_NAME" "$@"
-    ;;
-
-  absorb-external)
-    [[ $# -lt 1 ]] && { echo "Error: absorb-external requires <skill-name>" >&2; usage; }
-    SKILL_NAME="$1"; shift
-    bash "$INIT_SH" --absorb "$SKILL_NAME" "$@"
-    ;;
-
-  *)
-    echo "Error: unknown mode '$MODE'" >&2
-    usage
-    ;;
+case "$mode" in
+  from-scratch) init_mode=--scratch ;;
+  from-template) init_mode=--template ;;
+  absorb-external) init_mode=--external ;;
+  *) usage ;;
 esac
 
-# Post-build self-audit (mandatory per Critical Constraints)
-NEW_SKILL_DIR="$REPO_ROOT/skills/$SKILL_NAME"
-if [[ ! -d "$NEW_SKILL_DIR" ]]; then
-  echo "[skill-builder] ERROR: expected $NEW_SKILL_DIR to exist after init.sh" >&2
+bash "$SCRIPT_DIR/init.sh" "$init_mode" "$slug" "$@"
+
+report="$REPO_ROOT/.agents/scratch/skill-builder/${slug}-build.json"
+if ! HEAL_REPO_ROOT="$REPO_ROOT" bash "$REPO_ROOT/skills/skill-builder/scripts/heal.sh" \
+  --check --strict "$REPO_ROOT/skills/$slug"; then
+  echo "skill-builder: structural check failed" >&2
   exit 1
 fi
 
-if [[ -x "$AUDITOR_SH" ]]; then
-  echo ""
-  echo "[skill-builder] Running self-audit on $NEW_SKILL_DIR..."
-  if bash "$AUDITOR_SH" "$NEW_SKILL_DIR"; then
-    echo "[skill-builder] Self-audit PASS or WARN — build complete"
-  else
-    echo "[skill-builder] Self-audit FAIL — build aborted" >&2
-    exit 1
-  fi
-else
-  echo "[skill-builder] WARN: skill-auditor not found at $AUDITOR_SH; skipping self-audit" >&2
-fi
+python3 "$REPO_ROOT/scripts/generate-skill-mesh.py"
+bash "$REPO_ROOT/scripts/codex-sync.sh" --only "$slug"
+bash "$REPO_ROOT/scripts/regen-codex-hashes.sh" --only "$slug"
+
+python3 - "$report" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+payload = json.loads(path.read_text(encoding="utf-8"))
+payload["structure_check_pass"] = True
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+echo "skill-builder: created and projected $slug"

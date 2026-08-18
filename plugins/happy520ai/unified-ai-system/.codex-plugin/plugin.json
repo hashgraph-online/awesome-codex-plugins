@@ -1,0 +1,43 @@
+{
+  "name": "unified-ai-system",
+  "version": "0.5.0",
+  "description": "Connect Codex to a self-hosted AI gateway with provider-free prompt enhancement and twelve governed MCP tools.",
+  "author": {
+    "name": "happy520ai",
+    "url": "https://github.com/happy520ai"
+  },
+  "homepage": "https://happy520ai.github.io/unified-ai-system/",
+  "repository": "https://github.com/happy520ai/unified-ai-system",
+  "license": "Apache-2.0",
+  "keywords": [
+    "ai-gateway",
+    "codex",
+    "docker",
+    "mcp",
+    "prompt-engineering",
+    "self-hosted"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Unified AI System",
+    "shortDescription": "Enhance prompts and operate a local gateway through twelve governed MCP tools.",
+    "longDescription": "Turn rough requests into structured prompts locally, inspect gateway and knowledge readiness, run deterministic credential-free chat, and inspect workflow and workforce state through an isolated local gateway.",
+    "developerName": "happy520ai",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://happy520ai.github.io/unified-ai-system/",
+    "privacyPolicyURL": "https://github.com/happy520ai/unified-ai-system/blob/master/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/happy520ai/unified-ai-system/blob/master/LICENSE",
+    "defaultPrompt": "Improve my request with gateway_prompt_enhance, then check Unified AI System health and show the safest available next action.",
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/terminal-demo.png"
+    ]
+  }
+}

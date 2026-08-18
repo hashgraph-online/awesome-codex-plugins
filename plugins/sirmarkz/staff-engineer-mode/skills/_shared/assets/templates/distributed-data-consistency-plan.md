@@ -15,10 +15,15 @@
 | Option | Decision | Rejected Alternatives | Reversal/Isolation Path |
 | --- | --- | --- | --- |
 
-## Replication And Conflict Resolution
+## Conflict Prevention Or Resolution
 
-| Flow | Replication Method | Conflict Rule | Reconciliation | Alert |
-| --- | --- | --- | --- | --- |
+| Operation | Prevent/Reject/Retry/Resolve | Mechanism | Concurrent-Write Outcome | Reconciliation | User-Visible Result |
+| --- | --- | --- | --- | --- | --- |
+
+## Quorum Assumptions
+
+| Operation | Replica-Set Membership | Read/Write Set Overlap | Acknowledgement And Durability | Version Ordering | Concurrent-Write Rule | Sloppy/Hinted Behavior | Failure Assumptions | Repair |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Sharding, Hot Keys, And Tenant Routing
 

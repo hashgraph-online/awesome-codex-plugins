@@ -1,0 +1,26 @@
+display_name: Reviewable Design Doc
+short_description: レビュー可能な設計資料HTMLを作り、コメント反映まで扱う / Build review-ready HTML design docs.
+default_prompt: Create a reviewable design doc in HTML / 設計資料をレビュー可能なHTMLで作って
+trigger_examples:
+  - レビュー可能な設計資料
+  - 設計資料をHTMLで
+  - design doc
+  - reviewable design doc
+  - レビュー終わったので確認して
+  - コメントを反映して
+  - create a reviewable design doc
+  - make a design doc in HTML
+  - build a review-ready design document
+  - ingest review comments
+  - process review comments
+  - reply to review comments
+  - apply resolved comments
+entrypoint: python3 -m scripts.html_review_workbench.cli
+working_directory: plugin_root
+workflow:
+  - attach-image
+  - check-model
+  - render
+  - validate
+  - preview
+  - ingest-review

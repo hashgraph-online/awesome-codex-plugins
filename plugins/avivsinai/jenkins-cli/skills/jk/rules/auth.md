@@ -13,7 +13,7 @@ jk auth <command> [flags]
 | Subcommand | Description | Key Flags |
 |---|---|---|
 | [login](#jk-auth-login) | Authenticate to Jenkins and persist a context | `--allow-insecure-store`, `--ca-file`, `--insecure`, `--name` |
-| [logout](#jk-auth-logout) | Remove credentials for a context | `--context` |
+| [logout](#jk-auth-logout) | Remove credentials for a context | — |
 | [status](#jk-auth-status) | Display authentication status | — |
 
 ## jk auth login
@@ -34,10 +34,11 @@ jk auth login <url> [flags]
 | `--ca-file` |  | Custom CA bundle for TLS verification |
 | `--insecure` |  | Skip TLS certificate verification |
 | `--name` |  | Context name (defaults to Jenkins hostname) |
+| `--no-verify` |  | Skip credential verification against the controller |
 | `--proxy` |  | Proxy URL for this context |
 | `--set-active` |  | Set the context as active after login |
 | `--token` |  | Jenkins API token |
-| `--username` |  | Jenkins user ID (Google/SSO users: usually your email) |
+| `--username` |  | Jenkins user ID (SSO users: use browser /whoAmI/api/json if unsure) |
 
 ### Inherited Flags
 
@@ -61,16 +62,11 @@ Remove credentials for a context
 jk auth logout [context] [flags]
 ```
 
-### Flags
-
-| Flag | Short | Description |
-|---|---|---|
-| `--context` |  | Context name to remove (defaults to active) |
-
 ### Inherited Flags
 
 | Flag | Short | Description |
 |---|---|---|
+| `--context` | `-c` | Active Jenkins context name (or set JK_CONTEXT env var) |
 | `--format` |  | Output format: json, yaml |
 | `--jq` |  | Filter JSON output using jq expression (requires --json or --format=json) |
 | `--json` |  | Output in JSON format when supported |
@@ -85,7 +81,7 @@ Display authentication status
 ### Usage
 
 ```
-jk auth status [flags]
+jk auth status [context] [flags]
 ```
 
 ### Inherited Flags

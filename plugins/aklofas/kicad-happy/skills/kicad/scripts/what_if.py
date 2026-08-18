@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "..", "..", "spice", "scripts"))
 
 from kicad_utils import parse_value
-from finding_schema import group_findings_legacy, is_old_schema
+from finding_schema import group_findings_by_detection_type, is_old_schema
 
 
 @dataclass
@@ -363,7 +363,7 @@ def _run_spice_comparison(affected: list, patched_dets: list,
 def _run_sweep(analysis: dict, sweep: SweepSpec, fixed_changes: dict,
                spice: bool = False) -> dict:
     """Run the what-if pipeline for each sweep value, collect tabular results."""
-    signal = group_findings_legacy(analysis)
+    signal = group_findings_by_detection_type(analysis)
     results_per_step = []
 
     for val, val_str in zip(sweep.values, sweep.value_strs):
@@ -405,7 +405,7 @@ def _run_tolerance(analysis: dict, changes: dict, spice: bool = False) -> list:
     Evaluates all 2^N corner combinations (each component at +tol and -tol).
     Capped at 6 components (64 corners).
     """
-    signal = group_findings_legacy(analysis)
+    signal = group_findings_by_detection_type(analysis)
 
     # Resolve tolerances (use defaults for components without explicit tolerance)
     _DEFAULT_TOL = {"C": 0.10, "VC": 0.10, "L": 0.20}  # everything else = 0.05
@@ -1272,14 +1272,27 @@ def main():
                         help="Target value for --fix (e.g., 3.3 for Vout, 1000 for Hz)")
     parser.add_argument("--suggest-fixes", action="store_true",
                         help="Scan analysis for fixable issues and suggest component changes")
+    parser.add_argument("--only-deterministic", action="store_true",
+                        help="Read raw analysis/<run>/<analyzer>.json instead of "
+                             "analysis/merged/<run>/<analyzer>.json. "
+                             "Strips Layer 2 overlays for CI/offline use (Phase 4 spec §3.4).")
     args = parser.parse_args()
 
     if not args.changes and not args.fix and not args.suggest_fixes:
         parser.error("at least one REF=VALUE change, --fix, or --suggest-fixes is required")
 
-    # Load analysis JSON
+    # Load analysis JSON (honor --only-deterministic: skip merged/ overlay)
+    def _resolve_input_path(path):
+        from pathlib import Path
+        p = Path(path)
+        if not args.only_deterministic:
+            candidate = p.parent.parent / "merged" / p.parent.name / p.name
+            if candidate.exists():
+                return candidate
+        return p
+
     try:
-        with open(args.input) as f:
+        with open(_resolve_input_path(args.input)) as f:
             analysis = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading {args.input}: {e}", file=sys.stderr)
@@ -1291,7 +1304,7 @@ def main():
               "findings[] format.", file=sys.stderr)
         sys.exit(1)
 
-    signal = group_findings_legacy(analysis)
+    signal = group_findings_by_detection_type(analysis)
     if not signal:
         print("Error: no subcircuit findings in input JSON", file=sys.stderr)
         sys.exit(1)

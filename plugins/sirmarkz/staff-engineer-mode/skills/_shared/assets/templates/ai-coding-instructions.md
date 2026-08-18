@@ -40,7 +40,7 @@
 | Exception | Confirmed By | Expiry | Follow-Up |
 | --- | --- | --- | --- |
 
-## Traceability Checklist
+## Traceability And Record Handling
 
-| Artifact | Linked To | Evidence |
-| --- | --- | --- |
+| Artifact | Linked To | Minimum Evidence | Prohibited Fields | Redaction Or Pseudonymization | Access | Retention And Disposal | Integrity | Volume Bounds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |

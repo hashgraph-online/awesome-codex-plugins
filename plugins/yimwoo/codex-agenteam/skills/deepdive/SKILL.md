@@ -14,7 +14,8 @@ and strategic priorities. Expect 30-60 seconds for completion.
 
 ### 1. Auto-Init Guard
 
-Check for `.agenteam/config.yaml` (or legacy `agenteam.yaml`) in the project root. If missing:
+Check for `.agenteam/config.yaml`, `.agenteam.team/config.yaml`, or legacy
+`agenteam.yaml` in the project root. If all are missing:
 - Create config dir: `mkdir -p .agenteam`
 - Copy the template: `cp <plugin-dir>/templates/agenteam.yaml.template .agenteam/config.yaml`
 - Set the team name to the project directory name
@@ -39,6 +40,13 @@ dispatch info):
 - `artifact_paths` -- map of role name to artifact directory
 - `output_path` -- where to write the final report (e.g., `docs/meetings/<timestamp>-deepdive.md`)
 - `dispatch` -- list of `{role, agent}` objects for the three specialist roles (researcher, architect, pm)
+
+Create a durable checkpoint at `.agenteam/deepdive/<run_id>.json` before
+dispatch. Record `max_elapsed_minutes` (default 60), `max_agents` (default 2
+concurrent specialists), each role's attempt/thread ID, last heartbeat, output
+artifact, and stop reason. On restart, validate completed artifacts and resume
+only missing or interrupted roles; never repeat a completed specialist solely
+because the controller restarted.
 
 ### 3. Dispatch Specialist Agents in Parallel
 
@@ -139,6 +147,12 @@ Gather the outputs from all three subagents:
 If any agent fails, include an error note in that section and continue
 with the available outputs.
 
+Update the checkpoint and emit a heartbeat whenever a specialist reports
+progress. Enforce the elapsed and agent budgets. A timed-out specialist is
+recorded as interrupted; if it has a resumable thread, resume it before
+considering a fresh attempt. Synthesis is its own checkpoint and starts only
+after the Researcher/Architect terminal states are durable.
+
 ### 5. Synthesize Deepdive Report
 
 Combine all three outputs into a single report using this format:
@@ -215,6 +229,7 @@ Resolve the AgenTeam runtime:
 
 ## Performance Target
 
-Expected completion: 30-60 seconds. The Researcher and Architect run
-in parallel (each ~15-30s), followed by the PM (~15-30s) which reads
-their outputs.
+Fast runs may finish in 30-60 seconds, but correctness does not depend on that
+estimate. The durable `max_elapsed_minutes` budget and heartbeat/checkpoint
+state govern long-running analysis. Researcher and Architect run in parallel;
+PM starts after both terminal outputs are checkpointed.

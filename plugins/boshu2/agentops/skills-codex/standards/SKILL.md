@@ -1,181 +1,84 @@
 ---
 name: standards
-description: "Run standards."
+description: Load only the standards relevant to a
 ---
-# Standards Skill
+# Standards — focused engineering guidance
 
-Language-specific coding standards loaded on-demand by other skills.
+Load the smallest set of standards justified by the caller's files, language,
+and risks. Do not preload the entire reference corpus.
 
-## Purpose
+## Procedure
 
-This is a **library skill** - it doesn't run standalone but provides standards
-references that other skills load based on file types being processed.
+1. Record the supplied paths, language, change type, and risk cues.
+2. Load `common-standards.md` plus only the matching language or checklist
+   references.
+3. Compare the supplied artifact to those sources.
+4. Return cited findings with path and line when possible, plus checked and
+   not-checked scope.
+5. Stop.
 
-## Standards Available
+This skill provides context and findings. It does not edit, validate, retry,
+approve, commit, release, deliver, or decide continuation.
 
-| Standard | Reference | Loaded By |
-|----------|-----------|-----------|
-| Skill Structure | `references/skill-structure.md` | vibe (skill audits), doc (skill creation) |
-| Python | `references/python.md` | vibe, implement, complexity |
-| Go | `references/go.md` | vibe, implement, complexity |
-| Rust | `references/rust.md` | vibe, implement, complexity |
-| TypeScript | `references/typescript.md` | vibe, implement |
-| Shell | `references/shell.md` | vibe, implement |
-| YAML | `references/yaml.md` | vibe |
-| JSON | `references/json.md` | vibe |
-| Markdown | `references/markdown.md` | vibe, doc |
-| SQL Safety | `references/sql-safety-checklist.md` | vibe, pre-mortem (when DB code detected) |
-| LLM Trust Boundaries | `references/llm-trust-boundary-checklist.md` | vibe, pre-mortem (when LLM code detected) |
-| Race Conditions | `references/race-condition-checklist.md` | vibe, pre-mortem (when concurrent code detected) |
-| Codex Skills | `references/codex-skill.md` | vibe (when `skills-codex/` or converter files detected) |
-| Behavioral Discipline | `references/behavioral-discipline.md` | implement, review, vibe, pre-mortem |
-| Test Pyramid | `references/test-pyramid.md` | plan, pre-mortem, implement, crank, validation, post-mortem |
-| SKILL.md Tier-Caps | `references/skill-tier-caps.md` | vibe (skill line-cap audits), doc, plan |
-| External-Source Attribution | `references/external-source-attribution.md` | doc (when absorbing external corpora), heal-skill |
+## Load-bearing conventions for produced code (MEASURED)
 
-## How It Works
+When the caller is about to WRITE code (not only review it), surface the
+matching language rules INLINE in the working context — a behind-the-link
+reference does not change behavior; an inline imperative does. The Go core:
 
-Skills declare `standards` as a dependency:
+- Wrap every propagated error with context: `fmt.Errorf("doing X: %w", err)`
+  — never return a bare inner error.
+- Multi-case functions get TABLE-DRIVEN tests (`[]struct` cases + `t.Run` per
+  case), asserting exact expected values including the error cases.
 
-```yaml
-skills:
-  - standards
-```
+For other languages, pull the matching reference below and inline its top
+rules the same way.
 
-Then load the appropriate reference based on file type:
+> Measured 2026-08-04, probe `standards-go-conventions` (gpt-5.6-luna, N=2,
+> directional): control produced the `%w`-wrapped + table-driven shape in 1/2
+> runs; with these rules inline, 2/2. Inline-imperative beats reference-link —
+> the graphify probe measured a linked doc instruction obeyed 0/2. Ledger:
+> `evals/skill-probes/LEDGER.md`.
 
-```python
-# Pseudo-code for standard loading
-if file.endswith('.py'):
-    load('standards/references/python.md')
-elif file.endswith('.go'):
-    load('standards/references/go.md')
-elif file.endswith('.rs'):
-    load('standards/references/rust.md')
-# etc.
-```
+## Mutation-safety standards
 
-## Domain-Specific Checklists
+When the supplied change rewrites existing files in bulk — formatters,
+codemods, migration scripts, generators pointed at hand-written sources —
+check it against three standards and report each as a finding when absent:
 
-Specialized checklists for high-risk code patterns. Loaded automatically by `$vibe` and `$pre-mortem` when matching code patterns are detected:
+- **Single audited mutation chokepoint.** All rewrites flow through one named
+  command or script whose inputs, outputs, and dry-run mode can be inspected.
+  Edits scattered across ad-hoc one-liners and manual touch-ups are the
+  **diffuse mutation** failure mode: no single point can be audited, re-run,
+  or blamed. Finding: name every mutation path outside the chokepoint.
+- **Hash-witnessed backups before rewrite.** Before the chokepoint runs, the
+  originals are preserved with content hashes recorded (a committed baseline
+  counts), so "the rewrite changed only what it claims" is checkable
+  byte-for-byte, not asserted. Finding: a bulk rewrite with no verifiable
+  before-state.
+- **Self-administered ambition gate.** The change states what it deliberately
+  does not touch, and the diff respects it. A formatter run that also renames,
+  a codemod that also refactors, is the **scope-creep rewrite** failure mode.
+  Finding: any file class in the diff outside the change's own stated scope.
 
-| Checklist | Trigger Pattern | Risk Area |
-|-----------|----------------|-----------|
-| `sql-safety-checklist.md` | SQL queries, ORM calls, migration files, `database/sql`, `sqlalchemy`, `prisma` | Injection, migration safety, N+1, transactions |
-| `llm-trust-boundary-checklist.md` | `anthropic`, `openai` imports, prompt templates, `*llm*`/`*prompt*` files | Prompt injection, output validation, cost control |
-| `race-condition-checklist.md` | Goroutines, threads, `asyncio`, `sync.Mutex`, shared file I/O | Shared state, file races, database races |
-| `codex-skill.md` | Files under `skills-codex/`, `convert.sh`, `skills-codex-overrides/` | Codex API conformance, prohibited primitives, tool mapping |
-| `behavioral-discipline.md` | Execution, review, or plan-validation tasks with ambiguity or broad blast radius | Hidden assumptions, overbuilding, drive-by edits, weak verification |
+Stop condition for this check: all three standards have an explicit pass or
+finding; a bulk-rewrite review that reports style nits but skips these is
+incomplete.
 
-Skills detect triggers via file content patterns and import statements. Each checklist's "When to Apply" section defines exact detection rules.
+## References
 
-## Deep Standards
-
-For comprehensive audits, skills can load extended standards from
-`vibe/references/*-standards.md` which contain full compliance catalogs.
-
-| Standard | Size | Use Case |
-|----------|------|----------|
-| Tier 1 (this skill) | ~5KB each | Normal validation |
-| Tier 2 (vibe/references) | ~15-20KB each | Deep audits, `--deep` flag |
-| Domain checklists | ~3-5KB each | Triggered by code pattern detection |
-
-## Integration
-
-Skills that use standards:
-- `$vibe` - Loads based on changed file types
-- `$implement` - Loads for files being modified
-- `$review` - Loads for change-quality and blast-radius checks
-- `$doc` - Loads markdown standards
-- `$bug-hunt` - Loads for root cause analysis
-- `$complexity` - Loads for refactoring recommendations
-
-## Examples
-
-### Vibe Loads Python Standards
-
-**User says:** `$vibe` (detects changed Python files)
-
-**What happens:**
-1. Vibe skill checks git diff for file types
-2. Vibe finds `auth.py` in changeset
-3. Vibe loads `standards/references/python.md` automatically
-4. Vibe validates against Python standards (type hints, docstrings, error handling)
-5. Vibe reports findings with standard references
-
-**Result:** Python code validated against language-specific standards without manual reference loading.
-
-### Implement Loads Go Standards
-
-**User says:** `$implement ag-xyz-123` (issue modifies Go files)
-
-**What happens:**
-1. Implement skill reads issue metadata to identify file targets
-2. Implement finds `server.go` in implementation scope
-3. Implement loads `standards/references/go.md` for context
-4. Implement writes code following Go standards (error handling, naming, package structure)
-5. Implement validates output against loaded standards before committing
-
-**Result:** Go code generated conforming to standards, reducing post-implementation vibe findings.
-
-## Troubleshooting
-
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| Standards not loaded | File type not detected or standards skill missing | Check file extension matches reference; verify standards in dependencies |
-| Wrong standard loaded | File type misidentified (e.g., .sh as .bash) | Manually specify standard; update file type detection logic |
-| Deep standards missing | Vibe needs extended catalog, not found | Check `vibe/references/*-standards.md` exists; use `--deep` flag |
-| Standard conflicts | Multiple languages in same changeset | Load all relevant standards; prioritize by primary language |
-
-## Reference Documents
-
-- [references/common-standards.md](references/common-standards.md)
-- [references/behavioral-discipline.md](references/behavioral-discipline.md)
-- [references/examples-troubleshooting-template.md](references/examples-troubleshooting-template.md)
-- [references/go.md](references/go.md)
-- [references/json.md](references/json.md)
-- [references/markdown.md](references/markdown.md)
-- [references/python.md](references/python.md)
-- [references/rust.md](references/rust.md)
-- [references/shell.md](references/shell.md)
-- [references/skill-structure.md](references/skill-structure.md)
-- [references/standards-index.md](references/standards-index.md)
-- [references/typescript.md](references/typescript.md)
-- [references/sql-safety-checklist.md](references/sql-safety-checklist.md)
-- [references/llm-trust-boundary-checklist.md](references/llm-trust-boundary-checklist.md)
-- [references/race-condition-checklist.md](references/race-condition-checklist.md)
-- [references/codex-skill.md](references/codex-skill.md)
-- [references/test-pyramid.md](references/test-pyramid.md)
-- [references/yaml.md](references/yaml.md)
-- [references/skill-tier-caps.md](references/skill-tier-caps.md)
-- [references/external-source-attribution.md](references/external-source-attribution.md)
-
-## Local Resources
-
-### references/
-
-- [references/codex-skill.md](references/codex-skill.md)
-- [references/behavioral-discipline.md](references/behavioral-discipline.md)
-- [references/common-standards.md](references/common-standards.md)
-- [references/examples-troubleshooting-template.md](references/examples-troubleshooting-template.md)
-- [references/go.md](references/go.md)
-- [references/json.md](references/json.md)
-- [references/llm-trust-boundary-checklist.md](references/llm-trust-boundary-checklist.md)
-- [references/markdown.md](references/markdown.md)
-- [references/python.md](references/python.md)
-- [references/race-condition-checklist.md](references/race-condition-checklist.md)
-- [references/rust.md](references/rust.md)
-- [references/shell.md](references/shell.md)
-- [references/skill-structure.md](references/skill-structure.md)
-- [references/sql-safety-checklist.md](references/sql-safety-checklist.md)
-- [references/standards-index.md](references/standards-index.md)
-- [references/test-pyramid.md](references/test-pyramid.md)
-- [references/typescript.md](references/typescript.md)
-- [references/yaml.md](references/yaml.md)
-- [references/skill-tier-caps.md](references/skill-tier-caps.md)
-- [references/external-source-attribution.md](references/external-source-attribution.md)
-
-### scripts/
-
-- `scripts/validate.sh`
-
+- [Common standards](references/common-standards.md)
+- [Go](references/go.md)
+- [Python](references/python.md)
+- [Rust](references/rust.md)
+- [TypeScript](references/typescript.md)
+- [JavaScript](references/javascript.md)
+- [Shell](references/shell.md)
+- [JSON](references/json.md)
+- [YAML](references/yaml.md)
+- [Markdown](references/markdown.md)
+- [SQL safety](references/sql-safety-checklist.md)
+- [Race conditions](references/race-condition-checklist.md)
+- [LLM trust boundaries](references/llm-trust-boundary-checklist.md)
+- [Skill structure](references/skill-structure.md)
+- [Test strategy](references/test-pyramid.md)

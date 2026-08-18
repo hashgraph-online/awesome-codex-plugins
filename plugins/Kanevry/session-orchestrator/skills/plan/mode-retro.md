@@ -219,15 +219,19 @@ Present via 2 AskUserQuestion calls (3+2 split).
 5. Save to `{plan-retro-location}/YYYY-MM-DD-retro.md` (`mkdir -p` if needed)
 6. Present path to user for review via AskUserQuestion
 
+Before Phase 3.2, satisfy the PRD Commit Gate — see `SKILL.md` § Phase 5.5 (HARD-GATE). The gate applies to the retro document too: do not create improvement issues referencing an uncommitted retro. Skip this gate only if Wave 2 was not triggered (no issues will be created — see below).
+
 ### 3.2 Improvement Issues
 
 Create one VCS issue per agreed improvement from Wave 2:
 - **Title**: `[Retro] <action description>`
-- **Labels**: `type:enhancement`, `priority:<from ranking>`, `area:<inferred>`
+- **Labels**: `type:enhancement`, `priority::<from ranking>`, `area:<inferred>`
 - **Description**: action, impact, effort, link to retro document
 - Create via VCS CLI (per gitlab-ops skill)
 
 Skip if Wave 2 was not triggered.
+
+If issues were created and a 5+-action Epic wrapper was used (see `SKILL.md` § 6.1), follow `SKILL.md` § 6.6 to backlink the Epic IID into the retro document via a separate follow-up commit.
 
 ### 3.3 Update Learnings
 

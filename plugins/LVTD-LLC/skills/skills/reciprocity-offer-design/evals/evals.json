@@ -1,0 +1,19 @@
+{
+  "skill_name": "reciprocity-offer-design",
+  "evals": [
+    {
+      "id": 1,
+      "name": "lead-magnet-flow",
+      "prompt": "Design a lead magnet and follow-up ask that creates goodwill without making users feel trapped or indebted.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "free-consultation-audit",
+      "prompt": "Review this free-consultation funnel for reciprocity pressure and suggest cleaner alternatives.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

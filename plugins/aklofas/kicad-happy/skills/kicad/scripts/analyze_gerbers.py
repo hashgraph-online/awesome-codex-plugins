@@ -26,6 +26,14 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from envelopes.gerber import GerberEnvelope  # noqa: E402
+from schema_codec import emit_schema  # noqa: E402
+from inputs_builder import build_inputs, build_compat  # noqa: E402
+from capability_mode import get_capability_mode_ref  # noqa: E402
+
+ANALYZER_SOURCE = "gerber"
 
 _POWER_KEYWORDS_GERBER = {"vcc", "vdd", "gnd", "agnd", "dgnd", "gndref",
                           "vss", "avdd", "dvdd", "vbat", "vbus", "vin"}
@@ -739,6 +747,9 @@ def check_completeness(gerbers: list[dict], drills: list[dict],
 
     return {
         "found_layers": sorted(found_layers),
+        # expected_layers is schema-required; on the defaults path there's
+        # no .gbrjob to declare expectations, so emit [] honestly (TH-043).
+        "expected_layers": [],
         "missing_required": sorted(required - found_layers),
         "missing_recommended": sorted(recommended - found_layers),
         "has_pth_drill": any(d.get("type") in ("PTH", "mixed") for d in drills),
@@ -1013,9 +1024,12 @@ def build_pad_summary(gerbers: list[dict], drill_class: dict) -> dict:
         "heatsink_apertures": heatsink,
         "tht_holes": tht,
         "smd_source": smd_source,
+        # smd_ratio is a schema-required key; emit 0.0 when nothing to
+        # ratio (no SMD pads and no plated holes) so the schema-vs-emit
+        # drift can't surface (TH-043).
+        "smd_ratio": (round(smd / (smd + tht), 2)
+                      if smd + tht > 0 else 0.0),
     }
-    if smd + tht > 0:
-        result["smd_ratio"] = round(smd / (smd + tht), 2)
 
     return result
 
@@ -1310,7 +1324,7 @@ def analyze_gerbers(directory: str, full: bool = False) -> dict:
 
     result = {
         "analyzer_type": "gerber",
-        "schema_version": "1.3.0",
+        "schema_version": "1.4.0",
         "directory": str(directory),
         "generator": generator,
         "layer_count": layer_count,
@@ -1349,6 +1363,7 @@ def analyze_gerbers(directory: str, full: bool = False) -> dict:
         completeness, alignment, drill_classification,
         gerber_summary, drill_summary, result["statistics"])
     result["findings"] = findings
+    result["assessments"] = []
 
     sev_counts = {}
     for f in findings:
@@ -1535,45 +1550,6 @@ def _build_gerber_findings(completeness, alignment, drill_classification,
     return findings
 
 
-def _get_schema():
-    """Return JSON output schema description for --schema flag."""
-    return {
-        "analyzer_type": "string — always 'gerber'",
-        "schema_version": "string — semver (currently '1.3.0')",
-        "summary": {"total_findings": "int", "by_severity": {"error": "int", "warning": "int", "info": "int"}},
-        "findings": "[{detector, rule_id, category, severity, confidence, evidence_source, summary, description, components, nets, pins, recommendation, report_context}] — GR-001..005 (missing layers, alignment, drill, paste apertures, outline closure)",
-        "trust_summary": {
-            "total_findings": "int",
-            "trust_level": "'high' | 'mixed' | 'low'",
-            "by_confidence": "{deterministic: int, heuristic: int, datasheet-backed: int}",
-            "by_evidence_source": "{datasheet|topology|heuristic_rule|symbol_footprint|bom|geometry|api_lookup: int}",
-            "provenance_coverage_pct": "float",
-        },
-        "directory": "string — scan directory path",
-        "generator": "string (KiCad|other|unknown)",
-        "layer_count": "int",
-        "board_dimensions": {"x_min": "float", "x_max": "float", "y_min": "float",
-                             "y_max": "float", "width_mm": "float", "height_mm": "float"},
-        "statistics": {"gerber_files": "int", "drill_files": "int", "total_holes": "int",
-                       "total_flashes": "int", "total_draws": "int"},
-        "completeness": {"expected_layers": "[string]", "found_layers": "[string]",
-                         "missing": "[string]", "extra": "[string]",
-                         "complete": "bool",
-                         "has_pth_drill": "bool", "has_npth_drill": "bool",
-                         "source": "string — 'gbrjob' | 'filename_heuristic'"},
-        "alignment": "{layer_name: {coord_range: {x_min, x_max, y_min, y_max: float}}}",
-        "drill_classification": {"total_unique": "int", "via_apertures": "int",
-                                 "component_holes": "int", "front_side": "int",
-                                 "back_side": "int", "both_sides": "int",
-                                 "smd_apertures": "int"},
-        "pad_summary": {"smd_apertures": "int", "via_apertures": "int",
-                        "component_holes": "int", "tht": "int"},
-        "gerbers": "[{file, filename, layer_type, format: {zero_omit, notation, x_integer, x_decimal, y_integer, y_decimal}, units: mm|inch, flash_count: int, draw_count: int, region_count: int, apertures: {d_code: {type, params, function}}, x2_attributes: {FileFunction, ...}}]",
-        "drills": "[{file, filename, units: mm|inch|null, type: PTH|NPTH|unknown, hole_count: int, coordinate_range, tools: {tool_id: {diameter_mm: float, hole_count: int}}, x2_attributes}]",
-        "_optional_sections": "component_analysis, net_analysis, trace_widths, job_file, zip_archives, connectivity (--full)",
-    }
-
-
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="KiCad Gerber & Drill File Analyzer")
@@ -1594,19 +1570,68 @@ def main():
     parser.add_argument('--audience', default=None,
                         choices=['designer', 'reviewer', 'manager'],
                         help='Audience level for summaries and --text output')
+    parser.add_argument('--only-deterministic', action='store_true',
+                        help='Accepted for consistency; analyzers never write llm_* fields. '
+                             'Honored by downstream consumers (Phase 4 spec §3.4).')
     args = parser.parse_args()
 
     if args.schema:
-        print(json.dumps(_get_schema(), indent=2))
-        sys.exit(0)
+        emit_schema(GerberEnvelope)
 
     if not args.directory:
         parser.error("the following arguments are required: directory")
 
+    # Build inputs provenance block (Track 1.3). Walk the gerber directory
+    # and hash every gerber/drill/job file present.
+    _gerber_dir = Path(args.directory)
+    _gerber_exts = {".gbr", ".gbl", ".gtl", ".gbs", ".gts",
+                    ".gbo", ".gto", ".gm1", ".gko", ".drl",
+                    ".xln", ".nc",
+                    ".g1", ".g2", ".g3", ".g4",
+                    ".g2l", ".g3l", ".g4l", ".g5l", ".g6l",
+                    ".gtp", ".gbp"}
+    _gerber_files = []
+    if _gerber_dir.is_dir():
+        for p in sorted(_gerber_dir.iterdir()):
+            if not p.is_file():
+                continue
+            if p.suffix.lower() in _gerber_exts or p.name.lower().endswith(".gbrjob"):
+                _gerber_files.append(p)
+            elif p.suffix.lower() == ".txt" and _is_excellon_file(p):
+                _gerber_files.append(p)
+    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4).
+    if args.analysis_dir:
+        _analysis_dir = Path(args.analysis_dir)
+    elif args.output:
+        _analysis_dir = Path(args.output).parent
+    else:
+        _analysis_dir = Path("analysis")
+
+    # Resolve capability_mode_ref BEFORE build_inputs (audit Highest-Risk #5).
+    _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
+
+    inputs = build_inputs(
+        source_files=_gerber_files,
+        run_id=_capability_mode_ref["run_id"],
+    )
+    compat = build_compat()
+
     result = analyze_gerbers(args.directory, full=args.full)
+    # Inject provenance.
+    result["inputs"] = inputs
+    result["compat"] = compat
 
     from output_filters import apply_output_filters
     apply_output_filters(result, args.stage, args.audience)
+
+    # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
+    # on it). Runs after filtering; before any output branch.
+    from finding_schema import assign_finding_ids
+    assign_finding_ids(result.get("findings", []), "gerber")
+
+    # Wire capability_mode_ref (Phase 4 spec §3.3). Resolved early so
+    # inputs.run_id and capability_mode_ref.run_id match.
+    result["capability_mode_ref"] = _capability_mode_ref
 
     # Determine output path
     output_path = args.output

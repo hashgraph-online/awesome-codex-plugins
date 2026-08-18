@@ -458,6 +458,11 @@ def main():
         help="Omit file paths from output (for clean reports)",
     )
     parser.add_argument(
+        "--text",
+        action="store_true",
+        help="Human-readable text output instead of JSON",
+    )
+    parser.add_argument(
         "--parasitics",
         help="Path to parasitics JSON (from extract_parasitics.py) for "
              "PCB-aware simulation. When provided, testbenches include trace "
@@ -624,7 +629,25 @@ def main():
 
     # Output
     output_json = json.dumps(report, indent=2)
-    if args.output:
+    if args.text:
+        # KH-345: --text parity with the other analyzers. Early-exit
+        # reports (no simulatable data) omit total_elapsed_s — tolerate it.
+        s = report.get("summary", {})
+        _elapsed = report.get("total_elapsed_s")
+        _suffix = (f" ({_elapsed:.1f}s)"
+                   if isinstance(_elapsed, (int, float)) else "")
+        print(f"SPICE simulation: {s.get('total', 0)} subcircuits — "
+              f"{s.get('pass', 0)} pass, {s.get('warn', 0)} warn, "
+              f"{s.get('fail', 0)} fail, {s.get('skip', 0)} skip{_suffix}")
+        sys.path.insert(0, os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..', '..', 'kicad', 'scripts'))
+        from output_filters import format_text
+        print(format_text(report.get("findings", []), "designer"))
+        if args.output:
+            with open(args.output, "w") as f:
+                f.write(output_json)
+    elif args.output:
         with open(args.output, "w") as f:
             f.write(output_json)
         # Print summary to stderr

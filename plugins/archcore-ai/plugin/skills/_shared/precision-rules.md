@@ -4,6 +4,12 @@ Plugin runtime asset. Loaded by skills (`decide`, `capture`) before
 composing documents of type `adr`, `spec`, `rule`, `guide`. See also
 `skills/_shared/adr-contract.md`.
 
+The forbidden lexicon in Rule 1 and the line form in Rule 7 mirror the canon the
+Archcore CLI ships in its document templates and measures in its post-tool-use
+hook. This file exists to reach the agent **before** it composes; the hook
+reports **after** it writes. When the two disagree, the CLI is right and this
+file is corrected — one canon with two owners is two canons.
+
 ## Rules
 
 1. **Forbidden vagueness lexicon.** New documents and updates MUST NOT introduce
@@ -12,8 +18,9 @@ composing documents of type `adr`, `spec`, `rule`, `guide`. See also
    `seamless`, `streamlined`, `world-class`, `cutting-edge`, `оптимальный`,
    `удобный`, `правильный`, `надёжный`, `гибкий`, `современный`, `передовой`,
    `эффективный`, `масштабируемый`. Replace with a concrete fact, version,
-   threshold, or measured outcome. Existing occurrences in pre-existing
-   documents are not flagged.
+   threshold, or measured outcome. The hook reads the whole document rather than
+   the added lines, so editing an older document also surfaces the occurrences
+   that predate the edit.
 
 2. **Imperative phrasing in normative sections.** Documents of type `rule`,
    `spec`, and any contract document MUST use `MUST` / `MUST NOT` / `MAY` for
@@ -105,10 +112,39 @@ composing documents of type `adr`, `spec`, `rule`, `guide`. See also
    This default applies to: `adr`, `rfc`, `doc`, `prd`, `idea`, `plan`, `mrd`,
    `brd`, `urd`, `brs`, `strs`, `syrs`, `srs`.
 
+7. **Line form follows the document type.** Two profiles cover every type: one
+   constrains the sentence, one constrains the structure. Both apply everywhere;
+   the type decides which half binds.
+
+   **Normative types** — `spec`, `rule`, `guide`, `task-type`, `brs`, `strs`,
+   `syrs`, `srs`. One requirement per numbered clause, one uppercase BCP 14
+   modal, an active-voice obligated subject, and the trigger before the response
+   (`WHEN <trigger>, the <actor> MUST <response>`; unwanted conditions as
+   `IF <condition>, THEN ...`). A graded clause stays at or under **25 words**; a
+   procedure step stays at or under **20 words** and carries no modal, because a
+   step is an action to take rather than an obligation that holds.
+
+   **Claim-recording types** — `adr`, `rfc`, `doc`, `prd`, `plan`, `idea`, `rnd`,
+   `cpat`, `mrd`, `brd`, `urd`. A numbered clause MUST NOT carry a BCP 14 modal.
+   State the claim with its evidence — `@path/to/file`, a measurement, a commit —
+   or mark it `[assumption]`. An obligation that belongs to one of these
+   documents belongs in a linked `spec` or `rule` instead.
+
+8. **No open-ended list and no ambiguous alternative in a requirement.** `etc.`,
+   `и т.д.`, and `and/or` leave the reader to guess where the obligation ends or
+   which branch binds. State the last member, or name the property that decides
+   membership.
+
 ## Enforcement
 
-- The plugin's `bin/check-precision` PostToolUse hook detects forbidden lexicon
-  words in newly created documents and (in later phases) in additions during
-  `update_document`. Findings are emitted as `additionalContext`. The hook never
-  blocks (always exits 0).
+- The CLI's PostToolUse hook (`archcore hooks <host> post-tool-use`, launched
+  via the plugin's `bin/post-tool-use`) reports the mechanical half: the
+  forbidden lexicon, the mandatory sections of each type, a heading another type
+  owns, the line form and word metrics of Rule 7, the open-ended lists of Rule 8,
+  and the per-type notation each content contract names. Findings are emitted as
+  `additionalContext`. The hook never blocks (always exits 0).
+- The hook reads the whole document rather than the added lines, so an edit to an
+  older document surfaces that document's existing findings too.
+- Rules 3, 4, and 6 carry no automated check. A program finds a missing marker;
+  it does not decide whether a claim needed one.
 - Skills load this asset and the relevant contract before composition.

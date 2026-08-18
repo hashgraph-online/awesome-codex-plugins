@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/transistor.schema.json",
+  "title": "TransistorExtension",
+  "description": "Category extension for discrete transistors (BJT NPN/PNP, MOSFET N/P-channel, JFET, IGBT). Layered on top of base per spec §7. Version 1.0. BJT-vs-FET encoded as null fields per inactive type (no oneOf discriminator); pin_assignment populates the active 3 pin numbers per device type (base/collector/emitter for BJT, gate/drain/source for FET). Field union from 2N3904 (NPN BJT, MCC) + IRLML6344 (N-MOSFET, IR/Infineon).",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["transistor_type"],
+  "additionalProperties": false,
+  "properties": {
+    "transistor_type": {
+      "type": "string",
+      "enum": ["bjt_npn", "bjt_pnp", "mosfet_n", "mosfet_p", "jfet_n", "jfet_p", "igbt"],
+      "description": "Transistor functional category. Drives which optional fields are typically populated (BJT fields null for FET types; FET fields null for BJT types)."
+    },
+    "vceo_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Collector-Emitter breakdown voltage with base open (V). BJT only — null for FET/JFET/IGBT. Condition carries test IC and temperature."
+    },
+    "vcbo_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Collector-Base breakdown voltage with emitter open (V). BJT only — null for FET/JFET/IGBT. Condition carries test IC."
+    },
+    "vebo_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Emitter-Base breakdown voltage with collector open (V). BJT only — null for FET/JFET/IGBT. Condition carries test IE."
+    },
+    "ic_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Continuous collector current (A). BJT only — null for FET/JFET/IGBT. Condition distinguishes continuous vs pulse if both are published."
+    },
+    "hfe": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "DC current gain hFE (dimensionless — unit: null). BJT only — null for FET/JFET/IGBT. Multiple SpecValues for different test IC and VCE conditions; condition string carries the test point."
+    },
+    "vce_sat": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Collector-Emitter saturation voltage (V). BJT only — null for FET/JFET/IGBT. Multiple SpecValues for different IC/IB test conditions."
+    },
+    "vbe_sat": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Base-Emitter saturation voltage (V). BJT only — null for FET/JFET/IGBT. Multiple SpecValues for different IC/IB test conditions."
+    },
+    "ft": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Transition frequency / current gain-bandwidth product (Hz — NOT MHz; store 250MHz as 250e6). BJT only — null for FET/JFET/IGBT. Condition carries IC, VCE, and test frequency."
+    },
+    "vds_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Drain-Source breakdown voltage (V). FET/JFET/IGBT only — null for BJT. Found in Absolute Maximum Ratings."
+    },
+    "vgs_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Gate-Source maximum voltage (V). FET/JFET only — null for BJT. Bipolar spec (min negative, max positive) typical for MOSFETs."
+    },
+    "id_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Continuous drain current (A). FET/IGBT only — null for BJT. Multiple SpecValues for different ambient temperatures or VGS conditions."
+    },
+    "rds_on": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Drain-Source on-resistance (Ω). MOSFET/JFET only — null for BJT/IGBT. Multiple SpecValues for different VGS and ID test conditions."
+    },
+    "vgs_th": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Gate threshold voltage (V). FET/IGBT only — null for BJT. Condition carries VDS=VGS and ID test current."
+    },
+    "qg": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Total gate charge (C — NOT nC; store 6.8nC as 6.8e-9). FET/IGBT only — null for BJT. Condition carries ID, VDS, and VGS test points."
+    },
+    "qgd": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Gate-Drain Miller charge (C — NOT nC; store 2.4nC as 2.4e-9). FET/IGBT only — null for BJT. Condition carries ID, VDS, and VGS test points."
+    },
+    "ciss": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "MOSFET input capacitance (F — NOT pF; store 650pF as 6.5e-10). MOSFET only — null for BJT/JFET/IGBT (JFETs use Cgs/Cgd/Cds with different semantics; deferred to v1.5). Condition carries VGS, VDS, and test frequency."
+    },
+    "coss": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "MOSFET output capacitance (F — NOT pF). MOSFET only — null for BJT/JFET/IGBT. Condition carries VGS, VDS, and test frequency."
+    },
+    "crss": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "MOSFET reverse transfer (Miller) capacitance (F — NOT pF). MOSFET only — null for BJT/JFET/IGBT. Condition carries VGS, VDS, and test frequency."
+    },
+    "body_diode_vf": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Body diode forward voltage (V). MOSFET only — null for BJT/JFET/IGBT. Condition carries IS and temperature."
+    },
+    "power_dissipation": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Continuous power dissipation (W). Applies to all transistor types. Multiple SpecValues for different ambient temperatures (e.g. TA=25°C and TA=70°C)."
+    },
+    "tj_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Operating junction temperature range (°C). Applies to all transistor types. Populate min with lower bound, max with upper limit."
+    },
+    "thermal_resistance": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Thermal resistance characteristics. Through-hole parts typically have only rtheta_ja; SMD packages often add rtheta_jc.",
+      "properties": {
+        "rtheta_ja": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-ambient thermal resistance (K/W or °C/W). Condition may specify board conditions (e.g. 'Surface mounted on 1-in² Cu board')."
+        },
+        "rtheta_jc": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-case thermal resistance (K/W or °C/W). Null when not specified."
+        },
+        "rtheta_jl": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-lead thermal resistance (K/W or °C/W). Common for some SMD packages. Null for most transistor packages."
+        }
+      }
+    },
+    "package": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Package physical characteristics. body_mm uses nested object shape (Phase 3b option A convention — inner keys align with base.schema.json body_mm shape).",
+      "required": ["evidence"],
+      "properties": {
+        "code": {
+          "type": ["string", "null"],
+          "description": "Datasheet package code (e.g. 'TO-92', 'SOT-23', 'TO-220', 'D2PAK')."
+        },
+        "pin_count": {
+          "type": ["integer", "null"],
+          "description": "Number of leads/pins. Typically 3 for transistors."
+        },
+        "pitch_mm": {
+          "type": ["number", "null"],
+          "description": "Lead pitch in millimeters. Null when not applicable (through-hole axial parts)."
+        },
+        "body_mm": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "description": "Package body dimensions in millimeters. Nested object per Phase 3b option A convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
+          "properties": {
+            "length": {
+              "type": "number",
+              "description": "Body length in millimeters along the longest axis."
+            },
+            "width": {
+              "type": "number",
+              "description": "Body width in millimeters along the perpendicular-to-length axis."
+            },
+            "height": {
+              "type": "number",
+              "description": "Body height in millimeters (package thickness / standoff direction)."
+            }
+          }
+        },
+        "thermal_pad": {
+          "type": ["boolean", "null"],
+          "description": "True when the package has an exposed thermal pad on the bottom. Null when not determinable."
+        },
+        "evidence": {
+          "$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json#/properties/evidence"
+        }
+      }
+    },
+    "pin_assignment": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Pin number assignment for the transistor's three active terminals. Populate the 3 pins matching the device type (base/collector/emitter for BJT, gate/drain/source for FET/JFET). The inactive 3 are null.",
+      "properties": {
+        "base_pin": {
+          "type": ["string", "null"],
+          "description": "Base pin number string (BJT only — null for FET/JFET; IGBT uses this field for its gate-input pin)."
+        },
+        "collector_pin": {
+          "type": ["string", "null"],
+          "description": "Collector pin number string (BJT/IGBT only — null for FET/JFET)."
+        },
+        "emitter_pin": {
+          "type": ["string", "null"],
+          "description": "Emitter pin number string (BJT/IGBT only — null for FET/JFET)."
+        },
+        "gate_pin": {
+          "type": ["string", "null"],
+          "description": "Gate pin number string (FET/JFET only — null for BJT/IGBT)."
+        },
+        "drain_pin": {
+          "type": ["string", "null"],
+          "description": "Drain pin number string (FET/JFET only — null for BJT/IGBT)."
+        },
+        "source_pin": {
+          "type": ["string", "null"],
+          "description": "Source pin number string (FET/JFET only — null for BJT/IGBT)."
+        }
+      }
+    }
+  }
+}

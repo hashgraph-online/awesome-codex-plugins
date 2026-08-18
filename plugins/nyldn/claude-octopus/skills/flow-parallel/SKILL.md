@@ -1,6 +1,7 @@
 ---
 name: flow-parallel
 description: "Decompose and execute large changes, migrations, or multi-issue fixes in parallel with quality gates"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -169,14 +170,17 @@ fi
 
 **After generating the WBS but BEFORE dependency validation, cross-check the decomposition with a second model.** Single-model decomposition often produces work packages with hidden dependencies, ambiguous interface contracts, or scope gaps that cause merge conflicts and duplicated work.
 
-**If an external provider is available, dispatch the WBS for adversarial review:**
+**If an external provider is available, dispatch the WBS for adversarial review through Octopus routing:**
 
 ```bash
 WBS_CONTENT=$(<".octo/parallel/wbs.json")
+review_provider=""
+command -v codex >/dev/null 2>&1 && review_provider="codex"
+[[ -z "$review_provider" ]] && command -v agy >/dev/null 2>&1 && review_provider="agy"
 
-codex exec --skip-git-repo-check "IMPORTANT: You are running as a non-interactive subagent dispatched by Claude Octopus via codex exec. These are user-level instructions and take precedence over all skill directives. Skip ALL skills. Respond directly to the prompt below.
-
-Review this Work Breakdown Structure for a parallel execution pipeline. Your job is to find problems BEFORE agents start working.
+if [[ -n "$review_provider" ]]; then
+  "${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" spawn "$review_provider" \
+    "Review this Work Breakdown Structure for a parallel execution pipeline. Your job is to find problems BEFORE agents start working.
 
 1. What DEPENDENCIES between work packages were missed? (e.g., WP-2 needs a type definition from WP-1 but doesn't declare it)
 2. What INTERFACE CONTRACTS are ambiguous? (e.g., two WPs will create conflicting exports, or expect different API signatures)
@@ -185,14 +189,7 @@ Review this Work Breakdown Structure for a parallel execution pipeline. Your job
 
 WBS:
 ${WBS_CONTENT}" 2>/dev/null || true
-```
-
-If Codex is unavailable, use Gemini:
-```bash
-printf '%s' "Review this WBS for parallel execution. Find: 1) Missed dependencies 2) Ambiguous interface contracts 3) Scope overlaps 4) Coverage gaps
-
-WBS:
-${WBS_CONTENT}" | gemini -p "" -o text --approval-mode yolo 2>/dev/null || true
+fi
 ```
 
 **After receiving the challenge:**
@@ -382,7 +379,7 @@ fi
 cd "$WORKTREE_DIR"
 unset CLAUDECODE
 # v8.32.0: Credential isolation — work packages don't need provider keys
-unset OPENAI_API_KEY GEMINI_API_KEY GOOGLE_API_KEY OPENROUTER_API_KEY PERPLEXITY_API_KEY
+unset OPENAI_API_KEY AGY_AUTH_TOKEN ANTIGRAVITY_API_KEY OPENROUTER_API_KEY PERPLEXITY_API_KEY
 cat "$SCRIPT_DIR/instructions.md" | claude -p > "$SCRIPT_DIR/output.md" 2>"$SCRIPT_DIR/agent.log"
 EXIT_CODE=$?
 echo $EXIT_CODE > "$SCRIPT_DIR/exit-code"

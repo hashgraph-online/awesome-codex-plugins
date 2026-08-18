@@ -1,18 +1,8 @@
 # plan
 
-Plan work for Codex with explicit execution boundaries, issue-ready decomposition, and handoff artifacts that feed the rest of the RPI chain cleanly.
+Shape or refine the existing bead or caller intent without a second planning artifact. Triggers: "plan", "discover and plan", "shape this goal", "plan manifest".
 
+## Instructions
 
-<!-- BEGIN AGENTOPS OPERATOR CONTRACT -->
-<!-- Generated from skills-codex-overrides/catalog.json for plan. -->
-
-## Codex Execution Profile
-
-1. beads-ready issues, dependencies, and acceptance criteria
-2. future Codex sessions can pick them up without chat-only context
-
-## Guardrails
-
-1. Keep WHAT and HOW separated
-
-<!-- END AGENTOPS OPERATOR CONTRACT -->
+Load and follow the skill instructions from the sibling `SKILL.md` file for this skill.
+Then read local files in `references/` and `scripts/` when needed.

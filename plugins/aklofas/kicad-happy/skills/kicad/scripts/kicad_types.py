@@ -9,6 +9,7 @@ construction.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from kicad_utils import is_ground_name, is_power_net_name, parse_value
 
@@ -70,8 +71,11 @@ class AnalysisContext:
     ref_pins: dict[str, dict[str, tuple[str | None, str | None]]] = field(default_factory=dict)
     no_connects: list[dict] = field(default_factory=list)
     generator_version: str = "unknown"
+    source: str = "unknown"
     nq: 'NetlistQueries | None' = field(default=None, repr=False)
     hierarchy_context: dict | None = field(default=None, repr=False)
+    cache_dir: Path | None = field(default=None, repr=False)
+    design_context: dict | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not self.comp_lookup:

@@ -1,11 +1,12 @@
 ---
 name: vidseeds-analytics
-description: Use for VidSeeds MCP analytics and research — YouTube analytics, channel intelligence, video autopsy, outliers, competitors, trending/breakout discovery, keyword research, comment sentiment, and best-practices tools. Outcomes only; not internal scoring details.
+description: Use for VidSeeds MCP analytics and research - YouTube analytics, channel intelligence, video autopsy, outliers, competitors, trending/breakout discovery, keyword research, comment sentiment, and best-practices tools. Outcomes only; not internal scoring details.
+license: MIT
 ---
 
 # Analytics & intelligence (MCP)
 
-Map the user's question to a tool — then read the tool `description` for inputs and seed cost.
+Map the user's question to a tool - then read the tool `description` for inputs and seed cost.
 
 ## YouTube account data
 
@@ -65,12 +66,12 @@ Pass `channelId` when multiple YouTube connections exist.
 
 ## SEO experiments
 
-- `vidseeds_generate_seo_title_experiments` — title variants for testing.
+- `vidseeds_generate_seo_title_experiments` - title variants for testing.
 
 ## Copilot / assistant (Q&A)
 
-- `vidseeds_get_copilot_response` — channel-aware answers.
-- Assistant threads: `vidseeds_list_assistant_conversations`, `vidseeds_get_assistant_conversation`, `vidseeds_send_assistant_message`, `vidseeds_confirm_assistant_suggestion` — see tool descriptions for collab flows.
+- `vidseeds_get_copilot_response` - channel-aware answers.
+- Assistant threads: `vidseeds_list_assistant_conversations`, `vidseeds_get_assistant_conversation`, `vidseeds_send_assistant_message`, `vidseeds_confirm_assistant_suggestion` - see tool descriptions for collab flows.
 
 ## After research → action
 

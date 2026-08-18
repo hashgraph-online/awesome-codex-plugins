@@ -29,7 +29,8 @@ Privacy controls fail when personal data is collected, copied, logged, retained,
 ## When Not To Use
 
 - The main issue is tenant boundary enforcement or noisy-neighbor isolation; use `tenant-isolation` instead.
-- The main issue is authentication, authorization, secrets, or cryptography; use `identity-and-secrets` instead.
+- The main issue is authentication, authorization, runtime secret storage or access, or application secret rotation; use `identity-and-secrets` instead.
+- The main issue is certificate, cryptographic key, trust root, or algorithm lifecycle; use `cryptography-and-key-lifecycle` instead.
 - The request is broad legal privacy statements, notice drafting, or regulator/auditor liaison; out of scope unless converted to concrete engineering controls.
 - The work is only control mapping; use `engineering-control-evidence` instead.
 
@@ -64,17 +65,6 @@ Privacy controls fail when personal data is collected, copied, logged, retained,
 Use privacy-by-design as engineering controls: data inventory, classification, minimization, purpose enforcement, privacy-safe telemetry, retention/deletion automation, data-subject-rights workflow with SLA, export/erasure verification, and audit. Make user/control-plane deletion and retention behavior explicit across primary, derived, and archived copies. Keep legal interpretation outside the skill; make the agreed control enforceable and testable.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

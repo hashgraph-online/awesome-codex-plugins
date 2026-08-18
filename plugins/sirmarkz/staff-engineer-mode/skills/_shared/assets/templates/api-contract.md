@@ -27,6 +27,11 @@
 | Element | Current Behavior | New Behavior | Surface Parity Check | Compatible? | Migration Rule |
 | --- | --- | --- | --- | --- | --- |
 
+## Same-Contract Consumer Transition (When In Scope)
+
+| Changed Element Or Version | Replacement | Old/New Overlap Mechanism | Consumer Cohort And Request Surface | Adoption And Compatibility Signal | Stop Or Rollback Condition | Support Deadline | Removal Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
 ## Transport Header Metadata And Callback Parity
 
 | Surface Or Intermediary | Required Transport/Header/Metadata/Field | Consumer Dependency | Preservation Check | Failure Behavior |
@@ -39,7 +44,12 @@
 
 ## Idempotency And Bounds
 
-| Mutation Or List | Idempotency Key | Page/Batch Limit | Ordering | Rate Limit |
+| Mutation Or Collection | Idempotency Key | Page/Batch Limit | Filtering Semantics | Ordering | Rate Limit |
+| --- | --- | --- | --- | --- | --- |
+
+## Batch And Bulk Item Correlation (When In Scope)
+
+| Operation | Item Correlation | Per-Item Result/Error | Partial-Success Rule | Whole-Request Rejection |
 | --- | --- | --- | --- | --- |
 
 ## Malformed Request Isolation
@@ -50,6 +60,11 @@
 ## Fanout And Partial Failure
 
 | Aggregated Operation | Scope Boundary | Unavailable-Scope Behavior | Partial Result Signal | Global Failure Exception |
+| --- | --- | --- | --- | --- |
+
+## Polling Avoidance And Quota (When In Scope)
+
+| Consumer Pattern | Expected Volume | Quota Risk | Stream/Export/Bulk/Projection Alternative | Rate-Limit Contract |
 | --- | --- | --- | --- | --- |
 
 ## Result Metadata Invariants

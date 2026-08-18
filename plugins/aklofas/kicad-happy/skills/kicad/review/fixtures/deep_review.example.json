@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "produced_for_run_id": "2026-07-11_1200",
+  "produced_at": "2026-07-11T12:00:00Z",
+  "findings": [
+    {
+      "detector": "deep_review",
+      "category": "power_input",
+      "severity": "error",
+      "confidence": "high",
+      "summary": "L2 (220 nH) is below the TPS61023 minimum inductance of 470 nH",
+      "recommendation": "Replace L2 with a 470 nH-1 uH inductor rated for the peak switch current",
+      "evidence": {
+        "components": ["U3", "L2"],
+        "nets": ["VBUS"],
+        "pins": ["U3.7"],
+        "datasheet": [
+          {"mpn": "TPS61023", "page": 5, "quote": "minimum inductance 470 nH"}
+        ],
+        "computation": {
+          "description": "worst-case inductor droop at Iout=1.2A",
+          "script": "analysis/helpers/check_inductor.py",
+          "result": "L=220nH < 470nH datasheet minimum"
+        }
+      }
+    }
+  ],
+  "quarantined": [
+    {
+      "detector": "deep_review",
+      "category": "thermal",
+      "severity": "warning",
+      "confidence": "low",
+      "summary": "U9 may exceed junction limits at full load",
+      "evidence": {"components": ["U9"]},
+      "quarantine_reason": "no evidence source: finding cites anchors but no datasheet quote or computation"
+    }
+  ]
+}

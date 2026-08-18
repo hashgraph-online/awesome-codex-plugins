@@ -341,3 +341,119 @@ def score_extraction(extraction, expected_pin_count=None):
         "issues": all_issues,
         "sufficient": total >= 6.0,
     }
+
+
+# ---------------------------------------------------------------------------
+# v1.4 rubric extension (Phase 3a)
+# ---------------------------------------------------------------------------
+
+# Per-pin fields scored by population (1 point each, max 4 pts/pin)
+_PIN_FIELDS = ("name", "type", "power_domain", "evidence")
+
+# Base block "fully populated" reference field set
+_BASE_FIELD_REFS = {
+    "package":               ["code", "pin_count"],
+    "thermal":               ["theta_ja"],
+    "absolute_max":          ["VIN_max", "TJ_max"],
+    "recommended_operating": ["VIN", "TA"],
+    "esd":                   ["HBM"],
+}
+
+# Per-category required+nice-to-have fields
+_CATEGORY_FIELD_REQS = {
+    "regulator": {
+        "required": ("topology", "vin_range", "vout_range", "iout_max"),
+        "nice":     ("reference_voltage", "switching_freq", "cin_min", "cout_min", "enable_pin"),
+    },
+    # 3b: mcu, opamp, transistor, diode, crystal
+}
+
+
+def _populated(value) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, (list, dict)) and not value:
+        return False
+    return True
+
+
+def _pinout_completeness(extraction: dict) -> float:
+    pinout = ((extraction.get("base") or {}).get("pinout")) or []
+    if not isinstance(pinout, list):
+        return 0.0  # sentinel ({_extraction_failed: true}) or malformed pinout block
+    if not pinout:
+        return 0.0
+    pts_per_pin = len(_PIN_FIELDS)
+    earned = 0
+    total = pts_per_pin * len(pinout)
+    for p in pinout:
+        for f in _PIN_FIELDS:
+            if _populated(p.get(f)):
+                earned += 1
+    return earned / total if total else 0.0
+
+
+def _base_completeness(extraction: dict) -> float:
+    base = extraction.get("base") or {}
+    if not base:
+        return 0.0
+    if isinstance(base, dict) and base.get("_extraction_failed"):
+        return 0.0  # base block extraction failed (post-retry sentinel)
+    earned = 0
+    total = sum(len(v) for v in _BASE_FIELD_REFS.values())
+    for block, keys in _BASE_FIELD_REFS.items():
+        b = base.get(block) or {}
+        if not isinstance(b, dict):
+            continue
+        for k in keys:
+            if _populated(b.get(k)):
+                earned += 1
+    return earned / total if total else 0.0
+
+
+def _category_extension_completeness(extraction: dict) -> float:
+    cats = extraction.get("categories") or []
+    if not cats:
+        return 0.0
+    fractions = []
+    for cat in cats:
+        payload = extraction.get(cat)
+        if not isinstance(payload, dict) or payload.get("_extraction_failed"):
+            fractions.append(0.0)
+            continue
+        spec = _CATEGORY_FIELD_REQS.get(cat)
+        if not spec:
+            fractions.append(1.0)  # unknown category — full credit (3b will populate)
+            continue
+        req = spec["required"]
+        nice = spec["nice"]
+        req_score = sum(1 for f in req if _populated(payload.get(f))) / len(req) if req else 1.0
+        nice_score = sum(1 for f in nice if _populated(payload.get(f))) / len(nice) if nice else 1.0
+        fractions.append(0.7 * req_score + 0.3 * nice_score)
+    return sum(fractions) / len(fractions) if fractions else 0.0
+
+
+def score_v14_extraction(extraction: dict) -> dict:
+    """Phase 3a quality score (0-100) for a v1.4 extraction JSON.
+
+    Weighted dimensions:
+      pinout_completeness            20%
+      base_completeness              25%
+      category_extension_completeness 25%
+      reserved (v1.5)                30%   (full credit in v1.4)
+    """
+    dims = {
+        "pinout_completeness": _pinout_completeness(extraction),
+        "base_completeness": _base_completeness(extraction),
+        "category_extension_completeness": _category_extension_completeness(extraction),
+        "reserved_v15": 1.0,
+    }
+    weights = {
+        "pinout_completeness": 0.20,
+        "base_completeness": 0.25,
+        "category_extension_completeness": 0.25,
+        "reserved_v15": 0.30,
+    }
+    weighted = sum(dims[k] * weights[k] for k in dims)
+    score = int(round(weighted * 100))
+    return {"score": score, "dimensions": dims, "weights": weights}

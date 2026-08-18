@@ -1,0 +1,45 @@
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+.npmrc
+.pypirc
+*.pem
+*.key
+*.token
+*.secret
+
+# Local environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.basedpyright/
+
+# Generated output and local state
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+*.sarif
+reports/
+.hermes/
+.codex/
+.agents/
+sessions/
+logs/
+*.log
+*.db
+*.sqlite*
+.DS_Store
+.idea/
+.vscode/
+screenshots/
+.tmp/

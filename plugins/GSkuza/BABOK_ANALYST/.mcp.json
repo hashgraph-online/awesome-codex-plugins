@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "babok": {
+      "command": "node",
+      "args": ["hooks/babok-mcp-launcher.cjs"],
+      "cwd": "."
+    }
+  }
+}

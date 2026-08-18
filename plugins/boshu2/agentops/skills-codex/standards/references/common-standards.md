@@ -13,7 +13,7 @@
 3. [Security Principles](#security-principles)
 4. [Documentation Standards](#documentation-standards)
 5. [Code Organization Principles](#code-organization-principles)
-6. [Dedup Manifest](#dedup-manifest)
+6. [Canonical Language Owners](#canonical-language-owners)
 
 ---
 
@@ -420,38 +420,27 @@ Separated by blank lines. Alphabetical within each group.
 
 ---
 
-## Dedup Manifest
+## Canonical Language Owners
 
-This table maps which sections in each language-specific file contain universal philosophical content that can be replaced with a cross-reference to this document, and which must remain because they contain language-specific implementation details.
+Language-specific guidance lives beside this document in one concise canonical
+file per language:
 
-| Language File | Section | Action | Rationale |
-|---------------|---------|--------|-----------|
-| `go.md` | Error Handling | keep-as-is | Go-specific `%w`, `errors.Is()`, `errors.Join()`, custom error types |
-| `go.md` | Modern Standard Library | keep-as-is | Entirely Go-specific stdlib packages (`slices`, `maps`, `cmp`) and version-gated features |
-| `go.md` | Concurrency | keep-as-is | Go-specific `sync.OnceFunc`, type-safe atomics, context patterns |
-| `go.md` | Future Features | keep-as-is | Go-specific version-gated features for upgrade readiness |
-| `python-standards.md` | Error Handling | keep-as-is | Python-specific exception hierarchy, `from exc` chaining, bare except rules |
-| `python-standards.md` | Testing | keep-as-is | Pytest-specific fixtures, `conftest.py`, testcontainers, `parametrize` |
-| `python-standards.md` | Docstrings | keep-as-is | Google style docstrings, Python-specific sections (Args, Returns, Raises) |
-| `rust-standards.md` | Error Handling Patterns | keep-as-is | Rust-specific `thiserror`/`anyhow`, `?` operator, `Result` aliases |
-| `rust-standards.md` | Testing Patterns | keep-as-is | Rust-specific `#[cfg(test)]`, doc tests, `proptest!`, criterion benchmarks |
-| `rust-standards.md` | Unsafe Code | keep-as-is | Entirely Rust-specific (SAFETY comments, FFI, scope minimization) |
-| `typescript-standards.md` | Error Handling | keep-as-is | TS-specific Result pattern, type guards, error classes with branded types |
-| `typescript-standards.md` | Type System Patterns | keep-as-is | Entirely TS-specific (generics, utility types, conditional types) |
-| `shell-standards.md` | Error Handling | keep-as-is | Shell-specific `set -eEuo pipefail`, ERR trap, exit codes |
-| `shell-standards.md` | Security | keep-as-is | Shell-specific sed injection, `jq` for JSON, CLI secret handling |
-| `shell-standards.md` | Testing | keep-as-is | BATS-specific test patterns, `shellcheck` integration |
-| ALL | Compliance Assessment | keep-as-is | Grading scales are language-specific (different tool outputs, thresholds) |
-| ALL | Vibe Integration | keep-as-is | Prescan patterns and JIT loading are language-specific |
-| ALL | Anti-Patterns | trim-universal-keep-specific | Add cross-ref to common anti-patterns; keep language-specific examples |
-| ALL | Code Quality Metrics | trim-universal-keep-specific | Add cross-ref to common coverage targets; keep language-specific tool commands |
+| Language | Canonical file |
+|----------|----------------|
+| Go | `go.md` |
+| Python | `python.md` |
+| Rust | `rust.md` |
+| TypeScript | `typescript.md` |
+| JavaScript | `javascript.md` |
+| Shell | `shell.md` |
+| JSON/JSONL | `json.md` |
+| YAML | `yaml.md` |
+| Markdown | `markdown.md` |
 
-**Legend:**
-- **keep-as-is** -- Section contains primarily language-specific implementation details. No changes needed.
-- **trim-universal-keep-specific** -- Section contains some universal philosophical content that overlaps with this document. Add a cross-reference note at the top of the section pointing here, but keep all language-specific examples and tool commands.
-- **replace-with-ref** -- Section is entirely universal philosophy. Replace with a cross-reference. (None found -- all language sections contain significant implementation details.)
-
-**Conservative approach:** All language-specific files retain their full content. Only two section categories get a small cross-reference header added. This ensures no loss of language-specific implementation guidance.
+Validate consumes these standards as criteria; it does not own duplicate
+language catalogs. Universal error-handling, testing, security, documentation,
+and organization rules remain here, while language files carry only the
+syntax, tooling, and runtime details needed to apply them.
 
 ---
 

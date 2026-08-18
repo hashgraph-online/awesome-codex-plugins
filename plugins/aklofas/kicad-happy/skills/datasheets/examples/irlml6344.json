@@ -1,0 +1,616 @@
+{
+  "base": {
+    "absolute_max": {
+      "ID": [
+        {
+          "condition": "TA = 25\u00b0C, VGS = 10V",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 5.0,
+          "min": null,
+          "notes": "Continuous Drain Current",
+          "typ": null,
+          "unit": "A"
+        },
+        {
+          "condition": "TA = 70\u00b0C, VGS = 10V",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 4.0,
+          "min": null,
+          "notes": "Continuous Drain Current",
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "IDM": [
+        {
+          "condition": "Repetitive rating; pulse width limited by max junction temperature",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 25,
+          "min": null,
+          "notes": "Pulsed Drain Current",
+          "typ": null,
+          "unit": "A"
+        }
+      ],
+      "PD": [
+        {
+          "condition": "TA = 25\u00b0C",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 1.3,
+          "min": null,
+          "notes": "Maximum Power Dissipation",
+          "typ": null,
+          "unit": "W"
+        },
+        {
+          "condition": "TA = 70\u00b0C",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 0.8,
+          "min": null,
+          "notes": "Maximum Power Dissipation",
+          "typ": null,
+          "unit": "W"
+        }
+      ],
+      "TJ": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 150,
+          "min": -55,
+          "notes": "Junction and Storage Temperature Range",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "VDS": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 30,
+          "min": null,
+          "notes": "Drain-Source Voltage",
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "VGS": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 12,
+          "min": -12,
+          "notes": "Gate-to-Source Voltage",
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "compliance": [
+      {
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 10,
+          "section": "Qualification information"
+        },
+        "mark": "RoHS"
+      },
+      {
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 10,
+          "section": "Qualification information"
+        },
+        "mark": "JEDEC JESD47F",
+        "rating": "Consumer"
+      }
+    ],
+    "description": "30V, 5A N-channel MOSFET in SOT-23 package with 29m\u03a9 RDS(on) for load/system switch applications.",
+    "esd": {},
+    "family": "N-channel HEXFET power MOSFET",
+    "moisture_sensitivity": {
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 10,
+        "section": "Qualification information"
+      },
+      "msl": 1,
+      "peak_reflow_c": null
+    },
+    "package": {
+      "body_mm": {
+        "height": 1.005,
+        "length": 2.92,
+        "width": 2.37
+      },
+      "code": "SOT-23",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 1,
+        "section": "Package / Ordering Information"
+      },
+      "pin_count": 3,
+      "pitch_mm": null,
+      "thermal_pad": false
+    },
+    "pin_relationships": [],
+    "pinout": [
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Gate control input. Controls channel conductivity. VGS(max) = \u00b112 V.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Pin Configuration Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "Gate",
+        "notes": "VGS(max) \u00b112 V; RDS(on) max 29 m\u03a9 @ VGS = 4.5 V, 37 m\u03a9 @ VGS = 2.5 V.",
+        "numbers": [
+          "1"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Source terminal. Current reference for gate-source and drain-source voltages.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Pin Configuration Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "Source",
+        "notes": null,
+        "numbers": [
+          "2"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Drain terminal. Switched output node. VDS(max) = 30 V; continuous drain current up to 5 A @ 25 \u00b0C.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Absolute Maximum Ratings / Pin Configuration Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "Drain",
+        "notes": "Continuous drain current: 5.0 A @ TA = 25 \u00b0C, 4.0 A @ TA = 70 \u00b0C (VGS = 10 V); pulsed drain current 25 A.",
+        "numbers": [
+          "3"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "output"
+      }
+    ],
+    "recommended_operating": {},
+    "thermal": {
+      "theta_ja": [
+        {
+          "condition": "Surface mounted on 1 in\u00b2 square Cu board, steady state",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Thermal Resistance"
+          },
+          "max": 100,
+          "min": null,
+          "notes": "Note 3: Surface mounted on 1 in square Cu board",
+          "typ": null,
+          "unit": "\u00b0C/W"
+        },
+        {
+          "condition": "Surface mounted on 1 in\u00b2 square Cu board, t < 10s",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Thermal Resistance"
+          },
+          "max": 99,
+          "min": null,
+          "notes": "Transient, t < 10s",
+          "typ": null,
+          "unit": "\u00b0C/W"
+        }
+      ]
+    }
+  },
+  "categories": [
+    "transistor"
+  ],
+  "extraction": {
+    "extracted_at": "2026-04-27T21:24:55Z",
+    "extractor_schema_version": "1.0",
+    "extractor_scout": null,
+    "plan_ref": "IRLML6344.plan.json",
+    "quality_score": 79
+  },
+  "schema_version": {
+    "base": "1.0",
+    "categories": {
+      "transistor": "1.0"
+    }
+  },
+  "source": {
+    "datasheet_date": "2014-12-19",
+    "datasheet_revision": "12/19/2014",
+    "family_ref": null,
+    "local_path": "datasheets/IRLML6344.pdf",
+    "manufacturer": "International Rectifier",
+    "mpn": "IRLML6344",
+    "page_count": 10,
+    "sha256": "sha256:a617ed2f9bfebfa5e57d9e8e6ba8f165b6f8d88ce57f11b47aae99a8f8905d85",
+    "source_url": "http://www.irf.com"
+  },
+  "transistor": {
+    "body_diode_vf": [
+      {
+        "condition": "TJ=25\u00b0C, IS=5.0A, VGS=0V",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Source-Drain Ratings and Characteristics"
+        },
+        "max": 1.2,
+        "min": null,
+        "notes": "Body diode (Source-Drain) forward voltage VSD",
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "ciss": [
+      {
+        "condition": "VGS=0V, VDS=25V, f=1.0MHz",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": null,
+        "min": null,
+        "notes": "Input Capacitance Ciss; datasheet value 650 pF converted to F",
+        "typ": 6.5e-10,
+        "unit": "F"
+      }
+    ],
+    "coss": [
+      {
+        "condition": "VGS=0V, VDS=25V, f=1.0MHz",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": null,
+        "min": null,
+        "notes": "Output Capacitance Coss; datasheet value 65 pF converted to F",
+        "typ": 6.5e-11,
+        "unit": "F"
+      }
+    ],
+    "crss": [
+      {
+        "condition": "VGS=0V, VDS=25V, f=1.0MHz",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": null,
+        "min": null,
+        "notes": "Reverse Transfer Capacitance Crss; datasheet value 46 pF converted to F",
+        "typ": 4.6e-11,
+        "unit": "F"
+      }
+    ],
+    "ft": null,
+    "hfe": null,
+    "ic_max": null,
+    "id_max": [
+      {
+        "condition": "TA=25\u00b0C, VGS=10V, continuous",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "Absolute Maximum Ratings"
+        },
+        "max": 5.0,
+        "min": null,
+        "notes": "Continuous Drain Current",
+        "typ": null,
+        "unit": "A"
+      },
+      {
+        "condition": "TA=70\u00b0C, VGS=10V, continuous",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "Absolute Maximum Ratings"
+        },
+        "max": 4.0,
+        "min": null,
+        "notes": "Continuous Drain Current derated at elevated ambient",
+        "typ": null,
+        "unit": "A"
+      }
+    ],
+    "package": {
+      "body_mm": {
+        "height": 1.005,
+        "length": 2.92,
+        "width": 1.3
+      },
+      "code": "SOT-23",
+      "evidence": {
+        "confidence": "high",
+        "method": "prose",
+        "page": 1,
+        "section": "Package / Ordering Information"
+      },
+      "pin_count": 3,
+      "pitch_mm": 0.95,
+      "thermal_pad": false
+    },
+    "pin_assignment": {
+      "base_pin": null,
+      "collector_pin": null,
+      "drain_pin": "3",
+      "emitter_pin": null,
+      "gate_pin": "1",
+      "source_pin": "2"
+    },
+    "power_dissipation": [
+      {
+        "condition": "TA=25\u00b0C, surface mounted",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "Absolute Maximum Ratings"
+        },
+        "max": 1.3,
+        "min": null,
+        "notes": "Maximum Power Dissipation PD",
+        "typ": null,
+        "unit": "W"
+      },
+      {
+        "condition": "TA=70\u00b0C, surface mounted",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "Absolute Maximum Ratings"
+        },
+        "max": 0.8,
+        "min": null,
+        "notes": "Maximum Power Dissipation PD derated at elevated ambient",
+        "typ": null,
+        "unit": "W"
+      }
+    ],
+    "qg": [
+      {
+        "condition": "ID=5.0A, VDS=15V, VGS=4.5V",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": null,
+        "min": null,
+        "notes": "Total Gate Charge Qg; datasheet value 6.8 nC converted to C",
+        "typ": 6.8e-09,
+        "unit": "C"
+      }
+    ],
+    "qgd": [
+      {
+        "condition": "ID=5.0A, VDS=15V, VGS=4.5V",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": null,
+        "min": null,
+        "notes": "Gate-to-Drain (Miller) Charge Qgd; datasheet value 2.4 nC converted to C",
+        "typ": 2.4e-09,
+        "unit": "C"
+      }
+    ],
+    "rds_on": [
+      {
+        "condition": "VGS=4.5V, ID=5.0A, TJ=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": 0.029,
+        "min": null,
+        "notes": "Static Drain-to-Source On-Resistance; datasheet values 22/29 m\u03a9 converted to \u03a9",
+        "typ": 0.022,
+        "unit": "\u03a9"
+      },
+      {
+        "condition": "VGS=2.5V, ID=4.0A, TJ=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": 0.037,
+        "min": null,
+        "notes": "Static Drain-to-Source On-Resistance; datasheet values 27/37 m\u03a9 converted to \u03a9",
+        "typ": 0.027,
+        "unit": "\u03a9"
+      }
+    ],
+    "thermal_resistance": {
+      "rtheta_ja": [
+        {
+          "condition": "Surface mounted, steady-state",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "Thermal Resistance"
+          },
+          "max": 100,
+          "min": null,
+          "notes": "Junction-to-Ambient thermal resistance R\u03b8JA; typ not published",
+          "typ": null,
+          "unit": "\u00b0C/W"
+        }
+      ],
+      "rtheta_jc": null,
+      "rtheta_jl": null
+    },
+    "tj_max": [
+      {
+        "condition": "Junction and Storage Temperature Range TJ, TSTG",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "Absolute Maximum Ratings"
+        },
+        "max": 150,
+        "min": -55,
+        "notes": "Operating and storage temperature range",
+        "typ": null,
+        "unit": "\u00b0C"
+      }
+    ],
+    "transistor_type": "mosfet_n",
+    "vbe_sat": null,
+    "vcbo_max": null,
+    "vce_sat": null,
+    "vceo_max": null,
+    "vds_max": [
+      {
+        "condition": "VGS=0V, ID=250\u00b5A",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": null,
+        "min": 30,
+        "notes": "Drain-to-Source Breakdown Voltage V(BR)DSS; min value is the rated breakdown",
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vebo_max": null,
+    "vgs_max": [
+      {
+        "condition": "Absolute maximum gate-to-source voltage",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "Absolute Maximum Ratings"
+        },
+        "max": 12,
+        "min": -12,
+        "notes": "Bipolar \u00b112V rating",
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vgs_th": [
+      {
+        "condition": "VDS=VGS, ID=10\u00b5A, TJ=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 2,
+          "section": "Electric Characteristics @ TJ=25\u00b0C"
+        },
+        "max": 1.1,
+        "min": 0.5,
+        "notes": "Gate Threshold Voltage VGS(th)",
+        "typ": 0.8,
+        "unit": "V"
+      }
+    ]
+  }
+}

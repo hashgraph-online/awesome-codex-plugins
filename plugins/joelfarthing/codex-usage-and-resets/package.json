@@ -1,0 +1,15 @@
+{
+  "name": "codex-usage-and-resets",
+  "version": "0.1.1",
+  "description": "Deterministic Codex usage, pace, reset observation, and banked-reset reporting.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node --check scripts/cuar.mjs && node --check scripts/lib/app-server.mjs && node --check scripts/lib/calculate.mjs && node --check scripts/lib/cli.mjs && node --check scripts/lib/errors.mjs && node --check scripts/lib/normalize.mjs && node --check scripts/lib/reset-ledger.mjs && node --check scripts/lib/schema.mjs && node --check scripts/lib/time.mjs && node --test",
+    "test": "node --test",
+    "package:release-candidate": "python3 scripts/package-release-candidate.py"
+  }
+}

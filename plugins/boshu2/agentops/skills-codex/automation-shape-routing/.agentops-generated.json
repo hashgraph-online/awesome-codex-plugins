@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/automation-shape-routing",
   "layout": "modular",
-  "source_hash": "91f7ee3cd2f0cebf30c4da10d69596b2618e58e0dc1c7d8640c5bc628911f2c3",
-  "generated_hash": "760fa89b39fe7a5d770ace8593c228d34078b1aaf830ce3f2422196772cdb485"
+  "source_hash": "6a1d4df0589901acdd6a66541c1027697e31c0273f931f863b8c7c82e520f933",
+  "generated_hash": "022a51640c617822e180d87f2e1da75b151df74473301a820969fc2181d548e0"
 }

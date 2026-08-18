@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emulo"
+dynamic = ["version"]
+description = "Mine your local AI coding session logs into a personal profile your agent loads before every task."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Ohad" }]
+keywords = ["personalization", "skills", "session-mining", "agents", "mcp", "claude-code", "codex"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Environment :: Console",
+  "Topic :: Software Development",
+]
+
+[project.urls]
+Homepage = "https://github.com/ohad6k/emulo"
+Repository = "https://github.com/ohad6k/emulo"
+
+[project.scripts]
+emulo = "emulo:main"
+emulo-cli = "emulo:main"  # deprecated alias, kept so existing scripts keep working
+emulo-autopilot = "emulo_autopilot.cli:main"
+
+[project.optional-dependencies]
+pro = ["cryptography>=46.0.3,<50"]
+
+[tool.setuptools]
+py-modules = ["emulo"]
+packages = ["emulo_autopilot"]
+
+[tool.setuptools.dynamic]
+version = { attr = "emulo.EMULO_VERSION" }

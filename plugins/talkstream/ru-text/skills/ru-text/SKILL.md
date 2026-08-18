@@ -1,13 +1,13 @@
 ---
 name: ru-text
 description: >
-  Use when writing, editing, or reviewing Russian-language text, or when user
-  mentions ru-text. Covers typography, info-style, editorial, UX writing, business
-  correspondence. Auto-activates on Russian text output.
+  Russian text quality. Triggers: вычитай, проверь текст, поправь, отредактируй,
+  причеши, ru-text. Typography silently on any Russian output; deeper editing on
+  request. Info-style, editorial, UX writing, business correspondence, AI-text cleanup.
 metadata:
   openclaw:
     always: true
-    emoji: "\U0001F4DD"
+    emoji: "📝"
     homepage: "https://ru-text.org"
 ---
 
@@ -19,9 +19,13 @@ Credits and recommended reading: `references/sources.md`
 
 **Style priority**: if the user explicitly requests a specific style (casual, academic, SEO, literary, etc.), their prompt overrides these default rules where they conflict. These rules are defaults, not mandates.
 
+**Reviewing vs. rewriting**: when *checking* or proofreading existing text or a file, return the corrected version plus a list of changes — do not silently overwrite the source file. Rewrite a file in place only when the user explicitly asks.
+
+**Someone else's words stay theirs**: quoted material, code blocks and third-party text inside the user's document are reproduced as-is. Report an issue you see in them if it matters; never rewrite them.
+
 ## Always-On: Typography
 
-Apply these rules to ALL Russian text output without exception.
+Apply to ALL Russian text output — silently: fix, don't announce.
 
 | Rule | Wrong | Correct |
 |---|---|---|
@@ -42,7 +46,7 @@ Full typography reference: `references/typography.md`
 
 `/ru-text:ru-score` — text quality score (0–10, 5 dimensions).
 
-## Top Stop-Words (remove or replace)
+## Top Stop-Words (when writing or editing on request)
 
 | Stop-word | Replace with |
 |---|---|
@@ -57,7 +61,7 @@ Full typography reference: `references/typography.md`
 | на сегодняшний день | сегодня |
 | в целях | чтобы |
 
-Full stop-word catalog (97 entries): `references/info-style.md`
+Full stop-word catalog (92 entries): `references/info-style.md`
 
 ## When to Load Reference Files
 
@@ -81,7 +85,7 @@ If the path is not resolved, search: `Glob("**/ru-text/references/scoring.md")` 
 Before delivering Russian text:
 
 - [ ] Quotes: «» primary, „“ nested
-- [ ] Dashes: — in text, – in ranges, - only in compounds; max 1–2 per paragraph
+- [ ] Dashes: — in text, – in ranges, - only in compounds; max 1–2 per paragraph (a parallel row counts as one, dialogue dashes as none); trim to the limit, not to zero; edit a row whole or not at all
 - [ ] NBSP after в, к, с, о, у, и, а
 - [ ] Ellipsis: … (single char)
 - [ ] Abbreviations: т. д., т. п. (with NBSP)

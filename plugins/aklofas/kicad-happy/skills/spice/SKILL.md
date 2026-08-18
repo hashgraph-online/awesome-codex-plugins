@@ -40,7 +40,7 @@ This skill inverts the typical simulation workflow: instead of requiring users t
   - **LTspice** — free from analog.com/ltspice. Popular on Windows, works via wine on Linux.
   - **Xyce** — from xyce.sandia.gov. Parallel SPICE for large circuits.
   - Override with `--simulator ngspice|ltspice|xyce` or `SPICE_SIMULATOR` env var.
-- **Python 3.8+** — stdlib only, no pip dependencies
+- **Python 3.10+** — stdlib only, no pip dependencies
 - **Schematic analyzer JSON** — from `analyze_schematic.py --output`
 
 If no simulator is installed, skip simulation gracefully and note it in the report. Do not treat a missing simulator as an error — it's an optional enhancement.
@@ -50,26 +50,34 @@ If no simulator is installed, skip simulation gracefully and note it in the repo
 ### Step 1: Run the schematic analyzer
 
 ```bash
-python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --output analysis.json
+python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --analysis-dir analysis/
 ```
 
 ### Step 2: Run SPICE simulations
 
+Pass `--analysis-dir analysis/` — the script auto-resolves `schematic.json`
+from the manifest's current run, writes `spice.json` into the same run
+folder, and parks intermediate `.cir` / `.raw` files at
+`<run>/spice_work/` by default.
+
 ```bash
-# Simulate all supported subcircuit types
+# Recommended: auto-resolve schematic + write spice.json into the current run
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/
+
+# Explicit form — positional or --schematic path
 python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --output sim_report.json
 
 # Simulate specific types only
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --types rc_filters,voltage_dividers
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --types rc_filters,voltage_dividers
 
-# Keep simulation files for debugging (default: temp dir, cleaned up)
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --workdir ./spice_runs
+# Keep simulation files for debugging (default: <run>/spice_work/ when --analysis-dir is set, else a temp dir)
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --workdir ./spice_runs
 
 # Increase timeout for complex circuits (default: 5s per subcircuit)
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --timeout 10
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --timeout 10
 
 # Omit file paths from output (cleaner for reports)
-python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --compact
+python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --compact
 ```
 
 ### Step 2b (optional): PCB parasitic-aware simulation
@@ -296,19 +304,20 @@ For detailed information about the behavioral models used, their accuracy envelo
 | `scripts/spice_model_generator.py` | Parameterized behavioral .subckt generation from specs dicts |
 | `scripts/spice_model_cache.py` | Project-local model cache in `spice/models/` next to the schematic |
 | `scripts/spice_spec_fetcher.py` | Queries distributor APIs (LCSC, DigiKey, element14, Mouser), structured datasheet extractions, and PDF regex for parametric specs |
-| `scripts/extract_parasitics.py` | Compute trace R, via L, coupling C from PCB analysis JSON (Phase 3) |
+| `scripts/extract_parasitics.py` | Compute trace R, via L, coupling C from PCB analysis JSON |
 
-## Per-Part Behavioral Models (Phase 2)
+## Per-Part Behavioral Models
 
 When the analyzer detects an opamp with a recognized MPN (e.g., LM358, TL072, MCP6002), the skill uses a **per-part behavioral model** instead of the generic ideal opamp. The model captures the actual GBW, slew rate, input offset, and output swing from the part's datasheet.
 
 Model resolution cascade:
 1. **Project cache** (`<project>/spice/models/`) — previously resolved models
-2. **Distributor API specs** — queries LCSC (no auth), DigiKey, element14, Mouser for real parametric data
-3. **Structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/` (cached JSON with SPICE-relevant parameters, scored for quality)
-4. **Datasheet PDF regex extraction** — reads from `<project>/datasheets/`, extracts via text pattern matching (last resort)
-5. **Built-in lookup table** — ~100 common parts as offline fallback
-6. **Ideal model fallback** — if the MPN isn't recognized by any source
+2. **v1.4 typed datasheet facts** — via `lookup(mpn, cache_dir=<project>/datasheets/extracted)` from the `datasheets` skill. Returns `DatasheetFacts` with `opamp.gbw`, `opamp.slew_rate`, etc. as `SpecValue` instances with trust gating. Recommended source when present.
+3. **Distributor API specs** — queries LCSC (no auth), DigiKey, element14, Mouser for real parametric data
+4. **v1.3 structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/` (legacy dict-shaped JSON, scored for quality). Dual-read compat path; still consulted when v1.4 cache misses.
+5. **Datasheet PDF regex extraction** — reads from `<project>/datasheets/`, extracts via text pattern matching (last resort)
+6. **Built-in lookup table** — ~100 common parts as offline fallback
+7. **Ideal model fallback** — if the MPN isn't recognized by any source
 
 The `model_note` field in the report indicates which model was used: `"LM358 behavioral (lookup:LM358, GBW=1.0MHz)"` vs `"ideal opamp (Aol=1e6, GBW~10MHz)"`.
 

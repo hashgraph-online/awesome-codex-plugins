@@ -233,5 +233,5 @@ The helper writes a fresh entry at `confidence: 0.5`. The +0.15 confirm / -0.20 
 - Session normalizer: `scripts/lib/session-schema.mjs::normalizeSession`
 - Backlog signal: `scripts/lib/backlog-scan.mjs::scanBacklog` (Phase B-3, #293)
 - Accuracy helper: `scripts/lib/mode-selector-accuracy.mjs::recordAccuracy` (Phase B-4, #294)
-- PRD: `docs/prd/2026-04-25-mode-selector.md`
+- PRD: "Mode Selector" (#276; archived in the private Meta-Vault)
 - Issues: [#292 Phase B-2 integration](https://github.com/Kanevry/session-orchestrator/issues/292), [#293 Phase B-3 backlog signal](https://github.com/Kanevry/session-orchestrator/issues/293), [#294 Phase B-4 accuracy feedback](https://github.com/Kanevry/session-orchestrator/issues/294)

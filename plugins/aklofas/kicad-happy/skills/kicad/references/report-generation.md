@@ -25,6 +25,7 @@ These sections are expected in a complete design review unless genuinely not app
 - Component Summary
 - Power Tree
 - Analyzer Verification
+- Deep Review, when `analysis/deep_review.json` exists
 - Signal Analysis Review
 - Power Analysis
 - PCB Layout Analysis, when a PCB exists
@@ -151,6 +152,17 @@ Custom library symbols (e.g., `sacmap:TPS61023`) are highest priority for datash
 ### Net Tracing — [All power rails + critical signal nets traced end-to-end: list all pins, verify connectivity, confirm correctness]
 ### PCB Verification — [If PCB analyzed: footprint count match, pad-net spot-check, board dimensions confirmed]
 ### Gerber Verification — [If gerbers analyzed: layer completeness, drill count, alignment check]
+
+## Deep Review
+
+Findings from the per-IC usage-vs-datasheet pass
+(`analysis/deep_review.json`) — first-class findings, presented
+before the detector baseline. Group by category. For each finding:
+summary, severity/confidence, and the evidence inline — datasheet
+quote with MPN + page, computation result, design anchors.
+Quarantined entries render at the end under **Unverified claims**
+with their quarantine reasons — never silently dropped. If the pass
+was skipped or degraded (no datasheets), state the per-IC gaps here.
 
 ## Signal Analysis Review
 [Walk through each detected subcircuit category, validate calculations, note any false positives]

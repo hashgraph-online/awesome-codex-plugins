@@ -393,6 +393,7 @@ alcove promote      Bring a file from an external vault into your doc-repo
 alcove index        Update the search index (incremental — only changed files)
 alcove rebuild      Rebuild the search index from scratch (use after schema changes)
 alcove search       Search docs from the terminal
+alcove bench        Search quality benchmark [--corpus] (precision, latency, regression detection)
 alcove index-code   Generate code structure index from source [--language LANG] [--source PATH]
 alcove token        Print the bearer token (for background server auth)
 alcove uninstall    Remove skills, config, and legacy files
@@ -481,6 +482,43 @@ alcove promote ~/my-brain/Projects/auth-notes.md --mv
 ```
 
 Files with no matching project land in `inbox/` for manual review.
+
+### Benchmark
+
+Measure and track search quality with built-in IR metrics and regression detection.
+
+**Isolated corpus mode** (`--corpus`) uses a self-contained test dataset (19 synthetic documents, 25 queries) for fast, reproducible CI benchmarks — no real docs needed, completes in under 60 seconds.
+
+```bash
+# Run against the built-in eval corpus (recommended for CI)
+alcove bench --corpus --baseline benches/corpus/baseline.json
+
+# Update the corpus baseline after intentional changes
+alcove bench --corpus --save-baseline benches/corpus/baseline.json
+
+# Run against your real docs (50 queries across 10 categories)
+alcove bench --metrics precision
+
+# Save as baseline for future comparison
+alcove bench --output json --save-baseline benches/baseline.json
+
+# Compare against baseline — detect regressions in CI
+alcove bench --baseline benches/baseline.json
+
+# Markdown report
+alcove bench --output markdown --output-file bench-report.md
+```
+
+| Metric | What it measures |
+|--------|-----------------|
+| Precision@K | Fraction of top-K results that are relevant |
+| Recall@K | Fraction of relevant docs found in top-K |
+| NDCG@K | Ranking quality with position discounting |
+| MAP@K | Mean average precision across queries |
+| MRR | Reciprocal rank of first relevant result |
+| Chunk accuracy | Whether retrieved chunks fall within correct sections |
+
+**Regression thresholds**: precision >5%, latency >20%, throughput >15%. Warnings at half the threshold.
 
 ### Background Server
 

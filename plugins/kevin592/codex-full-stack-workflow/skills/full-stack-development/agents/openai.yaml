@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "全栈开发"
+  short_description: "Full-stack delivery gates"
+  default_prompt: "Use full-stack-development to clarify requirements, plan backend/frontend contracts, and gate implementation."

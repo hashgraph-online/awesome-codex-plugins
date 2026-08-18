@@ -51,15 +51,15 @@ Produces incident roles and severity, a live timeline, a status-update cadence, 
 3. **Put live-site impact first.** Treat customer-visible availability, health, and security as the top priority until impact is controlled.
 4. **Bound impact scope early.** Use user, tenant, fault-domain, dependency, and recent-change signals to bound impact safely.
 5. **Mitigate before explaining.** Prefer actions that reduce user impact safely; postpone deep root-cause analysis until impact is controlled.
-6. **Keep a live timeline.** Record timestamped facts, hypotheses, decisions, commands/actions, status updates, and responsibility changes.
-7. **Communicate predictably.** Set status cadence by ticket severity; highest-severity incidents should update within 30 minutes or less, high-severity incidents within an hour, and lower severities by the user-confirmed cadence. Say what is known, unknown, impact, mitigation, and next update time.
-8. **Change strategy when stuck.** Use the user, available documentation, dependency status, or a narrower diagnostic skill when impact persists, mitigation authority is unclear, or a latent risk is not getting traction. Do not wait for a vendor or outside group before taking the safest available mitigation.
+6. **Keep a safe live timeline.** Record timestamped facts, hypotheses, decisions, redacted action summaries, status updates, evidence links, and responsibility changes. Define need-to-know access, retention and disposal, integrity, and prohibited fields; never copy credentials, personal data, raw sensitive configuration, or unrestricted command output into the general timeline.
+7. **Communicate predictably.** Derive status cadence from impact, uncertainty, mitigation rate, audience needs, and responder load. A severe fast-moving incident may need updates within tens of minutes, while a stable bounded incident may use a longer interval. Record the chosen cadence and next update time rather than treating 30 minutes or one hour as universal thresholds. Say what is known, unknown, impact, mitigation, and when the next update will occur.
+8. **Change strategy when stuck.** Predeclare evidence-based stall triggers such as no impact improvement after a bounded interval, worsening guardrails, exhausted safe hypotheses, or unclear mitigation authority. Within existing authority, switch to a safer mitigation, narrower diagnostic path, or rollback when a trigger fires. Ask the user before expanding scope, risk, or authority, but do not turn every strategy change into a waiting point.
 9. **Checkpoint explicitly.** At every incident-commander or shift change, record state, current hypothesis, customer impact, in-flight actions, user decision point, comms cadence, and next decision point.
 10. **Use the normal hotfix path where possible.** Reduce context switching by keeping artifact, branch, change, and rollout mechanics traceable even under urgency.
 11. **Run security incidents as a protected track.** When confidentiality, integrity, identity, abuse, or data exposure may be involved, preserve logs and artifacts, restrict sensitive details to need-to-know responders, and keep operational facts separate from legal conclusions.
 12. **Stabilize and verify.** Confirm recovery with user-visible metrics and internal health.
-13. **Write a blameless postmortem.** Explain contributing factors across technical, operational, detection, change, and organizational layers.
-14. **Replace single-root-cause wording with layered factors.** If the user supplies "root cause: X", treat X as one technical trigger, then add control, detection, rollout, responsibility, or organizational defenses that allowed impact; mark inferred factors as candidates to verify.
+13. **Write a blameless postmortem.** Explain every contributing factor supported by evidence across the relevant technical, operational, detection, change, or organizational layers. A simple incident may have one supported trigger and one missed defense; a complex incident may have many.
+14. **Replace unsupported root-cause certainty.** If the user supplies "root cause: X", distinguish the observed trigger from contributing conditions and missed defenses. Add only factors supported by records; mark plausible but unproven explanations as hypotheses or unknowns, not as required layers.
 15. **Create verified actions.** Every action needs due date, observable completion signal, and classification: prevent, detect, mitigate, or learn.
 16. **Feed standards.** Turn recurring classes into SLO, observability, safe-change, HA, dependency-resilience, or platform-improvement work.
 
@@ -68,17 +68,6 @@ Produces incident roles and severity, a live timeline, a status-update cadence, 
 Use role-based incident command during response and blameless, contributing-factor postmortems after recovery. Prefer mitigation and clear communication over premature diagnosis. Treat security incidents as record-sensitive operational events, keep engineering accountable for live-site outcomes, and treat action items as engineering commitments with verification, not aspirations.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -91,12 +80,13 @@ Use role-based incident command during response and blameless, contributing-fact
 
 - Lead with the incident command plan, current mitigation posture, timeline, postmortem finding, or action register requested.
 - Cover impact, severity, roles, timeline, communications cadence, mitigation, contributing factors, missed defenses, and verified actions before optional incident mechanics.
-- For postmortems, include a **Contributing Factors** section with at least three factors across at least two layers such as technical trigger, detection gap, rollout/control gap, responsibility/runbook gap, or organizational tradeoff; avoid presenting one root cause as the whole explanation.
+- For postmortems, include a **Contributing Factors** section containing all evidence-supported triggers, conditions, and missed defenses. Mark unknowns and rejected hypotheses; do not invent a minimum number of factors or layers.
 - Make recommendations actionable with user decision point, timestamps, next-update times, verification conditions, due dates, and follow-up checks where relevant.
 - Name the details to inspect, such as alerts, dashboards, logs, deploy markers, chat timeline, customer-impact data, mitigation commands, and action verification; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside incident response and postmortems. Use security/privacy constraints or specialist reliability checks only when they are central to the next action.
 - Be concise: avoid generic blameless-postmortem theory and prefer compact timelines, status updates, and action tables.
+- Scale the artifact to incident state: during active impact, return roles, impact, mitigation, cadence, safe timeline, and next decision; add the full postmortem and action register after stabilization or when the user explicitly asks for them.
 
 ## Required Outputs
 
@@ -106,9 +96,9 @@ Use role-based incident command during response and blameless, contributing-fact
 - Impact summary with detection, mitigation, and resolution times.
 - Impact-scope table by user group or tenant, fault domain, dependency, and recent change marker where available.
 - Communications cadence and status-update skeleton.
-- User-confirmed strategy-change trigger when mitigation stalls.
+- Evidence-based strategy-change trigger, action allowed within current authority, and the condition that requires user confirmation because it expands scope or risk.
 - Checkpoint packet for long incidents or responder changes.
-- Postmortem with layered contributing factors, missed defenses, and root-cause details.
+- Postmortem with evidence-supported contributing factors, missed defenses, unknowns, and rejected hypotheses.
 - Action-item register with due date, observable verification signal, and category.
 - Follow-up engineering checks for the relevant skill surfaces.
 
@@ -118,6 +108,7 @@ Use role-based incident command during response and blameless, contributing-fact
 - `impact_scoping`: affected users or tenants, fault domains, dependencies, and recent changes are scoped or marked unknown.
 - `role_check`: response roles and user decision point are assigned or explicitly not needed.
 - `timeline_check`: detection, triage, mitigation, communication, resolution, and key decisions are captured.
+- `record_safety`: the timeline minimizes and redacts sensitive content, links to restricted evidence, and has access, retention and disposal, integrity, and prohibited-field rules.
 - `checkpoint_check`: long incidents or role changes include state, in-flight actions, comms cadence, and next decision point.
 - `blameless_check`: postmortem focuses on system factors and avoids person-blame or single-root-cause simplification.
 - `action_check`: every action has due date, verification condition, and category.

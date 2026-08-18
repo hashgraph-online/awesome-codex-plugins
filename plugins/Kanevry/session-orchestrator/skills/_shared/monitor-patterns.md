@@ -36,11 +36,11 @@ the GitHub mirror's main-branch SHA so the operator can confirm parity.
 ```bash
 prev=""
 while true; do
-  s=$(glab ci status --pipeline-id LATEST --output json 2>/dev/null || echo '[]')
-  cur=$(jq -r '.[] | select(.status!="running" and .status!="pending") | "\(.name): \(.status)"' <<<"$s" 2>/dev/null | sort)
+  s=$(glab ci status -R <OWNER>/<REPO> --output json 2>/dev/null || echo '{"jobs":[]}')
+  cur=$(jq -r '.jobs[] | select(.status!="running" and .status!="pending") | "\(.name): \(.status)"' <<<"$s" 2>/dev/null | sort)
   comm -13 <(echo "$prev") <(echo "$cur")
   prev=$cur
-  jq -e 'all(.status=="success" or .status=="failed" or .status=="canceled" or .status=="skipped")' <<<"$s" >/dev/null 2>&1 && {
+  jq -e '(.jobs|length) > 0 and (.jobs | all(.status=="success" or .status=="failed" or .status=="canceled" or .status=="skipped"))' <<<"$s" >/dev/null 2>&1 && {
     sha=$(gh api repos/Kanevry/session-orchestrator/commits/main --jq '.sha' 2>/dev/null || echo "(mirror unreachable)")
     echo "GitHub mirror main: $sha"
     break
@@ -54,6 +54,31 @@ done
 `failed`, `canceled`, `skipped`). The final line prints the GitHub mirror
 SHA — silence at the end means glab JSON parsing failed (the `||` fallbacks
 prevent the whole loop from dying).
+
+**Probed 2026-08-14 (glab 1.91.0), three corrections — #1022.** The snippet
+above was silence-is-not-success in its own right until that date, and each
+half failed into the next one's fallback:
+
+- `--pipeline-id LATEST` is not a glab flag on any `ci` subcommand
+  (`ERROR Unknown flag`, exit 1), so `$s` was always the `||` fallback. There is
+  no replacement — the argument-less form already selects the current branch's
+  pipeline. Avoid `--branch=<name>` here: it pins a snapshot taken when the
+  monitor was armed.
+- The payload is an OBJECT (`{"jobs":[…],"pipeline":{…}}`), so `.[]` raised
+  `Cannot index array with string "status"` (jq exit 5) on every real response.
+  The accessor is `.jobs[]`.
+- `all(…)` over the empty fallback returns **true**, so the loop broke and
+  printed the mirror SHA on its FIRST iteration whenever glab hiccuped — a
+  transient network error read as "pipeline finished". The `(.jobs|length) > 0`
+  guard is what makes the fallback non-terminal; verified by running the
+  terminal test against `{"jobs":[]}` (exit 1 = keep watching) versus the old
+  form against `[]` (exit 0 = break).
+
+**GitHub-mirror equivalent.** When the pipeline is GitHub-Actions-native (PR
+checks rather than a GitLab pipeline), use
+`gh pr checks -R <OWNER>/<REPO> <pr> --watch --fail-fast`
+as the `command` source — it streams each check transition and exits non-zero on
+the first failure, so the terminal state is never silent.
 
 ---
 
@@ -91,7 +116,7 @@ a live dashboard in terminal B without building telemetry tooling.
 
 **Description.** `autopilot iteration + kill-switch tail`
 
-**timeout_ms.** `3600000` (1 h, the Monitor max)
+**timeout_ms.** `3600000` (1 h — the 1 h ceiling this file uses; repo-internal convention, upstream documents no explicit `timeout_ms` maximum)
 
 **persistent.** `true` (run for the lifetime of the session — autopilot
 runs can take hours)
@@ -104,10 +129,21 @@ tail -f .orchestrator/metrics/autopilot.jsonl | jq -r --line-buffered '
 ```
 
 **Coverage.** Emits on three event kinds: per-iteration progress,
-kill-switch firings (the eight tracked in `scripts/lib/autopilot.mjs`),
-and the loop-end record. A silent autopilot run means autopilot is not
-actually writing to the JSONL — that itself is a signal worth surfacing
-manually. Use `TaskStop` to cancel.
+kill-switch firings (the ten tracked in
+`scripts/lib/autopilot/kill-switches.mjs`), and the loop-end record. A
+silent autopilot run means autopilot is not actually writing to the
+JSONL — that itself is a signal worth surfacing manually.
+
+**Detachment seam (Spike #640).** A headless autopilot run detached via
+Bash `run_in_background` (`node scripts/autopilot.mjs --headless … &`)
+is observed through the returned **task-id**, its **output-file**
+(`.../tasks/<id>.output`), and the **completion notification** — never
+through `TaskList` / `claude agents`, which lists nested *agent* sessions
+only and returns "No tasks found" for a Bash-backgrounded process even
+while the run is healthy. This JSONL tail is therefore the **primary live
+view** once a run is detached, not a supplementary one. Stop a detached
+run with `TaskStop(task_id)`, not the in-session `/tasks`/`/stop` slash
+commands.
 
 ---
 
@@ -137,8 +173,9 @@ done
 **Coverage.** Emits **only on change** to keep the stream quiet during
 idle work. A drop to zero is also reported (e.g. when session-end runs
 mirror-commit). Silence = no drift, which is the desired idle state. The
-30-min sleep matches the `1200s+` cadence band from
-`.claude/rules/loop-and-monitor.md` LM-003.
+30-min sleep matches the `1200s+` idle-tick band from
+`.claude/rules/loop-and-monitor.md` LM-003 (idle observation-rate; under the
+1-hour subscription cache TTL there is no cache penalty here anyway).
 
 ---
 
@@ -151,7 +188,7 @@ parity bit the operator a day later.
 
 **Description.** `github mirror parity vs local main`
 
-**timeout_ms.** `300000` (5 min — push usually completes in seconds; this is the Monitor wall-clock ceiling, **not** the `/loop` cadence band that LM-003 in `.claude/rules/loop-and-monitor.md` warns against)
+**timeout_ms.** `300000` (5 min — push usually completes in seconds; this is the wall-clock ceiling **for this watch**, **not** the `/loop` cadence band that LM-003 in `.claude/rules/loop-and-monitor.md` warns against)
 
 **persistent.** `false`
 
@@ -180,6 +217,61 @@ Terminates only when remote SHA matches local — never silent. If the
 push was actually rejected by GitHub's secret scanner, the remote SHA
 never advances and the watcher keeps emitting the stale-SHA line every
 15 s until the operator notices.
+
+---
+
+## Pattern 6 — WebSocket event source (`ws://` / `wss://`, v2.1.195+)
+
+**When.** The upstream already speaks WebSocket (a CI relay, an error-tracker
+push socket, a daemon's `GET /events` upgraded to WS). Point Monitor's `ws`
+source at it directly — the server pushes each text frame as one notification,
+so there is no polling script and no `grep --line-buffered` line-buffering
+pitfall to get right. Prefer this over a `command` source whenever a socket is
+available.
+
+**Input shape.** Monitor takes a `ws` source *instead of* a `command` source —
+the two are mutually exclusive, never combined:
+
+```jsonc
+{
+  "ws": {
+    "url": "wss://relay.internal.example/ci-events",  // ws:// or wss:// only
+    "protocols": ["ci-events.v1"]                      // optional subprotocols
+  }
+}
+```
+
+The `url` must be a bare `ws://`/`wss://` URL — **no embedded credentials, no
+whitespace, ASCII-only**. Each inbound **text** message becomes one
+notification (multi-line frames included). A **binary** frame is surfaced as the
+placeholder `[binary frame, N bytes]` rather than decoded.
+
+**Coverage / termination.** Two clean terminations and one **silent** one — the
+silent case is the whole reason this pattern needs the silence-is-not-success
+discipline:
+
+- **Socket close** → the watch ends and reports the close code (a clean,
+  visible terminal state).
+- **Frame > 1 MiB → the watch ends SILENTLY.** No close code, no error line —
+  it just stops. Therefore **always subscribe to a filtered / compact feed**
+  (a pre-narrowed event topic), **never a raw feed** whose payloads can cross
+  1 MiB. A raw firehose that occasionally emits a large frame is
+  indistinguishable from a healthy-but-quiet socket, which is exactly the
+  crash-reads-as-success trap this file exists to prevent.
+
+**Caveats.**
+
+- **Own approval prompt.** A `ws` source raises its own connect-approval prompt
+  and has **no "skip future" affordance** — each armed socket is approved
+  explicitly.
+- **SSRF denials.** Monitor refuses `ws` URLs pointing at private,
+  link-local, or cloud-metadata hosts, and honours `sandbox.network.deniedDomains`
+  plus `allowManagedDomainsOnly`. Point it at a reachable, allow-listed relay,
+  not an internal-range host.
+- **When to stay on `command`.** If frames must be filtered or reshaped
+  shell-side before they are notification-worthy, keep the `command` (tail/grep)
+  source per `.claude/rules/loop-and-monitor.md` LM-002 — the `ws` source
+  delivers frames verbatim, with no shell-side filter seam.
 
 ---
 
@@ -222,4 +314,7 @@ never advances and the watcher keeps emitting the stale-SHA line every
   `/loop` vs Routines)
 - `.claude/loop.md` — bare-`/loop` body that delegates to Monitor where
   appropriate
+- "Background Detachment Test" (#640; archived in the private Meta-Vault) — empirical
+  verification of the Bash `run_in_background` + `TaskStop` detachment
+  seam behind Pattern 3
 - Anthropic Monitor tool reference (in-session)

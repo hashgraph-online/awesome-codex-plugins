@@ -1,0 +1,7 @@
+interface:
+  display_name: "CUAR"
+  short_description: "Codex usage pace and resets"
+  default_prompt: "Use $cuar and stay usage-aware for this session."
+
+policy:
+  allow_implicit_invocation: true

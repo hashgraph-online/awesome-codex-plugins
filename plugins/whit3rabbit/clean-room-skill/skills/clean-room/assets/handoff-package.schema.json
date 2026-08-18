@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Handoff Package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "package_id",
+    "task_id",
+    "from_domain",
+    "to_domain",
+    "created_by_role",
+    "artifacts",
+    "excluded_material",
+    "leakage_review"
+  ],
+  "properties": {
+    "package_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "from_domain": {
+      "const": "contaminated"
+    },
+    "to_domain": {
+      "const": "clean"
+    },
+    "created_by_role": {
+      "const": "contaminated-handoff-sanitizer"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "artifact_type",
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifact_type": {
+            "enum": [
+              "clean-run-context",
+              "behavior-spec",
+              "coverage-ledger-summary",
+              "open-questions",
+              "test-plan",
+              "abstract-delta-ticket"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "excluded_material": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "source_excerpt",
+          "raw_diff",
+          "private_identifier",
+          "source_shaped_pseudocode",
+          "copied_comments",
+          "decompiled_output",
+          "other"
+        ]
+      }
+    },
+    "leakage_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reviewer_role",
+        "notes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "quarantined"
+          ]
+        },
+        "reviewer_role": {
+          "const": "contaminated-handoff-sanitizer"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

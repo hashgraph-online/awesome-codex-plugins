@@ -1,6 +1,0 @@
-reportlab>=4.0,<5
-python-docx>=1.0,<2
-odfpy>=1.4,<2
-Pillow>=10.0,<14
-svglib>=1.5,<2
-matplotlib>=3.5,<4

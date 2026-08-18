@@ -2,7 +2,7 @@
   "mcpServers": {
     "orgx": {
       "type": "http",
-      "url": "https://mcp.useorgx.com/mcp",
+      "url": "https://mcp.useorgx.com/mcp?profile=commander",
       "note": "Hosted OrgX MCP server. Uses OAuth on first connection and exposes operator chronicle reporting, initiative, task, artifact, blocker, decision, runtime reporting, and organizational memory tools."
     }
   }

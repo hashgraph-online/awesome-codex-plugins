@@ -3,7 +3,7 @@ name: agent-pr-review
 description: "Use when reviewing a PR, diff, branch, commit, staged change, merge, or pre-release change set"
 ---
 
-# Pre-Merge PR Review
+# Pre-Merge Change Review
 
 ## Iron Law
 
@@ -92,7 +92,7 @@ Run this table after mapping the diff and before the verdict. These routes are e
 | Test strategy, CI gates, fixtures, generated-code acceptance, or environment parity | `testing-and-quality-gates`; `test-data-engineering` for fixture/data drift; `dev-environment-parity` for local/CI/staging drift |
 | Accessibility, web release quality, mobile release quality, or client-facing regression risk | `accessibility-gates`; `web-release-gates`; `mobile-release-engineering` |
 
-## Phase Behavior
+## Review Phase Boundaries
 
 - Ideation: do not use this specialist for risks or options before code exists; route pre-code risk shaping through the router.
 - Design: do not use this specialist for tradeoffs or checks unless a concrete diff, branch, or patch already exists.

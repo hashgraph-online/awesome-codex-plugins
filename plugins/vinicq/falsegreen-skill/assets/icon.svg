@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="falsegreen-skill">
+  <title>falsegreen-skill</title>
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <g fill="none" stroke="#22c55e" stroke-width="56" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M104 268 L196 360 L240 316"/>
+    <path d="M330 226 L408 148"/>
+  </g>
+</svg>

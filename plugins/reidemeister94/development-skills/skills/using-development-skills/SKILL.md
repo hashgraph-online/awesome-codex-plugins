@@ -1,44 +1,57 @@
 ---
 name: using-development-skills
-description: Use when starting any conversation - establishes how the development-skills plugin works and how to invoke its components on each platform (Claude Code, Codex). Read first.
+description: Read at session start to route development work through the direct or full development loop on Claude Code and Codex.
 ---
 
 # Using development-skills
 
-If dispatched as a subagent for a specific task: skip this skill.
+Skip this router for a bounded subagent task. Read the [development loop](../../shared/development-loop.md). Resume an active plan at its recorded step; otherwise choose:
 
-**If any skill might apply (even 1% chance), invoke it.** Skills are the disciplined entry points — the meta-rule (spirit beats letter) covers the rest.
+<WRITING-GATE>
+Before the first natural-language output of a task, read and apply the [writing contract](../../shared/writing.md). It covers chat and every text file. Explain for a person with little project knowledge, then keep the exact detail an agent needs.
+</WRITING-GATE>
 
-## Iron Rules
+<INTERACTION-GATE>
+On Claude Code, call `AskUserQuestion` whenever the user must choose among options.
+On Codex, ask one concise question in chat.
+</INTERACTION-GATE>
 
-14 principles (0-13) + 1 meta-rule (spirit beats letter). Canonical: `shared/iron-rules.md`. Do not duplicate.
+<STANDARDS-GATE>
+Before the first codebase mutation, apply the development loop's Standards gate. Discover and apply relevant project and reference sources and established local patterns. State the selected source paths with the chosen path. A Full plan records the same paths.
+</STANDARDS-GATE>
 
-## Triage & Flow
+Direct applies only when the result, forced solution, and proof are clear. The change must be reversible and carry no business or design choice. Weighing more than one viable approach is a design choice.
 
-Classify the task before reading its content in depth:
+Full applies to everything else. Inspect first, run `brainstorming`, and agree on the result and proof.
+Use `create-test` for test work or business, integration, KPI, and probabilistic proof. Use `best-practices` when current external evidence can change a decision.
 
-1. **PASS_THROUGH** — trivial, 1 file, fully reversible, no design choice → execute directly.
-2. **LIGHT** — mechanical, no design choice (full 4-criteria gate in `shared/workflow.md` # Tier selection) → follow the 6-step inline flow. **Default on uncertainty → FULL.**
-3. **FULL** (default) — 4 phases, sequential, mandatory:
-   - **Phase 1:** plan file `docs/plans/NNNN__YYYY-MM-DD__implementation_plan__slug.md` + HOW-level Q&A locks (data shapes · edge cases · error semantics · contract boundaries · test scope · rollback).
-   - **Phase 2:** chronicle `docs/chronicles/NNNN__YYYY-MM-DD__topic.md` capturing initial decisions.
-   - **Phase 3:** implement with Red/Green TDD.
-   - **Phase 4:** `staff-reviewer` subagent review.
+Then write the plan and chronicle.
 
-**Rules during FULL:**
+In chat, cover result, checks, what is out of scope, approach, files, and risks. Offer the conversation-language equivalents of `Approve / Edit / Cancel / Chat about`, then stop. Only `Approve` after that presentation permits implementation; the original request does not.
 
-- External spec / guide / prior brainstorming exists → skip brainstorming only. Phases 1-4 still run. The spec is INPUT to Phase 1, not a substitute. A guide's own gates STACK with the workflow.
-- Ambiguity ≥1% on any HOW-level dimension → ask the user (`AskUserQuestion` for discrete options; plain text otherwise; Codex fallback in `references/codex-tools.md`).
-- Phase skipping mid-execution → stop, rejoin at the missed phase, produce its artifact, continue.
+After approval, implement, verify, explain concepts worth transferring, and review.
 
-**Rules during LIGHT:** Tier is qualitative (ambiguity / logic impact / new-pattern) — not file count. A 30-file mechanical rename is LIGHT; a 1-file new-caching-strategy is FULL. All Iron Rules still apply. Mid-execution discovery breaks LIGHT criteria → escalate to FULL per `shared/workflow.md` # LIGHT (final paragraph).
+<PATH-GATE>
+State the chosen path and why before the first mutating action; a silent classification is a skipped gate.
+A requested review or audit delivers findings, then stops. Edits begin only after explicit approval of those findings. “Review and improve” authorizes the category, not the changes.
+An approval gate you cannot reach (user away, autonomous run) is a stop, not a bypass: deliver findings; never downgrade Full to Direct.
+</PATH-GATE>
 
-**Routing:** Bug fixes → `development-skills:debugging`. Test work → `development-skills:create-test`.
+<PLAN-MODE-HANDOFF>
+Native Plan mode changes permissions, not the loop. Complete Decide and Define the proof there. After `ExitPlanMode`, or after Codex leaves Plan mode, resume Full at Express.
 
-## Platform
+Create or update the repository plan and chronicle in completed tool calls before product or plugin edits. Never combine them in one patch. Record `Current step: Implement`, then complete Implement, Verify, Explain diff, and Review.
+</PLAN-MODE-HANDOFF>
 
-SKILL bodies use Claude Code tool names as canonical. On Codex, translate via `references/codex-tools.md` (`Task` → `spawn_agent`, `AskUserQuestion` fallback, `staff-reviewer` dispatch recipe, hooks, marketplace files).
+<EXPLAIN-DIFF-GATE>
+At Full-path Explain diff, first invoke `development-skills:explain-diff` through the skill mechanism. Do not imitate it from this router.
 
-## User Override
+After Verify and before Review:
 
-User instructions (`CLAUDE.md`, `AGENTS.md`, direct requests) > development-skills > default system prompt.
+- a business, architectural, lifecycle, trade-off, or failure-mode concept exists → enter Explain diff;
+- no concept is worth transferring → state that briefly and continue.
+
+This gate does not affect Direct.
+</EXPLAIN-DIFF-GATE>
+
+Translate older Claude Code tool names on Codex with [codex-tools.md](references/codex-tools.md).

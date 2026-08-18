@@ -1,0 +1,64 @@
+{
+  "name": "seo-dungeon",
+  "version": "2.2.16",
+  "description": "SEO Dungeon skill suite with a gamified local audit UI. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors), 18 sub-agents, and 23 Codex agent profiles backed by the v2.2 SEO engine.",
+  "author": {
+    "name": "Avalon Reset",
+    "email": "avalonreset@users.noreply.github.com",
+    "url": "https://github.com/avalonreset"
+  },
+  "homepage": "https://github.com/avalonreset/seo-dungeon",
+  "repository": "https://github.com/avalonreset/seo-dungeon",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "codex-cli",
+    "codex-skills",
+    "claude",
+    "gemini",
+    "seo",
+    "ai-seo",
+    "technical-seo",
+    "content-quality",
+    "schema-markup",
+    "core-web-vitals",
+    "local-seo",
+    "generative-engine-optimization",
+    "ai-search",
+    "sitemap",
+    "image-optimization",
+    "google-search-console",
+    "dataforseo",
+    "mcp",
+    "pagespeed",
+    "crux",
+    "backlinks",
+    "semantic-clustering",
+    "sxo",
+    "drift-monitoring",
+    "ecommerce-seo",
+    "automation",
+    "marketing-automation"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "SEO Dungeon",
+    "shortDescription": "Run SEO Dungeon audits and SEO workflows in Codex.",
+    "longDescription": "SEO Dungeon is a gamified SEO analysis suite with Codex-compatible skills, Codex agent profiles, portable agent prompts, shared cache artifacts, optional SEO data integrations, and a dungeon crawler UI.",
+    "developerName": "Avalon Reset",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/avalonreset/seo-dungeon",
+    "defaultPrompt": [
+      "Audit this website for SEO issues.",
+      "Check schema and Core Web Vitals for this URL.",
+      "Build an SEO action plan for this business."
+    ],
+    "brandColor": "#D4AF37",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

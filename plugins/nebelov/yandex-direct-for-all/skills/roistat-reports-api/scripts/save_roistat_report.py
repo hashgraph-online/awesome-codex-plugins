@@ -1,215 +1,210 @@
 #!/usr/bin/env python3
+"""Проверить или применить утверждённый пакет сохранённого отчёта Roistat."""
+
+from __future__ import annotations
+
 import argparse
+import hashlib
 import json
 import os
-import sys
+import stat
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any, Callable
 
 
-def parse_args():
-    p = argparse.ArgumentParser(
-        description="Create or update a saved Roistat report in the cabinet via API."
-    )
-    p.add_argument("--project", required=True, help="Roistat project id")
-    p.add_argument("--report-spec", required=True, help="Path to new_report_spec.json")
-    p.add_argument("--api-key", default="", help="Roistat API key")
-    p.add_argument(
-        "--api-key-env", default="ROISTAT_API_KEY", help="Env var for API key"
-    )
-    p.add_argument(
-        "--base-url",
-        default=os.environ.get("ROISTAT_BASE_URL", "https://cloud.roistat.com/api/v1"),
-        help="Base URL for Roistat API",
-    )
-    p.add_argument(
-        "--report-id",
-        default="",
-        help="Existing saved report id for update. Omit for create.",
-    )
-    p.add_argument("--title", default="", help="Optional title override")
-    p.add_argument(
-        "--result-json",
-        default="",
-        help="Optional path to save the created/updated saved report JSON",
-    )
-    return p.parse_args()
+class GateError(RuntimeError):
+    pass
 
 
-def ensure_api_key(args):
-    key = args.api_key or os.environ.get(args.api_key_env, "")
-    if not key:
-        raise SystemExit(
-            f"Missing API key. Use --api-key or set {args.api_key_env}."
-        )
-    return key
+Api = Callable[[str, dict[str, Any]], dict[str, Any]]
 
 
-def api_call(base_url, project, api_key, endpoint, body=None):
-    url = f"{base_url.rstrip('/')}/{endpoint}?project={urllib.parse.quote(str(project))}"
-    data = None
-    headers = {"Api-key": api_key}
-    if body is not None:
-        data = json.dumps(body, ensure_ascii=False).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+@dataclass
+class Prepared:
+    project: str
+    action: str
+    target_ref: str
+    spec: dict[str, Any]
+    spec_sha256: str
+    api_key: str
+    base_url: str
+    state_root: Path
+
+
+def parse_time(value: str) -> datetime:
     try:
-        with urllib.request.urlopen(req) as resp:
-            payload = resp.read()
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"{endpoint} -> HTTP {e.code}: {detail[:500]}")
-    return json.loads(payload.decode("utf-8", errors="replace"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise GateError("Время подтверждения должно быть ISO 8601") from exc
+    if parsed.tzinfo is None:
+        raise GateError("Время подтверждения должно содержать часовой пояс")
+    return parsed.astimezone(timezone.utc)
 
 
-def load_report_spec(path):
-    report = json.loads(Path(path).read_text(encoding="utf-8"))
-    if "title" not in report or "settings" not in report:
-        raise SystemExit("report-spec must contain top-level title and settings")
-    report.setdefault("folderId", None)
-    report.setdefault("isSystem", 0)
-    report.setdefault("isCreatedByEmployee", 0)
-    return report
-
-
-def fetch_source_titles(base_url, project, api_key):
-    try:
-        payload = api_call(base_url, project, api_key, "project/analytics/source/list", {})
-    except Exception:
-        return {}
-    titles = {}
-    for item in payload.get("data", []):
-        source = item.get("source")
-        title = item.get("title")
-        if source and title:
-            titles[source] = title
-    return titles
-
-
-def normalize_saved_filter_value(field, value, source_titles):
-    if isinstance(value, list) and value and isinstance(value[0], dict):
-        return value
-    if isinstance(value, list) and value and all(isinstance(item, str) for item in value):
-        normalized = []
-        for item in value:
-            label = source_titles.get(item, item)
-            normalized.append({"value": item, "label": label})
-        return normalized
+def private_json(path: Path) -> dict[str, Any]:
+    if not path.is_file() or stat.S_IMODE(path.stat().st_mode) & 0o077:
+        raise GateError("Закрытый файл должен существовать и иметь права 0600")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise GateError("Закрытый файл должен содержать объект JSON")
     return value
 
 
-def normalize_saved_report(report, source_titles):
-    settings = report.setdefault("settings", {})
-    if "date_filter_type" in settings and "dateFilterType" not in settings:
-        settings["dateFilterType"] = settings["date_filter_type"]
-    settings.setdefault("is_list_deals_available", False)
-    settings.setdefault("is_list_deal_cards_available", False)
-    settings.setdefault("is_list_calls_available", False)
-    settings.setdefault("is_call_record_available", False)
-    settings.setdefault("is_users_filter_available", False)
-    settings.setdefault("available_user_emails", [])
-    settings.setdefault("allowed_period", [])
-    settings.setdefault("calendar_events", {"is_need_show": True, "filters": None})
-    for level in settings.get("levels", []):
-        filters = level.get("filters") or []
-        for item in filters:
-            item["value"] = normalize_saved_filter_value(
-                item.get("field", ""),
-                item.get("value"),
-                source_titles,
-            )
-    return report
+def private_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path, 0o700)
 
 
-def reports_index(reports):
-    return {str(report.get("id")): report for report in reports}
+def atomic_json(path: Path, value: Any) -> None:
+    private_dir(path.parent)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
-def main():
-    args = parse_args()
-    api_key = ensure_api_key(args)
+def prepare(project: str, action: str, target_ref: str, spec_path: Path, sha_path: Path, approval_path: Path, *, apply: bool, now: datetime | None = None) -> Prepared:
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    raw = spec_path.read_bytes()
+    try:
+        spec = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise GateError("Спецификация отчёта не является JSON") from exc
+    if not isinstance(spec, dict) or not isinstance(spec.get("title"), str) or not spec["title"].strip() or not isinstance(spec.get("settings"), dict):
+        raise GateError("Спецификация должна содержать title и settings")
+    if action not in {"create", "update"} or not target_ref.strip():
+        raise GateError("Нужны точные action и target-ref")
+    digest = hashlib.sha256(raw).hexdigest()
+    try:
+        declared = sha_path.read_text(encoding="utf-8").strip().split()[0]
+    except (OSError, IndexError) as exc:
+        raise GateError("Файл контрольной суммы отсутствует") from exc
+    if declared != digest:
+        raise GateError("Контрольная сумма спецификации не совпала")
+    approval = private_json(approval_path)
+    required = {"approved", "spec_sha256", "project", "action", "target_ref", "approved_at", "expires_at"}
+    if not required.issubset(approval) or approval["approved"] is not True:
+        raise GateError("Подтверждение владельца неполное")
+    if approval["spec_sha256"] != digest or str(approval["project"]) != project or approval["action"] != action or str(approval["target_ref"]) != target_ref:
+        raise GateError("Подтверждение относится к другой цели")
+    approved_at = parse_time(str(approval["approved_at"]))
+    expires_at = parse_time(str(approval["expires_at"]))
+    if approved_at > now or expires_at <= now or expires_at - approved_at > timedelta(hours=24):
+        raise GateError("Подтверждение ещё не действует, просрочено или выдано более чем на 24 часа")
+    if os.environ.get("ROISTAT_PROJECT", "").strip() != project:
+        raise GateError("Область проекта не совпадает")
+    api_key = os.environ.get("ROISTAT_WRITE_API_KEY", "").strip()
+    if apply and os.environ.get("ROISTAT_WRITE_ARMED") != "1":
+        raise GateError("Запись Roistat не вооружена")
+    if apply and not api_key:
+        raise GateError("Для записи нужна отдельная переменная ROISTAT_WRITE_API_KEY")
+    state_root = Path(os.environ.get("YDFALL_STATE_ROOT") or Path.home() / ".local/state/yandex-direct-for-all").expanduser()
+    base_url = os.environ.get("ROISTAT_BASE_URL", "https://cloud.roistat.com/api/v1").strip()
+    return Prepared(project, action, target_ref, spec, digest, api_key, base_url, state_root)
 
-    report = load_report_spec(args.report_spec)
-    if args.title:
-        report["title"] = args.title
-    if args.report_id:
-        report["id"] = str(args.report_id)
 
-    source_titles = fetch_source_titles(args.base_url, args.project, api_key)
-    report = normalize_saved_report(report, source_titles)
+def default_api(prepared: Prepared, endpoint: str, body: dict[str, Any]) -> dict[str, Any]:
+    url = f"{prepared.base_url.rstrip('/')}/{endpoint}?project={urllib.parse.quote(prepared.project)}"
+    request = urllib.request.Request(url, data=json.dumps(body, ensure_ascii=False).encode("utf-8"), headers={"Api-key": prepared.api_key, "Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(request) as response:
+            value = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        raise GateError(f"{endpoint}: HTTP {exc.code}") from exc
+    if not isinstance(value, dict) or value.get("status") == "error":
+        raise GateError(f"{endpoint}: интерфейс вернул ошибку")
+    return value
 
-    before = api_call(args.base_url, args.project, api_key, "project/analytics/reports", {})
-    before_reports = before["reports"]
-    before_index = reports_index(before_reports)
-    before_titles = {item.get("title") for item in before_reports}
 
-    if not args.report_id and report["title"] in before_titles:
-        raise SystemExit(
-            f"Saved report with title {report['title']!r} already exists. "
-            "Use --report-id to update it or --title to choose another title."
-        )
+def report_list(value: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = value.get("reports")
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise GateError("Ответ списка отчётов имеет неверную схему")
+    return rows
 
-    api_call(
-        args.base_url,
-        args.project,
-        api_key,
-        "project/analytics/report",
-        {"report": report},
-    )
 
-    after = api_call(args.base_url, args.project, api_key, "project/analytics/reports", {})
-    after_reports = after["reports"]
-    after_index = reports_index(after_reports)
-
-    target = None
-    action = "updated" if args.report_id else "created"
-
-    if args.report_id:
-        target = after_index.get(str(args.report_id))
-        if target is None:
-            raise SystemExit(f"Report id={args.report_id} not found after update")
+def execute(prepared: Prepared, api: Callable[[Prepared, str, dict[str, Any]], dict[str, Any]] = default_api) -> dict[str, Any]:
+    run_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{prepared.spec_sha256[:12]}"
+    evidence = prepared.state_root / "roistat-writes" / run_id
+    private_dir(evidence)
+    before_response = api(prepared, "project/analytics/reports", {})
+    before = report_list(before_response)
+    atomic_json(evidence / "before.json", {"reports": before})
+    atomic_json(evidence / "spec.json", prepared.spec)
+    before_by_id = {str(row.get("id")): row for row in before}
+    if prepared.action == "create":
+        if prepared.target_ref != prepared.spec["title"] or any(row.get("title") == prepared.spec["title"] for row in before):
+            raise GateError("Создаваемая цель не совпала или название уже занято")
+        request_report = dict(prepared.spec)
+        previous_target = None
     else:
-        new_ids = [rid for rid in after_index.keys() if rid not in before_index]
-        if len(new_ids) == 1:
-            target = after_index[new_ids[0]]
-        else:
-            matches = [
-                item for item in after_reports if item.get("title") == report["title"]
-            ]
-            if len(matches) == 1:
-                target = matches[0]
-            else:
-                raise SystemExit(
-                    "Could not uniquely identify the created report after save"
-                )
+        previous_target = before_by_id.get(prepared.target_ref)
+        if previous_target is None:
+            raise GateError("Точный изменяемый отчёт не найден")
+        request_report = {**prepared.spec, "id": prepared.target_ref}
+    atomic_json(evidence / "request.json", {"report": request_report})
+    response = api(prepared, "project/analytics/report", {"report": request_report})
+    atomic_json(evidence / "response.json", response)
+    after = report_list(api(prepared, "project/analytics/reports", {}))
+    atomic_json(evidence / "after.json", {"reports": after})
+    after_by_id = {str(row.get("id")): row for row in after}
+    if prepared.action == "update":
+        target = after_by_id.get(prepared.target_ref)
+        unchanged_before = {key: value for key, value in before_by_id.items() if key != prepared.target_ref}
+        unchanged_after = {key: value for key, value in after_by_id.items() if key != prepared.target_ref}
+        if unchanged_before != unchanged_after:
+            raise GateError("Изменились посторонние сохранённые отчёты")
+        atomic_json(evidence / "reversal-candidate.json", {"requires_new_approval": True, "report": previous_target})
+    else:
+        new_ids = set(after_by_id) - set(before_by_id)
+        if len(new_ids) != 1:
+            raise GateError("Созданный отчёт нельзя определить однозначно")
+        if any(after_by_id.get(key) != value for key, value in before_by_id.items()):
+            raise GateError("При создании изменились существующие отчёты")
+        target = after_by_id[next(iter(new_ids))]
+        atomic_json(evidence / "reversal-candidate.json", {"requires_new_approval": True, "action": "manual_delete_review", "report": target})
+    if not target or target.get("title") != prepared.spec["title"] or target.get("settings") != prepared.spec["settings"]:
+        raise GateError("Чтение после записи не совпало со спецификацией")
+    result = {"status": "complete", "run_id": run_id, "action": prepared.action, "title": target.get("title")}
+    atomic_json(evidence / "result.json", result)
+    return result
 
-    if args.result_json:
-        Path(args.result_json).write_text(
-            json.dumps(target, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
 
-    print(
-        json.dumps(
-            {
-                "status": "ok",
-                "action": action,
-                "report_id": str(target.get("id")),
-                "title": target.get("title"),
-                "count_before": len(before_reports),
-                "count_after": len(after_reports),
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--project", required=True)
+    parser.add_argument("--report-spec", required=True)
+    parser.add_argument("--spec-sha256", required=True)
+    parser.add_argument("--approval", required=True)
+    parser.add_argument("--action", choices=["create", "update"], required=True)
+    parser.add_argument("--target-ref", required=True)
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+    try:
+        prepared = prepare(args.project, args.action, args.target_ref, Path(args.report_spec), Path(args.spec_sha256), Path(args.approval), apply=args.apply)
+        if not args.apply:
+            print("Пакет отчёта проверен; сетевых вызовов не было")
+            return 0
+        result = execute(prepared)
+    except Exception as exc:
+        print(f"Пакет отклонён: {exc}")
+        return 1
+    print(json.dumps(result, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        raise
+    raise SystemExit(main())

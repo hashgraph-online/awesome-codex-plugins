@@ -63,9 +63,9 @@ description: >
 ## 推荐 ECC 技能
 
 - `karpathy-guidelines`
-- `browser-smoke-testing`
+- `browser-qa`
 - `systematic-debugging`
-- `browser-smoke-testing`
+- `browser-qa`
 
 
 ## 治理规则

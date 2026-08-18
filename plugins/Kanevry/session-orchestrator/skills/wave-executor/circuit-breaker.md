@@ -31,6 +31,7 @@ The coordinator determines each agent's status after the wave completes:
 1. **Read the agent's final output** and look for the `STATUS:` line
 2. **Map to status**:
    - `STATUS: done` → agent completed successfully
+   - `STATUS: no-tests-needed` → **SUCCESS variant, treat exactly like `done`.** test-writer-specific: the agent found no nameable bug the existing suite misses, so writing a test was the wrong move (`.claude/rules/test-value.md`; enum in `agents/schemas/test-writer.schema.json`). NEVER map this to `failed` or carry it over.
    - `STATUS: partial` → agent hit turn limit or couldn't finish (PARTIAL)
    - `STATUS: failed` → agent encountered an error it couldn't recover from (FAILED)
    - No STATUS line found → infer from output: if agent produced changes, mark as `done`; if it reported errors, mark as `failed`; if output is truncated, mark as `partial`
@@ -45,6 +46,7 @@ The coordinator determines each agent's status after the wave completes:
 | Status | Meaning | Trigger | Recovery |
 |--------|---------|---------|----------|
 | **done** | Agent completed all assigned work | Agent reports `STATUS: done` | None needed |
+| **no-tests-needed** | SUCCESS variant of **done** — test-writer found no nameable gap, so no test was the correct outcome | Agent reports `STATUS: no-tests-needed` | None needed — never a failure, never a carryover |
 | **partial** | Agent made progress but couldn't finish | Turn limit hit, or agent reports `STATUS: partial` | Carry forward remaining work to next wave with context |
 | **failed** | Agent couldn't make meaningful progress | Tool errors, invalid assumptions, agent reports `STATUS: failed` | Re-dispatch with corrected instructions and narrower scope |
 | **spiral** | Agent got stuck in an edit loop | Same file edited 3+ times (detected post-wave) | Revert agent's changes, narrow scope, split task if needed |

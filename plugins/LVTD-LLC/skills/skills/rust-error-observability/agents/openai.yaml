@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Error Observability"
+  short_description: "Shape Rust errors and tracing for services"
+  default_prompt: "Improve this Rust service error handling and structured tracing."

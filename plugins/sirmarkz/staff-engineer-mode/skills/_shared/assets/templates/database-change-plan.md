@@ -6,6 +6,7 @@
 - Change type:
 - Critical path:
 - Rollback or forward-fix posture:
+- Point of no simple code rollback:
 
 ## Risk Assessment
 
@@ -38,8 +39,8 @@
 
 ## Phases
 
-| Phase | Action | Confirmation Point | Abort/Rollback | Owner |
-| --- | --- | --- | --- | --- |
+| Phase | Authoritative State | Action | Copy/Write-Consistency Boundary | Mixed-Version Behavior | Confirmation Point | Pause/Abort | Rollback Or Forward-Fix | Reconciliation | Owner |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Backfill Or Maintenance
 

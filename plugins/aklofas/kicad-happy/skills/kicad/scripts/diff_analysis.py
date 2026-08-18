@@ -30,7 +30,7 @@ import sys
 # value_fields: numeric/string fields to compare for changes
 
 from detection_schema import SCHEMAS as _SCHEMAS
-from finding_schema import group_findings_legacy
+from finding_schema import group_findings_by_detection_type, normalize_severity
 
 # SIGNAL_REGISTRY is derived from the unified detection schema.
 # Kept as a module-level name for backward compat (validate_signal_registry, _diff_items).
@@ -44,7 +44,7 @@ def validate_signal_registry(sample_output: dict) -> list[str]:
     whose key is not found in the findings of the sample output.
     Useful for catching stale registry entries after schema changes.
     """
-    sa = group_findings_legacy(sample_output)
+    sa = group_findings_by_detection_type(sample_output)
     warnings = []
     for key in SIGNAL_REGISTRY:
         if key not in sa:
@@ -227,6 +227,66 @@ def _pct_delta(old, new):
 
 
 # ---------------------------------------------------------------------------
+# Assessment diff
+# ---------------------------------------------------------------------------
+
+def diff_assessments(base_items, head_items):
+    """Diff two assessments[] lists. Returns {added, removed, unchanged_count}.
+
+    Assessments are informational measurements (no severity). They are
+    keyed by (rule_id, sorted components tuple) so that a per-component
+    measurement keeps a stable identity across runs. Use `detection_id`
+    when present — it is the authoritative stable identifier.
+    """
+    def _key(a):
+        if not isinstance(a, dict):
+            return ("", "", ())
+        det_id = a.get("detection_id") or ""
+        rid = a.get("rule_id", "")
+        refs = tuple(sorted(a.get("components") or []))
+        return (det_id, rid, refs)
+
+    if not isinstance(base_items, list):
+        base_items = []
+    if not isinstance(head_items, list):
+        head_items = []
+
+    base_map = {}
+    for a in base_items:
+        if isinstance(a, dict):
+            base_map[_key(a)] = a
+    head_map = {}
+    for a in head_items:
+        if isinstance(a, dict):
+            head_map[_key(a)] = a
+
+    added_keys = sorted(set(head_map) - set(base_map))
+    removed_keys = sorted(set(base_map) - set(head_map))
+    unchanged = len(set(base_map) & set(head_map))
+
+    def _summarize(key, item):
+        _, rid, refs = key
+        entry = {"rule_id": rid, "components": list(refs)}
+        if isinstance(item, dict) and item.get("summary"):
+            entry["summary"] = item["summary"]
+        return entry
+
+    return {
+        "added": [_summarize(k, head_map[k]) for k in added_keys],
+        "removed": [_summarize(k, base_map[k]) for k in removed_keys],
+        "unchanged_count": unchanged,
+    }
+
+
+def _attach_assessments_diff(result, base, head):
+    """Run diff_assessments on the envelopes and attach if non-empty."""
+    a_diff = diff_assessments(base.get("assessments", []),
+                              head.get("assessments", []))
+    if a_diff["added"] or a_diff["removed"] or a_diff["unchanged_count"]:
+        result["assessments"] = a_diff
+
+
+# ---------------------------------------------------------------------------
 # Auto-detection
 # ---------------------------------------------------------------------------
 
@@ -236,6 +296,9 @@ def detect_type(data):
     at = data.get("analyzer_type")
     if at:
         return at
+    # Deep review gate output — unambiguous: no analyzer envelope has "quarantined"
+    if "findings" in data and "quarantined" in data:
+        return "deep_review"
     # Fallback heuristic for older JSON files
     if "findings" in data and "components" in data:
         return "schematic"
@@ -246,6 +309,8 @@ def detect_type(data):
         return "emc"
     if "simulation_results" in data:
         return "spice"
+    if "findings" in data and "thermal_score" in summary:
+        return "thermal"
     # Detect pre-v1.3 schematic format (signal_analysis wrapper, no findings[])
     if "signal_analysis" in data and "components" in data:
         return "schematic_old"
@@ -306,8 +371,8 @@ def diff_schematic(base, head, threshold):
         result["components"] = comp_diff
 
     # Signal analysis (grouped from flat findings[])
-    base_sa = group_findings_legacy(base)
-    head_sa = group_findings_legacy(head)
+    base_sa = group_findings_by_detection_type(base)
+    head_sa = group_findings_by_detection_type(head)
     all_keys = set(list(base_sa.keys()) + list(head_sa.keys()))
     sa_diff = {}
 
@@ -439,6 +504,8 @@ def diff_schematic(base, head, threshold):
             erc["resolved_warnings"] = [base_erc_map[k] for k in sorted(resolved_keys)]
         result["erc"] = erc
 
+    _attach_assessments_diff(result, base, head)
+
     return result
 
 
@@ -506,6 +573,8 @@ def diff_pcb(base, head, threshold):
 
     if fp_diff["added"] or fp_diff["removed"] or fp_diff["modified"]:
         result["footprints"] = fp_diff
+
+    _attach_assessments_diff(result, base, head)
 
     return result
 
@@ -600,6 +669,8 @@ def diff_emc(base, head, threshold):
         net_changes.sort(key=lambda n: -abs(n["delta"]))
         result["per_net_scores"] = net_changes
 
+    _attach_assessments_diff(result, base, head)
+
     return result
 
 
@@ -693,7 +764,123 @@ def diff_spice(base, head, threshold):
                 mc["resolved"] = resolved_concerns
             result["monte_carlo"] = mc
 
+    _attach_assessments_diff(result, base, head)
+
     return result
+
+
+# ---------------------------------------------------------------------------
+# Thermal diff
+# ---------------------------------------------------------------------------
+
+def diff_thermal(base, head, threshold):
+    """Diff two thermal analyzer JSONs.
+
+    Thermal's primary output is assessments[] (per-component Tj estimates
+    are TH-DET assessments as of v1.4). Findings are thermal *warnings*.
+    """
+    result = {}
+
+    # Summary deltas
+    stat_paths = [
+        "summary.total_findings", "summary.active", "summary.suppressed",
+        "summary.components_assessed", "summary.thermal_score",
+    ]
+    stats = _diff_counts(base, head, stat_paths)
+    if stats:
+        result["statistics"] = stats
+
+    # Findings: match by (rule_id, sorted components)
+    def _finding_key(f):
+        rule = f.get("rule_id", "")
+        comps = "|".join(sorted(f.get("components", [])))
+        return f"{rule}::{comps}"
+
+    base_findings = {_finding_key(f): f for f in base.get("findings", [])
+                     if isinstance(f, dict)}
+    head_findings = {_finding_key(f): f for f in head.get("findings", [])
+                     if isinstance(f, dict)}
+
+    findings_diff = {"new": [], "resolved": [], "changed_severity": []}
+    for key, f in head_findings.items():
+        if key not in base_findings:
+            findings_diff["new"].append({
+                "rule_id": f.get("rule_id", ""),
+                "severity": f.get("severity", ""),
+                "summary": f.get("summary", ""),
+                "components": f.get("components", []),
+            })
+        else:
+            bf = base_findings[key]
+            if bf.get("severity") != f.get("severity"):
+                findings_diff["changed_severity"].append({
+                    "rule_id": f.get("rule_id", ""),
+                    "base_severity": bf.get("severity", ""),
+                    "head_severity": f.get("severity", ""),
+                    "summary": f.get("summary", ""),
+                })
+    for key, f in base_findings.items():
+        if key not in head_findings:
+            findings_diff["resolved"].append({
+                "rule_id": f.get("rule_id", ""),
+                "severity": f.get("severity", ""),
+                "summary": f.get("summary", ""),
+            })
+
+    if findings_diff["new"] or findings_diff["resolved"] or findings_diff["changed_severity"]:
+        result["findings"] = findings_diff
+
+    _attach_assessments_diff(result, base, head)
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Deep review diff
+# ---------------------------------------------------------------------------
+
+def diff_deep_review(base, head, threshold=None):
+    """Diff two deep_review.json files (v2.0 spec §3.C).
+
+    Exact finding_id match is primary. Fuzzy pass is advisory only:
+    LLM rewording changes the summary hash, so a persisting issue can
+    surface as fixed+new — a disappeared and an appeared finding with
+    the same category and the same evidence-component set are flagged
+    'likely same, reworded'.
+    """
+    def _by_id(doc):
+        return {f["finding_id"]: f for f in doc.get("findings", [])
+                if isinstance(f, dict) and f.get("finding_id")}
+
+    b, h = _by_id(base), _by_id(head)
+    fixed = [b[k] for k in sorted(b.keys() - h.keys())]
+    new = [h[k] for k in sorted(h.keys() - b.keys())]
+    still_open = [h[k] for k in sorted(b.keys() & h.keys())]
+
+    def _fuzzy_key(f):
+        ev = f.get("evidence") or {}
+        comps = tuple(sorted(str(c).upper() for c in ev.get("components") or []))
+        return ((f.get("category") or "").lower(), comps)
+
+    new_by_key = {}
+    for f in new:
+        new_by_key.setdefault(_fuzzy_key(f), []).append(f)
+    reworded = []
+    for f in fixed:
+        for cand in new_by_key.get(_fuzzy_key(f), []):
+            reworded.append({
+                "base_finding_id": f.get("finding_id"),
+                "head_finding_id": cand.get("finding_id"),
+                "category": f.get("category"),
+                "note": "likely same finding, reworded (advisory)",
+            })
+    return {
+        "fixed": fixed,
+        "new": new,
+        "still_open": still_open,
+        "reworded_candidates": reworded,
+        "quarantined_head": len(head.get("quarantined") or []),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -705,7 +892,7 @@ def classify_severity(analyzer_type, diff_result):
     if not diff_result:
         return "none"
 
-    # Breaking: SPICE pass->fail, new EMC CRITICAL, new ERC warnings
+    # Breaking: SPICE pass->fail, new EMC error-severity findings, new ERC warnings
     if analyzer_type == "spice":
         for sc in diff_result.get("status_changes", []):
             if sc.get("base_status") == "pass" and sc.get("head_status") == "fail":
@@ -713,7 +900,8 @@ def classify_severity(analyzer_type, diff_result):
 
     if analyzer_type == "emc":
         for f in diff_result.get("findings", {}).get("new", []):
-            if f.get("severity") == "CRITICAL":
+            # Accept v1.4 error and legacy CRITICAL (both map to "error" via normalize).
+            if normalize_severity(f.get("severity")) == "error":
                 return "breaking"
 
     if analyzer_type == "schematic":
@@ -776,14 +964,15 @@ def classify_regressions(analyzer_type, diff_result):
             })
 
     elif analyzer_type == "emc":
-        # New critical/high findings
+        # New error-severity findings (v1.4 collapsed CRITICAL/HIGH into "error").
+        # Legacy CRITICAL/HIGH still normalize to "error" via normalize_severity.
         for f in diff_result.get("findings", {}).get("new", []):
-            sev = f.get("severity", "").upper()
-            if sev in ("CRITICAL", "HIGH"):
+            raw_sev = f.get("severity", "")
+            if normalize_severity(raw_sev) == "error":
                 regressions.append({
                     "category": "emc",
-                    "severity": "breaking" if sev == "CRITICAL" else "major",
-                    "detail": f"New EMC finding: {f.get('rule_id', '?')} ({sev})",
+                    "severity": "breaking",
+                    "detail": f"New EMC finding: {f.get('rule_id', '?')} ({raw_sev})",
                 })
         # Risk score increase
         risk = diff_result.get("risk_score", {})
@@ -863,6 +1052,17 @@ def build_summary(analyzer_type, diff_result):
         added += len(diff_result.get("new_results", []))
         removed += len(diff_result.get("removed_results", []))
         modified += len(diff_result.get("status_changes", []))
+
+    elif analyzer_type == "thermal":
+        findings = diff_result.get("findings", {})
+        added += len(findings.get("new", []))
+        removed += len(findings.get("resolved", []))
+        modified += len(findings.get("changed_severity", []))
+
+    # Assessments (all analyzer types carry assessments[])
+    assessments = diff_result.get("assessments", {})
+    added += len(assessments.get("added", []))
+    removed += len(assessments.get("removed", []))
 
     total = added + removed + modified
     severity = classify_severity(analyzer_type, diff_result)
@@ -998,6 +1198,34 @@ def format_text(output):
                          f"{sc.get('base_status', '?')} → {sc.get('head_status', '?')}")
         lines.append("")
 
+    # Assessments (informational measurements — present on all analyzer types)
+    assessments = diff.get("assessments", {})
+    if assessments and (assessments.get("added")
+                        or assessments.get("removed")
+                        or assessments.get("unchanged_count")):
+        lines.append("Assessments:")
+        added = assessments.get("added", [])
+        removed = assessments.get("removed", [])
+        if added:
+            lines.append(f"  + Added ({len(added)}):")
+            for a in added[:5]:
+                refs = a.get("components") or []
+                refs_str = "[" + ", ".join(refs) + "]" if refs else "[]"
+                lines.append(f"    - {a.get('rule_id', '?')} on {refs_str}")
+            if len(added) > 5:
+                lines.append(f"    ... and {len(added) - 5} more")
+        if removed:
+            lines.append(f"  - Removed ({len(removed)}):")
+            for a in removed[:5]:
+                refs = a.get("components") or []
+                refs_str = "[" + ", ".join(refs) + "]" if refs else "[]"
+                lines.append(f"    - {a.get('rule_id', '?')} on {refs_str}")
+            if len(removed) > 5:
+                lines.append(f"    ... and {len(removed) - 5} more")
+        unchanged = assessments.get("unchanged_count", 0)
+        lines.append(f"  Unchanged: {unchanged}")
+        lines.append("")
+
     # Risk score
     risk = diff.get("risk_score", {})
     if risk:
@@ -1009,6 +1237,47 @@ def format_text(output):
     if remaining > 0:
         lines.append(f"  ... and {remaining} more changes")
 
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Deep review text formatter
+# ---------------------------------------------------------------------------
+
+def _format_deep_review_text(output):
+    """Compact text block for a deep_review diff output."""
+    dr = output.get("deep_review", {})
+    fixed = dr.get("fixed", [])
+    new = dr.get("new", [])
+    still_open = dr.get("still_open", [])
+    reworded = dr.get("reworded_candidates", [])
+    quarantined_head = dr.get("quarantined_head", 0)
+
+    lines = [
+        f"Deep Review Changes: {len(fixed)} fixed, {len(new)} new, "
+        f"{len(still_open)} still open, {quarantined_head} quarantined in head",
+    ]
+    if fixed:
+        lines.append("")
+        lines.append("Fixed:")
+        for f in fixed[:MAX_TEXT_ITEMS]:
+            lines.append(f"  - {f.get('finding_id', '?')} — {f.get('summary', '')}")
+    if new:
+        lines.append("")
+        lines.append("New:")
+        for f in new[:MAX_TEXT_ITEMS]:
+            lines.append(f"  + {f.get('finding_id', '?')} — {f.get('summary', '')}")
+    if still_open:
+        lines.append("")
+        lines.append(f"Still open: {len(still_open)} finding(s) unchanged")
+    if reworded:
+        lines.append("")
+        lines.append("Reworded candidates (advisory):")
+        for r in reworded:
+            lines.append(
+                f"  ~ {r.get('base_finding_id', '?')} → {r.get('head_finding_id', '?')}"
+                f" [{r.get('category', '?')}]"
+            )
     return "\n".join(lines)
 
 
@@ -1040,7 +1309,7 @@ def _extract_trends(analysis_dir, output_type, n_runs):
         except (json.JSONDecodeError, OSError):
             continue
 
-        sa = group_findings_legacy(data)
+        sa = group_findings_by_detection_type(data)
         for det_type, detections in sa.items():
             if not isinstance(detections, list):
                 continue
@@ -1112,14 +1381,18 @@ def main():
                         help="Run ID to compare (use twice: --run OLD --run NEW). "
                              "Special: 'current', 'previous', or YYYY-MM-DD_HHMM")
     parser.add_argument("--type", dest="output_type",
-                        help="Output type to diff (schematic, pcb, emc, spice). "
-                             "Default: auto-detect first common output")
+                        help="Output type to diff (schematic, pcb, emc, spice, "
+                             "deep_review). Default: auto-detect first common output")
     parser.add_argument("--output", "-o", help="Write output JSON to file (default: stdout)")
     parser.add_argument("--text", action="store_true", help="Output human-readable text instead of JSON")
     parser.add_argument("--threshold", type=float, default=1.0,
                         help="Ignore numeric deltas below this percentage (default: 1.0%%)")
     parser.add_argument("--trend", type=int, metavar="N",
                         help="Show metric trends across last N runs (requires --analysis-dir)")
+    parser.add_argument("--only-deterministic", action="store_true",
+                        help="Read raw analysis/<run>/<analyzer>.json instead of "
+                             "analysis/merged/<run>/<analyzer>.json. "
+                             "Strips Layer 2 overlays for CI/offline use (Phase 4 spec §3.4).")
     args = parser.parse_args()
 
     # Resolve runs from analysis cache if --analysis-dir is provided
@@ -1201,20 +1474,23 @@ def main():
             print()
         sys.exit(0)
 
-    # Load inputs
-    try:
-        with open(args.base) as f:
-            base = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"Error reading base file {args.base}: {e}", file=sys.stderr)
-        sys.exit(1)
+    # Load inputs (honor --only-deterministic: skip merged/ overlay)
+    def _load_input(path, label):
+        from pathlib import Path
+        p = Path(path)
+        if not args.only_deterministic:
+            candidate = p.parent.parent / "merged" / p.parent.name / p.name
+            if candidate.exists():
+                p = candidate
+        try:
+            with open(p) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Error reading {label} file {path}: {e}", file=sys.stderr)
+            sys.exit(1)
 
-    try:
-        with open(args.head) as f:
-            head = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"Error reading head file {args.head}: {e}", file=sys.stderr)
-        sys.exit(1)
+    base = _load_input(args.base, "base")
+    head = _load_input(args.head, "head")
 
     # Detect types
     base_type = detect_type(base)
@@ -1240,12 +1516,48 @@ def main():
         sys.exit(1)
 
     # Run diff
+    # Note: deep_review is NOT in the dispatch table below because it has a
+    # bespoke output envelope ({"deep_review": ...}) — it's handled by the
+    # early-exit block immediately following. If the early-exit were removed,
+    # the dict path would wrap the result under "diff" instead, breaking the
+    # contract.
     diff_funcs = {
         "schematic": diff_schematic,
         "pcb": diff_pcb,
         "emc": diff_emc,
         "spice": diff_spice,
+        "thermal": diff_thermal,
     }
+    if base_type not in diff_funcs and base_type != "deep_review":
+        print(f"Error: no diff function for analyzer type '{base_type}'",
+              file=sys.stderr)
+        sys.exit(1)
+
+    if base_type == "deep_review":
+        dr_result = diff_deep_review(base, head)
+        output = {
+            "diff_version": "1.0",
+            "analyzer_type": base_type,
+            "base_file": args.base,
+            "head_file": args.head,
+            "deep_review": dr_result,
+        }
+        if args.text:
+            text = _format_deep_review_text(output)
+            if args.output:
+                with open(args.output, "w") as f:
+                    f.write(text)
+            else:
+                print(text)
+        else:
+            output_json = json.dumps(output, indent=2)
+            if args.output:
+                with open(args.output, "w") as f:
+                    f.write(output_json)
+            else:
+                print(output_json)
+        sys.exit(0)
+
     diff_result = diff_funcs[base_type](base, head, args.threshold)
     summary = build_summary(base_type, diff_result)
 

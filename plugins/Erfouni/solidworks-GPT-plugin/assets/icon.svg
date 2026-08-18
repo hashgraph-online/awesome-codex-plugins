@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">SolidWorks GPT Plugin</title>
+  <desc id="desc">A stepped mechanical shaft changing into connected knowledge nodes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10233f"/>
+      <stop offset="1" stop-color="#07111f"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2f7fa"/>
+      <stop offset="0.45" stop-color="#8da2b1"/>
+      <stop offset="1" stop-color="#3f5568"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <g stroke="#33e1c6" stroke-opacity=".09" stroke-width="2">
+    <path d="M64 112h384M64 192h384M64 272h384M64 352h384M64 432h384"/>
+    <path d="M112 64v384M192 64v384M272 64v384M352 64v384M432 64v384"/>
+  </g>
+  <g transform="translate(52 168)">
+    <ellipse cx="70" cy="88" rx="48" ry="74" fill="#10233f" stroke="#33e1c6" stroke-width="8"/>
+    <ellipse cx="70" cy="88" rx="24" ry="42" fill="#07111f" stroke="#d4a27f" stroke-width="7"/>
+    <path d="M70 46h94l28 18h76v48h-76l-28 18H70z" fill="url(#metal)" stroke="#dbe8ee" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M164 46v84M192 64v48M268 64v48" fill="none" stroke="#506b7f" stroke-width="4"/>
+    <path d="M278 88h54M322 88l36-46M322 88l38 48M358 42l42 18M360 136l40-18" fill="none" stroke="#33e1c6" stroke-width="7" stroke-linecap="round"/>
+    <g fill="#33e1c6" stroke="#c9fff7" stroke-width="4" filter="url(#glow)">
+      <circle cx="322" cy="88" r="12"/>
+      <circle cx="358" cy="42" r="14"/>
+      <circle cx="360" cy="136" r="14"/>
+      <circle cx="406" cy="60" r="12"/>
+      <circle cx="406" cy="118" r="12"/>
+    </g>
+  </g>
+  <g transform="translate(389 382)">
+    <ellipse cx="31" cy="32" rx="25" ry="20" fill="#ffd95a"/>
+    <circle cx="18" cy="14" r="14" fill="#ffd95a"/>
+    <path d="M5 12l-10 5 11 4" fill="#f29b38"/>
+    <circle cx="20" cy="10" r="3" fill="#07111f"/>
+    <path d="M8 2h22l-5-11H13z" fill="#d4a27f" stroke="#07111f" stroke-width="3"/>
+  </g>
+</svg>

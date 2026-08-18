@@ -1,0 +1,43 @@
+{
+  "name": "full-stack-development",
+  "version": "0.1.2",
+  "description": "A Codex workflow for fixed product requirements, gated full-stack delivery, and evidence-backed open-source maintenance and releases.",
+  "author": {
+    "name": "kevin592",
+    "url": "https://github.com/kevin592"
+  },
+  "homepage": "https://github.com/kevin592/codex-full-stack-workflow",
+  "repository": "https://github.com/kevin592/codex-full-stack-workflow",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "full-stack",
+    "requirements",
+    "mcp",
+    "quality-gates",
+    "heroui",
+    "open-source-maintenance"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "全栈开发",
+    "shortDescription": "Create gated product workspaces and evidence-backed OSS releases.",
+    "longDescription": "Adds reusable Codex workflows for fixed product requirements, stage tracking, requirement-change regression, backend/frontend contracts, HeroUI delivery, and public open-source maintenance. OSS release gates require source-linked rationale, fresh tests, a clean critical/high security audit, documentation, changelog, pull request review, and honest adoption evidence.",
+    "developerName": "kevin592",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Analyze",
+      "Generate"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "defaultPrompt": [
+      "Use 全栈开发 to clarify and plan this product before implementation.",
+      "Create the fixed full-stack requirement workspace for this feature.",
+      "Plan backend, data, API, frontend, HeroUI visual approval, and verification gates.",
+      "Review this implementation against the full-stack stage contract."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

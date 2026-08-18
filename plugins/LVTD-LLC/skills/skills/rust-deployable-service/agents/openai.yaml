@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Deployable Service"
+  short_description: "Prepare Rust services for container deployment"
+  default_prompt: "Prepare this Rust service for containerized deployment."

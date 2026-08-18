@@ -1,0 +1,31 @@
+{
+  "name": "wakewire",
+  "version": "0.1.0",
+  "description": "Break the loop — deliver GitHub, Gmail, Slack, and any webhook's events (Linear, Sentry, ClickUp) into local Codex threads in near real time, configured conversationally.",
+  "license": "MIT",
+  "keywords": [
+    "webhooks",
+    "github",
+    "gmail",
+    "slack",
+    "automation",
+    "events"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "WakeWire",
+    "shortDescription": "Push GitHub, Gmail, Slack, and webhook events into your Codex threads",
+    "longDescription": "Break the loop: instead of agents polling on a timer, wakewire runs a small local daemon that receives GitHub webhooks (via a smee.io relay by default), Gmail messages (IMAP IDLE), and Slack events (Socket Mode), matches them against routes you define in conversation, and injects them as new turns into the Codex threads you choose. Includes a delivery log, replay, dedup, signature verification, and conservative sandbox defaults.",
+    "category": "Productivity",
+    "brandColor": "#2D6CDF",
+    "developerName": "Glenn Calleja Frendo",
+    "websiteURL": "https://github.com/glenncalleja/wakewire"
+  },
+  "homepage": "https://github.com/glenncalleja/wakewire",
+  "repository": "https://github.com/glenncalleja/wakewire",
+  "author": {
+    "name": "Glenn Calleja Frendo",
+    "url": "https://github.com/glenncalleja"
+  }
+}

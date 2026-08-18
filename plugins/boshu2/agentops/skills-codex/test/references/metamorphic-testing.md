@@ -1,6 +1,6 @@
 # Metamorphic Testing
 
-Use this reference when `$test` needs stronger evidence than example-based
+Use this reference when `/test` needs stronger evidence than example-based
 assertions can provide, especially for ranking, transforms, parsers, planners,
 and other behavior where one exact expected answer is too narrow.
 
@@ -41,7 +41,7 @@ golden artifact strategy for that case.
 
 ## Output
 
-Record the invariant and generated cases in `.agents/test/summary.md`:
+Record the invariant and generated cases in `.agents/scratch/tests/summary.md`:
 
 ```markdown
 ## Metamorphic Coverage

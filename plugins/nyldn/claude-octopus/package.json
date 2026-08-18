@@ -1,6 +1,6 @@
 {
   "name": "@anthropic-plugins/claude-octopus",
-  "version": "9.42.3",
+  "version": "9.65.0",
   "description": "Claude Octopus - Multi-AI orchestration plugin for Claude Code. Three brains, one workflow.",
   "main": "scripts/orchestrate.sh",
   "scripts": {
@@ -8,7 +8,6 @@
     "test:smoke": "make test-smoke",
     "test:unit": "make test-unit",
     "test:integration": "make test-integration",
-    "test:e2e": "make test-e2e",
     "test:all": "make test-all",
     "test:coverage": "make test-coverage",
     "test:verbose": "make test-verbose",
@@ -20,7 +19,6 @@
     ".codex-plugin/",
     ".cursor-plugin/",
     ".factory-plugin/",
-    ".gemini/",
     ".opencode/",
     ".mcp.json",
     "scripts/",
@@ -56,7 +54,7 @@
     "multi-agent",
     "orchestration",
     "codex",
-    "gemini",
+    "antigravity",
     "multi-ai"
   ],
   "author": "nyldn",

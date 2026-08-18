@@ -1,6 +1,6 @@
 ---
 name: first-principles-review
-description: Use when the user explicitly asks for first principles, first-principles review, Occam's razor, or when a complex decision has ambiguous goals, competing constraints, repeated fixes, fallback growth, duplicate owners, or architecture/product direction risk.
+description: "Use when asked for first-principles or Occam's-razor review, or when high-risk decisions involve competing constraints, fallback growth, duplicate owners, or architecture direction risk. Ordinary bug fixes stay on the fast path."
 ---
 
 # First Principles Review
@@ -13,6 +13,12 @@ directional choice. It is a compositional skill, not a standalone workflow.
 Do not replace `brainstorming`, `systematic-debugging`, `writing-plans`,
 `requesting-code-review`, or `verification-before-completion`. Use it to clean
 the decision surface those skills will act on.
+
+When this review materially changes the direction, surface `Aegis Visibility`
+in natural prose: name the first principle, dropped assumption, smallest
+sufficient path, or owner / retirement falsifier that changed the decision.
+Keep it advisory and task-specific; do not turn the lens into approval
+authority or a generic skill trace.
 
 ## Use When
 

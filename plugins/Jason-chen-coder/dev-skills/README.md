@@ -1,8 +1,8 @@
 <div align="center">
   <img src="images/logo.png" alt="dev-skills logo" width="340" height="340" />
   <p>
-    11 个 skill,把 AI 写代码和做界面这件事拆成更稳的步骤。<br/>
-    <b>沉淀设计上下文 → 拷问并写清需求 → 定方案 → 写代码 / 修 bug → 验证 → review → commit → 收尾</b>
+    13 个 skill,把 AI 写代码、做界面和查接口这件事拆成更稳的步骤。<br/>
+    <b>查 API 契约 ｜ 沉淀设计上下文 → 拷问并写清需求 → 定方案 → 写代码 / 修 bug → 验证 → review → commit → 收尾</b>
   </p>
 </div>
 
@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/version-0.8.0-blue" alt="version" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="license" />
   <img src="https://img.shields.io/badge/CI-passing-brightgreen" alt="ci" />
-  <img src="https://img.shields.io/badge/skills-11-orange" alt="skills" />
+  <img src="https://img.shields.io/badge/skills-13-orange" alt="skills" />
 </p>
 
 <p align="center">
@@ -25,13 +25,15 @@
 
 ## 这是什么
 
-dev-skills 是一套给 Claude Code / Codex 用的 SDD-style 开发工作流规则集。它让 AI 做开发时先对齐意图、范围、方案和验证证据,而不是每次从零猜流程。
+dev-skills 是一套给 Claude Code / Codex 用的 SDD-style 开发工作流和 API 文档查询规则集。它让 AI 做开发时先对齐意图、范围、方案和验证证据,也能从真实 Swagger/OpenAPI 文档查询接口,而不是每次从零猜流程或 API 契约。
 
-它主要解决四类问题:
+它主要解决六类问题:
 
 - 需求还没说清楚,AI 就开始写代码。
 - 写完只说“已完成”,但没有测试和证据。
 - 修 bug 只改了表面现象,没有找到 root cause。
+- 看 UI 图生成代码时只画静态壳,漏掉 input、tab、select、button 这些真实控件和交互。
+- 查 Swagger/OpenAPI 时只给零散接口,漏掉完整 schema / DTO,或在多个文档来源之间静默猜测。
 - commit 前没人检查,容易把无关改动、坏测试、临时代码一起提交。
 
 第一次用只记住一句话:
@@ -46,12 +48,14 @@ dev-skills 是一套给 Claude Code / Codex 用的 SDD-style 开发工作流规�
 - 新功能 / 改功能:先说 `用 dev-grill-docs 帮我梳理这个需求`。
 - 老提示里的 `dev-spec` 仍可用,现在等价于 `dev-grill-docs --spec-only`。
 - UI / landing page / 产品界面:先说 `用 dev-design-context 沉淀设计上下文`。
+- UI 图 / 截图生成代码:说 `用 dev-image-to-code 根据这张图和 1518x950 生成 web 页面`。
+- Swagger / OpenAPI / Knife4j 文档查询:说 `用 swagger-doc-skill 查看这个文档有哪些模块、接口和完整类型定义: <docs-url>`。
 - 修 bug / 排查问题:先说 `用 dev-fix 排查这个 bug`。
 - 准备 commit:先说 `用 dev-code-review 看下这次修改`。
 
 ---
 
-## 三条常用路径
+## 五条常用路径
 
 ### 新功能 / 改功能
 
@@ -68,6 +72,22 @@ dev-fix -> dev-verify -> dev-code-review -> git commit -> dev-finish
 ```
 
 先复现,再找 root cause。`dev-fix` 已经包含 regression test,不要再额外接一轮 `dev-tdd`。
+
+### UI 图生成代码
+
+```text
+dev-image-to-code -> dev-verify -> dev-code-review -> git commit -> dev-finish
+```
+
+先给 UI 图和设计尺寸。看得出的 input、tab、select、button 要做成真实控件;看不准的文案、状态、隐藏面板或业务行为先停下来问。
+
+### Swagger / OpenAPI 文档
+
+```text
+swagger-doc-skill -> 模块 / endpoint / schema / type -> 可选导出完整 Markdown / JSON
+```
+
+先确认当前 chat 使用的文档 source,再查接口契约。它是独立的文档查询路径,不需要进入核心 SDD workflow。
 
 ### 小 hotfix
 
@@ -101,7 +121,7 @@ Intent / Context
 
 ## Skill 怎么选
 
-按你当前的问题选一组就够了,不用把 11 个 skill 全背下来。
+按你当前的问题选一组就够了,不用把 13 个 skill 全背下来。
 
 ### 不知道下一步
 
@@ -113,6 +133,43 @@ Intent / Context
 - [`dev-grill-docs`](./skills/dev-grill-docs/):主需求入口;拷问术语、边界和决策,生成 `.claude/artifacts/designs/<feature>.md`,并按需把稳定词汇写入 `CONTEXT.md` / ADR。
 - [`dev-spec`](./skills/dev-spec/):兼容入口;等价于 `dev-grill-docs --spec-only`,保留给旧提示和旧文档。
 - [`dev-plan`](./skills/dev-plan/):复杂或高风险功能先出实施方案。
+
+### API 文档查询和导出
+
+- [`swagger-doc-skill`](./skills/swagger-doc-skill/):查询 Swagger UI、OpenAPI、Knife4j、FastAPI docs 或 Redoc 中的模块/tag、接口、请求/响应字段和完整可复用 schema / model / DTO;也能把整份 API 文档导出为 Markdown 或 JSON。
+
+#### 2 分钟试用
+
+把下面这段完整 prompt 直接粘贴进 Codex:
+
+```text
+用 swagger-doc-skill 查询这个 OpenAPI 文档:
+https://petstore3.swagger.io/api/v3/openapi.json
+
+请列出模块、全部 endpoint 和完整可复用 type/schema,并给出 Source / Modules / Endpoints / Types 汇总。不要导出文件,只在当前 chat 返回结果。
+```
+
+当前已验证的结果形状:
+
+```text
+Source    https://petstore3.swagger.io/api/v3/openapi.json
+Modules   3
+Endpoints 19
+Types     6
+```
+
+这是官方示例,内容和统计可能更新,实际结果以运行时提取为准。完整模式、过滤和导出参数见 [`skills/swagger-doc-skill/SKILL.md`](./skills/swagger-doc-skill/SKILL.md),README 不重复整份参数手册。
+
+使用 source 时只记住四条:
+
+- **Current chat only**:只复用当前 chat 里唯一且已确认的 Swagger/OpenAPI source,不跨 chat 继承。
+- **Multiple sources**:当前 chat 出现多个 source 时先让用户确认,不静默选择。
+- **Explicit config only**:只有显式传入 `--config <path>` 时才读取配置,不依赖 skill 目录里的共享默认配置。
+- **Secrets stay ephemeral**:token、cookie 和自定义 header 只在当前请求需要时传入,不写进共享配置、文档、日志或提交内容。
+
+### UI 图生成代码
+
+- [`dev-image-to-code`](./skills/dev-image-to-code/):根据 UI 截图/设计图和设计尺寸生成可运行代码;保留清晰控件的语义和可见交互,有疑惑就先问。
 
 ### 实现和修复
 
@@ -225,8 +282,12 @@ npx skills add Jason-chen-coder/dev-skills --global --force
 ```text
 用 dev-auto 看看下一步该做什么
 用 dev-grill-docs 帮我梳理这个需求: ...
-用 dev-spec 帮我梳理这个需求: ...   # 兼容入口,等价于 dev-grill-docs --spec-only
+用 dev-spec --spec-only 生成旧流程 spec: ...   # 兼容入口,优先用 dev-grill-docs
 用 dev-plan 基于这个 spec 出实施方案
+用 dev-image-to-code 根据这张 UI 图和 1518x950 生成 web 页面
+用 swagger-doc-skill 查看这个 Knife4j 文档有哪些模块和接口: <docs-url>
+用 swagger-doc-skill 查询 POST /api/runs 的请求、响应和完整类型定义
+用 swagger-doc-skill 把这个 OpenAPI 文档完整导出为 Markdown / JSON: <docs-url>
 用 dev-fix 排查这个 bug: ...
 用 dev-code-review 看下这次修改,准备 commit
 我自审过了,只要 dev-commit-writer 给 commit message
@@ -281,10 +342,13 @@ max_depth = 2
 
 ```mermaid
 flowchart TD
-  Start["用户请求"] --> Design{"UI / 产品界面?"}
+  Start["用户请求"] --> FromImage{"UI 图生成代码?"}
+  FromImage -->|是| ImageCode["dev-image-to-code<br/>图片 + 设计尺寸<br/>语义控件 + 视觉验证"]
+  FromImage -->|否| Design{"UI / 产品界面?"}
   Design -->|是| Teach["dev-design-context<br/>一次性沉淀设计上下文"]
   Design -->|否| Auto["dev-auto<br/>可选:不知道下一步时先问它"]
   Teach --> Auto
+  ImageCode --> Verify
   Auto --> Kind{"这是什么类型的工作?"}
 
   Kind -->|新功能 / 增强| GrillDocs["dev-grill-docs<br/>拷问需求并生成 spec<br/>按需沉淀 CONTEXT / ADR"]
@@ -332,6 +396,8 @@ flowchart TD
 | `dev-grill-docs` | `.claude/artifacts/designs/<feature>.md` + 可选 `CONTEXT.md` / `docs/adr/<nnnn>-<slug>.md` |
 | `dev-spec` | 兼容入口,同 `.claude/artifacts/designs/<feature>.md` |
 | `dev-plan` | `.claude/artifacts/plans/<feature>.md` |
+| `dev-image-to-code` | `UI_RECON/<screen>/` 或 `RECON/dev-image-to-code/<screen>/`,含截图、组件映射和视觉验证报告 |
+| `swagger-doc-skill` | 仅在用户要求导出时生成完整 Markdown / JSON API 文档;普通查询只输出到 chat |
 | `dev-fix` | `.claude/artifacts/fixes/<slug>.md` |
 | `dev-auto` / `dev-tdd` / `dev-verify` / `dev-code-review` / `dev-commit-writer` / `dev-finish` | 不生成 artifact,只输出到 chat |
 

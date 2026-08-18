@@ -17,13 +17,13 @@
 
 ## Timed Ownership
 
-| Lease/Grant/Lock | Expiry Condition | Stop Rule | Renewal Window | Reacquisition Path |
-| --- | --- | --- | --- | --- |
+| Lease/Grant/Lock | Expiry Condition | Stop Rule | Renewal Window | Reacquisition Path | Fencing Token/Generation | Stale-Holder Test |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Validation Method
 
-| Method | Scope | Counterexample Capture | Design Change |
-| --- | --- | --- | --- |
+| Method | Scope | Exploration Seed/Schedule | Regression Seed/Trace | Counterexample Capture | Design Change |
+| --- | --- | --- | --- | --- | --- |
 
 ## Code-To-Model Mapping
 

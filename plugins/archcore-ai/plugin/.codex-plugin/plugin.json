@@ -1,7 +1,7 @@
 {
   "name": "archcore",
-  "description": "Make your AI agent code with your project's architecture, rules, and decisions.",
-  "version": "0.4.7",
+  "description": "Spec-driven development and context engineering for AI coding agents, backed by project context in Git.",
+  "version": "0.7.4",
   "author": {
     "name": "Archcore",
     "url": "https://archcore.ai"
@@ -16,6 +16,8 @@
     "mcp",
     "ai-agents",
     "ai-coding",
+    "coding-agents",
+    "project-context",
     "context",
     "context-engineering",
     "architecture",
@@ -27,9 +29,8 @@
     "git-native",
     "skills",
     "subagents",
-    "spec-driven",
+    "spec-driven-development",
     "documentation",
-    "memory",
     "specs"
   ],
   "skills": "./skills/",

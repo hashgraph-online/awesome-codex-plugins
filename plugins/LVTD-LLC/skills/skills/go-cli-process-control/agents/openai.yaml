@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Process Control"
+  short_description: "Control subprocesses and signals safely in Go"
+  default_prompt: "Use $go-cli-process-control to execute and supervise subprocesses safely in this Go CLI."

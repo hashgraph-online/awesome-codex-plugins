@@ -1,9 +1,9 @@
 ---
 name: internal-service-networking
-description: "Use when designing internal service traffic needing discovery, routing, locality, identity, or private access"
+description: "Use when internal service traffic needs discovery, routing, locality, peer identity matching, or private access"
 ---
 
-# Internal Networking And Service Mesh
+# Internal Service Networking
 
 ## Iron Law
 
@@ -28,6 +28,7 @@ Internal networking should solve concrete traffic, identity, policy, and observa
 - Internal routing or failover behavior affects reliability, latency, blast radius, or cost.
 - The user asks whether adopting a service mesh is justified.
 - The affected path is known to be internal service-to-service or private network traffic.
+- A trust-domain, namespace, or peer-name change can alter which internal workloads authenticate or authorize each other.
 
 ## When Not To Use
 
@@ -36,6 +37,7 @@ Internal networking should solve concrete traffic, identity, policy, and observa
 - The issue is per-call retry/timeout/backpressure policy without networking architecture; use `dependency-resilience` instead.
 - The main topic is API contract design; use `api-design-and-compatibility` instead.
 - The work is broad identity/secrets beyond network identity; use `identity-and-secrets` instead.
+- The main issue is certificate, cryptographic key, trust root, or algorithm lifecycle without a service peer-matching or private traffic decision; use `cryptography-and-key-lifecycle` instead.
 
 ## Info To Gather
 
@@ -43,11 +45,14 @@ Internal networking should solve concrete traffic, identity, policy, and observa
 - Service topology, traffic flows, protocols, locations, fault domains, partitions, dependencies, and responsibility.
 - Concrete problem: service identity, encrypted transport, authorization, traffic classification, traffic splitting, locality, failover, observability, policy, or debugging.
 - Current service discovery, load balancing, DNS/routing, ingress/egress, expected source addresses, and network boundaries.
+- Per service edge, the identity the caller or server presents; the peer identity, trust domain, namespace, or audience the verifier expects; the verification trust path when it changes; the matching rule; the authorization rule bound to that identity; and the mismatch response.
+- For peer-identity transitions, current and target identities, verifier accept sets, mixed-version paths, issuance or workload-switch order, old-identity usage signals, compatibility-window deadline, removal gate, and rollback limit.
 - Traffic entry points, internal/external classification, authorization decisions at each path, routing or load-balancing limits, connection/concurrency limits, queue limits, overflow behavior, and emergency adjustment path.
-- Packet-size, encapsulation, fragmentation, and traffic-class behavior for paths where large payloads, tunnels, interconnects, or device failover can change packet handling.
-- Traffic inspection, mirroring, telemetry, or policy features that sit on the data path, including disable or bypass behavior and endpoint classes they can affect.
-- Planned work on links, interfaces, devices, routes, or traffic policies, including work orders, exact targets, adjacent-resource risk, idle/in-use verification, automation availability, manual fallback path, post-activation checks, and supervision.
-- Minimum healthy capacity floors, topology input completeness, asset lifecycle state such as planned, installed, commissioned, isolated, or production-serving, workflow compatibility across mixed device generations, failed-isolation state, production-ready rejoin gate, route-state freshness or expiration budget, controller leadership or reload behavior, route convergence or withdrawal behavior, external or partner failover signaling, owned address range, expected route origin, expected ingress or egress address attachment, stale route or boot/fallback config artifacts, and cached client state for routing changes.
+- Packet-size, encapsulation, fragmentation, and traffic-class behavior only for service paths where large payloads, overlays, tunnels, or failover can change packet handling.
+- Traffic inspection, mirroring, telemetry, or policy features on the service data path, including affected endpoint classes and disable or bypass behavior when those features exist.
+- Planned service-discovery, routing, gateway, or traffic-policy changes, including exact targets, adjacent-capacity risk, batch and pause controls, post-activation checks, and rollback.
+- When physical links, network devices, provider work, or public route origin are in scope: exact asset and target, idle or in-use state, expected route origin, serving-node ingress and egress address attachment, supervision, batch boundary, monitoring, pause criteria, and rollback.
+- Minimum healthy-capacity floors, topology-input completeness, endpoint readiness and rejoin gates, route-state freshness, controller leadership or reload behavior, convergence or withdrawal behavior, stale client or fallback configuration, and rollback for internal routing changes.
 - Control-plane partition or fail-open behavior that can keep packets flowing while topology or route state becomes stale.
 - Latency, cross-location egress, failure domains, retry behavior, and dependency resilience policies.
 - Platform maturity: upgrade process, sidecar/proxy/data-plane operations, incident history, and local diagnostic path.
@@ -57,32 +62,22 @@ Internal networking should solve concrete traffic, identity, policy, and observa
 
 1. **Name the problem.** Do not propose mesh until the repeated capability gap is explicit.
 2. **Map traffic.** Identify internal routes, traffic entry points, dependencies, locations, failover paths, identity boundaries, traffic classifications, policy points, and overflow behavior.
-3. **Compare no-mesh alternatives.** Consider library, gateway, platform, or simple load-balancer capabilities before adding a mesh-wide data plane. Specify the health-checking model (active and/or passive checks, healthy/unhealthy thresholds, outlier ejection) that gates every routing and failover decision; the load-balancing distribution (prefer consistent hashing where locality or connection-churn matters); and graceful connection draining on backend removal or deploy. Retry, timeout, and circuit-breaker policy stays with `dependency-resilience` even when implemented in mesh tooling; this file owns identity, discovery, locality, health, and drain.
-4. **Define routing policy.** Include locality, failover, traffic splitting, retries, timeouts, and circuit behavior responsibility. For discovery, load-balancer, gateway, public route, or route changes, validate topology input completeness, asset lifecycle state before production-serving use, workflow compatibility across mixed device generations, failed-isolation detection, production-ready rejoin gates, healthy-capacity floors, route-state freshness or expiration budget, controller leadership change and reload behavior with invalid or stale config present, convergence or withdrawal behavior, external or partner failover signals when ingress can keep targeting degraded capacity, owned address range and expected route origin, expected ingress or egress address attachment on serving nodes, stale route, boot/fallback config, or client artifacts, emergency refresh/reload path, and rollback behavior before broad exposure.
+3. **Compare no-mesh alternatives.** Consider library, gateway, platform, or simple load-balancer capabilities before adding a mesh-wide data plane. Choose active, passive, or application health signals and their thresholds from the failure mode; do not require every mechanism on every path. Choose load distribution from connection, locality, state, and fairness needs, and drain connections on backend removal or deploy. Retry, timeout, and circuit-breaker policy stays with `dependency-resilience` even when implemented in traffic tooling; this file owns identity, discovery, locality, health, and drain.
+4. **Define internal routing policy.** Include locality, failover, traffic splitting, health, drain, and responsibility for retry or timeout policy. For discovery, load-balancer, gateway, or service-route changes, validate topology inputs, endpoint readiness and rejoin, healthy-capacity floors, route-state freshness, controller leadership and reload behavior, convergence or withdrawal, stale client or fallback configuration, emergency refresh, and rollback before broad exposure.
 5. **Constrain fail-open changes.** If the data plane is operating through a control-plane partition or fail-open mode, freeze or narrowly gate topology-changing operations until route-state freshness and convergence are confirmed; otherwise a survivable control-plane fault can become packet loss or congestion.
-6. **Validate packet handling.** Test representative packet sizes, encapsulation overhead, fragmentation behavior, traffic classes, and observer or inspection features across primary, failover, and recently flapped paths so a reachability check cannot miss packet loss caused by the network feature itself.
-7. **Gate planned network work.** For work that removes, activates, or mutates links, interfaces, devices, routes, or traffic policy, split execution into small batches, emit start/end notifications, verify exact target and idle/in-use status before action, require supervision for customer-traffic paths, monitor adjacent capacity during the window, and pause the work class when the observed target differs from the work order. If automation is unavailable, do not use a manual path unless it runs equivalent pre-activation checks, starts monitoring immediately, and records post-activation validation.
-8. **Define identity and policy.** State how workload identity, traffic classification, authenticated encrypted transport, authorization, and audit work. Test every entry-path class, including external-to-internal and internal-only paths, against the policy decision it will trigger. Use short-lived, attested, rotating workload identity feeding the authorization decision, and treat network-layer segmentation (least-privilege east-west policy, lateral-movement containment) as part of the routing posture.
-9. **Model failure and upgrades.** Include proxy/control-plane failure, config error, upgrade rollout, planned-work error, and debug burden.
-10. **Instrument paths.** Capture request IDs, route metadata, identity, upstream locality, retries, errors, latency, connection saturation, queue pressure, and overflow decisions. Test that incident telemetry, reroute controls, and emergency tooling remain usable when the impaired path has reduced capacity.
-11. **Plan adoption.** Roll out by service, partition, or environment; keep rollback and exception path.
+6. **Validate packet handling when the service path needs it.** Test representative packet sizes, encapsulation overhead, fragmentation behavior, traffic classes, and observer or inspection features across primary and failover paths when overlays, tunnels, large payloads, or data-path features can affect them. Do not add packet-level gates to ordinary service paths without that risk.
+7. **Gate planned network work.** For discovery, gateway, route, or traffic-policy mutations, verify the exact logical target and current serving state, use bounded batches, protect adjacent healthy capacity, monitor immediately, pause on observed-versus-intended mismatch, validate post-activation behavior, and keep rollback. When the requested internal-network change also touches physical links, devices, provider work, or public route origin, add a risk-triggered operations module: verify the exact asset and target, idle or in-use state, expected route origin, and serving-node ingress and egress address attachment; require supervised batches, immediate monitoring, pause criteria, and rollback. Do not force these physical/public checks onto ordinary service-routing work.
+8. **Define identity and policy per edge.** Record the identity each side presents, the exact peer identity or identity set each verifier accepts, the trust-domain or namespace boundary, the verification trust path when it changes, the match rule, the authorization decision bound to the match, and fail-closed behavior for an unexpected peer. Prefer short-lived, rotation-capable workload identity, using attestation when the trust model and runtime support it. Apply least-privilege service policy or segmentation where lateral movement is a material risk.
+9. **Stage peer-identity transitions verifier first.** Before a trust-domain, namespace, or peer-name rename, make each affected verifier accept the bounded old-and-new identity set and both verification trust paths when trust material also changes. Prove that mixed peers authenticate and authorize as intended. Switch issuers or workloads in reversible batches, observe presented identity and mismatch reasons per edge, and retain the old acceptance only until new-identity use is complete and rollback no longer needs it. Then remove the old identity and test that it fails closed. A compatibility alias must not broaden authorization beyond the original service edge.
+10. **Model failure and upgrades.** Include proxy/control-plane failure, config error, upgrade rollout, planned-work error, and debug burden.
+11. **Instrument paths.** Capture the route, presented and expected peer identity, verifier configuration version, match or mismatch reason, locality, errors, latency, connection saturation, queue pressure, and overflow decisions needed to diagnose the selected failure modes. Include request correlation and retry metadata when the application contract permits them. Test that incident telemetry and reroute controls remain usable when the affected path has reduced capacity.
+12. **Plan adoption.** Roll out by service, partition, or environment; keep rollback and exception path.
 
 ## Synthesized Default
 
 Do not add service mesh by default. Adopt a mesh or equivalent platform traffic layer only when repeated cross-service needs justify its operational cost: identity, encrypted transport, traffic policy, telemetry, authorization, routing, or locality.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -94,13 +89,14 @@ Do not add service mesh by default. Adopt a mesh or equivalent platform traffic 
 ## Response Quality Bar
 
 - Lead with the mesh/no-mesh decision, routing policy, identity model, or failure-mode blocker requested.
-- For quick design or troubleshooting answers, still include one compact per-edge baseline: `<caller> -> <callee>` discovery/routing mechanism and stale/unavailable behavior; service-to-service authentication mechanism and scope, such as mutual-authentication transport workload identity, mesh identity, or a signed service token for that edge; per-request authorization decision criteria, such as caller identity plus method/resource/action; default-deny service policy with user-confirmed exception rule; RED metrics (request rate, error rate, latency) with dashboard and alert; and runnable debug command or procedure.
-- Cover concrete repeated needs, traffic map, routing/locality/failover, identity/encrypted transport/authorization, retry responsibility, telemetry, upgrades, rollback, and cost/latency tradeoffs before optional mesh breadth.
+- For quick design or troubleshooting answers, include one compact per-edge baseline: `<caller> -> <callee>`, discovery or routing behavior, stale or unavailable behavior, service identity and authorization decision, the failure signal under investigation, and one runnable verification path. Add dashboards, alerts, default-deny exceptions, and protocol details only when the requested artifact needs them.
+- Cover concrete repeated needs, traffic map, routing/locality/failover, identity and authorization, retry responsibility, telemetry, upgrades, rollback, and cost or latency tradeoffs that affect the decision before optional mesh breadth.
 - Make recommendations actionable with policy locations, rollout stages, config checks, failure tests, rollback steps, and operational runbooks where relevant.
 - Name the details to inspect, such as dependency maps, route config, retry/timeout settings, control-plane health, proxy versions, identity assertions, latency/egress data, and incident history; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside internal traffic and service mesh decisions. Route dependency resilience or zero-trust work only when it materially changes the mesh decision.
 - Be concise: avoid generic mesh advocacy and prefer compact decision records and routing matrices.
+- Scale the artifact to the request: one service edge needs its route, identity, authorization, failure behavior, telemetry, and verification; add adoption, packet, planned-change, cross-location, and full operations modules only when those risks apply.
 
 ## Required Outputs
 
@@ -108,12 +104,14 @@ Do not add service mesh by default. Adopt a mesh or equivalent platform traffic 
 - Internal traffic and dependency map.
 - Mesh/no-mesh decision record with alternatives.
 - Routing, locality, failover, and traffic-splitting policy.
-- Traffic-path capacity table with entry point, traffic classification, routing limit, connection/concurrency limit, overflow behavior, and emergency adjustment path.
-- Packet-size and traffic-class validation covering primary, failover, and recently changed paths.
-- Observer-path safety check for traffic inspection, mirroring, telemetry, or policy features, with affected endpoint classes and disable or bypass path.
-- Routing-change safety checks covering topology input completeness, asset lifecycle state, workflow compatibility across mixed device generations, failed-isolation detection, production-ready rejoin gate, control-plane or fail-open state, healthy-capacity floors, route-state freshness or expiration budget, controller leadership or reload behavior, owned address range and expected route origin, expected ingress or egress address attachment, stale route, boot/fallback config, or client artifacts, convergence or withdrawal behavior, external or partner failover signaling, emergency refresh/reload path, and rollback.
-- Planned network work safety gate for exact target verification, automation or manual path, equivalent pre/post checks, batch size, supervision, start/end notification, adjacent-capacity monitoring, and pause criteria.
-- Workload identity, encrypted transport, and authorization model.
+- Traffic-path capacity table with entry point, classification, routing or concurrency limit, overflow behavior, and emergency adjustment when capacity policy is in scope.
+- Packet-size and traffic-class validation for primary and failover paths when overlays, tunnels, large payloads, or data-path features create that risk.
+- Observer-path safety check for traffic inspection, mirroring, telemetry, or policy features when present, with affected endpoint classes and disable or bypass path.
+- Internal routing-change safety checks covering topology inputs, endpoint readiness and rejoin, control-plane or fail-open state, healthy-capacity floors, route-state freshness, controller leadership or reload, stale client or fallback configuration, convergence or withdrawal, emergency refresh, and rollback.
+- Planned service-routing change gate for exact logical target, pre/post checks, batch size, adjacent-capacity monitoring, pause criteria, and rollback when a route or policy changes.
+- Physical and public network operations module, when those surfaces are in scope, covering expected route origin, serving-node address attachment, exact asset and target, idle or in-use state, supervision, batching, monitoring, pause criteria, and rollback.
+- Workload identity, peer-matching, encrypted transport, and authorization model for each affected edge.
+- Trust-domain, namespace, or peer-name transition plan when identity matching changes, with verifier-first compatibility, mixed-peer tests, bounded old/new acceptance, mismatch telemetry, rollout order, removal gate, negative test, and rollback.
 - Operations, upgrade, diagnostics, and rollback plan.
 - Emergency observability and control-path survivability under degraded routing or capacity.
 - Network telemetry and debugging requirements.
@@ -125,15 +123,18 @@ Do not add service mesh by default. Adopt a mesh or equivalent platform traffic 
 - `failure_model`: data-plane, control-plane, config, and upgrade failure modes are addressed.
 - `diagnostic_check`: debugging, upgrade, and incident-response paths are explicit and runnable or marked unknown.
 - `routing_policy`: locality, failover, traffic split, and retry/timeout responsibility are defined.
-- `health_model`: endpoint health uses defined active/passive checks with thresholds and outlier ejection before routing or failover.
-- `lb_and_drain`: load-balancing distribution and graceful connection draining on backend removal/deploy are specified.
-- `segmentation`: east-west traffic uses least-privilege segmentation with attested workload identity.
-- `entry_classification`: internal, external, partner, and failover entry paths trigger the expected traffic classification and authorization decision.
-- `routing_change_safety`: route or discovery changes validate topology input completeness, asset lifecycle state, workflow compatibility across mixed device generations, failed-isolation detection, production-ready rejoin gate, control-plane or fail-open state, and controller leadership or reload behavior with invalid or stale config present, preserve healthy-capacity floors, define route-state freshness or expiration budget, verify public route origin for owned address ranges when applicable, verify expected ingress or egress address attachment on serving nodes, have convergence and stale-client behavior defined, and can be rolled back or refreshed without hidden state.
-- `planned_work_safety`: planned changes to links, interfaces, devices, routes, or traffic policy verify exact targets, idle/in-use status, automation or manual path, equivalent pre/post checks, supervision, batching, and pause criteria before execution.
-- `traffic_entry_capacity`: traffic entry points have capacity, connection/concurrency, and routing limits stated.
-- `packet_size_path`: representative packet sizes, encapsulation overhead, fragmentation behavior, and traffic classes are tested across primary and failover paths.
-- `observer_path_safety`: traffic inspection, mirroring, telemetry, or policy features on the data path have affected endpoint classes, validation, and disable or bypass behavior.
+- `health_model`: endpoint health uses the active, passive, or application signal and thresholds required by the selected failure model.
+- `lb_and_drain`: load distribution matches state, locality, connection, and fairness needs; backend removal or deploy drains connections when in-flight work exists.
+- `segmentation`: service traffic uses identity-bound least-privilege policy; attestation and network segmentation are included when the trust model or lateral-movement risk requires them.
+- `entry_classification`: each in-scope internal, gateway, or failover entry path triggers the expected traffic classification and authorization decision.
+- `peer_identity_contract`: each affected edge states presented identity, expected peer identity or set, trust-domain or namespace boundary, verification trust path when it changes, match rule, authorization binding, and mismatch behavior.
+- `identity_transition`: identity renames update verifiers before issuers or workloads, test mixed peers, observe old/new use and mismatch reasons, bound dual acceptance, remove the old identity only after the gate, and prove the retired identity fails closed.
+- `routing_change_safety`: service route or discovery changes validate topology input, endpoint readiness and rejoin, control-plane or fail-open state, controller reload behavior, healthy-capacity floors, route-state freshness, convergence, stale-client behavior, emergency refresh, and rollback.
+- `planned_work_safety`: planned service-discovery, gateway, route, or traffic-policy changes verify exact logical targets, current serving state, pre/post checks, batching, adjacent capacity, pause criteria, and rollback.
+- `physical_public_work_safety`: when physical links, devices, provider work, or public route origin are in scope, the plan verifies asset and target, idle or in-use state, expected origin, serving-node address attachment, supervision, batching, monitoring, pause criteria, and rollback.
+- `traffic_entry_capacity`: when traffic limits are part of the decision, entry points have capacity, connection or concurrency, routing, and overflow behavior stated.
+- `packet_size_path`: when overlays, tunnels, large payloads, or data-path features create packet risk, representative sizes, encapsulation, fragmentation, and traffic classes are tested across primary and failover paths.
+- `observer_path_safety`: when traffic inspection, mirroring, telemetry, or policy features sit on the data path, they have affected endpoint classes, validation, and disable or bypass behavior.
 - `emergency_tooling_survives`: observability and control tools needed for reroute, refresh, or rollback work during reduced capacity on the affected path.
 - `overflow_behavior`: overload, spillover, or reject behavior is defined and observable.
 - `telemetry_check`: route, identity, locality, retry, latency, and error metadata are observable.
@@ -144,12 +145,13 @@ Do not add service mesh by default. Adopt a mesh or equivalent platform traffic 
 - Proxy upgrades or data-plane incidents have no runnable diagnostic or rollback path.
 - Routing retries conflict with application retry budgets.
 - A routing change can remove too much healthy capacity or leave stale client artifacts with no rollback plan.
-- Gateway nodes can serve traffic without the expected ingress or egress address identity attached.
-- Manual link, route, or traffic-policy activation bypasses automation checks or delays monitoring after exposure.
-- Owned address ranges have no expected-origin monitor or response path for external route leaks.
-- Reachability tests pass with small packets while large-packet, encapsulated, or failover-path traffic is untested.
+- A service route or traffic-policy change bypasses equivalent pre/post checks or delays monitoring after exposure.
+- Physical or public network work changes the wrong asset, an in-use link, an unexpected route origin, or an unattached serving address without a supervised pause and rollback path.
+- A path with overlays, tunnels, large payloads, or packet-changing data-plane features passes only small-packet reachability tests.
 - Cross-location routing hides latency and egress cost.
 - Identity is asserted but not tied to authorization or audit.
+- A workload presents a new trust-domain or peer identity before every affected verifier accepts it.
+- An old/new identity alias has no expiry, removal signal, or authorization boundary.
 - Backends are removed or deployed with no connection draining, dropping in-flight requests.
 
 ## Common Mistakes
@@ -159,4 +161,5 @@ Do not add service mesh by default. Adopt a mesh or equivalent platform traffic 
 | Mesh first | Start with the capability gap and simpler options. |
 | Hidden retries | Align network retries with application retry budgets. |
 | No upgrade plan | Treat data-plane upgrades as production releases. |
-| Blind global routing | Make locality, failover, and cost explicit. |
+| Renaming identity in one step | Expand verifier acceptance, switch presented identity in batches, then contract the old acceptance. |
+| Treating physical or public network work as ordinary service routing | Add the risk-triggered operations module with asset, state, origin, address-attachment, supervision, batching, monitoring, pause, and rollback checks. |

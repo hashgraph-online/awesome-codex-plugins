@@ -12,7 +12,8 @@ origin: adapted from ECC
 
 ## 何时激活
 
-- 会话上下文超过 70% 使用率
+- Claude Code 触发原生自动或手动 compact
+- 原生 auto-compact 被显式关闭，且会话上下文超过 65% 使用率
 - 需要重组上下文以保留关键信息
 - 长会话中需要压缩早期对话
 - 需要按重要性重新组织 specialist 输出
@@ -21,12 +22,13 @@ origin: adapted from ECC
 
 ### 1. Trigger-Based 懒加载
 
-只在特定 trigger 发生时加载上下文:
+Claude Code 默认由原生 auto-compact 决定压缩时机；下列百分比 trigger 只用于手动兜底模式：
 
 | Trigger | 条件 | 行为 |
 |---------|------|------|
+| `context_65%` | 上下文使用 > 65% | 触发 advisory 压缩建议 |
 | `context_70%` | 上下文使用 > 70% | 触发压缩建议 |
-| `context_85%` | 上下文使用 > 85% | 强制压缩 |
+| `context_85%` | 上下文使用 > 85% | 强烈建议手动压缩 |
 | `logical_break` | 检测到逻辑断点 | 建议整理 |
 | `specialist_done` | specialist 完成 | 归档输出 |
 
@@ -78,11 +80,10 @@ origin: adapted from ECC
 
 ```
 用户：连续工作 2 小时后
-系统：检测到上下文使用率 75%
-系统：触发 suggest_compact hook
-系统：提供 4 阶段压缩计划
-用户：确认执行
-系统：执行压缩，保留关键决策和待办
+Claude Code：上下文接近原生 auto-compact 阈值
+系统：触发 PreCompact(auto)，保存 compact 轮次并清理旧计量缓存
+Claude Code：自动执行压缩
+系统：下一轮只读取压缩后的新 usage，不复用压缩前的高水位
 ```
 
 ### 场景 2：Specialist 输出归档
@@ -95,11 +96,22 @@ Specialist：输出详细代码审查报告
 系统：保存结论到 memory store
 ```
 
-## 触发阈值
+## Context 计算与 Compact 轮次
+
+- 运行时使用 `scripts/lib/context-window.js` 统一计算上下文压力。
+- Claude `context_window.used_percentage` / `remaining_percentage` 是官方预计算值，直接使用，不再重复扣除 auto-compact buffer；`context_window_size` 用于区分 200K 与 1M 窗口。
+- 优先消费 CCometixLine-compatible remaining context，例如 `ccometixline.context_window.remaining_percentage`、`ccometixline_context_window.remaining_tokens`、`TSP_CONTEXT_WINDOW_JSON` 或 `CCOMETIXLINE_CONTEXT_FILE`。
+- 如果没有外部 remaining 信号，则退回 Claude `context_window`、transcript JSONL usage、bridge file 和 transcript size fallback。
+- `scripts/hooks/pre-compact.js` 同时匹配 `auto|manual`，每次 PreCompact 会递增 `.tsp/context/compact-state.json` 的 session / total compact count，并清除压缩前的 bridge / debounce 状态。
+- transcript 遇到 compact summary 后不会回读 summary 前的 usage；等待下一次 API 响应提供新窗口指标。
+- `suggest-compact.js` 默认 `auto` 模式，不注入人工 `/compact` 提示；仅在 `DISABLE_AUTO_COMPACT=1` 或 `STRATEGIC_COMPACT_MODE=manual` 时启用下表的手动兜底。
+
+## 手动兜底阈值
 
 | 使用率 | 紧迫度 | 建议操作 |
 |--------|--------|---------|
-| < 70% | low | 无需操作 |
+| < 65% | low | 无需操作 |
+| 65-70% | advisory | 提醒控制上下文增长 |
 | 70-85% | medium | 建议压缩，可选择性执行 |
 | 85-95% | high | 强烈建议压缩 |
 | > 95% | critical | 必须立即压缩 |

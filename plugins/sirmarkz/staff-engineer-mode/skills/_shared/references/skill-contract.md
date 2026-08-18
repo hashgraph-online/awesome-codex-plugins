@@ -13,7 +13,6 @@ Every specialist file must be concise, triggerable, and artifact-oriented.
 - `## Info To Gather`
 - `## Workflow`
 - `## Synthesized Default`
-- `## Phase Behavior`
 - `## Exceptions`
 - `## Response Quality Bar`
 - `## Required Outputs`
@@ -21,9 +20,10 @@ Every specialist file must be concise, triggerable, and artifact-oriented.
 - `## Red Flags - Stop And Rework`
 - `## Common Mistakes`
 
-Do not add per-specialist source, reference, bibliography, citation, or reading-list
-sections. Source synthesis belongs in shared reference notes, not in published
-skill instructions.
+Published specialist prose intentionally omits per-specialist source,
+reference, bibliography, citation, and reading-list sections. Maintain the
+shared source index as a curated library; do not imply that unpublished
+synthesis notes or one-to-one claim mappings exist.
 
 Every specialist Response Quality Bar must require technology-agnostic guidance
 by default: do not introduce provider, product, framework, database, protocol,
@@ -34,7 +34,7 @@ Every specialist's Required Outputs must include an output-shape rule: render
 the matching shared template headings or tables in the reply, or use the same
 shape. Keep templates, checklists, and reviews user-visible.
 
-Every specialist must state lifecycle behavior:
+The router supplies common lifecycle behavior once for all specialists:
 
 - Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
 - Design: shape the target artifact, tradeoffs, checks, and details to gather.
@@ -45,20 +45,14 @@ Every specialist must state lifecycle behavior:
 - Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
 - Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
+Specialists may add domain-specific phase rules, but must not repeat the common
+block verbatim. Required Outputs are an artifact menu: narrow answers render the
+smallest core artifact plus risk-triggered sections; broad work uses the smallest
+owned template set covering its distinct artifacts.
+
 Non-exception specialists must not be written as after-the-fact audit or review specialists. They must
 guide the next decision from context, artifact, surface, risk, and available
 details, even when the prompt does not name a formal phase.
-
-## Output Schema
-
-- `context`
-- `risk_register`
-- `synthesized_default`
-- `exceptions`
-- `standard_decisions`
-- `required_artifacts`
-- `checks_before_moving_on`
-- `follow_up_routes`
 
 ## Routing Rules
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Distribution"
+  short_description: "Build and distribute Go CLIs across platforms"
+  default_prompt: "Use $go-cli-distribution to prepare this Go CLI for reproducible cross-platform distribution."

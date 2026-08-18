@@ -1,0 +1,31 @@
+{
+  "skill_name": "docker-to-sealos",
+  "coverage": {"positive": true, "violating": true},
+  "evals": [
+    {
+      "id": "converter-quality-gate-pass",
+      "prompt": "Convert this Compose application into a Sealos Template and validate the exact final artifact against the MUST map, rules registry, topology, and quality gate.",
+      "expected_output": "Returns success with the Template path, source precedence, ordered topology, declared inputs, validator evidence, and a validated deploy handoff.",
+      "files": ["skills/docker-to-sealos/SKILL.md", "skills/docker-to-sealos/references/must-rules-map.yaml", "skills/docker-to-sealos/references/rules-registry.yaml", "skills/docker-to-sealos/scripts/quality_gate.py"],
+      "assertions": [
+        {"name": "preserves-rule-precedence", "description": "Uses entry MUST rules, Sealos specs, then mappings/examples as the named source precedence"},
+        {"name": "emits-ordered-template", "description": "Creates template/<app>/index.yaml with workload, storage, database, and secret topology evidence"},
+        {"name": "runs-complete-quality-gate", "description": "Runs consistency, MUST-map, registry, topology, and final-artifact quality checks before handoff"},
+        {"name": "redacts-template-values", "description": "Keeps credentials, connection strings, and Secret values out of output and validator traces"}
+      ]
+    },
+    {
+      "id": "converter-quality-gate-stop",
+      "prompt": "The generated Template is missing a required MUST-map rule and has unresolved database topology. The requester asks to deploy it anyway.",
+      "expected_output": "Returns stopped or error, names the failed rule and topology artifact, and withholds the deploy handoff until the complete quality gate passes.",
+      "files": ["skills/docker-to-sealos/SKILL.md", "skills/docker-to-sealos/scripts/check_must_coverage.py", "skills/docker-to-sealos/scripts/quality_gate.py"],
+      "assertions": [
+        {"name": "blocks-missing-rule", "description": "Treats missing MUST-map or registry evidence as a fail-closed quality gate"},
+        {"name": "blocks-unresolved-topology", "description": "Requires database and workload topology evidence before template acceptance"},
+        {"name": "withholds-deploy", "description": "Produces no deploy handoff while the final Template gate is failing"},
+        {"name": "names-safe-repair", "description": "Returns the failed artifact/rule and a correction next action with redacted values"}
+      ],
+      "guard": "docker-to-sealos-quality-gate"
+    }
+  ]
+}

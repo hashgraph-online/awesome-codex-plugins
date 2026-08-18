@@ -1,35 +1,51 @@
 {
   "mcpServers": {
     "yandexDirect": {
-      "command": "python3",
+      "command": "uv",
       "args": [
+        "run",
+        "--frozen",
+        "--project",
+        "./mcp/yandex-direct",
+        "python",
         "./mcp/yandex-direct/server.py",
         "stdio"
       ],
       "env": {
-        "YD_TOKEN": "${YD_TOKEN}",
-        "YD_CLIENT_LOGIN": "${YD_CLIENT_LOGIN}",
-        "YD_SANDBOX": "${YD_SANDBOX}",
-        "YD_OUTPUT_DIR": "${YD_OUTPUT_DIR}"
+        "YANDEX_DIRECT_ENVIRONMENT": "${YANDEX_DIRECT_ENVIRONMENT}",
+        "YANDEX_DIRECT_SANDBOX_TOKEN": "${YANDEX_DIRECT_SANDBOX_TOKEN}",
+        "YANDEX_DIRECT_PRODUCTION_READ_TOKEN": "${YANDEX_DIRECT_PRODUCTION_READ_TOKEN}",
+        "YANDEX_DIRECT_CLIENT_LOGIN": "${YANDEX_DIRECT_CLIENT_LOGIN}",
+        "YANDEX_DIRECT_OUTPUT_DIR": "${YANDEX_DIRECT_OUTPUT_DIR}"
       }
     },
-    "yandexSearch": {
-      "command": "python3",
-      "args": [
-        "./mcp/yandex-search/server.py"
-      ],
+        "yandexSearch": {
+            "command": "uv",
+            "args": [
+                "run",
+                "--frozen",
+                "--project",
+                "./mcp/yandex-search",
+                "python",
+                "./mcp/yandex-search/server.py"
+            ],
       "env": {
-        "SEARCH_API_KEY": "${SEARCH_API_KEY}",
-        "FOLDER_ID": "${FOLDER_ID}"
+        "YANDEX_SEARCH_API_KEY": "${YANDEX_SEARCH_API_KEY}",
+        "YANDEX_SEARCH_FOLDER_ID": "${YANDEX_SEARCH_FOLDER_ID}",
+        "YANDEX_SEARCH_ROUTE": "${YANDEX_SEARCH_ROUTE}",
+        "YANDEX_SEARCH_APPROVAL_FILE": "${YANDEX_SEARCH_APPROVAL_FILE}",
+        "YANDEX_SEARCH_USAGE_LEDGER": "${YANDEX_SEARCH_USAGE_LEDGER}"
       }
     },
     "yandexWordstat": {
       "command": "node",
       "args": [
-        "./mcp/yandex-wordstat/dist/index.js"
+        "./mcp/yandex-wordstat/src/index.mjs"
       ],
       "env": {
-        "YANDEX_WORDSTAT_TOKEN": "${YANDEX_WORDSTAT_TOKEN}"
+        "YANDEX_WORDSTAT_API_KEY": "${YANDEX_WORDSTAT_API_KEY}",
+        "YANDEX_WORDSTAT_FOLDER_ID": "${YANDEX_WORDSTAT_FOLDER_ID}",
+        "YDFALL_STATE_ROOT": "${YDFALL_STATE_ROOT}"
       }
     }
   }

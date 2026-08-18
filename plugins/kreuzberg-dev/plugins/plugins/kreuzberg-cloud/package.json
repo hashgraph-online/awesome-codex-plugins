@@ -1,0 +1,35 @@
+{
+  "name": "@kreuzberg/opencode-kreuzberg-cloud",
+  "version": "0.2.2",
+  "description": "Deferred OpenCode package placeholder for Kreuzberg Cloud.",
+  "private": true,
+  "type": "module",
+  "main": ".opencode/plugins/kreuzberg-cloud.js",
+  "exports": {
+    ".": "./.opencode/plugins/kreuzberg-cloud.js"
+  },
+  "files": [
+    ".opencode/",
+    "assets/",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kreuzberg-dev/plugins.git",
+    "directory": "plugins/kreuzberg-cloud"
+  },
+  "homepage": "https://github.com/kreuzberg-dev/plugins/tree/main/plugins/kreuzberg-cloud",
+  "bugs": {
+    "url": "https://github.com/kreuzberg-dev/plugins/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "document-intelligence",
+    "extraction",
+    "cloud"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  }
+}

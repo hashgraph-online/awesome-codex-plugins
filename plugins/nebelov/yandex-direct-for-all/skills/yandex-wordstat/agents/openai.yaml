@@ -1,0 +1,4 @@
+interface:
+  display_name: "Yandex Wordstat API"
+  short_description: "Narrow reference for Yandex Search API Wordstat v2."
+  default_prompt: "Use $yandex-wordstat only as a narrow Wordstat API reference after opening $yandex-direct-unified for advertising workflow."

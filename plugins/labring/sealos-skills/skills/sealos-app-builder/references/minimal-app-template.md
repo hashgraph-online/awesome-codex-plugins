@@ -6,6 +6,8 @@ Use this reference when a Sealos app needs the smallest stable integration patte
 
 Put the Sealos integration in one client-only root provider.
 
+Resolve the implementation source in this order: repository-local SDK and provider code, this skill's starter template, then the official `@labring/sealos-desktop-sdk` package. Record the selected source in the implementation handoff so package drift remains visible.
+
 ## Install first
 
 Install the official SDK package before copying any template code:
@@ -48,6 +50,7 @@ type SealosContextValue = {
 3. Store the results centrally.
 4. Clean up listeners on unmount.
 5. Show a clear fallback if Desktop is unavailable.
+6. Keep the provider inside a client boundary and mark browser-only evidence separately from Desktop iframe evidence.
 
 ## Best practices
 

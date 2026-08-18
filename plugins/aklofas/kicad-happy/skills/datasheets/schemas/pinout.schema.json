@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/pinout.schema.json",
+  "title": "Pinout",
+  "description": "Array of Pin objects describing every pin on a package. Referenced from base.schema.json under base.pinout.",
+  "x-still-calibrating": true,
+  "x-stability-note": "Pin schema is additive-only-calibrating through v1.4. Real-corpus extractions may prompt shape refinements before v1.5 commits to strict additive-only discipline.",
+  "type": "array",
+  "items": {"$ref": "#/$defs/Pin"},
+  "$defs": {
+    "AltFunction": {
+      "title": "AltFunction",
+      "type": "object",
+      "required": ["name", "peripheral"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Alternate function name as listed in the datasheet (e.g. 'USART1_TX', 'SPI2_MISO')."
+        },
+        "peripheral": {
+          "type": "string",
+          "description": "Peripheral family this alt function belongs to (e.g. 'USART1', 'SPI2', 'TIM3'). Detectors filter by this."
+        },
+        "role": {
+          "type": ["string", "null"],
+          "description": "Role within the peripheral when meaningful (e.g. 'TX', 'MISO', 'CH1N'). null for peripherals without a role subdivision."
+        },
+        "af_code": {
+          "type": ["string", "null"],
+          "description": "Datasheet-specific alternate-function selector code (e.g. STM32 'AF7', Renesas 'PSEL=01'). Opaque to detectors."
+        }
+      }
+    },
+    "Pin": {
+      "title": "Pin",
+      "type": "object",
+      "required": ["numbers", "name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "numbers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"},
+          "description": "Pin number(s). Always a list even for single-pin records. Strings to support BGA grids ('A1'), LGA, and stacked internal pins (['3','4','5'])."
+        },
+        "name": {
+          "type": "string",
+          "description": "Primary pin name as printed in the datasheet pinout table (e.g. 'PA9', 'VIN', 'SW')."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "input", "output", "bidirectional", "tri_state", "passive",
+            "open_collector", "open_emitter", "power_in", "power_out",
+            "not_connected", "unspecified"
+          ],
+          "description": "Electrical role. Vocabulary mirrors KiCad's ERC pin-type matrix so detectors can cross-reference symbol pin types."
+        },
+        "subtype": {
+          "type": ["string", "null"],
+          "description": "Free-form refinement of 'type' when relevant (e.g. 'open_drain' on a bidirectional pin). null when unspecified."
+        },
+        "description": {
+          "type": ["string", "null"],
+          "description": "Human-readable pin description (e.g. 'GPIO Port A bit 9', 'Inverting input')."
+        },
+        "power_domain": {
+          "type": ["string", "null"],
+          "description": "Power-supply rail key. Must resolve to a base.recommended_operating entry. null for pins outside any power domain (NC, GND reference)."
+        },
+        "alt_functions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/AltFunction"},
+          "description": "Alternate-function table for muxed pins. Empty for fixed-function pins."
+        },
+        "is_5v_tolerant": {
+          "type": ["boolean", "null"],
+          "description": "True iff datasheet explicitly rates the pin for 5V signals. null when unspecified (do NOT assume — detectors treat null as unknown)."
+        },
+        "absolute_max": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Per-pin absolute-maximum ratings (voltage, current). null when the datasheet only publishes module-level absolute max."
+        },
+        "recommended": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Per-pin recommended operating ratings."
+        },
+        "drive_strength": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Per-pin output drive strength (IOH, IOL)."
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Free-form cross-pin constraints or usage notes (e.g. 'tie to VIN via 10\u2013100k\u03a9 if not driven'). Structured relationships live in base.pin_relationships instead."
+        },
+        "evidence": {
+          "type": ["object", "null"],
+          "required": ["page", "confidence", "method"],
+          "additionalProperties": false,
+          "properties": {
+            "page": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "PDF page number (1-based) where the pin entry was sourced."
+            },
+            "section": {
+              "type": ["string", "null"],
+              "description": "Datasheet section label (e.g. 'Pin Configuration and Functions') when available."
+            },
+            "confidence": {
+              "type": "string",
+              "enum": ["high", "medium", "low"],
+              "description": "Extractor confidence in this pin entry. Pivots consumer trust gating."
+            },
+            "method": {
+              "type": "string",
+              "enum": ["table", "prose", "curve", "calculated", "derived"],
+              "description": "How the pin entry was captured. 'table' = pinout table. 'prose' = narrative text. 'curve' = pinout diagram. 'calculated' / 'derived' = inferred from other datasheet facts."
+            }
+          },
+          "description": "Provenance for this pin entry. null only for derived/internal entries."
+        }
+      }
+    }
+  }
+}

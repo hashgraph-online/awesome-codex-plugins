@@ -3,7 +3,7 @@ name: platform-golden-paths
 description: "Use when developer platforms, golden paths, service templates, scorecards, or paved-road defaults need design"
 ---
 
-# Platform Engineering And Golden Paths
+# Developer Platforms And Golden Paths
 
 ## Iron Law
 
@@ -64,17 +64,6 @@ A good platform makes the safe path the easy path. Exception register fields fol
 Build golden paths around capabilities rather than tools: service creation, build, test, release, telemetry, security, responsibility, recovery, controls, and records. Provide self-service with guardrails, start-right templates, and escape hatches, but make exceptions visible and temporary.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

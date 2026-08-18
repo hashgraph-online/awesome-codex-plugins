@@ -1,7 +1,7 @@
 {
   "name": "antigravity-2",
   "version": "0.1.0",
-  "description": "Google Antigravity Codex Plugin for connecting OpenAI Codex to Antigravity 2.0 through MCP, DevTools, and local Windows helper commands.",
+  "description": "Google Antigravity Codex Plugin for connecting OpenAI Codex to Antigravity 2.0 through CLI-first headless jobs, MCP, DevTools, and local Windows helper commands.",
   "repository": "https://github.com/comprono/antigravity-2-codex-plugin",
   "homepage": "https://github.com/comprono/antigravity-2-codex-plugin",
   "license": "MIT",
@@ -24,8 +24,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Antigravity 2.0",
-    "shortDescription": "Connect OpenAI Codex to a local Antigravity 2.0 desktop app.",
-    "longDescription": "Adds Codex-side helpers for Antigravity 2.0 on Windows. The plugin exposes local MCP tools for compact quick readiness checks, status, live readiness, model limit summaries, active chat model switching, durable bridge jobs, full model limits, and privacy scans, plus a DevTools MCP bridge for live UI automation. It can verify setup on another user's machine, launch the desktop app, report install and process status, read model quota state from Antigravity's local language server, switch the active chat away from exhausted models to an available Flash/Gemini model, create .antigravity-bridge job folders, submit jobs, list/read/cancel/retry jobs, inspect visible projects and chats, continue existing chats, start new chats in existing projects, start new projects, and hand off instructions safely after live UI verification.",
+    "shortDescription": "Connect OpenAI Codex to Antigravity 2.0 with CLI-first jobs and UI fallback.",
+    "longDescription": "Adds Codex-side helpers for Antigravity 2.0 on Windows. The plugin exposes local MCP tools for compact quick readiness checks, status, low-RAM Antigravity CLI jobs, live readiness, model limit summaries, active chat model switching, durable bridge jobs, full model limits, and privacy scans, plus a DevTools MCP bridge for live UI automation when visible project/chat state is needed. It can verify setup on another user's machine, use the official agy CLI without opening desktop UI, launch the desktop app when needed, report install and process status, read model quota state from Antigravity's local language server, switch the active chat away from exhausted models to an available Flash/Gemini model, create .antigravity-bridge job folders, submit jobs, list/read/cancel/retry jobs, inspect visible projects and chats, continue existing chats, start new chats in existing projects, start new projects, and hand off instructions safely after live UI verification.",
     "developerName": "comprono",
     "websiteURL": "https://github.com/comprono/antigravity-2-codex-plugin",
     "privacyPolicyURL": "https://github.com/comprono/antigravity-2-codex-plugin/blob/main/SECURITY.md",
@@ -36,6 +36,8 @@
     "capabilities": [
       "Local app launch",
       "Compact quick status",
+      "Antigravity CLI jobs",
+      "Low-RAM headless bridge",
       "Autonomous setup checks",
       "Local MCP setup tools",
       "Install inspection",
@@ -57,6 +59,7 @@
       "Show Antigravity model limits",
       "Switch Antigravity to Flash Medium",
       "Submit Antigravity bridge job",
+      "Submit Antigravity CLI job",
       "Read latest Antigravity job",
       "Inspect Antigravity projects",
       "Start a new Antigravity chat",

@@ -1,0 +1,50 @@
+{
+  "name": "claude-code",
+  "version": "0.2.0",
+  "description": "Security-focused Claude Code CLI integration for OpenAI Codex.",
+  "homepage": "https://github.com/davidq888/claude-code-codex-plugin",
+  "repository": "https://github.com/davidq888/claude-code-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "codex-plugin",
+    "mcp",
+    "developer-tools",
+    "security"
+  ],
+  "author": {
+    "name": "davidq888"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Claude Code",
+    "shortDescription": "Use Claude Code from Codex with local login, status checks, and safe prompts.",
+    "longDescription": "A security-focused OpenAI Codex plugin for Anthropic Claude Code. It connects to the local Claude Code CLI, opens the official Claude login flow, checks account status, and runs safe workspace-scoped Claude Code prompts through a local MCP server.",
+    "websiteURL": "https://github.com/davidq888/claude-code-codex-plugin",
+    "privacyPolicyURL": "https://github.com/davidq888/claude-code-codex-plugin/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/davidq888/claude-code-codex-plugin/blob/main/LICENSE",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/screenshot.svg"
+    ],
+    "developerName": "davidq888",
+    "category": "Productivity",
+    "capabilities": [
+      "CLI",
+      "Developer Tools",
+      "MCP",
+      "AI Coding",
+      "Claude Code",
+      "OpenAI Codex",
+      "Interactive",
+      "Troubleshooting"
+    ],
+    "defaultPrompt": [
+      "Help me run Claude Code on this repo.",
+      "Draft a Claude Code prompt for my task.",
+      "Troubleshoot my Claude Code CLI setup."
+    ]
+  }
+}

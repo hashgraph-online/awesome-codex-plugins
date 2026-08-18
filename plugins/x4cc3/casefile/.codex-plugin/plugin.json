@@ -1,0 +1,44 @@
+{
+  "name": "casefile",
+  "version": "1.3.7",
+  "description": "Persistent security case tracking for Codex and pi.",
+  "author": {
+    "name": "x4cc3"
+  },
+  "homepage": "https://github.com/x4cc3/casefile",
+  "repository": "https://github.com/x4cc3/casefile",
+  "license": "MIT",
+  "keywords": [
+    "casefile",
+    "security",
+    "bug-bounty",
+    "ctf",
+    "audit",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Casefile",
+    "shortDescription": "Track security cases, evidence, chains, and reports.",
+    "longDescription": "Casefile adds durable security case tracking to Codex with a shared ledger for hypotheses, evidence, exploit chains, dead ends, and markdown reports.",
+    "developerName": "x4cc3",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Track this security investigation in Casefile."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/screenshot.png"
+    ],
+    "websiteURL": "https://github.com/x4cc3/casefile",
+    "privacyPolicyURL": "https://github.com/x4cc3/casefile#privacy-policy",
+    "termsOfServiceURL": "https://github.com/x4cc3/casefile#terms-of-service",
+    "brandColor": "#1F6FEB"
+  }
+}

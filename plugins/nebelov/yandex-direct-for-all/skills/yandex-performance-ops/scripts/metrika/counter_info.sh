@@ -4,6 +4,7 @@
 # Also stores/reads conversion_goals in config.json
 
 set -e
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"

@@ -1,0 +1,44 @@
+{
+  "name": "ontoly",
+  "version": "0.1.0",
+  "description": "Use Ontoly Software Graph evidence, CLI reports, MCP, and Agent Skills for deterministic TypeScript codebase understanding.",
+  "author": {
+    "name": "0xsarwagya",
+    "url": "https://github.com/0xsarwagya"
+  },
+  "homepage": "https://oss.sarwagya.wtf/ontoly",
+  "repository": "https://github.com/0xsarwagya/ontoly-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "ontoly",
+    "software-graph",
+    "codebase-intelligence",
+    "mcp",
+    "agent-skills",
+    "typescript",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ontoly",
+    "shortDescription": "Use deterministic Software Graph evidence before searching source files",
+    "longDescription": "Ontoly builds a deterministic Software Graph for TypeScript repositories. Use this plugin when Codex needs architecture review, dependency analysis, impact analysis, request tracing, configuration analysis, security ownership, or codebase onboarding backed by graph evidence and MCP capabilities.",
+    "developerName": "0xsarwagya",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://oss.sarwagya.wtf/ontoly",
+    "privacyPolicyURL": "https://github.com/0xsarwagya/ontoly-codex-plugin/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/0xsarwagya/ontoly-codex-plugin/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Explain this repository with Ontoly evidence",
+      "Trace this request flow with Ontoly",
+      "Find what depends on this service"
+    ],
+    "brandColor": "#111827",
+    "screenshots": []
+  }
+}

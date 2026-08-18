@@ -27,8 +27,8 @@
 
 ## Runtime Budget
 
-| Lane | p95 Runtime Source | Budget | Action When Exceeded |
-| --- | --- | --- | --- |
+| Lane | Historical Measurement | Feedback Objective | Queue/Capacity Context | Budget | Preserved Risk Coverage | Action When Exceeded | Provisional? |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Gate Integrity Under Cost Pressure
 
@@ -57,5 +57,5 @@
 
 ## Flake And Legacy Ratchet
 
-| Area | Threshold | Quarantine/Reduction Rule | Expiry |
-| --- | --- | --- | --- |
+| Area | Historical Rate | Sample Or Confidence | Failure Cost | Threshold | Quarantine/Reduction Rule | Expiry | Provisional? |
+| --- | --- | --- | --- | --- | --- | --- | --- |

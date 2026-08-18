@@ -1,0 +1,126 @@
+{
+  "setup": {
+    "description": "Bootstrap the project: discovery interview, write PRODUCT.md, offer DESIGN.md, configure preview mode. Run once per project before other UI work.",
+    "argumentHint": ""
+  },
+  "plan": {
+    "description": "Plan UX and UI before code. Discovery interview, visual direction, user-confirmed brief — no implementation.",
+    "argumentHint": "[feature]"
+  },
+  "build": {
+    "description": "Build a feature end-to-end: plan (if needed), visual gates, production code, in-browser iteration.",
+    "argumentHint": "[feature]"
+  },
+  "preview": {
+    "description": "Interactive browser variant mode. Select elements, generate HTML+CSS alternatives hot-swapped via HMR. Requires a dev server.",
+    "argumentHint": ""
+  },
+  "spec": {
+    "description": "Generate or refresh DESIGN.md from the codebase (colors, type, spacing, components). Stitch-compatible format.",
+    "argumentHint": ""
+  },
+  "check": {
+    "description": "Technical quality audit: accessibility, performance, responsive, anti-patterns. Scored report — fixes nothing.",
+    "argumentHint": "[area]"
+  },
+  "review": {
+    "description": "Design review: hierarchy, IA, cognitive load, scoring, anti-pattern detection. Actionable feedback — fixes nothing.",
+    "argumentHint": "[area]"
+  },
+  "finish": {
+    "description": "Final polish pass: alignment, spacing, consistency, interaction states. Last step before shipping.",
+    "argumentHint": "[target]"
+  },
+  "layout": {
+    "description": "Fix spacing, rhythm, and visual hierarchy.",
+    "argumentHint": "[target]"
+  },
+  "type": {
+    "description": "Improve typography: fonts, hierarchy, sizing, readability.",
+    "argumentHint": "[target]"
+  },
+  "color": {
+    "description": "Add or refine color strategy, palette, and contrast.",
+    "argumentHint": "[target]"
+  },
+  "motion": {
+    "description": "Add purposeful animation, transitions, and micro-interactions.",
+    "argumentHint": "[target]"
+  },
+  "responsive": {
+    "description": "Adapt UI for mobile, tablet, and cross-device contexts.",
+    "argumentHint": "[target] [context]"
+  },
+  "simplify": {
+    "description": "Remove clutter and unnecessary complexity.",
+    "argumentHint": "[target]"
+  },
+  "copy": {
+    "description": "Improve UX writing: labels, errors, microcopy, instructions.",
+    "argumentHint": "[target]"
+  },
+  "onboard": {
+    "description": "Design onboarding, first-run flows, and empty states.",
+    "argumentHint": "[target]"
+  },
+  "ship": {
+    "description": "Make UI production-ready: edge cases, errors, i18n, overflow, real data.",
+    "argumentHint": "[target]"
+  },
+  "speed": {
+    "description": "Fix UI performance: load time, rendering, bundle size, animations.",
+    "argumentHint": "[target]"
+  },
+  "tokens": {
+    "description": "Extract reusable patterns and design tokens into the design system.",
+    "argumentHint": "[target]"
+  },
+  "brand": {
+    "description": "Build a distinctive brand identity: aesthetic language, fonts, palette.",
+    "argumentHint": "[target]"
+  },
+  "refresh": {
+    "description": "Improve existing UI without breaking functionality.",
+    "argumentHint": "[target]"
+  },
+  "options": {
+    "description": "Generate 2–3 design variants within the same identity.",
+    "argumentHint": "[target]"
+  },
+  "amplify": {
+    "description": "Increase visual impact: stronger hierarchy, bolder color, more presence.",
+    "argumentHint": "[target]"
+  },
+  "calm": {
+    "description": "Reduce visual noise and intensity while keeping quality.",
+    "argumentHint": "[target]"
+  },
+  "push": {
+    "description": "Maximum ambition: advanced motion, scroll effects, showpiece interactions.",
+    "argumentHint": "[target]"
+  },
+  "delight": {
+    "description": "Add memorable moments: personality, charm, earned micro-interactions.",
+    "argumentHint": "[target]"
+  },
+  "form": {
+    "description": "Form UX: layout, validation, labels, multi-step flows.",
+    "argumentHint": "[target]"
+  },
+  "nav": {
+    "description": "Navigation patterns: menus, sidebars, tabs, breadcrumbs.",
+    "argumentHint": "[target]"
+  },
+  "states": {
+    "description": "Map UI states: loading, empty, error, success — no impossible combinations.",
+    "argumentHint": "[target]"
+  },
+  "tone": {
+    "description": "Humanize flat or sterile UI through motion, copy voice, and feel.",
+    "argumentHint": "[target]"
+  },
+  "system": {
+    "description": "Design system architecture: tokens, components, theming, naming.",
+    "argumentHint": "[target]"
+  }
+}

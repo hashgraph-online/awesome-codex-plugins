@@ -47,26 +47,16 @@ Produces a per-sink threat-to-control matrix for conventional, non-model code: e
 
 1. **Map sources to sinks.** List every untrusted source in the change and trace which interpreting sinks it can reach. A source with no dangerous sink still needs shape validation.
 2. **Validate at the boundary.** Apply allowlist validation for type, length, range, format, and required shape. Reject rather than sanitize where feasible; record why any denylist is used.
-3. **Neutralize at each sink with the sink-correct mechanism.** Queries use parameterization or prepared statements with bound values, never string concatenation. Markup uses context-aware output encoding. OS actions avoid the shell or use argument vectors, never interpolated command strings. Templates disable code evaluation on untrusted data. File paths are canonicalized and confined to an allowed root. Local redirect responses validate the target against an allowlist. Deserialization uses safe formats, type allowlists, or schema validation.
+3. **Neutralize at each sink with the sink-correct mechanism.** Queries use parameterization or prepared statements with bound values, never string concatenation. Renderers prefer text or typed-property sinks; encode for the exact output context, and use a maintained allowlist sanitizer when untrusted markup is permitted. Do not place untrusted values in script, style, event-handler, or executable URL contexts. OS actions avoid the shell or use argument vectors. Templates disable code evaluation on untrusted data. Local redirects validate targets against an allowlist. Deserialization uses safe formats, type allowlists, or schema validation.
 4. **Constrain structured inputs.** Validate structured payloads against an explicit schema; bind only expected fields to guard against mass assignment and over-posting.
-5. **Handle uploads by content, not by claim.** Validate by verified content type and size, store outside executable paths, and decouple stored name from served path.
-6. **Make each control testable.** Define a negative test per sink that feeds malicious input and asserts it is neutralized.
-7. **Record residual risk.** Where a sink cannot be fully parameterized or encoded, state the compensating control, expiry, and explicit user acceptance using the shared risk-register and risk-acceptance formats.
+5. **Resolve paths without races or link escapes.** Constrain operations to a pre-opened or otherwise trusted root, reject absolute and parent traversal, and resolve each component with link-following disabled or an equivalent descriptor-relative mechanism. Keep untrusted writers from creating filesystem links in trusted storage, validate the opened object's type and identity rather than trusting its path string, and account for symbolic links, hard links, mount changes, case and Unicode normalization, and time-of-check/time-of-use races. Apply the same rules to archive entries before extraction and prevent entries from escaping through paths or links.
+6. **Handle uploads as an isolation pipeline.** Authorize the upload and later read, assign a server-controlled identifier, limit request and stored size, content type, count, aggregate quota, archive nesting, decompressed size, and parser work. Quarantine first; verify content independently of filename or declared type; run risk-appropriate malware, active-content, or document policy checks and parsers in an isolated low-privilege context; promote atomically only after checks pass. Store outside executable paths and serve through a non-executable, correctly typed path with safe disposition. Define cleanup for rejected and abandoned objects.
+7. **Make each control testable.** Define negative tests per sink, including link races, archive traversal, decompression bombs, malformed parser inputs, active content, quota exhaustion, and unauthorized upload access where those paths exist.
+8. **Record residual risk.** Where a sink cannot be fully parameterized, encoded, sanitized, or confined, state the compensating control, expiry, and explicit user acceptance using the shared risk-register and risk-acceptance formats.
 
 ## Synthesized Default
 
 Use defense in depth anchored at the sink: allowlist boundary validation plus sink-correct neutralization, each with a negative test. Enforce mechanisms in code; prose rules do not neutralize input. Use input filtering as a supporting layer.
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -82,6 +72,7 @@ Use defense in depth anchored at the sink: allowlist boundary validation plus si
 - Name the details to inspect, such as sources, sinks, validators, encoders, query builders, parsers, and negative tests; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside conventional per-sink input defense; route model-output, outbound fetch or egress control, broad threat modeling, and deployed vulnerability remediation away when they dominate.
+- Scale the artifact to the request: a narrow source and sink need their boundary validation, sink defense, and negative test; add structured binding, path, upload, parser, and residual-risk modules only when those surfaces exist.
 
 ## Required Outputs
 
@@ -89,7 +80,8 @@ Use defense in depth anchored at the sink: allowlist boundary validation plus si
 - Source-to-sink map for the change.
 - Per-sink threat-to-control matrix: source, sink, boundary validation, sink-correct defense, verification case.
 - Structured-input schema and field-binding decision where object payloads exist.
-- File-upload handling decision where uploads exist.
+- Path-confinement decision covering trusted-root resolution, link behavior, race resistance, normalization, and archive extraction where file paths exist.
+- File-upload isolation decision covering authorization, identifiers, type and quota limits, quarantine, scanning or policy checks, parser isolation, atomic promotion, safe serving, and cleanup where uploads exist.
 - Negative-test plan, one case per high-risk sink.
 - Residual-risk register entry for any sink not fully neutralized, with user acceptance and expiry.
 - Follow-up checks routed to `secure-sdlc-and-threat-modeling`, `llm-application-security`, `api-design-and-compatibility`, or `vulnerability-management` where central.
@@ -98,8 +90,9 @@ Use defense in depth anchored at the sink: allowlist boundary validation plus si
 
 - `sink_coverage`: every untrusted source is traced to the sinks it reaches; none is unaccounted for.
 - `parameterization_check`: every query or command sink uses parameterization or an argument vector, not interpolation.
-- `encoding_context`: every render sink encodes for its specific output context.
-- `path_safety`: file-path and redirect sinks canonicalize and confine targets to an allowlist.
+- `encoding_context`: every render sink uses a safe text or typed-property API, context-correct encoding, or maintained allowlist sanitization; untrusted data does not enter executable contexts.
+- `path_safety`: file-path sinks stay within a trusted root across links, normalization, archive extraction, and time-of-check/time-of-use races; redirects use an allowlist.
+- `upload_safety`: uploads enforce authorization, quotas, quarantine, verified content, risk-appropriate scanning or policy checks, isolated parsing, atomic promotion, safe serving, and rejected-object cleanup.
 - `deserialization_safety`: object and markup parsers reject unexpected types and disable code evaluation on untrusted data.
 - `structured_binding`: structured payloads validate against a schema and bind only expected fields.
 - `negative_tests`: each high-risk sink has a negative test proving malicious input is neutralized.
@@ -109,6 +102,9 @@ Use defense in depth anchored at the sink: allowlist boundary validation plus si
 - A query, command, template, or path is built by concatenating untrusted input.
 - Input filtering or escaping is the only barrier, with no sink-correct parameterization or encoding.
 - Output is encoded for one context but rendered in another.
+- A path check follows links or checks a name before opening it, allowing the target to change outside the trusted root.
+- An archive or compressed upload has no extraction-path, expansion, nesting, parser-work, or aggregate quota.
+- Uploaded content becomes readable or executable before authorization and isolation checks complete.
 - Deserialization accepts arbitrary types or evaluates embedded code.
 - A control is stated without a sink and a negative test.
 
@@ -118,6 +114,6 @@ Use defense in depth anchored at the sink: allowlist boundary validation plus si
 | --- | --- |
 | Validate once at the edge, trust everywhere after | Neutralize at each sink with the sink-correct mechanism. |
 | Escape strings to stop query injection | Parameterize; bind values, never interpolate. |
-| One markup encoder for all output | Encode for the exact context: body, attribute, script, URL, or style. |
+| One markup encoder for all output | Prefer safe text/property sinks; encode for the exact non-executable context or sanitize allowed markup. |
 | Block known-bad inputs | Allowlist expected shape; reject the rest. |
-| Trust upload file extension or declared type | Validate by verified content and serve from a non-executable path. |
+| Trust upload file extension or declared type | Quarantine, verify content, bound expansion and parser work, then promote and serve through a non-executable path. |

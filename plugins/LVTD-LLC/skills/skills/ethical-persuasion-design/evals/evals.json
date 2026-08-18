@@ -1,0 +1,19 @@
+{
+  "skill_name": "ethical-persuasion-design",
+  "evals": [
+    {
+      "id": 1,
+      "name": "ethical-launch-email",
+      "prompt": "Write a launch email for a limited beta with real capacity constraints, credible proof, and a clear CTA. Avoid fake urgency and fake social proof.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "nonprofit-donation-page",
+      "prompt": "Improve this nonprofit donation page without guilt, fake matching, or fake scarcity. Keep it persuasive and evidence-based.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

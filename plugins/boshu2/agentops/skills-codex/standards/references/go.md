@@ -206,27 +206,21 @@ func TestAllViolationsHaveStructuredFields(t *testing.T) {
 
 ### CI-Safe Test Pattern
 
-When testing functions that shell out to external CLIs (`bd`, `ao`, `gh`, etc.), **test the low-level function directly** instead of the wrapper that invokes the CLI. This ensures tests pass in CI where the CLI may not be installed.
+When testing functions that shell out to an external CLI, inject a command
+runner and test both the adapter and the pure result mapping. This keeps tests
+deterministic when the CLI is not installed.
 
 ```go
-// BAD: calls processDiscoveryPhase() which requires bd CLI
-func TestGateDiscoveryVerdictC2Event(t *testing.T) {
-    processDiscoveryPhase(ctx, root, opts) // fails in CI — bd not available
-}
-
-// GOOD: test event shape directly via the underlying function
-func TestGateDiscoveryVerdictC2Event(t *testing.T) {
-    ev, err := appendRPIC2Event(root, rpiC2EventInput{
-        RunID: runID, Phase: 1, Type: "gate.discovery.verdict",
-        Message: "Pre-mortem verdict: PASS",
-        Details: map[string]any{"verdict": "PASS", "report": "report.md"},
-    })
+func TestInspectToolMapsOutput(t *testing.T) {
+    runner := fakeRunner{stdout: []byte(`{"status":"ok"}`)}
+    got, err := inspectTool(context.Background(), runner)
     require.NoError(t, err)
-    assert.Equal(t, "gate.discovery.verdict", ev.Type)
+    assert.Equal(t, "ok", got.Status)
 }
 ```
 
-**Rule:** If a function's only untestable part is the external CLI call, extract the testable logic (event emission, state mutation, file I/O) into a separate function and test that.
+Also add one adapter-level test that proves the expected executable name and
+arguments were supplied to the runner.
 
 ### Table-Driven Tests
 
@@ -264,6 +258,23 @@ func TestClassifyServeArg(t *testing.T) {
 - **Assert exact expected values:** Use `== expected`, never `!= wrong`. (See Exact Assertion Rule above.)
 - **Table-driven tests** preferred for multi-case functions. (See example above.)
 - **Test low-level functions directly;** don't depend on external CLIs (`bd`, `ao`) in tests. (See CI-Safe Test Pattern above.)
+- **Guard-test fixtures must use the real persisted shape.** Skip/dedup/consumed/idempotency/regression guard tests must round-trip a real persisted sample (production writer → production reader) or assert against a checked-in real example — never a hand-built in-memory constructor that sets a marker at a granularity the on-disk format never emits (e.g. `consumed` at item-level when `next-work.jsonl` marks it at batch-level). A fixture of a shape production can't produce gives a false green (ag-mjlg / PR #652). Full rationale: `test-pyramid.md` → "Fixture Fidelity".
+- **Test isolation — restore shared global/process state via `t.Cleanup`.** `cli/cmd/ao` tests share one `rootCmd` + package-global cobra flag vars and run inside the repo tree, so a test that mutates shared state without restoring it leaks into whatever test the `-shuffle=on` order runs next. This is a recurring flake class: goals `goalsMeasureScenariosOnly` cobra-global (`a9dab21c4`), `core.bare` git-env (ek8v), cwd floor (hvb).
+  - Set a package-global cobra flag only through a self-cleaning helper, so every set-site auto-restores and no order can leak it:
+
+    ```go
+    func setGoalsMeasureScenariosOnly(t *testing.T, v bool) {
+        t.Helper()
+        old := goalsMeasureScenariosOnly
+        goalsMeasureScenariosOnly = v
+        t.Cleanup(func() { goalsMeasureScenariosOnly = old })
+    }
+    ```
+
+  - Scope process state: `t.Chdir(t.TempDir())`, `t.Setenv`, and `git -C <tempRepo>` with `cmd.Dir` set. Never run a state-mutating `git` op against the real repo via an unset `cmd.Dir` / leaked `GIT_DIR`.
+  - Any package whose tests shell out to `git` MUST call `testsupport.ScrubGitDiscoveryEnv()` from its `TestMain` (`cli/internal/testsupport`). Git injects `GIT_DIR`/`GIT_WORK_TREE`/... into hook-launched processes; with `GIT_DIR` pointing at a linked worktree's gitdir, a fixture `git init` rewrites the SHARED `.git/config` to `core.bare=true`, bricking every worktree (ek8v; recurred 2026-07-18).
+  - Find leakers by analysis (grep set-sites for a missing reset), not by chasing reproducing seeds: order-dependent flakes are population+seed-specific, so "couldn't reproduce" ≠ fixed — close on the root (the missing cleanup).
+  - The push==CI full race suite runs `-shuffle=on` as the *late* backstop; it is not the primary guard.
 
 ### Benchmark Tests (BF7)
 
@@ -384,6 +395,32 @@ const span = document.createElement('span');
 span.textContent = userInput;
 el.appendChild(span);
 ```
+
+## Security-Lint Suppressions (gosec + semgrep)
+
+When a security-lint finding is a false positive on intentional crypto (e.g. SHA-1 used for git object IDs, not as a security primitive), the suppression needs TWO independent annotations on the SAME line. gosec and semgrep run as separate scanners and each ignores the other's directives.
+
+| Scanner | What it ignores | What suppresses it |
+|---------|-----------------|--------------------|
+| gosec (standalone) | `//nolint:gosec` (golangci-lint-only) | `// #nosec G<NN>` directive, e.g. `// #nosec G401 G505` |
+| semgrep | qualified `nosemgrep: <rule-id>` (does NOT suppress) | a **bare** `// nosemgrep` |
+
+Combine both into one comment and place it on **both** the import line and the usage/call site — each is flagged independently:
+
+```go
+import (
+    "crypto/sha1" // #nosec G505 nosemgrep -- git object IDs are SHA-1 by definition; not a security primitive here.
+)
+
+func gitBlobID(content []byte) string {
+    h := sha1.New() // #nosec G401 nosemgrep -- git blob IDs are SHA-1; matching git.
+    // ...
+}
+```
+
+The `G<NN>` codes differ by site: G505 flags the `crypto/sha1` import (blocklisted import), G401 flags the `sha1.New()` call (weak crypto primitive). Pass every code that fires on a given line.
+
+Canonical example in this repo: `cli/internal/drrebuild/drrebuild.go`.
 
 ## Future Features (Go 1.24+)
 

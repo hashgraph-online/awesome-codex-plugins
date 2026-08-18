@@ -3,7 +3,7 @@ name: identity-and-secrets
 description: "Use when designing human or workload access, scopes, credential lifetime, secret storage, or break-glass paths"
 ---
 
-# Zero Trust Identity And Secrets
+# Identity, Access, And Secrets
 
 ## Iron Law
 
@@ -21,16 +21,17 @@ Identity is the control plane for human and workload power.
 
 ## When To Use
 
-- The user asks about identity, zero trust, service accounts, workload identity, federation, multi-factor access, secrets, keys, encryption, cryptography, or access control.
+- The user asks about identity, service accounts, workload identity, federation, multi-factor access, secret storage and delivery, credential-signing compatibility, or access control.
 - A system grants human, service, admin, break-glass, tenant, or cross-environment access.
 - Secrets appear in code, logs, CI, images, config, tickets, or operational workflows.
-- A design needs key management, credential rotation, audit events, or least-privilege decisions.
+- A design needs credential lifetime, secret rotation, audit events, or least-privilege decisions.
 
 ## When Not To Use
 
 - The request is general app threat modeling without identity/secrets focus; use `secure-sdlc-and-threat-modeling` instead.
 - The main issue is artifact signing or build provenance; use `software-supply-chain-security` instead.
-- The main issue is tenant data isolation; use tenant isolation.
+- The main issue is certificate, general key, trust-root, encryption, or algorithm lifecycle; use `cryptography-and-key-lifecycle` instead.
+- The main issue is tenant data isolation; use `tenant-isolation` instead.
 - The request is staffing or access-program work without engineering implementation; out of scope.
 
 ## Info To Gather
@@ -44,12 +45,11 @@ Identity is the control plane for human and workload power.
 - Workload or service-identity migrations, including old/new identity overlap, customer-managed target permissions, dry-run authorization checks, and rollback behavior.
 - Authorization-data freshness, stale-policy detection, resync time, and serve-or-hold gate after identity or policy-store recovery.
 - Authorization decision service capacity, minimum safe task counts, grow/shrink command semantics, review evidence for capacity changes, and fail-closed blast radius.
-- Secrets, tokens, keys, certificates, storage locations, owner metadata, delivery interface, rotation cadence, expiry, signer/verifier rollout order, deletion protection, and consumers.
+- Secrets, tokens, credential-signing material, storage locations, responsibility metadata, delivery interface, rotation cadence, expiry, signer/verifier rollout order, deletion protection, and consumers.
 - Service-call authentication coverage, credential expiry signals, rotation lead time, and response path when expiry approaches.
 - Audit-store integrity needs: append-only or tamper-evident storage, write completeness under load, access control, and investigation retention.
 - Authentication dependency cycles where a control plane, identity provider, policy store, or feature-state store depends on another component that also needs it to serve.
-- Encryption needs, key responsibility, key separation, data classification, and long-lived confidentiality requirements.
-- Activity logs, log retention, alerting, access recertification cadence, and revocation path.
+- Activity logs, data classification, minimization, prohibited fields, redaction, access, retention and disposal, integrity, volume bounds, alerting, access recertification cadence, and revocation path.
 
 ## Workflow
 
@@ -66,44 +66,34 @@ Identity is the control plane for human and workload power.
 11. **Protect secrets and keys.** Keep them out of source, logs, images, and broad config; separate key administration from data access where risk warrants it.
 12. **Validate secret delivery contracts.** When a runtime, control plane, or sidecar injects secrets into workloads, test delivery shape, naming, version selection, refresh behavior, multi-secret cases, and rollback from the consumer's perspective before rollout.
 13. **Protect secret-bearing resources from cleanup errors.** Before deleting, retiring, or reassigning a resource that stores or authorizes credentials, verify owner metadata, recent and batch usage, dependent integrations, stakeholder review, deletion guard, and restore path.
-14. **Protect audit-store integrity.** Make high-risk audit records append-only or tamper-evident, preserve completeness under load, restrict audit-store access, and define retention for investigation.
+14. **Protect audit records.** Make high-risk records append-only or tamper-evident, preserve completeness under load, and define minimum fields, prohibited secret or personal-data fields, redaction, access, retention and disposal, and volume bounds. Log identifiers and decisions rather than credential contents.
 15. **Design break-glass controls.** Require strong authentication, limited duration, justification, audit, and post-use verification.
-16. **Use vetted cryptography.** Prefer standard protocols and managed primitives; do not invent algorithms or key-handling schemes.
+16. **Use vetted authentication and secret primitives.** Do not invent authentication protocols, token formats, secret-delivery schemes, or credential-signing algorithms. Route general cryptographic lifecycle decisions to `cryptography-and-key-lifecycle`.
 17. **Audit and verify.** Emit access, privilege change, secret access, key use, and admin events with a user-visible verification path.
 
 ## Synthesized Default
 
-Use zero-trust access with explicit identity, least privilege, workload identity for software, federation instead of copied secrets across trust boundaries, short-lived credentials, secure secret storage, strong human authentication, traceable break-glass, and vetted cryptography. Treat access as continuously verifiable, not granted once forever.
+Use explicit identity, least privilege, workload identity for software, federation instead of copied secrets across trust boundaries, short-lived credentials, secure secret storage, strong human authentication, traceable break-glass, and vetted credential primitives. Treat access as continuously verifiable, not granted once forever.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
 - Legacy systems may need compensating controls while static credentials are removed; require expiry and rotation using the shared risk-acceptance lifecycle plus the shared compensating-control format.
 - Offline or embedded environments may require longer-lived secrets, but scope and revocation must be explicit.
 - Very low-risk internal tools can use simpler access models if production data and privileged operations are absent.
-- Long-lived confidentiality may require crypto-agility and post-quantum planning.
+- Long-lived confidentiality, trust-root, or algorithm transitions belong to `cryptography-and-key-lifecycle`.
 
 ## Response Quality Bar
 
 - Lead with the access model, secret-risk decision, migration plan, or blocker list requested.
-- Cover identity boundaries, least privilege, credential lifetime, break-glass, audit, and cryptography before optional security breadth.
+- Cover identity boundaries, least privilege, credential lifetime, break-glass, audit, and credential compatibility before optional security breadth.
 - Make recommendations actionable with permission scopes, rotation steps, audit events, stop criteria, and migration checks where relevant.
 - Name the details to inspect, such as access inventories, service identities, secret locations, key rotation history, audit logs, and break-glass records; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
-- Stay inside identity, secrets, and cryptography. Route privacy, supply-chain, or tenant isolation only when those are the central unresolved risk.
+- Stay inside identity, access, secrets, and credential-signing compatibility. Route general cryptographic lifecycle, privacy, supply-chain, or tenant isolation when those are the central unresolved risk.
 - Be concise: avoid generic zero-trust background and prefer compact access matrices, secret inventories, and migration checklists.
+- Scale the artifact to the request: a narrow access or secret question needs the relevant identity, authorization, lifetime, audit, and revocation decision; add bootstrap, propagation, migration, capacity, audit-store, and dependency-cycle modules only when they apply.
 
 ## Required Outputs
 
@@ -123,8 +113,7 @@ Use zero-trust access with explicit identity, least privilege, workload identity
 - Authentication dependency-cycle check for control planes and identity, policy, or feature-state stores.
 - Break-glass and just-in-time access process.
 - Audit event and access-recertification requirements.
-- Audit-store integrity plan: append-only or tamper-evident mechanism, completeness-under-load behavior, access controls, and retention.
-- Cryptography decision record.
+- Audit-record plan: minimum and prohibited fields, redaction, append-only or tamper-evident mechanism, completeness under load, access, retention and disposal, and volume bounds.
 - Migration plan for overbroad or long-lived credentials.
 
 ## Checks Before Moving On
@@ -138,6 +127,7 @@ Use zero-trust access with explicit identity, least privilege, workload identity
 - `authorization_capacity`: fail-closed authorization decisions have minimum safe capacity, capacity-change review evidence, separate grow/shrink operations, and tested reroute or recovery.
 - `credential_lifetime`: secrets and tokens have storage, expiry, rotation, and revocation plan.
 - `audit_store_integrity`: audit records cannot be silently modified or dropped under load, and audit-store access is controlled.
+- `audit_record_safety`: audit records define minimum and prohibited fields, redaction, access, retention and disposal, and volume bounds; they never contain credential material.
 - `secret_delivery_contract`: secret delivery changes verify consumer-visible shape, naming, refresh, multi-secret behavior, and rollback before rollout.
 - `secret_resource_deletion`: resources that store or authorize credentials have owner metadata, usage evidence, dependency review, deletion guard, and restore path before cleanup or retirement.
 - `signer_verifier_compatibility`: verifiers receive new key material before signers use it, overlap is explicit, and mixed-version paths are tested.
@@ -145,7 +135,7 @@ Use zero-trust access with explicit identity, least privilege, workload identity
 - `auth_coverage`: service calls have authentication coverage or an explicit exception with compensating controls using the shared risk-acceptance lifecycle and compensating-control format.
 - `auth_dependency_cycle`: critical control planes do not depend on identity, policy, or feature-state paths that require the same control plane to serve, or the separate bootstrap/fail-closed path is tested.
 - `activity_log_check`: high-risk access and privilege changes emit linked activity logs.
-- `crypto_check`: cryptographic choices use vetted primitives and key responsibility is defined.
+- `credential_primitive_check`: authentication, token, secret-delivery, and credential-signing choices use vetted primitives; general cryptographic lifecycle work is routed separately.
 
 ## Red Flags - Stop And Rework
 

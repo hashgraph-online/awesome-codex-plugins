@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/diode.schema.json",
+  "title": "DiodeExtension",
+  "description": "Category extension for diodes (signal, switching, Schottky, zener, TVS, rectifier, bridge, varicap). Layered on top of base per spec §7. Version 1.0. Field union from 1N4148 (signal switching) + MBRS540T3G (Schottky power rectifier).",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["diode_type"],
+  "additionalProperties": false,
+  "properties": {
+    "diode_type": {
+      "type": "string",
+      "enum": ["signal", "switching", "schottky", "zener", "tvs", "rectifier", "bridge", "varicap"],
+      "description": "Diode functional category. Drives which optional fields are typically populated (e.g. vz only for zener, trr null for slow rectifiers)."
+    },
+    "vf": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Forward voltage drop (V). Multiple SpecValues per part when datasheet publishes at multiple If test currents. Condition string carries the test If (e.g. 'IF=10mA', 'iF=5A, TC=25°C')."
+    },
+    "if_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Maximum forward current (A). Multiple SpecValues to disambiguate continuous (IF), average rectified (IF(AV)), and repetitive peak (IFRM) variants via condition string."
+    },
+    "ifsm": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Non-repetitive peak surge current (A). Single SpecValue per part typically. Condition carries pulse width or half-cycle spec."
+    },
+    "vr_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Maximum reverse voltage (V). Multiple SpecValues to disambiguate VRRM (peak repetitive), VR (DC blocking), and VRWM (working peak) via condition string."
+    },
+    "breakdown_voltage": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Reverse breakdown voltage V_BR (V). Distinct from vr_max — represents the measured avalanche threshold, not the maximum rated working voltage. Null when not explicitly specified."
+    },
+    "ir": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Reverse leakage current (A). Multiple SpecValues for different reverse voltage and junction temperature test conditions."
+    },
+    "trr": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Reverse recovery time (s). Most relevant for switching, signal, and Schottky diodes. Typically null for slow rectifiers and zeners."
+    },
+    "cd": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Junction capacitance (F). Condition carries reverse voltage and test frequency (e.g. 'VR=0V, f=1MHz'). Most relevant for varicap, signal, and switching diodes."
+    },
+    "vz": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Zener voltage (V). Null for all non-zener diode types. Condition carries test current Iz."
+    },
+    "power_dissipation": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Continuous power dissipation (W). Condition typically carries ambient temperature Ta or lead temperature TL."
+    },
+    "tj_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Maximum operating junction temperature (°C). Both min (storage lower bound) and max populated when datasheet specifies operating junction temperature range."
+    },
+    "thermal_resistance": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Thermal resistance characteristics. Through-hole parts typically have only rtheta_ja; SMD parts often have both rtheta_jl and rtheta_ja.",
+      "properties": {
+        "rtheta_ja": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-ambient thermal resistance (K/W). Condition may specify board conditions (e.g. 'Min pad', 'l=4mm, TL=constant')."
+        },
+        "rtheta_jc": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-case thermal resistance (K/W). Null when not specified."
+        },
+        "rtheta_jl": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-lead thermal resistance (K/W). Common for SMD packages (e.g. SMC, SMA). Null for through-hole parts."
+        }
+      }
+    },
+    "package": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Package physical characteristics. body_mm uses nested object shape (Phase 3b option A convention — first schema establishing this precedent).",
+      "required": ["evidence"],
+      "properties": {
+        "code": {
+          "type": ["string", "null"],
+          "description": "Datasheet package code (e.g. 'DO-35', 'SMC', 'SOD-323', 'SMA')."
+        },
+        "pin_count": {
+          "type": ["integer", "null"],
+          "description": "Number of leads/pins. Typically 2 for diodes."
+        },
+        "pitch_mm": {
+          "type": ["number", "null"],
+          "description": "Lead pitch in millimeters. Null when not applicable (through-hole axial parts)."
+        },
+        "body_mm": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "description": "Package body dimensions in millimeters. Nested object per Phase 3b option A convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
+          "properties": {
+            "length": {
+              "type": "number",
+              "description": "Body length in millimeters along the longest axis."
+            },
+            "width": {
+              "type": "number",
+              "description": "Body width in millimeters along the perpendicular-to-length axis."
+            },
+            "height": {
+              "type": "number",
+              "description": "Body height in millimeters (package thickness / standoff direction)."
+            }
+          }
+        },
+        "thermal_pad": {
+          "type": ["boolean", "null"],
+          "description": "True when the package has an exposed thermal pad on the bottom. Null when not determinable."
+        },
+        "evidence": {
+          "$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json#/properties/evidence"
+        }
+      }
+    },
+    "marking_code": {
+      "type": ["string", "null"],
+      "description": "Surface marking printed or molded on the package body (e.g. 'V4148' for 1N4148, 'B540' for MBRS540T3G). Null when part is unmarked or too small for marking."
+    },
+    "polarity_marking_convention": {
+      "type": ["string", "null"],
+      "description": "How the cathode (or anode) is identified on the physical part (e.g. 'cathode band', 'polarity band on plastic body', 'K mark', 'flat side = cathode'). Null when not described."
+    }
+  }
+}

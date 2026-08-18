@@ -1,9 +1,9 @@
 ---
 name: ml-reliability-and-evaluation
-description: "Use when ML model-serving changes or promotions need evals, data validation, drift, skew, rollback, or checks"
+description: "Use when production ML model changes or promotions need evals, data validation, drift, skew, rollback, or checks"
 ---
 
-# ML Systems Reliability And Evaluation
+# Production ML Reliability And Evaluation
 
 ## Iron Law
 
@@ -63,17 +63,6 @@ Production ML reliability is software reliability plus data reliability plus mod
 Check ML releases on data validation, eval results, threat-informed failure-mode checks, training-serving consistency, versioned artifacts, progressive rollout, serving SLOs, thresholded drift and serving monitoring, and rollback. Treat model-only evaluation as insufficient for production readiness.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

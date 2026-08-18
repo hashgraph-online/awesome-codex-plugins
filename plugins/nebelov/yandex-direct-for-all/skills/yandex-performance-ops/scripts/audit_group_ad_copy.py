@@ -6,30 +6,15 @@ import csv
 import json
 import os
 import re
-import urllib.request
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Set, Tuple
+
+from check_access_paths import PageManifestStore, fetch_direct_pages, load_direct_access
 
 API_V5 = "https://api.direct.yandex.com/json/v5"
 API_V501 = "https://api.direct.yandex.com/json/v501"
-
-
-def call_api(token: str, login: str, service: str, method: str, params: dict, version: str = "v5") -> dict:
-    base = API_V501 if version == "v501" else API_V5
-    req = urllib.request.Request(
-        f"{base}/{service}",
-        data=json.dumps({"method": method, "params": params}, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Client-Login": login,
-            "Content-Type": "application/json; charset=utf-8",
-            "Accept-Language": "ru",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    return data
 
 
 def normalize(text: str) -> str:
@@ -50,47 +35,49 @@ def load_target_group_names(cluster_map_path: str) -> Dict[str, Set[str]]:
 
 
 def main() -> None:
+    os.umask(0o077)
     ap = argparse.ArgumentParser()
-    ap.add_argument("--token", required=True)
-    ap.add_argument("--login", required=True)
+    ap.add_argument("--access-file", help="Защищённый файл доступа Директа")
     ap.add_argument("--campaign-ids", required=True, help="comma-separated")
     ap.add_argument("--cluster-map", required=True)
     ap.add_argument("--output-tsv", required=True)
     ap.add_argument("--output-json", required=True)
     args = ap.parse_args()
+    access = load_direct_access(args.access_file)
+    token, login = access.token, access.client_login
 
     campaign_ids = [int(x.strip()) for x in args.campaign_ids.split(",") if x.strip()]
     target_group_names = load_target_group_names(args.cluster_map)
 
     os.makedirs(os.path.dirname(args.output_tsv), exist_ok=True)
     os.makedirs(os.path.dirname(args.output_json), exist_ok=True)
+    manifest_path = Path(args.output_json).with_name(f"{Path(args.output_json).stem}.collection-manifest.json")
+    manifests = PageManifestStore(manifest_path)
 
-    ag_resp = call_api(
-        args.token,
-        args.login,
+    ag_result = manifests.add("adgroups", fetch_direct_pages(
+        access,
         "adgroups",
-        "get",
         {
             "SelectionCriteria": {"CampaignIds": campaign_ids},
             "FieldNames": ["Id", "Name", "CampaignId"],
         },
-        "v501",
-    )
-    adgroups = ag_resp.get("result", {}).get("AdGroups", [])
-    if "error" in ag_resp:
-        raise RuntimeError(ag_resp["error"])
+        "AdGroups",
+        version="v501",
+    ))
+    if not ag_result.manifest.complete:
+        raise RuntimeError(ag_result.manifest.error)
+    adgroups = ag_result.rows
 
-    camp_resp = call_api(
-        args.token,
-        args.login,
+    camp_result = manifests.add("campaigns", fetch_direct_pages(
+        access,
         "campaigns",
-        "get",
         {"SelectionCriteria": {"Ids": campaign_ids}, "FieldNames": ["Id", "Name"]},
-        "v501",
-    )
-    if "error" in camp_resp:
-        raise RuntimeError(camp_resp["error"])
-    cid_to_name = {c["Id"]: c["Name"] for c in camp_resp.get("result", {}).get("Campaigns", [])}
+        "Campaigns",
+        version="v501",
+    ))
+    if not camp_result.manifest.complete:
+        raise RuntimeError(camp_result.manifest.error)
+    cid_to_name = {c["Id"]: c["Name"] for c in camp_result.rows}
 
     target_gids = []
     gid_to_name = {}
@@ -102,21 +89,20 @@ def main() -> None:
         if gname in target_group_names.get(cname, set()):
             target_gids.append(gid)
 
-    ads_resp = call_api(
-        args.token,
-        args.login,
+    ads_result = manifests.add("ads", fetch_direct_pages(
+        access,
         "ads",
-        "get",
         {
             "SelectionCriteria": {"AdGroupIds": target_gids},
             "FieldNames": ["Id", "AdGroupId", "CampaignId", "Status", "State"],
             "TextAdFieldNames": ["Title", "Title2", "Text"],
         },
-        "v5",
-    )
-    if "error" in ads_resp:
-        raise RuntimeError(ads_resp["error"])
-    ads = ads_resp.get("result", {}).get("Ads", [])
+        "Ads",
+        version="v5",
+    ))
+    if not ads_result.manifest.complete:
+        raise RuntimeError(ads_result.manifest.error)
+    ads = ads_result.rows
 
     by_group: Dict[int, List[Tuple[int, str, str, str]]] = defaultdict(list)
     copy_to_groups: Dict[Tuple[str, str, str], Set[int]] = defaultdict(set)
@@ -172,4 +158,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

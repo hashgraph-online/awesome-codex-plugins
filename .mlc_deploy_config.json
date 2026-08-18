@@ -1,0 +1,17 @@
+{
+  "ignorePatterns": [
+    { "pattern": "^(?!https?://)" },
+    { "pattern": "^https://github\\.com/(?!(?:hashgraph-online(?:/|$)|sponsors/hashgraph-online(?:/|$)))" },
+    { "pattern": "^https://developers.openai.com" },
+    { "pattern": "^https://awesome.re" },
+    { "pattern": "^https://community.openai.com" },
+    { "pattern": "^https://hol.org" },
+    { "pattern": "^https://cr\\.yp\\.to" },
+    { "pattern": "^https://www\\.arrow\\.com" },
+    { "pattern": "^https://www\\.latticesemi\\.com" }
+  ],
+  "aliveStatusCodes": [200, 301, 302, 403],
+  "retryOn429": true,
+  "retryCount": 5,
+  "fallbackRetryDelay": 30000
+}

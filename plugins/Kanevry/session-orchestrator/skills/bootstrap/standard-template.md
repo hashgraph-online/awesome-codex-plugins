@@ -594,7 +594,9 @@ Canonical implementation in [`_shared-template.md#parallel-sessions-rule`](_shar
 
 Write the vendored rule from `$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md` to
 `$REPO_ROOT/.claude/rules/parallel-sessions.md` (idempotent: missing→create, identical→skip,
-differs→overwrite). See shared partial for full shell command. Issue #155.
+differs→overwrite). The shared partial also runs
+`cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"` so bare `/loop` gets a
+repo-aware maintenance prompt. See shared partial for full shell command. Issues #155, #633.
 
 Note: Runs before S99. If S99 fetches a newer `parallel-sessions.md` from the baseline, the
 baseline version wins (acceptable — S99 is canonical).

@@ -1,0 +1,48 @@
+{
+  "name": "omnimodal",
+  "version": "3.1.0",
+  "description": "Omnimodal plugin for Codex and Claude Code: recognize and generate images, video, and audio through Qwen, Z.AI, or OpenAI-compatible APIs.",
+  "homepage": "https://github.com/good-boy4069/Deepseek-omnimodal",
+  "repository": "https://github.com/good-boy4069/Deepseek-omnimodal",
+  "license": "MIT",
+  "keywords": [
+    "vision",
+    "audio",
+    "generation",
+    "wanx",
+    "tts",
+    "omnimodal",
+    "mcp",
+    "read-video",
+    "screenshot",
+    "qwen",
+    "zai",
+    "glm",
+    "deepseek",
+    "agent-harness"
+  ],
+  "author": {
+    "name": "good-boy4069",
+    "url": "https://github.com/good-boy4069"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Omnimodal",
+    "shortDescription": "Recognize and generate images, video, and audio with Qwen, Z.AI, or OpenAI-compatible APIs",
+    "longDescription": "Adds omnimodal_recognize_*, omnimodal_generate_*, omnimodal_capture_page, and native Windows omnimodal_capture_windows/omnimodal_list_windows MCP tools.",
+    "developerName": "good-boy4069",
+    "composerIcon": "./assets/icon.svg",
+    "websiteURL": "https://github.com/good-boy4069/Deepseek-omnimodal",
+    "privacyPolicyURL": "https://github.com/good-boy4069/Deepseek-omnimodal/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/good-boy4069/Deepseek-omnimodal/blob/main/LICENSE",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Read this local image and extract the requested content."
+    ]
+  }
+}

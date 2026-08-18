@@ -1,0 +1,4 @@
+interface:
+  display_name: "Technical SEO Triage"
+  short_description: "Diagnose technical SEO indexing, crawling, and migration issues."
+  default_prompt: "Triage this technical SEO issue and recommend fixes."

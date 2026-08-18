@@ -1,0 +1,9 @@
+# Files excluded from Codex plugin bundle
+node_modules/
+.git/
+.env
+.env.*
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

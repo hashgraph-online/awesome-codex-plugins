@@ -1,7 +1,7 @@
 {
   "name": "kicad-happy",
-  "version": "1.3.1",
-  "description": "KiCad electronics design skills. Analyze schematics, review PCB layouts, download datasheets, source components, and prep boards for fabrication.",
+  "version": "2.1.0",
+  "description": "KiCad electronics design review. Parse schematics and PCB layouts, run EMC pre-compliance and SPICE simulation, extract structured specs from datasheet PDFs, source components from major distributors, and prep boards for fabrication. Catches real design bugs before you order.",
   "author": {
     "name": "aklofas",
     "url": "https://github.com/aklofas"
@@ -26,8 +26,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "kicad-happy",
-    "shortDescription": "AI-powered KiCad schematic analysis, PCB review, EMC checks, BOM management, and fab prep.",
-    "longDescription": "Suite of 12 skills for electronics design with KiCad 5–10. Structured Python analysis for schematics, PCB layouts, and Gerbers, plus EMC checks, SPICE simulation, component sourcing, BOM management, datasheet extraction, and manufacturing prep.",
+    "shortDescription": "AI-powered KiCad schematic analysis, PCB review, EMC pre-compliance, SPICE simulation, datasheet extraction, BOM management, and fab prep.",
+    "longDescription": "Suite of skills for electronics design with KiCad 5–10. Structured Python analysis for schematics, PCB layouts, and Gerbers, plus EMC pre-compliance checks, SPICE simulation, schema-driven datasheet extraction with page-anchored evidence, component sourcing across DigiKey/Mouser/LCSC/element14, BOM management, and fab prep for JLCPCB and PCBWay. Catches real design bugs before you order boards.",
     "developerName": "aklofas",
     "category": "Development & Code Tools",
     "capabilities": [

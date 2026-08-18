@@ -1,0 +1,180 @@
+version: 1
+default_profile: repo-runtime
+profiles:
+  repo-runtime:
+    id: repo-runtime
+    kernel_max_lines: 250
+    trigger_forms:
+      accepted:
+        - inline-marker
+        - block-marker
+        - metadata-list
+      description_markers:
+        - "Triggers:"
+        - "Use when:"
+      metadata_list_min_items: 3
+    output_contract:
+      section_headings:
+        - Output
+        - Output Specification
+        - Output Format
+        - Deliverables
+        - Returns
+      required_components:
+        artifact-path:
+          markers:
+            - "artifact directory"
+            - "**path:**"
+            - ".agents/"
+            - "stdout"
+        filename-convention:
+          markers:
+            - "filename convention"
+            - "**filename:**"
+        serialization-schema:
+          markers:
+            - "serialization/schema format"
+            - "**format:**"
+            - "schema"
+        validator-command:
+          markers:
+            - "validator command"
+            - "**exit code:**"
+            - "validation command"
+            - "validate with"
+        downstream-handoff:
+          markers:
+            - "downstream handoff"
+            - "consumed by"
+            - "confirming the fixture loaded"
+    clean_room:
+      enabled: true
+      external_content_policy: observe-structure-only
+      prohibited_copy_categories:
+        - prose
+        - prompts
+        - scripts
+        - examples
+        - names
+      copy_detection:
+        minimum_fragment_characters: 24
+        minimum_name_characters: 8
+        protected_frontmatter_fields:
+          - description
+        ignored_exact_lines:
+          - "---"
+        ignored_line_prefixes:
+          - "#"
+    rule_order:
+      - description-has-triggers
+      - constraints-frontloaded
+      - rationale-present
+      - verification-checkpoints
+      - output-spec-explicit
+      - quality-rubric
+      - references-modularization
+      - trigger-clarity
+    rules:
+      description-has-triggers:
+        severity: WARN
+        accepted_forms:
+          - inline-marker
+          - block-marker
+          - metadata-list
+      constraints-frontloaded:
+        severity: WARN
+      rationale-present:
+        severity: WARN
+      verification-checkpoints:
+        severity: WARN
+      output-spec-explicit:
+        severity: FAIL
+      quality-rubric:
+        severity: WARN
+      references-modularization:
+        severity: WARN
+      trigger-clarity:
+        severity: WARN
+        accepted_forms:
+          - inline-marker
+          - block-marker
+  external-observation:
+    id: external-observation
+    kernel_max_lines: 250
+    trigger_forms:
+      accepted:
+        - inline-marker
+        - block-marker
+        - metadata-list
+      description_markers:
+        - "Triggers:"
+        - "Use when:"
+      metadata_list_min_items: 3
+    output_contract:
+      section_headings:
+        - Output
+        - Output Specification
+        - Output Format
+        - Deliverables
+        - Returns
+      required_components:
+        filename-convention:
+          markers:
+            - "filename convention"
+            - "**filename:**"
+        serialization-schema:
+          markers:
+            - "serialization/schema format"
+            - "**format:**"
+            - "schema"
+    clean_room:
+      enabled: true
+      external_content_policy: observe-structure-only
+      prohibited_copy_categories:
+        - prose
+        - prompts
+        - scripts
+        - examples
+        - names
+      copy_detection:
+        minimum_fragment_characters: 24
+        minimum_name_characters: 8
+        protected_frontmatter_fields:
+          - description
+        ignored_exact_lines:
+          - "---"
+        ignored_line_prefixes:
+          - "#"
+    rule_order:
+      - description-has-triggers
+      - constraints-frontloaded
+      - rationale-present
+      - verification-checkpoints
+      - output-spec-explicit
+      - quality-rubric
+      - references-modularization
+      - trigger-clarity
+    rules:
+      description-has-triggers:
+        severity: WARN
+        accepted_forms:
+          - inline-marker
+          - block-marker
+          - metadata-list
+      constraints-frontloaded:
+        severity: WARN
+      rationale-present:
+        severity: WARN
+      verification-checkpoints:
+        severity: WARN
+      output-spec-explicit:
+        severity: FAIL
+      quality-rubric:
+        severity: WARN
+      references-modularization:
+        severity: WARN
+      trigger-clarity:
+        severity: WARN
+        accepted_forms:
+          - inline-marker
+          - block-marker

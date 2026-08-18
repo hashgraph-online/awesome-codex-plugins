@@ -1,29 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0; FAIL=0
-
-check() { if bash -c "$2"; then echo "PASS: $1"; PASS=$((PASS + 1)); else echo "FAIL: $1"; FAIL=$((FAIL + 1)); fi; }
-
-check "SKILL.md exists" "[ -f '$SKILL_DIR/SKILL.md' ]"
-check "SKILL.md has YAML frontmatter" "head -1 '$SKILL_DIR/SKILL.md' | grep -q '^---$'"
-check "SKILL.md has name: rpi" "grep -q '^name: rpi' '$SKILL_DIR/SKILL.md'"
-check "references/ directory exists" "[ -d '$SKILL_DIR/references' ]"
-check "references/ has at least 3 files" "[ \$(ls '$SKILL_DIR/references/' | wc -l) -ge 3 ]"
-check "SKILL.md mentions research phase" "grep -qi 'research' '$SKILL_DIR/SKILL.md'"
-check "SKILL.md mentions plan phase" "grep -qiE '/plan|plan' '$SKILL_DIR/SKILL.md'"
-check "SKILL.md mentions pre-mortem phase" "grep -qi 'pre-mortem' '$SKILL_DIR/SKILL.md'"
-check "SKILL.md mentions crank phase" "grep -qiE '(/crank|\\\$crank)' '$SKILL_DIR/SKILL.md'"
-check "SKILL.md mentions vibe phase" "grep -qiE '/vibe|vibe' '$SKILL_DIR/SKILL.md' '$SKILL_DIR/references/phase-data-contracts.md'"
-check "SKILL.md mentions post-mortem phase" "grep -qi 'post-mortem' '$SKILL_DIR/SKILL.md'"
-check "RPI docs mention next-work handoff metadata" "grep -q 'queue claim/finalize metadata' '$SKILL_DIR/SKILL.md' '$SKILL_DIR/references/phase-data-contracts.md'"
-check "phase-data-contracts documents claim lifecycle" "grep -q 'claim_status' '$SKILL_DIR/references/phase-data-contracts.md' && grep -q 'release the claim back to available state' '$SKILL_DIR/references/phase-data-contracts.md'"
-check "gate4-loop-and-spawn documents claim before consume" "grep -q 'claim the current cycle' '$SKILL_DIR/references/gate4-loop-and-spawn.md' && grep -q 'Never mark an item consumed at pick-time' '$SKILL_DIR/references/gate4-loop-and-spawn.md'"
-check "RPI docs mention repo execution profile" "grep -qi 'repo execution profile' '$SKILL_DIR/SKILL.md' '$SKILL_DIR/references/phase-data-contracts.md'"
-check "RPI docs mention execution packet" "grep -qi 'execution packet' '$SKILL_DIR/SKILL.md' '$SKILL_DIR/references/phase-data-contracts.md'"
-check "RPI docs mention contract_surfaces" "grep -q 'contract_surfaces' '$SKILL_DIR/SKILL.md' '$SKILL_DIR/references/phase-data-contracts.md'"
-check "RPI docs mention done_criteria" "grep -q 'done_criteria' '$SKILL_DIR/SKILL.md' '$SKILL_DIR/references/phase-data-contracts.md'"
-check "phase-data-contracts documents execution packet" "grep -q 'execution_packet' '$SKILL_DIR/references/phase-data-contracts.md' && grep -qi 'repo execution profile' '$SKILL_DIR/references/phase-data-contracts.md'"
-
-echo ""; echo "Results: $PASS passed, $FAIL failed"
-[ $FAIL -eq 0 ] && exit 0 || exit 1
+skill_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+grep -q '^name: rpi$' "$skill_dir/SKILL.md"
+grep -Fq 'Plan -> Implement -> fresh Validate -> report' "$skill_dir/SKILL.md"
+grep -Fq 'dispatches each core phase at most once' "$skill_dir/SKILL.md"
+grep -Fq 'creates no AgentOps packet' "$skill_dir/SKILL.md"
+grep -Fq 'Plan is closed for that intent' "$skill_dir/SKILL.md"
+grep -Fq 'spiral breaker' "$skill_dir/SKILL.md"
+grep -Fq 'A rising artifact count over an unchanged subject is a stop' "$skill_dir/SKILL.md"
+grep -Fq 'This is the default assistant response.' "$skill_dir/SKILL.md"
+grep -Fq 'only when the caller requests machine-readable evidence' "$skill_dir/SKILL.md"
+grep -Fq 'When no machine artifact was requested, do not create a hidden one.' "$skill_dir/SKILL.md"
+if grep -Fq 'plan_packet_digest' "$skill_dir/SKILL.md"; then
+  echo 'rpi contract references a model-authored plan packet digest' >&2
+  exit 1
+fi
+echo 'rpi skill contract: PASS'

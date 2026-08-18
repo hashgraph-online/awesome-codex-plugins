@@ -50,31 +50,21 @@ Data architecture starts with semantics, not storage brands.
 ## Workflow
 
 1. **Classify data by consequence.** Financial, authorization, privacy, and audit data usually need stronger guarantees than analytics or derived views.
-2. **Write operation semantics.** For each critical operation, define allowed staleness, conflict behavior, idempotency, and durability. Choose conflict resolution from an explicit menu: last-writer-wins (note its silent-update-loss risk), CRDT/commutative merge, or application-level merge, and name the lever that implements the chosen read guarantee: sticky routing to the node that took the write, a read-from-primary window for read-your-writes, or R+W>N quorum with read-repair/anti-entropy.
-3. **Choose consistency deliberately.** Use the weakest guarantee that preserves correctness and user expectation; document the tradeoff.
-4. **Choose time and ordering deliberately.** Use monotonic clocks for elapsed time, wall clocks only for human timestamps, explicit skew bounds for leases and TTLs, define leap-second and daylight-saving behavior for schedulers, and use logical clocks where wall-clock ordering is unsafe.
-5. **Avoid cross-service transactions.** Prefer local transactions plus outbox, sagas, reconciliation, or compensating actions over distributed two-phase commit.
-6. **Plan partitioning early.** Choose shard/tenant keys, hot-key mitigations, locality needs, shard-map responsibility, resharding path, and responsibility boundaries.
-7. **Treat locks and leaders as dangerous.** Use well-tested coordination primitives when necessary, and design work to be idempotent under duplicate execution.
-8. **Define repair and verification.** Include reconciliation jobs, invariants, audit trails, manual repair safety, and standing data-quality checks that catch semantic drift in stored records.
-9. **Route operational changes.** Schema/backfill execution goes to database operations; cache mechanics go to caching.
+2. **Write operation semantics.** For each critical operation, define allowed staleness, concurrent-write behavior, idempotency, and durability. First decide whether to prevent or reject conflicts through serialization, conditional writes, compare-and-swap, version preconditions, or retry. When concurrent writes are accepted, choose an explicit resolution rule such as last-writer-wins with its silent-loss risk, a commutative or convergent merge, or an application-level reconciliation. Name the mechanism and assumptions behind each read or session guarantee.
+3. **State quorum assumptions.** When using quorum-style reads and writes, record replica-set membership, whether reads and writes contact the same set, acknowledgement and durability semantics, version ordering, concurrent-write resolution, sloppy or hinted quorum behavior, failure assumptions, and repair. `R + W > N` proves intersection only under those assumptions; it does not by itself establish linearizability, read-your-writes, or correct conflict resolution.
+4. **Choose consistency deliberately.** Use the weakest guarantee that preserves correctness and user expectation; document the tradeoff.
+5. **Choose time and ordering deliberately.** Use monotonic clocks for elapsed time, wall clocks only for human timestamps, explicit skew bounds for leases and TTLs, define leap-second and daylight-saving behavior for schedulers, and use logical clocks where wall-clock ordering is unsafe.
+6. **Avoid cross-service transactions.** Prefer local transactions plus outbox, sagas, reconciliation, or compensating actions over distributed two-phase commit.
+7. **Plan partitioning early.** Choose shard/tenant keys, hot-key mitigations, locality needs, shard-map responsibility, resharding path, and responsibility boundaries.
+8. **Treat locks and leaders as dangerous.** Use well-tested coordination primitives when necessary, and design work to be idempotent under duplicate execution.
+9. **Define repair and verification.** Include reconciliation jobs, invariants, audit trails, manual repair safety, and standing data-quality checks that catch semantic drift in stored records.
+10. **Route operational changes.** Schema/backfill execution goes to database operations; cache mechanics go to caching.
 
 ## Synthesized Default
 
 Default to the simplest storage and consistency model that satisfies operation semantics. Keep data responsibility local where possible, co-locate data that must transact together, use idempotency and durable state transitions, and avoid custom distributed coordination. When weaker consistency is chosen, state exactly what users may observe and how repair works.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -92,6 +82,7 @@ Default to the simplest storage and consistency model that satisfies operation s
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside the data consistency decision. Mention caches, workflows, or schema execution only when they materially change semantics.
 - Be concise: avoid generic CAP/PACELC exposition and prefer decision matrices.
+- Scale the artifact to the request: a narrow operation needs its consistency, concurrency, failover, and repair semantics; add storage, replication, quorum, sharding, time, and standing-quality modules only when the decision depends on them.
 
 ## Required Outputs
 
@@ -100,7 +91,8 @@ Default to the simplest storage and consistency model that satisfies operation s
 - Operation-level consistency matrix.
 - Storage decision record with rejected alternatives.
 - Replication, failover, and conflict-resolution model.
-- Conflict-resolution choice from the explicit menu (LWW / CRDT / app-merge) with the read-your-writes or quorum lever that implements the chosen guarantee.
+- Conflict strategy covering prevention or rejection (serialization, conditional write, compare-and-swap, version precondition, retry) or an explicit accepted-concurrency resolution rule.
+- Quorum assumption record covering membership, replica-set overlap, acknowledgements, durability, version ordering, concurrency, sloppy-quorum behavior, failure assumptions, and repair when a quorum mechanism is used.
 - Sharding/hot-key/tenant-routing plan.
 - Transaction, outbox, saga, or reconciliation plan.
 - Time, clock, leap-second, daylight-saving, lease, TTL, and ordering decision where temporal correctness matters.
@@ -110,7 +102,8 @@ Default to the simplest storage and consistency model that satisfies operation s
 ## Checks Before Moving On
 
 - `semantics_check`: every critical operation has freshness, ordering, idempotency, conflict, and durability semantics.
-- `conflict_strategy`: the conflict-resolution approach is chosen from the explicit menu and the session-guarantee lever is named.
+- `conflict_strategy`: each critical mutation prevents, rejects, retries, or resolves concurrent writes with a named mechanism and user-visible outcome.
+- `quorum_assumptions`: any quorum claim states the conditions needed for intersection and does not infer linearizability or session guarantees from `R + W > N` alone.
 - `failover_check`: replication-lag and failover behavior is defined for each read/write path, including the data-loss bound and split-brain prevention.
 - `consistency_choice`: chosen guarantees are justified by user consequence and failure behavior.
 - `responsibility_check`: every data class has an explicit mutation boundary and repair path.

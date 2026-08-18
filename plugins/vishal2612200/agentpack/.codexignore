@@ -1,0 +1,22 @@
+# Keep Codex plugin trust scans focused on the distributable plugin surface.
+.agent/
+.agentpack/
+.claude/
+.codex/
+.cursor/
+.kiro/
+.opencode/
+.vscode/
+.windsurf/
+benchmarks/
+docs/
+native-integrations/
+npm/
+src/
+tests/
+.github/workflows/agentpack-pr.yml
+.github/workflows/agentpack.yml
+.github/workflows/ci.yml
+.github/workflows/docs.yml
+.github/workflows/publish-npm.yml
+.github/workflows/publish.yml

@@ -282,6 +282,4 @@ Select option or type 'continue' to override.
 - `skills/wave-executor/wave-loop.md` — intended consumer (inter-wave hook integration pending in a follow-up issue)
 - `skills/evolve/SKILL.md` — retrospective learning; complements but does not replace
 - `skills/quality-gates/SKILL.md` — correctness gate; runs independently of convergence verdict
-- `docs/adr/006-autonomous-overnight-research.md` — ADR governing /autoresearch loops
-- `.claude/rules/autonomous-agent-safety.md` (AAG-004) — branch-scoped experimentation contract
 - `convergence-monitoring/SIGNALS.md` — signal computation reference + threshold rationale

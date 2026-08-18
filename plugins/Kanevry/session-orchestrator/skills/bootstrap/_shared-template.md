@@ -24,9 +24,10 @@ Shell:
 ```bash
 mkdir -p "$REPO_ROOT/.claude/rules"
 cp "$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md" "$REPO_ROOT/.claude/rules/parallel-sessions.md"
+cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"
 ```
 
-Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155.
+Why: PSA-003 destructive-command safeguards require every consumer repo to carry the rule. See issue #155. The `loop.md` vendor gives bare `/loop` a repo-aware maintenance prompt (issue #633 Hebel 3).
 
 Note: This step runs before the baseline-fetch step (S99/D99). If that step executes and fetches a newer version of `parallel-sessions.md` from the baseline, the baseline version wins (S99 overwrites by design — acceptable).
 
@@ -159,7 +160,9 @@ MANIFEST
     FETCHED_JSON=$(jq -R . < "$SUCCESS_LOG" | jq -s .)
     LOCK_FILE="$REPO_ROOT/.claude/.baseline-fetch.lock"
     mkdir -p "$REPO_ROOT/.claude"
-    node --input-type=module -e "
+    FETCHED_JSON="$FETCHED_JSON" BASELINE_PROJECT_ID="$BASELINE_PROJECT_ID" \
+      BASELINE_REF="$BASELINE_REF" LOCK_FILE="$LOCK_FILE" \
+      node --input-type=module -e "
       import { writeFileSync } from 'node:fs';
       const files = JSON.parse(process.env.FETCHED_JSON);
       const lock = {
@@ -170,8 +173,7 @@ MANIFEST
         files,
       };
       writeFileSync(process.env.LOCK_FILE, JSON.stringify(lock, null, 2) + '\n');
-    " FETCHED_JSON="$FETCHED_JSON" BASELINE_PROJECT_ID="$BASELINE_PROJECT_ID" \
-        BASELINE_REF="$BASELINE_REF" LOCK_FILE="$LOCK_FILE"
+    "
     echo "Wrote .claude/.baseline-fetch.lock ($(wc -l < "$SUCCESS_LOG" | tr -d ' ') files)"
   else
     echo "WARNING: baseline fetch produced no files; rules will arrive via Clank sync MRs (legacy path)" >&2

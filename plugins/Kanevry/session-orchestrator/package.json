@@ -1,15 +1,55 @@
 {
   "name": "session-orchestrator",
-  "version": "3.8.0",
-  "description": "Session Orchestrator — Claude Code plugin for structured development sessions",
+  "version": "3.20.0",
+  "description": "Loop engineering for AI coding agents — turn ad-hoc sessions into a repeatable research → plan → wave-execute → close loop with verification gates. Runs on Claude Code, Codex CLI, Cursor, and Pi.",
   "type": "module",
+  "homepage": "https://session-orchestrator.com",
+  "keywords": [
+    "pi-package",
+    "claude-code",
+    "claude-code-plugin",
+    "codex",
+    "cursor",
+    "ai-agents",
+    "agentic-coding",
+    "subagents",
+    "orchestration",
+    "developer-tools",
+    "mcp",
+    "llm"
+  ],
   "engines": {
     "node": ">=24.0.0"
   },
+  "files": [
+    ".mcp.json",
+    "CHANGELOG.md",
+    "pi/",
+    "skills/",
+    "agents/",
+    "commands/",
+    "hooks/",
+    "scripts/",
+    "rules/",
+    "templates/",
+    "output-styles/",
+    "monitors/",
+    "assets/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".cursor/",
+    "docs/*.md",
+    "docs/telemetry/telemetry-claims.md",
+    "NOTICE",
+    "SECURITY.md",
+    "!**/node_modules/**",
+    "!**/.DS_Store"
+  ],
   "scripts": {
-    "test": "vitest --run",
-    "test:coverage": "vitest --run --coverage",
-    "test:watch": "vitest",
+    "test": "node scripts/check-package-manager.mjs && vitest --run",
+    "test:coverage": "node scripts/check-package-manager.mjs && vitest --run --coverage",
+    "test:watch": "node scripts/check-package-manager.mjs && vitest",
+    "quality-gate": "node scripts/run-quality-gate.mjs --variant full-gate",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "node scripts/typecheck.mjs",
@@ -22,6 +62,7 @@
   "dependencies": {
     "@babel/parser": "^7.26.0",
     "ajv": "^8.17.1",
+    "js-yaml": "^4.3.1",
     "mdast-util-to-string": "^4.0.0",
     "remark": "^15.0.0",
     "remark-parse": "^11.0.0",
@@ -35,14 +76,32 @@
     "@vitest/coverage-v8": "^4.1.5",
     "eslint": "^10.2.1",
     "husky": "^9.1.7",
-    "js-yaml": "^4.1.1",
     "lint-staged": "^15.2.10",
     "prettier": "^3.0.0",
     "vitest": "^4.1.5"
+  },
+  "overrides": {
+    "vite": "^8.0.16",
+    "fast-uri": "^3.1.5",
+    "brace-expansion": "^5.0.9"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kanevry/session-orchestrator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Kanevry/session-orchestrator/issues"
+  },
+  "pi": {
+    "extensions": [
+      "./pi/extensions/session-orchestrator.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./pi/prompts/*.md"
+    ]
   }
 }

@@ -27,9 +27,42 @@ Do not mix these models blindly. If a repo's `docker/docker-compose.yml` uses `f
   - check both filesystem site state and database readiness; a `sites/<site>` directory alone does not prove the Frappe database is valid
 - Prefer the source docs' site name when it is part of the documented flow (`hrms.localhost` in development docs). For public Sealos access, ensure the frontend's site-name/header behavior matches the generated Ingress host or an intentionally configured default site.
 
+## Administrator Credentials
+
+Frappe reserves `Administrator` and `Guest` as built-in account names. Use `admin` as the recommended default login name when a template asks the deployer to choose an administrator username.
+
+`bench new-site --admin-password` sets the built-in `Administrator` user's password. It does not change the login name.
+
+When the user explicitly asks to enter ERPNext/Frappe administrator credentials:
+
+- Declare `admin_username` and `admin_password` in the Template CR `spec.inputs`.
+- Pass both values to init scripts as direct env values. Keep MariaDB, Redis, and PostgreSQL connection credentials on KubeBlocks secrets.
+- Run `bench new-site` with the deployer-provided password for the built-in `Administrator` user.
+- After the site exists, set the built-in user's `User.username` to the deployer-provided login name through Frappe ORM or `bench execute`.
+- Enable `allow_login_using_user_name` for the site so username login works.
+- Clear Frappe cache after changing user/login settings.
+- Write the init ready marker only after the username, login setting, cache clear, migrations, and app installs have completed.
+
+Example bootstrap sequence:
+
+```bash
+bench new-site "$SITE_NAME" \
+  --mariadb-root-username "$DB_ROOT_USER" \
+  --mariadb-root-password "$DB_ROOT_PASSWORD" \
+  --admin-password "$ADMIN_PASSWORD" \
+  --force
+
+bench --site "$SITE_NAME" execute frappe.client.set_value \
+  --kwargs "{'doctype':'User','name':'Administrator','fieldname':'username','value':'${ADMIN_USERNAME}'}"
+bench --site "$SITE_NAME" set-config allow_login_using_user_name 1
+bench --site "$SITE_NAME" clear-cache
+touch "$READY_MARKER"
+```
+
 ## Failure Signatures
 
 - `Permission denied` writing `sites/apps.txt`: mounted PVC ownership is wrong; add `fsGroup: 1000` or a volume-permission init.
 - `OOMKilled` / exit `137` in `create-site`: init resources are too small.
 - `pymysql.err.ProgrammingError: ('DocType', 'Patch Log')`: a prior failed init left a site directory or database residue; reset the failed site/database or rerun `bench new-site --force`.
 - Ingress returns `no healthy upstream`: usually not an Ingress problem; check Service endpoints, Pod readiness, and init container state first.
+- Login with the configured username fails while `Administrator` works: the template only set the `Administrator` password. Set `User.username`, enable username login, clear cache, and recreate the ready marker after those steps succeed.

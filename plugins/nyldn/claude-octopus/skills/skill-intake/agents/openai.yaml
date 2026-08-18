@@ -1,0 +1,3 @@
+interface:
+  display_name: "Intake"
+  short_description: "Move incoming issues and pull requests through triage..."

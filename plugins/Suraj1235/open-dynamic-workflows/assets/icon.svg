@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Open Dynamic Workflows</title>
+  <rect width="64" height="64" rx="14" fill="#101828"/>
+  <path d="M18 20h13l6 12-6 12H18l6-12-6-12Z" fill="#2DD4BF"/>
+  <path d="M34 20h12l-6 12 6 12H34l6-12-6-12Z" fill="#F59E0B"/>
+  <circle cx="24" cy="32" r="3.5" fill="#FFFFFF"/>
+  <circle cx="40" cy="32" r="3.5" fill="#FFFFFF"/>
+  <path d="M27.5 32h9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+</svg>

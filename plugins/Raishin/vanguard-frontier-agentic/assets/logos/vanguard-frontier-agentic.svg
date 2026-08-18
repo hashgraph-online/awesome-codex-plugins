@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Vanguard Frontier Agentic</title>
+  <desc id="desc">Shield and frontier star mark for Vanguard Frontier Agentic.</desc>
+  <rect width="256" height="256" rx="56" fill="#0f172a"/>
+  <path d="M128 34 205 64v56c0 51-31 84-77 102-46-18-77-51-77-102V64l77-30Z" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+  <path d="M128 70 143 112l45 1-36 26 13 43-37-25-37 25 13-43-36-26 45-1 15-42Z" fill="#f8fafc"/>
+  <path d="M82 194c24 18 68 18 92 0" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+</svg>

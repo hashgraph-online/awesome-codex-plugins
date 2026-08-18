@@ -1,7 +1,7 @@
 {
   "name": "thermal-fluid-research-workflow",
-  "version": "0.1.0",
-  "description": "Thermal-fluid mechanical engineering research workflow plugin for Codex.",
+  "version": "0.2.0",
+  "description": "Thermal-fluid mechanical engineering research workflow plugin for Codex with CFD review, correlation checks, experiment planning, proposal development, data analysis, and research-writing guidance.",
   "author": {
     "name": "Han Hu",
     "email": "72934230+hanhuark@users.noreply.github.com",
@@ -12,30 +12,39 @@
   "license": "MIT",
   "keywords": [
     "thermal-fluids",
+    "heat-transfer",
+    "fluid-dynamics",
+    "cfd",
     "mechanical-engineering",
     "research",
+    "research-agent",
     "technical-writing",
+    "literature-review",
     "proposal-development",
     "data-analysis",
+    "experiment-planning",
+    "ai-for-engineering",
     "codex-skill"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Thermal-Fluid Research Workflow",
-    "shortDescription": "Research, write, code, analyze, and present thermal-fluid work.",
-    "longDescription": "A workflow plugin for thermal-fluid mechanical engineering research. It combines domain-specific judgment for literature review, technical writing, data analysis, research coding, presentations, AI/ML tools, proposals, patents, and commercialization with reusable workflow prompts.",
+    "shortDescription": "Add thermal-fluid rigor to AI-assisted research, writing, CFD, experiments, and code.",
+    "longDescription": "A workflow plugin for thermal-fluid mechanical engineering research. It helps AI agents check heat-transfer and fluid-flow assumptions, correlation validity, CFD credibility, experiment design, uncertainty, research code, literature synthesis, proposal aims, presentations, AI/ML tools, patents, and commercialization with reusable workflow prompts.",
     "developerName": "Han Hu",
     "category": "Productivity",
     "capabilities": [
       "Research",
       "Write",
-      "Code"
+      "Code",
+      "Analyze"
     ],
     "websiteURL": "https://github.com/hanhuark/mechanical-engineering-research-skill",
     "defaultPrompt": [
       "Plan a thermal-fluid research workflow.",
-      "Develop a proposal narrative with reviewer-focused logic.",
-      "Write a technical section with domain rigor.",
+      "Check whether this heat-transfer correlation is valid for my regime.",
+      "Review this CFD setup and identify unsupported claims.",
+      "Design an experiment plan with uncertainty and calibration checks.",
       "Review this figure and explain the physics."
     ],
     "brandColor": "#0F766E",

@@ -1,16 +1,60 @@
 ---
 name: agent-native
-description: "Run agent native."
+description: Operate explicit orchestrator, implementer
 ---
+# Agent Native
 
-# $agent-native — Make Out-of-Session Agents AgentOps-Native (Codex Native)
+Operate caller-selected agent sessions as explicit roles without turning the
+runtime into AgentOps lifecycle authority.
 
-> **Quick Ref:** Run a Claude/Codex loop *outside* an interactive session (Managed Agent, Agent SDK, or self-hosted sandbox) under the same AgentOps guardrails — hooklessly. Guardrails = skills + the `ao` CLI + CI, never ported hooks. Bundle skills into the agent definition, expose `ao` as a callable tool so the loop self-bootstraps + self-validates, and gate the output through the SAME CI as interactive work.
+For caller-elected multi-model judgment (mixed council, dueling perspectives,
+cross-model validate), follow
+[references/model-dispatch.md](references/model-dispatch.md): the working
+session is the controller; probe `codex-exec` and `ntm` at runtime; never
+require either; never use Agent Mail for judgment; never invoke `claude -p`.
 
-## Codex/NTM path
+Role separation works because each role's authority is checkable from its
+packet: a worker that cannot exceed its declared subject cannot corrupt a
+sibling's evidence, so factory failures stay local instead of systemic.
 
-Codex (gpt-5.3-codex) has NO Managed Agents API, NO Workflow tool, NO Task subagent. It orchestrates via NTM (tmux pane swarms + agent-mail) + skills + the `ao` CLI + ssh to bushido. So an out-of-session Codex loop becomes AgentOps-native the same way: load the AgentOps skills, call `ao session bootstrap` / `ao inject` / `ao validate` directly (no MCP needed — Codex shells out), and gate outputs through CI (`agent-output-validate.yml`). `ao` does not wrap `gc`; a whole loop needing a mayor/refinery still routes through `gc`.
+When a worker looks stuck, score interventions by evidence and reversibility
+before acting: observe more (free, fully reversible), then nudge, then replace
+the worker, then restart the runtime — escalate only when observable state,
+not impatience, rules out the cheaper step. Stop the observe-nudge cycle once
+the worker reaches a terminal status or the caller's observation window ends;
+past that point further intervention manufactures noise, not evidence.
 
-## Instructions
+Named failure mode — **prompt-send optimism**: treating a successfully
+delivered prompt as a working worker; delivery proves transport, not
+engagement.
 
-Load and follow the skill instructions from the sibling `SKILL.md` — OR read `skills/agent-native/SKILL.md` in the host repo for the canonical specification. Honor the Critical Constraints: this is a reframe of "port hooks", NOT a hook revival; no skill fork (load the same `skills/` files); Managed Agents are NOT ZDR (no holdout/PII in the agent definition); CI is the enforcement boundary, not the optional in-loop adapter.
+Anti-pattern: restarting an unresponsive worker as the first move. Corrective:
+capture its observable state first — a restart destroys the evidence of why it
+stalled, and rescue is usually cheaper than rerun.
+
+## Roles
+
+- **Orchestrator:** passes explicit packets and reports runtime facts.
+- **Implementer:** may modify only its packet's declared subject.
+- **Validator:** receives exact candidate content in a fresh, read-only context.
+- **Scribe:** records runtime evidence without judging acceptance.
+
+## Contract
+
+1. Require an explicit packet, role, workspace, context identity, and evidence
+   destination before starting a worker.
+2. Prove runtime readiness and engagement from observable state; a successful
+   prompt send is not proof of work.
+3. Keep concurrent writers disjoint and isolated. Runtime coordination is not a
+   claim, lease, queue, or completion state in AgentOps.
+4. Record provider state, transcript references, artifacts, and terminal status.
+5. Return runtime evidence to the caller. Do not convert provider retries,
+   reconnects, idle states, or failures into Plan, Candidate, or verdict state.
+6. A validator session may supply judgment to Validate, but only Validate writes
+   `verdict.v2`. The adapter cannot select AgentOps semantics, issue a binding verdict, or turn factory completion into delivery or validation proof.
+
+NTM, Codex exec, native processes, Agent Mail, and Gas City are replaceable
+adapters. Use them only when the caller selected that execution shape. A
+single local agent pays no factory coordination cost. Model identity, when
+recorded, is a declared runtime fact like context identity — see
+[references/model-dispatch.md](references/model-dispatch.md).

@@ -6,7 +6,10 @@
 - [E. Tautology and pleonasms](#e-tautology-and-pleonasms)
 - [F. List homogeneity](#f-list-homogeneity)
 - [G. Numbers in text](#g-numbers-in-text)
-- [H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal)](#h-clean-language-principles-inspired-by-the-anti-bureaucratic-tradition-cf-n-gal)
+- [H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal, M. Ilyakhov)](#h-clean-language-principles-inspired-by-the-anti-bureaucratic-tradition-cf-n-gal-m-ilyakhov)
+- [I. Government (управление)](#i-government-управление)
+- [J. Gerund phrases (деепричастные обороты)](#j-gerund-phrases-деепричастные-обороты)
+- [K. Contextual homophones](#k-contextual-homophones)
 - [Sources](#sources)
 
 ## C. Capitalization
@@ -43,9 +46,9 @@ academic degrees, titles|always lower|доктор наук, профессор,
 ### C.5. After ellipsis
 
 situation|upper/lower
-ellipsis ends sentence|upper (new sentence): Всё кончилось... Наступила тишина.
-ellipsis = pause inside sentence|lower: Он вошёл... и остановился.
-ellipsis at text start (continuation)|lower: ...и тогда всё стало ясно.
+ellipsis ends sentence|upper (new sentence): Всё кончилось… Наступила тишина.
+ellipsis = pause inside sentence|lower: Он вошёл… и остановился.
+ellipsis at text start (continuation)|lower: …и тогда всё стало ясно.
 
 ### C.6. Quotation marks and names
 
@@ -165,6 +168,10 @@ wrong|correct|why
 страсть к графомании|графомания|мания = obsession
 хронометраж времени|хронометраж|хроно- = time
 экспонат выставки|экспонат|экспонат = exhibited item
+в январе месяце|в январе|январь = month
+полностью завершить|завершить|завершить = bring fully to an end
+внутренний интерьер|интерьер|интерьер = inside space
+ответная реакция|реакция|реакция = response
 
 ### E.2. Tautology (cognate repeats)
 
@@ -219,6 +226,15 @@ large round numbers|mixed|1,5 млн, 20 тыс.
 tables, formulas, statistics|digits|5, 12, 230
 monetary amounts in documents|digits + words in parens|150 000 (сто пятьдесят тысяч) руб.
 
+Approximation exception -- row "10+" only, narrative text only. Do not flag the word form when both hold: the numeral is rounded to a ten, hundred or thousand, and an approximation marker attaches to that numeral -- the counted noun fronted in the genitive it governs (минут десять), or one of около, примерно, где-то, под, с лишним, с небольшим.
+
+- Approximate -- words are correct: занимает минут десять; из шестидесяти с лишним замечаний
+- Exact -- row "10+" stands: запись хранится тридцать -> 30 суток; в двенадцати -> в 12 километрах
+- Bounds are not approximations (до, от, за, более, свыше, не менее): до сорока -> до 40 секунд
+- Labels are not counts: пункт двадцать, версия двадцать -- row "10+" stands
+
+Never applies to large round numbers -- their row demands mixed form even under a marker (тысяч десять запросов -> 10 тыс. запросов) -- nor in tables, statistics or monetary amounts (last two rows), nor when the same value also stands in digits nearby -- there G.5 governs.
+
 ### G.2. Ordinal numerals
 
 Suffix via hyphen (not period):
@@ -259,7 +275,7 @@ Do not mix words and digits for same-type values within one sentence/paragraph.
 
 ---
 
-## H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal)
+## H. Clean language principles (inspired by the anti-bureaucratic tradition, cf. N. Gal, M. Ilyakhov)
 
 ### H.1. Officialese (канцелярит) -- disease markers
 
@@ -270,6 +286,17 @@ Do not mix words and digits for same-type values within one sentence/paragraph.
 5. Stacked participial/gerundial phrases make sentence impassable
 
 ### H.2. Dead constructions -> live replacements
+
+Six of the entries below also stand in the stop-word catalogue of `info-style.md` §B — «в
+настоящее время», «вышеуказанный», «на сегодняшний день», «надлежащий», «нижеследующий»,
+«принять решение». §B is their canonical home: it is the list a checker walks, and it is
+the block frozen by the corpus contract. Count such a fragment once, in **Ч — Clarity**,
+and do not report it twice because it appears in two files.
+
+The other thirty-six are here and nowhere else. Measured on 28.07.2026 with the same parser
+`check-frozen.sh` uses: 42 entries here, 92 in §B, 6 in both. A plan step that would have
+replaced this section with a pointer to §B was written on the assumption that it mostly
+duplicated the catalogue; it does not, and following it would have deleted thirty-six rules.
 
 dead|live
 произвести ремонт|отремонтировать
@@ -291,6 +318,29 @@ dead|live
 вышеуказанный|этот / упомянутый
 нижеследующий|следующий / такой
 надлежащий|нужный / подходящий
+осуществлять деятельность|работать
+производить оплату|оплатить / заплатить
+производить полив|поливать
+осуществлять контроль|контролировать
+принимать участие|участвовать
+оказывать влияние|влиять
+давать оценку|оценивать
+вести наблюдение|наблюдать
+проводить исследование|исследовать
+вести подготовку|готовить / готовиться
+совершать покупку|покупать
+делать выводы|заключать / считать
+приносить извинения|извиняться
+нести ответственность|отвечать (за)
+дать соответствующее указание|поручить / попросить
+задействовать ресурсы|использовать [что конкретно]
+был осуществлён выход|вышли
+находиться в состоянии усталости|устать
+является обязательным условием|обязательно
+на постоянной основе|постоянно / регулярно
+по причине того что|потому что
+с целью повышения|чтобы повысить
+вопрос решается в рабочем порядке|решим до [даты]
 
 ### H.3. Translation traps leaking into Russian
 
@@ -315,6 +365,137 @@ dead|live
 5. Concrete over abstract: "в рамках мероприятия" -> "на встрече"; "в сфере образования" -> "в школах"
 6. Use simple words: "сделать" not "реализовать"; "начать" not "приступить к осуществлению"
 7. Read aloud: if you stumble -- rewrite the sentence
+
+## I. Government (управление)
+
+Which case a preposition or a verb requires. §D covers agreement — subject with predicate,
+numeral with noun; this covers the other half, and until v2.0 the corpus had no rule for it
+at all.
+
+**Closed list, deliberately.** The open form of this check — verify the case after every
+preposition and every verb — is a detector of non-native Russian, and building one is
+forbidden here: it would punish an accent rather than an error. What follows is a list of
+specific pairs whose correct form is not in dispute. A construction that is not on the list
+is not flagged by this section, however wrong it may look.
+
+### I.1. Prepositions and verbs that take a fixed case
+
+wrong|right|why
+согласно приказа|согласно приказу|«согласно» takes the dative
+благодаря поддержки|благодаря поддержке|dative
+вопреки ожиданий|вопреки ожиданиям|dative
+навстречу гостей|навстречу гостям|dative
+оплатить за проезд|оплатить проезд|«оплатить» takes the accusative without a preposition
+заплатить проезд|заплатить за проезд|paying FOR something is «заплатить за»; «заплатить долг» (repay) is also correct, so only this sense is listed
+заведующий отдела|заведующий отделом|instrumental
+командующий армии|командующий армией|instrumental
+преимущество над конкурентами|преимущество перед конкурентами|«перед», not «над»
+уверенность в победу|уверенность в победе|prepositional after «в»
+вера в победе|вера в победу|accusative after «в» — the mirror of the line above
+по приезду|по приезде|«по» in the sense of «after» takes the prepositional
+по окончанию школы|по окончании школы|same
+удивляться результату|удивляться результату|correct as written — listed so it is not «corrected» to the genitive
+рад встрече|рад встрече|correct — dative after «рад», not genitive
+
+I.1.1. Flag only a pair from this list. The list is the rule; there is no general principle
+behind it that a checker may extend by analogy.
+
+I.1.2. Some rows carry a CORRECT form, present so that a checker does not invent an error
+where none exists; the third column says which. Getting a right form flagged as wrong costs
+more trust than a miss.
+
+I.1.3. A pair whose norm is variable does not belong here, however common the error looks.
+«Скучать по вам» and «скучать по вас» were listed until the gate checked them: the first is
+the current norm and the row had them the wrong way round, and «превосходство перед» is
+attested with a dated mark rather than wrong. A closed list of undisputed pairs cannot hold a
+disputed one — the contradiction is with §I's own preamble, not with a source.
+
+I.1.4 (carve-out — whose grammar it is). Not flagged inside a quotation, a line of dialogue,
+or an interviewee's speech: the error belongs to the speaker, and reporting it charges the
+author for someone else's grammar. The same boundary AD-10.4 draws for declared sincerity,
+stated here because a rule read on its own must decide on its own. It governs §I, §J and §K.
+
+### I.2. Different government under a shared dependent
+
+wrong|right
+организовать и руководить работой|организовать работу и руководить ею
+любить и заниматься спортом|любить спорт и заниматься им
+надеяться и верить в успех|надеяться на успех и верить в него
+контроль и управление процессом|контроль над процессом и управление им
+
+I.2.1. Two or more verbs (or verbal nouns) sharing one dependent, where they do not take the
+same case. One of them silently gets the wrong form.
+
+I.2.2. Rewrite by giving the first verb its own object and replacing the second with a
+pronoun; do not stack the cases.
+
+I.2.3. Not flagged when both words genuinely take the same case: «читать и перечитывать
+книгу», «собрать и отправить отчёт».
+
+## J. Gerund phrases (деепричастные обороты)
+
+### J.1. The doer of the gerund must be the subject of the sentence
+
+wrong|right
+Подъезжая к станции, у меня слетела шляпа.|Когда я подъезжал к станции, у меня слетела шляпа.
+Прочитав письмо, ему стало ясно.|Прочитав письмо, он всё понял.
+Открыв файл, была обнаружена ошибка.|Открыв файл, мы обнаружили ошибку.
+Возвращаясь домой, начался дождь.|Когда я возвращался домой, начался дождь.
+
+J.1.1. The test is mechanical and needs no judgement, but it is about DOERS, not about
+subjects: name who performs the gerund, and name who performs the main verb — or the
+infinitive, participle or second gerund the phrase attaches to. The same person: correct.
+Different: wrong. Stating it as «the grammatical subject» was an error of this corpus's own,
+caught at the gate: a one-member definite-personal sentence has no grammatical subject at
+all, and «Открыв файл, проверяем кодировку» is correct — the doer of both is «мы».
+
+J.1.2. Rewrite by making the doers agree, or by turning the gerund phrase into a subordinate
+clause with «когда», «если», «после того как».
+
+J.1.3 (carve-out — the doer of an infinitive). «Подъезжая к станции, следует смотреть в окно»,
+«Готовя отчёт, нужно проверить цифры», «Просим клиентов, оплачивая счёт, указывать номер
+договора». The condition is not «the clause is impersonal» — it is that the doer of the gerund
+is the doer of the infinitive. That is why «Ознакомившись с резюме, кандидату было предложено
+пройти тест» stays wrong: the reader of the CV is not the one taking the test.
+
+J.1.4 (carve-out — the forms that became prepositions), and only where they really have.
+«Судя по отчёту», «исходя из данных», «несмотря на возражения», «начиная с понедельника»,
+«включая расходы» — the test is whether the word can be dropped without loss: «приступить
+начиная с понедельника» → «приступить с понедельника», so «начиная» is a preposition here.
+Where the verbal meaning is alive it is a gerund again and J.1.1 applies: «Включая новые
+расходы в смету, бухгалтер пересчитал бюджет» — somebody is doing the including.
+
+J.1.5 (carve-out — the doer is implied by the form). A one-member sentence names no subject
+and needs none: the imperative «Открыв файл, проверьте кодировку», the inclusive «Открыв
+файл, давайте проверим кодировку», and the definite-personal «Открыв файл, проверяем
+кодировку» are all correct, because the verb ending says who acts.
+
+J.1.6 (carve-out — the ones that stopped being gerunds). «Молча», «нехотя», «стоя», «сидя»,
+«лёжа», «не спеша», «шутя» work as adverbs of manner: they take no phrase, need no comma, and
+have no doer to compare. «Он читал молча» is not a gerund phrase and §J does not look at it.
+
+## K. Contextual homophones
+
+Pairs a spellchecker cannot decide, because both spellings exist and only the meaning tells
+them apart. A closed list, for the same reason §I is one.
+
+wrong context|right|the deciding question
+в течении года|в течение года|a stretch of time → «в течение» (preposition)
+в течение реки|в течении реки|the noun «течение» in the prepositional: a current, and also the course of an illness, of time, or a movement in art or politics — «в течении болезни», «в течении споров»
+что бы сделать|чтобы сделать|«чтобы» when «бы» cannot be moved or dropped
+чтобы ни случилось|что бы ни случилось|two words when «бы» belongs to «что»
+так же как вчера|так же как вчера|correct: comparison, two words
+он также пришёл|он также пришёл|correct: «и он пришёл» → one word
+в виду плохой погоды|ввиду плохой погоды|«ввиду» = because of. Separate «в виду» is not only the fixed phrase: it also means «within sight of» — «эскадра шла в виду берега», where «ввиду» would read as «because of the shore»
+иметь ввиду|иметь в виду|the fixed phrase is three words
+не смотря на дождь|несмотря на дождь|«несмотря на» = although; «не смотря» = not looking
+вследствие ошибки|вследствие ошибки|correct: «из-за»; «в следствие» only about an investigation
+
+K.1. Decide by the question in the third column, not by frequency. Both forms of each pair
+are correct somewhere, which is why a spellchecker passes them and a reader trips.
+
+K.2. Correct rows are listed alongside wrong ones on purpose. A checker that has only seen
+the error learns to flag the pair on sight.
 
 ## Sources
 See [sources.md](sources.md)

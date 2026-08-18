@@ -14,6 +14,9 @@ from check_consistency_models import NEGATIVE_MARKERS, ScanContext, Violation, Y
 
 
 SUPPORTED_SCAN_SUFFIXES = {".md", ".yaml", ".yml"}
+TEMPLATE_CONTROL_LINE_PATTERN = re.compile(
+    r"^(\s*)\$\{\{\s*(?:if\([^}]*\)|elif\([^}]*\)|else\(\)|endif\(\))\s*\}\}\s*$"
+)
 
 
 def iter_markdown_files(root: Path) -> Iterable[Path]:
@@ -122,14 +125,25 @@ def should_ignore_yaml_parse_error(doc_text: str) -> bool:
     return any(line.startswith(template_prefix) for line in lines for template_prefix in template_control_prefixes)
 
 
+def neutralize_template_control_lines(doc_text: str) -> str:
+    def replace_control_line(match: re.Match[str]) -> str:
+        return f"{match.group(1)}# {match.group(0).strip()}"
+
+    return "\n".join(
+        TEMPLATE_CONTROL_LINE_PATTERN.sub(replace_control_line, line)
+        for line in doc_text.splitlines()
+    )
+
+
 def parse_yaml_documents(blocks: Sequence[YamlBlock]) -> Tuple[List[YamlDocument], List[Violation]]:
     documents: List[YamlDocument] = []
     violations: List[Violation] = []
 
     for block in blocks:
         for start_line, doc_text in split_yaml_documents(block):
+            parse_text = neutralize_template_control_lines(doc_text)
             try:
-                parsed = yaml.safe_load(doc_text)
+                parsed = yaml.safe_load(parse_text)
             except yaml.YAMLError as exc:
                 if block.skip_checks or should_ignore_yaml_parse_error(doc_text):
                     continue
@@ -159,7 +173,7 @@ def parse_yaml_documents(blocks: Sequence[YamlBlock]) -> Tuple[List[YamlDocument
                     skip_checks=block.skip_checks,
                     line_locator=LineLocator(
                         start_line=start_line,
-                        lines=tuple(doc_text.splitlines()),
+                        lines=tuple(parse_text.splitlines()),
                     ),
                 )
             )

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "storyflo": {
+      "url": "https://api.storyflo.com/v1/mcp/sse",
+      "type": "sse"
+    }
+  }
+}

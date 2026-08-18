@@ -44,7 +44,7 @@ console.log('SUMMARY:', JSON.stringify(r.summary));
 | `LEGITIMATE` | _(no finding)_ | Package exists in registry with published versions |
 | `SUS` | _(reserved — never emitted in MVP)_ | See note below |
 
-> **NOTE on SUS:** The `SUS` classification is defined in `CLASSIFICATIONS` (see `scripts/lib/slopcheck.mjs`) but is **never emitted** in the MVP. The npm-deprecated-flag and audit-warning detection paths that would produce SUS findings are not yet implemented. Do not rely on SUS findings until a future wave wires up that detection. See PRD § 5 in `docs/prd/2026-05-22-gsd-pattern-adoption-quickwins.md` for the full design intent.
+> **NOTE on SUS:** The `SUS` classification is defined in `CLASSIFICATIONS` (see `scripts/lib/slopcheck.mjs`) but is **never emitted** in the MVP. The npm-deprecated-flag and audit-warning detection paths that would produce SUS findings are not yet implemented. Do not rely on SUS findings until a future wave wires up that detection. See PRD § 5 in "gsd Pattern Adoption Quick-Wins" (#520; archived in the private Meta-Vault) for the full design intent.
 
 **Supported manifest formats:**
 

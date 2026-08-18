@@ -88,12 +88,12 @@ Compared sections:
 |---------|-------------|-----------------|-------------|
 | Statistics | n/a (scalar paths) | `total_components`, `total_nets`, `unique_parts`, `total_wires`, `total_no_connects` | `statistics.*` |
 | Components | `reference` | `value`, `footprint`, `mpn` | `components[]` |
-| Signal analysis | Per-type via SIGNAL_REGISTRY | Per-type via SIGNAL_REGISTRY | `findings[]` grouped by detector via `group_findings_legacy()` |
+| Signal analysis | Per-type via SIGNAL_REGISTRY | Per-type via SIGNAL_REGISTRY | `findings[]` grouped by detector via `group_findings_by_detection_type()` |
 | BOM | `(value, footprint)` tuple | `quantity` | `bom[]` |
 | Connectivity | JSON-serialized item | new/resolved (set diff) | `connectivity_issues.{single_pin_nets,floating_nets,multi_driver_nets}` |
 | ERC warnings | `(type, net, message)` tuple | new/resolved (set diff) | `design_analysis.erc_warnings[]` |
 
-Signal analysis is reconstructed from `findings[]` via `group_findings_legacy()`, then iterates all detector types present in either base or head. For each detection type, identity and value fields come from `SIGNAL_REGISTRY` (derived from `detection_schema.SCHEMAS`). Unknown detection types fall back to `["reference"]` identity with no value fields. The diff output still uses `signal_analysis` as a key for backward compatibility with diff consumers.
+Signal analysis is reconstructed from `findings[]` via `group_findings_by_detection_type()`, then iterates all detector types present in either base or head. For each detection type, identity and value fields come from `SIGNAL_REGISTRY` (derived from `detection_schema.SCHEMAS`). Unknown detection types fall back to `["reference"]` identity with no value fields. The diff output still uses `signal_analysis` as a key for backward compatibility with diff consumers.
 
 ### PCB
 

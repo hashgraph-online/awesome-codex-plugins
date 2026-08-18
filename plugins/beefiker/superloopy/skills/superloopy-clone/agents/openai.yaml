@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superloopy Clone"
+  short_description: "Evidence-backed website cloning"
+  default_prompt: "Use superloopy-clone to reverse-engineer a target URL through exact browser extraction, per-host component specs, local asset download, Superloopy crew handoffs, implementation, and visual QA evidence. Treat loopy team clone requests as full-crew work. Never replace a hard section with a similar redraw."

@@ -1,0 +1,13 @@
+# Paths excluded from Codex plugin distribution + scanner analysis.
+# Test fixtures contain fake API keys (e.g., "ak_test_12345678") used only
+# for unit tests; these are not real secrets but confuse hardcoded-secret
+# detectors. node_modules is build artifact, never shipped.
+
+node_modules/
+tests/
+*.test.mjs
+*.test.js
+*.spec.mjs
+*.spec.js
+.git/
+.DS_Store

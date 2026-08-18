@@ -1,6 +1,6 @@
 ---
 name: bkt
-version: 0.28.2
+version: 0.31.0
 description: Bitbucket CLI for Data Center and Cloud. Use when users need to manage repositories, pull requests, branches, issues, webhooks, or pipelines in Bitbucket. Triggers include "bitbucket", "bkt", "pull request", "PR", "repo list", "branch create", "Bitbucket Data Center", "Bitbucket Cloud", "keyring timeout".
 metadata:
   short-description: Bitbucket CLI for repos, PRs, branches
@@ -151,6 +151,7 @@ Every command accepts these inherited flags:
 - [context](rules/context.md) — Manage Bitbucket CLI contexts
 - [extension](rules/extension.md) — Manage bkt CLI extensions
 - [issue](rules/issue.md) — Work with Bitbucket Cloud issues *(Cloud)*
+- [mcp](rules/mcp.md) — Model Context Protocol server for agents
 - [perms](rules/perms.md) — Manage Bitbucket permissions *(DC)*
 - [pipeline](rules/pipeline.md) — Run and inspect Bitbucket Cloud pipelines *(Cloud)*
 - [pr](rules/pr.md) — Manage pull requests

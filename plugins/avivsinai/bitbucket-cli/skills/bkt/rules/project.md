@@ -28,6 +28,7 @@ bkt project <command> [flags]
 | Subcommand | Description | Key Flags |
 |---|---|---|
 | [list](#bkt-project-list) | List Bitbucket Data Center projects *(DC)* | `--host`, `--limit` |
+| [reviewer-groups](#bkt-project-reviewer-groups) | Work with project reviewer groups *(DC)* | — |
 
 ## bkt project list
 
@@ -78,5 +79,84 @@ bkt project list [flags]
 
   # List projects in JSON format
   bkt project list --json
+```
+
+## bkt project reviewer-groups
+
+List the reviewer groups defined in a project's settings.
+
+Reviewer groups are named sets of users that can be added as default reviewers
+on repositories within the project. Data Center only.
+
+**Alias:** `reviewer-group`
+
+```
+bkt project reviewer-groups <command> [flags]
+```
+
+### Examples
+
+```bash
+# List reviewer groups for the active context project
+  bkt project reviewer-groups list
+
+  # List reviewer groups for a specific project
+  bkt project reviewer-groups list --project PLATFORM
+```
+
+| Subcommand | Description |
+|---|---|
+| list | List project reviewer groups (DC only) |
+
+## bkt project reviewer-groups list
+
+List the reviewer groups defined in a Bitbucket Data Center project's
+settings, including each group's members. The project is resolved from the
+active context unless overridden with --project. Use --limit to control the
+number of results returned.
+
+This command is only available for Data Center hosts. Attempting to run it
+against a Cloud context will return an error.
+
+**Alias:** `ls`
+
+### Usage
+
+```
+bkt project reviewer-groups list [flags]
+```
+
+### Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--limit` |  | Maximum reviewer groups to display (0 for all) |
+| `--project` |  | Bitbucket project key override |
+
+### Inherited Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--context` | `-c` | Active Bitbucket context name |
+| `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
+| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--json` |  | Output in JSON format when supported |
+| `--template` |  | Render output using Go templates |
+| `--yaml` |  | Output in YAML format when supported |
+
+### Examples
+
+```bash
+# List reviewer groups for the active context project (default limit of 30)
+  bkt project reviewer-groups list
+
+  # List all reviewer groups without a limit
+  bkt project reviewer-groups ls --limit 0
+
+  # List reviewer groups for a specific project
+  bkt project reviewer-groups list --project PLATFORM
+
+  # List reviewer groups in JSON format
+  bkt project reviewer-groups list --project PLATFORM --json
 ```
 

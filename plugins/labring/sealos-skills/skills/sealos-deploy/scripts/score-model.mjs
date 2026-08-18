@@ -17,9 +17,11 @@
 import fs from 'fs';
 import path from 'path';
 
+import { inspectSourceReadyStaticSite } from './static-site.mjs';
+
 // ─── Language Priority ───────────────────────────────────────
 
-const LANGUAGE_PRIORITY = ['go', 'rust', 'java', 'node', 'python', 'php', 'ruby', 'dotnet'];
+const LANGUAGE_PRIORITY = ['go', 'rust', 'java', 'node', 'python', 'php', 'ruby', 'dotnet', 'html'];
 
 function pickPrimaryLanguage(langSignals, fwSignals) {
   const detected = Object.entries(langSignals).filter(([, v]) => v).map(([k]) => k);
@@ -69,6 +71,8 @@ function detectSignals(repoDir) {
     }
   };
 
+  const isSourceReadyStaticSite = inspectSourceReadyStaticSite(repoDir).eligible;
+
   // ── Language Detection (check root + up to 2 levels deep for monorepos) ──
   const lang = {};
   const hasDeep = (pattern) => findFiles(repoDir, pattern, 2).length > 0;
@@ -80,9 +84,11 @@ function detectSignals(repoDir) {
   lang.php = has('composer.json') || hasDeep(/^composer\.json$/);
   lang.ruby = has('Gemfile') || hasDeep(/^Gemfile$/);
   lang.dotnet = findFiles(repoDir, /\.(csproj|sln)$/, 2).length > 0;
+  lang.html = isSourceReadyStaticSite;
 
   // ── Framework Detection (scans root + all sub package.json for monorepos) ──
   const fw = {};
+  fw.static_html = isSourceReadyStaticSite;
   let _allNodeDeps = {};
   if (lang.node) {
     // Collect ALL deps across all package.json files (monorepo support)
@@ -128,8 +134,8 @@ function detectSignals(repoDir) {
 
   // ── HTTP Server Detection (most critical signal) ──
   const http = {};
-  http.has_port_listen = false;
-  http.has_http_handler = false;
+  http.has_port_listen = isSourceReadyStaticSite;
+  http.has_http_handler = isSourceReadyStaticSite;
 
   if (lang.node) {
     const pkg = readJson('package.json');
@@ -231,6 +237,10 @@ function detectSignals(repoDir) {
 
   // ── Lifecycle ──
   const lifecycle = {};
+  if (isSourceReadyStaticSite) {
+    lifecycle.has_start = true;
+    lifecycle.has_build = false;
+  }
   if (lang.node) {
     const pkg = readJson('package.json');
     const scripts = pkg?.scripts || {};
@@ -287,6 +297,7 @@ function detectSignals(repoDir) {
   if (lang.rust && !port.value) port.value = 8080;
   if (lang.php && !port.value) port.value = 80;
   if (lang.ruby && !port.value) port.value = 3000;
+  if (lang.html && !port.value) port.value = 8080;
   port.source = port.value ? 'framework-default' : 'unknown';
 
   // ── Database Types (concrete list) ──
@@ -367,6 +378,10 @@ function detectSignals(repoDir) {
     } else {
       runtime_version.rust = 'stable'; runtime_version.source = 'default';
     }
+  } else if (lang.html) {
+    runtime_version.html = 'static';
+    runtime_version.nginx = '1.31.3';
+    runtime_version.source = 'static-html-fast-path';
   }
 
   return { lang, fw, http, state, config, docker, mono, lifecycle, pm, port, databases, runtime_version };
@@ -380,7 +395,10 @@ function scoreProject(repoDir) {
   const details = {};
 
   // ── Dimension 1: Statelessness (0-2) ──
-  if (s.state.uses_external_db && !s.state.uses_sqlite) {
+  if (s.lang.html) {
+    scores.statelessness = 2;
+    details.statelessness = 'Source-ready static assets are immutable and have no runtime state';
+  } else if (s.state.uses_external_db && !s.state.uses_sqlite) {
     scores.statelessness = 2;
     details.statelessness = 'External database detected (PostgreSQL/MySQL/MongoDB)';
   } else if (s.state.uses_external_db && s.state.uses_sqlite) {
@@ -399,7 +417,10 @@ function scoreProject(repoDir) {
   }
 
   // ── Dimension 2: Config Externalization (0-2) ──
-  if (s.config.has_env_example && s.config.has_env_validation) {
+  if (s.lang.html) {
+    scores.config = 2;
+    details.config = 'No runtime configuration is required';
+  } else if (s.config.has_env_example && s.config.has_env_validation) {
     scores.config = 2;
     details.config = '.env.example + runtime validation';
   } else if (s.config.has_env_example) {
@@ -418,7 +439,10 @@ function scoreProject(repoDir) {
   }
 
   // ── Dimension 3: Horizontal Scalability (0-2) ──
-  if ((s.lang.go || s.lang.rust) && s.http.has_http_handler) {
+  if (s.lang.html) {
+    scores.scalability = 2;
+    details.scalability = 'Immutable static assets can be replicated without shared state';
+  } else if ((s.lang.go || s.lang.rust) && s.http.has_http_handler) {
     scores.scalability = 2;
     details.scalability = 'Compiled binary — inherently scalable';
   } else if (s.http.has_http_handler && s.state.uses_redis) {
@@ -433,7 +457,10 @@ function scoreProject(repoDir) {
   }
 
   // ── Dimension 4: Startup/Shutdown (0-2) ──
-  if ((s.lang.go || s.lang.rust) && s.http.has_http_handler) {
+  if (s.lang.html) {
+    scores.startup = 2;
+    details.startup = 'Standard static server has an immediate deterministic startup path';
+  } else if ((s.lang.go || s.lang.rust) && s.http.has_http_handler) {
     scores.startup = 2;
     details.startup = 'Compiled binary — fast startup + graceful shutdown';
   } else if (s.fw.hono || s.fw.fastify) {
@@ -464,7 +491,10 @@ function scoreProject(repoDir) {
   }
 
   // ── Dimension 6: Service Boundaries (0-2) ──
-  if (s.mono.is_monorepo && s.mono.has_apps_dir) {
+  if (s.lang.html) {
+    scores.boundaries = 1;
+    details.boundaries = 'One source-ready static image workload';
+  } else if (s.mono.is_monorepo && s.mono.has_apps_dir) {
     scores.boundaries = 2;
     details.boundaries = 'Monorepo with apps/ directory — clear service separation';
   } else if (s.mono.is_monorepo) {

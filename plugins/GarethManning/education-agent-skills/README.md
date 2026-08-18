@@ -299,4 +299,4 @@ Built by [Gareth Manning](https://substack.com/@garethmanning) — educator, cur
 
 ## Licence
 
-[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Open. Forkable. Share alike.
+The educational skills, documentation, examples, and curriculum materials in this repository are licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Open. Forkable. Share alike. See the [LICENSE](LICENSE) file for the repository-level notice and full legal terms.

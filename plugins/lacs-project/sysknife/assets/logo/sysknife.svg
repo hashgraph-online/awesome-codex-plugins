@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="sk-title sk-desc">
+  <title id="sk-title">SysKnife</title>
+  <desc id="sk-desc">A cute German Shepherd puppy sitting alert, ears erect, wearing a terminal-prompt collar tag — the SysKnife mascot and mark.</desc>
+
+  <defs>
+    <filter id="plateShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.22"/>
+    </filter>
+    <filter id="dogShadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.14"/>
+    </filter>
+    <!-- Tan coat gradient — warm amber matching existing palette -->
+    <linearGradient id="coatGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#FFB45A"/>
+      <stop offset="100%" stop-color="#E8943A"/>
+    </linearGradient>
+    <!-- Dark saddle / muzzle -->
+    <linearGradient id="saddleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#2B3440"/>
+      <stop offset="100%" stop-color="#0F1419"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── Rounded square plate ── -->
+  <rect x="4" y="4" width="248" height="248" rx="48" ry="48"
+        fill="#0F1419" filter="url(#plateShadow)"/>
+
+  <!-- ══════════════════════════════
+       PUPPY BODY  (all coords in the
+       256×256 viewBox, dog centred)
+       ══════════════════════════════ -->
+
+  <g filter="url(#dogShadow)">
+
+    <!-- ── Tail (behind body, drawn first) ── -->
+    <!-- Curving up-right from haunches -->
+    <path d="M 148 192 Q 185 168 178 140 Q 174 126 165 130 Q 160 148 155 162 Z"
+          fill="url(#coatGrad)"/>
+    <!-- Tail tip dark stripe -->
+    <path d="M 165 130 Q 174 126 178 140 Q 175 133 168 136 Z"
+          fill="url(#saddleGrad)" opacity="0.7"/>
+
+    <!-- ── Haunches / lower body ── -->
+    <ellipse cx="128" cy="195" rx="46" ry="22" fill="url(#coatGrad)"/>
+    <!-- Saddle bleed onto haunches -->
+    <ellipse cx="128" cy="192" rx="28" ry="14" fill="url(#saddleGrad)" opacity="0.55"/>
+
+    <!-- ── Main torso ── -->
+    <rect x="88" y="140" width="80" height="58" rx="18" ry="18"
+          fill="url(#coatGrad)"/>
+    <!-- Saddle on back -->
+    <ellipse cx="128" cy="150" rx="30" ry="16" fill="url(#saddleGrad)" opacity="0.60"/>
+
+    <!-- ── Front legs ── -->
+    <!-- Left leg -->
+    <rect x="94" y="188" width="20" height="36" rx="10" ry="10"
+          fill="url(#coatGrad)"/>
+    <!-- Left paw darker tip -->
+    <ellipse cx="104" cy="222" rx="10" ry="7" fill="#C87830"/>
+    <!-- Right leg -->
+    <rect x="142" y="188" width="20" height="36" rx="10" ry="10"
+          fill="url(#coatGrad)"/>
+    <!-- Right paw darker tip -->
+    <ellipse cx="152" cy="222" rx="10" ry="7" fill="#C87830"/>
+
+    <!-- ── Neck ── -->
+    <rect x="106" y="118" width="44" height="34" rx="14" ry="14"
+          fill="url(#coatGrad)"/>
+
+    <!-- ── Head ── -->
+    <!-- Skull -->
+    <ellipse cx="128" cy="100" rx="38" ry="36" fill="url(#coatGrad)"/>
+    <!-- Dark saddle mask over top of head -->
+    <ellipse cx="128" cy="88" rx="26" ry="20" fill="url(#saddleGrad)" opacity="0.65"/>
+
+    <!-- ── Ears ── (large, erect, alert — classic GSD shape) -->
+    <!-- Left ear outer -->
+    <path d="M 96 78 L 84 34 L 108 62 Z" fill="url(#coatGrad)"/>
+    <!-- Left ear inner -->
+    <path d="M 96 75 L 89 44 L 106 64 Z" fill="#FF6B1A" opacity="0.70"/>
+    <!-- Right ear outer -->
+    <path d="M 160 78 L 172 34 L 148 62 Z" fill="url(#coatGrad)"/>
+    <!-- Right ear inner -->
+    <path d="M 160 75 L 167 44 L 150 64 Z" fill="#FF6B1A" opacity="0.70"/>
+
+    <!-- ── Muzzle / snout ── -->
+    <!-- Muzzle base (dark) -->
+    <ellipse cx="128" cy="114" rx="20" ry="15" fill="url(#saddleGrad)"/>
+    <!-- Muzzle lower lighter area (chin) -->
+    <ellipse cx="128" cy="118" rx="14" ry="10" fill="#C87830" opacity="0.80"/>
+    <!-- Nose -->
+    <ellipse cx="128" cy="107" rx="8" ry="6" fill="#0F1419"/>
+    <!-- Nose highlight -->
+    <ellipse cx="125" cy="105" rx="2.5" ry="2" fill="#fff" opacity="0.35"/>
+
+    <!-- ── Eyes ── -->
+    <!-- Left eye white -->
+    <ellipse cx="112" cy="97" rx="8" ry="8" fill="#fff"/>
+    <!-- Left iris -->
+    <ellipse cx="113" cy="97" rx="5.5" ry="5.5" fill="#5A3010"/>
+    <!-- Left pupil -->
+    <ellipse cx="113" cy="97" rx="3" ry="3" fill="#0F1419"/>
+    <!-- Left eye shine -->
+    <ellipse cx="115" cy="94" rx="1.8" ry="1.8" fill="#fff" opacity="0.80"/>
+
+    <!-- Right eye white -->
+    <ellipse cx="144" cy="97" rx="8" ry="8" fill="#fff"/>
+    <!-- Right iris -->
+    <ellipse cx="143" cy="97" rx="5.5" ry="5.5" fill="#5A3010"/>
+    <!-- Right pupil -->
+    <ellipse cx="143" cy="97" rx="3" ry="3" fill="#0F1419"/>
+    <!-- Right eye shine -->
+    <ellipse cx="145" cy="94" rx="1.8" ry="1.8" fill="#fff" opacity="0.80"/>
+
+    <!-- ── Eyebrow dots (GSD tan dots above eyes) ── -->
+    <ellipse cx="112" cy="88" rx="4" ry="3" fill="#FFB45A" opacity="0.90"/>
+    <ellipse cx="144" cy="88" rx="4" ry="3" fill="#FFB45A" opacity="0.90"/>
+
+    <!-- ── Mouth — small friendly smile ── -->
+    <path d="M 120 121 Q 128 128 136 121" stroke="#0F1419" stroke-width="2.2"
+          fill="none" stroke-linecap="round"/>
+
+    <!-- ── Collar ── -->
+    <rect x="104" y="137" width="48" height="12" rx="6" ry="6" fill="#FF6B1A"/>
+    <!-- Collar buckle highlight -->
+    <rect x="124" y="136" width="8" height="14" rx="3" ry="3" fill="#FFB45A"/>
+
+    <!-- ── Collar tag — terminal > prompt ── -->
+    <!-- Tag shield shape -->
+    <path d="M 120 150 L 136 150 L 136 162 Q 128 168 120 162 Z" fill="#5EEAD4"/>
+    <!-- > prompt glyph on tag -->
+    <text x="122" y="162" font-family="ui-monospace, monospace" font-size="11"
+          font-weight="700" fill="#0F1419">&#62;</text>
+
+  </g>
+
+</svg>

@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/workflow-builder",
   "layout": "modular",
-  "source_hash": "d7851c1a9bed2cb411e09605e85044751ebc241cdfcffe6df363b5f02aa5bd64",
-  "generated_hash": "2cd6553c4fe2e484c2e8ee62bf63887442fbf2be920706551b660c6c89b7ba5b"
+  "source_hash": "e5c1e9bb10ea95138d53aa7071b3d6cee41c34cfde323efc4ceda5b21a6f93ee",
+  "generated_hash": "30f72769961a244749883e03cb04e329cd0feb03dd5b641d2a73a2e5dc8e9d42"
 }

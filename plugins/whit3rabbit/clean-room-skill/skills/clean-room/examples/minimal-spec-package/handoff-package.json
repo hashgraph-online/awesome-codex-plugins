@@ -1,0 +1,32 @@
+{
+  "package_id": "handoff-example",
+  "task_id": "task-example",
+  "from_domain": "contaminated",
+  "to_domain": "clean",
+  "created_by_role": "contaminated-handoff-sanitizer",
+  "artifacts": [
+    {
+      "artifact_id": "clean-context-example",
+      "artifact_type": "clean-run-context",
+      "path": "clean-artifacts/clean-run-context.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "artifact_id": "spec-example-flow",
+      "artifact_type": "behavior-spec",
+      "path": "clean-artifacts/behavior-spec.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "excluded_material": [
+    "source_excerpt",
+    "raw_diff",
+    "private_identifier",
+    "source_shaped_pseudocode"
+  ],
+  "leakage_review": {
+    "status": "passed",
+    "reviewer_role": "contaminated-handoff-sanitizer",
+    "notes": "Example package contains only schema-shaped data."
+  }
+}

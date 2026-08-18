@@ -32,21 +32,20 @@ schema, catalog, or creation guidance:
 - `get_platform_documentation(topic=...)` for schemas, surface traits, tool catalogs,
   SDK docs, Persona embed docs, dashboard links, and type definitions.
 
-If MCP is not connected, help the user connect:
+If MCP is not connected, use the CLI-to-MCP golden path instead of presenting several
+equivalent setup choices:
 
-```json
-{
-  "mcpServers": {
-    "runtype": {
-      "type": "url",
-      "url": "https://api.runtype.com/v1/mcp/protocol"
-    }
-  }
-}
-```
+1. Authenticate the CLI with `runtype auth login` so this session can keep working.
+2. Run `runtype install-mcp`. It installs this skill, configures the current harness for
+   `https://api.runtype.com/v1/mcp/protocol`, and starts client-owned OAuth when possible.
+3. Continue the current session with CLI commands. Tell the user to restart or reload the
+   harness because a running agent may not discover a newly configured MCP connection.
+4. In the next session, use MCP first and call `get_build_instructions` before building.
 
-OAuth happens on first use. The public agent onboarding page at `https://runtype.ai` is
-also a good setup path for agent clients.
+Do not choose an API key merely to avoid a restart. Headless API-key setup is an exception
+for environments where browser OAuth is genuinely impossible; follow `https://runtype.com/auth.md`
+only after confirming that constraint with the user. The full public setup script is at
+`https://runtype.ai`.
 
 ## Route To Focused Skills
 

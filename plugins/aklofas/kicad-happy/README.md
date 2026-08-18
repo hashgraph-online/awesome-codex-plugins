@@ -7,7 +7,7 @@
 
 AI-powered design review for KiCad. Analyzes schematics, PCB layouts, and Gerbers. Catches real bugs before you order boards.
 
-Works with **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**, **[OpenAI Codex](https://github.com/openai/codex)**, **[GitHub Copilot CLI](https://docs.github.com/en/copilot)**, and **[Gemini CLI](https://github.com/google-gemini/gemini-cli)**, as a **GitHub Action** for automated PR reviews, or as standalone Python scripts you can run anywhere.
+Works with **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**, **[OpenAI Codex](https://github.com/openai/codex)**, **[GitHub Copilot CLI](https://docs.github.com/en/copilot)**, **[Gemini CLI](https://github.com/google-gemini/gemini-cli)**, and **[opencode](https://github.com/sst/opencode)**, as a **GitHub Action** for automated PR reviews, or as standalone Python scripts you can run anywhere.
 
 These skills turn your AI coding agent into a full-fledged electronics design assistant that understands your KiCad projects at a deep level: parses schematics and PCB layouts into structured data, cross-references component values against datasheets, detects common design errors, and walks you through the full prototype-to-production workflow.
 
@@ -119,22 +119,32 @@ If you prefer a manual install, install the skills into `~/.codex/skills/`.
 
 **Google Gemini CLI:**
 
-`gemini skills install <url>` does not recurse into this monorepo's `skills/` directory. Clone and link all 12 at once:
+`gemini skills install <url>` does not recurse into this monorepo's `skills/` directory. Clone and link all 11 at once:
 
 ```bash
 git clone https://github.com/aklofas/kicad-happy.git
 gemini skills link ./kicad-happy/skills
 ```
 
-Or install all 12 skills directly from the URL using `--path` (requires Gemini CLI ≥ Jan 13 2026):
+Or install all 11 skills directly from the URL using `--path` (requires Gemini CLI ≥ Jan 13 2026):
 
 ```bash
-for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway kidoc; do
+for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway; do
   gemini skills install https://github.com/aklofas/kicad-happy.git --path skills/$skill
 done
 ```
 
 See [install-guidance.md](install-guidance.md#google-gemini-cli) for workspace-scope installs and upgrade notes.
+
+**opencode:**
+
+```bash
+git clone https://github.com/aklofas/kicad-happy.git
+cd kicad-happy
+opencode
+```
+
+The repo ships `.opencode/opencode.json`, which opencode auto-discovers and uses to load all 11 skills from `./skills/`. For global availability across all projects, see [install-guidance.md](install-guidance.md#opencode).
 
 <details>
 <summary><strong>Manual install & other platforms</strong></summary>
@@ -145,7 +155,7 @@ See [install-guidance.md](install-guidance.md#google-gemini-cli) for workspace-s
 git clone https://github.com/aklofas/kicad-happy.git
 cd kicad-happy
 mkdir -p ~/.claude/skills
-for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway kidoc; do
+for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway; do
   ln -sf "$(pwd)/skills/$skill" ~/.claude/skills/$skill
 done
 ```
@@ -156,7 +166,7 @@ done
 git clone https://github.com/aklofas/kicad-happy.git
 cd kicad-happy
 mkdir -p ~/.codex/skills
-for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway kidoc; do
+for skill in kicad spice emc datasheets bom digikey mouser lcsc element14 jlcpcb pcbway; do
   ln -sf "$(pwd)/skills/$skill" ~/.codex/skills/$skill
 done
 ```
@@ -167,7 +177,7 @@ done
 git clone https://github.com/aklofas/kicad-happy.git
 cd kicad-happy
 New-Item -ItemType Directory -Force "$HOME\.codex\skills" | Out-Null
-"kicad","spice","emc","datasheets","bom","digikey","mouser","lcsc","element14","jlcpcb","pcbway","kidoc" | ForEach-Object {
+"kicad","spice","emc","datasheets","bom","digikey","mouser","lcsc","element14","jlcpcb","pcbway" | ForEach-Object {
   New-Item -ItemType SymbolicLink -Path "$HOME\.codex\skills\$_" -Target "$(Get-Location)\skills\$_" -Force | Out-Null
 }
 ```
@@ -177,6 +187,31 @@ Note: Windows symlinks may require Developer Mode or elevated privileges.
 </details>
 
 The analysis scripts are **pure Python 3.10+** with zero required dependencies. No pip install, no Docker, no KiCad installation needed.
+
+### Release candidates
+
+The stable install commands above always resolve to the latest stable release on `main` (currently v2.1.0). When a release candidate is active, opt in by appending `#<tag>` to the marketplace ref:
+
+**Claude Code:**
+
+```
+/plugin marketplace add aklofas/kicad-happy#vX.Y.Z-rc.N
+/plugin install kicad-happy@kicad-happy
+```
+
+This pins to the RC tag. Stable users on the un-suffixed marketplace are unaffected. To switch back to stable, remove the marketplace and re-add it without the `#` suffix.
+
+**Codex / Gemini CLI / opencode:** clone the repo and check out the RC tag before running the install above:
+
+```bash
+git clone https://github.com/aklofas/kicad-happy.git
+cd kicad-happy
+git checkout vX.Y.Z-rc.N
+# then run the symlink install for your agent
+```
+
+> [!IMPORTANT]
+> Release candidates are pre-release builds intended for evaluation and feedback. They have passed the corpus regression gate and contract test suite but haven't completed extended manual validation. File issues on GitHub if you hit problems.
 
 ## ⚙️ GitHub Action
 
@@ -191,8 +226,7 @@ See the **[GitHub Action setup guide](github-action.md)** for workflow examples,
 | **kicad**     | ⚡ Parse and analyze KiCad schematics, PCB layouts, Gerbers, and PDF reference designs. Automated subcircuit detection, design review, DFM.                                               |
 | **spice**     | 🔬 SPICE simulation — generates testbenches for detected subcircuits, validates filter frequencies, opamp gains, divider ratios. Monte Carlo tolerance analysis. ngspice, LTspice, Xyce. |
 | **emc**       | 📡 EMC pre-compliance — 44 rule checks for radiated emission risks, PDN impedance, diff pair skew, ESD paths. FCC/CISPR/automotive/military.                                             |
-| **datasheets**| 📄 Extract structured specs from datasheet PDFs — pinouts, electrical characteristics, peripherals, topology. Per-MPN caching with quality scoring. Consumed by kicad/emc/spice/thermal/kidoc. |
-| **kidoc**     | 📄 **(beta)** Engineering documentation — HDD, CE technical file, ICD, design review, manufacturing, and more. Auto-generated figures, PDF/DOCX/ODT/HTML output.                         |
+| **datasheets**| 📄 Extract structured specs from datasheet PDFs — pinouts, electrical characteristics, peripherals, topology. Per-MPN caching with quality scoring. Consumed by kicad/emc/spice/thermal. |
 | **bom**       | 📋 Full BOM lifecycle — analyze, source, price, export tracking CSVs, generate per-supplier order files.                                                                                 |
 | **digikey**   | 🔎 Search DigiKey for components and download datasheets via API.                                                                                                                        |
 | **mouser**    | 🔎 Search Mouser for components and download datasheets.                                                                                                                                 |
@@ -308,7 +342,7 @@ Datasheets flow through kicad-happy in two stages:
 
 **Sync (download).** Pulls PDFs for every component with an MPN from DigiKey, LCSC, element14, or Mouser into a local `datasheets/` directory. 96% success rate across 240+ manufacturers. Each PDF is verified against the expected part number.
 
-**Extract (parse).** The **datasheets** skill turns those PDFs into structured JSON — pinouts, voltage ratings, electrical characteristics, peripherals, topology, SPICE model coefficients. Extractions are cached per-MPN under `<project>/datasheets/extracted/` and scored on a five-dimension quality rubric. Analyzer skills (`kicad`, `emc`, `spice`, `thermal`, `kidoc`) consume the cache through a shared helper API with trust gates — so a schematic finding tagged `confidence: datasheet-backed` means a scored extraction produced the underlying fact, not a keyword match on the part number.
+**Extract (parse).** The **datasheets** skill turns those PDFs into structured JSON — pinouts, voltage ratings, electrical characteristics, peripherals, topology, SPICE model coefficients. Extractions are cached per-MPN under `<project>/datasheets/extracted/` and scored on a five-dimension quality rubric. Analyzer skills (`kicad`, `emc`, `spice`, `thermal`) consume the cache through a shared helper API with trust gates — so a schematic finding tagged `confidence: datasheet-backed` means a scored extraction produced the underlying fact, not a keyword match on the part number.
 
 For the full pipeline — page selection, the quality rubric, the consumer API, and what it deliberately doesn't do — see **[Datasheet Extraction Guide](datasheet-extraction.md)**.
 
@@ -359,61 +393,6 @@ Fabrication Release Gate — 8 check categories
 
 **BOM export** — cross-references LCSC part numbers, formats to JLCPCB's exact spec, flags basic vs extended parts. Per-supplier upload files — DigiKey bulk-add CSV, Mouser cart format, LCSC BOM — with quantities already computed for your board count + spares.
 
-## 📄 KiDoc — Engineering documentation (beta)
-
-> "Generate an HDD for my board"
-
-> "Create a CE technical file for this design"
-
-The **KiDoc** skill generates professional engineering documents from your KiCad project. It auto-runs all analyses (schematic, PCB, EMC, thermal), renders publication-quality figures, and produces a structured markdown scaffold that you fill in with engineering narrative — then outputs PDF, DOCX, ODT, or HTML.
-
-**8 document types:**
-
-| Document              | What it covers                                                                            |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| **HDD**               | Hardware Design Description — power, signal, analog, thermal, EMC, PCB, BOM               |
-| **CE Technical File** | EU compliance — product ID, essential requirements, harmonized standards, risk assessment |
-| **Design Review**     | Review package with summary, action items, go/no-go assessment                            |
-| **ICD**               | Interface control — connector details, electrical characteristics, signal levels          |
-| **Manufacturing**     | Assembly overview, PCB fab notes, assembly instructions, test procedures                  |
-| **Power Analysis**    | Power distribution, regulator design, thermal margins, sequencing                         |
-| **Schematic Review**  | Focused schematic-only review with signal analysis                                        |
-| **EMC Report**        | Pre-compliance findings, mitigation recommendations, test plan                            |
-
-**11 auto-generated figure types:**
-
-- Power distribution trees
-- System architecture block diagrams
-- Bus topology (I2C/SPI/UART/CAN)
-- Connector pinout diagrams
-- Schematic overviews
-- Subsystem crops
-- PCB layer views
-- Thermal margin charts
-- EMC severity charts
-- SPICE validation scatter plots
-- Monte Carlo histograms
-
-```
-> "Generate documentation for my board at hardware/rev2/"
-
-  Analyzing schematic... 187 components, 12 regulators, 4 buses
-  Analyzing PCB... 6-layer, 56x56mm, routing complete
-  EMC pre-compliance... 73/100, 10 findings
-  Thermal analysis... 3 components above 85°C
-  Generating figures... 23 SVGs (power tree, architecture, 14 pinouts, ...)
-  Building scaffold... HDD.md (14 sections, 96 lines)
-  Generating PDF... HDD.pdf (24 pages)
-```
-
-The scaffold separates auto-generated data sections (component tables, power trees, signal analysis) from narrative sections where you write engineering prose. On regeneration, data sections update automatically while your narrative is preserved. A built-in context builder prepares focused data summaries for each section so the agent can help write the narrative.
-
-Figures use a prepare/render pipeline with hash-based caching — if the analysis data hasn't changed, figures aren't re-rendered.
-
-**Beta status:** KiDoc is an early skill that is being actively developed. The figure engine and document pipeline are functional and tested against 100+ real projects, but expect rough edges — some figure types may not render cleanly for all designs, narrative context quality varies by document type, and the PDF styling is still being refined. Feedback and bug reports welcome.
-
-For the full guide — all 8 document types, 12 figure generators, output formats, configuration options, and the prepare/edit/render workflow — see [KiDoc Documentation](kidoc-documentation.md).
-
 ## 🗺️ Workflow
 
 1. **Design** your schematic and lay out the PCB in KiCad
@@ -452,98 +431,11 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 | KiCad 6  | Full                          | Full | Full   |
 | KiCad 5  | Full (legacy `.sch` + `.lib`) | Full | Full   |
 
-## v1.3.1 — Bug fixes + Connectivity
+## 🎯 Release notes
 
-- Fix `format-report.py` crash on dict-shaped `power_rails` (issues #16, #20).
-- Add `.kicad_pro` `top_level_sheets` support for Altium flat multi-page imports (#19).
-- PCB connectivity rewrite: track-as-node model, compound pads, `*.Cu` wildcards.
-- Fix pad rotation sign; unify analysis-dir resolution.
-- KH-147: suppress LED-driver false positives when the current resistor's value field has a suffix the parser can't read (e.g. `215k_0402_…`).
-- Bump minimum Python to 3.10; add cross-agent install guidance (Claude Code, Codex, Gemini).
+**Current release: v2.1.0 — correctness batch.** Seventeen analyzer fixes from field reports and external reviews: inner power planes no longer fragment into false islands on 4+ layer boards (#24), via-in-pad and courtyard-overlap checks use real pad/courtyard geometry instead of bounding boxes (#28, #29), USB compliance failures surface as findings (new UC-001..UC-004), plus a dozen false-positive fixes across sleep-current, decoupling, derating, and lifecycle checks. Includes three fixes ported from Anya Sabo's fork. Upgrading from v2.0.0: expect finding churn in exactly those classes — overwhelmingly false positives disappearing; four additive JSON fields, no breaking schema changes.
 
-## 🎯 v1.3 — Harmonized Analysis
-
-v1.2 made findings trustworthy. v1.3 makes them uniform and traceable. **Every analyzer** — schematic, PCB, Gerber, thermal, EMC, cross-analysis, SPICE, lifecycle — now produces the same flat `findings[]` format with rich envelopes (`detector`, `rule_id`, `severity`, `confidence`, `evidence_source`, `recommendation`, `report_context`). Every finding carries its own provenance. One schema to query, filter, export, and audit.
-
-168 commits. 22 new detectors. Trust infrastructure (confidence + evidence taxonomies, trust_summary, per-finding provenance). PCB intelligence (union-find connectivity, 6 cross-domain checks, 7 DFM/assembly checks). Stage/audience filtering. Datasheet pipeline promoted to its own skill. KiCad 10 format compatibility. Full harness regression at 2M+ assertions, 99.98% pass.
-
-**Highlights:**
-
-| Category | Capabilities |
-| --- | --- |
-| **Harmonized output** | All 8 analyzers produce `{analyzer_type, schema_version, summary, findings[], trust_summary}`. Flat finding envelope with detector/rule_id/severity/confidence/evidence_source/recommendation/report_context. `signal_analysis` wrapper removed. |
-| **Trust infrastructure** | Confidence taxonomy (`deterministic`, `heuristic`, `datasheet-backed`). Evidence source taxonomy. `make_provenance()` on all 61 detectors. `trust_summary` rollup on every output. Risk scores weight heuristic findings 0.5x. |
-| **22 new detectors** | 7 validation (pull-ups, voltage mismatch, protocol buses, power sequencing, LED resistor, feedback stability) + 6 domain (wireless, transformer SMPS, I2C conflicts, supercaps, PWM LEDs, headphone jacks) + 9 audit (SS-001/002 sourcing, DS-001/002/003 datasheet coverage, RS-001/002 rail sources, LB-001 label aliases, PP-001 power pin DC paths). |
-| **PCB intelligence** | Union-find copper connectivity graph. 6 new cross-domain checks: critical net routing, return path continuity, trace width vs current, power island detection, voltage plane splits, differential pair return paths. |
-| **PCB DFM/assembly** | 7 new checks: fiducial presence, test point coverage, orientation consistency, silkscreen-pad overlap, via-in-pad tenting, board-edge via clearance, keepout violations. |
-| **Stage/audience filtering** | `--stage schematic\|layout\|pre_fab\|bring_up` and `--audience designer\|reviewer\|manager` flags on all analyzers. |
-| **Datasheet pipeline** | Promoted to its own top-level skill. Structured per-MPN extraction cache, heuristic page selection, five-dimension quality scoring, consumer helper API with trust gates. |
-| **Cross-analysis** | `cross_analysis.py` consumes schematic + PCB JSON. 6 cross-domain checks: connector current, ESD gaps, decoupling adequacy, 3-way schematic/PCB cross-validation. |
-| **KiCad 10 compat** | KH-318 via type detection (blind/buried/micro now correctly classified, buried split out in KiCad 10). KH-319 `(hide yes)` boolean form handled. |
-| **Schema hardening** | `schema_version: "1.3.0"` on every output. `--schema` synced to real emitted JSON on all analyzers. Deterministic `findings[]` ordering. Stable `detection_id`. |
-| **Tools** | `summarize_findings.py` (cross-run rollup), `export_issues.py` (GitHub Issues), `--mpn-list` batch mode on all 4 distributor sync scripts. |
-| **Test corpus** | 5,829 repos, 2M+ regression assertions at 99.98% pass, 972 unit tests, schema drift regression across all 8 analyzers. |
-
-See the full [CHANGELOG](CHANGELOG.md) for details.
-
-## 🎯 v1.2 — Trust + Reach
-
-v1.1 shipped the analysis engine. v1.2 makes it something you'd actually hand to a teammate. **Trust** — every finding now carries a confidence label, can be suppressed with a reason, and is cross-checked against datasheets and a 5,829-project regression corpus. When it says there's a problem, you can believe it. **Reach** — first-class Codex support, analysis caching with manifests, and CI infrastructure mean it works wherever your team works, not just on one developer's machine.
-
-102 commits. New skill: **KiDoc** (beta) for engineering documentation. 15+ new domain detectors. Datasheet verification bridge. What-if sweep/tolerance/fix tools. Full protocol electrical parameter coverage. Cross-verification. Analysis cache. 25 bug fixes.
-
-**Highlights:**
-
-| Category | Capabilities |
-| --- | --- |
-| **Codex support** | First-class OpenAI Codex support with agent-neutral docs, skill-installer compatibility, and global installs via `~/.codex/skills/`. |
-| **KiDoc (beta)** | 8 document types, 12 figure generators, PDF/DOCX/ODT/HTML output. Scaffolds with auto-updating data + narrative placeholders. |
-| **Datasheet verification** | Pin voltage enforcement, required external component checks, per-IC decoupling validation against manufacturer specs. |
-| **What-if tools** | Sweep tables, tolerance analysis, fix suggestions with E-series snapping, EMC impact preview, PCB parasitic awareness. |
-| **Protocol checks** | I2C, SPI, UART, USB, Ethernet, HDMI, LVDS, CAN — complete electrical parameter validation. |
-| **Cross-verification** | 7 schematic-to-PCB cross-checks: component matching, diff pairs, power traces, decoupling, thermal vias. |
-| **Professional checks** | Fab notes, silkscreen completeness, BOM lock, connector ground distribution, certification suggestions. |
-| **Test corpus** | 5,829 repos, 1.2M+ regression assertions at 100% pass, 400+ unit tests, 0 open issues. |
-
-## 🎯 v1.1 — EMC Pre-Compliance + Analysis Toolkit
-
-New skill: **EMC pre-compliance risk analysis** — predicts the most common causes of EMC test failures from your KiCad schematic and PCB layout. Plus four new analysis tools for tolerance, diffing, thermal, and what-if exploration.
-
-**What's in v1.1:**
-
-| Category                  | Capabilities                                                                                                                                                                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **EMC pre-compliance**    | 44 rule checks across ground plane integrity, decoupling, I/O filtering, switching harmonics, diff pair skew, PDN impedance, ESD paths, crosstalk, board edge radiation, thermal-EMC, shielding, and magnetic leakage from switching inductors. SPICE-enhanced when ngspice is available. FCC/CISPR/automotive/military. |
-| **Plugin install**        | Available as a Claude Code plugin marketplace — `/plugin marketplace add aklofas/kicad-happy`.                                                                                                                                                                            |
-| **Monte Carlo tolerance** | `--monte-carlo N` runs N simulations with randomized component values within tolerance bands. Reports 3σ bounds and per-component sensitivity analysis.                                                                                                                   |
-| **Design diff**           | Compares two analysis JSONs — component changes, signal parameter shifts, EMC finding deltas. GitHub Action `diff-base: true` for automatic PR comparison.                                                                                                                |
-| **Thermal hotspots**      | Junction temperature estimation for LDOs, switching regulators, shunt resistors. Package Rθ_JA lookup, thermal via correction, proximity warnings.                                                                                                                        |
-| **No-connect detection**  | Correctly identifies NC markers, library-defined NC pins, and KiCad `unconnected` pin types. Eliminates false floating-pin warnings across 2,253 files.                                                                                                                   |
-| **Code audit**            | 22 bug fixes (trace inductance 25x overestimate, PDN target impedance, regulator voltage suffix parser, inner-layer reference planes, and more). Full AnalysisContext migration for cleaner internals.                                                                    |
-| **Validation**            | 6,853 EMC analyses across 1,035 repos (zero crashes), 96 equations verified against primary sources, 404K+ regression assertions at 100% pass rate.                                                                                                                       |
-
-## 🎯 v1.0 — First Stable Release
-
-This is the first stable release of kicad-happy. It marks the point where every piece of the analysis pipeline — schematic parsing, PCB layout review, Gerber verification, SPICE simulation, datasheet cross-referencing, BOM sourcing, and manufacturing prep — has been built, tested against 1,035 real-world KiCad projects, and validated with 294K+ regression assertions. Zero analyzer crashes across the full corpus.
-
-This isn't a beta or a preview. It's production-ready. If you're designing boards in KiCad, this is the version to start with.
-
-**What's in v1.0:**
-
-| Category                 | Capabilities                                                                                                                                                                                                         |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Schematic analysis**   | 25+ subcircuit detectors (regulators, filters, opamps, bridges, protection, buses, crystals, current sense) with mathematical verification                                                                           |
-| **Voltage derating**     | Ceramic (50%), electrolytic (80%), tantalum capacitors. IC absolute max voltage. Resistor power dissipation. Commercial, military, and automotive profiles. Over-designed component detection for cost optimization. |
-| **Protocol validation**  | I2C pull-up value and rise time calculation, SPI chip select counts, UART voltage domain crossing, CAN 120Ω termination                                                                                              |
-| **Op-amp checks**        | Bias current path detection, capacitive output loading, high-impedance feedback warning, unused channel detection for dual/quad parts                                                                                |
-| **SPICE simulation**     | Auto-generated testbenches for 17 subcircuit types, per-part behavioral models (~100 opamps), PCB parasitic injection, ngspice/LTspice/Xyce                                                                          |
-| **Datasheet extraction** | Structured extraction cache with quality scoring, heuristic page selection, SPICE spec integration                                                                                                                   |
-| **Lifecycle audit**      | Component EOL/NRND/obsolescence alerts from 4 distributor APIs, temperature grade auditing (commercial/industrial/automotive/military), alternative part suggestions                                                 |
-| **PCB layout**           | DFM scoring, thermal via adequacy, impedance calculation, differential pair matching, proximity/crosstalk, zone stitching, tombstoning risk                                                                          |
-| **BOM sourcing**         | DigiKey, Mouser, LCSC, element14 — per-supplier order file export, pricing comparison, datasheet sync (96% download success rate)                                                                                    |
-| **Manufacturing**        | JLCPCB and PCBWay format export, design rule validation, rotation offset tables, basic vs extended parts classification                                                                                              |
-| **GitHub Action**        | Two-tier automated PR reviews: deterministic analysis (free, no API key) + optional AI-powered review via Claude (`ANTHROPIC_API_KEY`). Datasheet download from LCSC (free) and optional DigiKey/Mouser/element14.   |
-| **KiCad support**        | KiCad 5 through 10, including legacy `.sch` format. Single-sheet and multi-sheet hierarchical designs.                                                                                                               |
+Per-release stories are in [release-notes.md](release-notes.md); line-level detail in the [CHANGELOG](CHANGELOG.md).
 
 ## 🧪 Test harness
 

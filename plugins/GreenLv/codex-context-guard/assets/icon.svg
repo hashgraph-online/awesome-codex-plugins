@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Context Guard shield and checkpoint icon">
+  <defs>
+    <linearGradient id="shield" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F81F7"/>
+      <stop offset="1" stop-color="#0969DA"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#shield)" d="M256 36 424 96v125c0 113-66 205-168 255C154 426 88 334 88 221V96l168-60Z"/>
+  <path fill="#FFFFFF" d="m219 322-70-70 31-31 39 39 112-112 31 31-143 143Z"/>
+  <circle cx="256" cy="392" r="34" fill="#0D1117"/>
+  <circle cx="256" cy="392" r="14" fill="#7EE787"/>
+</svg>

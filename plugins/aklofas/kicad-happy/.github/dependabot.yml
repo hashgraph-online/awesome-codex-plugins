@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned to latest versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,0 +1,7 @@
+.git/
+node_modules/
+dist/
+.claude-plugin/
+.agents/
+plugins/
+skills/**/progress.md

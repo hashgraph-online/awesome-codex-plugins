@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUT_DIR="${1:-$(pwd)/.codex-artifacts/wordstat-preflight}"
-mkdir -p "$OUT_DIR"
-
-if [[ -z "${YANDEX_WORDSTAT_TOKEN:-}" ]]; then
-  echo "ERROR: YANDEX_WORDSTAT_TOKEN is not set" >&2
+config="${1:-${YANDEX_WORDSTAT_CONFIG:-}}"
+[[ -n "$config" && -f "$config" ]] || {
+  echo "Укажите защищённый файл настройки первым аргументом или через YANDEX_WORDSTAT_CONFIG." >&2
   exit 2
-fi
+}
 
-code=$(curl -s -o "$OUT_DIR/wordstat_user_info_raw.json" -w "%{http_code}" \
-  -X POST "https://api.wordstat.yandex.net/v1/userInfo" \
-  -H "Authorization: Bearer ${YANDEX_WORDSTAT_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{}')
+python3 - "$config" <<'PY'
+import json
+import os
+import stat
+import sys
+from pathlib import Path
 
-echo "HTTP=$code"
-if [[ "$code" != "200" ]]; then
-  cat "$OUT_DIR/wordstat_user_info_raw.json"
-  exit 1
-fi
-
-cat "$OUT_DIR/wordstat_user_info_raw.json"
-
+path = Path(sys.argv[1]).expanduser().resolve()
+mode = stat.S_IMODE(path.stat().st_mode)
+if mode & 0o077:
+    raise SystemExit("Файл настройки должен быть доступен только владельцу (права 600).")
+data = json.loads(path.read_text(encoding="utf-8"))
+if not str(data.get("api_key") or "").strip() or not str(data.get("folder_id") or "").strip():
+    raise SystemExit("В настройке нужны api_key и folder_id.")
+print("Wordstat v2: защищённая настройка найдена; ключ не выводился.")
+PY

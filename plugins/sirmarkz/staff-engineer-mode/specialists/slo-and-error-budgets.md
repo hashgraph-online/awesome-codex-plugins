@@ -3,7 +3,7 @@ name: slo-and-error-budgets
 description: "Use when user journeys need SLIs, SLOs, error budgets, burn-rate alerts, urgent-vs-follow-up alerts, or budget rules"
 ---
 
-# SLO Error Budget Engineering
+# SLOs And Error Budgets
 
 ## Iron Law
 
@@ -62,17 +62,6 @@ Produces an SLI/SLO table tied to named user journeys, an error-budget calculati
 Use the standard SRE sequence as the default: user journey -> health model -> SLI -> SLO -> error budget -> multi-window burn-rate alert -> release and reliability rules. Treat reliability targets as design inputs and error budgets as a guardrail on change velocity rather than as a reason to stop delivery permanently.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

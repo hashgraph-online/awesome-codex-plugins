@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rerun Process Job"
+  short_description: "Safely rerun a finished process job"
+  default_prompt: "Use $rerun to launch this finished process job again."

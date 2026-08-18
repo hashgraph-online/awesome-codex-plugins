@@ -1,0 +1,6 @@
+# Never package local reports, caches, or ActivityWatch data with the plugin.
+*.csv
+*.tsv
+*.sqlite
+*.sqlite3
+__pycache__/

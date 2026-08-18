@@ -1,0 +1,3 @@
+interface:
+  display_name: "AutoCAD + 天正暖通"
+  short_description: "连接 AutoCAD 2026 与天正暖通，读写 DWG 并扫描工程图数据"

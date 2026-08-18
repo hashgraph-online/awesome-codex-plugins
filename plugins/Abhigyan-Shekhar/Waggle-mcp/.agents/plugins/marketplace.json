@@ -1,0 +1,20 @@
+{
+  "name": "waggle",
+  "interface": {
+    "displayName": "Waggle"
+  },
+  "plugins": [
+    {
+      "name": "waggle",
+      "source": {
+        "source": "local",
+        "path": "./plugins/waggle"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # skill-builder
 
-Scaffold or absorb new SKILL.md files against the unified AgentOps template. Four modes: from-scratch (interactive), from-template (clone existing), absorb-external (wrap external skill in AgentOps frontmatter), from-pattern (alpha — delegates to ao flywheel close-loop). Triggers: "create a skill", "scaffold skill", "absorb external skill", "new skill".
+Create a metadata-complete AgentOps skill source package, regenerate its derived projections, and check or repair structural hygiene in skill packages. Triggers: "create a skill", "scaffold skill", "absorb external skill", "new skill", "heal skill", "repair skill hygiene", "audit skill structure", "check skill package".
 
 ## Instructions
 

@@ -1,0 +1,44 @@
+---
+type: changelog
+outputFor: [boss, devops]
+dependencies: [deploy-report]
+---
+
+# Changelog
+
+## [{{VERSION}}] - {{DATE}}
+
+### Summary
+> {{FEATURE_SUMMARY}}
+
+{{#if BREAKING_CHANGES}}
+### ⚠️ Breaking Changes
+{{BREAKING_CHANGES}}
+{{/if}}
+
+{{#if ADDED}}
+### Added
+{{ADDED}}
+{{/if}}
+
+{{#if CHANGED}}
+### Changed
+{{CHANGED}}
+{{/if}}
+
+{{#if FIXED}}
+### Fixed
+{{FIXED}}
+{{/if}}
+
+{{#if PERFORMANCE}}
+### Performance
+{{PERFORMANCE}}
+{{/if}}
+
+---
+
+### Deployment Info
+- **环境**：{{ENVIRONMENT}}
+- **部署时间**：{{DEPLOY_TIME}}
+- **部署状态**：{{DEPLOY_STATUS}}

@@ -24,13 +24,13 @@
 
 ## Delivery Semantics
 
-| Step | Ordering | Partitioning | Idempotency | Duplicate Handling |
-| --- | --- | --- | --- | --- |
+| Step | Guarantee Boundary | Ordering | Partitioning | Idempotency | Duplicate Handling | External Side-Effect Outcome |
+| --- | --- | --- | --- | --- | --- | --- |
 
-## Retry, DLQ, And Replay
+## Retry, Terminal Failure, And Replay
 
-| Failure | Retry/Backoff | DLQ Or Poison Path | Replay Method | Manual Repair |
-| --- | --- | --- | --- | --- |
+| Failure | Retry/Backoff | Poison Isolation | Terminal-Failure Disposition | Quarantine/DLQ Decision | Retention/Responsibility | Replay Method | Manual Repair |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Overload Signals
 

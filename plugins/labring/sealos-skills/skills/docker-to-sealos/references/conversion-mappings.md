@@ -10,7 +10,7 @@ When an application provides both a Docker Compose file and an official Kubernet
 
 1. Sealos specifications and SKILL MUST rules take priority (security/platform constraints must not be violated)
 2. The official Kubernetes installation method takes priority over Compose for application runtime semantics
-3. Compose serves as the baseline for service topology and dependencies
+3. The existing Template serves as the topology baseline during updates; the selected Compose services and `deploy.replicas` values serve as the topology baseline for new conversions
 4. Generic default values are only used when the above sources are absent
 
 ### Key Alignment Fields
@@ -26,8 +26,109 @@ When an application provides both a Docker Compose file and an official Kubernet
 When the official Kubernetes method conflicts with Compose:
 
 - Preserve Sealos MUST and security rules
-- For all other application behavior, default to aligning with the official Kubernetes method
+- Align bootstrap fields, external endpoints, protocols, probes, startup ordering, and other runtime semantics with the official Kubernetes method
+- Retain the selected source's topology-bearing resources, feature conditions, and replica counts
 - Record key decisions in the output (only record items with ambiguity)
+
+## Source Topology Preservation
+
+Treat topology and runtime semantics as separate contracts. The source Template or selected Compose mode defines the topology-bearing resource inventory, feature conditions, and replica counts. Official Kubernetes docs/manifests refine runtime behavior within that topology.
+
+A component is runtime-required when the selected source mode cannot start or provide its documented core behavior without that component. An official chart default, production recommendation, scaling example, or optional worker does not make the component runtime-required. Add optional or recommended workers, caches, and HA replicas only when the selected source topology or explicit user intent includes them.
+
+Keep application feature inputs isolated. A database input may gate its database Cluster and related bootstrap resources. An object-storage input may gate its ObjectStorageBucket and documented storage settings. Those inputs must not change unrelated workload inventory, worker/cache presence, or replica counts.
+
+For topology-sensitive work, record the exact expected contract in `.sealos/topology-evidence/<app-name>.yaml`. Keep this validator-only evidence outside `template/<app-name>/index.yaml`.
+
+```yaml
+apiVersion: docker-to-sealos/v1
+kind: TopologyEvidence
+metadata:
+  name: demo-topology
+spec:
+  appName: demo
+  source: template/demo/index.yaml@base-revision
+  resources:
+    - kind: StatefulSet
+      name: ${{ defaults.app_name }}
+      when: always
+      replicas: 1
+    - kind: Cluster
+      name: ${{ defaults.app_name }}-pg
+      when: inputs.enable_postgresql === 'true'
+      components:
+        - name: postgresql
+          replicas: 1
+    - kind: ObjectStorageBucket
+      name: ${{ defaults.app_name }}
+      when: inputs.enable_s3_storage === 'true'
+```
+
+Evidence contract:
+
+- `spec.appName`: Template `metadata.name` and evidence filename.
+- `spec.source`: existing Template revision, selected Compose URL/revision, or another stable source identifier.
+- `spec.resources`: exact multiset of topology-bearing resources.
+- `kind` and `name`: resource identity. Supported kinds are `Deployment`, `StatefulSet`, `DaemonSet`, `CronJob`, KubeBlocks `Cluster`, and `ObjectStorageBucket`.
+- `when`: `always` for unconditional resources or the normalized inner `${{ if(...) }}` condition. Nested conditions use ` && ` in nesting order.
+- `replicas`: required positive integer for `Deployment` and `StatefulSet`.
+- `components`: required list of unique `{name, replicas}` objects for KubeBlocks `Cluster` component specs.
+
+One-shot `Job` resources remain outside topology evidence and continue through their dedicated bootstrap rules.
+
+Run topology validation with both files:
+
+```bash
+python scripts/check_consistency.py --skill SKILL.md --references references --rules-file references/rules-registry.yaml --artifacts template/demo/index.yaml,.sealos/topology-evidence/demo.yaml
+```
+
+## Runtime Bundle Consistency
+
+When official compose/docs define multiple cooperating runtime services, treat the service set as a single versioned runtime bundle. Use one official release, compose file, or docs artifact as the evidence source for API, frontend/console, worker, realtime, gateway, and other required components.
+
+Do not upgrade one bundle component independently. Keep component image tags, public entry routes, and critical env vars aligned with the same evidence source.
+
+Record the evidence contract in a separate validator-only YAML file, such as `.sealos/runtime-bundle-evidence.yaml`. Do not write this evidence into `template/<app>/index.yaml`.
+
+```yaml
+apiVersion: docker-to-sealos/v1
+kind: RuntimeBundleEvidence
+metadata:
+  name: demo-runtime-bundle
+spec:
+  appName: demo
+  source: https://example.com/releases/v1/docker-compose.yml
+  images:
+    - ghcr.io/example/api:1.0.0
+    - ghcr.io/example/console:1.0.0
+  components:
+    - ${{ defaults.app_name }}
+    - ${{ defaults.app_name }}-console
+  routes:
+    - path: /
+      service: ${{ defaults.app_name }}
+    - path: /console
+      service: ${{ defaults.app_name }}-console
+  env:
+    - PUBLIC_ENDPOINT
+```
+
+Evidence contract:
+
+- `spec.appName`: Template `metadata.name` that this evidence validates.
+- `spec.source`: official compose/docs/release artifact URL or identifier.
+- `spec.images`: exact image refs expected from that source.
+- `spec.components`: workload names that must be emitted as managed app workloads.
+- `spec.routes`: `path` plus `service` entries that must appear in Service and Ingress resources.
+- `spec.env`: critical env var names that must remain present on managed workloads.
+
+Run validation with both files included:
+
+```bash
+python scripts/check_consistency.py --skill SKILL.md --references references --rules-file references/rules-registry.yaml --artifacts template/demo/index.yaml,.sealos/runtime-bundle-evidence.yaml
+```
+
+For web consoles or frontends, keep the official public entry path reachable through an explicit Service and Ingress rule. A frontend/console component may be merged into the API workload only when the official image embeds that entry and runtime validation proves the route works after login.
 
 ## Core Concept Mapping
 
@@ -77,6 +178,8 @@ metadata:
   name: ${{ defaults.app_name }}
 ```
 
+For a single-component StatefulSet with no documented headless or stable per-Pod DNS requirement, set `spec.serviceName` to the public application Service and keep the workload, Service, root Ingress, and manager identity aligned. Preserve documented HA/headless governing Services and expose them through a separate public application Service.
+
 ## Image Mapping
 
 Warning: Example images must use a pinned version, preferring an exact version tag (e.g., `v2.2.0`); only use a digest when a stable version tag cannot be determined. Using `:latest` is prohibited.
@@ -110,7 +213,8 @@ spec:
 ```
 
 Notes:
-- Omit `imagePullSecrets` for public images. For private-registry images, reference only the app-scoped image pull Secret `${{ defaults.app_name }}`.
+- Do not infer that an image is private from its registry hostname alone; GHCR hosts both public and private repositories.
+- Omit `imagePullSecrets` for known public images. When existing build/detection state establishes that registry authentication is required, reference only the app-scoped image pull Secret `${{ defaults.app_name }}`.
 - `sealos-deploy` should create or refresh that Secret automatically from local `gh` CLI credentials when deploying private GHCR images.
 - Reusable templates should not expose raw registry credential inputs as user-facing form fields.
 
@@ -207,6 +311,63 @@ spec:
         - ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
       secretName: ${{ SEALOS_CERT_SECRET_NAME }}
 ```
+
+Keep `Service.spec.ports[].name` populated, put the root-path Prefix route first in each HTTP `paths` list, and route it through the matching numeric `service.port.number`. Launchpad public-address discovery compares that number with `Service.spec.ports[].port`.
+
+#### WebSocket Ingress Mapping
+
+Select WebSocket ingress when Compose/docs expose a public endpoint through `ws://`, `wss://`, CDP/Chrome DevTools, game socket traffic, or a port/service named `websocket`, `ws`, or `wss`. Service port names should preserve the protocol signal:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    app: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
+spec:
+  ports:
+    - name: websocket
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: ${{ defaults.app_name }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${{ defaults.app_name }}
+  labels:
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager-domain: ${{ defaults.app_host }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: 32m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/backend-protocol: WS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ${{ defaults.app_name }}
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - ${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}
+      secretName: ${{ SEALOS_CERT_SECRET_NAME }}
+```
+
+When an app exposes separate HTTP and WebSocket public surfaces, create separate host defaults and separate ingress resources like the EaglerCraft pattern. When one public entry serves only WebSocket traffic, use the WebSocket ingress set even if the container port is named `http` upstream.
 
 #### TLS Offload Normalization (80/443 Dual-Port Scenario)
 
@@ -340,6 +501,14 @@ Notes:
 
 **Important**: Sealos does not support emptyDir; all storage must be persistent.
 
+Before creating a PVC for a host-directory mount, classify the target path:
+
+- Use persistent storage for user data, uploads, model caches, database-adjacent state, and writable runtime state.
+- Use ConfigMap mounts for source-controlled config files or scripts.
+- Leave the path unmounted when the image already ships required dependency manifests, config defaults, or bootstrap metadata at the same path.
+
+Dify sandbox is the failure pattern: official Compose mounts `./volumes/sandbox/dependencies:/dependencies`, while `langgenius/dify-sandbox:0.2.15` expects `dependencies/python-requirements.txt` to exist in the image/repo runtime path. A fresh Sealos PVC mounted at `/dependencies` contains only `lost+found`, hides the required file, and produces `failed to setup runner dependencies`.
+
 #### Docker Compose
 ```yaml
 services:
@@ -412,6 +581,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ${{ defaults.app_name }}
+  labels:
+    app: ${{ defaults.app_name }}
+    cloud.sealos.io/app-deploy-manager: ${{ defaults.app_name }}
 data:
   vn-etcvn-nginxvn-nginxvn-conf: |
     server {
@@ -429,20 +601,30 @@ spec:
       containers:
         - name: ${{ defaults.app_name }}
           volumeMounts:
-            - name: vn-etcvn-nginxvn-nginxvn-conf
+            - name: ${{ defaults.app_name }}-cm
               mountPath: /etc/nginx/nginx.conf
-              subPath: ./etc/nginx/nginx.conf
+              subPath: vn-etcvn-nginxvn-nginxvn-conf
       volumes:
-        - name: vn-etcvn-nginxvn-nginxvn-conf
+        - name: ${{ defaults.app_name }}-cm
           configMap:
             name: ${{ defaults.app_name }}
-            items:
-              - key: vn-etcvn-nginxvn-nginxvn-conf
-                path: ./etc/nginx/nginx.conf
-            defaultMode: 420
 ```
 
+Omit `defaultMode` for ConfigMap volumes unless the application explicitly requires a non-default file mode. Scripts invoked through `/bin/sh /path/script` do not need executable bits.
+
 ## Database Service Mapping
+
+Classify every Compose service before generic workload generation. A service whose image repository basename is a supported database server (`postgres`, `mysql`, `mongo`, `mongodb`, `redis`, `kafka`, or a documented vendor variant) must be removed from the application-service set and emitted only through the matching KubeBlocks builder. Database classification or conversion failure is a hard stop; never fall back to a Deployment or StatefulSet.
+
+Before returning the generated template, verify that every detected database type has a matching KubeBlocks `Cluster` and that no Deployment, StatefulSet, DaemonSet, Job, or CronJob main container uses a database-server image.
+
+Classify the application's database mode from official installation evidence before emitting conditional resources:
+
+- `embedded-only`: keep the documented SQLite or local persistence path and emit no managed database Cluster.
+- `required-managed`: emit the KubeBlocks Cluster, its RBAC, bootstrap gates, Secret wiring, and business connection fields unconditionally.
+- `optional-managed`: mark the artifact with `docker-to-sealos.database-mode: optional-managed`, gate the Cluster and every related resource with one boolean `inputs.<name> === 'true'` branch, and configure the documented SQLite or local false branch.
+
+When official evidence cannot distinguish these modes, stop conversion and request the source installation contract. Do not infer an optional database branch from an arbitrary Compose service name.
 
 ### Docker Compose
 ```yaml
@@ -552,6 +734,8 @@ Conversion priority:
 2. When Compose does not provide one but the official documentation clearly specifies a health endpoint/command, `livenessProbe` + `readinessProbe` must still be generated
 3. For applications with slow initial startup (e.g., those that need to initialize a database), a `startupProbe` must also be generated to avoid premature failure during startup
 
+Official runtime profiles override guessed root-path probes. For example, LibreChat RAG uses `/health` on port `8000`, and the LibreChat Admin API uses `/health` on port `3000`; probing `/` is not an acceptable substitute.
+
 ### Docker Compose
 ```yaml
 services:
@@ -608,7 +792,40 @@ spec:
             periodSeconds: 10
 ```
 
+## Runtime Contract Mapping
+
+- A generic `${{ random(n) }}` value is opaque alphabetic text. Do not use it for runtime values that require hex, base64, UUID, or another documented format. Emit a valid literal or use a required input without a generated default.
+- If a runtime profile fixes an external provider such as `openai`, wire a non-empty required credential for that provider. An optional credential input with `default: ''` does not satisfy startup requirements.
+- Readiness of the database process is not equivalent to readiness of application schema state. When an official runtime profile requires an extension or object, use an initContainer that waits for the database and verifies that final state before starting the business container.
+
+### Runtime-Derived Internal Credentials
+
+When an official runtime library derives internal credentials from entropy, keep the deployment input-free while preserving one stable credential set for all consuming roles:
+
+1. Store a quoted opaque instance seed in `spec.defaults`, for example `"${{ random(64) }}"`.
+2. Pass that same seed to every consuming role through a component-scoped ConfigMap or equivalent non-secret runtime input.
+3. Derive the canonical credential with the official runtime library or compatible documented cryptography, then validate its format and length before startup.
+4. Set the final credential in the child process environment, remove the seed variable before `exec`, and keep the seed out of logs and user-facing inputs.
+5. Record every consuming workload and critical final env name in `RuntimeBundleEvidence`; verify the values across all roles during live validation.
+6. Compare hashes or authenticated behavior across roles without persisting the private credential in ConfigMaps, template inputs, or evidence files.
+
+This contract gives each instance a fresh key set, keeps the final values stable across restarts and rolling updates, and avoids exposing derived credentials as deployment inputs.
+
+### Persisted Runtime Secret
+
+For a credential that the application requires to persist across restarts, use an initContainer to create the file on the durable application volume only when it is absent or invalid:
+
+1. Set `umask 077`, read entropy from `/dev/urandom`, and validate the required format and length.
+2. Write to a temporary file, apply `0600`, and atomically replace `/app/data/<secret-file>` with `mv`.
+3. Read and validate the persisted value in the main startup wrapper, export the final environment variable, remove seed material from the child environment, and `exec` the official entrypoint.
+4. Use the durable file for a single-replica workload. High-availability Pods with independent volumes use a shared Secret or external key source so every replica receives the same credential.
+5. Keep key material out of ConfigMap diagnostics, log output, evidence files, and user inputs.
+
 ## Command and Arguments Mapping
+
+Main business containers should keep startup behavior close to the image's official entrypoint.
+Use `command`/`args` only for official startup commands, Compose-native parameters, or a short wrapper that fixes one local precondition and then `exec`s the final process.
+Move file preparation, permission repair, database/bootstrap SQL, compatibility views, package installs, and generated config into initContainers, one-shot Jobs, or ConfigMap-mounted scripts.
 
 ### Docker Compose
 ```yaml
@@ -632,6 +849,43 @@ spec:
           command: ["/app/start.sh"]
           args: ["arg1", "arg2"]
 ```
+
+### Main Container Startup Contract
+
+Use this decision flow before emitting a business container `command`/`args`:
+
+1. If the image already has a valid `ENTRYPOINT`/`CMD`, omit `command` and `args` unless the upstream docs explicitly require parameters.
+2. If Compose provides a simple command or args that are the application entrypoint, keep them.
+3. If a small runtime precondition is required, use `workingDir` plus a short shell wrapper that ends with `exec`, for example:
+
+```yaml
+workingDir: /opt/billionmail/core
+command:
+  - /bin/sh
+  - -ec
+  - mkdir -p template && exec ./billionmail
+```
+
+4. If the startup block copies files, changes ownership/permissions, writes config, runs database clients, creates compatibility objects, installs packages, or spans multiple lines, move that logic out of the main container.
+
+Bad main-container startup:
+
+```yaml
+command:
+  - /bin/sh
+  - -ec
+  - |
+    cp -r /defaults/* /data/
+    chmod -R 777 /data
+    psql -c 'CREATE VIEW ...'
+    exec ./app
+```
+
+Good split:
+
+- Config/data preparation: initContainer or ConfigMap script.
+- Database bootstrap/compatibility: idempotent Job or initContainer.
+- Main container: official entrypoint or short `exec` wrapper only.
 
 ### Volume-Dependent Arguments (Important!)
 
@@ -746,17 +1000,33 @@ spec:
 
 ## Object Storage Mapping
 
-### Docker Compose (Using Minio)
+Classify the application capability before selecting resources. A bundled MinIO service identifies the S3-compatible provider layer; official application behavior determines whether the capability is optional.
+
+Before adding Sealos ObjectStorage for an application feature, verify the upstream edition and license requirements. When S3/external object storage support is Enterprise, paid, commercial, subscription, or license-gated, the public template must use the community-supported storage path (usually filesystem/PVC) and must not expose a standard deployment input that provisions `ObjectStorageBucket` or injects S3 env vars for that feature. Add an enterprise-specific template branch only when the user explicitly requests that scope.
+
+### Required Object Storage
+
+Treat object storage as required when the application always initializes an S3 client, every documented deployment includes an S3-compatible backend, or the official docs make S3 initialization part of every supported deployment mode. Replace bundled MinIO with the unconditional Sealos `ObjectStorageBucket` resources required by the documented bucket topology, inject managed object-storage secrets, and resolve the provider during conversion.
+
+#### Docker Compose (Required MinIO Dependency)
+
 ```yaml
 services:
+  app:
+    image: example/app:1.0.0
+    depends_on:
+      - minio
+    environment:
+      S3_ENDPOINT: http://minio:9000
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data
     volumes:
       - minio-data:/data
 ```
 
-### Sealos Template
+#### Sealos Template (Unconditional Managed Bucket)
+
 ```yaml
 apiVersion: objectstorage.sealos.io/v1
 kind: ObjectStorageBucket
@@ -764,33 +1034,65 @@ metadata:
   name: ${{ defaults.app_name }}
 spec:
   policy: private
+```
 
----
-# Using object storage in the application
-spec:
-  template:
-    spec:
-      containers:
-        - name: ${{ defaults.app_name }}
-          env:
-            - name: S3_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: object-storage-key
-                  key: accessKey
-            - name: S3_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: object-storage-key
-                  key: secretKey
-            - name: S3_BUCKET
+Inject the managed Secret values into the application's documented environment variable names:
+
+```yaml
+env:
+  - name: S3_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: object-storage-key
+        key: accessKey
+  - name: S3_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: object-storage-key
+        key: secretKey
+  - name: S3_BUCKET
     valueFrom:
       secretKeyRef:
         name: object-storage-key-${{ SEALOS_SERVICE_ACCOUNT }}-${{ defaults.app_name }}
         key: bucket
 ```
 
+The required path contains the documented managed bucket set, managed Secret wiring, and any evidence-backed stateless compatibility proxy. Its object-store resource inventory is limited to those components. A compatibility proxy must record a credential-free HTTPS source URL or `user-request:<reference>` in `metadata.annotations.docker-to-sealos.object-storage-compatibility-proxy-source` and must not use persistent volumes.
+
 Bucket-scoped object-storage secrets may append an additional lowercase suffix when one app needs multiple bucket values, for example `object-storage-key-${{ SEALOS_SERVICE_ACCOUNT }}-${{ defaults.app_name }}-public`. Env names ending in `_BUCKET` may reference those bucket-scoped secrets.
+
+### Application-Level Optional Object Storage
+
+Use a conditional only when official docs show that the application remains functional with object storage disabled or with a documented local-filesystem mode. Model this application feature with a boolean input and configure the documented fallback in the false branch.
+
+```yaml
+inputs:
+  enable_object_storage:
+    description: "Enable the optional object storage feature"
+    type: boolean
+    default: "false"
+    required: false
+
+---
+${{ if(inputs.enable_object_storage === 'true') }}
+apiVersion: objectstorage.sealos.io/v1
+kind: ObjectStorageBucket
+metadata:
+  name: ${{ defaults.app_name }}
+spec:
+  policy: private
+${{ else() }}
+# Configure the application's documented storage-disabled or local-filesystem mode here.
+${{ endif() }}
+```
+
+The false branch must set the application's documented local path, filesystem backend, or disabled-storage flag. Keep the branch explicit even when the application's local mode relies on image defaults.
+
+Provider/backend/type/mode/driver selectors stay out of `spec.inputs`. Names such as `use_sealos_objectstorage`, `object_storage_provider`, and `storage_backend` represent conversion decisions rather than application feature toggles.
+
+### Externally Managed Object Storage
+
+Expose external S3/object-storage credential inputs only when source docs or the user require an externally managed bucket. Record a credential-free HTTPS source URL or `user-request:<reference>` in `metadata.annotations.docker-to-sealos.external-object-storage-source` and use the external provider as the sole object-store data plane.
 
 ## CronJob Mapping
 
@@ -816,9 +1118,21 @@ metadata:
 
 ### Database Services
 - Docker postgres/mysql/mongo/redis → Kubeblocks Cluster + ServiceAccount + Role + RoleBinding
+- Kubernetes Deployment/StatefulSet/DaemonSet/Service resources that run or expose database servers map to Kubeblocks resources, while app initContainers and init/migration/bootstrap Jobs may use database client images for readiness and bootstrap gates.
 
 ### Persistent Storage
 - Docker volumes → StatefulSet + volumeClaimTemplates
+
+### Existing Template Resource Tuning
+- Tune CPU and memory through the Sealos resource ladder, one dimension and one step at a time for each application main container, sidecar, initContainer, and Job.
+- Select the lowest tier that passes a fresh role-specific personal low-load validation: cold start, readiness or successful completion, registration or login when applicable, at least two representative actions for long-running workloads, and a 60-second stability observation.
+- Promote a candidate when OOM kills, restarts, readiness flaps, or resource-related timeouts occur. Record peak utilization percentages as diagnostic evidence.
+- Treat `200m/256Mi` as the static initial candidate when source evidence supplies no explicit hard minimum. Keep KubeBlocks database components on their separate `500m/512Mi` contract.
+- Apply the browser and remote-desktop interaction scenario only when the container itself runs that stack. Browser-accessed web applications use the general personal low-load flow.
+- Preserve existing `ephemeral-storage` requests and limits exactly during template refreshes.
+- Change `ephemeral-storage` only when live evidence shows `EphemeralStorage`, eviction, or disk-pressure failures for that workload.
+- Adjust `requests.ephemeral-storage` and `limits.ephemeral-storage` together for the same container.
+- Choose the smallest common Mi value that covers observed writable-layer usage plus startup margin; Dify sandbox uses `512Mi` after `300Mi` eviction and observed runner expansion under `/opt` and `/var/sandbox`.
 
 ### Configuration Files
 - Docker config files → ConfigMap (using vn- naming convention)

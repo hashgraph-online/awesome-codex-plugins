@@ -6,7 +6,7 @@
 - **Leader/Coordinator** = coordinates phases, merges, and final decisions (often the initiator).
 - **Worker** = executes assigned phases and reports back to the initiator.
 
-**Default pairing note**: Claude is often faster and more decisive, while Codex tends to be deeper but slower. That commonly makes Claude a natural coordinator and Codex a strong worker. This is a default, not a rule — roles are set per task by the initiator.
+**Default pairing note**: Claude is often faster and more decisive, while Codex tends to be deeper but slower. That commonly makes Claude a natural coordinator and Codex a strong worker. This is a default, not a rule — roles are set per task by the initiator. Grok CLI can join as an additional optional peer/worker (e.g. a third `amq coop exec grok` in a three-way session) without changing this default two-engine pairing note.
 
 ## Phased Flow
 
@@ -70,7 +70,28 @@ Leader prepares commit -> user approves -> push
 
 ## Interrupts
 
-- Urgent messages labeled `interrupt` trigger wake Ctrl+C injection + an interrupt notice (when wake is running).
+- Urgent messages labeled `interrupt` trigger an interrupt notice when wake is
+  running. The label never enables Ctrl+C by itself; real SIGINT requires the
+  explicit destructive opt-in `--interrupt-cmd ctrl-c`.
+- Input injection can activate a focused permission or approval dialog. Payload
+  text alone may match single-key shortcuts, so removing Enter is not safe.
+- `--defer-while-input` reduces collisions with recent typing but cannot detect
+  modal state; an idle dialog looks like an idle composer.
+- For an AMQ-enforced zero-input watcher, run `amq wake --inject-mode none` or
+  `amq coop exec --require-wake --wake-inject-mode none <agent>`. This mode
+  writes notices to wake stderr, turns urgent interrupts into one bell plus the
+  output notice, and rejects `--inject-via`, `--inject-arg`, and `--inject-cmd`.
+  Stderr shares the TUI terminal by default and may remain visible until redraw.
+- When starting a new wake after the agent owns its terminal, pass `amq wake
+  --baseline-existing ...`. Existing `inbox/new` messages remain unread and
+  emit no receipts; only later arrivals trigger that fresh wake. `coop exec`
+  adds the flag to wakes it starts. `wake repair` instead inherits the dead
+  generation's private device/inode/ctime suppression floor; it does not
+  re-snapshot `inbox/new`, so messages delivered during notifier downtime
+  remain eligible. Reuse requires generation-bound proof that the live wake
+  completed watcher preparation. It does not retroactively baseline that wake,
+  so pending backlog can still notify; SessionStart draining mitigates that
+  residual.
 
 ## Message Handling
 

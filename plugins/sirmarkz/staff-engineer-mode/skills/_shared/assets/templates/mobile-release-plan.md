@@ -14,8 +14,8 @@
 
 ## Quality Budgets
 
-| Signal | Threshold | Window | Segment | Action |
-| --- | --- | --- | --- | --- |
+| Signal | Baseline | Threshold | Window | Minimum Sample Or Confidence | Impact Rationale | Segment | Action | Recalibration Trigger |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Device/OS/App/Policy Segmentation
 

@@ -1,0 +1,1 @@
+{"name":"agent-newbie-guide","version":"1.0.0","description":"新手引导入口 - 帮助新手将模糊目标转化为可执行任务","author":"1139030773-cmd","license":"MIT","capabilities":{"chat":true,"codeAnalysis":true},"keywords":["新手引导","任务规划","目标分解"]}

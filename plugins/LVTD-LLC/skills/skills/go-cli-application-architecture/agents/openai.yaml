@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Application Architecture"
+  short_description: "Structure maintainable Go CLI applications"
+  default_prompt: "Use $go-cli-application-architecture to design clean boundaries for this Go CLI application."

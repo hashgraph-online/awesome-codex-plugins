@@ -8,37 +8,35 @@ Goal: read the codebase, produce living documentation. No code changes. No plans
 
 ## living documentation
 
-- `README.md` : project overview, what it is, who it's for, how to use it. Links to the technical specification.
-- `docs/tech-spec.md` : main technical specification.
-- `docs/specs/*.md` : created by splitting out details from the main spec if they are too bulky or complex. Reference by path from the main spec.
+- `README.md` : project overview, what it is, who it's for, how to use it.
+- `docs/tech-spec.md` : main technical specification (core backbone, ≤300 lines).
+- `docs/specs/*.md` : modular subsystem details split out when bulky (>15 lines). Referenced by path.
 
-technical specification is declarations only (no narrative), with facts only, no interpretation or plans. 
+Technical specification is declarations only: current ground truth facts (atemporal, no narrative, no history, no plans).
 
 ## Steps
 
 1. **Explore** entry points, public interfaces, key dependencies, test patterns, file structure. Read, don't guess.
 2. **Ask the user** about anything ambiguous — never invent architecture.
-3. **Write** living documentation .
+3. **Write** `docs/tech-spec.md` using the canonical format (field meanings: `archive` skill, "tech-spec format"):
 
 ```
-stack:       <language, runtime, frameworks, key deps>
-entry:       <where execution starts>
-contract:    <public APIs / interfaces that must not break>
-convention:  <naming, file structure, test patterns>
-invariant:   <what must always hold>
-constraint:  <limits, warnings from code or README>
+purpose / user / use-case / architecture / stack / entry /
+contract / flow / invariant / constraint / convention
 ```
 
-   If details are bulky, split into `docs/specs/` and link.
+   - Omit `milestone` — onboard makes no plans.
+   - Details >15 lines (schemas, algorithms, protocol states) go to `docs/specs/<topic>.md`.
+   - Keep declarations atomic (≤25 words/sentence) with structured lists/tables; no text walls.
 
 4. **Confirm** with user.
 
-<gate>`docs/tech-spec.md` must contain: `stack` + at least one `contract` + at least one `convention` before done.</gate>
+<gate>`docs/tech-spec.md` must contain: `stack` + at least one `contract` + at least one `convention` (covering quality baseline — lint/format/typecheck tools, error-handling, security — read from code; see `../references/quality.md`) before done.</gate>
 
 ## Don't
 - Invent facts not found in code or README.
-- Add gap analysis, plans, or code changes.
-- Paste large code blocks — reference by path.
+- Add gap analysis, temporal/historical narratives, plans, or code changes.
+- Paste large code blocks or schemas — reference by path or modularize into `docs/specs/`.
 
 ## After
 `docs/tech-spec.md` on disk → user continues with normal `design → plan → tdd`.

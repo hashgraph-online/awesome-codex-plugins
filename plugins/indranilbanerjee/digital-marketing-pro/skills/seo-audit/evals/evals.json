@@ -1,0 +1,53 @@
+{
+  "skill_name": "seo-audit",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "/digital-marketing-pro:seo-audit https://example.com",
+      "expected_output": "A comprehensive SEO audit covering technical health, on-page optimization, content quality, E-E-A-T signals, and prioritized action items",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Technical SEO section covers Core Web Vitals, mobile-friendliness, crawlability, and indexation",
+          "type": "quantitative"
+        },
+        {
+          "text": "On-page analysis includes title tags, meta descriptions, heading hierarchy, and internal linking",
+          "type": "quantitative"
+        },
+        {
+          "text": "Content quality assessment evaluates E-E-A-T signals (Experience, Expertise, Authoritativeness, Trustworthiness)",
+          "type": "quantitative"
+        },
+        {
+          "text": "Action items are prioritized by impact (high/medium/low) and effort",
+          "type": "quantitative"
+        },
+        {
+          "text": "Audit includes competitive gap analysis with top-ranking competitors",
+          "type": "qualitative"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Run an SEO audit on our blog — we've been losing organic traffic for the past 3 months",
+      "expected_output": "An audit focused on traffic decline diagnosis, content decay detection, algorithm update impact, and recovery recommendations",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Audit diagnoses potential causes of traffic decline (algorithm updates, content decay, technical issues, competitor gains)",
+          "type": "qualitative"
+        },
+        {
+          "text": "Content decay analysis identifies pages with declining rankings and traffic",
+          "type": "quantitative"
+        },
+        {
+          "text": "Recovery plan includes specific, actionable steps with priority ranking",
+          "type": "quantitative"
+        }
+      ]
+    }
+  ]
+}

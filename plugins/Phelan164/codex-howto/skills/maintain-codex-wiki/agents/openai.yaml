@@ -1,0 +1,6 @@
+interface:
+  display_name: "Maintain Codex Wiki"
+  short_description: "Compile and verify living Codex knowledge"
+  default_prompt: "Use $maintain-codex-wiki to query, capture, ingest, archive, or verify durable Codex knowledge."
+policy:
+  allow_implicit_invocation: false

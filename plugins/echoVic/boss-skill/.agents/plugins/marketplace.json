@@ -1,0 +1,36 @@
+{
+  "name": "boss-skill",
+  "version": "3.10.1",
+  "interface": {
+    "displayName": "Boss Skill"
+  },
+  "owner": {
+    "name": "echoVic",
+    "email": "137844255@qq.com",
+    "url": "https://github.com/echoVic"
+  },
+  "support": {
+    "url": "https://github.com/echoVic/boss-skill/issues",
+    "security": "https://github.com/echoVic/boss-skill/security/advisories/new"
+  },
+  "plugins": [
+    {
+      "name": "boss",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "version": "3.10.1",
+      "author": {
+        "name": "echoVic",
+        "email": "137844255@qq.com",
+        "url": "https://github.com/echoVic"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

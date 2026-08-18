@@ -10,10 +10,10 @@
 
 ```bash
 # GitLab: query recent pipeline status
-glab pipeline list --per-page 10
+glab pipeline list -R <OWNER>/<REPO> --per-page 10
 
 # GitHub: query recent workflow runs
-gh run list --limit 10
+gh run list -R <OWNER>/<REPO> --limit 10
 
 # Parse output for:
 # - Repeated failures (same pipeline failing 3+ times in a row)

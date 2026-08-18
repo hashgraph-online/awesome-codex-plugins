@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remember Design System"
+  short_description: "Load compact design-system memory before UI work"
+  default_prompt: "Build a compact Memi design-system brief for this interface task."

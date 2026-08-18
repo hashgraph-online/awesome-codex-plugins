@@ -3,7 +3,7 @@ name: oncall-health
 description: "Use when pages, suppression rules, toil, runbook gaps, or recurring manual ops are hurting responders"
 ---
 
-# Oncall Health And Toil Reduction
+# On-Call Health And Toil Reduction
 
 ## Iron Law
 
@@ -63,17 +63,6 @@ Repeated pages and manual operations are engineering defects.
 Pages should be urgent, actionable, user-visible, and novel. Everything else should become a non-paging follow-up, automation, grouping, suppression, or removal. Toil reduction should produce engineering work with measured page or manual-effort reduction, and live-site responsibility should feed back into product engineering priorities.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

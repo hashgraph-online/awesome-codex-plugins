@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 64 64">
+  <title id="title">Boss composer icon</title>
+  <rect width="64" height="64" rx="14" fill="#171717"/>
+  <path d="M16 18h20c7.7 0 12 3.9 12 10.1 0 3.4-1.7 6.1-4.8 7.7 3.9 1.4 6.2 4.7 6.2 8.8 0 7-4.9 11.4-13.1 11.4H16V18Zm18.8 15.2c3.1 0 4.9-1.5 4.9-4s-1.8-4-4.9-4H24v8h10.8Zm1.1 15.5c3.4 0 5.4-1.7 5.4-4.6s-2-4.6-5.4-4.6H24v9.2h11.9Z" fill="#fff"/>
+  <path d="M17 10h30" stroke="#61dafb" stroke-width="4" stroke-linecap="round"/>
+</svg>

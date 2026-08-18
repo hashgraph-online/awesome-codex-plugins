@@ -3,7 +3,7 @@ name: web-release-gates
 description: "Use when planning browser releases needing loading, interaction, layout, runtime-error, telemetry, or budget checks"
 ---
 
-# Frontend Performance Release Checks
+# Web Release Quality Gates
 
 ## Iron Law
 
@@ -62,17 +62,6 @@ Client-side quality is production reliability for the user's device and network.
 Use user-centric journey-level budgets, field monitoring, lab checks, runtime-error tracking, deploy markers, automated accessibility smoke checks, and explicit rollback criteria. Treat client performance regressions as release blockers when they affect critical journeys.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

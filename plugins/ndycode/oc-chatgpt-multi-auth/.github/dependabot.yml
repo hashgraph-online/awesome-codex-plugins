@@ -1,0 +1,50 @@
+# Dependabot configuration
+# See https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  # npm (root package.json): group noisy dev-tool ecosystems, keep security-sensitive
+  # dependencies (runtime) as individual PRs so they are reviewed on their own.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "npm"
+    groups:
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+          - "eslint"
+          - "eslint-*"
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      types:
+        patterns:
+          - "@types/*"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+
+  # GitHub Actions: keep pinned SHAs + version tags current (Scorecard / CI actions).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

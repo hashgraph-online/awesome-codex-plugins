@@ -1,0 +1,20 @@
+{
+  "name": "bgs-modding-superpowers",
+  "interface": {
+    "displayName": "BGS Modding Superpowers"
+  },
+  "plugins": [
+    {
+      "name": "bgs-modding-superpowers",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bgs-modding-superpowers"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    }
+  ]
+}

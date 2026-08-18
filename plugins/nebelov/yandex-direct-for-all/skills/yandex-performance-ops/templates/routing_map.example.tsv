@@ -1,6 +1,2 @@
-cluster	campaign_name	adgroup_name	match_type	landing_hint
-core	ACME Search Core	Core	intent	/
-brand	ACME Search Brand	Brand	intent	/brand
-roles	ACME Search Roles	Roles	intent	/roles
-ecom	ACME Search Ecom	Ecom	intent	/ecom
-
+route_id	cluster	intent	domain	serp_page_url	site_page_url	campaign_name	adgroup_name	group_uid	match_type	decision	status
+example-route	example-service	заказать пример услуги	example.invalid	https://example.invalid/search-result	https://example.invalid/service	Поиск / пример услуги	Пример услуги	example-service-core	default		unverified

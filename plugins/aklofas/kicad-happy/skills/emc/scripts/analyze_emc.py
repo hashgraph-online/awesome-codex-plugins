@@ -30,6 +30,12 @@ if os.path.isdir(_kicad_scripts):
 from emc_rules import run_all_checks, generate_test_plan, analyze_regulatory_coverage
 from emc_formulas import STANDARDS, MARKET_STANDARDS
 from finding_schema import compute_trust_summary
+from emc_envelope import EMCEnvelope
+from schema_codec import emit_schema
+from inputs_builder import build_inputs, build_upstream_artifact, build_compat
+from capability_mode import get_capability_mode_ref
+
+ANALYZER_SOURCE = "emc"
 
 # Shared severity weights — used by both risk score and per-net scoring.
 # Keyed on the v1.3 envelope vocabulary (error/warning/info); legacy
@@ -304,8 +310,10 @@ def format_text_report(result: dict) -> str:
 def main():
     parser = argparse.ArgumentParser(
         description='EMC pre-compliance risk analyzer for KiCad designs')
-    parser.add_argument('--schematic', '-s', help='Schematic analyzer JSON')
-    parser.add_argument('--pcb', '-p', help='PCB analyzer JSON')
+    parser.add_argument('--schematic', '-s',
+                        help='Schematic analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
+    parser.add_argument('--pcb', '-p',
+                        help='PCB analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
     parser.add_argument('--output', '-o', help='Output JSON file path')
     parser.add_argument('--severity', default='all',
                         choices=['all', 'low', 'medium', 'high', 'critical'],
@@ -335,48 +343,33 @@ def main():
     parser.add_argument('--audience', default=None,
                         choices=['designer', 'reviewer', 'manager'],
                         help='Audience level for summaries and --text output')
+    parser.add_argument('--only-deterministic', action='store_true',
+                        help='Accepted for consistency; analyzers never write llm_* fields. '
+                             'Honored by downstream consumers (Phase 4 spec §3.4).')
 
     args = parser.parse_args()
 
     if args.schema:
-        schema = {
-            "analyzer_type": "string — always 'emc'",
-            "schema_version": "string — semver (currently '1.3.0')",
-            "target_standard": "string — target EMC standard (e.g. 'fcc-class-b')",
-            "elapsed_s": "float — analysis wall-clock time",
-            "summary": {
-                "total_findings": "int",
-                "categories_checked": "int",
-                "active": "int — non-suppressed findings",
-                "suppressed": "int — suppressed findings count",
-                "critical": "int — deprecated, retained for consumer compat",
-                "high": "int — deprecated, retained for consumer compat",
-                "medium": "int — deprecated, retained for consumer compat",
-                "low": "int — deprecated, retained for consumer compat",
-                "info": "int — deprecated, retained for consumer compat",
-                "by_severity": "{error: int, warning: int, info: int}",
-                "emc_risk_score": "float (0-100)",
-            },
-            "findings": "[{detector, rule_id, category, severity, confidence, evidence_source, summary, description, components: [string], nets: [string], pins, recommendation, report_context}]",
-            "trust_summary": {
-                "total_findings": "int — post-filter (KH-311)",
-                "trust_level": "'high' | 'mixed' | 'low'",
-                "by_confidence": "{deterministic: int, heuristic: int, datasheet-backed: int}",
-                "by_evidence_source": "{datasheet|topology|heuristic_rule|symbol_footprint|bom|geometry|api_lookup: int}",
-                "provenance_coverage_pct": "float",
-            },
-            "test_plan": "[{test: string, standard_clause, equipment, procedure, expected_result}]",
-            "regulatory_coverage": "{standard: {applicable_clauses: int, covered: int, coverage_pct: float}}",
-            "category_summary": "{category: {count: int, max_severity, severities: {}, suppressed_count: int}}",
-            "per_net_scores": "{net_name: {score: float, findings: int}}",
-            "board_info": "{layers: int, components: int, nets: int, switching_regulators: int, ...}",
-            "audience_summary": "{designer: {...}, reviewer: {...}, manager: {...}} — optional, present when --audience is set",
-        }
-        print(json.dumps(schema, indent=2))
-        sys.exit(0)
+        emit_schema(EMCEnvelope)
+
+    if args.analysis_dir and (not args.schematic or not args.pcb):
+        from analysis_cache import get_current_run
+        from pathlib import Path as _AutoPath
+        _current = get_current_run(args.analysis_dir)
+        if _current is not None:
+            _run_dir, _ = _current
+            if not args.schematic:
+                _sch = _AutoPath(_run_dir) / "schematic.json"
+                if _sch.is_file():
+                    args.schematic = str(_sch)
+            if not args.pcb:
+                _pcb = _AutoPath(_run_dir) / "pcb.json"
+                if _pcb.is_file():
+                    args.pcb = str(_pcb)
 
     if not args.schematic and not args.pcb:
-        parser.error('At least one of --schematic or --pcb is required')
+        parser.error('At least one of --schematic or --pcb is required '
+                     '(or pass --analysis-dir with a current run containing schematic.json or pcb.json)')
 
     # Load inputs
     schematic = None
@@ -435,6 +428,41 @@ def main():
         args.standard = project['emc_standard']
     if args.market is None and project.get('compliance_market'):
         args.market = project['compliance_market']
+
+    # Build inputs provenance block (Track 1.3).
+    from pathlib import Path as _Path
+    _upstream_artifacts = {}
+    _source_files = []
+    if schematic is not None and args.schematic:
+        _sch_path = _Path(args.schematic)
+        _upstream_artifacts["schematic"] = build_upstream_artifact(_sch_path, schematic)
+        _source_files.append(_sch_path)
+    if pcb is not None and args.pcb:
+        _pcb_path = _Path(args.pcb)
+        _upstream_artifacts["pcb"] = build_upstream_artifact(_pcb_path, pcb)
+        _source_files.append(_pcb_path)
+    _cfg_path = _Path(args.config) if args.config else None
+    if _cfg_path and not _cfg_path.is_file():
+        _cfg_path = None
+
+    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4).
+    if args.analysis_dir:
+        _analysis_dir = _Path(args.analysis_dir)
+    elif args.output:
+        _analysis_dir = _Path(args.output).parent
+    else:
+        _analysis_dir = _Path("analysis")
+
+    # Resolve capability_mode_ref BEFORE build_inputs (audit Highest-Risk #5).
+    _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
+
+    inputs = build_inputs(
+        source_files=_source_files,
+        upstream_artifacts=_upstream_artifacts,
+        config_path=_cfg_path,
+        run_id=_capability_mode_ref["run_id"],
+    )
+    compat = build_compat()
 
     # Run analysis
     t0 = time.time()
@@ -501,7 +529,9 @@ def main():
 
     result = {
         'analyzer_type': 'emc',
-        'schema_version': '1.3.0',
+        'schema_version': '1.4.0',
+        'inputs': inputs,
+        'compat': compat,
         'summary': {
             'total_findings': len(findings),
             'categories_checked': len(category_summary),
@@ -513,6 +543,7 @@ def main():
         },
         'target_standard': args.standard,
         'findings': findings,
+        'assessments': [],
         'per_net_scores': per_net,
         'test_plan': test_plan,
         'regulatory_coverage': regulatory,
@@ -547,6 +578,17 @@ def main():
         result['summary']['total_findings'] = len(_final)
         result['summary']['by_severity'] = _final_counts
     result['trust_summary'] = compute_trust_summary(_final)
+
+    # Wire capability_mode_ref (Phase 4 spec §3.3).
+    from pathlib import Path as _Path
+    # capability_mode_ref already resolved early — reuse to keep run_id stable.
+    result['capability_mode_ref'] = _capability_mode_ref
+
+    # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
+    # on it). MUST run before the cache block below writes the file, and after
+    # --compact + output filters mutate findings.
+    from finding_schema import assign_finding_ids
+    assign_finding_ids(result.get('findings', []), 'emc')
 
     # Analysis cache integration
     if args.analysis_dir:
@@ -614,6 +656,11 @@ def main():
             print(format_text(result.get('findings', []), args.audience, args.stage))
         else:
             print(format_text_report(result))
+    elif args.analysis_dir:
+        # Already cached above (one-line confirmation printed to stderr). Don't
+        # also dump the full JSON to stdout — match the core analyzers, whose
+        # --analysis-dir mode is quiet.
+        pass
     else:
         json.dump(result, sys.stdout, indent=2)
         print(file=sys.stdout)

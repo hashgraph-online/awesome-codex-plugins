@@ -2,10 +2,7 @@
   "mcpServers": {
     "xquik": {
       "type": "http",
-      "url": "https://xquik.com/mcp",
-      "headers": {
-        "x-api-key": "${user_config.api_key}"
-      }
+      "url": "https://xquik.com/mcp"
     }
   }
 }

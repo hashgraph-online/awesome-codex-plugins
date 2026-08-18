@@ -191,24 +191,15 @@ def test_rejects_path_traversal():
             load_config(payload)
 ```
 
-### General
-- pytest preferred
-- `conftest.py` for shared fixtures
-- Mock external services, not internal code
-
 ### Test Conventions
 
 - **pytest** preferred; `conftest.py` for shared fixtures.
+- **Mock external services, not internal code.**
 - **ruff** linter: `ruff check` must pass.
 - **mypy** for type checking.
 - **Black** formatter with 100-character line length. Config in `pyproject.toml`.
 - **Type hints** on all public functions.
 - **Docstrings** on all public classes and functions.
 
-### Security
-
-- Never use `eval()`, `exec()`, or `__import__()` with untrusted input.
-- Use `secrets` module for tokens, not `random`.
-- Validate all external input.
-- Never bare `except:` — always specify the exception type.
-- Use `raise ... from e` to preserve stack traces.
+Security and error-handling rules are not repeated here; see `## Security` and
+`## Error Handling` above.

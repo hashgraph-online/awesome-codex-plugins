@@ -25,6 +25,7 @@ Scans root AND up to 2 levels deep (monorepo support):
 | `composer.json` | PHP |
 | `Gemfile` | Ruby |
 | `*.csproj`, `*.sln` | .NET/C# |
+| Root `index.html` plus directly servable static assets | Source-ready static web |
 
 ### Framework Detection (Node.js — scans ALL package.json in monorepo)
 Collects dependencies from every `package.json` found up to 3 levels deep:
@@ -52,6 +53,7 @@ The most critical signal — does this project listen on a port?
 | Rust + actix-web/axum/rocket | Yes |
 | PHP (always served via web server) | Yes |
 | Ruby + rails/sinatra/puma | Yes |
+| Source-ready static asset tree + pinned static server | Yes |
 
 ### State Externalization
 Scans dependencies for database/cache libraries:
@@ -85,21 +87,25 @@ Scans dependencies for database/cache libraries:
 
 ```
 statelessness:
+  2 = source-ready static asset tree
   2 = external DB (postgres/mysql/mongo) without sqlite
   1 = external DB + sqlite (mixed), or redis/s3 only, or web service without detected DB
   0 = no external state or HTTP
 
 config:
+  2 = source-ready static asset tree with no runtime configuration
   2 = .env.example found OR env validation library
   1 = .env found or docker-compose exists
   0 = nothing detected
 
 scalability:
+  2 = immutable source-ready static assets
   2 = Go/Rust (compiled binary) OR HTTP + Redis
   1 = any HTTP handler
   0 = no HTTP
 
 startup:
+  2 = pinned standard static server
   2 = Go/Rust OR Hono/Fastify (lightweight frameworks)
   1 = Next.js/Express/FastAPI/Django/Flask/Spring or has start script
   0 = nothing

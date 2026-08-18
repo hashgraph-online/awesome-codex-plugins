@@ -1,0 +1,19 @@
+{
+  "skill_name": "django-selenium-functional-tests",
+  "evals": [
+    {
+      "id": 1,
+      "name": "replace-magic-sleep",
+      "prompt": "This Django Selenium test only passes with time.sleep(2). Help me rewrite it with a proper wait helper.",
+      "expected_output": "Diagnoses the observable condition, replaces sleep with explicit wait, keeps user-level intent, and suggests focused verification.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "page-pattern-refactor",
+      "prompt": "Our functional tests repeat login and item creation selectors everywhere. Refactor the approach using a page pattern without hiding behavior.",
+      "expected_output": "Introduces behavior-named helpers/page methods, keeps page objects thin, preserves isolation, and avoids duplicating full user journeys.",
+      "files": []
+    }
+  ]
+}

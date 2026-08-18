@@ -1,6 +1,6 @@
 ---
 name: api-design-and-compatibility
-description: "Use when designing new API contracts, endpoints, SDK surfaces, or changing exposed behavior and client compatibility"
+description: "Use when designing API contracts or changing exposed behavior, client compatibility, and same-contract consumer transition"
 ---
 
 # API Design And Compatibility
@@ -21,11 +21,12 @@ An API is a long-lived contract with current or future clients, retries, partial
 
 ## When To Use
 
-- The user is designing or changing API behavior, service contracts, operation names, generated-client shape, versioning, compatibility, deprecation, pagination, filtering, batch operations, error models, idempotency, or client migration.
+- The user is designing or changing API behavior, service contracts, operation names, generated-client shape, versioning, compatibility, deprecation, pagination, filtering, batch operations, error models, idempotency, or consumer transition for that exposed contract.
 - A new system, service, endpoint, SDK surface, or interservice contract is being built and needs a client-facing contract before launch.
 - A change adds, removes, renames, retypes, or changes semantics of fields, operations, defaults, errors, events, or resources exposed to another component or client.
 - The user asks whether an endpoint, schema, interface, or service contract can evolve safely.
 - A retryable mutating operation needs idempotency behavior.
+- One exposed contract needs a safe old-to-new transition across clients with separate deployment schedules, even when those clients span many systems.
 
 ## When Not To Use
 
@@ -33,6 +34,7 @@ An API is a long-lived contract with current or future clients, retries, partial
 - The main issue is per-call timeout/retry behavior rather than API contract; use `dependency-resilience` instead.
 - The request is broad secure design; use `secure-sdlc-and-threat-modeling` instead unless API contract is central.
 - The request is event schema evolution inside an asynchronous workflow; use `event-workflows` instead unless the external API contract is the main surface.
+- The contract is already stable and the work is broad legacy-capability retirement, consumer batching, or no-new-usage enforcement across an API family; use `migration-and-deprecation` instead.
 
 ## Info To Gather
 
@@ -46,6 +48,7 @@ An API is a long-lived contract with current or future clients, retries, partial
 - Retry behavior, idempotency needs, duplicate suppression, and replay windows.
 - Pagination, filtering, ordering, sorting, cursor stability, result metadata accuracy, and consistency expectations.
 - Versioning policy, launch evolution rules, migration telemetry where clients already exist, usage by client/version, and existing deprecation process.
+- For a same-contract transition, replacement element or version, old/new overlap mechanism, consumer cohorts, adoption and compatibility signals, stop or rollback conditions, support deadline, and removal gate.
 
 ## Workflow
 
@@ -61,7 +64,7 @@ An API is a long-lived contract with current or future clients, retries, partial
 10. **Bound filters and payloads.** Keep filters explicit, bounded, commutative, and limited to fields the caller may see; define unknown, malformed, duplicate, and over-limit behavior. Publish maxima for variable inputs, payloads, and inner lists at launch.
 11. **Isolate malformed requests.** Malformed or unsupported requests should fail for the caller with a stable client-action error and must not poison shared operation state, block unrelated updates, or require broad service recovery.
 12. **Shape batch operations intentionally.** Use batch APIs only for repeated same-action work. Shape each item like the singular operation, include per-item correlation, separate successes from errors, define partial-success behavior, and reject whole invalid batches before attempting items.
-13. **Plan evolution.** For new APIs, define how the contract can add fields, operations, enum values, limits, and versions later, plus how intended consumers will discover and adopt it. For existing APIs, use telemetry to identify clients, publish deprecation windows, support overlap, and define removal checks.
+13. **Plan evolution and same-contract transition.** For new APIs, define how the contract can add fields, operations, enum values, limits, and versions later, plus how intended consumers will discover and adopt it. For existing APIs, introduce the additive replacement or new version first, make serving and intermediary paths support the bounded old/new overlap, verify each request-construction surface, move consumer cohorts with adoption and compatibility signals, stop or roll back on contract errors, and remove old behavior only after the support window and removal gate pass. Broad no-new-usage programs across a legacy API family belong to `migration-and-deprecation`.
 14. **Check security and abuse.** Include authorization, rate limits, tenant isolation, audit events, and input validation as part of the contract.
 
 ## Synthesized Default
@@ -69,17 +72,6 @@ An API is a long-lived contract with current or future clients, retries, partial
 Design APIs around domain contracts and generated-client ergonomics, not internal storage shape. Use additive compatibility first and explicit versions only when semantics must break. Mutations that can be retried need idempotency. Lists, filters, batches, and unbounded inputs need explicit limits and stable semantics at launch. Errors should be structured, stable, safe to expose, and tied to retry behavior. New APIs need evolution rules before launch; deprecation requires telemetry, migration support, and a removal check.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -100,20 +92,24 @@ Design APIs around domain contracts and generated-client ergonomics, not interna
 - For naming or shape decisions, provide concrete operation/resource names, generated-client ergonomics notes, and compatibility rationale.
 - For PR, release-note, or copy-polish requests that hide contract changes, decide safety before wording. If the contract is unsafe, lead with the blocker and give corrected release-note constraints only after the compatibility and idempotency fixes.
 - Keep narrow answers bounded to one decision, the material blockers, and the minimum contract changes needed to make the rollout safe.
+- For narrow prompts, the core artifact is the contract decision, affected consumers and elements, compatibility class, error or idempotency behavior that applies, and migration or verification step. Add transport, callback, collection, batch, fanout, polling, quota, security, and audit modules only when the operation exposes them.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - API contract decision with planned or existing consumers, compatibility class, and risks.
-- Consumer discovery or impact plan: intended consumer classes for new APIs, known-consumer signals for existing APIs, request-construction surfaces that must stay in parity, low-traffic entry points, and embedded or legacy runtime constraints.
-- Operation/resource naming decision and generated-client ergonomics notes.
+- Consumer discovery or impact plan for the affected surface: intended consumer classes for new APIs, known-consumer signals for existing APIs, request-construction surfaces that must stay in parity, low-traffic entry points, and embedded or legacy runtime constraints.
+- Operation or resource naming decision and generated-client ergonomics notes when naming or shape is in scope.
 - Compatibility and evolution matrix for each new or changed operation, field, default, enum, event, error, and status behavior.
 - Transport, header, metadata, and callback parity check for APIs that pass requests through intermediaries or notify customer handlers.
-- Versioning and deprecation plan with launch evolution rules, telemetry where available, and removal checks.
-- Error model with retryability, correlation, redaction, and client action.
-- Idempotency policy for retryable mutations.
-- Pagination, filtering, ordering, result-metadata invariants, bounded-input and malformed-request isolation, fanout partial-failure semantics, batch semantics, bulk semantics, polling-avoidance, and rate-limit policy.
-- Security and audit requirements for the exposed surface.
+- Versioning and deprecation plan with launch evolution rules, telemetry where available, and removal checks when compatibility or retirement is in scope.
+- Same-contract consumer-transition plan when exposed behavior changes, with replacement, bounded overlap, affected cohorts and request surfaces, adoption and compatibility signals, stop or rollback conditions, support deadline, and removal gate.
+- Error model with retryability, correlation, redaction, and client action for failure-producing operations.
+- Idempotency policy when a mutation can be retried or have an ambiguous outcome.
+- Collection contract covering pagination, filtering, ordering, result metadata, and bounds when the operation lists or searches.
+- Partial-failure and item-correlation semantics when the operation fans out, batches, or performs bulk work.
+- Polling-avoidance and rate-limit policy when consumer volume or scheduled enumeration can exceed the intended path.
+- Security and audit requirements where the exposed surface crosses an identity, tenant, privilege, or sensitive-data boundary.
 
 ## Checks Before Moving On
 
@@ -129,6 +125,7 @@ Design APIs around domain contracts and generated-client ergonomics, not interna
 - `quota_avoidance`: consumers whose normal access pattern would exceed a documented per-caller quota or must enumerate every resource on a schedule have a stream, export, bulk, projection, or explicit quota plan before they poll or fan out accidentally.
 - `consumer_discovery`: new APIs define intended consumer classes and discovery path; existing APIs identify known consumers, request-construction surfaces, embedded or legacy runtime constraints, low-traffic entry points, or the telemetry gap.
 - `evolution_plan`: new APIs have rules for future compatible additions, and deprecation or breaking changes have client usage telemetry and removal criteria.
+- `same_contract_transition`: changed exposed behavior has a replacement, bounded old/new overlap, request-surface verification, cohort adoption evidence, stop or rollback conditions, support deadline, and removal gate; broad no-new-usage work is routed separately.
 - `abuse_boundary`: authz, rate limits, tenant context, activity logging, and validation are addressed where relevant.
 
 ## Red Flags - Stop And Rework
@@ -146,6 +143,7 @@ Design APIs around domain contracts and generated-client ergonomics, not interna
 - High-volume clients must poll or fan out through a low-volume administrative path because no stream, export, bulk, or projection option exists.
 - Filters expose fields the caller cannot otherwise inspect.
 - Deprecation depends on guessing client usage instead of telemetry.
+- A breaking contract change switches all clients at once without bounded overlap, per-surface evidence, or a rollback condition.
 
 ## Common Mistakes
 

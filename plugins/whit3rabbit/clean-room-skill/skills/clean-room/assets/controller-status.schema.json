@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Controller Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status_id",
+    "task_id",
+    "updated_at",
+    "updated_by_role",
+    "current_gate",
+    "selected_unit_id",
+    "spec_slice_ref",
+    "coverage_state",
+    "implementation_state",
+    "qc_state",
+    "blockers",
+    "latest_artifact_refs",
+    "next_safe_action"
+  ],
+  "properties": {
+    "status_id": {
+      "$ref": "#/$defs/id"
+    },
+    "task_id": {
+      "$ref": "#/$defs/id"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 40
+    },
+    "updated_by_role": {
+      "const": "contaminated-manager-verifier"
+    },
+    "current_gate": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "selected_unit_id": {
+      "$ref": "#/$defs/id"
+    },
+    "spec_slice_ref": {
+      "$ref": "#/$defs/ref"
+    },
+    "coverage_state": {
+      "enum": [
+        "not-run",
+        "partial",
+        "complete",
+        "blocked"
+      ]
+    },
+    "implementation_state": {
+      "enum": [
+        "not-started",
+        "planning",
+        "implementing",
+        "partial",
+        "complete",
+        "blocked",
+        "quarantined"
+      ]
+    },
+    "qc_state": {
+      "enum": [
+        "not-run",
+        "passed",
+        "passed-with-gaps",
+        "failed",
+        "blocked",
+        "quarantined"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/blocker"
+      }
+    },
+    "latest_artifact_refs": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "$ref": "#/$defs/artifact_ref"
+      }
+    },
+    "next_safe_action": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 800
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "sha256": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocker_id",
+        "summary",
+        "status"
+      ],
+      "properties": {
+        "blocker_id": {
+          "$ref": "#/$defs/id"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "deferred"
+          ]
+        }
+      }
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "artifact_type",
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/id"
+        },
+        "artifact_type": {
+          "enum": [
+            "clean-run-context",
+            "behavior-spec",
+            "handoff-package",
+            "implementation-plan",
+            "implementation-report",
+            "qc-report",
+            "coverage-ledger-summary",
+            "open-questions",
+            "test-plan",
+            "abstract-delta-ticket",
+            "controller-status",
+            "role-session-brief",
+            "other"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "unified-ai-system",
+  "version": "0.5.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/happy520ai/unified-ai-system.git"
+  },
+  "homepage": "https://happy520ai.github.io/unified-ai-system/",
+  "bugs": {
+    "url": "https://github.com/happy520ai/unified-ai-system/issues"
+  },
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "start": "pnpm --filter @unified-ai-system/ai-gateway-service start",
+    "dev": "pnpm --filter @unified-ai-system/ai-gateway-service start",
+    "demo": "node ./tools/terminal-demo.mjs",
+    "gateway": "node ./apps/agent-console/src/cli.js",
+    "mcp": "node ./packages/mcp-server/src/index.js",
+    "mcp:http": "node ./packages/mcp-server/src/http-entry.js",
+    "notify:indexnow": "node tools/submit-indexnow.mjs",
+    "verify:mcp": "pnpm --filter @unified-ai-system/mcp-server test",
+    "smoke:mcp": "node ./tools/mcp-smoke.mjs",
+    "eval:prompt-enhancement": "node ./tools/prompt-enhancement-eval.mjs",
+    "build": "pnpm -r --if-present build",
+    "check": "pnpm -r --if-present check && pnpm check:language-policy && pnpm check:supply-chain-config && pnpm check:route-permissions && pnpm check:outbound-policy",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "pnpm -r --if-present test",
+    "check:public": "node tools/public-repo-check.mjs",
+    "verify:public-clone": "node tools/verify-public-clone.mjs",
+    "growth:campaign": "node ./tools/star-growth-check.mjs campaign --output .tmp/growth/star-growth-latest.md --daily-output .tmp/growth/star-growth-daily.md --check-output .tmp/growth/star-growth-check.md",
+    "growth:blast": "pnpm growth:sync-thread && pnpm growth:publish",
+    "growth:sync-thread": "node ./tools/star-growth-sync-thread.mjs",
+    "growth:publish": "node ./tools/star-growth-publish-kit.mjs --output .tmp/growth/star-growth-publish-output.md",
+    "quality:score": "node tools/quality-scorecard.mjs",
+    "drill:gateway-circuit": "node ./tools/circuit-recovery-drill.mjs --managed-gateway --json",
+    "drill:gateway-circuit:dry-run": "node ./tools/circuit-recovery-drill.mjs --dry-run --json",
+    "benchmark:gateway:slo": "node ./tools/gateway-slo-benchmark.mjs --profile ci",
+    "benchmark:gateway:soak": "go run ./tools/gateway-soak/main.go",
+    "benchmark:gateway:resource-soak": "node ./tools/gateway-resource-soak.mjs --profile ci",
+    "quality:ci": "node ./tools/run-quality-ci-gate.mjs",
+    "quality:verify-artifacts": "node ./tools/verify-ci-quality-artifacts.mjs",
+    "quality:verify-artifacts:trend-health": "node ./tools/verify-ci-quality-artifacts.mjs -- --require-trend-health",
+    "quality:ci:trend-health": "pnpm quality:ci -- --require-trend-health",
+    "quality:trend-log": "node ./tools/quality-trend-log.mjs",
+    "quality:trend-summary": "node ./tools/quality-trend-summary.mjs",
+    "quality:trend-digest": "node ./tools/quality-trend-digest.mjs",
+    "quality:trend-check": "node ./tools/quality-trend-check.mjs",
+    "quality:trend-health-smoke": "node ./tools/quality-trend-health-smoke.mjs",
+    "quality:assert-evidence": "node ./tools/assert-quality-evidence-artifacts.mjs",
+    "check:language-policy": "node ./tools/check-language-policy.mjs && node ./tools/language-policy-expiry-report.mjs --json",
+    "check:supply-chain-config": "node ./tools/check-supply-chain-config.mjs",
+    "check:route-permissions": "node ./tools/check-route-permission-consistency.mjs && node ./tools/check-runtime-route-permissions.mjs",
+    "check:outbound-policy": "node ./tools/check-outbound-request-policy.mjs",
+    "report:language-policy-expiry": "node ./tools/language-policy-expiry-report.mjs --json"
+  },
+  "engines": {
+    "node": ">=22.18.0",
+    "pnpm": ">=11.19.0 <12"
+  },
+  "devDependencies": {
+    "@a2a-js/sdk": "1.0.1",
+    "@anthropic-ai/sdk": "0.116.0",
+    "@types/node": "^22.10.0",
+    "openai": "7.4.0",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.10"
+  }
+}

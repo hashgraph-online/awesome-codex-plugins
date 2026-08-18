@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.34.1
+version: 0.61.0 # x-release-please-version
 description: >-
   Coordinate agents via the AMQ CLI for file-based inter-agent messaging. Use
   this skill whenever you need to send messages to another agent (codex, claude,
@@ -16,7 +16,7 @@ description: >-
   (RabbitMQ, Kafka), CI/CD pipelines, or single-agent tasks with no partner.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
-  compatibility: claude-code, codex-cli
+  compatibility: claude-code, codex-cli, grok-cli
 ---
 
 # AMQ CLI Skill
@@ -34,7 +34,11 @@ curl -fsSL https://raw.githubusercontent.com/avivsinai/agent-message-queue/main/
 
 ## Environment Rules
 
-AMQ primarily uses two env vars for routing: `AM_ROOT` (which mailbox tree) and `AM_ME` (which agent). Getting these wrong means messages go to the wrong place or silently disappear, so it matters to let the CLI handle them rather than guessing.
+AMQ primarily uses `AM_ROOT` (which mailbox tree) and `AM_ME` (which agent).
+Pinned terminals also carry `AM_BASE_ROOT` plus an independent `AM_SESSION`
+identity; sessionless pins use the exact root as `AM_BASE_ROOT` and an empty
+`AM_SESSION`. Getting these wrong means messages go to the wrong place or
+silently disappear, so let the CLI handle them rather than guessing.
 
 **Inside `coop exec`** — everything is pre-configured. Just run bare commands:
 ```bash
@@ -42,30 +46,92 @@ amq send --to codex --body "hello"     # correct
 amq send --me claude --to codex ...    # wrong — --me overrides the env
 ./amq send ...                         # wrong — use amq from PATH
 ```
-The reason: `coop exec` sets `AM_ROOT` and `AM_ME` precisely for the session. Passing `--me` overrides the env, and passing `--root` intentionally overrides the current root (the CLI will note that on stderr if it differs from `AM_ROOT`). Prefer bare commands unless you mean to target a different root.
+The reason: `coop exec` sets `AM_ROOT`, `AM_ME`, `AM_BASE_ROOT`, and
+`AM_SESSION` precisely for the session. Passing `--me` overrides the identity;
+for read-side sibling access, use `--session <name>` instead of overriding the
+raw root.
 
 **Outside `coop exec`** — resolve the root from config, don't hardcode it:
 ```bash
-eval "$(amq env --me claude)"          # reads .amqrc chain, sets both vars
+amq_context="$(amq env --me claude)" && eval "$amq_context"  # reads .amqrc chain, replaces the full context
+amq_context="$(amq env --session auth --me claude --export)" && eval "$amq_context"  # pin one session
 
-# Or pin per-command without polluting the shell (useful in scripts):
-AM_ME=claude AM_ROOT=$(amq env --json | jq -r .root) amq send --to codex --body "hello"
+# Or use an isolated subshell without polluting the parent shell:
+(
+  amq_context="$(amq env --me claude)" &&
+  eval "$amq_context" &&
+  amq send --to codex --body "hello"
+)
 ```
-Why not hardcode? The root path depends on the config chain (project `.amqrc` → `AMQ_GLOBAL_ROOT` → `~/.amqrc`). Hardcoding skips this and breaks when the project moves or config changes.
+Why not hardcode? The root path depends on project and explicit configuration,
+then context-sensitive implicit fallbacks. Hardcoding skips this and breaks
+when the project moves or config changes.
+Every shell-mode `amq env` invocation replaces the complete context. It emits
+`AM_SESSION` unconditionally (empty for a sessionless root), exports
+`AM_BASE_ROOT` as the authorized parent for named sessions or the exact root for
+a sessionless context.
+`--export` additionally prints a stderr pin note. Treat the evaluated output as
+one terminal, one session.
 
-**Global fallback**: Orchestrator-spawned agents often start outside the repo root where no project `.amqrc` exists. Set `AMQ_GLOBAL_ROOT` or `~/.amqrc` so `amq env` and `amq doctor` still resolve the correct queue.
+**Global fallback**: Orchestrator-spawned agents often start outside an
+AMQ-enabled repo where no project `.amqrc` or repo-local `.agent-mail` exists.
+Set `AMQ_GLOBAL_ROOT` or `~/.amqrc` so `amq env` and `amq doctor` still resolve
+the correct queue. `AMQ_GLOBAL_ROOT` is explicit authority and therefore
+precedes repo-local auto-detection. The implicit home config is ineligible
+inside a Git worktree or bare repository.
+A Git worktree or bare repository with no eligible root refuses implicit
+`~/.amqrc` fallback because it can silently select another project's mailbox.
+Participating commands keep that refusal. `coop exec` honors root precedence,
+then bootstraps a worktree-local queue at the Git top when no eligible root
+exists; `coop exec --no-init` refuses. `coop init` explicitly targets that local
+Git top. Bare repositories require a worktree or an explicit `--root`.
 
-**Session pitfall**: `coop exec` defaults to `--session collab` (i.e., `.agent-mail/collab`). Outside `coop exec`, the base root is `.agent-mail` (no session suffix). These are different mailbox trees — don't mix them up.
+**Session pitfall**: Selector-free `coop exec` uses the declared `default_session` from `.amq/launch.json`, or `collab` (i.e., `.agent-mail/collab`). Outside `coop exec`, the base root is `.agent-mail` (no session suffix). These are different mailbox trees — don't mix them up.
 
 ### Root Resolution Truth-Table
 
 | Context | Command | AM_ROOT resolves to |
 |---------|---------|---------------------|
-| Outside `coop exec` | `amq env --me claude` | resolved base root from project `.amqrc`, detected `.agent-mail`, `AMQ_GLOBAL_ROOT`, or `~/.amqrc` |
-| Outside `coop exec`, no project `.amqrc` | `amq env --me claude` | detected `.agent-mail` in the current tree, otherwise `AMQ_GLOBAL_ROOT` or `~/.amqrc` |
+| Outside `coop exec` | `amq env --me claude` | resolved base root from project `.amqrc`, `AMQ_GLOBAL_ROOT`, or an eligible implicit fallback |
+| Git worktree or bare repository, no project `.amqrc` | `amq env --me claude` | `AMQ_GLOBAL_ROOT` when set, otherwise repo-local detected `.agent-mail` |
+| Git worktree or bare repository, no eligible root | `amq env --session auth --me claude` | refuses implicit `~/.amqrc`; requires a local or explicit root |
+| Git worktree, no eligible root | `amq coop exec claude` | bootstraps `<git-top>/.agent-mail/collab`; never consults `~/.amqrc` |
+| Git worktree, no eligible root | `amq coop exec --session auth claude` | bootstraps `<git-top>/.agent-mail/auth` |
+| Git worktree, no eligible root | `amq coop exec --no-init claude` | refuses and names `amq coop init` as the remedy |
+| Bare repository, no eligible root | `amq coop exec claude` | refuses; use a worktree or explicit `--root` |
 | Outside `coop exec`, isolated session | `amq env --session auth --me claude` | `<resolved-base-root>/auth` |
 | Inside `coop exec` (no flags) | automatic | `.agent-mail/collab` (default session) |
 | Inside `coop exec --session X` | automatic | `.agent-mail/X` |
+
+Canonical root precedence is:
+
+```text
+explicit --root > AM_ROOT > project-local .amqrc > AMQ_GLOBAL_ROOT > implicit fallbacks
+```
+
+Inside a Git worktree or bare repository, the remaining eligible fallback is repo-local detected
+`.agent-mail`; outside Git, `~/.amqrc` precedes detected `.agent-mail`.
+
+An initialized cwd-local queue is also a routing safety signal. If an active
+pin points to another root, implicit participating commands refuse instead of
+silently following that pin. Repin to the cwd-local queue, route deliberately
+with `--session`/`--project`, or pass an explicit `--root` to confirm the
+active queue; ordinary pin checks still apply.
+
+### Git worktrees
+
+A relative project root such as `{"root":".agent-mail"}` and auto-detected
+roots are intentionally per-worktree. Two terminals in different git
+worktrees can therefore use the same session name while reading different
+mailboxes. If a delivery receipt times out, run `amq doctor --ops`; it can warn
+when a peer has fresher presence in the same session under another worktree.
+
+To share one mailbox across worktrees, use the same absolute root in each
+worktree's machine-local `.amqrc`, or remove the project-relative `.amqrc` and
+set `AMQ_GLOBAL_ROOT` to one absolute base. Keep the relative default when
+per-worktree isolation is intended. A Git worktree with neither local
+configuration nor a local queue fails closed instead of inheriting
+`~/.amqrc`; this prevents accidental cross-project delivery.
 
 ## Task Routing
 
@@ -80,16 +146,75 @@ Before diving in, match the task to the right workflow — this avoids wasted ef
 
 ## Quick Start
 
-```bash
-# One-time project setup
-amq coop init
+The repository [README Quick Start](https://github.com/avivsinai/agent-message-queue#quick-start)
+is the canonical human onboarding path. The commands below keep the agent
+workflow self-contained.
 
-# Per-session (one command per terminal — defaults to --session collab)
-amq coop exec claude -- --dangerously-skip-permissions  # Terminal 1
-amq coop exec codex -- --dangerously-bypass-approvals-and-sandbox  # Terminal 2
+```bash
+# Interactive one-time project setup
+amq setup
+
+# Non-interactive setup: re-pass the same explicit inputs on preview and apply
+setup_args=(--agents claude,codex --default-session collab --launcher-preference commands)
+setup_preview="$(amq setup --preview --json "${setup_args[@]}")"
+setup_digest="$(printf '%s\n' "$setup_preview" | jq -r '.preview.digest')"
+amq setup --apply "$setup_digest" "${setup_args[@]}"
+
+# Daily entry: reconcile the declared session (never creates an unknown name)
+amq launch
+amq session create feature-x   # once, before the first named-session launch
+amq launch --session feature-x
+amq session resume feature-x
 ```
 
-Without `--session` or `--root`, `coop exec` defaults to `--session collab`.
+`setup --preview` performs zero writes. On a fresh non-interactive setup,
+`--agents`, `--default-session`, and `--launcher-preference` are required.
+`--apply` recomputes the preview and exits `6` without writes unless the
+approved `sha256:<hex>` digest matches. It is mutually exclusive with `-y`;
+`--preview` is also mutually exclusive with `-y`.
+
+Put provider flags in the committed `.amq/launch.json` `command` arrays. The
+launcher validates them and includes them in the semantic trust digest. The
+first semantic plan, and each plan change, needs an interactive trust
+confirmation stored outside the worktree. Non-interactive or `--json` calls
+exit `6` until that digest is trusted. An unknown `session resume` name exits
+`3` and writes nothing. The `commands` backend prints complete `coop exec`
+commands and exits `6` because running them is the remaining operator action.
+Paste the emitted lines exactly, one per terminal; do not reconstruct them from
+generic `coop exec` examples.
+
+Without `--session` or `--root`, `coop exec` uses the declared `default_session` from `.amq/launch.json`, or `collab` when none is declared. Creating a missing session or root from `coop exec` is deprecated and prints `warning: creating a missing session or root from coop exec is deprecated; use 'amq session create <name>' or 'amq init --root'. The next major release makes this exit 3.`
+
+Add `--no-gitignore` when `coop exec` should auto-initialize the project without changing `.gitignore`.
+
+Direct `coop exec` is legacy low-level plumbing. When an operator deliberately
+uses it, provider flags follow `--`; dangerous bypass flags belong only on this
+operator-controlled path and are rejected from committed launch arguments:
+
+```bash
+amq coop exec claude -- --dangerously-skip-permissions
+amq coop exec codex -- --dangerously-bypass-approvals-and-sandbox
+amq coop exec grok
+```
+
+### Standalone wake interrupt safety
+
+Standalone wake keeps urgent interrupt notices and the bell without injecting
+Ctrl+C by default:
+```bash
+amq wake --me claude --interrupt-cmd none &
+```
+
+Swarm bridge events are hardcoded `priority=normal` plus label `swarm`, so do
+not bind that combination to Ctrl+C. Use ordinary non-destructive wake:
+```bash
+amq wake --me codex --interrupt-cmd none &
+```
+
+`--interrupt-cmd ctrl-c` sends a real SIGINT to the foreground process group
+and can interrupt or crash the agent. Use it only with a separate,
+operator-controlled label/priority when process-level interruption is
+intentional; the `interrupt` label alone never enables Ctrl+C.
 
 ## Statusline (Claude Code)
 
@@ -137,7 +262,33 @@ amq integration kanban bridge --me codex --workspace-id my-workspace
 # Runtime diagnostics
 amq doctor --ops
 amq doctor --ops --json
+amq doctor --root <exact-root> --ops
+amq wake check --me <agent>
+amq wake check --me <agent> --json
+
+# Base-config-only session repair outside the current pin
+amq doctor --root <session-root> --base-root <base-root> \
+  --ignore-session-pin --fix-mailboxes
 ```
+
+## Exit Codes
+
+Treat AMQ's process exit code as the stable machine contract:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success. The command completed normally. |
+| `1` | General error. The failure has no more specific exit-code classification. |
+| `2` | Usage error. Arguments, flags, or command input are invalid. |
+| `3` | Not found. A requested resource such as a mailbox, message, session, agent, or configuration does not exist. |
+| `4` | Timeout. A watch, monitor, receipt wait, or delivery wait reached its deadline. |
+| `5` | Context mismatch. A syntactically valid route was refused, including a pin conflict or an ineligible implicit root inside Git. |
+| `6` | Action required. The command cannot proceed without an operator action (untrusted launch plan, unknown backend inspect, stale conversation token, blocked rebind, or emitted `coop exec` commands still to run). |
+
+Do not parse stderr prose as a stable discriminator. `--json` preserves the
+same process exit codes. A read-only `list` on a mismatched session pin warns
+and continues; commands that consume or mutate mailbox state fail with code
+`5`.
 
 ## Delivery Receipts
 
@@ -159,6 +310,61 @@ amq receipts wait --me codex --msg-id <msg_id> --stage drained --timeout 60s
 
 `amq read`, `amq drain`, and `amq monitor` all apply the same strict header validation. Messages in `inbox/new` that are corrupt or have malformed headers are moved to DLQ and produce a `dlq` receipt.
 
+DLQ retries use four durable states: `ready`, `pending`, `delivered`, and
+`indeterminate`. A successful retry retains a terminal audit in `dlq/cur` until
+purge. `delivered` is idempotent and reports `already_delivered` plus
+`audit_finalized`; `--force` cannot redeliver it. A `pending` or legacy
+`indeterminate` envelope without a visible inbox destination refuses retry,
+including with `--force`; that flag bypasses only the maximum retry count.
+Bulk JSON separates `retried`, `already_delivered`, and `skipped`, and its
+`count` includes only newly retried messages.
+
+`amq who` and `amq doctor --ops` report `notifier_live` only when the wake-lock
+inspector verifies a live `amq wake` process identity. That proves prompt
+notification, not message consumption. `recent_activity` means only that
+`last_seen` is fresh. Use `drain` or `monitor` when consumption is required;
+run long-lived wake/monitor commands under launchd, systemd, or another
+supervisor rather than treating AMQ itself as a daemon.
+
+Before replacing a wake, run `amq wake check --me <agent> --json`. It is
+read-only and reports the running/current image path and version plus an exact
+`next_action`. An automated agent may act only when
+`restart_capability=agent_safe`. For `operator_only`, leave the live wake
+running and hand off to its owning terminal or supervisor. For `unavailable`,
+preserve the state and diagnose it. Never kill a live raw wake from a non-TTY
+process, and never accept an attention-only fallback as a replacement for
+full-strength input delivery.
+
+Current resume-eligible `coop exec` wakes automatically observe their stable
+AMQ launch symlink and adopt a strictly newer semantic version at a fully
+quiescent boundary, preserving PID, terminal ownership, and unread messages.
+Use `wake check --json --json-schema=2` to inspect `self_upgrade`; a refused
+candidate is attempted at most once until manual restart, lock replacement, or
+a new candidate. `--no-self-upgrade` and `AMQ_WAKE_NO_SELF_UPGRADE=1` disable
+this only for the launched wake. Ownerless, keepalive, repair, destructive
+interrupt, arbitrary-inject, and pinned-path wakes remain manual.
+
+Those consuming commands, `watch`, and all DLQ commands refuse a raw
+target that conflicts with a complete `AM_BASE_ROOT`/`AM_SESSION` pin before
+touching mailbox state. `send` and `reply` apply the same check to their source
+context. Use `--session <name>` for deliberate sibling access. The raw-root
+escape hatch, `--ignore-session-pin`, requires a non-empty explicit `--root`;
+it never blesses an inherited `AM_ROOT`. `list` warns and remains available for
+non-destructive inspection. With no session/tree evidence, scripts and CI
+remain fail-open. A missing mailbox is an error, not an empty inbox. Empty
+`drain` and `list --new` results may print a stderr note when the same handle
+has pending messages in a sibling session; follow the exact `amq list --session
+<name> --me <handle> --new` command in that note.
+This is an operational safety check, not an authorization boundary; a local
+process can deliberately repin or override it.
+
+For `doctor`, `--root` selects the exact target but does not waive the active
+pin. Read-only inspection continues and reports a mismatch warning.
+`--fix-mailboxes` and `--ops --fix-wake-locks` require a matching pin unless an explicit non-empty
+`--root` is paired with `--ignore-session-pin`. `--base-root` requires
+`--root`, supplies retained config authority for the target or one direct
+child, and never waives the pin.
+
 ## Session Layout
 
 By default, the root is `.agent-mail` (from `.amqrc` or auto-detect). Use `--session` to create isolated subdirectories:
@@ -172,7 +378,11 @@ By default, the root is `.agent-mail` (from `.amqrc` or auto-detect). Use `--ses
 - `amq coop exec claude` → `AM_ROOT=.agent-mail/collab` (default session)
 - `amq coop exec --session auth claude` → `AM_ROOT=.agent-mail/auth`
 
-The main env vars are `AM_ROOT` (where) + `AM_ME` (who). `coop exec` may also set `AM_BASE_ROOT` for cross-session resolution. The CLI enforces correct routing — just run `amq` commands as-is.
+The main env vars are `AM_ROOT` (where) + `AM_ME` (who). `coop exec` also sets
+`AM_BASE_ROOT` for cross-session resolution and `AM_SESSION` as the independent
+session identity used by consuming-command guards. The CLI enforces correct
+routing — run bare commands for the current session or use `--session` for a
+named sibling.
 Default `.agent-mail/<session>` layouts are recognized even without `.amqrc`; custom root names still need config or explicit flags/env.
 
 ## Cross-Project Routing
@@ -195,6 +405,8 @@ Add `project` and `peers` to your `.amqrc`:
 ```
 
 Both projects must register each other as peers for round-trip messaging.
+
+**Use `--project`/`--session` to route, not a raw `--root`.** A direct `--root` selects which tree to operate on; it carries no sender-origin metadata, so the recipient can't reply (a naive reply loops back into their own tree). `amq send` therefore **refuses** an explicit `--root` that crosses into a different base tree than your active session (`AM_ROOT`/`AM_BASE_ROOT`) when no `--project`/`--session`/`--from-session` is given. To message another project replyably, register the peer and use `--project` (or inline `@project`). If a send is genuinely local, set the target as your `AM_ROOT` instead of passing `--root`.
 
 ### Sending cross-project
 
@@ -278,7 +490,7 @@ Note: The `agent@name` inline syntax (e.g., `codex@infra`) is for cross-project 
 2. If the name matches a session, use `--session <name>` on the send command
 3. If it matches both a session and an agent handle, prefer the session interpretation when the user's phrasing implies a group/context ("on X", "in X", "the X team"), and the agent interpretation when it implies a person ("ask X", "tell X")
 4. If the target session differs from your current session (`$AM_ROOT` basename), use `--session <name>`
-5. Never guess — if the name doesn't appear in `amq who --json` output, tell the user (it may need `coop exec --session <name>` to initialize)
+5. Never guess — if the name doesn't appear in `amq who --json` output, tell the user (it may need `amq session create <name>`)
 6. For cross-project routing (different repo), use `--project` instead — see Cross-Project Routing section
 
 ## Messaging
@@ -286,9 +498,11 @@ Note: The `agent@name` inline syntax (e.g., `codex@infra`) is for cross-project 
 ```bash
 amq send --to codex --body "Message"              # Send (uses AM_ROOT/AM_ME from env)
 amq drain --include-body                          # Receive (one-shot, silent when empty)
+amq drain --session auth --include-body           # Deliberate sibling-session receive
 amq reply --id <msg_id> --body "Response"          # Reply in thread
 amq watch --timeout 60s                           # Block until message arrives
 amq list --new                                    # Peek without side effects
+amq send --to grok --body "hello"                 # Grok is a normal peer handle, like codex or claude
 ```
 
 ### Send with metadata
@@ -296,7 +510,12 @@ amq list --new                                    # Peek without side effects
 amq send --to codex --subject "Review" --kind review_request --body @file.md
 amq send --to codex --priority urgent --kind question --body "Blocked on API"
 amq send --to codex --labels "bug,parser" --context '{"paths": ["src/"]}' --body "Found issue"
+echo "evidence: tests green" | amq send --to codex --subject "done" --body -   # - reads stdin
 ```
+
+**Body is fail-closed.** `--body -` (or `--body @-`, or omitting `--body`) reads stdin; a literal string or `@file` is used as-is. A send whose resolved body is empty/whitespace is **rejected** with a usage error instead of delivering a blank message — so `--body -` with nothing piped fails loudly rather than shipping an empty body. Pass `--allow-empty` only when you truly want a blank body (subject carries everything).
+
+**Unrouted self-addressing is fail-closed.** When `--to` resolves to your own handle and no `--project`, `--session`, or `--from-session` routing dimension is present, `amq send` refuses the ambiguous same-root send. Use routing to reach another instance of the same handle. Pass `--allow-self` only to confirm an intentional same-root self-send; it does not bypass cross-tree or session-pin guards.
 
 **Send file paths, not file contents.** When attaching source code, configs, or large text for review, send the file path in the message body, not the contents inline. The receiver can open the file with their local tools. If the receiver cannot access that worktree, send a short diff instead of the full source.
 
@@ -306,6 +525,63 @@ amq list --new --priority urgent
 amq list --new --from codex --kind review_request
 amq list --new --label bug
 ```
+
+## Operator Gates
+
+Almost all coordination is agent-to-agent. Occasionally the **next required actor is a human**: an approval, a manual test, a deploy only a person can run, or sign-off that a goal is complete. AMQ has no separate "gate" feature. You represent this **structurally**: address a message to the human's mailbox instead of describing the wait in prose to another agent.
+
+The single invariant AMQ relies on here is **recipient-as-next-actor**: a message addressed to the human handle means a human is who must act next. Everything else below (the `gate/<topic>` thread name and the `APPROVAL:` / `DONE:` subject prefixes) is a **naming convention** that downstream tools like amq-noc watch for. AMQ routing and message classification do **not** special-case thread names or subject text; those are plain strings, useful only because humans and tooling agree to read them. They are conventions, not core AMQ semantics.
+
+### The human handle is `user`
+
+By convention the human/operator mailbox is `user`. AMQ reserves this handle for validation in configured projects, so `--to user` is accepted wherever the project has a configured agent list. New co-op projects include `user` in the default agent set. For explicit `amq init --agents ...` projects or older roots, initialize the mailbox layout before relying on human drain/receipt/DLQ ergonomics:
+
+```bash
+# Seed the human mailbox alongside the agents (one-time, per project)
+amq init --root .agent-mail --agents claude,codex,user
+# or, for a coop project:
+amq coop init --agents claude,codex,user
+```
+
+Throughout this section, `user` means "the conventional human handle." In configured projects it is warning-free for strict handle validation; in older or explicitly seeded roots, make sure the `agents/user/` mailbox exists before expecting a human to drain and reply from it.
+
+### Raising a gate
+
+Use a stable `gate/<topic>` thread so a gate and its resolution stay together:
+
+```bash
+# Approval / choice / manual test a human must perform
+amq send --to user --thread gate/<topic> --kind question \
+  --subject "APPROVAL: <decision>" \
+  --body "<what you need a human to approve or run, and why>"
+
+# Human closeout of a completed goal (sign-off that the goal is done)
+amq send --to user --thread gate/<topic> --kind decision \
+  --subject "DONE: <goal>" \
+  --body "<what was completed; what the human should confirm or close>"
+```
+
+The human answers on the **same** thread from their own terminal or client, e.g. `amq send --me user --to <agent> --thread gate/<topic> --kind answer --subject "APPROVED: <decision>" --body "<approval / answer text>"` (use `DENIED:` or `ANSWER:` for a rejection or a plain answer). Reusing the `gate/<topic>` thread is what lets a watcher pair the answer with the open gate and clear it.
+
+### When NOT to raise a gate
+
+Keep ordinary coordination agent-to-agent. Do **not** send to `user` for:
+
+- FYIs and status updates -> `status` on a normal thread
+- Acknowledgements
+- Routine code review between agents -> `review_request` / `review_response`
+- Agent-owned blockers (waiting on another agent, a build, or a flaky test)
+
+If the escalation owner is a lead/CTO agent, **they** decide whether to escalate, and that decision is agent-to-agent. But once a human action is actually required, it still becomes a `to:user` gate so tooling can observe it.
+
+### Anti-pattern
+
+Prose like `operator-held`, `pending operator`, or `manual approval` **inside an agent-to-agent message is not a gate**. It is body text a human or tool has to guess at. If a human must act, address the human.
+
+### What a gate is, and is not
+
+- **It is an observability / handoff signal, not authorization or security.** AMQ sender identity is local convention, not authenticated approval. A `to:user` gate records that a human is the next actor; it does **not** grant permission or prove a human approved anything. Do not treat it as an access-control boundary.
+- **Cross-session / cross-project gates must be intentional.** Default examples target the human mailbox in the **current** session/project. Routing a gate to another session's or project's `user` is a deliberate act (`--session` / `--project`), never the default. Gate-clearing is a consumer/orchestrator convention unless AMQ later adds explicit gate state.
 
 ## Priority Handling
 
@@ -324,7 +600,7 @@ amq list --new --label bug
 | `decision` | — | normal |
 | `todo` | — | normal |
 | `status` | — | low |
-| `brainstorm` | — | low |
+| `brainstorm` | — | normal |
 
 ## References
 

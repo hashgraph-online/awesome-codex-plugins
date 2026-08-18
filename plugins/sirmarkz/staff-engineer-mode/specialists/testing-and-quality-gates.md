@@ -3,7 +3,7 @@ name: testing-and-quality-gates
 description: "Use when test strategy, merge/release checks, CI budgets, static analysis, mutation tests, flakes, or ratchets matter"
 ---
 
-# Testing And Quality Checks
+# Testing Strategy And Quality Gates
 
 ## Iron Law
 
@@ -51,7 +51,7 @@ Quality checks should catch real risk early without turning delivery into ritual
 2. **Place tests low.** Prefer the cheapest deterministic check that exercises the behavior; use broader tests only for cross-boundary confidence.
 3. **Define a test taxonomy.** Group checks by dependency and runtime cost so fast in-memory/component tests protect merge, deployment tests protect release, and production probes protect rollout.
 4. **State suite composition.** For CI reduction, flake cleanup, or suite redesign, include a compact current or target layer mix such as unit/component, contract/integration, and end-to-end counts or ratios, with one rationale tied to speed, determinism, and risk coverage. Classify tests by size as well as scope: small (in-process, no network/disk/real clock), medium (local multi-process), large (external/e2e). Smaller, hermetic tests (no external network, real-time clock, or shared mutable state) are the determinism lever; place each test as small and hermetic as correctness allows.
-5. **Separate check types.** Pre-merge checks should be fast and high-signal; use a default budget such as p95 under 10 minutes for the full pre-merge lane and under 5 minutes for a fast path. Pre-release checks can be broader; production checks belong to rollout.
+5. **Separate check types and calibrate runtime budgets.** Pre-merge checks should be fast and high-signal. Derive full-lane and fast-path p95 budgets from current CI history, developer feedback needs, change frequency, queue capacity, and preserved risk coverage; treat example targets such as ten and five minutes as hypotheses, not universal gates. Pre-release checks can be broader; production checks belong to rollout.
 6. **Check before traffic.** For serving systems, startup/readiness checks and critical-path sanity checks should pass before new capacity accepts real traffic.
 7. **Make checks actionable.** Every blocking check needs failure instructions and a path to fix or quarantine.
 8. **Protect gate integrity under cost pressure.** If slow or expensive checks tempt bypasses, split lanes, shard safely, or move checks to release blockers without dropping coverage for the risky behavior.
@@ -72,17 +72,6 @@ Use a risk-based test strategy with fast deterministic pre-merge checks, focused
 
 
 
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
-
 ## Exceptions
 
 - Legacy systems may use non-regression ratchets before enforcing absolute thresholds.
@@ -99,7 +88,7 @@ Use a risk-based test strategy with fast deterministic pre-merge checks, focused
 - Name the details to inspect, such as defect history, critical journeys, CI runtime, flake rate, coverage gaps, static findings, and release failure data; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside verification and quality checks. Route production rollout checks or resilience experiments only when they are the central unresolved risk; generic review workflow has no routed specialist.
-- Be concise and prefer compact risk-to-check matrices, but always state: a flake-rate metric paired with a quarantine timer, a coverage metric+target paired with a meaningful-vs-vanity caveat, a CI runtime target paired with how it is measured, and per-layer test ratios with rationale when test composition is in scope.
+- Be concise and prefer compact risk-to-check matrices, but always state: a locally derived flake-rate metric paired with a quarantine timer and uncertainty/sample basis, a coverage metric+target paired with a meaningful-vs-vanity caveat, a CI runtime target paired with its historical measurement and feedback objective, and per-layer test ratios with rationale when test composition is in scope.
 
 ## Required Outputs
 
@@ -117,7 +106,7 @@ Use a risk-based test strategy with fast deterministic pre-merge checks, focused
 - Static analysis, security scanning, and dependency check policy.
 - Coverage or mutation policy where it adds useful signal: name the metric, the target, and the meaningful-vs-vanity caveat (changed-code coverage, critical-path coverage).
 - Test data sourcing and privacy/sensitivity policy.
-- Flake management and quarantine policy: state the flake-rate threshold (e.g. >1% rerun rate) and the quarantine timer (e.g. 24-48h to quarantine or downgrade with expiry).
+- Flake management and quarantine policy: state a threshold and quarantine timer derived from rerun history, sample size or confidence, failure cost, and ownership capacity; clearly label any example percentage or 24-48-hour timer as provisional.
 - Legacy ratchet plan with cadence, target metric, and next reduction step.
 
 ## Checks Before Moving On
@@ -148,6 +137,7 @@ Use a risk-based test strategy with fast deterministic pre-merge checks, focused
 - A shared test environment mixes product failures with capacity, cleanup, queue, or infrastructure-health failures.
 - Distributed-call tests treat timeout as a simple failed request instead of checking unknown-outcome behavior.
 - High-assurance protocol or concurrency validation is treated as ordinary CI without invariants or counterexamples.
+- CI runtime, flake, or quarantine thresholds are copied from generic guidance without local history, sample or uncertainty, feedback needs, and preserved risk coverage.
 
 ## Common Mistakes
 

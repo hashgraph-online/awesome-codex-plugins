@@ -1,13 +1,13 @@
 ---
 name: dev-grill-docs
-description: 'Use as the main intake for fuzzy or under-specified feature work before coding. Trigger on: dev-grill-docs, grill-with-docs, grill with docs, 拷问需求, 拷问方案, 压测方案, 术语沉淀, 帮我设计, 写个方案, spec 一下, design this, scope this out. Reads existing docs/code first, asks one focused question at a time, produces the spec artifact at .claude/artifacts/designs/<feature>.md, and may also update CONTEXT.md or docs/adr/ for stable domain language and durable decisions. Does not implement code, fix bugs, or write implementation plans.'
+description: 'Primary intake for fuzzy feature/product requirements before coding; prefer this over dev-spec for requirement alignment. Use when the user says or implies: 需求还不清楚, 先别写代码, 先帮我梳理/收敛/对齐/拆一下需求, 先问我问题, 明确范围/边界/验收标准, 写 PRD/spec/设计文档, 帮我设计, 写个方案, 这个需求怎么做, design this, scope this out. Also trigger on dev-grill-docs, grill-with-docs, 拷问需求, 拷问方案, 压测方案, 术语沉淀. Reads existing docs/code first, asks one focused question at a time, produces .claude/artifacts/designs/<feature>.md, and may update CONTEXT.md or docs/adr/ for durable terms/decisions. Does not implement code, fix bugs, or write implementation plans.'
 ---
 
 # Dev Grill Docs
 
 Pressure-test the user's idea **before implementation**, produce the feature intent contract, and keep shared domain language from disappearing into chat.
 
-This is the primary requirement-alignment entry point. It absorbs the former `dev-spec` workflow while adding optional documentation updates:
+This is the primary requirement-alignment entry point. It has priority over `dev-spec`; `dev-spec` is only a helper alias for this workflow's spec-only mode.
 
 - Always produce or update `.claude/artifacts/designs/<feature>.md` when the user is aligning a feature.
 - Update `CONTEXT.md` only for stable domain glossary material.
@@ -19,13 +19,25 @@ It does not write production code, debug bugs, review diffs, or create implement
 
 ## Trigger routing
 
-Use this skill when the user wants to align, grill, scope, or pressure-test a feature / requirement / domain model before coding.
+Use this skill when the user wants to align, grill, scope, or pressure-test a feature / requirement / domain model before coding. When a request could match both `dev-grill-docs` and `dev-spec`, choose `dev-grill-docs` unless the user explicitly names `dev-spec` or asks for spec-only compatibility.
 
 Trigger phrases include:
 
 - `dev-grill-docs`
 - `grill-with-docs`
 - `grill with docs`
+- `需求还不清楚`
+- `先别写代码`
+- `先帮我梳理`
+- `先帮我收敛`
+- `先对齐需求`
+- `先问我问题`
+- `拆一下需求`
+- `明确范围`
+- `明确边界`
+- `验收标准`
+- `写 PRD`
+- `写 spec`
 - `拷问需求`
 - `拷问方案`
 - `压测方案`
@@ -40,14 +52,14 @@ Trigger phrases include:
 
 Compatibility:
 
-- `dev-spec` is now a compatibility alias for the spec-only path of this workflow.
+- `dev-spec` assists this skill as a compatibility alias for the spec-only path; it should not be preferred over `dev-grill-docs` for ordinary fuzzy requirement alignment.
 - If a user explicitly asks for `dev-spec`, follow this workflow with `CONTEXT.md` / ADR writes disabled unless the user also asks to update docs.
 
 Route elsewhere when:
 
 | User intent | Use instead |
 |---|---|
-| Wants concrete implementation steps after scope is clear | `dev-plan` |
+| Wants concrete implementation steps and scope/spec is already clear | `dev-plan` |
 | Wants to implement after scope is clear | `dev-tdd` |
 | Reports broken behavior or regression | `dev-fix` |
 | Wants visual product design context | `dev-design-context` |

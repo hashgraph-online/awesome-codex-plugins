@@ -1,7 +1,7 @@
 {
   "name": "staff-engineer-mode",
-  "version": "2.1.0",
-  "description": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
+  "version": "3.0.1",
+  "description": "Applies engineering best practices to reliability, security, delivery, data, and architecture work.",
   "author": {
     "name": "sirmarkz",
     "url": "https://github.com/sirmarkz/staff-engineer-mode"
@@ -22,8 +22,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Staff Engineer Mode",
-    "shortDescription": "Major outage lessons baked into AI agents trained by thousands of engineer-years of production knowledge.",
-    "longDescription": "Technology-agnostic guidance for applying large-scale engineering practices to architecture, reliability, resilience, delivery, operations, security, privacy, data, platform, client, and cost-aware reliability work. The router automatically selects the smallest useful routed specialist set from natural-language engineering requests.",
+    "shortDescription": "Applies engineering best practices to reliability, security, delivery, data, and architecture work.",
+    "longDescription": "Technology-agnostic guidance for applying engineering best practices to architecture, reliability, resilience, delivery, operations, security, privacy, data, platform, client, and cost-aware reliability work. The router automatically selects the smallest useful routed specialist set from natural-language engineering requests.",
     "developerName": "sirmarkz",
     "category": "Coding",
     "composerIcon": "./assets/icon.png",

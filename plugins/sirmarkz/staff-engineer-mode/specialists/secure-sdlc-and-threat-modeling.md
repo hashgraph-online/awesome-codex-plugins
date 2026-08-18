@@ -3,7 +3,7 @@ name: secure-sdlc-and-threat-modeling
 description: "Use when features need threat models, trust boundaries, abuse cases, control tests, or residual-risk records"
 ---
 
-# Secure SDLC And Threat Modeling
+# Secure Development And Threat Modeling
 
 ## Iron Law
 
@@ -30,7 +30,8 @@ Produces a trust-boundary and data-flow map, an abuse-case table, a control mapp
 ## When Not To Use
 
 - The main topic is build provenance, artifact signing, dependency inventory, or deployment admission; use `software-supply-chain-security` instead.
-- The main topic is identity, secrets, cryptography lifecycle, or access lifecycle; use `identity-and-secrets` or `cryptography-and-key-lifecycle` instead.
+- The main topic is identity, access, runtime secret storage or rotation, or credential policy; use `identity-and-secrets` instead.
+- The main topic is certificate, cryptographic key, trust root, or algorithm lifecycle; use `cryptography-and-key-lifecycle` instead.
 - The main topic is LLM prompt, tool, or retrieval abuse; use `llm-application-security` instead.
 - The main topic is per-sink conventional input validation, encoding, parameterization, path safety, deserialization, upload handling, or mass assignment; use `input-validation-and-injection-defense` instead.
 - The request is broad legal/compliance program management; out of scope unless reframed as engineering controls.
@@ -65,17 +66,6 @@ Produces a trust-boundary and data-flow map, an abuse-case table, a control mapp
 Use lightweight threat modeling tied to secure SDLC checks: trust-boundary map, abuse cases, control mapping, test plan, and residual-risk register using the shared risk-register format and risk-acceptance lifecycle. Prefer controls that are enforced in code, configuration, self-checks, runtime checks, or deployment checks over prose-only rules.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

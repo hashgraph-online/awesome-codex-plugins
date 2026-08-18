@@ -1,0 +1,366 @@
+# HeroUI v3 React Documentation
+
+> Documentation for HeroUI React component library.
+
+HeroUI React is a component library built on [Tailwind CSS v4](https://tailwindcss.com/) and [React Aria Components](https://react-spectrum.adobe.com/react-aria/). Every component comes with smooth animations, polished details, and built-in accessibility—ready to use, fully customizable.
+
+**Key Features:**
+
+- Beautiful by default - Professional look out of the box
+- Accessible - Built with accessibility best practices
+- Flexible - Customizable components with predictable patterns
+- Developer-friendly - Fully typed APIs and excellent autocompletion
+
+## Documentation Index
+
+### Components
+
+- [All Components](https://www.heroui.com/en/docs/react/components): Explore the full list of components available in the library. More are on the way.
+- [ButtonGroup](https://www.heroui.com/en/docs/react/components/button-group): Group related buttons together with consistent styling and spacing
+- [Button](https://www.heroui.com/en/docs/react/components/button): A clickable button component with multiple variants and states
+- [CloseButton](https://www.heroui.com/en/docs/react/components/close-button): Button component for closing dialogs, modals, or dismissing content
+- [ToggleButtonGroup](https://www.heroui.com/en/docs/react/components/toggle-button-group): Groups multiple ToggleButtons into a unified control, allowing users to select one or multiple options.
+- [ToggleButton](https://www.heroui.com/en/docs/react/components/toggle-button): An interactive toggle control for on/off or selected/unselected states
+- [Dropdown](https://www.heroui.com/en/docs/react/components/dropdown): A dropdown displays a list of actions or options that a user can choose
+- [ListBox](https://www.heroui.com/en/docs/react/components/list-box): A listbox displays a list of options and allows a user to select one or more of them
+- [TagGroup](https://www.heroui.com/en/docs/react/components/tag-group): A focusable list of tags with support for keyboard navigation, selection, and removal
+- [ColorArea](https://www.heroui.com/en/docs/react/components/color-area): A 2D color picker that allows users to select colors from a gradient area
+- [ColorField](https://www.heroui.com/en/docs/react/components/color-field): Color input field with labels, descriptions, and validation built on React Aria ColorField
+- [ColorPicker](https://www.heroui.com/en/docs/react/components/color-picker): A composable color picker that synchronizes color value between multiple color components
+- [ColorSlider](https://www.heroui.com/en/docs/react/components/color-slider): A color slider allows users to adjust an individual channel of a color value
+- [ColorSwatchPicker](https://www.heroui.com/en/docs/react/components/color-swatch-picker): A list of color swatches that allows users to select a color from a predefined palette.
+- [ColorSwatch](https://www.heroui.com/en/docs/react/components/color-swatch): A visual preview of a color value with accessibility support
+- [Slider](https://www.heroui.com/en/docs/react/components/slider): A slider allows a user to select one or more values within a range
+- [Switch](https://www.heroui.com/en/docs/react/components/switch): A toggle switch component for boolean states
+- [Badge](https://www.heroui.com/en/docs/react/components/badge): Displays a small indicator positioned relative to another element, commonly used for notification counts, status dots, and labels
+- [Chip](https://www.heroui.com/en/docs/react/components/chip): Small informational badges for displaying labels, statuses, and categories
+- [Table](https://www.heroui.com/en/docs/react/components/table): Tables display structured data in rows and columns with support for sorting, selection, column resizing, and infinite scrolling.
+- [Calendar](https://www.heroui.com/en/docs/react/components/calendar): Composable date picker with month grid, navigation, and year picker support built on React Aria Calendar
+- [DateField](https://www.heroui.com/en/docs/react/components/date-field): Date input field with labels, descriptions, and validation built on React Aria DateField
+- [DatePicker](https://www.heroui.com/en/docs/react/components/date-picker): Composable date picker built on React Aria DatePicker with DateField and Calendar composition
+- [DateRangePicker](https://www.heroui.com/en/docs/react/components/date-range-picker): Composable date range picker built on React Aria DateRangePicker with DateField and RangeCalendar composition
+- [RangeCalendar](https://www.heroui.com/en/docs/react/components/range-calendar): Composable date range picker with month grid, navigation, and year picker support built on React Aria RangeCalendar
+- [TimeField](https://www.heroui.com/en/docs/react/components/time-field): Time input field with labels, descriptions, and validation built on React Aria TimeField
+- [Alert](https://www.heroui.com/en/docs/react/components/alert): Display important messages and notifications to users with status indicators
+- [Meter](https://www.heroui.com/en/docs/react/components/meter): A meter represents a quantity within a known range, or a fractional value.
+- [ProgressBar](https://www.heroui.com/en/docs/react/components/progress-bar): A progress bar shows either determinate or indeterminate progress of an operation over time.
+- [ProgressCircle](https://www.heroui.com/en/docs/react/components/progress-circle): A circular progress indicator that shows determinate or indeterminate progress.
+- [Skeleton](https://www.heroui.com/en/docs/react/components/skeleton): Skeleton is a placeholder to show a loading state and the expected shape of a component.
+- [Spinner](https://www.heroui.com/en/docs/react/components/spinner): A loading indicator component to show pending states
+- [Card](https://www.heroui.com/en/docs/react/components/card): Flexible container component for grouping related content and actions
+- [Separator](https://www.heroui.com/en/docs/react/components/separator): Visually divide content sections
+- [Surface](https://www.heroui.com/en/docs/react/components/surface): Container component that provides surface-level styling and context for child components
+- [Toolbar](https://www.heroui.com/en/docs/react/components/toolbar): A container for interactive controls with arrow key navigation.
+- [CheckboxGroup](https://www.heroui.com/en/docs/react/components/checkbox-group): A checkbox group component for managing multiple checkbox selections
+- [Checkbox](https://www.heroui.com/en/docs/react/components/checkbox): Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected.
+- [Description](https://www.heroui.com/en/docs/react/components/description): Provides supplementary text for form fields and other components
+- [ErrorMessage](https://www.heroui.com/en/docs/react/components/error-message): A low-level error message component for displaying errors
+- [FieldError](https://www.heroui.com/en/docs/react/components/field-error): Displays validation error messages for form fields
+- [Fieldset](https://www.heroui.com/en/docs/react/components/fieldset): Group related form controls with legends, descriptions, and actions
+- [Form](https://www.heroui.com/en/docs/react/components/form): Wrapper component for form validation and submission handling
+- [InputGroup](https://www.heroui.com/en/docs/react/components/input-group): Group related input controls with prefix and suffix elements for enhanced form fields
+- [InputOTP](https://www.heroui.com/en/docs/react/components/input-otp): A one-time password input component for verification codes and secure authentication
+- [Input](https://www.heroui.com/en/docs/react/components/input): Primitive single-line text input component that accepts standard HTML attributes
+- [Label](https://www.heroui.com/en/docs/react/components/label): Renders an accessible label associated with form controls
+- [NumberField](https://www.heroui.com/en/docs/react/components/number-field): Number input fields with increment/decrement buttons, validation, and internationalized formatting
+- [RadioGroup](https://www.heroui.com/en/docs/react/components/radio-group): Radio group for selecting a single option from a list
+- [SearchField](https://www.heroui.com/en/docs/react/components/search-field): Search input field with clear button and search icon
+- [TextArea](https://www.heroui.com/en/docs/react/components/text-area): Primitive multiline text input component that accepts standard HTML attributes
+- [TextField](https://www.heroui.com/en/docs/react/components/text-field): Composition-friendly text fields with labels, descriptions, and inline validation
+- [Avatar](https://www.heroui.com/en/docs/react/components/avatar): Display user profile images with customizable fallback content
+- [Accordion](https://www.heroui.com/en/docs/react/components/accordion): A collapsible content panel for organizing information in a compact space
+- [Breadcrumbs](https://www.heroui.com/en/docs/react/components/breadcrumbs): Navigation breadcrumbs showing the current page's location within a hierarchy
+- [DisclosureGroup](https://www.heroui.com/en/docs/react/components/disclosure-group): Container that manages multiple Disclosure items with coordinated expanded states
+- [Disclosure](https://www.heroui.com/en/docs/react/components/disclosure): A disclosure is a collapsible section with a header containing a heading and a trigger button, and a panel that wraps the content.
+- [Link](https://www.heroui.com/en/docs/react/components/link): A styled anchor component for navigation with built-in icon support
+- [Pagination](https://www.heroui.com/en/docs/react/components/pagination): Page navigation with composable page links, previous/next buttons, and ellipsis indicators
+- [Tabs](https://www.heroui.com/en/docs/react/components/tabs): Tabs organize content into multiple sections and allow users to navigate between them.
+- [AlertDialog](https://www.heroui.com/en/docs/react/components/alert-dialog): Modal dialog for critical confirmations requiring user attention and explicit action
+- [Drawer](https://www.heroui.com/en/docs/react/components/drawer): Slide-out panel for supplementary content and actions
+- [Modal](https://www.heroui.com/en/docs/react/components/modal): Dialog overlay for focused user interactions and important content
+- [Popover](https://www.heroui.com/en/docs/react/components/popover): Displays rich content in a portal triggered by a button or any custom element
+- [Toast](https://www.heroui.com/en/docs/react/components/toast): Display temporary notifications and messages to users with automatic dismissal and customizable placement
+- [Tooltip](https://www.heroui.com/en/docs/react/components/tooltip): Displays informative text when users hover over or focus on an element
+- [Autocomplete](https://www.heroui.com/en/docs/react/components/autocomplete): An autocomplete combines a select with filtering, allowing users to search and select from a list of options
+- [ComboBox](https://www.heroui.com/en/docs/react/components/combo-box): A combo box combines a text input with a listbox, allowing users to filter a list of options to items matching a query
+- [Select](https://www.heroui.com/en/docs/react/components/select): A select displays a collapsible list of options and allows a user to select one of them
+- [Kbd](https://www.heroui.com/en/docs/react/components/kbd): Display keyboard shortcuts and key combinations
+- [Typography](https://www.heroui.com/en/docs/react/components/typography): A semantic typography primitive for headings, body copy, and inline code built on React Aria Components Text.
+- [ScrollShadow](https://www.heroui.com/en/docs/react/components/scroll-shadow): Apply visual shadows to indicate scrollable content overflow with automatic detection of scroll position.
+- [所有组件](https://www.heroui.com/cn/docs/react/components): 浏览库中所有可用组件的完整列表，更多组件正在路上。
+- [ButtonGroup 按钮组](https://www.heroui.com/cn/docs/react/components/button-group): 将相关按钮组合在一起，并提供一致的样式与间距。
+- [Button 按钮](https://www.heroui.com/cn/docs/react/components/button): 可点击的按钮组件，支持多种变体与状态。
+- [CloseButton 关闭按钮](https://www.heroui.com/cn/docs/react/components/close-button): 用于关闭对话框、模态框或收起内容的按钮组件。
+- [ToggleButtonGroup 切换按钮组](https://www.heroui.com/cn/docs/react/components/toggle-button-group): 将多个 ToggleButton 组合为统一控件，允许用户选择单个或多个选项。
+- [ToggleButton 切换按钮](https://www.heroui.com/cn/docs/react/components/toggle-button): 用于在开启/关闭或已选中/未选中状态之间切换的交互式切换控件。
+- [Dropdown 下拉菜单](https://www.heroui.com/cn/docs/react/components/dropdown): 下拉菜单展示一组可供用户选择的操作或选项。
+- [ListBox 列表框](https://www.heroui.com/cn/docs/react/components/list-box): 列表框展示一组选项，并允许用户选择一个或多个。
+- [TagGroup 标签组](https://www.heroui.com/cn/docs/react/components/tag-group): 可聚焦的标签列表，支持键盘导航、选择与移除。
+- [ColorArea 颜色区域](https://www.heroui.com/cn/docs/react/components/color-area): 二维颜色选择器，用户可在渐变区域内选取颜色。
+- [ColorField 颜色输入框](https://www.heroui.com/cn/docs/react/components/color-field): 基于 React Aria ColorField 的颜色输入字段，包含标签、说明与校验能力。
+- [ColorPicker 颜色选择器](https://www.heroui.com/cn/docs/react/components/color-picker): 可组合的 ColorPicker，在多个颜色组件之间同步颜色值。
+- [ColorSlider 颜色滑块](https://www.heroui.com/cn/docs/react/components/color-slider): ColorSlider 允许用户调整颜色值的单个通道。
+- [ColorSwatchPicker 颜色色块选择器](https://www.heroui.com/cn/docs/react/components/color-swatch-picker): 允许用户从预置调色板中选择颜色的 swatch 列表。
+- [ColorSwatch 颜色色块](https://www.heroui.com/cn/docs/react/components/color-swatch): 颜色值的视觉预览，并提供无障碍支持。
+- [Slider 滑块](https://www.heroui.com/cn/docs/react/components/slider): Slider 允许用户在范围内选择一个或多个值。
+- [Switch 开关](https://www.heroui.com/cn/docs/react/components/switch): 用于布尔状态的开关组件。
+- [Badge 徽标](https://www.heroui.com/cn/docs/react/components/badge): 展示相对其他元素定位的小型指示器，常用于未读数、状态点与标签等场景。
+- [Chip 标签](https://www.heroui.com/cn/docs/react/components/chip): 用于展示标签、状态与分类等信息的小型徽标。
+- [Table 表格](https://www.heroui.com/cn/docs/react/components/table): 表格以行和列展示结构化数据，支持排序、选择、列宽调整与无限滚动。
+- [Calendar 日历](https://www.heroui.com/cn/docs/react/components/calendar): 基于 React Aria Calendar 的可组合日期选择器，包含月份网格、导航与年份选择器支持。
+- [DateField 日期字段](https://www.heroui.com/cn/docs/react/components/date-field): 基于 React Aria DateField 的日期输入字段，包含标签、说明与校验。
+- [DatePicker 日期选择器](https://www.heroui.com/cn/docs/react/components/date-picker): 可组合的日期选择器，基于 React Aria DatePicker，通过 DateField 与 Calendar 组合实现。
+- [DateRangePicker 日期范围选择器](https://www.heroui.com/cn/docs/react/components/date-range-picker): 基于 React Aria DateRangePicker 的可组合日期范围选择器，由 DateField 与 RangeCalendar 组合而成。
+- [RangeCalendar 范围日历](https://www.heroui.com/cn/docs/react/components/range-calendar): 基于 React Aria RangeCalendar 的可组合日期范围选择器，包含月份网格、导航与年份选择支持。
+- [TimeField 时间字段](https://www.heroui.com/cn/docs/react/components/time-field): 基于 React Aria TimeField 的时间输入字段，包含标签、说明与校验。
+- [Alert 警告](https://www.heroui.com/cn/docs/react/components/alert): 向用户展示重要消息与通知，并提供状态指示。
+- [Meter 计量条](https://www.heroui.com/cn/docs/react/components/meter): Meter 表示已知范围内的数量，或一个比例值。
+- [ProgressBar 进度条](https://www.heroui.com/cn/docs/react/components/progress-bar): 进度条用于展示某项操作随时间变化的确定或不确定进度。
+- [ProgressCircle 环形进度条](https://www.heroui.com/cn/docs/react/components/progress-circle): 环形进度指示器，用于展示确定或不确定的进度。
+- [Skeleton 骨架屏](https://www.heroui.com/cn/docs/react/components/skeleton): Skeleton 用于展示加载状态，并预览组件的预期形状。
+- [Spinner 加载指示器](https://www.heroui.com/cn/docs/react/components/spinner): 用于展示等待或处理中状态的加载指示组件。
+- [Card 卡片](https://www.heroui.com/cn/docs/react/components/card): 用于分组相关内容与操作的灵活容器组件。
+- [Separator 分隔符](https://www.heroui.com/cn/docs/react/components/separator): 在内容区块之间进行视觉分隔。
+- [Surface 表面](https://www.heroui.com/cn/docs/react/components/surface): 提供表面级样式与子组件上下文的容器组件。
+- [Toolbar 工具栏](https://www.heroui.com/cn/docs/react/components/toolbar): 用于承载可交互控件的容器，并支持方向键导航。
+- [CheckboxGroup 复选框组](https://www.heroui.com/cn/docs/react/components/checkbox-group): 用于管理多项复选框选择的 CheckboxGroup 组件。
+- [Checkbox 复选框](https://www.heroui.com/cn/docs/react/components/checkbox): 复选框允许用户从多个独立选项中选择多项，或将单个独立选项标记为已选。
+- [Description 描述](https://www.heroui.com/cn/docs/react/components/description): 为表单字段及其他组件提供补充说明文字。
+- [ErrorMessage 错误信息](https://www.heroui.com/cn/docs/react/components/error-message): 用于展示错误信息的底层组件。
+- [FieldError 字段错误](https://www.heroui.com/cn/docs/react/components/field-error): 用于展示表单字段的校验错误信息。
+- [Fieldset 字段集](https://www.heroui.com/cn/docs/react/components/fieldset): 使用 legend、description 与操作区对相关表单控件进行分组。
+- [Form 表单](https://www.heroui.com/cn/docs/react/components/form): 用于表单校验与提交处理的包装组件。
+- [InputGroup 输入框组](https://www.heroui.com/cn/docs/react/components/input-group): 将相关输入控件与前后缀元素组合，以增强表单字段。
+- [InputOTP 一次性密码输入框](https://www.heroui.com/cn/docs/react/components/input-otp): 用于验证码与安全认证等场景的一次性密码输入组件。
+- [Input 输入框](https://www.heroui.com/cn/docs/react/components/input): 单行文本输入原语，可接受标准 HTML 属性。
+- [Label 标签](https://www.heroui.com/cn/docs/react/components/label): 渲染与表单控件关联的无障碍标签。
+- [NumberField 数字输入框](https://www.heroui.com/cn/docs/react/components/number-field): 数字输入字段，包含增减按钮、校验与国际化格式化能力。
+- [RadioGroup 单选框组](https://www.heroui.com/cn/docs/react/components/radio-group): 用于从列表中选择单个选项的单选组。
+- [SearchField 搜索框](https://www.heroui.com/cn/docs/react/components/search-field): 搜索输入字段，包含清除按钮与搜索图标。
+- [TextArea 多行文本框](https://www.heroui.com/cn/docs/react/components/text-area): 原语级多行文本输入组件，可接受标准 HTML 属性。
+- [TextField 文本输入框](https://www.heroui.com/cn/docs/react/components/text-field): 便于组合的文本字段，包含标签、说明与内联校验。
+- [Avatar 头像](https://www.heroui.com/cn/docs/react/components/avatar): 展示用户头像图片，并提供可定制的回退内容。
+- [Accordion 手风琴](https://www.heroui.com/cn/docs/react/components/accordion): 用于在紧凑空间中组织信息的可折叠内容面板。
+- [Breadcrumbs 面包屑](https://www.heroui.com/cn/docs/react/components/breadcrumbs): 面包屑导航，用于展示当前页面在层级结构中的位置。
+- [DisclosureGroup 折叠面板组](https://www.heroui.com/cn/docs/react/components/disclosure-group): 管理多个 Disclosure 的容器，用于协调展开状态。
+- [Disclosure 折叠面板](https://www.heroui.com/cn/docs/react/components/disclosure): Disclosure 是一种可折叠区域：头部包含标题与触发按钮，面板包裹正文内容。
+- [Link 链接](https://www.heroui.com/cn/docs/react/components/link): 用于导航的样式化锚点组件，内置图标支持。
+- [Pagination 分页](https://www.heroui.com/cn/docs/react/components/pagination): 分页导航：可组合的页码链接、上一页/下一页按钮与省略号指示器。
+- [Tabs 标签页](https://www.heroui.com/cn/docs/react/components/tabs): Tabs 将内容组织为多个区块，并允许用户在它们之间导航。
+- [AlertDialog 警告对话框](https://www.heroui.com/cn/docs/react/components/alert-dialog): 用于关键确认的模态对话框，需要用户关注并执行明确操作。
+- [Drawer 抽屉](https://www.heroui.com/cn/docs/react/components/drawer): 用于补充内容与操作的侧滑面板。
+- [Modal 模态框](https://www.heroui.com/cn/docs/react/components/modal): 用于聚焦用户交互与重要内容的对话框遮罩层。
+- [Popover 弹出框](https://www.heroui.com/cn/docs/react/components/popover): 在由按钮或任意自定义元素触发后，于 portal 中展示丰富内容。
+- [Toast 轻提示](https://www.heroui.com/cn/docs/react/components/toast): 向用户展示临时通知与消息，支持自动消失与可定制的放置位置。
+- [Tooltip 工具提示](https://www.heroui.com/cn/docs/react/components/tooltip): 当用户悬停或聚焦某个元素时，展示提示性文本。
+- [Autocomplete 自动完成](https://www.heroui.com/cn/docs/react/components/autocomplete): 自动完成将选择与过滤结合，让用户可以搜索并从选项列表中选择。
+- [ComboBox 组合框](https://www.heroui.com/cn/docs/react/components/combo-box): 将文本输入与 ListBox 结合，用户可通过输入查询把选项列表过滤为匹配项。
+- [Select 选择器](https://www.heroui.com/cn/docs/react/components/select): Select 展示可折叠的选项列表，并允许用户从中选择一项。
+- [Kbd 键盘按键](https://www.heroui.com/cn/docs/react/components/kbd): 用于展示键盘快捷键与组合键。
+- [Typography 排版](https://www.heroui.com/cn/docs/react/components/typography): 面向标题、正文与行内代码的语义化排版原语，基于 React Aria Components 的 Text 构建。
+- [ScrollShadow 滚动阴影](https://www.heroui.com/cn/docs/react/components/scroll-shadow): 通过阴影提示可滚动溢出内容，并根据滚动位置自动检测显示或隐藏。
+
+### Getting-started
+
+- [Introduction](https://www.heroui.com/en/docs/react/getting-started): An open-source UI component library for building beautiful and accessible user interfaces.
+- [Animation](https://www.heroui.com/en/docs/react/getting-started/animation): Add smooth animations and transitions to HeroUI v3 components
+- [Colors](https://www.heroui.com/en/docs/react/getting-started/colors): Color palette and theming system for HeroUI v3
+- [Composition](https://www.heroui.com/en/docs/react/getting-started/composition): Build flexible UI with component composition patterns
+- [Dark Mode](https://www.heroui.com/en/docs/react/getting-started/dark-mode): Add light, dark, and system theme switching to HeroUI v3
+- [Styling](https://www.heroui.com/en/docs/react/getting-started/styling): Style HeroUI components with CSS, Tailwind, or CSS-in-JS
+- [Theming](https://www.heroui.com/en/docs/react/getting-started/theming): Customize HeroUI's design system with CSS variables and global styles
+- [CLI](https://www.heroui.com/en/docs/react/getting-started/cli): Use the CLI to manage HeroUI dependencies and initialize projects.
+- [Design Principles](https://www.heroui.com/en/docs/react/getting-started/design-principles): Core principles that guide HeroUI v3's design and development
+- [Frameworks](https://www.heroui.com/en/docs/react/getting-started/frameworks): Integrate HeroUI with your framework
+- [Quick Start](https://www.heroui.com/en/docs/react/getting-started/quick-start): Get started with HeroUI v3 in minutes
+- [Agent Skills](https://www.heroui.com/en/docs/react/getting-started/agent-skills): Enable AI assistants to build UIs with HeroUI v3 components
+- [AGENTS.md](https://www.heroui.com/en/docs/react/getting-started/agents-md): Download HeroUI v3 React documentation for AI coding agents
+- [LLMs.txt](https://www.heroui.com/en/docs/react/getting-started/llms-txt): Enable AI assistants like Claude, Cursor, and Windsurf to understand HeroUI v3
+- [MCP Server](https://www.heroui.com/en/docs/react/getting-started/mcp-server): Access HeroUI v3 documentation directly in your AI assistant
+- [介绍](https://www.heroui.com/cn/docs/react/getting-started): 一个开源 UI 组件库，用于构建美观且易于访问的用户界面。
+- [动画](https://www.heroui.com/cn/docs/react/getting-started/animation): 为 HeroUI v3 组件添加流畅的动画和过渡
+- [颜色](https://www.heroui.com/cn/docs/react/getting-started/colors): HeroUI v3 的调色板与主题系统
+- [组合](https://www.heroui.com/cn/docs/react/getting-started/composition): 使用组件组合模式构建灵活的 UI
+- [深色模式](https://www.heroui.com/cn/docs/react/getting-started/dark-mode): 在 HeroUI v3 中添加浅色、深色以及跟随系统的主题切换
+- [样式](https://www.heroui.com/cn/docs/react/getting-started/styling): 使用 CSS、Tailwind 或 CSS-in-JS 为 HeroUI 组件设置样式
+- [主题](https://www.heroui.com/cn/docs/react/getting-started/theming): 使用 CSS 变量和全局样式自定义 HeroUI 的设计系统
+- [命令行](https://www.heroui.com/cn/docs/react/getting-started/cli): 使用命令行管理 HeroUI 依赖并初始化项目。
+- [设计原则](https://www.heroui.com/cn/docs/react/getting-started/design-principles): 指导 HeroUI v3 设计和开发的核心原则
+- [框架集成](https://www.heroui.com/cn/docs/react/getting-started/frameworks): 将 HeroUI 集成到你的框架中
+- [快速入门](https://www.heroui.com/cn/docs/react/getting-started/quick-start): 只需几分钟即可开始使用 HeroUI v3
+- [Agent Skills](https://www.heroui.com/cn/docs/react/getting-started/agent-skills): 让 AI 助手能够使用 HeroUI v3 组件来构建 UI
+- [AGENTS.md](https://www.heroui.com/cn/docs/react/getting-started/agents-md): 为 AI 编码代理下载 HeroUI v3 React 文档
+- [LLMs.txt](https://www.heroui.com/cn/docs/react/getting-started/llms-txt): 让 Claude、Cursor、Windsurf 等 AI 助手理解 HeroUI v3
+- [MCP 服务器](https://www.heroui.com/cn/docs/react/getting-started/mcp-server): 直接在你的 AI 助手中访问 HeroUI v3 文档
+
+### Migration
+
+- [Migration (for AI assistants)](https://www.heroui.com/en/docs/react/migration/agent-index): Entry point for AI assistants helping migrate HeroUI v2 to v3
+- [Hooks](https://www.heroui.com/en/docs/react/migration/hooks): Migration guide for HeroUI hooks from v2 to v3
+- [Migration](https://www.heroui.com/en/docs/react/migration): Complete guide to migrate your HeroUI v2 application to v3
+- [Styling & Theming](https://www.heroui.com/en/docs/react/migration/styling): Complete guide to styling changes and theming system migration from HeroUI v2 to v3
+- [Agent Skills](https://www.heroui.com/en/docs/react/migration/agent-skills): Enable AI assistants to migrate HeroUI v2 to v3
+- [AGENTS.md](https://www.heroui.com/en/docs/react/migration/agents-md): Download HeroUI v2 to v3 migration docs for AI coding agents
+- [MCP Server](https://www.heroui.com/en/docs/react/migration/mcp-server): Access HeroUI v2 to v3 migration guides in your AI assistant
+- [Agent Migration Guide - Full Migration](https://www.heroui.com/en/docs/react/migration/agent-guide-full): Full migration guide for AI assistants helping migrate HeroUI v2 to v3
+- [Agent Migration Guide - Incremental Migration with Coexistence](https://www.heroui.com/en/docs/react/migration/agent-guide-incremental): Incremental coexistence migration guide for AI assistants helping migrate HeroUI v2 to v3
+- [Full Migration](https://www.heroui.com/en/docs/react/migration/full-migration): Step-by-step guide for migrating HeroUI v2 to v3 using full migration approach
+- [Incremental Migration](https://www.heroui.com/en/docs/react/migration/incremental-migration): Step-by-step guide for migrating HeroUI v2 to v3 incrementally while keeping both versions working side-by-side
+- [Accordion](https://www.heroui.com/en/docs/react/migration/accordion): Migration guide for Accordion from HeroUI v2 to v3
+- [Alert](https://www.heroui.com/en/docs/react/migration/alert): Migration guide for Alert from HeroUI v2 to v3
+- [Autocomplete](https://www.heroui.com/en/docs/react/migration/autocomplete): Migration guide for Autocomplete from HeroUI v2 to v3
+- [Avatar](https://www.heroui.com/en/docs/react/migration/avatar): Migration guide for Avatar from HeroUI v2 to v3
+- [Badge](https://www.heroui.com/en/docs/react/migration/badge): Migration guide for Badge from HeroUI v2 to v3
+- [Breadcrumbs](https://www.heroui.com/en/docs/react/migration/breadcrumbs): Migration guide for Breadcrumbs from HeroUI v2 to v3
+- [ButtonGroup](https://www.heroui.com/en/docs/react/migration/button-group): Migration guide for ButtonGroup from HeroUI v2 to v3
+- [Button](https://www.heroui.com/en/docs/react/migration/button): Migration guide for Button from HeroUI v2 to v3
+- [Calendar](https://www.heroui.com/en/docs/react/migration/calendar): Migration guide for Calendar from HeroUI v2 to v3
+- [Card](https://www.heroui.com/en/docs/react/migration/card): Migration guide for Card from HeroUI v2 to v3
+- [CheckboxGroup](https://www.heroui.com/en/docs/react/migration/checkbox-group): Migration guide for CheckboxGroup from HeroUI v2 to v3
+- [Checkbox](https://www.heroui.com/en/docs/react/migration/checkbox): Migration guide for Checkbox from HeroUI v2 to v3
+- [Chip](https://www.heroui.com/en/docs/react/migration/chip): Migration guide for Chip from HeroUI v2 to v3
+- [CircularProgress](https://www.heroui.com/en/docs/react/migration/circular-progress): Migration guide for CircularProgress from HeroUI v2 to v3 (now ProgressCircle)
+- [Code](https://www.heroui.com/en/docs/react/migration/code): Migration guide for Code from HeroUI v2 to v3
+- [DatePicker](https://www.heroui.com/en/docs/react/migration/date-picker): Migration guide for DatePicker from HeroUI v2 to v3
+- [DateRangePicker](https://www.heroui.com/en/docs/react/migration/date-range-picker): Migration guide for DateRangePicker from HeroUI v2 to v3
+- [DateInput](https://www.heroui.com/en/docs/react/migration/dateinput): Migration guide for DateInput to DateField from HeroUI v2 to v3
+- [Divider](https://www.heroui.com/en/docs/react/migration/divider): Migration guide for Divider (renamed to Separator) from HeroUI v2 to v3
+- [Drawer](https://www.heroui.com/en/docs/react/migration/drawer): Migration guide for Drawer from HeroUI v2 to v3
+- [Dropdown](https://www.heroui.com/en/docs/react/migration/dropdown): Migration guide for Dropdown from HeroUI v2 to v3
+- [Form](https://www.heroui.com/en/docs/react/migration/form): Migration guide for Form from HeroUI v2 to v3
+- [Image](https://www.heroui.com/en/docs/react/migration/image): Migration guide for Image from HeroUI v2 to v3
+- [InputOTP](https://www.heroui.com/en/docs/react/migration/input-otp): Migration guide for InputOTP from HeroUI v2 to v3
+- [Input](https://www.heroui.com/en/docs/react/migration/input): Migration guide for Input from HeroUI v2 to v3
+- [Kbd](https://www.heroui.com/en/docs/react/migration/kbd): Migration guide for Kbd from HeroUI v2 to v3
+- [Link](https://www.heroui.com/en/docs/react/migration/link): Migration guide for Link from HeroUI v2 to v3
+- [Listbox](https://www.heroui.com/en/docs/react/migration/listbox): Migration guide for Listbox (renamed to ListBox with a capital "B") from HeroUI v2 to v3
+- [Modal](https://www.heroui.com/en/docs/react/migration/modal): Migration guide for Modal from HeroUI v2 to v3
+- [Navbar](https://www.heroui.com/en/docs/react/migration/navbar): Migration guide for Navbar from HeroUI v2 to v3
+- [NumberInput](https://www.heroui.com/en/docs/react/migration/numberinput): Migration guide for NumberInput to NumberField from HeroUI v2 to v3
+- [Pagination](https://www.heroui.com/en/docs/react/migration/pagination): Migration guide for Pagination from HeroUI v2 to v3
+- [Popover](https://www.heroui.com/en/docs/react/migration/popover): Migration guide for Popover from HeroUI v2 to v3
+- [Progress](https://www.heroui.com/en/docs/react/migration/progress): Migration guide for Progress from HeroUI v2 to v3 (now ProgressBar)
+- [RadioGroup](https://www.heroui.com/en/docs/react/migration/radio-group): Migration guide for RadioGroup from HeroUI v2 to v3
+- [Radio](https://www.heroui.com/en/docs/react/migration/radio): Migration guide for Radio from HeroUI v2 to v3
+- [RangeCalendar](https://www.heroui.com/en/docs/react/migration/range-calendar): Migration guide for RangeCalendar from HeroUI v2 to v3
+- [ScrollShadow](https://www.heroui.com/en/docs/react/migration/scroll-shadow): Migration guide for ScrollShadow from HeroUI v2 to v3
+- [Select](https://www.heroui.com/en/docs/react/migration/select): Migration guide for Select from HeroUI v2 to v3
+- [Skeleton](https://www.heroui.com/en/docs/react/migration/skeleton): Migration guide for Skeleton from HeroUI v2 to v3
+- [Slider](https://www.heroui.com/en/docs/react/migration/slider): Migration guide for Slider from HeroUI v2 to v3
+- [Snippet](https://www.heroui.com/en/docs/react/migration/snippet): Migration guide for Snippet from HeroUI v2 to v3
+- [Spacer](https://www.heroui.com/en/docs/react/migration/spacer): Migration guide for Spacer from HeroUI v2 to v3
+- [Spinner](https://www.heroui.com/en/docs/react/migration/spinner): Migration guide for Spinner from HeroUI v2 to v3
+- [Switch](https://www.heroui.com/en/docs/react/migration/switch): Migration guide for Switch from HeroUI v2 to v3
+- [Table](https://www.heroui.com/en/docs/react/migration/table): Migration guide for Table from HeroUI v2 to v3
+- [Tabs](https://www.heroui.com/en/docs/react/migration/tabs): Migration guide for Tabs from HeroUI v2 to v3
+- [TimeInput](https://www.heroui.com/en/docs/react/migration/timeinput): Migration guide for TimeInput to TimeField from HeroUI v2 to v3
+- [Toast](https://www.heroui.com/en/docs/react/migration/toast): Migration guide for Toast from HeroUI v2 to v3
+- [Tooltip](https://www.heroui.com/en/docs/react/migration/tooltip): Migration guide for Tooltip from HeroUI v2 to v3
+- [User](https://www.heroui.com/en/docs/react/migration/user): Migration guide for User from HeroUI v2 to v3
+- [迁移（面向 AI 助手）](https://www.heroui.com/cn/docs/react/migration/agent-index): 供 AI 助手协助将 HeroUI v2 迁移到 v3 时使用的入口
+- [Hooks](https://www.heroui.com/cn/docs/react/migration/hooks): HeroUI Hooks 从 v2 到 v3 的迁移指南
+- [迁移](https://www.heroui.com/cn/docs/react/migration): 将 HeroUI v2 应用迁移到 v3 的完整指南
+- [样式与主题](https://www.heroui.com/cn/docs/react/migration/styling): 从 HeroUI v2 到 v3 的样式变更与主题系统迁移完整指南
+- [Agent Skills](https://www.heroui.com/cn/docs/react/migration/agent-skills): 让 AI 助手协助你将 HeroUI v2 迁移到 v3。
+- [AGENTS.md](https://www.heroui.com/cn/docs/react/migration/agents-md): 下载 AI 编码代理的 HeroUI v2 到 v3 迁移文档
+- [MCP服务器](https://www.heroui.com/cn/docs/react/migration/mcp-server): 在 AI 助手中访问 HeroUI v2 到 v3 的迁移指南
+- [代理迁移指南 - 完整迁移](https://www.heroui.com/cn/docs/react/migration/agent-guide-full): AI 助手的完整迁移指南，帮助将 HeroUI v2 迁移到 v3
+- [代理迁移指南 - 共存增量迁移](https://www.heroui.com/cn/docs/react/migration/agent-guide-incremental): AI 助手增量共存迁移指南，帮助将 HeroUI v2 迁移到 v3
+- [完全迁移](https://www.heroui.com/cn/docs/react/migration/full-migration): 使用完整迁移方法将 HeroUI v2 迁移到 v3 的分步指南
+- [增量迁移](https://www.heroui.com/cn/docs/react/migration/incremental-migration): 将 HeroUI v2 增量迁移到 v3 同时保持两个版本并行工作的分步指南
+- [Accordion](https://www.heroui.com/cn/docs/react/migration/accordion): Accordion 从 HeroUI v2 到 v3 的迁移指南。
+- [Alert](https://www.heroui.com/cn/docs/react/migration/alert): Alert 从 HeroUI v2 到 v3 的迁移指南。
+- [Autocomplete](https://www.heroui.com/cn/docs/react/migration/autocomplete): Autocomplete 从 HeroUI v2 到 v3 的迁移指南。
+- [Avatar](https://www.heroui.com/cn/docs/react/migration/avatar): Avatar 从 HeroUI v2 到 v3 的迁移指南。
+- [Badge](https://www.heroui.com/cn/docs/react/migration/badge): Badge 从 HeroUI v2 到 v3 的迁移指南。
+- [Breadcrumbs](https://www.heroui.com/cn/docs/react/migration/breadcrumbs): Breadcrumbs 从 HeroUI v2 到 v3 的迁移指南。
+- [ButtonGroup](https://www.heroui.com/cn/docs/react/migration/button-group): ButtonGroup 从 HeroUI v2 到 v3 的迁移指南。
+- [Button](https://www.heroui.com/cn/docs/react/migration/button): Button 从 HeroUI v2 到 v3 的迁移指南。
+- [Calendar](https://www.heroui.com/cn/docs/react/migration/calendar): Calendar 从 HeroUI v2 到 v3 的迁移指南。
+- [Card](https://www.heroui.com/cn/docs/react/migration/card): Card 从 HeroUI v2 到 v3 的迁移指南。
+- [CheckboxGroup](https://www.heroui.com/cn/docs/react/migration/checkbox-group): CheckboxGroup 从 HeroUI v2 到 v3 的迁移指南。
+- [Checkbox](https://www.heroui.com/cn/docs/react/migration/checkbox): Checkbox 从 HeroUI v2 到 v3 的迁移指南。
+- [Chip](https://www.heroui.com/cn/docs/react/migration/chip): Chip 从 HeroUI v2 到 v3 的迁移指南。
+- [CircularProgress](https://www.heroui.com/cn/docs/react/migration/circular-progress): CircularProgress 从 HeroUI v2 到 v3（现在称为 ProgressCircle）的迁移指南。
+- [Code](https://www.heroui.com/cn/docs/react/migration/code): Code 从 HeroUI v2 到 v3 的迁移指南。
+- [DatePicker](https://www.heroui.com/cn/docs/react/migration/date-picker): DatePicker 从 HeroUI v2 到 v3 的迁移指南。
+- [DateRangePicker](https://www.heroui.com/cn/docs/react/migration/date-range-picker): DateRangePicker 从 HeroUI v2 到 v3 的迁移指南。
+- [DateInput](https://www.heroui.com/cn/docs/react/migration/dateinput): DateInput 从 HeroUI v2 到 v3 的迁移指南。
+- [Divider](https://www.heroui.com/cn/docs/react/migration/divider): Divider（已重命名为 Separator）从 HeroUI v2 到 v3 的迁移指南。
+- [Drawer](https://www.heroui.com/cn/docs/react/migration/drawer): Drawer 从 HeroUI v2 到 v3 的迁移指南。
+- [Dropdown](https://www.heroui.com/cn/docs/react/migration/dropdown): Dropdown 从 HeroUI v2 到 v3 的迁移指南。
+- [Form](https://www.heroui.com/cn/docs/react/migration/form): Form 从 HeroUI v2 到 v3 的迁移指南。
+- [Image](https://www.heroui.com/cn/docs/react/migration/image): Image 从 HeroUI v2 到 v3 的迁移指南。
+- [InputOTP](https://www.heroui.com/cn/docs/react/migration/input-otp): InputOTP 从 HeroUI v2 到 v3 的迁移指南。
+- [Input](https://www.heroui.com/cn/docs/react/migration/input): Input 从 HeroUI v2 到 v3 的迁移指南。
+- [Kbd](https://www.heroui.com/cn/docs/react/migration/kbd): Kbd 从 HeroUI v2 到 v3 的迁移指南。
+- [Link](https://www.heroui.com/cn/docs/react/migration/link): Link 从 HeroUI v2 到 v3 的迁移指南。
+- [Listbox](https://www.heroui.com/cn/docs/react/migration/listbox): Listbox 从 HeroUI v2 到 v3 的迁移指南。
+- [Modal](https://www.heroui.com/cn/docs/react/migration/modal): Modal 从 HeroUI v2 到 v3 的迁移指南。
+- [Navbar](https://www.heroui.com/cn/docs/react/migration/navbar): Navbar 从 HeroUI v2 到 v3 的迁移指南。
+- [NumberInput](https://www.heroui.com/cn/docs/react/migration/numberinput): NumberInput → NumberField 从 HeroUI v2 到 v3 的迁移指南。
+- [Pagination](https://www.heroui.com/cn/docs/react/migration/pagination): Pagination 从 HeroUI v2 到 v3 的迁移指南。
+- [Popover](https://www.heroui.com/cn/docs/react/migration/popover): Popover 从 HeroUI v2 到 v3 的迁移指南。
+- [Progress](https://www.heroui.com/cn/docs/react/migration/progress): Progress 从 HeroUI v2 到 v3（现在称为 ProgressBar）的迁移指南。
+- [RadioGroup](https://www.heroui.com/cn/docs/react/migration/radio-group): RadioGroup 从 HeroUI v2 到 v3 的迁移指南。
+- [Radio](https://www.heroui.com/cn/docs/react/migration/radio): Radio 从 HeroUI v2 到 v3 的迁移指南。
+- [RangeCalendar](https://www.heroui.com/cn/docs/react/migration/range-calendar): RangeCalendar 从 HeroUI v2 到 v3 的迁移指南。
+- [ScrollShadow](https://www.heroui.com/cn/docs/react/migration/scroll-shadow): ScrollShadow 从 HeroUI v2 到 v3 的迁移指南。
+- [Select](https://www.heroui.com/cn/docs/react/migration/select): Select 从 HeroUI v2 到 v3 的迁移指南。
+- [Skeleton](https://www.heroui.com/cn/docs/react/migration/skeleton): Skeleton 从 HeroUI v2 到 v3 的迁移指南。
+- [Slider](https://www.heroui.com/cn/docs/react/migration/slider): Slider 从 HeroUI v2 到 v3 的迁移指南。
+- [Snippet](https://www.heroui.com/cn/docs/react/migration/snippet): Snippet 从 HeroUI v2 到 v3 的迁移指南。
+- [Spacer](https://www.heroui.com/cn/docs/react/migration/spacer): Spacer 从 HeroUI v2 到 v3 的迁移指南。
+- [Spinner](https://www.heroui.com/cn/docs/react/migration/spinner): Spinner 从 HeroUI v2 到 v3 的迁移指南。
+- [Switch](https://www.heroui.com/cn/docs/react/migration/switch): Switch 从 HeroUI v2 到 v3 的迁移指南。
+- [Table](https://www.heroui.com/cn/docs/react/migration/table): Table 从 HeroUI v2 到 v3 的迁移指南。
+- [Tabs](https://www.heroui.com/cn/docs/react/migration/tabs): Tabs 从 HeroUI v2 到 v3 的迁移指南。
+- [TimeInput](https://www.heroui.com/cn/docs/react/migration/timeinput): TimeInput → TimeField 从 HeroUI v2 到 v3 的迁移指南。
+- [Toast](https://www.heroui.com/cn/docs/react/migration/toast): Toast 从 HeroUI v2 到 v3 的迁移指南。
+- [Tooltip](https://www.heroui.com/cn/docs/react/migration/tooltip): Tooltip 从 HeroUI v2 到 v3 的迁移指南。
+- [User](https://www.heroui.com/cn/docs/react/migration/user): User 从 HeroUI v2 到 v3 的迁移指南。
+
+### Releases
+
+- [All Releases](https://www.heroui.com/en/docs/react/releases): All updates and changes to HeroUI v3, including new features, fixes, and breaking changes.
+- [v3.0.0-alpha.32](https://www.heroui.com/en/docs/react/releases/v3-0-0-alpha-32): Card component redesign, CloseButton, MCP Server for AI assistants
+- [v3.0.0-alpha.33](https://www.heroui.com/en/docs/react/releases/v3-0-0-alpha-33): RAC upgrade, Tabs indicator redesign, Switch size variant, Related showcase
+- [v3.0.0-alpha.34](https://www.heroui.com/en/docs/react/releases/v3-0-0-alpha-34): Essentials for building forms with a clean API Form, TextField, RadioGroup, Label, Input, Fieldset and more.
+- [v3.0.0-alpha.35](https://www.heroui.com/en/docs/react/releases/v3-0-0-alpha-35): React Server Components support for compound components, React 19 improvements, and critical bug fixes.
+- [v3.0.0-beta.1](https://www.heroui.com/en/docs/react/releases/v3-0-0-beta-1): Major redesign with new design system, 8 new components, and improved developer experience.
+- [v3.0.0-beta.2](https://www.heroui.com/en/docs/react/releases/v3-0-0-beta-2): Six new components (AlertDialog, ComboBox, Dropdown, InputGroup, Modal, NumberField), Select API improvements, and component refinements.
+- [v3.0.0-beta.3](https://www.heroui.com/en/docs/react/releases/v3-0-0-beta-3): Seven new components, fullWidth and hideSeparator support, style fixes, and breaking changes for AlertDialog/Modal backdrop variants and asChild prop removal.
+- [v3.0.0-beta.4](https://www.heroui.com/en/docs/react/releases/v3-0-0-beta-4): New Theme Builder, three new components (Autocomplete, Breadcrumbs, Toast), Tabs secondary variant, Input/InputGroup variants, and various improvements.
+- [v3.0.0-beta.6](https://www.heroui.com/en/docs/react/releases/v3-0-0-beta-6): 6 new color components (ColorPicker, ColorArea, ColorSlider, ColorField, ColorSwatch, ColorSwatchPicker), toast improvements, and various style fixes.
+- [v3.0.0-beta.7](https://www.heroui.com/en/docs/react/releases/v3-0-0-beta-7): 4 new components (Calendar, RangeCalendar, DatePicker, DateRangePicker) and APIs improvements.
+- [v3.0.0-beta.8](https://www.heroui.com/en/docs/react/releases/v3-0-0-beta-8): 3 new components (Badge, Pagination, Table), DateField improvements, and key API/style fixes.
+- [v3.0.0-rc.1](https://www.heroui.com/en/docs/react/releases/v3-0-0-rc-1): 7 new components (Drawer, ToggleButton, ToggleButtonGroup, Meter, ProgressBar, ProgressCircle, Toolbar), Table & ListBox virtualization, ButtonGroup improvements, and bug fixes.
+- [Introducing HeroUI v3](https://www.heroui.com/en/docs/react/releases/v3-0-0): A ground-up rewrite for React and React Native. 75+ web components, 37 native components, Tailwind CSS v4, React Aria, compound architecture, and built for AI-assisted development.
+- [v3.0.2](https://www.heroui.com/en/docs/react/releases/v3-0-2): Bug fixes, smoother Drawer transitions, new --backdrop theme variable, and style refinements for triggers, arrows, and tags.
+- [v3.0.3](https://www.heroui.com/en/docs/react/releases/v3-0-3): RAC 1.17 with 90% fewer deps, expandable Table rows, Apache 2.0 license, useTheme hook, DOM polymorphic render-prop API, and bug fixes.
+- [v3.0.4](https://www.heroui.com/en/docs/react/releases/v3-0-4): New Typography component, docs theme selector, border-radius design tokens with min() capping, table focus ring rework, and bug fixes.
+- [v3.0.5](https://www.heroui.com/en/docs/react/releases/v3-0-5): Text renamed to Typography (breaking), color tokens refactored to unprefixed source variables, Checkbox + Radio border fixes, and a new CLI docs page.
+- [v3.1.0](https://www.heroui.com/en/docs/react/releases/v3-1-0): Chinese React docs, accessible soft foreground tokens, shared scrollbar styling, useTheme SSR fixes, Toast cleanup, Link underline updates, and RTL layout refinements.
+- [v3.2.0](https://www.heroui.com/en/docs/react/releases/v3-2-0): Calendar week/day views and year picker on React Aria 1.18, plus breaking Radio, Checkbox, and Switch composition changes.
+- [v3.2.1](https://www.heroui.com/en/docs/react/releases/v3-2-1): Patch release that externalizes react-aria from the @heroui/react bundle and fixes SwitchGroup horizontal layout.
+- [所有版本](https://www.heroui.com/cn/docs/react/releases): HeroUI v3 的所有更新与变更，包含新功能、修复以及破坏性变更。
+- [v3.0.0-alpha.32](https://www.heroui.com/cn/docs/react/releases/v3-0-0-alpha-32): Card 组件重新设计、CloseButton 组件，以及面向 AI 助手的 MCP 服务器。
+- [v3.0.0-alpha.33](https://www.heroui.com/cn/docs/react/releases/v3-0-0-alpha-33): 升级 RAC、重新设计 Tabs 指示器、新增 Switch 尺寸变体，以及相关示例展示。
+- [v3.0.0-alpha.34](https://www.heroui.com/cn/docs/react/releases/v3-0-0-alpha-34): 用 Form、TextField、RadioGroup、Label、Input、Fieldset 等简洁 API 构建表单的核心组件。
+- [v3.0.0-alpha.35](https://www.heroui.com/cn/docs/react/releases/v3-0-0-alpha-35): 复合组件支持 React Server Components、面向 React 19 的改进，以及关键 bug 修复。
+- [v3.0.0-beta.1](https://www.heroui.com/cn/docs/react/releases/v3-0-0-beta-1): 重大重新设计，带来全新的设计系统、8 个新组件以及更佳的开发者体验。
+- [v3.0.0-beta.2](https://www.heroui.com/cn/docs/react/releases/v3-0-0-beta-2): 六个新组件（AlertDialog、ComboBox、Dropdown、InputGroup、Modal、NumberField）、Select API 改进以及多项组件优化。
+- [v3.0.0-beta.3](https://www.heroui.com/cn/docs/react/releases/v3-0-0-beta-3): 七个新组件、fullWidth 与 hideSeparator 支持、样式修复，以及 AlertDialog / Modal backdrop 变体调整与移除 asChild prop 等破坏性变更。
+- [v3.0.0-beta.4](https://www.heroui.com/cn/docs/react/releases/v3-0-0-beta-4): 全新的主题构建器、三个新组件（Autocomplete、Breadcrumbs、Toast）、Tabs 的 secondary 变体、Input / InputGroup 变体，以及多项改进。
+- [v3.0.0-beta.6](https://www.heroui.com/cn/docs/react/releases/v3-0-0-beta-6): 新增 6 个颜色组件（ColorPicker、ColorArea、ColorSlider、ColorField、ColorSwatch、ColorSwatchPicker）、Toast 改进，以及多项样式修复。
+- [v3.0.0-beta.7](https://www.heroui.com/cn/docs/react/releases/v3-0-0-beta-7): 新增 4 个组件（Calendar、RangeCalendar、DatePicker、DateRangePicker）以及多项 API 改进。
+- [v3.0.0-beta.8](https://www.heroui.com/cn/docs/react/releases/v3-0-0-beta-8): 新增 3 个组件（Badge、Pagination、Table）、DateField 的多项改进，以及关键的 API / 样式修复。
+- [v3.0.0-rc.1](https://www.heroui.com/cn/docs/react/releases/v3-0-0-rc-1): 新增 7 个组件（Drawer、ToggleButton、ToggleButtonGroup、Meter、ProgressBar、ProgressCircle、Toolbar），Table 与 ListBox 支持虚拟化，ButtonGroup 多项改进，以及若干 bug 修复。
+- [HeroUI v3 正式发布](https://www.heroui.com/cn/docs/react/releases/v3-0-0): 面向 React 与 React Native 的彻底重写。75+ Web 组件、37 个原生组件、Tailwind CSS v4、React Aria、复合组件架构，以及为 AI 辅助开发而打造的工具链。
+- [v3.0.2](https://www.heroui.com/cn/docs/react/releases/v3-0-2): 修复了多个 bug，Drawer 过渡更平滑，新增 --backdrop 主题变量，并优化了 trigger、arrow 与 Tag 的样式。
+- [v3.0.3](https://www.heroui.com/cn/docs/react/releases/v3-0-3): 升级到 RAC 1.17（依赖减少 90%）、Table 支持可展开行、采用 Apache 2.0 协议、新增 useTheme Hook、DOM 多态 render-prop API，以及若干 bug 修复。
+- [v3.0.4](https://www.heroui.com/cn/docs/react/releases/v3-0-4): 全新 Text 组件、文档主题选择器、采用 min() 上限约束的圆角设计令牌、Table 聚焦环重构，以及多项 bug 修复。
+- [v3.0.5](https://www.heroui.com/cn/docs/react/releases/v3-0-5): Text 重命名为 Typography（破坏性变更），颜色令牌重构为无前缀源变量，修复 Checkbox 与 Radio 边框对齐，并新增 CLI 文档页。
+- [v3.1.0](https://www.heroui.com/cn/docs/react/releases/v3-1-0): 中文 React 文档、可访问的 soft foreground 令牌、统一滚动条、useTheme SSR 修复、Toast 清理、Link 下划线与 RTL 布局优化。
+- [v3.2.0](https://www.heroui.com/cn/docs/react/releases/v3-2-0): 基于 React Aria 1.18 的 Calendar 周/日视图与年份选择器，以及 Radio、Checkbox、Switch 的破坏性组合方式变更。
+- [v3.2.1](https://www.heroui.com/cn/docs/react/releases/v3-2-1): 补丁版本：将 react-aria 从 @heroui/react 产物中外部化，并修复 SwitchGroup 横向布局。

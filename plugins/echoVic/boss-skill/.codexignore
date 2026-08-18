@@ -1,0 +1,13 @@
+.git
+.github/
+node_modules/
+test/
+packages/boss-cli/src/
+.boss/
+.superpowers/
+*.log
+*.tmp
+*.temp
+.DS_Store
+.idea/
+.vscode/

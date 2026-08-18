@@ -1,0 +1,598 @@
+{
+  "base": {
+    "absolute_max": {
+      "TJ_max": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 150,
+          "min": null,
+          "notes": "Maximum junction temperature.",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "TOPR": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 70,
+          "min": 0,
+          "notes": "LM358/LM358A grade. LM258/LM258A is -25 to +85\u00b0C; LM2904 is -40 to +85\u00b0C.",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "TSTG": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 150,
+          "min": -65,
+          "notes": "Storage temperature range.",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "VCC": [
+        {
+          "condition": "Single supply; or \u00b116V split supply",
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 32,
+          "min": null,
+          "notes": "LM358/LM358A column. Split supply equivalent is \u00b116V.",
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "VI": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 32,
+          "min": -0.3,
+          "notes": "Input voltage range, LM358/LM358A column.",
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "VI_DIFF": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 2,
+            "section": "Absolute Maximum Ratings"
+          },
+          "max": 32,
+          "min": null,
+          "notes": "Differential input voltage, LM358/LM358A column.",
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "compliance": [],
+    "description": "Dual, internally frequency-compensated operational amplifier designed for single-supply operation over a wide voltage range, with input common-mode range including ground.",
+    "esd": {},
+    "family": "Single-supply dual operational amplifier",
+    "moisture_sensitivity": null,
+    "package": {
+      "body_mm": {
+        "height": 1.75,
+        "length": 4.9,
+        "width": 3.9
+      },
+      "code": "SOIC-8",
+      "evidence": {
+        "confidence": "medium",
+        "method": "prose",
+        "page": 1,
+        "section": "Description"
+      },
+      "pin_count": 8,
+      "pitch_mm": 1.27,
+      "thermal_pad": false
+    },
+    "pin_relationships": [],
+    "pinout": [
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Output of amplifier 1.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "OUT1",
+        "notes": null,
+        "numbers": [
+          "1"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "output"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Inverting input of amplifier 1.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "IN1-",
+        "notes": null,
+        "numbers": [
+          "2"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Non-inverting input of amplifier 1.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "IN1+",
+        "notes": null,
+        "numbers": [
+          "3"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Negative supply / ground reference (V\u2212). Common ground for single-supply operation.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "GND",
+        "notes": "In dual-supply configurations this pin connects to the negative rail (V\u2212).",
+        "numbers": [
+          "4"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Non-inverting input of amplifier 2.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "IN2+",
+        "notes": null,
+        "numbers": [
+          "5"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Inverting input of amplifier 2.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "IN2-",
+        "notes": null,
+        "numbers": [
+          "6"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "input"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Output of amplifier 2.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "OUT2",
+        "notes": null,
+        "numbers": [
+          "7"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "output"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Positive supply voltage.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Internal Block Diagram"
+        },
+        "is_5v_tolerant": null,
+        "name": "VCC",
+        "notes": null,
+        "numbers": [
+          "8"
+        ],
+        "power_domain": "VCC_single_supply",
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      }
+    ],
+    "recommended_operating": {
+      "VCC_dual_supply": [
+        {
+          "condition": "Split/dual supply (magnitude per rail), LM358/LM358A",
+          "evidence": {
+            "confidence": "high",
+            "method": "prose",
+            "page": 1,
+            "section": "Features"
+          },
+          "max": 16,
+          "min": 1.5,
+          "notes": "Features list: \u00b11.5V ~ \u00b116V.",
+          "typ": null,
+          "unit": "V"
+        }
+      ],
+      "VCC_single_supply": [
+        {
+          "condition": "Single-supply operation, LM358/LM358A",
+          "evidence": {
+            "confidence": "high",
+            "method": "prose",
+            "page": 1,
+            "section": "Features"
+          },
+          "max": 32,
+          "min": 3,
+          "notes": "From Features section. LM2904 is 3~26V.",
+          "typ": null,
+          "unit": "V"
+        }
+      ]
+    },
+    "thermal": null
+  },
+  "categories": [
+    "opamp"
+  ],
+  "extraction": {
+    "extracted_at": "2026-04-27T21:46:07Z",
+    "extractor_schema_version": "1.0",
+    "extractor_scout": null,
+    "plan_ref": "LM358.plan.json",
+    "quality_score": 80
+  },
+  "opamp": {
+    "channels": 2,
+    "cmrr": [
+      {
+        "condition": "VCC=5V, TA=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": null,
+        "min": 65,
+        "notes": "LM358 column: min=65dB, typ=80dB.",
+        "typ": 80,
+        "unit": "dB"
+      }
+    ],
+    "gbw": [
+      {
+        "condition": "VCC=30V, TA=25\u00b0C, from open-loop frequency response curve (Figure 3)",
+        "evidence": {
+          "confidence": "medium",
+          "method": "curve",
+          "page": 7,
+          "section": "Typical Performance Characteristics \u2014 Figure 3"
+        },
+        "max": null,
+        "min": null,
+        "notes": "GBW not tabulated. Read from Figure 3 Bode plot at 0dB crossover.",
+        "typ": 1000000.0,
+        "unit": "Hz"
+      }
+    ],
+    "ib": [
+      {
+        "condition": "VCC=5V, TA=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": 2.5e-07,
+        "min": null,
+        "notes": "IBIAS: typ=45nA, max=250nA for LM358 grade.",
+        "typ": 4.5e-08,
+        "unit": "A"
+      }
+    ],
+    "iq_per_amp": [
+      {
+        "condition": "VCC=5V, no load, per channel (total ICC typ=0.5mA, max=1.2mA / channels=2)",
+        "evidence": {
+          "confidence": "high",
+          "method": "calculated",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": 0.0006,
+        "min": null,
+        "notes": "Datasheet publishes total ICC. Divided by channels=2.",
+        "typ": 0.00025,
+        "unit": "A"
+      }
+    ],
+    "opamp_topology": "general_purpose",
+    "output_drive_current": [
+      {
+        "condition": "Short circuit to GND (ISC), VCC\u226415V, TA=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": 0.06,
+        "min": null,
+        "notes": "ISC: typ=40mA, max=60mA for LM358.",
+        "typ": 0.04,
+        "unit": "A"
+      },
+      {
+        "condition": "Source current ISOURCE: VI(+)=1V, VI(-)=0V, VCC=15V, VO(P)=2V",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": null,
+        "min": 0.02,
+        "notes": "ISOURCE LM358 column: min=20mA, typ=30mA.",
+        "typ": 0.03,
+        "unit": "A"
+      },
+      {
+        "condition": "Sink current ISINK: VI(+)=1V, VI(-)=0V, VCC=15V, VO(P)=2V",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": null,
+        "min": 0.01,
+        "notes": "ISINK LM358 column: min=10mA, typ=15mA.",
+        "typ": 0.015,
+        "unit": "A"
+      }
+    ],
+    "package": {
+      "body_mm": {
+        "height": 1.55,
+        "length": 4.92,
+        "width": 3.95
+      },
+      "code": "SOIC-8",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 10,
+        "section": "Mechanical Dimensions \u2014 8-SOP"
+      },
+      "pin_count": 8,
+      "pitch_mm": 1.27,
+      "thermal_pad": false
+    },
+    "psrr": [
+      {
+        "condition": "VCC=5V, TA=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": null,
+        "min": 65,
+        "notes": "PSRR LM358 column: min=65dB, typ=100dB.",
+        "typ": 100,
+        "unit": "dB"
+      }
+    ],
+    "shutdown_pin": null,
+    "slew_rate": [
+      {
+        "condition": "VCC=15V, unity gain, RL=2k\u03a9 (Figure 11 voltage follower pulse response)",
+        "evidence": {
+          "confidence": "medium",
+          "method": "curve",
+          "page": 8,
+          "section": "Typical Performance Characteristics \u2014 Figure 11"
+        },
+        "max": null,
+        "min": null,
+        "notes": "Slew rate not tabulated. Estimated from Figure 11: ~3V in ~5\u00b5s \u2192 ~0.6V/\u00b5s = 6e5 V/s.",
+        "typ": 600000.0,
+        "unit": "V/s"
+      }
+    ],
+    "thermal_resistance": {
+      "rtheta_ja": null,
+      "rtheta_jc": null,
+      "rtheta_jl": null
+    },
+    "unity_gain_stable": true,
+    "vos": [
+      {
+        "condition": "VCM=0V to VCC-1.5V, VO(P)=1.4V, RS=0\u03a9, VCC=5V, TA=25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": 0.007,
+        "min": null,
+        "notes": "LM358 grade: typ=2.9mV, max=7.0mV at TA=25\u00b0C.",
+        "typ": 0.0029,
+        "unit": "V"
+      }
+    ],
+    "vout_swing_high": [
+      {
+        "condition": "VCC=15V, RL=2k\u03a9, output high headroom from V+",
+        "evidence": {
+          "confidence": "medium",
+          "method": "prose",
+          "page": 2,
+          "section": "Features"
+        },
+        "max": null,
+        "min": null,
+        "notes": "Datasheet cover states 'Large Output Voltage Swing: 0 DC to Vcc-1.5V DC'.",
+        "typ": 1.5,
+        "unit": "V"
+      }
+    ],
+    "vout_swing_low": [
+      {
+        "condition": "VCC=5V, RL=10k\u03a9, output low headroom from V\u2212",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 3,
+          "section": "Electrical Characteristics"
+        },
+        "max": 0.02,
+        "min": null,
+        "notes": "VO(L) LM358 column: typ=5mV, max=20mV.",
+        "typ": 0.005,
+        "unit": "V"
+      }
+    ],
+    "vsupply_range": [
+      {
+        "condition": "single supply, 3 to 32 V (also \u00b11.5 to \u00b116 V split-supply equivalent)",
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "Features / Absolute Maximum Ratings"
+        },
+        "max": 32,
+        "min": 3,
+        "notes": "LM358/LM358A: 3V~32V (or \u00b11.5V~16V).",
+        "typ": null,
+        "unit": "V"
+      }
+    ],
+    "vsupply_split_capable": true
+  },
+  "schema_version": {
+    "base": "1.0",
+    "categories": {
+      "opamp": "1.0"
+    }
+  },
+  "source": {
+    "datasheet_date": "2010-04-06",
+    "datasheet_revision": "1.0.3",
+    "family_ref": null,
+    "local_path": "datasheets/LM358.pdf",
+    "manufacturer": "Fairchild Semiconductor",
+    "mpn": "LM358",
+    "page_count": 13,
+    "sha256": "sha256:bf013d140abf784524088efe4725877a549365c8959a8d2b47b6f464cdc70c1e",
+    "source_url": "www.fairchildsemi.com"
+  }
+}

@@ -12,7 +12,7 @@
       },
       "policy": {
         "installation": "AVAILABLE",
-        "authentication": "ON_FIRST_USE"
+        "authentication": "ON_USE"
       },
       "category": "Developer Tools"
     }

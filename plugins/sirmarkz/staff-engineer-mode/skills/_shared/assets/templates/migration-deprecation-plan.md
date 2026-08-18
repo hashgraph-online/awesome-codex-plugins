@@ -24,13 +24,13 @@
 
 ## Dependency Optionality And Turndown
 
-| Retired Dependency | Consumers | Required Or Optional State | Deflection Or Fail-Closed Behavior | Staged Turndown Plan | Verification |
+| Legacy Dependency | Consumers | Required Or Optional State | Deflection Or Fail-Closed Behavior | Staged Turndown Plan | Verification |
 | --- | --- | --- | --- | --- | --- |
 
-## Domain And DNS Retirement
+## Domain And DNS Transition Evidence
 
-| Domain Or Zone | Ownership Evidence | Zone Presence Check | Nameserver/Registry State | Direct Resolver Check | TTL/Cache Recovery Plan | Hidden Dependent Signal |
-| --- | --- | --- | --- | --- | --- | --- |
+| Domain Or Name | Ownership Evidence | Current Target | Replacement Target | Served-Environment Record Check | Direct Resolver Check | TTL/Cache Behavior | Hidden Dependent Signal | Rollback |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Backsliding Prevention
 
@@ -42,17 +42,17 @@
 | Policy | Deadline | Exception Path | Enforcement |
 | --- | --- | --- | --- |
 
-## Disable Before Delete
+## Disable And Observe
 
-| Stage | Watch Window | Success Criteria | Rollback |
-| --- | --- | --- | --- |
+| Legacy Path | Disable Or Quarantine Step | Watch Window | Success Criteria | Escape Hatch |
+| --- | --- | --- | --- | --- |
 
-## Disposal Handling
+## Terminal Decommission Handoff
 
-| Asset/Data/Path | Disposal Step | Verification |
+| Drive-Off Evidence | Responsibility Path | Handoff Evidence |
 | --- | --- | --- |
 
-## Final Retirement
+## Residual Surface Inventory
 
-| Check | Evidence | Owner | Date |
-| --- | --- | --- | --- |
+| Residual Surface | Category: Code/Config/Data/Credential/Name/Infrastructure/Pipeline/Monitoring/Runbook/Cost | Terminal Constraint Or Dependency | Resurrection Path | Evidence |
+| --- | --- | --- | --- | --- |

@@ -1,0 +1,41 @@
+{
+  "name": "sealos",
+  "version": "1.2.5",
+  "description": "DeepSeek Harness bundle that registers the Sealos skill pack on ctx.skills.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test.js"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "skills"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/labring/sealos-skills",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/labring/sealos-skills.git"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "sealos",
+    "deployment",
+    "kubernetes",
+    "agent-skills"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "yaml": "^2.4.2"
+  }
+}

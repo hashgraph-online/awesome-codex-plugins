@@ -979,6 +979,17 @@ def classify_jumper_default_state(value: str, lib_id: str = "",
     return "unknown"
 
 
+# KH-343: USB data lines (D+/D-) must not inherit the 5V VBUS fallback —
+# they're signal nets, not rails.
+USB_DATA_NET_MARKERS = ("USB_D", "USBDP", "USBDM", "USBDN", "DPLUS", "DMINUS")
+
+
+def is_usb_data_net_name(name_upper: str) -> bool:
+    """True if an upper-cased net name looks like a USB data line."""
+    return (any(m in name_upper for m in USB_DATA_NET_MARKERS)
+            or name_upper.endswith(("D+", "D-")))
+
+
 def is_power_net_name(net_name: str | None, power_rails: set[str] | None = None) -> bool:
     """Check if a net name looks like a power rail by naming convention.
 

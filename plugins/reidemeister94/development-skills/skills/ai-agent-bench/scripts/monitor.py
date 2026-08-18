@@ -18,7 +18,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 STALL_THRESHOLD_S = 10 * 60  # 10 min flat session.jsonl while agent:running
@@ -34,7 +34,7 @@ def _last_line(path: Path) -> str:
             except OSError:
                 f.seek(0)
             return f.readline().decode(errors="replace").rstrip()
-    except (OSError, FileNotFoundError):
+    except OSError, FileNotFoundError:
         return ""
 
 
@@ -44,8 +44,8 @@ def _phase_and_age(status_path: Path) -> tuple[str, float | None]:
         return "unknown", None
     ts_str, _, phase = line.partition("\t")
     try:
-        ts = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-        return phase.strip(), (datetime.now(timezone.utc) - ts).total_seconds()
+        ts = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+        return phase.strip(), (datetime.now(UTC) - ts).total_seconds()
     except ValueError:
         return phase.strip() or "unknown", None
 
@@ -74,7 +74,7 @@ def write_progress(run_dir: Path) -> None:
             parts = state.read_text().strip().split()
             prev_bytes = int(parts[0])
             prev_ts = float(parts[1])
-        except (ValueError, IndexError):
+        except ValueError, IndexError:
             pass
     now = time.time()
     flat_for = (now - prev_ts) if (session_bytes == prev_bytes and prev_ts) else 0.0
@@ -93,7 +93,7 @@ def write_progress(run_dir: Path) -> None:
 
     body = f"""# Trial progress
 
-Updated: `{datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}`
+Updated: `{datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}`
 
 | | |
 |---|---|
@@ -126,7 +126,7 @@ def main() -> int:
         except Exception as e:
             # Best-effort: never crash the sidecar; log and continue.
             (run_dir / "monitor.errors.log").open("a").write(
-                f"{datetime.now(timezone.utc).isoformat()}\t{type(e).__name__}\t{e}\n"
+                f"{datetime.now(UTC).isoformat()}\t{type(e).__name__}\t{e}\n"
             )
         time.sleep(args.interval)
 

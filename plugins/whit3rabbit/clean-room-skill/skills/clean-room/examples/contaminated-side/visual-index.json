@@ -1,0 +1,70 @@
+{
+  "index_id": "visual-index-task-example",
+  "task_id": "task-example",
+  "created_at": "2026-05-20T00:00:00Z",
+  "created_by_role": "controller-preflight",
+  "domain": "contaminated",
+  "generator": {
+    "name": "build_visual_index.py",
+    "version": "1",
+    "python_version": "3.x"
+  },
+  "limits": {
+    "max_files": 2000,
+    "max_file_bytes": 10000000,
+    "max_total_bytes": 100000000,
+    "max_batch_items": 20,
+    "ignore_dirs": [
+      ".git",
+      ".next",
+      ".venv",
+      "__pycache__",
+      "build",
+      "coverage",
+      "dist",
+      "node_modules",
+      "target",
+      "venv"
+    ]
+  },
+  "visual_roots": [
+    {
+      "root_id": "root-001",
+      "path": "authorized-screenshots"
+    }
+  ],
+  "images": [
+    {
+      "image_id": "image-000001",
+      "root_id": "root-001",
+      "path": "checkout/step-01.png",
+      "media_type": "image/png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1024,
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  ],
+  "recommended_batches": [
+    {
+      "batch_id": "batch-0001",
+      "image_ids": [
+        "image-000001"
+      ],
+      "image_count": 1,
+      "total_bytes": 1024,
+      "notes": "Visual evidence batch for contaminated-side review."
+    }
+  ],
+  "skipped_entries": [],
+  "aggregate_metrics": {
+    "image_count": 1,
+    "total_bytes": 1024,
+    "batch_count": 1,
+    "skipped_count": 0,
+    "skipped_entries_truncated": false,
+    "media_type_counts": {
+      "image/png": 1
+    }
+  }
+}

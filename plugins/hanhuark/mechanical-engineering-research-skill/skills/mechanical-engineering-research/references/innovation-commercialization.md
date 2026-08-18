@@ -27,7 +27,7 @@ Typical workflow:
    - Technology Ventures may notify inventors of filing, application number, publication, Notice of Allowance, and grant/active status.
    - When asked for current status, verify with official or public patent databases.
 
-Example case: US12591230B2, "Detecting or predicting system faults in cooling systems in a non-intrusive manner using deep learning," lists Han Hu, Hari Pandey, and Christy Dunlap as inventors. Google Patents shows filing on December 9, 2022, publication of US20230195094A1 on June 22, 2023, grant/publication of US12591230B2 on March 31, 2026, and active status. The local project history indicates invention disclosure materials in 2021, provisional filing support in 2022, and utility application filing in 2022/2023-era communications; when exact dates matter, verify against source documents and patent databases.
+When exact filing, publication, allowance, grant, assignment, or active-status facts matter, verify them against official records and current public patent databases. Do not embed a private local history or one named invention as generic skill guidance.
 
 ## Inventor Packet Checklist
 

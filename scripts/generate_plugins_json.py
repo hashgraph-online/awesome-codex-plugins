@@ -18,6 +18,7 @@ import io
 import json
 import re
 import shutil
+import sys
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -44,6 +45,10 @@ OPTIONAL_PLUGIN_FILES = (
     "yarn.lock",
     ".codexignore",
     ".agents/plugins/marketplace.json",
+    "SKILL.md",
+    ".github/dependabot.yml",
+    "codex.mcp.json",
+    ".mcp.json",
   )
 METADATA_ONLY_MIRROR_REPOS = {
     # EOC's repo-root Codex plugin references a large skills/commands catalog.
@@ -52,6 +57,9 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
+    # invoke sibling Python scripts in the same hooks/ directory at runtime.
+    "bcanfield/agentic-tech-debt": ("hooks",),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
@@ -106,7 +114,7 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
 
         owner, repo = plugin_match.group(3), plugin_match.group(4)
         repo = repo.removesuffix(".git")
-        key = f"{owner}/{repo}"
+        key = f"{owner}/{repo}/{plugin_match.group(1)}"
         if key in seen:
             continue
         seen.add(key)
@@ -122,6 +130,16 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
                 "install_url": f"https://raw.githubusercontent.com/{owner}/{repo}/{RAW_DEFAULT_BRANCH_REF}/.codex-plugin/plugin.json",
             }
         )
+
+    repo_counts: dict[str, int] = {}
+    for plugin in plugins:
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        repo_counts[owner_repo] = repo_counts.get(owner_repo, 0) + 1
+
+    for plugin in plugins:
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        if repo_counts[owner_repo] > 1:
+            plugin["_mirror_subpath"] = "true"
 
     return plugins
 
@@ -144,11 +162,40 @@ def fetch_repo_archive(owner: str, repo: str) -> zipfile.ZipFile:
     raise last_error
 
 
-def resolve_plugin_root(names: set[str]) -> PurePosixPath:
-    for name in sorted(names):
-        if name.endswith("/.codex-plugin/plugin.json"):
-            return PurePosixPath(name).parent.parent
-    raise ValueError("Archive does not contain .codex-plugin/plugin.json")
+def normalize_match_key(value: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def find_plugin_roots(names: set[str]) -> list[PurePosixPath]:
+    return [
+        PurePosixPath(name).parent.parent
+        for name in sorted(names)
+        if name.endswith("/.codex-plugin/plugin.json")
+    ]
+
+
+def resolve_plugin_root(archive: zipfile.ZipFile, names: set[str], plugin: dict[str, str]) -> PurePosixPath:
+    roots = find_plugin_roots(names)
+    if not roots:
+        raise ValueError("Archive does not contain .codex-plugin/plugin.json")
+    if len(roots) == 1:
+        return roots[0]
+
+    expected = normalize_match_key(plugin["name"])
+    for root in roots:
+        manifest = load_manifest(archive, root)
+        interface = manifest.get("interface", {})
+        candidates = [
+            manifest.get("name"),
+            root.name,
+            plugin_root_relative_path(root).split("/")[-1],
+        ]
+        if isinstance(interface, dict):
+            candidates.extend([interface.get("displayName"), interface.get("shortDescription")])
+        if any(normalize_match_key(candidate) == expected for candidate in candidates):
+            return root
+
+    return roots[0]
 
 
 def load_manifest(archive: zipfile.ZipFile, plugin_root: PurePosixPath) -> dict[str, object]:
@@ -296,9 +343,9 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
     names = {name for name in archive.namelist() if not name.endswith("/")}
     try:
-        plugin_root = resolve_plugin_root(names)
+        plugin_root = resolve_plugin_root(archive, names, plugin)
     except ValueError:
-        raise ValueError(f"Archive for {owner_repo} does not contain .codex-plugin/plugin.json") from None
+        raise ValueError(f"Archive for {owner_repo} does not contain a matching .codex-plugin/plugin.json") from None
     manifest = load_manifest(archive, plugin_root)
     metadata_only = is_metadata_only_mirror(plugin)
     selected_paths = (
@@ -308,7 +355,11 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
     )
     mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
 
+    plugin_root_relative = plugin_root_relative_path(plugin_root)
+    use_subpath = plugin.get("_mirror_subpath") == "true"
     destination_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
+    if use_subpath and plugin_root_relative:
+        destination_root = destination_root / PurePosixPath(plugin_root_relative)
     # Clear destination to avoid stale files from previous runs (Thread 2 fix)
     if destination_root.exists():
         shutil.rmtree(destination_root)
@@ -326,7 +377,11 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         else:
             destination_path.write_bytes(archive.read(archive_name))
 
-    return mirrored_manifest, f"./plugins/{plugin['owner']}/{plugin['repo']}", plugin_root_relative_path(plugin_root)
+    marketplace_path = f"./plugins/{plugin['owner']}/{plugin['repo']}"
+    if use_subpath and plugin_root_relative:
+        marketplace_path = f"{marketplace_path}/{plugin_root_relative}"
+
+    return mirrored_manifest, marketplace_path, plugin_root_relative
 
 
 def build_marketplace_entry(
@@ -371,8 +426,15 @@ def write_json(path: Path, data: dict[str, object]) -> None:
 def main() -> None:
     plugins = parse_plugins(README)
     mirrored_entries: list[dict[str, object]] = []
+    skipped: list[str] = []
     for plugin in plugins:
-        manifest, marketplace_path, plugin_root_relative = mirror_plugin_bundle(plugin)
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        try:
+            manifest, marketplace_path, plugin_root_relative = mirror_plugin_bundle(plugin)
+        except Exception as e:
+            print(f"WARNING: Skipping {owner_repo} — {e}", file=sys.stderr)
+            skipped.append(owner_repo)
+            continue
         plugin["install_url"] = build_raw_manifest_url(plugin, plugin_root_relative)
 
         # Determine icon path if available and actually mirrored
@@ -392,11 +454,17 @@ def main() -> None:
                         rel = rel[1:]
                     candidate = f"{marketplace_path}/{rel}"
                     # Verify the file exists in the mirrored plugin directory
-                    abs_path = PLUGINS_ROOT / plugin["owner"] / plugin["repo"] / rel
+                    local_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
+                    if plugin.get("_mirror_subpath") == "true" and plugin_root_relative:
+                        local_root = local_root / PurePosixPath(plugin_root_relative)
+                    abs_path = local_root / rel
                     if abs_path.exists():
                         icon_path = candidate
 
         mirrored_entries.append(build_marketplace_entry(plugin, manifest, marketplace_path, icon_path))
+
+    # Filter out skipped plugins from public plugin list so counts stay accurate
+    ok_plugins = [p for p in plugins if f"{p['owner']}/{p['repo']}" not in skipped]
 
     marketplace = {
         "name": "awesome-codex-plugins",
@@ -405,19 +473,25 @@ def main() -> None:
         },
         "plugins": mirrored_entries,
     }
+    public_plugins = [
+        {key: value for key, value in plugin.items() if not key.startswith("_")}
+        for plugin in ok_plugins
+    ]
     plugins_json = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "name": "awesome-codex-plugins",
         "version": "1.0.0",
         "last_updated": datetime.date.today().isoformat(),
-        "total": len(plugins),
-        "categories": sorted({plugin["category"] for plugin in plugins}),
-        "plugins": plugins,
+        "total": len(ok_plugins),
+        "categories": sorted({plugin["category"] for plugin in ok_plugins}),
+        "plugins": public_plugins,
     }
 
     write_json(MARKETPLACE_OUTPUT, marketplace)
     write_json(OUTPUT, plugins_json)
-    print(f"Wrote {len(plugins)} plugins to {OUTPUT}")
+    print(f"Wrote {len(ok_plugins)} plugins to {OUTPUT}")
+    if skipped:
+        print(f"Skipped {len(skipped)} broken upstream(s): {', '.join(skipped)}", file=sys.stderr)
     print(f"Wrote curated marketplace to {MARKETPLACE_OUTPUT}")
 
 

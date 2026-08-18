@@ -2,7 +2,7 @@
 
 ## Route Budgets
 
-| Route | Input Token Cap | Output Token Cap | Hard-Cap Action | p95/p99 Latency | Time To First Token |
+| Route | Input Token Cap | Output Token Cap | Hard-Cap Action | p50/p95/p99 Latency | Time To First Token |
 | --- | --- | --- | --- | --- | --- |
 
 ## Model And Fallback Matrix
@@ -17,8 +17,8 @@
 
 ## Cache Strategy
 
-| Cache Layer | Scope | TTL | Invalidation | Target Hit Rate |
-| --- | --- | --- | --- | --- |
+| Cache Layer | Authorization Scope | Permission Version | Data Classification | Complete Key Inputs | TTL | Invalidation | Observed Or Target Hit Rate | Hit Reauthorization |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Retry, Timeout, And Idempotency
 
@@ -37,8 +37,8 @@
 
 ## Cost Attribution
 
-| Tag | Maps Spend To | Owner | Anomaly Threshold |
-| --- | --- | --- | --- |
+| Tag | Maps Spend To | Identifier/Privacy Rule | Prohibited Fields | Owner | Anomaly Threshold |
+| --- | --- | --- | --- | --- | --- |
 
 ## Rehearsal Plan
 

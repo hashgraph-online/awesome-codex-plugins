@@ -57,17 +57,6 @@ Produces the resiliency contract of a spec before code exists: non-functional ta
 
 Specify failure behavior, non-functional targets, and acceptance criteria up front, then hand each to its downstream specialist. Keep the spec short; each failure mode needs a defined behavior and a checkable criterion.
 
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
-
 ## Exceptions
 
 - Throwaway prototypes may record only the failure behaviors being intentionally ignored and the date they expire.

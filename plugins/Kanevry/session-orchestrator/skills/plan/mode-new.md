@@ -6,11 +6,11 @@
 
 ---
 
-## Phase 1: Requirement Gathering (3 waves, 15 questions)
+## Phase 1: Requirement Gathering (3 waves, 16 questions)
 
-Three waves of 5 questions each. Before each wave, dispatch 2-3 Explore agents in parallel to pre-research options. Synthesize agent results into AskUserQuestion calls (max 4 questions per call, so split 4+1 or 3+2 per wave).
+Wave 1 has 6 questions (incl. the User-Story toggle); Waves 2-3 have 5 each. Before each wave, dispatch 2-3 Explore agents in parallel to pre-research options. Synthesize agent results into AskUserQuestion calls (max 4 questions per call, so split 4+1 or 3+2 per wave). Wave 1 carries the 6th User-Story toggle question, so split it 3+3.
 
-### Wave 1 — Core Decisions (5 questions)
+### Wave 1 — Core Decisions (6 questions)
 
 **Pre-wave agents (dispatch in a single message):**
 
@@ -36,8 +36,9 @@ Agent({ subagent_type: "Explore", description: "Check ecosystem for conflicts",
 1. **Project archetype** — Options from `$BASELINE_PATH/templates/` directory. Present agent findings. Choices: Dynamically list directories in $BASELINE_PATH/templates/. Present each as an option via AskUserQuestion.
 2. **Visibility** — internal (GitLab private), private (+ optional GitHub mirror), public/OSS (+ GitHub public + license).
 3. **Target audience** — Options informed by market research agent. User selects or provides custom.
-4. **Core problem being solved** — Open-ended. Claude suggests structure if answer is vague.
-5. **GitLab group** — Discover available groups dynamically. Run `ls $BASELINE_PATH/templates/` for project types, and check for a groups config in `$BASELINE_PATH/config/` or use `glab group list` to discover GitLab groups. Present findings via AskUserQuestion.
+4. **User-Story-Schicht** — "User-Story-Schicht für dieses Feature erzeugen?" Immer fragen (kein Audience-Heuristik-Gate). Drei Antwortoptionen: **Ja (Als/möchte/damit)** — klassische Persona-Story-Form; **Ja (job-story)** — job-story-Form ("When [situation], I want [motivation], so I can [outcome]"); **Nein** — byte-identisches Status-quo-Verhalten. Bei einer der beiden "Ja"-Optionen emittiert die PRD eine optionale ## User Stories Sektion (je Story ein ↳ AC-Pointer) in der gewählten Form; bei "Nein" wird die Sektion vollständig weggelassen.
+5. **Core problem being solved** — Open-ended. Claude suggests structure if answer is vague.
+6. **GitLab group** — Discover available groups dynamically. Run `ls $BASELINE_PATH/templates/` for project types, and check for a groups config in `$BASELINE_PATH/config/` or run `glab api "groups?per_page=100&min_access_level=10"` to discover GitLab groups — read each entry's `full_path` field. (`glab` has no `group` subcommand at all — invoking one exits 1 with `Unknown command "group"`.) Present findings via AskUserQuestion.
 
 ### Wave 2 — Technical Details (5 questions, dynamic per archetype)
 
@@ -99,9 +100,10 @@ Agent({ subagent_type: "Explore", description: "Research success benchmarks",
 1. Read `prd-full-template.md` from this skill directory.
 2. Fill all 8 sections with gathered answers:
    - **Section 1 (Executive Summary):** Synthesize core problem + audience + archetype into a concise project pitch.
-   - **Section 2 (Problem & Context):** From Wave 1 Q3-Q4 answers. Include market research findings.
+   - **Section 2 (Problem & Context):** From Wave 1 Q3 + Q5 (core problem) answers. Include market research findings.
    - **Section 3 (Target Audience):** From Wave 1 Q3 + research agent output. Define 1-3 personas.
    - **Section 4 (Solution & Scope):** From Wave 3 Q1 (appetite) + Wave 2 tech decisions. Explicit **In-Scope MVP** and **Out-of-Scope** lists. This section drives issue creation in Phase 4.
+   - **## User Stories (conditional):** Emit only when the User-Story-Schicht toggle ≠ "Nein"; one story per persona-goal (from Section 3 personas), each linking ≥1 acceptance criterion. Toggle = "Ja (Als/möchte/damit)" → classic Als/möchte/damit form. Toggle = "Ja (job-story)" → job-story form ("When [situation], I want [motivation], so I can [outcome]"). Omit the section entirely when toggle = "Nein" (byte-for-byte status quo).
    - **Section 5 (Success Criteria):** From Wave 3 Q2. SMART table format: Metric | Target | Method | Deadline.
    - **Section 6 (Technical Architecture):** From Wave 1 Q1 (archetype) + Wave 2 (tech stack, integrations). Include schema sketch if DB is involved.
    - **Section 7 (Risks & Dependencies):** From Wave 3 Q3 + Q5. Table format: Risk | Probability | Impact | Mitigation.
@@ -127,6 +129,11 @@ Map gathered answers to script input choices:
 # 4. Map user's selected style name → numeric choice for STYLE_CHOICE (if applicable)
 # 5. Map user's selected group name → numeric choice for GROUP_CHOICE
 # Do NOT hardcode numeric mappings — they must be derived from the script.
+#
+# GROUP_CHOICE is a MENU INDEX, never a namespace. Keep the group's real
+# namespace in a separate variable — every later step addresses the project as
+# "<group-path>/<project>", and a numeric index there silently targets nothing.
+GROUP_PATH="$(...)"    # e.g., "products" — the full_path of the chosen group
 (
   echo "$TYPE_CHOICE"    # e.g., "1" for nextjs-saas
   echo "$STYLE_CHOICE"   # e.g., "1" for vega (only if nextjs-saas)
@@ -141,7 +148,7 @@ Map gathered answers to script input choices:
 Check exit code. Confirm repo exists:
 
 ```bash
-glab repo view $GROUP/$PROJECT_NAME
+glab repo view "$GROUP_PATH/$PROJECT_NAME"
 ```
 
 ### Step 3: Adjust visibility
@@ -149,8 +156,21 @@ glab repo view $GROUP/$PROJECT_NAME
 If visibility is not `internal` (the default):
 
 ```bash
-glab repo edit --visibility private   # or --visibility public
+# There is no `glab repo edit`, and `glab repo update` carries no --visibility
+# flag (its FLAGS are --archive/--defaultBranch/-d/--description). Go through the
+# API, addressing the project by its URL-encoded path — `projects/:id` resolves
+# from the CWD remote, which is the wrong project right after scaffolding.
+ENCODED="${GROUP_PATH}%2F${PROJECT_NAME}"
+glab api -X PUT "projects/${ENCODED}" -f visibility=private   # or visibility=public
+
+# Verify (this GET is the read-only proof the PUT landed). Note `glab api` has
+# no --jq flag — that is `gh api`'s. Pipe to jq instead.
+glab api "projects/${ENCODED}" | jq -r '.visibility'
 ```
+
+> The GET path above is verified against glab 1.91.0; the PUT is the documented
+> GitLab API shape but was **not** executed during authoring (write operations
+> were out of scope). Confirm with the GET before relying on it.
 
 For public/OSS, also configure GitHub mirror if applicable.
 
@@ -233,10 +253,10 @@ Score each issue using three factors:
 
 1. **Technical dependencies (highest weight):**
    - DB schema before API, API before frontend, shared libs before consumers.
-   - Issues that block others → `priority:critical` or `priority:high`.
+   - Issues that block others → `priority::critical` or `priority::high`.
 2. **Business value (medium weight):**
-   - Core MVP features → `priority:high`.
-   - Nice-to-haves → `priority:medium` or `priority:low`.
+   - Core MVP features → `priority::high`.
+   - Nice-to-haves → `priority::medium` or `priority::low`.
 3. **Risk (tiebreaker):**
    - Issues with identified risks from PRD Section 7 → bump up one level.
 
@@ -247,12 +267,12 @@ Use taxonomy from `setup-gitlab-groups.sh`:
 **Priority mapping for VCS labels:**
 | Categorization | VCS Label |
 |---|---|
-| P0 (critical path, blocking) | `priority:critical` |
-| P1 (high impact, needed soon) | `priority:high` |
-| P2 (medium, can wait) | `priority:medium` |
-| P3 (nice-to-have) | `priority:low` |
+| P0 (critical path, blocking) | `priority::critical` |
+| P1 (high impact, needed soon) | `priority::high` |
+| P2 (medium, can wait) | `priority::medium` |
+| P3 (nice-to-have) | `priority::low` |
 
-Always use the `priority:<level>` format in VCS CLI commands, not P0/P1/P2/P3.
+Always use the `priority::<level>` format in VCS CLI commands, not P0/P1/P2/P3.
 
 - **type:** feature, enhancement, bug, chore, docs
 - **status:** `status:ready`
@@ -272,12 +292,12 @@ Use AskUserQuestion to present the full issue structure:
 
 ```bash
 # Create epic
-glab issue create --title "$EPIC_TITLE" --description "$EPIC_DESC" \
-  --label "type:epic,priority:$PRIORITY" --milestone "$MILESTONE"
+glab issue create -R "$GROUP_PATH/$PROJECT_NAME" --title "$EPIC_TITLE" --description "$EPIC_DESC" \
+  --label "type:epic,priority::$PRIORITY" --milestone "$MILESTONE"
 
 # Create sub-issues
-glab issue create --title "$ISSUE_TITLE" --description "$ISSUE_DESC" \
-  --label "type:feature,priority:$PRIORITY,status:ready,area:$AREA,appetite:$APPETITE"
+glab issue create -R "$GROUP_PATH/$PROJECT_NAME" --title "$ISSUE_TITLE" --description "$ISSUE_DESC" \
+  --label "type:feature,priority::$PRIORITY,status:ready,area:$AREA,appetite:$APPETITE"
 ```
 
 ### Step 6: Set dependency links
@@ -291,3 +311,5 @@ glab api -X POST projects/:id/issues/:issue2_iid/links \
   -f target_issue_iid=:issue1_iid \
   -f link_type=is_blocked_by
 ```
+
+On HTTP 403 (non-Premium/Ultimate GitLab tier): fall back to `link_type=relates_to` + a body-ordering note — see gitlab-ops SKILL.md § "Issue Linking (`blocks` / `is_blocked_by`)".

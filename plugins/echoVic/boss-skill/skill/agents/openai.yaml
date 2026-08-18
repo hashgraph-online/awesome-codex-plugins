@@ -1,0 +1,6 @@
+interface:
+  display_name: Boss
+  short_description: "BMAD 全自动项目编排 Skill。从需求到部署的完整研发流水线。"
+  icon: 🚀
+  brand_color: "#007AFF"
+  invocation_policy: manual

@@ -12,8 +12,20 @@
 
 Выход: data/changes_report_{date}.html + data/snapshots/latest.json
 """
-import argparse, json, os, sys, time, datetime
+import argparse, hashlib, json, os, sys, time, datetime
 import urllib.request, urllib.error
+from dataclasses import asdict
+from pathlib import Path
+
+from check_access_paths import (
+    DirectAccess,
+    PageManifest,
+    PageResult,
+    atomic_write_json,
+    fetch_direct_pages,
+    fetch_direct_report,
+    load_direct_access,
+)
 
 API_V5 = "https://api.direct.yandex.com/json/v5"
 API_V501 = "https://api.direct.yandex.com/json/v501"
@@ -37,14 +49,19 @@ FIELD_LABELS = {
 
 # ==================== API HELPERS ====================
 
-def api_call(endpoint, method, params, token, login, version="v5"):
-    base = API_V501 if version == "v501" else API_V5
+def api_call(endpoint, method, params, token, login, version="v5", environment="production"):
+    host = "api-sandbox.direct.yandex.com" if environment == "sandbox" else "api.direct.yandex.com"
+    base = f"https://{host}/json/{version}"
     url = f"{base}/{endpoint}"
     body = json.dumps({"method": method, "params": params}).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Authorization": f"Bearer {token}", "Client-Login": login,
-        "Content-Type": "application/json", "Accept-Language": "ru",
-    })
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept-Language": "ru",
+    }
+    if login:
+        headers["Client-Login"] = login
+    req = urllib.request.Request(url, data=body, headers=headers)
     try:
         resp = urllib.request.urlopen(req)
         return json.loads(resp.read().decode())
@@ -65,49 +82,88 @@ def parse_tsv(tsv_text):
             for vals in (l.split("\t") for l in lines[1:])]
 
 
-def fetch_paginated(endpoint, method, params, result_key, token, login, version="v5"):
-    all_items = []
-    offset = 0
-    while True:
-        p = json.loads(json.dumps(params))
-        p["Page"] = {"Limit": 10000, "Offset": offset}
-        r = api_call(endpoint, method, p, token, login, version)
-        if not r:
-            break
-        if "error" in r:
-            print(f"  API error {endpoint}: {r['error']}", file=sys.stderr, flush=True)
-            break
-        if "result" not in r:
-            break
-        items = r["result"].get(result_key, [])
-        all_items.extend(items)
-        limited = r["result"].get("LimitedBy")
-        if not limited or not items:
-            break
-        offset = limited
-        time.sleep(0.3)
-    return all_items
+def fetch_paginated(endpoint, method, params, result_key, token, login, version="v5", environment="production"):
+    if method != "get":
+        raise RuntimeError("Трекер изменений допускает только чтение get")
+    access = DirectAccess(token=token, client_login=login, environment=environment)
+
+    def requester(_access, service, page):
+        payload = api_call(service, "get", page, token, login, version, environment)
+        if not payload:
+            raise RuntimeError(f"Неполный ответ {service}.get")
+        if payload.get("error"):
+            raise RuntimeError(f"Ошибка чтения {service}.get")
+        if "result" not in payload:
+            raise RuntimeError(f"Нет результата {service}.get")
+        return payload
+
+    return fetch_direct_pages(
+        access,
+        endpoint,
+        params,
+        result_key,
+        version=version,
+        requester=requester,
+    )
 
 
-def fetch_batched(endpoint, method, params_fn, result_key, cids, batch_size, token, login, version="v5"):
+def fetch_batched(endpoint, method, params_fn, result_key, cids, batch_size, token, login, version="v5", environment="production"):
     all_items = []
+    pages = 0
+    complete = True
+    error = ""
     for i in range(0, len(cids), batch_size):
         batch = cids[i:i+batch_size]
         params = params_fn(batch)
-        items = fetch_paginated(endpoint, method, params, result_key, token, login, version)
-        all_items.extend(items)
+        result = fetch_paginated(endpoint, method, params, result_key, token, login, version, environment)
+        pages += result.manifest.pages
+        all_items.extend(result.rows)
+        if not result.manifest.complete:
+            complete = False
+            error = result.manifest.error
+            break
         time.sleep(0.3)
-    return all_items
+    checksum = hashlib.sha256(
+        json.dumps(all_items, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return PageResult(
+        rows=all_items,
+        manifest=PageManifest(endpoint, result_key, pages, len(all_items), complete, checksum, error),
+    )
 
 
-def fetch_modified_ids(token, login, cids, days):
+def require_complete(result, name, manifest_path, sources):
+    sources[name] = asdict(result.manifest)
+    complete = all(bool(item.get("complete")) for item in sources.values())
+    checksum = hashlib.sha256(
+        json.dumps(sources, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    atomic_write_json(manifest_path, {"complete": complete, "sources": sources, "checksum": checksum})
+    if not result.manifest.complete:
+        raise RuntimeError(f"Неполная выгрузка {name}: {result.manifest.error}")
+    return result.rows
+
+
+def completed_result(service, result_key, rows, pages=1):
+    serializable = list(rows)
+    checksum = hashlib.sha256(
+        json.dumps(serializable, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return PageResult(
+        rows=serializable,
+        manifest=PageManifest(service, result_key, pages, len(serializable), True, checksum),
+    )
+
+
+def fetch_modified_ids(token, login, cids, days, environment="production"):
     """Changes API: checkCampaigns + check → точные ID изменённых сущностей."""
     ts = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
     mod_camps, mod_groups, mod_ads = set(), set(), set()
+    pages = 1
 
-    r1 = api_call("changes", "checkCampaigns", {"Timestamp": ts}, token, login)
+    r1 = api_call("changes", "checkCampaigns", {"Timestamp": ts}, token, login, environment=environment)
     if not r1 or "result" not in r1:
-        return mod_camps, mod_groups, mod_ads
+        raise RuntimeError("Changes API не вернул полный список кампаний")
 
     our_cids = set(cids)
     children_cids = []
@@ -123,22 +179,24 @@ def fetch_modified_ids(token, login, cids, days):
 
     # Точные ID групп/объявлений через check (до 3000 за раз)
     for i in range(0, len(children_cids), 3000):
+        pages += 1
         batch = children_cids[i:i + 3000]
         r2 = api_call("changes", "check", {
             "CampaignIds": batch,
             "FieldNames": ["AdGroupIds", "AdIds"],
             "Timestamp": ts,
-        }, token, login)
-        if r2 and "result" in r2:
-            mod = r2["result"].get("Modified", {})
-            mod_groups.update(mod.get("AdGroupIds", []))
-            mod_ads.update(mod.get("AdIds", []))
+        }, token, login, environment=environment)
+        if not r2 or "result" not in r2:
+            raise RuntimeError("Changes API не вернул полный список изменённых объектов")
+        mod = r2["result"].get("Modified", {})
+        mod_groups.update(mod.get("AdGroupIds", []))
+        mod_ads.update(mod.get("AdIds", []))
         time.sleep(0.5)
 
-    return mod_camps, mod_groups, mod_ads
+    return mod_camps, mod_groups, mod_ads, pages
 
 
-def get_report_bulk(report_type, fields, date_from, date_to, token, login, name="", with_goals=True):
+def get_report_bulk(report_type, fields, date_from, date_to, token, login, output_dir, name="", with_goals=True, environment="production"):
     report_name = f"ct3_{report_type}_{name}_{int(time.time())}"
     params = {
         "SelectionCriteria": {"DateFrom": date_from, "DateTo": date_to},
@@ -149,31 +207,16 @@ def get_report_bulk(report_type, fields, date_from, date_to, token, login, name=
     if with_goals and GOAL_ID:
         params["Goals"] = [GOAL_ID]
         params["AttributionModels"] = ["LC"]
-    body = {"params": params}
-    for _ in range(15):
-        req = urllib.request.Request(f"{API_V5}/reports", data=json.dumps(body).encode(), headers={
-            "Authorization": f"Bearer {token}", "Client-Login": login,
-            "Content-Type": "application/json", "processingMode": "auto",
-            "returnMoneyInMicros": "false", "skipReportHeader": "true", "skipReportSummary": "true"
-        })
-        try:
-            resp = urllib.request.urlopen(req)
-            if resp.status in (201, 202):
-                time.sleep(int(resp.headers.get("retryIn", 5)))
-                continue
-            return resp.read().decode()
-        except urllib.error.HTTPError as e:
-            if e.code in (201, 202):
-                time.sleep(int(e.headers.get("retryIn", 5)))
-                continue
-            if e.code == 400 and with_goals:
-                return get_report_bulk(report_type, fields, date_from, date_to, token, login, name + "_ng", with_goals=False)
-            print(f"  REPORT ERROR {e.code}", file=sys.stderr, flush=True)
-            return None
-    return None
+    access = DirectAccess(token=token, client_login=login, environment=environment)
+    state = fetch_direct_report(access, params, Path(output_dir))
+    if state.get("http_status") == 400 and with_goals:
+        return get_report_bulk(report_type, fields, date_from, date_to, token, login, output_dir, name + "_ng", with_goals=False, environment=environment)
+    if state.get("status") != "ready":
+        raise RuntimeError(f"Reports API не подготовил отчёт: {state.get('status')}")
+    return Path(state["artifact_path"]).read_text(encoding="utf-8")
 
 
-def fetch_image_urls(token, login, hashes):
+def fetch_image_urls(token, login, hashes, environment="production"):
     if not hashes:
         return {}
     url_map = {}
@@ -182,11 +225,12 @@ def fetch_image_urls(token, login, hashes):
         r = api_call("adimages", "get", {
             "SelectionCriteria": {"AdImageHashes": batch},
             "FieldNames": ["AdImageHash", "OriginalUrl"],
-        }, token, login)
+        }, token, login, environment=environment)
         time.sleep(0.3)
-        if r and "result" in r:
-            for img in r["result"].get("AdImages", []):
-                url_map[img["AdImageHash"]] = img.get("OriginalUrl", "")
+        if not r or "result" not in r:
+            raise RuntimeError("Неполная выгрузка изображений")
+        for img in r["result"].get("AdImages", []):
+            url_map[img["AdImageHash"]] = img.get("OriginalUrl", "")
     return url_map
 
 
@@ -248,7 +292,7 @@ def build_snapshot(all_camps, all_groups, all_ads, all_keywords):
     return snap
 
 
-def save_snapshot(data_dir, snap):
+def save_snapshot(data_dir, snap, retention_days=90):
     snap["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
     snap_dir = os.path.join(data_dir, "snapshots")
     os.makedirs(snap_dir, exist_ok=True)
@@ -261,7 +305,12 @@ def save_snapshot(data_dir, snap):
     # Сохраняем новый
     with open(latest_path, "w", encoding="utf-8") as f:
         json.dump(snap, f, ensure_ascii=False)
-    # Все бэкапы хранятся (~2.8 МБ каждый)
+    os.chmod(latest_path, 0o600)
+    cutoff = time.time() - max(1, retention_days) * 86400
+    for name in os.listdir(snap_dir):
+        candidate = os.path.join(snap_dir, name)
+        if name.startswith("snap_") and name.endswith(".json") and os.path.getmtime(candidate) < cutoff:
+            os.unlink(candidate)
     return latest_path
 
 
@@ -873,16 +922,22 @@ document.addEventListener('DOMContentLoaded', () => { filterState(); });
 # ==================== MAIN ====================
 
 def main():
+    os.umask(0o077)
     p = argparse.ArgumentParser(description="Трекер изменений Яндекс.Директ v3 — BULK + Snapshots")
     p.add_argument("--campaign-ids", help="ID кампаний через запятую (если не указать — ВСЕ)")
     p.add_argument("--days", type=int, default=90, help="Период анализа (дней)")
-    p.add_argument("--token", required=True)
-    p.add_argument("--login", required=True)
+    p.add_argument("--access-file", help="Защищённый файл доступа Директа")
     p.add_argument("--data-dir", default="./data")
     p.add_argument("--output", help="Путь к HTML")
     p.add_argument("--goal-id", default="", help="Primary goal ID for report metrics")
+    p.add_argument("--retention-days", type=int, default=90, help="Срок хранения старых снимков")
     args = p.parse_args()
-    token, login = args.token, args.login
+    access = load_direct_access(args.access_file)
+    token, login = access.token, access.client_login
+    data_dir = Path(args.data_dir).expanduser().resolve()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    collection_manifest_path = data_dir / "change-tracker-collection-manifest.json"
+    collection_sources = {}
     global GOAL_ID
     if args.goal_id:
         GOAL_ID = args.goal_id
@@ -892,11 +947,14 @@ def main():
         cids = [int(x.strip()) for x in args.campaign_ids.split(",")]
     else:
         print("Получаю список ВСЕХ кампаний аккаунта...", flush=True)
-        r = api_call("campaigns", "get", {
+        campaign_index = fetch_paginated("campaigns", "get", {
             "SelectionCriteria": {"States": ["ON", "SUSPENDED", "OFF", "ENDED"]},
             "FieldNames": ["Id", "Name"],
-        }, token, login, version="v501")
-        cids = [c["Id"] for c in (r or {}).get("result", {}).get("Campaigns", [])]
+        }, "Campaigns", token, login, version="v501", environment=access.environment)
+        campaign_index_rows = require_complete(
+            campaign_index, "campaign_index", collection_manifest_path, collection_sources
+        )
+        cids = [c["Id"] for c in campaign_index_rows]
         print(f"Найдено {len(cids)} кампаний", flush=True)
         time.sleep(0.5)
 
@@ -910,16 +968,28 @@ def main():
 
     # 1. Changes API — точные ID
     print("1/7 Changes API (checkCampaigns + check)...", flush=True)
-    mod_camps, mod_groups, mod_ads = fetch_modified_ids(token, login, cids, args.days)
+    mod_camps, mod_groups, mod_ads, changes_pages = fetch_modified_ids(token, login, cids, args.days, access.environment)
+    require_complete(
+        completed_result(
+            "changes", "ModifiedIds",
+            [{"kind": "campaign", "id": value} for value in sorted(mod_camps)]
+            + [{"kind": "adgroup", "id": value} for value in sorted(mod_groups)]
+            + [{"kind": "ad", "id": value} for value in sorted(mod_ads)],
+            pages=changes_pages,
+        ),
+        "changes",
+        collection_manifest_path,
+        collection_sources,
+    )
     print(f"     Кампаний: {len(mod_camps)}, Групп: {len(mod_groups)}, Объявлений: {len(mod_ads)}", flush=True)
     time.sleep(1)
 
     # 2. BULK: Кампании
     print("2/7 Кампании (bulk)...", flush=True)
-    all_camps = fetch_paginated("campaigns", "get", {
+    all_camps = require_complete(fetch_paginated("campaigns", "get", {
         "SelectionCriteria": {"Ids": cids},
         "FieldNames": ["Id", "Name", "Status", "State", "StartDate", "DailyBudget", "NegativeKeywords"],
-    }, "Campaigns", token, login, "v501")
+    }, "Campaigns", token, login, "v501", access.environment), "campaigns", collection_manifest_path, collection_sources)
     camps_by_id = {c["Id"]: c for c in all_camps}
     visible_cids = [cid for cid in cids if cid in camps_by_id]
     print(f"     {len(all_camps)} видимых, {len(cids) - len(all_camps)} невидимых (МК/баннер)", flush=True)
@@ -927,10 +997,11 @@ def main():
 
     # 3. BULK: Группы
     print("3/7 Группы (батч по 10)...", flush=True)
-    all_groups = fetch_batched("adgroups", "get",
+    groups_result = fetch_batched("adgroups", "get",
         lambda b: {"SelectionCriteria": {"CampaignIds": b},
                    "FieldNames": ["Id", "Name", "CampaignId", "Status", "RegionIds", "NegativeKeywords"]},
-        "AdGroups", visible_cids, 10, token, login, "v501") if visible_cids else []
+        "AdGroups", visible_cids, 10, token, login, "v501", access.environment) if visible_cids else completed_result("adgroups", "AdGroups", [], 0)
+    all_groups = require_complete(groups_result, "adgroups", collection_manifest_path, collection_sources)
     groups_by_camp = {}
     groups_by_id = {}
     for g in all_groups:
@@ -941,12 +1012,13 @@ def main():
 
     # 4. BULK: Объявления
     print("4/7 Объявления (батч по 10)...", flush=True)
-    all_ads = fetch_batched("ads", "get",
+    ads_result = fetch_batched("ads", "get",
         lambda b: {"SelectionCriteria": {"CampaignIds": b},
                    "FieldNames": ["Id", "AdGroupId", "CampaignId", "Status", "State", "Type"],
                    "TextAdFieldNames": ["Title", "Title2", "Text", "Href", "DisplayUrlPath",
                                         "AdImageHash", "SitelinkSetId", "Mobile", "AdExtensions"]},
-        "Ads", visible_cids, 10, token, login, "v501") if visible_cids else []
+        "Ads", visible_cids, 10, token, login, "v501", access.environment) if visible_cids else completed_result("ads", "Ads", [], 0)
+    all_ads = require_complete(ads_result, "ads", collection_manifest_path, collection_sources)
     ads_by_camp = {}
     for a in all_ads:
         ads_by_camp.setdefault(a["CampaignId"], []).append(a)
@@ -955,10 +1027,11 @@ def main():
 
     # 5. BULK: Ключевые слова
     print("5/7 Ключевые слова (батч по 10)...", flush=True)
-    all_keywords = fetch_batched("keywords", "get",
+    keywords_result = fetch_batched("keywords", "get",
         lambda b: {"SelectionCriteria": {"CampaignIds": b},
                    "FieldNames": ["Id", "Keyword", "AdGroupId", "Status", "State"]},
-        "Keywords", visible_cids, 10, token, login) if visible_cids else []
+        "Keywords", visible_cids, 10, token, login, "v5", access.environment) if visible_cids else completed_result("keywords", "Keywords", [], 0)
+    all_keywords = require_complete(keywords_result, "keywords", collection_manifest_path, collection_sources)
     gid_to_cid = {g["Id"]: g["CampaignId"] for g in all_groups}
     kws_by_camp = {}
     for k in all_keywords:
@@ -974,7 +1047,15 @@ def main():
         a.get("TextAd", {}).get("AdImageHash", "") for a in all_ads
         if a.get("TextAd", {}).get("AdImageHash")
     ))
-    img_urls = fetch_image_urls(token, login, all_hashes) if all_hashes else {}
+    img_urls = fetch_image_urls(token, login, all_hashes, access.environment) if all_hashes else {}
+    require_complete(
+        completed_result("adimages", "AdImages", [
+            {"hash": value, "url_present": bool(img_urls.get(value))} for value in sorted(all_hashes)
+        ], pages=(len(all_hashes) + 49) // 50),
+        "adimages",
+        collection_manifest_path,
+        collection_sources,
+    )
     print(f"     {len(all_hashes)} хешей → {len(img_urls)} URL", flush=True)
     time.sleep(0.5)
 
@@ -1009,13 +1090,11 @@ def main():
                     old_hashes.add(d["old"])
         if old_hashes:
             print(f"  Загрузка {len(old_hashes)} старых изображений...", flush=True)
-            old_urls = fetch_image_urls(token, login, list(old_hashes))
+            old_urls = fetch_image_urls(token, login, list(old_hashes), access.environment)
             img_urls.update(old_urls)
             time.sleep(0.5)
 
-    # Сохраняем новый снимок
-    snap_path = save_snapshot(args.data_dir, cur_snap)
-    print(f"  Снимок сохранён: {snap_path}", flush=True)
+    # Новый снимок сохраняется только после полной выгрузки отчётов ниже.
 
     # 7. Reports API: статистика до/после снимка
     print("\n7/7 Reports API...", flush=True)
@@ -1046,13 +1125,13 @@ def main():
                    "Conversions", "CostPerConversion"]
 
     print("     camp before...", flush=True)
-    tsv_cb = get_report_bulk("CAMPAIGN_PERFORMANCE_REPORT", camp_fields, full_from, before_to, token, login, "bef")
+    tsv_cb = get_report_bulk("CAMPAIGN_PERFORMANCE_REPORT", camp_fields, full_from, before_to, token, login, data_dir, "bef", environment=access.environment)
     time.sleep(2)
     print("     camp after...", flush=True)
-    tsv_ca = get_report_bulk("CAMPAIGN_PERFORMANCE_REPORT", camp_fields, after_from, yesterday.isoformat(), token, login, "aft")
+    tsv_ca = get_report_bulk("CAMPAIGN_PERFORMANCE_REPORT", camp_fields, after_from, yesterday.isoformat(), token, login, data_dir, "aft", environment=access.environment)
     time.sleep(2)
     print("     groups...", flush=True)
-    tsv_gp = get_report_bulk("ADGROUP_PERFORMANCE_REPORT", grp_fields, full_from, yesterday.isoformat(), token, login, "grp")
+    tsv_gp = get_report_bulk("ADGROUP_PERFORMANCE_REPORT", grp_fields, full_from, yesterday.isoformat(), token, login, data_dir, "grp", environment=access.environment)
     time.sleep(2)
 
     # Parse reports
@@ -1082,6 +1161,22 @@ def main():
             "impressions": int(num("Impressions")), "clicks": int(num("Clicks")),
             "cost": num("Cost"), "ctr": num("Ctr"),
             "conversions": num("Conversions"), "cpa": num("CostPerConversion")}
+
+    require_complete(
+        completed_result("reports", "CampaignBeforeRows", parse_tsv(tsv_cb)),
+        "report_campaign_before", collection_manifest_path, collection_sources,
+    )
+    require_complete(
+        completed_result("reports", "CampaignAfterRows", parse_tsv(tsv_ca)),
+        "report_campaign_after", collection_manifest_path, collection_sources,
+    )
+    require_complete(
+        completed_result("reports", "AdGroupRows", parse_tsv(tsv_gp)),
+        "report_adgroups", collection_manifest_path, collection_sources,
+    )
+
+    snap_path = save_snapshot(args.data_dir, cur_snap, args.retention_days)
+    print(f"  Снимок сохранён: {os.path.basename(snap_path)}", flush=True)
 
     print(f"     camp_before: {len(camp_perf_before)}, camp_after: {len(camp_perf_after)}, grp: {len(grp_perf_all)}", flush=True)
 

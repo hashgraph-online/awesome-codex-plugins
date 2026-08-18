@@ -1,0 +1,3 @@
+display_name: Codex 项目总控
+short_description: 管理项目目标、任务队列、阶段和决策闸门。
+default_prompt: 进入总控模式。请读取项目真相源文件，判断当前状态，并给出下一步唯一任务。

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Bevy State Flow"
+  short_description: "Structure Bevy game states"
+  default_prompt: "Use $rust-bevy-state-flow to add menu, loading, and gameplay states to this Bevy project."

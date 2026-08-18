@@ -6,7 +6,7 @@ for checks that span the schematic-PCB boundary: connector current capacity,
 ESD coverage gaps, decoupling adequacy, and schematic/PCB cross-validation.
 
 Usage:
-    python3 cross_analysis.py --schematic sch.json --pcb pcb.json [--output cross.json]
+    python3 cross_analysis.py --schematic sch.json --pcb pcb.json [--output cross_analysis.json]
     python3 cross_analysis.py --schematic sch.json  # PCB-less mode (limited checks)
     python3 cross_analysis.py --schema               # Print output schema
 """
@@ -23,9 +23,14 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from finding_schema import make_finding, compute_trust_summary
+from finding_schema import make_finding, compute_trust_summary, assign_finding_ids
 from kicad_utils import build_net_id_map as _build_net_id_map
+from envelopes.cross_analysis import CrossAnalysisEnvelope
+from schema_codec import emit_schema
+from inputs_builder import build_inputs, build_upstream_artifact, build_compat
+from capability_mode import get_capability_mode_ref
 
+ANALYZER_SOURCE = "cross"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -224,7 +229,8 @@ def check_connector_current(schematic: dict, pcb: dict | None) -> list[dict]:
                     components=[ref], nets=[net_name],
                     recommendation=f'Widen trace on {net_name} to >= {min_w:.1f}mm or use copper pour.',
                     standard_ref='IPC-2152', impact='Trace overheating and voltage drop',
-                ))
+                
+                    source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -300,7 +306,8 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None) -> list[dict]:
                     'basis': 'IEC 61000-4-2 requires ESD protection on accessible pins',
                 },
                 standard_ref='IEC 61000-4-2', impact='ESD damage on unprotected pins',
-            ))
+            
+                source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -349,7 +356,8 @@ def check_decoupling_adequacy(schematic: dict, pcb: dict | None) -> list[dict]:
                     'basis': 'One 100nF per IC power pin pair minimum',
                 },
                 impact='Increased power supply noise and EMI',
-            ))
+            
+                source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -382,7 +390,8 @@ def check_cross_validation(schematic: dict, pcb: dict | None) -> list[dict]:
             components=sorted(real_missing)[:20],
             recommendation='Update PCB from schematic (Tools > Update PCB from Schematic).',
             impact='Missing components on manufactured board',
-        ))
+        
+            source=ANALYZER_SOURCE,))
 
     # XV-001: Components in PCB but not schematic
     real_extra = {r for r in in_pcb_not_sch if not r.startswith(('TP', 'MH', 'NT', 'FID', 'H', 'G'))}
@@ -394,16 +403,27 @@ def check_cross_validation(schematic: dict, pcb: dict | None) -> list[dict]:
             severity='info', confidence='deterministic', evidence_source='topology',
             components=sorted(real_extra)[:20],
             recommendation='Verify these are intentional (mounting holes, test points, fiducials).',
-        ))
+        
+            source=ANALYZER_SOURCE,))
 
     # XV-002: Value consistency
     pcb_fp_map = {fp.get('reference', ''): fp for fp in pcb.get('footprints', [])}
     sch_comp_map = {c.get('reference', ''): c for c in schematic.get('components', [])}
     for ref in sch_refs & pcb_refs:
         sch_val = sch_comp_map.get(ref, {}).get('value', '')
-        pcb_val = pcb_fp_map.get(ref, {}).get('value', '')
+        pcb_fp = pcb_fp_map.get(ref, {})
+        pcb_val = pcb_fp.get('value', '')
+        # KH-326: skip cross-check if either value is malformed (not a string).
+        # Parser edge case in analyze_pcb.py footprint parsing can yield a list.
+        if not isinstance(sch_val, str) or not isinstance(pcb_val, str):
+            continue
         if sch_val and pcb_val and sch_val != pcb_val:
             if sch_val.replace(' ', '') == pcb_val.replace(' ', ''):
+                continue
+            # Skip when the PCB "value" is actually the footprint library name
+            # (never synced from schematic — KiCad default on fresh placement)
+            pcb_footprint = pcb_fp.get('footprint', '')
+            if pcb_val == pcb_footprint or pcb_val == pcb_footprint.split(':')[-1]:
                 continue
             findings.append(make_finding(
                 detector='check_cross_validation', rule_id='XV-002', category='design_sync',
@@ -413,7 +433,8 @@ def check_cross_validation(schematic: dict, pcb: dict | None) -> list[dict]:
                 components=[ref],
                 recommendation='Sync PCB with schematic to resolve value differences.',
                 impact='Wrong component may be placed during assembly',
-            ))
+            
+                source=ANALYZER_SOURCE,))
 
     return findings
 
@@ -475,7 +496,8 @@ def check_critical_net_routing(schematic, pcb):
             nets=[net_name],
             recommendation=f'Re-route {net_name} at least {_EDGE_DISTANCE_WARN_MM}mm from board edges.',
             impact='Increased EMI radiation and susceptibility',
-        ))
+        
+            source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -518,7 +540,8 @@ def check_return_path_enhanced(schematic, pcb):
                         nets=[net_name],
                         recommendation='Re-route signal to avoid reference plane gaps.',
                         impact='Increased loop area and EMI',
-                    ))
+                    
+                        source=ANALYZER_SOURCE,))
         return findings
     flagged = set()
     for seg in segments:
@@ -552,7 +575,8 @@ def check_return_path_enhanced(schematic, pcb):
                     nets=[net_name, gap['net']],
                     recommendation=f'Re-route {net_name} to avoid the {gap["net"]} plane gap, or bridge with a stitching capacitor.',
                     impact='Increased EMI from enlarged return path loop',
-                ))
+                
+                    source=ANALYZER_SOURCE,))
                 flagged.add(net_name)
                 break
     return findings
@@ -608,7 +632,8 @@ def check_trace_width_power(schematic, pcb):
                 recommendation=f'Widen {net_name} traces to >= {min_w:.1f}mm or use copper pour.',
                 fix_params={'type': 'resistor_value_change', 'change': f'trace width -> {min_w:.1f}mm', 'basis': f'IPC-2152: {current:.1f}A'},
                 standard_ref='IPC-2152', impact='Trace overheating and voltage drop',
-            ))
+            
+                source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -673,9 +698,15 @@ def check_plane_splits(schematic, pcb):
             description=f'{plane_net} plane has {graph["islands"]} disconnected islands.{desc_signals}',
             severity=severity, confidence='deterministic', evidence_source='topology',
             nets=[plane_net] + crossing_signals_rpc[:5],
-            recommendation='Bridge the plane gap with copper pour or stitching vias.',
+            recommendation=(
+                'Bridge the plane gap with copper pour or stitching vias. '
+                'If zones were modified after the last fill, run KiCad '
+                'Edit → Fill All Zones (B) and re-run the analyzer first — '
+                'stale zone fills are a common cause of apparent plane splits.'
+            ),
             impact='Return path discontinuity increases EMI',
-        ))
+
+            source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -724,7 +755,8 @@ def check_via_stitching_density(schematic, pcb):
             severity='warning', confidence='deterministic', evidence_source='topology',
             recommendation=f'Add ground stitching vias at <= {max_spacing_mm:.0f}mm spacing.',
             impact='Poor ground plane connectivity between layers',
-        ))
+        
+            source=ANALYZER_SOURCE,))
         return findings
     cell_size = max_spacing_mm
     if cell_size <= 0:
@@ -749,7 +781,8 @@ def check_via_stitching_density(schematic, pcb):
             confidence='heuristic', evidence_source='topology',
             recommendation=f'Add ground stitching vias at <= {max_spacing_mm:.0f}mm intervals.',
             impact='Degraded ground plane connectivity at high frequencies',
-        ))
+        
+            source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -767,36 +800,38 @@ _DIFF_PAIR_SUFFIXES = [
 
 
 def _find_diff_pairs(net_names, schematic):
+    """Return pairs of net names that are explicitly marked differential.
+
+    F7: The previous implementation had a suffix-only fallback loop that
+    paired any nets matching `<base>P`/`<base>N` regardless of whether the
+    schematic analyzer had identified them as a real differential interface.
+    On gate-driver designs (INH/INL, HIN/LIN) and op-amp current-sense
+    circuits (OUTP/OUTN, INP/INN) this fired DP-005 on every conventional
+    naming pair. The fallback is gone — DP-005 now only fires when
+    ``schematic['net_classifications'][<net>]['differential']`` is True
+    for both endpoints. Conservative loss: any genuine diff pair the
+    schematic analyzer failed to classify won't get a DP-005 finding.
+    But every real differential interface (USB / LVDS / Ethernet / HDMI /
+    CAN / etc.) is already classified by `_build_net_classifications`, so
+    the loss is small relative to the false-positive reduction.
+    """
     pairs = []
+    if not schematic:
+        return pairs
+    classifications = schematic.get('net_classifications', {})
+    diff_nets = [n for n, c in classifications.items() if c.get('differential')]
+    if not diff_nets:
+        return pairs
     seen = set()
-    if schematic:
-        classifications = schematic.get('net_classifications', {})
-        diff_nets = [n for n, c in classifications.items() if c.get('differential')]
-        for p_pat, n_pat in _DIFF_PAIR_SUFFIXES:
-            for net in diff_nets:
-                if net in seen:
-                    continue
-                m = p_pat.match(net)
-                if m:
-                    base = m.group(1)
-                    for net2 in diff_nets:
-                        if net2 in seen:
-                            continue
-                        m2 = n_pat.match(net2)
-                        if m2 and m2.group(1) == base:
-                            pairs.append((net, net2))
-                            seen.add(net)
-                            seen.add(net2)
-                            break
     for p_pat, n_pat in _DIFF_PAIR_SUFFIXES:
-        for net in net_names:
+        for net in diff_nets:
             if net in seen:
                 continue
             m = p_pat.match(net)
             if m:
                 base = m.group(1)
-                for net2 in net_names:
-                    if net2 in seen or net2 == net:
+                for net2 in diff_nets:
+                    if net2 in seen:
                         continue
                     m2 = n_pat.match(net2)
                     if m2 and m2.group(1) == base:
@@ -869,7 +904,8 @@ def check_diff_pair_quality(schematic, pcb):
                 nets=[p_net, n_net],
                 recommendation='Match via counts, layer transitions, and trace lengths between P and N.',
                 impact='Degraded signal integrity and increased common-mode EMI',
-            ))
+            
+                source=ANALYZER_SOURCE,))
     return findings
 
 
@@ -896,8 +932,10 @@ def run_all_checks(schematic: dict, pcb: dict | None) -> list[dict]:
 def main():
     parser = argparse.ArgumentParser(
         description='Cross-domain analysis — schematic + PCB combined checks')
-    parser.add_argument('--schematic', '-s', default=None, help='Schematic analyzer JSON')
-    parser.add_argument('--pcb', '-p', default=None, help='PCB analyzer JSON (optional)')
+    parser.add_argument('--schematic', '-s', default=None,
+                        help='Schematic analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
+    parser.add_argument('--pcb', '-p', default=None,
+                        help='PCB analyzer JSON (optional). Auto-resolved from --analysis-dir current run when omitted.')
     parser.add_argument('--output', '-o', default=None, help='Output JSON file path')
     parser.add_argument('--schema', action='store_true', help='Print output schema and exit')
     parser.add_argument('--text', action='store_true', help='Print human-readable text report')
@@ -908,29 +946,32 @@ def main():
     parser.add_argument('--audience', default=None,
                         choices=['designer', 'reviewer', 'manager'],
                         help='Audience level for summaries and --text output')
+    parser.add_argument('--only-deterministic', action='store_true',
+                        help='Accepted for consistency; analyzers never write llm_* fields. '
+                             'Honored by downstream consumers (Phase 4 spec §3.4).')
 
     args = parser.parse_args()
 
     if args.schema:
-        schema = {
-            'analyzer_type': "string — always 'cross_analysis'",
-            'schema_version': "string — semver (currently '1.3.0')",
-            'elapsed_s': 'float — analysis wall-clock time',
-            'summary': {'total_findings': 'int', 'by_severity': {'error': 'int', 'warning': 'int', 'info': 'int'}},
-            'findings': '[{detector, rule_id, category, severity, confidence, evidence_source, summary, description, components, nets, pins, recommendation, fix_params, report_context}]',
-            'trust_summary': {
-                'total_findings': 'int',
-                'trust_level': "'high' | 'mixed' | 'low'",
-                'by_confidence': '{deterministic: int, heuristic: int, datasheet-backed: int}',
-                'by_evidence_source': '{datasheet|topology|heuristic_rule|symbol_footprint|bom|geometry|api_lookup: int}',
-                'provenance_coverage_pct': 'float',
-            },
-        }
-        print(json.dumps(schema, indent=2))
-        sys.exit(0)
+        emit_schema(CrossAnalysisEnvelope)
+
+    if args.analysis_dir and (not args.schematic or not args.pcb):
+        from analysis_cache import get_current_run
+        from pathlib import Path as _AutoPath
+        _current = get_current_run(args.analysis_dir)
+        if _current is not None:
+            _run_dir, _ = _current
+            if not args.schematic:
+                _sch = _AutoPath(_run_dir) / "schematic.json"
+                if _sch.is_file():
+                    args.schematic = str(_sch)
+            if not args.pcb:
+                _pcb = _AutoPath(_run_dir) / "pcb.json"
+                if _pcb.is_file():
+                    args.pcb = str(_pcb)
 
     if not args.schematic:
-        parser.error('--schematic is required')
+        parser.error('--schematic is required (or pass --analysis-dir with a current run containing schematic.json)')
 
     t0 = time.time()
 
@@ -949,6 +990,34 @@ def main():
         with open(args.pcb, 'r') as f:
             pcb = json.load(f)
 
+    # Build inputs provenance block (Track 1.3).
+    from pathlib import Path as _Path
+    _upstream_artifacts = {
+        "schematic": build_upstream_artifact(_Path(args.schematic), schematic),
+    }
+    _source_files = [_Path(args.schematic)]
+    if pcb is not None and args.pcb:
+        _upstream_artifacts["pcb"] = build_upstream_artifact(_Path(args.pcb), pcb)
+        _source_files.append(_Path(args.pcb))
+
+    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4).
+    if args.analysis_dir:
+        _analysis_dir = _Path(args.analysis_dir)
+    elif args.output:
+        _analysis_dir = _Path(args.output).parent
+    else:
+        _analysis_dir = _Path("analysis")
+
+    # Resolve capability_mode_ref BEFORE build_inputs (audit Highest-Risk #5).
+    _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
+
+    inputs = build_inputs(
+        source_files=_source_files,
+        upstream_artifacts=_upstream_artifacts,
+        run_id=_capability_mode_ref["run_id"],
+    )
+    compat = build_compat()
+
     findings = run_all_checks(schematic, pcb)
     elapsed = time.time() - t0
 
@@ -959,15 +1028,26 @@ def main():
 
     result = {
         'analyzer_type': 'cross_analysis',
-        'schema_version': '1.3.0',
+        'schema_version': '1.4.0',
+        'inputs': inputs,
+        'compat': compat,
         'elapsed_s': round(elapsed, 3),
         'summary': {'total_findings': len(findings), 'by_severity': sev_counts},
         'findings': findings,
+        'assessments': [],
         'trust_summary': compute_trust_summary(findings),
     }
 
     from output_filters import apply_output_filters
     apply_output_filters(result, args.stage, args.audience)
+
+    # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
+    # on it). Runs after filtering; before any output branch.
+    assign_finding_ids(result.get("findings", []), "cross_analysis")
+
+    # Wire capability_mode_ref (Phase 4 spec §3.3). Resolved early so
+    # inputs.run_id and capability_mode_ref.run_id match.
+    result["capability_mode_ref"] = _capability_mode_ref
 
     if args.text:
         from output_filters import format_text

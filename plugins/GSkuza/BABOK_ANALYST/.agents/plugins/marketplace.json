@@ -1,0 +1,20 @@
+{
+  "name": "babok_analyst",
+  "interface": {
+    "displayName": "BABOK Analyst"
+  },
+  "plugins": [
+    {
+      "name": "babok_analyst",
+      "source": {
+        "source": "local",
+        "path": "./plugins/babok_analyst"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

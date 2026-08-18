@@ -33,16 +33,13 @@ Include file:line references. Output as markdown I can reference later.
 
 ## Quick Start
 
-```bash
-# Option 1: Auto-scaffold (fills what it can detect)
-./scripts/scaffold-report.py /path/to/project > ARCHITECTURE.md
+No scaffold script ships with this skill — explore manually, then fill the
+template from the structure below:
 
-# Option 2: Manual exploration
+```bash
 cat README.md AGENTS.md 2>/dev/null | head -200
 ls src/ lib/ cmd/ pkg/ 2>/dev/null
 rg "fn main|func main|if __name__" --type-add 'all:*.*' -l | head -5
-
-# Then fill template from the structure below
 ```
 
 ---
@@ -130,23 +127,11 @@ The subagent explores in read-only mode and returns findings in report-ready for
 
 ## Integration
 
-### With Hooks
+### With New Projects
 
-Auto-generate report stub on new project:
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [{
-      "matcher": "Bash",
-      "hooks": [{
-        "type": "command",
-        "command": "if echo \"$TOOL_INPUT\" | grep -q 'git clone'; then ./scripts/scaffold-report.py . > ARCHITECTURE.md; fi"
-      }]
-    }]
-  }
-}
-```
+On a fresh clone, start the report by hand: copy the section structure from
+this reference into `ARCHITECTURE.md`, then fill it from manual exploration
+(Quick Start above). There is no auto-scaffold script.
 
 ### With Other Skills
 
@@ -165,9 +150,12 @@ Auto-generate report stub on new project:
 
 ## Scripts
 
+Shipped with the doc skill (`skills/doc/scripts/`):
+
 | Script | Purpose |
 |--------|---------|
-| `scripts/scaffold-report.py` | Auto-generate report skeleton |
+| `scripts/audit-oss-docs.sh` | Audit OSS documentation coverage by tier |
+| `scripts/validate.sh` | Self-check the doc skill package structure |
 
 ## Subagents
 

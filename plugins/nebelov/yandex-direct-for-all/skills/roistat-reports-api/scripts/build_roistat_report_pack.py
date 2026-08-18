@@ -1,551 +1,257 @@
 #!/usr/bin/env python3
+"""Собрать воспроизводимый пакет чтения Roistat с раздельными источниками."""
+
+from __future__ import annotations
+
 import argparse
 import csv
 import json
 import os
-import sys
+import stat
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Callable
 
 
-DEFAULT_DIMENSIONS = ["marker_level_1", "marker_level_2", "marker_level_3"]
-
-DEFAULT_METRICS = [
-    "marketing_cost",
-    "visits",
-    "unique_visits",
-    "leads",
-    "first_leads",
-    "repeated_leads",
-    "sales",
-    "new_sales",
-    "repeated_sales",
-    "revenue",
-    "first_sales_revenue",
-    "repeated_sales_revenue",
-    "clients",
-    "paid_clients",
-    "cpl",
-    "cpo",
-    "cac",
-    "ltv",
-    "conversion_visits_to_leads",
-    "conversion_leads_to_sales",
-]
-
-DEFAULT_ATTR_MODELS = ["default", "first_click", "last_click", "last_paid_click"]
-DEFAULT_ATTR_METRICS = ["leads", "sales", "revenue", "clients", "paid_clients"]
-DEFAULT_CUSTOM_METRIC_IDS = [1, 2, 7, 8, 9, 10, 23, 30, 31, 34, 35]
+DEFAULT_METRICS = ["marketing_cost", "visits", "leads", "sales", "revenue"]
+Fetcher = Callable[[str, dict[str, Any]], dict[str, Any]]
 
 
-def parse_args():
-    p = argparse.ArgumentParser(
-        description="Build a standalone Roistat report pack via API only."
-    )
-    p.add_argument("--project", required=True, help="Roistat project id")
-    p.add_argument("--api-key", default="", help="Roistat API key")
-    p.add_argument(
-        "--api-key-env", default="ROISTAT_API_KEY", help="Env var for API key"
-    )
-    p.add_argument(
-        "--base-url",
-        default=os.environ.get("ROISTAT_BASE_URL", "https://cloud.roistat.com/api/v1"),
-        help="Base URL for Roistat API",
-    )
-    p.add_argument("--from", dest="date_from", required=True, help="YYYY-MM-DD or ISO")
-    p.add_argument("--to", dest="date_to", required=True, help="YYYY-MM-DD or ISO")
-    p.add_argument("--report-name", required=True, help="Local name for the new report")
-    p.add_argument("--output-dir", required=True, help="Directory to save artifacts")
-    p.add_argument(
-        "--dimension",
-        action="append",
-        dest="dimensions",
-        default=[],
-        help="Repeatable dimension. Defaults to marker hierarchy.",
-    )
-    p.add_argument(
-        "--metric",
-        action="append",
-        dest="metrics",
-        default=[],
-        help="Repeatable base metric. Defaults to the built-in report bundle.",
-    )
-    p.add_argument(
-        "--attribution-model",
-        action="append",
-        dest="attr_models",
-        default=[],
-        help="Repeatable attribution model. Defaults to default/first/last/last_paid_click.",
-    )
-    p.add_argument(
-        "--attribution-metric",
-        action="append",
-        dest="attr_metrics",
-        default=[],
-        help="Repeatable metric to duplicate across attribution models.",
-    )
-    p.add_argument(
-        "--custom-metric-id",
-        action="append",
-        dest="custom_metric_ids",
-        type=int,
-        default=[],
-        help="Repeatable custom metric id. Defaults to common new/repeat report ids.",
-    )
-    p.add_argument(
-        "--marker-level-1",
-        action="append",
-        default=[],
-        help="Repeatable filter for marker_level_1",
-    )
-    p.add_argument(
-        "--marker-level-2",
-        action="append",
-        default=[],
-        help="Repeatable filter for marker_level_2",
-    )
-    p.add_argument(
-        "--order-limit", type=int, default=500, help="Page size for order audit"
-    )
-    p.add_argument(
-        "--order-max-pages",
-        type=int,
-        default=20,
-        help="Safety cap for order audit pagination",
-    )
-    p.add_argument(
-        "--skip-orders", action="store_true", help="Skip integration/order/list audit"
-    )
-    p.add_argument(
-        "--skip-excel", action="store_true", help="Skip export/excel step"
-    )
-    return p.parse_args()
+def private_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path, 0o700)
 
 
-def ensure_api_key(args):
-    key = args.api_key or os.environ.get(args.api_key_env, "")
-    if not key:
-        raise SystemExit(
-            f"Missing API key. Use --api-key or set {args.api_key_env}."
-        )
-    return key
-
-
-def normalize_period(value, is_end):
-    if "T" in value:
-        return value if any(tz in value for tz in ["+03:00", "+0300", "Z"]) else f"{value}+0300"
-    suffix = "23:59:59+0300" if is_end else "00:00:00+0300"
-    return f"{value}T{suffix}"
-
-
-def parse_dt(value):
-    if not value:
-        return None
-    fixed = value.replace("Z", "+00:00")
-    if fixed.endswith("+0300"):
-        fixed = fixed[:-5] + "+03:00"
-    return datetime.fromisoformat(fixed)
-
-
-def api_call(base_url, project, api_key, endpoint, body=None, method="POST", binary=False):
-    url = f"{base_url.rstrip('/')}/{endpoint}?project={urllib.parse.quote(str(project))}"
-    data = None
-    headers = {"Api-key": api_key}
-    if body is not None:
-        data = json.dumps(body, ensure_ascii=False).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+def atomic_json(path: Path, value: Any) -> None:
+    private_dir(path.parent)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
-        with urllib.request.urlopen(req) as resp:
-            payload = resp.read()
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"{endpoint} -> HTTP {e.code}: {detail[:500]}")
-    if binary:
-        return payload
-    text = payload.decode("utf-8", errors="replace")
-    return json.loads(text)
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
-def build_filters(args):
-    filters = []
-    if args.marker_level_1:
-        if len(args.marker_level_1) == 1:
-            filters.append(
-                {"field": "marker_level_1", "operator": "=", "value": args.marker_level_1[0]}
-            )
-        else:
-            filters.append(
-                {
-                    "field": "marker_level_1",
-                    "operator": "in",
-                    "value": list(args.marker_level_1),
-                }
-            )
-    if args.marker_level_2:
-        if len(args.marker_level_2) == 1:
-            filters.append(
-                {"field": "marker_level_2", "operator": "=", "value": args.marker_level_2[0]}
-            )
-        else:
-            filters.append(
-                {
-                    "field": "marker_level_2",
-                    "operator": "in",
-                    "value": list(args.marker_level_2),
-                }
-            )
-    return filters
+def atomic_tsv(path: Path, rows: list[dict[str, Any]]) -> None:
+    private_dir(path.parent)
+    fields = sorted({key for row in rows for key in row})
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as handle:
+            if fields:
+                writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+                writer.writeheader()
+                writer.writerows(rows)
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
-def build_metrics(args, available_custom_ids):
-    metrics = list(dict.fromkeys(args.metrics or DEFAULT_METRICS))
-    attr_models = list(dict.fromkeys(args.attr_models or DEFAULT_ATTR_MODELS))
-    attr_metrics = list(dict.fromkeys(args.attr_metrics or DEFAULT_ATTR_METRICS))
-    custom_ids = list(dict.fromkeys(args.custom_metric_ids or DEFAULT_CUSTOM_METRIC_IDS))
-
-    request_metrics = list(metrics)
-    shown_metrics = [{"id": metric, "attributionModel": "default", "isAvailable": True} for metric in metrics]
-
-    for custom_id in custom_ids:
-        if custom_id not in available_custom_ids:
-            continue
-        metric_id = f"custom_{custom_id}"
-        request_metrics.append(metric_id)
-        shown_metrics.append({"id": metric_id, "attributionModel": "default", "isAvailable": True})
-
-    for metric in attr_metrics:
-        for model in attr_models:
-            if model == "default":
-                if metric not in request_metrics:
-                    request_metrics.append(metric)
-                continue
-            request_metrics.append({"metric": metric, "attribution": model})
-            shown_metrics.append({"id": metric, "attributionModel": model, "isAvailable": True})
-
-    unique_request = []
-    seen = set()
-    for metric in request_metrics:
-        key = json.dumps(metric, sort_keys=True, ensure_ascii=False)
-        if key not in seen:
-            seen.add(key)
-            unique_request.append(metric)
-    return unique_request, shown_metrics
+def load_access(path: Path | None) -> tuple[str, str, str]:
+    value: dict[str, Any] = {}
+    if path:
+        if not path.is_file() or stat.S_IMODE(path.stat().st_mode) & 0o077:
+            raise RuntimeError("Файл доступа Roistat должен существовать и иметь права 0600")
+        value = json.loads(path.read_text(encoding="utf-8"))
+    project = os.environ.get("ROISTAT_PROJECT", "").strip() or str(value.get("project") or "").strip()
+    api_key = os.environ.get("ROISTAT_API_KEY", "").strip() or str(value.get("api_key") or "").strip()
+    base_url = os.environ.get("ROISTAT_BASE_URL", "").strip() or str(value.get("base_url") or "https://cloud.roistat.com/api/v1").strip()
+    if not project or not api_key:
+        raise RuntimeError("Нужны ROISTAT_PROJECT и ROISTAT_API_KEY либо закрытый файл доступа")
+    return project, api_key, base_url
 
 
-def build_report_spec(args, dimensions, shown_metrics, filters):
-    return {
-        "title": args.report_name,
-        "settings": {
-            "backgroundColor": "#F8F9F9",
-            "date_filter_type": "lead",
-            "is_use_all_multichannel_visits": False,
-            "_isWithNewMetrics": True,
-            "levels": [
-                {
-                    "dimension": dimension,
-                    "isVisible": True,
-                    "level": idx + 1,
-                    "filters": filters if idx == 0 else [],
-                }
-                for idx, dimension in enumerate(dimensions)
-            ],
-            "shownMetrics": shown_metrics,
-        },
-        "isSystem": 0,
-        "isCreatedByEmployee": 0,
-        "folderId": None,
-        "isChanged": False,
-    }
+def api_call(base_url: str, project: str, api_key: str, endpoint: str, body: dict[str, Any]) -> dict[str, Any]:
+    url = f"{base_url.rstrip('/')}/{endpoint}?project={urllib.parse.quote(project)}"
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+        headers={"Api-key": api_key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request) as response:
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"{endpoint}: HTTP {exc.code}") from exc
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{endpoint}: ответ не является JSON") from exc
+    if not isinstance(value, dict) or value.get("status") == "error":
+        raise RuntimeError(f"{endpoint}: интерфейс вернул ошибку")
+    return value
 
 
-def flatten_metric_name(metric):
-    name = metric.get("metric_name") or metric.get("id") or "metric"
-    attr = metric.get("attribution_model_id", "default")
-    return f"{name}__{attr}"
+def paginate(fetcher: Fetcher, endpoint: str, body: dict[str, Any], page_size: int, max_pages: int) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if page_size <= 0 or max_pages <= 0:
+        raise ValueError("Размер страницы и число страниц должны быть положительными")
+    rows: list[dict[str, Any]] = []
+    offset = 0
+    complete = False
+    pages = 0
+    for _ in range(max_pages):
+        request = {**body, "limit": page_size, "offset": offset}
+        response = fetcher(endpoint, request)
+        if not isinstance(response, dict):
+            raise ValueError("Ответ страницы должен быть объектом")
+        data = response.get("data")
+        if not isinstance(data, list):
+            raise ValueError("Ответ страницы не содержит массив data")
+        if any(not isinstance(item, dict) for item in data):
+            raise ValueError("Строка страницы должна быть объектом")
+        pages += 1
+        rows.extend(data)
+        total = response.get("total")
+        offset += len(data)
+        if not data or len(data) < page_size or (isinstance(total, int) and offset >= total):
+            complete = True
+            break
+        if len(data) == 0:
+            break
+    return rows, {"status": "complete" if complete else "partial", "pages": pages, "objects": len(rows), "complete": complete}
 
 
-def flatten_dimensions(dimensions, row):
-    if isinstance(dimensions, dict):
-        for key, meta in dimensions.items():
-            if isinstance(meta, dict):
-                row[f"{key}__value"] = meta.get("value")
-                row[f"{key}__title"] = meta.get("title")
-            else:
-                row[f"{key}__value"] = meta
-    elif isinstance(dimensions, list):
-        for idx, meta in enumerate(dimensions):
-            key = f"dimension_{idx+1}"
-            if isinstance(meta, dict):
-                row[f"{key}__value"] = meta.get("value")
-                row[f"{key}__title"] = meta.get("title")
-            else:
-                row[f"{key}__value"] = meta
-    return row
-
-
-def flatten_analytics_items(response):
-    rows = []
-    data = response.get("data") or []
-    if not data:
-        return rows
-    items = data[0].get("items") or []
-    for item in items:
-        row = {}
-        row = flatten_dimensions(item.get("dimensions"), row)
-        for metric in item.get("metrics", []):
-            row[flatten_metric_name(metric)] = metric.get("value")
-        row["isHasChild"] = item.get("isHasChild")
-        rows.append(row)
+def flatten_analytics(response: dict[str, Any]) -> list[dict[str, Any]]:
+    data = response.get("data")
+    if not isinstance(data, list):
+        raise ValueError("analytics/data не содержит массив data")
+    rows: list[dict[str, Any]] = []
+    for block in data:
+        if not isinstance(block, dict):
+            raise ValueError("Блок analytics/data должен быть объектом")
+        for item in block.get("items") or []:
+            if not isinstance(item, dict):
+                raise ValueError("Строка analytics/data должна быть объектом")
+            row: dict[str, Any] = {}
+            dimensions = item.get("dimensions") or {}
+            if isinstance(dimensions, dict):
+                for name, meta in dimensions.items():
+                    row[f"dimension_{name}"] = meta.get("value") if isinstance(meta, dict) else meta
+            for metric in item.get("metrics") or []:
+                if not isinstance(metric, dict):
+                    continue
+                name = str(metric.get("metric_name") or metric.get("id") or "metric")
+                attribution = str(metric.get("attribution_model_id") or "default")
+                row[f"{name}__{attribution}"] = metric.get("value")
+            rows.append(row)
     return rows
 
 
-def write_tsv(path, rows):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-    fieldnames = sorted({key for row in rows for key in row.keys()})
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames, delimiter="\t")
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
+def number(value: Any) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
-def fetch_orders(base_url, project, api_key, date_from, date_to, page_size, max_pages):
-    all_rows = []
-    offset = 0
-    start_dt = parse_dt(date_from)
-    end_dt = parse_dt(date_to)
-    for _ in range(max_pages):
-        body = {"extend": ["visit"], "limit": page_size, "offset": offset}
-        response = api_call(
-            base_url, project, api_key, "project/integration/order/list", body=body
-        )
-        if response.get("status") == "error":
-            raise RuntimeError(
-                f"project/integration/order/list -> {response.get('error')}: {response.get('description')}"
-            )
-        data = response.get("data") or []
-        all_rows.extend(data)
-        total = response.get("total")
-        oldest_dt = None
-        for row in data:
-            row_dt = parse_dt(row.get("creation_date"))
-            if row_dt is not None and (oldest_dt is None or row_dt < oldest_dt):
-                oldest_dt = row_dt
-        if oldest_dt is not None and start_dt is not None and oldest_dt < start_dt:
-            break
-        if not data or total is None:
-            if len(data) < page_size:
-                break
-        offset += page_size
-        if total is not None and offset >= total:
-            break
-    return all_rows
+def total_metric(rows: list[dict[str, Any]], prefix: str) -> float:
+    return sum(number(value) for row in rows for key, value in row.items() if key == prefix or key.startswith(prefix + "__"))
 
 
-def flatten_orders(rows, date_from=None, date_to=None, marker_level_1=None, marker_level_2=None):
-    flat = []
-    start_dt = parse_dt(date_from) if date_from else None
-    end_dt = parse_dt(date_to) if date_to else None
-    marker_level_1 = set(marker_level_1 or [])
-    marker_level_2 = set(marker_level_2 or [])
-    for row in rows:
-        created = parse_dt(row.get("creation_date"))
-        visit = row.get("visit") or {}
-        source = visit.get("source") or {}
-        status = row.get("status") or {}
-        source_levels = source.get("system_name_by_level") or []
-        source_ml1 = source.get("marker_level_1") or (source_levels[0] if len(source_levels) > 0 else None)
-        source_ml2 = source.get("marker_level_2") or (source_levels[1] if len(source_levels) > 1 else None)
-        source_ml3 = source.get("marker_level_3") or (source_levels[2] if len(source_levels) > 2 else None)
-        if created is None:
-            continue
-        if start_dt and created < start_dt:
-            continue
-        if end_dt and created > end_dt:
-            continue
-        if marker_level_1 and source_ml1 not in marker_level_1:
-            continue
-        if marker_level_2 and source_ml2 not in marker_level_2:
-            continue
-        flat.append(
-            {
-                "id": row.get("id"),
-                "creation_date": row.get("creation_date"),
-                "source_type": row.get("source_type"),
-                "revenue": row.get("revenue"),
-                "status_id": status.get("id"),
-                "status_name": status.get("name"),
-                "roistat": row.get("roistat"),
-                "visit_id": visit.get("id"),
-                "visit_date": visit.get("date"),
-                "visit_marker_level_1": source_ml1,
-                "visit_marker_level_2": source_ml2,
-                "visit_marker_level_3": source_ml3,
-                "visit_landing_page": visit.get("landing_page"),
-                "visit_referrer_host": visit.get("referrer_host"),
-                "url": row.get("url"),
-            }
-        )
-    return flat
-
-
-def write_json(path, payload):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def build_summary(
-    output_dir,
-    report_spec,
-    dimensions,
-    request_metrics,
-    analytics_rows,
-    custom_metrics,
-    saved_reports,
-    order_rows,
-):
-    lines = [
-        f"# {report_spec['title']}",
-        "",
-        "Это новый standalone report-pack, собранный через API.",
-        "Существующие сохраненные отчеты в кабинете не изменялись.",
-        "",
-        "## Состав",
-        "",
-        f"- Сохраненных отчетов в проекте: {len(saved_reports)}",
-        f"- Кастомных метрик в проекте: {len(custom_metrics)}",
-        f"- Измерений в новом отчете: {len(dimensions)}",
-        f"- Метрик в API-запросе: {len(request_metrics)}",
-        f"- Строк в analytics/data: {len(analytics_rows)}",
-        f"- Сделок в order-audit: {len(order_rows)}",
-        "",
-        "## Артефакты",
-        "",
-        "- `saved_reports_snapshot.json`",
-        "- `custom_metrics_snapshot.json`",
-        "- `new_report_spec.json`",
-        "- `analytics_request.json`",
-        "- `analytics_response.json`",
-        "- `analytics_rows.tsv`",
-        "- `analytics_export.xlsx`",
-        "- `orders_raw.json`",
-        "- `orders_rows.tsv`",
-        "",
-        "## Важное",
-        "",
-        "- Новый отчет собран с нуля как JSON-спека.",
-        "- Discovery старых отчетов использован только для понимания, какие метрики уже живут в проекте.",
-        "- Если нужен persisted report внутри кабинета, нужен отдельно подтвержденный write-endpoint.",
-        "",
-    ]
-    (output_dir / "summary.md").write_text("\n".join(lines), encoding="utf-8")
-
-
-def main():
-    args = parse_args()
-    api_key = ensure_api_key(args)
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    date_from = normalize_period(args.date_from, is_end=False)
-    date_to = normalize_period(args.date_to, is_end=True)
-    dimensions = args.dimensions or DEFAULT_DIMENSIONS
-    filters = build_filters(args)
-
-    saved_reports = api_call(
-        args.base_url, args.project, api_key, "project/analytics/reports", body={}
-    ).get("reports", [])
-    custom_metrics_resp = api_call(
-        args.base_url,
-        args.project,
-        api_key,
-        "project/analytics/metrics/custom/list",
-        method="GET",
-    )
-    custom_metrics = custom_metrics_resp.get("data", [])
-    available_custom_ids = {int(item["id"]) for item in custom_metrics if "id" in item}
-
-    request_metrics, shown_metrics = build_metrics(args, available_custom_ids)
-    report_spec = build_report_spec(args, dimensions, shown_metrics, filters)
-    analytics_request = {
-        "dimensions": dimensions,
-        "metrics": request_metrics,
-        "period": {"from": date_from, "to": date_to},
-        "filters": filters,
+def reconciliation(analytics_rows: list[dict[str, Any]], order_rows: list[dict[str, Any]]) -> dict[str, float]:
+    analytics_sales = total_metric(analytics_rows, "sales")
+    analytics_revenue = total_metric(analytics_rows, "revenue")
+    raw_sales = float(len(order_rows))
+    raw_revenue = sum(number(row.get("revenue")) for row in order_rows)
+    return {
+        "analytics_sales": analytics_sales,
+        "raw_sales": raw_sales,
+        "sales_difference": raw_sales - analytics_sales,
+        "analytics_revenue": analytics_revenue,
+        "raw_revenue": raw_revenue,
+        "revenue_difference": raw_revenue - analytics_revenue,
     }
 
-    analytics_response = api_call(
-        args.base_url,
-        args.project,
-        api_key,
-        "project/analytics/data",
-        body=analytics_request,
-    )
-    analytics_rows = flatten_analytics_items(analytics_response)
 
-    write_json(output_dir / "saved_reports_snapshot.json", {"reports": saved_reports})
-    write_json(
-        output_dir / "custom_metrics_snapshot.json", {"data": custom_metrics}
-    )
-    write_json(output_dir / "new_report_spec.json", report_spec)
-    write_json(output_dir / "analytics_request.json", analytics_request)
-    write_json(output_dir / "analytics_response.json", analytics_response)
-    write_tsv(output_dir / "analytics_rows.tsv", analytics_rows)
-
-    if not args.skip_excel:
-        xlsx = api_call(
-            args.base_url,
-            args.project,
-            api_key,
-            "project/analytics/data/export/excel",
-            body=analytics_request,
-            binary=True,
-        )
-        (output_dir / "analytics_export.xlsx").write_bytes(xlsx)
-
-    order_rows = []
-    if not args.skip_orders:
-        orders_raw = fetch_orders(
-            args.base_url,
-            args.project,
-            api_key,
-            date_from,
-            date_to,
-            args.order_limit,
-            args.order_max_pages,
-        )
-        order_rows = flatten_orders(
-            orders_raw,
-            date_from=date_from,
-            date_to=date_to,
-            marker_level_1=args.marker_level_1,
-            marker_level_2=args.marker_level_2,
-        )
-        write_json(output_dir / "orders_raw.json", {"data": orders_raw})
-        write_tsv(output_dir / "orders_rows.tsv", order_rows)
-
-    build_summary(
-        output_dir,
-        report_spec,
-        dimensions,
-        request_metrics,
-        analytics_rows,
-        custom_metrics,
-        saved_reports,
-        order_rows,
-    )
-
-    print(f"Saved report pack to {output_dir}")
-    print(f"analytics rows: {len(analytics_rows)}")
-    print(f"orders rows: {len(order_rows)}")
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--credentials-file")
+    parser.add_argument("--from", dest="date_from", required=True)
+    parser.add_argument("--to", dest="date_to", required=True)
+    parser.add_argument("--report-name", required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--dimension", action="append", default=[])
+    parser.add_argument("--metric", action="append", default=[])
+    parser.add_argument("--attribution", default="default")
+    parser.add_argument("--channel", default="all")
+    parser.add_argument("--currency", default="account_currency")
+    parser.add_argument("--filters-json")
+    parser.add_argument("--include-personal-data", action="store_true")
+    parser.add_argument("--include-orders", action="store_true")
+    parser.add_argument("--include-call-tracking", action="store_true")
+    parser.add_argument("--call-tracking-endpoint")
+    parser.add_argument("--page-size", type=int, default=500)
+    parser.add_argument("--max-pages", type=int, default=100)
+    args = parser.parse_args()
+    if (args.include_orders or args.include_call_tracking) and not args.include_personal_data:
+        parser.error("Сырые сделки и коллтрекинг требуют явного --include-personal-data")
+    if args.include_call_tracking and not args.call_tracking_endpoint:
+        parser.error("Для коллтрекинга нужен явно проверенный --call-tracking-endpoint")
+    project, api_key, base_url = load_access(Path(args.credentials_file).expanduser().resolve() if args.credentials_file else None)
+    output = Path(args.output_dir).expanduser().resolve()
+    private_dir(output)
+    filters = json.loads(Path(args.filters_json).read_text(encoding="utf-8")) if args.filters_json else []
+    context = {
+        "report_name": args.report_name,
+        "period": {"from": args.date_from, "to": args.date_to},
+        "window": f"{args.date_from}..{args.date_to}",
+        "attribution": args.attribution,
+        "channel": args.channel,
+        "filters": filters,
+        "currency": args.currency,
+        "collected_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+    }
+    request = {
+        "dimensions": args.dimension or ["marker_level_1", "marker_level_2", "marker_level_3"],
+        "metrics": args.metric or DEFAULT_METRICS,
+        "period": context["period"],
+        "filters": filters,
+        "attribution": args.attribution,
+    }
+    fetcher: Fetcher = lambda endpoint, body: api_call(base_url, project, api_key, endpoint, body)
+    analytics_response = fetcher("project/analytics/data", request)
+    analytics_rows = flatten_analytics(analytics_response)
+    sources: dict[str, Any] = {
+        "analytics_report": {"status": "complete", "objects": len(analytics_rows), "required": True},
+        "raw_orders": {"status": "not_requested", "objects": 0, "required": args.include_orders},
+        "call_tracking": {"status": "not_requested", "objects": 0, "required": args.include_call_tracking},
+    }
+    atomic_json(output / "report-context.json", context)
+    atomic_json(output / "analytics-request.json", request)
+    atomic_json(output / "analytics-response.json", analytics_response)
+    atomic_tsv(output / "analytics-rows.tsv", analytics_rows)
+    order_rows: list[dict[str, Any]] = []
+    if args.include_orders:
+        order_rows, state = paginate(fetcher, "project/integration/order/list", {"extend": ["visit"]}, args.page_size, args.max_pages)
+        sources["raw_orders"] = {**state, "required": True}
+        atomic_json(output / "orders-raw.json", {"data": order_rows})
+        atomic_tsv(output / "orders-rows.tsv", order_rows)
+    if args.include_call_tracking:
+        calls, state = paginate(fetcher, args.call_tracking_endpoint, {}, args.page_size, args.max_pages)
+        sources["call_tracking"] = {**state, "required": True}
+        atomic_json(output / "call-tracking-raw.json", {"data": calls})
+        atomic_tsv(output / "call-tracking-rows.tsv", calls)
+    differences = reconciliation(analytics_rows, order_rows) if args.include_orders else {"status": "not_available_without_raw_orders"}
+    atomic_json(output / "reconciliation.json", {"context": context, "values": differences})
+    required_complete = all(source["status"] == "complete" for source in sources.values() if source["required"])
+    summary = {"status": "complete" if required_complete else "partial", "sources": sources, "context": context, "reconciliation": differences}
+    atomic_json(output / "summary.json", summary)
+    print(json.dumps({"status": summary["status"], "analytics_rows": len(analytics_rows), "orders_rows": len(order_rows)}, ensure_ascii=False))
+    return 0 if required_complete else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

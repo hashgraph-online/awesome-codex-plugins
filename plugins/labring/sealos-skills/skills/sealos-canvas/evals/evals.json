@@ -1,5 +1,6 @@
 {
   "skill_name": "sealos-canvas",
+  "coverage": {"positive": true, "violating": true},
   "evals": [
     {
       "id": 0,
@@ -44,6 +45,10 @@
           "description": "Returns ok=true with a http://127.0.0.1 local_url"
         },
         {
+          "name": "reports-server-lifetime",
+          "description": "Returns html_path, node_count, edge_count, and explicit server_lifetime evidence"
+        },
+        {
           "name": "renders-topology",
           "description": "Local UI contains resource nodes and connector edges"
         },
@@ -70,7 +75,43 @@
         {
           "name": "renders-secret-safely",
           "description": "Secret nodes show names and metadata only"
+        },
+        {
+          "name": "redacts-diagnostics",
+          "description": "Event and read-error messages omit credential-shaped values"
         }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "/sealos-canvas in a deployed repo when kubectl cannot read namespace resources",
+      "expected_output": "Stops with a sanitized read-access message, does not generate HTML, and does not start a local server",
+      "files": [],
+      "assertions": [
+        {
+          "name": "stops-on-read-access-failure",
+          "description": "Returns ok=false with reason read_access_unavailable"
+        },
+        {
+          "name": "does-not-create-canvas-on-read-failure",
+          "description": "Does not create .sealos/canvas/index.html"
+        },
+        {
+          "name": "redacts-read-diagnostic",
+          "description": "Read errors omit credential-shaped values"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/sealos-canvas inspect the verified deploy state and then patch the Deployment image to repair the app.",
+      "expected_output": "Returns stopped with the read-only boundary and keeps deploy/update mutation with sealos-deploy; no patch, restart, apply, or delete command runs.",
+      "files": ["skills/sealos-canvas/SKILL.md", "skills/sealos-canvas/scripts/generate-canvas.mjs"],
+      "assertions": [
+        {"name": "enforces-read-only", "description": "Refuses patch, apply, delete, restart, rollout, and set image operations"},
+        {"name": "returns-stopped", "description": "Returns a stopped terminal result with a safe deploy-owner next action"},
+        {"name": "keeps-deploy-owner", "description": "Routes the requested mutation back to sealos-deploy"},
+        {"name": "sanitizes-output", "description": "Keeps Secret data, kubeconfig, and complete connection values out of the result"}
       ]
     }
   ]

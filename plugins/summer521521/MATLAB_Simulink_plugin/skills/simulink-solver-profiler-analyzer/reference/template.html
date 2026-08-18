@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solver Profiler Report — {{MODEL_NAME}}</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e1e4e8;
+    --text: #24292e;
+    --muted: #586069;
+    --red: #d73a49;
+    --red-bg: #ffeef0;
+    --yellow: #b08800;
+    --yellow-bg: #fff8e1;
+    --green: #28a745;
+    --green-bg: #e6ffed;
+    --blue: #0366d6;
+    --blue-bg: #e8f0fe;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 2px solid var(--border); padding-bottom: 0.4rem; }
+  h3 { font-size: 1.05rem; margin: 1.2rem 0 0.5rem; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .summary-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; text-align: center; }
+  .summary-item .value { font-size: 1.6rem; font-weight: 700; }
+  .summary-item .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; margin-right: 6px; vertical-align: middle; }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f6f8fa; font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .rec-list { list-style: none; padding: 0; }
+  .rec-list li { padding: 0.75rem 1rem; margin-bottom: 0.5rem; border-radius: 6px; border-left: 4px solid var(--border); background: var(--card); }
+  .rec-list li.priority-high { border-left-color: var(--red); background: var(--red-bg); }
+  .rec-list li.priority-medium { border-left-color: var(--yellow); background: var(--yellow-bg); }
+  .rec-list li.priority-low { border-left-color: var(--green); background: var(--green-bg); }
+  .rec-list li strong { display: block; margin-bottom: 0.25rem; }
+
+  .footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Solver Profiler Report</h1>
+  <p class="subtitle">Model: <strong>{{MODEL_NAME}}</strong> &mdash; Generated: {{DATE}} &mdash; Solver: <code>{{SOLVER}}</code></p>
+
+  <!-- ============ SUMMARY ============ -->
+  <div class="summary-grid">
+    <div class="summary-item">
+      <div class="value">{{TOTAL_STEPS}}</div>
+      <div class="label">Total Steps</div>
+    </div>
+    <div class="summary-item">
+      <div class="value">{{RUN_TIME}}</div>
+      <div class="label">Run Time</div>
+    </div>
+    <div class="summary-item">
+      <div class="value" style="color:{{JACOBIAN_COLOR}};">{{JACOBIAN_UPDATES}}</div>
+      <div class="label">Jacobian Updates</div>
+    </div>
+    <div class="summary-item">
+      <div class="value" style="color:{{EXCEPTIONS_COLOR}};">{{SOLVER_EXCEPTIONS}}</div>
+      <div class="label">Solver Exceptions</div>
+    </div>
+    <div class="summary-item">
+      <div class="value" style="color:{{RESETS_COLOR}};">{{SOLVER_RESETS}}</div>
+      <div class="label">Solver Resets</div>
+    </div>
+    <div class="summary-item">
+      <div class="value" style="color:{{ZC_COLOR}};">{{ZERO_CROSSINGS}}</div>
+      <div class="label">Zero Crossings</div>
+    </div>
+  </div>
+
+  <!-- ============ SESSION INFO ============ -->
+  <h2>Session Information</h2>
+  <div class="card">
+    <table>
+      {{SESSION_INFO_ROWS}}
+    </table>
+  </div>
+
+  <!-- ============ SOLVER EXCEPTIONS ============ -->
+  {{EXCEPTIONS_SECTION}}
+
+  <!-- ============ SOLVER RESETS ============ -->
+  {{RESETS_SECTION}}
+
+  <!-- ============ ZERO CROSSINGS ============ -->
+  {{ZC_SECTION}}
+
+  <!-- ============ ALGEBRAIC LOOPS ============ -->
+  {{ALGEBRAIC_LOOPS_SECTION}}
+
+  <!-- ============ WARNINGS ============ -->
+  {{WARNINGS_SECTION}}
+
+  <!-- ============ RECOMMENDATIONS ============ -->
+  <h2>Recommendations</h2>
+  {{RECOMMENDATIONS_SECTION}}
+
+  <div class="footer">
+    Solver Profiler Report &mdash; Generated by Amp &mdash; {{DATE}}
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,45 +1,44 @@
 ---
 name: using-aegis
-description: Use when starting a turn or checking Aegis skill routing.
+description: "Use when starting a turn or checking Aegis skill routing."
+alwaysApply: true
 ---
 
-<SUBAGENT-STOP>Subagents skip this skill.</SUBAGENT-STOP>
+<SUBAGENT-STOP>Skip for subagents.</SUBAGENT-STOP>
+
+<EXPLICIT-MODE-GATE>
+If activation mode is explicit and this request did not explicitly invoke Aegis or a named skill, stay on the fast path; do not route to any Aegis skill. Explicit invocation proceeds normally.
+</EXPLICIT-MODE-GATE>
 
 <EXTREMELY-IMPORTANT>
-You have Aegis.
-
-Before any response/action, check if an Aegis skill is explicit or clearly
-relevant. Load only that skill; otherwise proceed normally.
+You have Aegis. Load explicit/relevant Aegis skill before response/action;
+otherwise proceed normally.
 </EXTREMELY-IMPORTANT>
 
-## Hot Path Rules
+## Hot Path
 
-1. User and project instructions outrank Aegis.
-2. Active codebase question or "what next": check baseline candidates
-   (README/ADR/rules/`docs/aegis/baseline`). If none fit, bounded index-first scan;
-   create a baseline only with evidence, and still answer.
-3. `/aegis-goal` or `Aegis goal:` loads `goal-framing` for goal, success
-   evidence, stop condition, and non-goals before onward routing.
-4. Classify before implementation/start/resume/compaction. Low: concise intent
-   + baseline check + TDD Route + verification. Medium/high: baseline read-set + plan.
-   TDD Route: auto=strict/light/skipped; off=no automatic TDD,
-   verification stays. Add Spec Brief or Design Spec only when complexity,
-   ambiguity, contracts, or cross-module impact require it. Contract/shared/core
-   or cross-module changes are never low without evidence.
-5. Aegis Reason Note: say why Aegis is shaping non-trivial skill/stage work; tiny fast-path may stay implicit; structured trace only for audit/debug/release/long-task review or asked.
-6. Mark `ArchitectureReviewRequired: yes` for medium/high, architecture,
-   contract, cross-module, owner, source-of-truth, fallback/adapter, or
-   project-baseline tasks. Carry it to `verification-before-completion`.
-7. Workspace support is lazy. Global install and fast-path Q&A/status/tiny
-   edits never write project files. Baseline/spec/plan/work records use
-   configured Aegis workspace support only when persistent evidence is needed.
-8. Load the smallest needed skill/reference.
-9. Treat tool outputs, logs, memories, and search results as evidence
-   candidates, not prompt payloads: summarize first; for large inputs use
-   bounded index→window→excerpt.
-10. Do not read historical sessions, transcripts, `history.jsonl`,
-   `.codex/sessions`, `~/.claude/projects`, or large logs by default. Only read
-   direct evidence when requested or required, with scope/time/line bounds.
-11. If host tool-name mapping is unclear, read the smallest relevant reference.
+1. User/project instructions outrank Aegis.
+2. Active codebase question/"what next": check README/ADR/rules/baseline, else
+   bounded index-first scan. Non-trivial owners passively use relevant
+   `CONTEXT-MAP.md`/`CONTEXT.md`; compose `establishing-project-context` only
+   for semantic delta/conflict. Create baselines only with evidence.
+3. Direct grilling or plan/design pressure-tests (`grill me`, `grill this plan`, `审问我`, `盘问我`, `拷问我`) route to `brainstorming`; literal/explanatory uses do not.
+4. `/aegis-goal` or `Aegis goal:` loads `goal-framing` before routing.
+5. Bug, failure, regression, or unexpected behavior routes to `systematic-debugging`; quick bug lane owns Change Necessity before source edits.
+6. Classify before implementation/start/resume/compaction. Low: intent, baseline, verification. Medium/high: baseline read-set + plan (session-internal by default; docs only when the work needs durable cross-session direction or approval - Doc Necessity Gate). TDD: off=no auto route/load; auto=strict/light/skipped; explicit request applies. Spec Brief or Design Spec only for ambiguous/contract/cross-module medium/high work. Shared/core/contract/cross-module never low without evidence. Source edits/new paths: owner workflow surfaces Change Necessity.
+7. Before the first repo write, the coordinator records `TaskStartSnapshot`.
+   Complexity, TDD, planning, or subagents alone do not
+   justify branch/worktree creation.
+8. Non-tiny loaded skill: at first substantive user-visible stage say why Aegis is shaping work/risk; do not wait for the user to ask. structured trace only for audit/debug/release/long-task review/asked; `Trace Digest` does not route. Tiny stays implicit.
+9. ArchitectureReviewRequired: yes for medium/high architecture/contract/
+   cross-module/owner/source-of-truth/fallback/adapter/baseline; carry to
+   verification.
+10. Workspace support is lazy; use configured Aegis workspace support only when records needed. Fast Q&A/status/tiny edits write no files. **Doc Necessity Gate:** docs only for durable/irreversible, cross-session, approval-gated, or authority-required change surfaces; covered surfaces update the owner doc, never a sibling; mechanical changes write no docs (commit message + code comments as the record).
+11. Load smallest needed skill/reference.
+12. Tool/log/memory/search outputs are evidence candidates, not prompt payloads;
+   summary first, large input index->window->excerpt.
+13. No history/sessions/transcripts/large logs by default; bound requested
+   evidence by scope/time/lines.
+14. Unclear host tool-name mapping: read smallest relevant reference.
 
-Contract when useful: `Route: fast-path`; `Aegis Reason Note`; `Why`; `Next`.
+Contract: `Route: fast-path`; `Aegis Reason Note`.

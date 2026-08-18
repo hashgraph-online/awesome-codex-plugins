@@ -2,7 +2,7 @@
 
 ## Dependency Contract
 
-| Dependency | Operation | Criticality | Timeout | Retry | Idempotency |
+| Dependency | Operation | Criticality | Deadline/Timeout | Explicit Retry Decision (Including Zero) | Idempotency |
 | --- | --- | --- | --- | --- | --- |
 
 ## Failure Behavior
@@ -22,8 +22,8 @@
 
 ## Queue Backpressure And Load Shedding
 
-| Path | Threshold | Synchronous Response | Asynchronous Response | Preserved Traffic |
-| --- | --- | --- | --- | --- |
+| Path | Max Depth | Max Age | Drain Rate | Poison Handling | Terminal-Failure Disposition | Synchronous Response | Asynchronous Response | Preserved Traffic |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Degradation Contract
 

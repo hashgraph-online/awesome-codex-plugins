@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/sbh",
   "layout": "modular",
-  "source_hash": "d98846a1a9e0f03efe1a638fbefaf96ef1bb0345fdf9e7b9e4831038761da450",
-  "generated_hash": "f5bb2c32eebca66f1008a1b9b26bdcb33f1f537ffa935ae9a4f55ebe1435235b"
+  "source_hash": "1e938f203fc92290da03306ad803586159748d4d69c0aa4748f0af8864d7f9f4",
+  "generated_hash": "55e22b4db1245feab5a38ab8c571b77ad435047e2511d132e4c4b179f03a4fc9"
 }

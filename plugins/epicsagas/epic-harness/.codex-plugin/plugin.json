@@ -1,6 +1,6 @@
 {
   "name": "epic",
-  "version": "0.5.1",
+  "version": "0.8.2",
   "description": "Auto-trigger skills + self-evolving agent harness. Includes orbit, evolve, team, tdd, audit, ship and more.",
   "author": {
     "name": "epicsagas",
@@ -18,7 +18,8 @@
     "code-review",
     "automation"
   ],
-  "skills": "./registry/skills/",
+  "skills": "./skills/",
+  "mcpServers": "./mcp_config.json",
   "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "Epic Harness",

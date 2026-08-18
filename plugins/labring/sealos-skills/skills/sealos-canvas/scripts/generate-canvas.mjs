@@ -46,7 +46,14 @@ function main() {
       return printStop('kubectl_missing', 'kubectl is required to view deployed Sealos resources. Install kubectl, then run /sealos-canvas again.')
     }
 
-    resources = readLiveResources({ kubectl, kubeconfig, namespace: lastDeploy.namespace })
+    const liveRead = readLiveResources({ kubectl, kubeconfig, namespace: lastDeploy.namespace })
+    if (liveRead.readErrors.length > 0) {
+      return printStop(
+        'read_access_unavailable',
+        `Unable to read deployed Sealos resources: ${liveRead.readErrors.join('; ')}`
+      )
+    }
+    resources = liveRead.resources
   }
 
   const theme = extractTheme(workDir)
@@ -65,10 +72,12 @@ function main() {
 
   return printJson({
     ok: true,
+    local_url: null,
     html_path: outputPath,
     node_count: graph.nodes.length,
     edge_count: graph.edges.length,
-    app_url: lastDeploy.url || ''
+    app_url: lastDeploy.url || '',
+    server_lifetime: { status: 'not_started', shutdown: 'no local server started' }
   })
 }
 
@@ -106,7 +115,12 @@ function readJson(filePath) {
 }
 
 function printStop(reason, message) {
-  printJson({ ok: false, reason, message })
+  printJson({
+    ok: false,
+    reason,
+    message: sanitizeDiagnostic(message),
+    server_lifetime: { status: 'not_started', shutdown: 'no local server started' }
+  })
 }
 
 function printJson(data) {
@@ -142,7 +156,8 @@ function serveCanvas({ host, port, outputDir, outputPath, graph, lastDeploy }) {
     printJson({
       ok: false,
       reason: 'server_start_failed',
-      message: `Failed to start local Sealos canvas server: ${error.message}`
+      message: sanitizeDiagnostic(`Failed to start local Sealos canvas server: ${error.message}`),
+      server_lifetime: { status: 'failed', shutdown: 'no local server started' }
     })
     process.exitCode = 1
   })
@@ -157,7 +172,8 @@ function serveCanvas({ host, port, outputDir, outputPath, graph, lastDeploy }) {
       html_path: outputPath,
       node_count: graph.nodes.length,
       edge_count: graph.edges.length,
-      app_url: lastDeploy.url || ''
+      app_url: lastDeploy.url || '',
+      server_lifetime: { status: 'running', shutdown: 'SIGINT/SIGTERM or request end' }
     })
   })
 
@@ -184,6 +200,7 @@ function findKubectl() {
 function readLiveResources({ kubectl, kubeconfig, namespace }) {
   const env = { ...process.env, KUBECONFIG: kubeconfig }
   const resources = {}
+  const readErrors = []
 
   for (const kind of SAFE_RESOURCE_KINDS) {
     try {
@@ -194,14 +211,19 @@ function readLiveResources({ kubectl, kubeconfig, namespace }) {
       )
       resources[toResourceKey(kind)] = JSON.parse(stdout)
     } catch (error) {
-      resources[toResourceKey(kind)] = { apiVersion: 'v1', items: [], error: readableExecError(error) }
+      const diagnostic = readableExecError(error)
+      resources[toResourceKey(kind)] = { apiVersion: 'v1', items: [], error: diagnostic }
+      readErrors.push(`${kind}: ${diagnostic}`)
     }
   }
 
   resources.configmaps = readConfigMapSummaries({ kubectl, env, namespace })
-  resources.secrets = readSecretSummaries({ kubectl, env, namespace })
+  if (resources.configmaps.error) readErrors.push(`configmap: ${resources.configmaps.error}`)
 
-  return resources
+  resources.secrets = readSecretSummaries({ kubectl, env, namespace })
+  if (resources.secrets.error) readErrors.push(`secret: ${resources.secrets.error}`)
+
+  return { resources, readErrors }
 }
 
 function readConfigMapSummaries({ kubectl, env, namespace }) {
@@ -246,7 +268,16 @@ function readSecretSummaries({ kubectl, env, namespace }) {
 
 function readableExecError(error) {
   const text = String(error.stderr || error.message || error)
-  return text.trim().slice(0, 500)
+  return sanitizeDiagnostic(text)
+}
+
+function sanitizeDiagnostic(value) {
+  return String(value)
+    .replace(/(authorization|token|password|secret|kubeconfig|access[_-]?key)(\s*[:=]\s*)[^\s,;]+/gi, '$1$2<redacted>')
+    .replace(/(https?:\/\/)([^\s/@]+):([^\s/@]+)@/gi, '$1<redacted>@')
+    .replace(/(-----BEGIN [^-]+-----)[\s\S]*?(-----END [^-]+-----)/gi, '$1<redacted>$2')
+    .trim()
+    .slice(0, 500)
 }
 
 function toResourceKey(kind) {
@@ -632,7 +663,7 @@ function sanitizeEvents(events, appName) {
       type: event.type || 'Normal',
       reason: event.reason || 'Event',
       involved: event.involvedObject?.name || '',
-      message: String(event.message || '').slice(0, 180),
+      message: sanitizeDiagnostic(String(event.message || '')).slice(0, 180),
       time: event.lastTimestamp || event.eventTime || event.metadata?.creationTimestamp || ''
     }))
 }
@@ -687,7 +718,8 @@ function buildCanvasModel({ graph, theme, lastDeploy }) {
     nodes: graph.nodes,
     edges: graph.edges,
     events: graph.events,
-    theme
+    theme,
+    redaction: { status: 'passed', omitted: ['Secret.data', 'ConfigMap.data', 'kubeconfig', 'credential values'] }
   }
 }
 
@@ -728,6 +760,7 @@ try {
   printJson({
     ok: false,
     reason: 'canvas_generation_failed',
-    message: `Failed to generate Sealos canvas: ${error.message}`
+    message: sanitizeDiagnostic(`Failed to generate Sealos canvas: ${error.message}`),
+    server_lifetime: { status: 'not_started', shutdown: 'no local server started' }
   })
 }

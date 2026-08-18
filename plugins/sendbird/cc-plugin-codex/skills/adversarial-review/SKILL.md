@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: 'Run a design-challenging Claude Code review of local git changes in this repository. Args: --wait, --background, --base <ref>, --scope <auto|working-tree|branch>, --model <model>, --effort <low|medium|high|xhigh|max>, [focus text]. Defaults to opus + xhigh effort. Use only when the user wants stronger scrutiny than a normal review, such as explicit tradeoff challenge, risky-change review, or custom focus text.'
+description: 'Run a design-challenging Claude Code review of local git changes in this repository. Args: --wait, --background, --base <ref>, --scope <auto|working-tree|branch>, --model <model>, --effort <low|medium|high|xhigh|max>, [focus text]. Defaults to opus with no forced effort. Use only when the user wants stronger scrutiny than a normal review, such as explicit tradeoff challenge, risky-change review, or custom focus text.'
 ---
 
 # Claude Code Adversarial Review
@@ -16,7 +16,9 @@ Unlike `$cc:review`, this skill accepts custom focus text after the flags. The m
 Resolve `<plugin-root>` as two directories above this `SKILL.md` file. Always run the companion from that active plugin root:
 `node "<plugin-root>/scripts/claude-companion.mjs" adversarial-review ...`
 
-Supported arguments: `--wait`, `--background`, `--base <ref>`, `--scope auto|working-tree|branch`, `--model <model>`, `--effort <low|medium|high|xhigh|max>`, plus optional focus text after the flags (defaults: model=opus, effort=xhigh; sonnet defaults to high; haiku has no effort)
+Supported arguments: `--wait`, `--background`, `--base <ref>`, `--scope auto|working-tree|branch`, `--model <model>`, `--effort <low|medium|high|xhigh|max>`, plus optional focus text after the flags (defaults: model=opus and no effort; `fable`, `opus`, `sonnet`, and `haiku` each keep Claude Code's own effort default, and Claude Code owns which effort levels each model supports)
+
+Forward `--model` unchanged to the companion. The companion trims surrounding whitespace, canonicalizes the friendly aliases `fable`, `opus`, `sonnet`, and `haiku` to lowercase, then forwards every other `--model` value unchanged to Claude Code. Claude Code owns alias resolution and supported effort levels; `/model` is the authoritative picker for the current account and provider.
 
 Raw slash-command arguments:
 `$ARGUMENTS`
@@ -39,9 +41,10 @@ Execution mode rules:
   - Recommend waiting only when the scoped review is clearly tiny, roughly 1-2 files total and no sign of a broader directory-sized change.
   - In every other case, including unclear size, recommend background.
   - When in doubt, run the review instead of declaring that there is nothing to review.
-- Then use `AskUserQuestion` exactly once with two options, putting the recommended option first and suffixing its label with `(Recommended)`:
+- Then ask the user once which execution mode to use, offering two options with the recommended one first and its label suffixed `(Recommended)`:
   - `Wait for results`
   - `Run in background`
+- Use a question tool for that ask only when this thread actually has one. Codex exposes `request_user_input` only behind `[tools] experimental_request_user_input`, and it does not exist in non-interactive threads. If you have no question tool but a user is reading this thread, ask in your own reply and stop there. In a non-interactive thread with no user to answer, skip the ask and proceed with the recommended mode. Never spin on a wait or collaboration tool looking for a picker this thread does not have.
 
 Argument handling:
 - Preserve the user's arguments exactly.
@@ -57,6 +60,7 @@ Argument handling:
 Foreground flow:
 - Run:
   `node "<plugin-root>/scripts/claude-companion.mjs" adversarial-review --view-state on-success <arguments with --wait/--background removed>`
+- Run that companion command with `sandbox_permissions: "require_escalated"` and the justification `Allow the Claude Code companion to contact the Claude API for this requested review.` Do not first try the companion command in the default network-disabled sandbox.
 - Foreground adversarial review belongs to the main Codex thread. Do not spawn a review subagent, do not invoke a generic review-runner role, and do not proxy this foreground path through any background worker abstraction.
 - Do not fall back to raw `claude`, `claude-code`, `claude review`, `bash -lc ...claude...`, or any other direct Claude CLI syntax when the companion path is available. The foreground syntax contract here is the resolved companion command above, not a hand-rolled Claude invocation.
 - If the resolved companion command fails, surface that failure. Do not silently retry foreground adversarial review through a different CLI shape, a generic review runner, or a custom shell wrapper.
@@ -71,21 +75,18 @@ Background flow:
 - Before spawning the built-in child, capture the review job id plus routing context in one call:
   `node "<plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind review --json`
 - If that helper returns a non-empty `jobId`, pass it into the companion command as an internal `--job-id <reserved-job-id>` routing flag.
+- Whenever forwarding that reserved `--job-id`, also pass `--cwd <workspace-root>` using `workspaceRoot` from the same helper response. Reserved job ids are workspace-scoped.
 - If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command.
 - If it returns an empty `ownerSessionId`, omit `--owner-session-id` entirely. Never leave an empty placeholder such as `--owner-session-id  --job-id`.
 - If that helper returns a non-empty `parentThreadId`, pass it into the child prompt as the parent thread id for one-shot completion notification.
 - If it returns an empty `parentThreadId`, omit the notification path instead of emitting a blank thread-id placeholder.
 - Spawn exactly one transient forwarding child through `spawn_agent` with:
-  - `agent_type: "default"`
   - `fork_context: false`
-  - `model: "gpt-5.4-mini"`
   - `reasoning_effort: "medium"`
+  - no `agent_type` and no `model`, so the child uses the built-in default agent and inherits the parent model. Never pin a specific Codex model name here; the available catalog is owned by the host CLI and changes between releases.
 - Prefer a self-contained child message over inheriting parent history. The built-in adversarial-review child should not rely on full parent thread replay for normal operation.
 - Only consider `fork_context: true` as a last resort for a short follow-up where essential context truly cannot be summarized. Avoid it for large or long-lived threads because it can exhaust the child context window.
-- Before spawning the built-in child, emit one short commentary update that records the attempted subagent model selection. Default text should clearly say the parent is starting the built-in adversarial-review child with `gpt-5.4-mini` at `medium` effort.
-- If `spawn_agent` rejects `gpt-5.4-mini` with an explicit model-unavailable error such as `Unknown model`, `model unavailable`, or equivalent "not in list / unavailable" wording, retry once with `model: "gpt-5.4"` and the same `reasoning_effort: "medium"`.
-- If that fallback happens, emit one short commentary update that clearly says `gpt-5.4-mini` was unavailable and the parent is retrying with `gpt-5.4`.
-- Do not use that fallback for arbitrary failures.
+- Before spawning the built-in child, emit one short commentary update that clearly says the parent is starting the built-in adversarial-review child on the inherited model at `medium` effort.
 - The built-in child must be a pure forwarder. It should:
   - run exactly one shell command
   - execute:
@@ -93,8 +94,10 @@ Background flow:
   - run that command as one blocking foreground shell-tool call, not as a background terminal/session
   - do not request a shell session id, poll a shell session later, or return before the companion command exits
   - if the available shell tool is `exec_command`, call it once in non-interactive mode and wait for command exit in that same call
+  - when using `exec_command`, pass `sandbox_permissions: "require_escalated"` and the justification `Allow the Claude Code companion to contact the Claude API for this requested review.` on that one call; do not first try the companion command in the default network-disabled sandbox
   - include `--owner-session-id <owner-session-id>` only when the parent resolved a non-empty owner session id
   - include `--job-id <reserved-job-id>` when the parent reserved one
+  - include the matching `--cwd <workspace-root>` whenever the command includes that reserved `--job-id`
   - never leave an empty routing placeholder such as `--owner-session-id  --job-id`
   - return only that command's stdout exactly, with no added commentary
   - ignore stderr progress chatter such as `[cc] ...` lines and preserve only the final stdout-equivalent result text

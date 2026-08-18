@@ -1,199 +1,155 @@
 ---
 name: rpi
-description: "Run RPI."
+description: 'Coordinate one RPI traversal: one bounded'
 ---
+# RPI
 
-# $rpi - Full Lifecycle Orchestrator
-
-> Quick ref: `$discovery` -> `$crank` -> `$validate`, then report.
-
-**Execute this workflow. Do not only describe it.** RPI is autonomous unless
-`--interactive` is set. The user touchpoint is after validation, or after a
-real blocked state exhausts retries. Read
-[references/autonomous-execution.md](references/autonomous-execution.md) when
-you need the full autonomy contract.
-
-When an external executor fails but the code surface may still be valid, read
-[references/codex-executor.md](references/codex-executor.md) and recover through
-Codex direct checks before declaring a source-level regression.
-
-## Codex Lifecycle Guard
-
-When this skill runs in Codex hookless mode (`CODEX_THREAD_ID` is set or
-`CODEX_INTERNAL_ORIGINATOR_OVERRIDE` is `Codex Desktop`), run:
-
-```bash
-ao codex ensure-start 2>/dev/null || true
-```
-
-Let `$validate`, `$post-mortem`, or `$handoff` own hookless closeout through
-`ao codex ensure-stop`.
-
-## Core Contract
-
-RPI delegates via `$discovery`, `$crank`, `$validate` as **separate skill invocations**.
-Keep strict delegation on by default; do not compress phases, replace phase
-skills with direct agent spawns, or skip `$validate`. Read
-[../shared/references/strict-delegation-contract.md](../shared/references/strict-delegation-contract.md)
-for the full anti-compression contract.
-
-When the runtime supports phase isolation, keep `$rpi` visible in the main
-session and run each phase contract through isolated transport: phase skill
-name in, bounded handoff artifact in, phase artifact/verdict/next action out.
-The transport may be a daemon job, process runner, or subagent wrapper, but it
-must execute the declared phase skill contract rather than doing phase work
-directly. See [references/isolation-contract.md](references/isolation-contract.md).
-
-## Context Density Rule
-
-At every phase boundary, preserve only context that carries intent, boundary,
-evidence, decision, constraint, or next action. Omit or link anything else.
-The domain entry is `../domain/references/context-density-rule.md`.
-
-RPI owns one lifecycle objective across all phases. Preserve the discovered
-`epic_id` when present; otherwise preserve the original goal and execution
-packet objective. A child bead or one ready slice is context, not a replacement
-objective. `<promise>PARTIAL</promise>` from `$crank` means retry Phase 2 on the
-same objective.
-
-Preserve the [Intent-to-Loop Hexagon](../../docs/architecture/intent-to-loop-hexagon.md)
-boundary as the objective crosses `shape_intent`, `persist_intent`,
-`plan_slices`, `execute_wave`, `validate_acceptance`, and `record_evidence`.
-
-## Route And Classify
-
-1. Create `.agents/rpi/`.
-2. Resolve `--from`:
-   - default, `research`, `plan`, `pre-mortem`, `brainstorm` -> discovery
-   - `implementation` or `crank` -> implementation
-   - `validation`, `vibe`, or `post-mortem` -> validation
-3. If the input is a bead and `--from` is absent, resolve it with `bd show`:
-   - epic -> implementation with that epic
-   - child with parent -> implementation with the parent epic
-4. Classify complexity:
-   - `fast`: short/simple goal or `--fast-path`
-   - `standard`: medium goal or one scope keyword
-   - `full`: `--deep`, complex-operation keyword, 2+ scope keywords, or >120 chars
-5. Log `RPI mode: rpi-phased (complexity: <level>)`.
-
-Track state compactly:
+Run one experiment from the caller's existing intent source through three
+responsibilities and stop:
 
 ```text
-rpi_state = {
-  goal: "<goal string>",
-  epic_id: null,
-  phase: "<discovery|implementation|validation>",
-  complexity: "<fast|standard|full>",
-  test_first: <true by default; false only when --no-test-first>,
-  cycle: 1,
-  verdicts: {}
-}
+Plan -> Implement -> fresh Validate -> report
 ```
 
-## Phase DAG
+RPI preserves the original intent and dispatches each core phase at most once.
+It does not own retries, budgets, queues, claims, leases, Git, delivery, release,
+closure, or the caller's next decision.
 
-Enter at the routed phase and run every phase after it.
+The pure [`scripts/run_once.py`](scripts/run_once.py) reference behavior makes
+the dispatch and stop semantics executable without Git, `ao`, or a tracker.
 
-1. **Discovery:** invoke `$discovery <goal> [--interactive] --complexity=<level>`
-   directly or through phase-isolated skill transport.
-   On DONE, read `.agents/rpi/execution-packet.json` or the run archive and
-   preserve its objective spine. On BLOCKED, stop with the discovery verdict.
-2. **Implementation:** invoke `$crank <epic-id>` when the packet has `epic_id`;
-   otherwise invoke `$crank .agents/rpi/execution-packet.json`, directly or
-   through phase-isolated skill transport. Pass `--test-first` or
-   `--no-test-first` through. On DONE, record `ao ratchet record implement
-   2>/dev/null || true` and continue. On PARTIAL or BLOCKED, retry the same
-   objective up to 3 total attempts.
-3. **Validation:** invoke `$validate <epic-id> --complexity=<level>` when an
-   epic exists; otherwise invoke `$validate --complexity=<level>`, directly
-   or through phase-isolated skill transport. Add `--strict-surfaces` when
-   `--quality` is set. On FAIL, extract findings, re-run `$crank` on the same
-   objective, then re-run `$validate`, up to 3 total validation attempts. On
-   DONE, record `ao ratchet record vibe 2>/dev/null || true`.
-4. **Report:** summarize phase verdicts and epic status using
-   [references/report-template.md](references/report-template.md). With
-   `--loop`, restart from discovery on FAIL while `cycle < max_cycles`. With
-   `--spawn-next`, read `.agents/rpi/next-work.jsonl` and suggest the next
-   command without invoking it. Before emitting the report, apply the Context
-   Density Rule: every line should carry intent, boundary, evidence, decision,
-   constraint, or next action.
+## Admission and phase lock
 
-## Phase Data Contract
+RPI activates for any request shaped as plan-execute-verify work —
+orchestration, worker delegation, "execute this plan", or an explicit
+Plan -> Implement -> Validate ask — whenever the goal includes changing the
+subject. The caller does not have to name RPI. Research-, audit-, and
+review-only delegation is not RPI admission: it produces evidence for a
+caller, has no implementation candidate, and never earns a verdict.
 
-The execution packet carries the repo execution profile through
-`contract_surfaces`, `done_criteria`, and queue claim/finalize metadata. Keep
-the latest alias at `.agents/rpi/execution-packet.json` and read
-[references/phase-data-contracts.md](references/phase-data-contracts.md) for
-schemas and archive paths.
+Once the caller has accepted a plan — including a duel or design synthesis —
+Plan is closed for that intent. Every subsequent lane must return
+implementation evidence: diffs, commits, test results, or factual receipts.
+Dispatching another planning, audit, or review lane over the same intent
+requires new explicit caller authorization; a review comment is never that
+authorization by itself.
 
-## Complexity-Scaled Gates
+## Contract
 
-### Pre-mortem
-- `complexity == "low"` or `"fast"`: inline review, no spawning (`--quick`)
-- `complexity == "medium"` or `"standard"`: inline fast default (`--quick`)
-- `complexity == "high"` or `"full"`: full council, 2-judge minimum; max 3 total attempts
+1. Resolve the existing bead or caller intent. Invoke Plan once only if that
+   source needs shaping; Plan updates the same source or proposes an amendment.
+   It creates no AgentOps packet. The runtime snapshots the exact resolved
+   source bytes under their digest, including when the conversation is the only
+   source, before dispatching Implement or a fresh Validate context. If usable
+   intent cannot be established, report `NOT_PLANNED` and stop.
+2. Invoke Implement once with the resolved intent. It performs one bounded
+   experiment; the runtime derives subject identity and check receipts. If no
+   subject is built, report `NOT_BUILT` and stop.
+3. Invoke Validate once in a context distinct from the author's context. Pass
+   the intent reference and digest, exact subject manifest, factual receipts,
+   validator identity, and freshness attestation.
+4. Return the fresh validation result and a short report. Persist and link
+   `verdict.v2` only when the caller requests machine-readable evidence or a
+   declared downstream consumer requires it. Stop regardless of `PASS`, `FAIL`,
+   or `NOT_PROVEN`.
 
-### Final Vibe
-- `complexity == "low"` or `"fast"`: inline review, no spawning (`--quick`)
-- `complexity == "medium"` or `"standard"`: inline fast default (`--quick`)
-- `complexity == "high"` or `"full"`: full council, 2-judge minimum; max 3 total attempts
+`NOT_PLANNED` and `NOT_BUILT` are report statuses, never semantic verdicts.
+A caller may revise the bead or caller intent and start a new invocation. RPI
+never creates a parallel revision artifact or selects the next work itself.
 
-### Post-mortem (STEP 2)
-- `complexity == "low"` or `"fast"`: inline review, no spawning (`--quick`)
-- `complexity == "medium"` or `"standard"`: inline fast default (`--quick`)
-- `complexity == "high"` or `"full"`: full council, 2-judge minimum; max 3 total attempts
+## Proportionality guard
 
-## Flags
+RPI does not turn each component, gate failure, or specialist comment into a
+new planning artifact. A terminal caller goal
+may remain one bounded experiment across several source owners when they serve
+one outcome and one acceptance boundary.
 
-| Flag | Default | Purpose |
-|------|---------|---------|
-| `--from=<phase>` | discovery | Start at discovery, implementation, or validation |
-| `--interactive` | off | Human gates in discovery/validation |
-| `--auto` | on | Fully autonomous default |
-| `--loop --max-cycles=<n>` | off / 3 | Iterate when validation fails |
-| `--spawn-next` | off | Surface follow-up work after reporting |
-| `--test-first` | on | Pass strict-quality preference to `$crank` |
-| `--no-test-first` | off | Explicitly opt out of strict-quality |
-| `--fast-path` / `--deep` | auto | Force fast or full complexity |
-| `--quality` | off | Make validation strict surfaces blocking |
-| `--dry-run` / `--no-budget` | off | Report only, or disable phase time budgets |
+If control artifacts or fresh-validation cycles are multiplying faster than
+implementation evidence, stop dispatching more lanes. Return to one
+outcome-level intent and continue with targeted deterministic checks, reserving
+the full integration check and fresh validation for the frozen subject. This
+changes orchestration cost, never acceptance, exact identity, fail-closed
+scope, or validation authority.
 
-## Examples
+## Spiral breaker
 
-**User says:** `$rpi "add user authentication"`
-Run discovery, implementation, validation, then report.
+The spiral breaker fires when two consecutive control artifacts (plans, audits,
+reviews, prompts, reports) contain no new implementation evidence. Terminate the
+run and report `NOT_BUILT` when no implementation subject exists; when a subject
+exists, stop and report its current status without dispatching another lane or
+repair revision. RPI owns no lane budget, repair budget, or retry policy.
 
-**User says:** `$rpi --from=implementation ag-23k`
-Resolve the bead scope, run implementation and validation, then report.
+## Delegation boundaries
 
-**User says:** `$rpi --deep "refactor payment module"`
-Use full council gates across the lifecycle.
+Delegate with minimal context: a lane receives the frozen intent reference and
+the established facts it needs, never the orchestrator's full conversation
+history. If a lane cannot proceed from the intent alone, the plan failed the
+fresh-context test and should be repaired at the source, not padded with chat
+transcript.
 
-Read [references/examples.md](references/examples.md) for resume,
-interactive, and loop examples.
+Lanes whose write scopes share a regen surface (the same generated outputs,
+mirrors, or manifests) serialize; only lanes with disjoint source scopes and
+disjoint regen surfaces may run in parallel.
 
-## Troubleshooting
+## Invariants
 
-| Problem | Response |
-|---------|----------|
-| Discovery BLOCKED | Stop and report discovery's manual-intervention reason |
-| `$crank` returns PARTIAL | Retry `$crank` on the same objective; do not narrow to a child slice |
-| Validation FAIL | Re-crank with findings, then re-validate, up to 3 total attempts |
-| Packet shape unclear | Read [references/phase-data-contracts.md](references/phase-data-contracts.md) |
-| External executor fails | Read [references/codex-executor.md](references/codex-executor.md), run direct Codex validation, and only create follow-up work for reproducible source failures |
+- Acceptance and its runtime-derived digest do not change between phases.
+- The runtime derives complete changed-path coverage or Validate returns
+  `NOT_PROVEN`.
+- A proven change outside `write_scope` makes the verdict `FAIL`.
+- PASS requires nonempty distinct author and validator context IDs plus an
+  explicit freshness attestation.
+- Optional Premortem, Postmortem, Council, genie, factory, tracker, and runtime
+  adapters are caller-selected. They do not alter phase order or core outcomes.
+  When a factory adapter is selected, work enters it through that factory's
+  coordinator (for Gas City, the Mayor — see
+  [using-gc](../using-gc/SKILL.md)); RPI hands over intent and never dispatches
+  factory runs itself.
+- Learn is an optional later consumer of verdict collections and is not part of
+  this invocation.
 
-## Reference Documents
+## Report
 
-- [references/autonomous-execution.md](references/autonomous-execution.md)
-- [references/complexity-scaling.md](references/complexity-scaling.md)
-- [references/context-windowing.md](references/context-windowing.md)
-- [references/codex-executor.md](references/codex-executor.md)
-- [references/error-handling.md](references/error-handling.md)
-- [references/examples.md](references/examples.md)
-- [references/gate-retry-logic.md](references/gate-retry-logic.md)
-- [references/gate4-loop-and-spawn.md](references/gate4-loop-and-spawn.md)
-- [references/isolation-contract.md](references/isolation-contract.md)
-- [references/phase-budgets.md](references/phase-budgets.md)
-- [references/phase-data-contracts.md](references/phase-data-contracts.md)
-- [references/report-template.md](references/report-template.md)
-- [references/troubleshooting.md](references/troubleshooting.md)
+RPI has one required report surface and one optional representation:
+
+1. **Interactive response:** return the result to the caller in natural
+   language. This is the default assistant response.
+2. **Machine artifact:** return or persist the exact `rpi-report.v1` object
+   only when the caller requests machine-readable evidence or a declared
+   adapter consumes it. The schema ships in a repo checkout at
+   `schemas/rpi-report.v1.schema.json`; the minimal required shape is:
+
+   ```json
+   {
+     "schema_version": "rpi-report.v1",
+     "status": "PASS",
+     "intent_ref": ".agents/ao/intents/sha256/<64-hex-digest>.intent",
+     "acceptance_digest": "<64-hex-char-sha256-or-null>",
+     "subject_manifest_digest": "<64-hex-char-sha256-or-null>",
+     "verdict_ref": "<verdict-location-or-null>",
+     "verdict_digest": "<64-hex-char-sha256-or-null>",
+     "checked": ["<criterion satisfied by evidence>"],
+     "not_checked": ["<criterion not covered>"]
+   }
+   ```
+
+   `status` is one of `PASS | FAIL | NOT_PROVEN | NOT_PLANNED | NOT_BUILT`; the
+   three digest fields, when present, are 64-character lowercase hex SHA-256
+   strings; `checked` and `not_checked` are arrays of strings. All nine keys
+   are required (use `null` for an inapplicable ref or digest), and no
+   additional properties are allowed.
+
+Lead the interactive response with the status and one sentence stating the
+caller-visible outcome. Lead with the subject, not the process: production
+paths changed, commits, test results, and acceptance criteria satisfied or
+remaining. A rising artifact count over an unchanged subject is a stop
+signal, not progress. Follow with only the strongest proof, any material
+unchecked scope, and a clickable verdict reference when one exists. Name why
+no subject exists for `NOT_PLANNED` or `NOT_BUILT`. Keep the response to one
+short paragraph or at most four bullets.
+
+When no machine artifact was requested, do not create a hidden one. Raw digests,
+schema fields, and exhaustive check lists stay out of the interactive response
+unless an integrity failure makes one necessary to explain the result.
+
+Do not append a next action. The caller owns continuation.

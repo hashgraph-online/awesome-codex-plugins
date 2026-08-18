@@ -1,6 +1,7 @@
 ---
 name: skill-context-detection
 description: "Auto-detect work context (Dev vs Knowledge) — use to tailor workflows based on current task type"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -100,7 +101,7 @@ Return detected context as a structured object for use by workflow skills:
 | Aspect | Dev Context | Knowledge Context |
 |--------|-------------|-------------------|
 | **Research Focus** | Technical implementation, library comparison, code patterns | Market analysis, academic synthesis, competitive research |
-| **Primary Agents** | Codex (implementation), Gemini (ecosystem) | Gemini (analysis), research-synthesizer |
+| **Primary Agents** | Codex (implementation), Antigravity (ecosystem) | Antigravity (analysis), research-synthesizer |
 | **Output Format** | Code examples, API comparisons, tech recommendations | Reports, frameworks, strategic recommendations |
 | **Visual Banner** | `🔍 [Dev] Discover Phase: Technical research` | `🔍 [Knowledge] Discover Phase: Strategic research` |
 
@@ -134,7 +135,7 @@ When context is detected, update the visual banner to show context:
 
 Providers:
 🔴 Codex CLI - Technical implementation analysis
-🟡 Gemini CLI - Ecosystem and library comparison
+🟡 Antigravity CLI - Ecosystem and library comparison
 🔵 Claude - Strategic synthesis
 ```
 
@@ -145,7 +146,7 @@ Providers:
 
 Providers:
 🔴 Codex CLI - Data analysis and modeling
-🟡 Gemini CLI - Market and competitive research
+🟡 Antigravity CLI - Market and competitive research
 🔵 Claude - Strategic synthesis
 ```
 
@@ -182,7 +183,7 @@ When this skill activates:
    ```
 
 3. **Execute workflow with context-appropriate behavior**
-   - Frame prompts for Codex/Gemini based on context
+   - Frame prompts for external providers based on context
    - Select appropriate synthesis approach
    - Apply context-specific quality gates
 ```

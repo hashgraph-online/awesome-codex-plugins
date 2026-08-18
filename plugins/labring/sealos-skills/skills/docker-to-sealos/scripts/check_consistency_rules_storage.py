@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List
+from typing import Dict, List, Set, Tuple
 
 from check_consistency_models import (
     DB_COMPONENT_RESOURCE_LIMITS,
@@ -14,6 +14,7 @@ from check_consistency_models import (
     ScanContext,
     SEALOS_CPU_REQUEST_BY_LIMIT,
     SEALOS_MEMORY_REQUEST_BY_LIMIT,
+    TEMPLATE_DEPLOY_KEY,
     Violation,
 )
 from check_consistency_parser import find_line
@@ -25,6 +26,7 @@ from check_consistency_helpers_storage import (
     parse_storage_bytes,
 )
 from check_consistency_helpers_workload import iter_containers
+from path_converter import path_to_vn_name
 
 
 def check_no_emptydir(context: ScanContext) -> List[Violation]:
@@ -403,11 +405,241 @@ def check_database_cluster_visibility_labels(context: ScanContext) -> List[Viola
     return violations
 
 
+def _is_mongodb_cluster(data: Dict[str, object]) -> bool:
+    if data.get("kind") != "Cluster":
+        return False
+
+    metadata = data.get("metadata")
+    labels = metadata.get("labels") if isinstance(metadata, dict) else None
+    if isinstance(labels, dict):
+        database_label = labels.get("kb.io/database")
+        cluster_definition = labels.get("clusterdefinition.kubeblocks.io/name")
+        if isinstance(database_label, str) and database_label.lower().startswith("mongodb"):
+            return True
+        if cluster_definition == "mongodb":
+            return True
+
+    spec = data.get("spec")
+    component_specs = spec.get("componentSpecs") if isinstance(spec, dict) else None
+    if not isinstance(component_specs, list):
+        return False
+    for component in component_specs:
+        if not isinstance(component, dict):
+            continue
+        if component.get("name") == "mongodb" or component.get("componentDef") == "mongodb":
+            return True
+    return False
+
+
+def check_mongodb_cluster_schema(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if doc.path.name != "index.yaml" or not _is_mongodb_cluster(doc.data):
+            continue
+
+        if doc.data.get("apiVersion") != "apps.kubeblocks.io/v1alpha1":
+            add_doc_violation(
+                violations,
+                rule_id="R057",
+                doc=doc,
+                pattern=r"^\s*apiVersion\s*:",
+                message="MongoDB Cluster apiVersion must be apps.kubeblocks.io/v1alpha1",
+            )
+
+        metadata = doc.data.get("metadata")
+        name = metadata.get("name") if isinstance(metadata, dict) else None
+        labels = metadata.get("labels") if isinstance(metadata, dict) else None
+        expected_labels = {
+            "kb.io/database": "mongodb-8.0.4",
+            "clusterdefinition.kubeblocks.io/name": "mongodb",
+            "app.kubernetes.io/instance": name,
+        }
+        for key, expected in expected_labels.items():
+            actual = labels.get(key) if isinstance(labels, dict) else None
+            if actual == expected:
+                continue
+            add_doc_violation(
+                violations,
+                rule_id="R057",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(key)}\s*:",
+                default_pattern=r"^\s*labels\s*:",
+                message=f"MongoDB Cluster metadata.labels.{key} must be {expected}",
+            )
+
+        spec = doc.data.get("spec")
+        component_specs = spec.get("componentSpecs") if isinstance(spec, dict) else None
+        component = component_specs[0] if isinstance(component_specs, list) and component_specs else None
+        if not isinstance(component, dict):
+            add_doc_violation(
+                violations,
+                rule_id="R057",
+                doc=doc,
+                pattern=r"^\s*componentSpecs\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message="MongoDB Cluster must define a mongodb componentSpec",
+            )
+            continue
+
+        expected_component_fields = {
+            "name": "mongodb",
+            "componentDef": "mongodb",
+            "serviceVersion": "8.0.4",
+        }
+        for key, expected in expected_component_fields.items():
+            if component.get(key) == expected:
+                continue
+            add_doc_violation(
+                violations,
+                rule_id="R057",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(key)}\s*:",
+                default_pattern=r"^\s*componentSpecs\s*:",
+                message=f"MongoDB Cluster componentSpecs[0].{key} must be {expected}",
+            )
+
+    return violations
+
+
+def check_statefulset_volume_claim_metadata(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if doc.path.name != "index.yaml" or doc.data.get("kind") != "StatefulSet":
+            continue
+
+        spec = doc.data.get("spec")
+        claim_templates = spec.get("volumeClaimTemplates") if isinstance(spec, dict) else None
+        if not isinstance(claim_templates, list) or not claim_templates:
+            continue
+
+        metadata = doc.data.get("metadata")
+        workload_labels = metadata.get("labels") if isinstance(metadata, dict) else None
+        if isinstance(workload_labels, dict) and TEMPLATE_DEPLOY_KEY in workload_labels:
+            add_doc_violation(
+                violations,
+                rule_id="R056",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(TEMPLATE_DEPLOY_KEY)}\s*:",
+                default_pattern=r"^\s*labels\s*:",
+                message=(
+                    f"StatefulSet metadata.labels must omit {TEMPLATE_DEPLOY_KEY} "
+                    "when spec.volumeClaimTemplates is present"
+                ),
+            )
+
+        mounted_paths: Set[Tuple[str, str]] = set()
+        for container in iter_containers(doc.data):
+            mounts = container.get("volumeMounts")
+            if not isinstance(mounts, list):
+                continue
+            for mount in mounts:
+                if not isinstance(mount, dict):
+                    continue
+                mount_name = mount.get("name")
+                mount_path = mount.get("mountPath")
+                if isinstance(mount_name, str) and isinstance(mount_path, str):
+                    mounted_paths.add((mount_name.strip(), mount_path.strip()))
+
+        for claim_template in claim_templates:
+            claim_metadata = claim_template.get("metadata") if isinstance(claim_template, dict) else None
+            if not isinstance(claim_metadata, dict):
+                add_doc_violation(
+                    violations,
+                    rule_id="R056",
+                    doc=doc,
+                    pattern=r"^\s*volumeClaimTemplates\s*:",
+                    message="each volumeClaimTemplates item must define metadata",
+                )
+                continue
+
+            claim_labels = claim_metadata.get("labels")
+            if isinstance(claim_labels, dict) and TEMPLATE_DEPLOY_KEY in claim_labels:
+                add_doc_violation(
+                    violations,
+                    rule_id="R056",
+                    doc=doc,
+                    pattern=rf"^\s*{re.escape(TEMPLATE_DEPLOY_KEY)}\s*:",
+                    default_pattern=r"^\s*volumeClaimTemplates\s*:",
+                    message=f"volumeClaimTemplates[].metadata.labels must omit {TEMPLATE_DEPLOY_KEY}",
+                )
+
+            annotations = claim_metadata.get("annotations")
+            path = annotations.get("path") if isinstance(annotations, dict) else None
+            value = annotations.get("value") if isinstance(annotations, dict) else None
+            name = claim_metadata.get("name")
+            if not isinstance(path, str) or not path.strip():
+                add_doc_violation(
+                    violations,
+                    rule_id="R056",
+                    doc=doc,
+                    pattern=r"^\s*annotations\s*:",
+                    default_pattern=r"^\s*volumeClaimTemplates\s*:",
+                    message="volumeClaimTemplates[].metadata.annotations.path is required",
+                )
+                continue
+            path = path.strip()
+
+            if value != "1":
+                add_doc_violation(
+                    violations,
+                    rule_id="R056",
+                    doc=doc,
+                    pattern=r"^\s*value\s*:",
+                    default_pattern=r"^\s*annotations\s*:",
+                    message="volumeClaimTemplates[].metadata.annotations.value must be the string '1'",
+                )
+
+            try:
+                expected_name = path_to_vn_name(path)
+            except ValueError:
+                add_doc_violation(
+                    violations,
+                    rule_id="R056",
+                    doc=doc,
+                    pattern=r"^\s*path\s*:",
+                    default_pattern=r"^\s*annotations\s*:",
+                    message="volumeClaimTemplates[].metadata.annotations.path must produce a valid vn name",
+                )
+                continue
+            if name != expected_name:
+                add_doc_violation(
+                    violations,
+                    rule_id="R056",
+                    doc=doc,
+                    pattern=r"^\s*name\s*:",
+                    default_pattern=r"^\s*volumeClaimTemplates\s*:",
+                    message=(
+                        "volumeClaimTemplates[].metadata.name must be derived from annotations.path "
+                        f"with path_to_vn_name (expected {expected_name})"
+                    ),
+                )
+
+            if (expected_name, path) not in mounted_paths:
+                add_doc_violation(
+                    violations,
+                    rule_id="R056",
+                    doc=doc,
+                    pattern=r"^\s*volumeClaimTemplates\s*:",
+                    message=(
+                        "each volume claim template must have a matching container volumeMount "
+                        "whose name is derived from annotations.path and whose mountPath equals that path"
+                    ),
+                )
+
+    return violations
+
+
 STORAGE_RULES: Dict[str, Rule] = {
     "R005": Rule("R005", check_no_emptydir),
     "R006": Rule("R006", check_image_pull_policy),
     "R011": Rule("R011", check_pvc_storage_limit),
     "R019": Rule("R019", check_database_cluster_component_resources),
     "R040": Rule("R040", check_database_cluster_visibility_labels),
+    "R057": Rule("R057", check_mongodb_cluster_schema),
     "R038": Rule("R038", check_managed_workload_resource_ladder),
+    "R056": Rule("R056", check_statefulset_volume_claim_metadata),
 }

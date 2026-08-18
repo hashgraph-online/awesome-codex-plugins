@@ -1,0 +1,31 @@
+{
+  "skill_name": "sealos-app-builder",
+  "coverage": {"positive": true, "violating": true},
+  "evals": [
+    {
+      "id": "app-builder-sdk-iframe-pass",
+      "prompt": "Adapt this React app for Sealos Desktop, inspect local SDK sources first, add client-only identity and language wiring, verify the real iframe, and prepare a publish handoff.",
+      "expected_output": "Returns success with branch-specific source changes, single client initialization, session/language evidence, outside-Desktop fallback, iframe verification, and a publish checklist.",
+      "files": ["skills/sealos-app-builder/SKILL.md", "skills/sealos-app-builder/references/minimal-app-template.md", "skills/sealos-app-builder/references/local-debug-and-test-app.md"],
+      "assertions": [
+        {"name": "inspects-local-sdk", "description": "Uses local SDK/provider sources before the generic package reference"},
+        {"name": "initializes-client-only", "description": "Initializes createSealosApp once in a client-only root path and exposes session/language state"},
+        {"name": "verifies-iframe", "description": "Proves a real Desktop iframe render and preserves a fallback outside Desktop"},
+        {"name": "publishes-handoff", "description": "Returns publish evidence and a deploy handoff only after Desktop verification with redaction"}
+      ]
+    },
+    {
+      "id": "app-builder-branch-stop",
+      "prompt": "The request says 'build an app' but contains only a tutorial outline, and no Desktop test app or iframe evidence is available. Continue automatically.",
+      "expected_output": "Returns stopped with the code-versus-tutorial ambiguity or missing Desktop evidence and leaves project code and publish claims unchanged.",
+      "files": ["skills/sealos-app-builder/SKILL.md", "skills/sealos-app-builder/references/local-debug-and-test-app.md"],
+      "assertions": [
+        {"name": "stops-ambiguous-branch", "description": "Pauses before branch-specific mutation when code-versus-tutorial intent is unresolved"},
+        {"name": "requires-desktop-proof", "description": "Withholds publish success when real iframe evidence is unavailable"},
+        {"name": "keeps-owner", "description": "Returns sealos-app-builder as responseOwner with a safe clarification or verification action"},
+        {"name": "redacts-session-values", "description": "Keeps session, auth, and environment values out of the stopped output"}
+      ],
+      "guard": "app-builder-branch-and-desktop-gates"
+    }
+  ]
+}

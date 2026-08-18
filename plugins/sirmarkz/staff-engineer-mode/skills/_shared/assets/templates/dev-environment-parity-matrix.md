@@ -41,13 +41,13 @@
 
 ## Third-Party Stand-Ins
 
-| Dependency | Stand-In | Parity Properties | Known Divergence |
-| --- | --- | --- | --- |
+| Dependency | Stand-In/Sandbox/Production Endpoint | Parity Gaps | Explicit Authority | Constrained Identity | Data Controls | Rate/Side-Effect Bounds | Stop Path | Recovery |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Reproduction Protocol
 
-| Failure | Environment Order | Isolation Step | Evidence |
-| --- | --- | --- | --- |
+| Failure | Environment Order | Isolation Step | Production Evidence Method | Authority For Active Mutation | Blast-Radius/Data Controls | Stop Criteria | Recovery | Evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Follow-Up Routes
 

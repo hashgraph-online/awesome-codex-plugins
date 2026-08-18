@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "crawlberg": {
+      "command": "./scripts/mcp-launch.sh",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}

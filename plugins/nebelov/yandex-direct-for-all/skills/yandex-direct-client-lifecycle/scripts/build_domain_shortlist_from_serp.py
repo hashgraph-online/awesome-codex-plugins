@@ -1,66 +1,34 @@
 #!/usr/bin/env python3
-"""Собрать сводку доменов по подтвержденной поисковой выдаче Яндекса."""
+"""Пометить все строки выдачи без удаления исходных результатов."""
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 import re
-from collections import defaultdict
+from collections import Counter
 from pathlib import Path
 
 
 def clean(value: str | None) -> str:
-    if not value:
-        return ""
-    return re.sub(r"\s+", " ", value).strip()
+    return re.sub(r"\s+", " ", value or "").strip()
 
 
 def normalize_domain(value: str | None) -> str:
     domain = clean(value).lower()
-    if domain.startswith("www."):
-        domain = domain[4:]
-    return domain
+    return domain[4:] if domain.startswith("www.") else domain
 
 
-def read_lines(path: Path) -> list[str]:
-    items: list[str] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        value = clean(line)
-        if not value or value.startswith("#"):
-            continue
-        items.append(value)
-    return items
+def read_lines(path: str | None) -> list[str]:
+    if not path:
+        return []
+    return [clean(line).lower() for line in Path(path).read_text(encoding="utf-8").splitlines() if clean(line) and not clean(line).startswith("#")]
 
 
-def read_rows(path: Path) -> list[dict[str, str]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle, delimiter="\t")
-        required = {"search_query", "search_region", "result_rank", "result_domain", "source_url"}
-        missing = required - set(reader.fieldnames or [])
-        if missing:
-            raise ValueError(f"serp results missing columns: {sorted(missing)}")
-        return list(reader)
-
-
-def write_tsv(path: Path, header: list[str], rows: list[dict[str, str]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=header, delimiter="\t")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def is_excluded_domain(domain: str, excluded: list[str]) -> bool:
-    for blocked in excluded:
-        if domain == blocked or domain.endswith("." + blocked):
-            return True
-    return False
-
-
-def url_matches_patterns(url: str, patterns: list[str]) -> bool:
-    text = clean(url).lower()
-    return any(pattern.lower() in text for pattern in patterns)
+def excluded(domain: str, blocked: list[str]) -> bool:
+    return any(domain == item or domain.endswith("." + item) for item in blocked)
 
 
 def main() -> int:
@@ -75,124 +43,60 @@ def main() -> int:
     parser.add_argument("--exclude-url-pattern", action="append", default=[])
     parser.add_argument("--exclude-url-patterns-file")
     args = parser.parse_args()
-
-    rows = read_rows(Path(args.serp_results).expanduser().resolve())
-
-    excluded_domains = [normalize_domain(item) for item in args.exclude_domain]
-    if args.exclude_domains_file:
-        excluded_domains.extend(
-            normalize_domain(item)
-            for item in read_lines(Path(args.exclude_domains_file).expanduser().resolve())
-        )
-
-    excluded_patterns = list(args.exclude_url_pattern)
-    if args.exclude_url_patterns_file:
-        excluded_patterns.extend(read_lines(Path(args.exclude_url_patterns_file).expanduser().resolve()))
-
-    query_region_domain_best_rank: dict[tuple[str, str, str], int] = {}
-    domain_rows: dict[str, list[dict[str, str]]] = defaultdict(list)
-
-    for row in rows:
-        query = clean(row.get("search_query"))
-        region = clean(row.get("search_region"))
-        domain = normalize_domain(row.get("result_domain"))
-        url = clean(row.get("source_url"))
-        if not query or not region or not domain or not url:
-            continue
-        if is_excluded_domain(domain, excluded_domains):
-            continue
-        if url_matches_patterns(url, excluded_patterns):
-            continue
+    blocked = [normalize_domain(value) for value in args.exclude_domain + read_lines(args.exclude_domains_file)]
+    patterns = [value.lower() for value in args.exclude_url_pattern + read_lines(args.exclude_url_patterns_file)]
+    with Path(args.serp_results).open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        source_fields = list(reader.fieldnames or [])
+        required = {"search_query", "search_region", "result_rank", "result_domain", "source_url"}
+        if required - set(source_fields):
+            raise SystemExit(f"В исходной выдаче отсутствуют поля: {sorted(required - set(source_fields))}")
+        source_rows = list(reader)
+    output: list[dict[str, str]] = []
+    counts: Counter[str] = Counter()
+    for index, source in enumerate(source_rows, 1):
+        raw = json.dumps(source, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        domain = normalize_domain(source.get("result_domain"))
+        url = clean(source.get("source_url"))
         try:
-            rank = int(clean(row.get("result_rank")) or "999999")
+            rank = int(clean(source.get("result_rank")))
         except ValueError:
-            rank = 999999
+            rank = 10**9
+        reasons: list[str] = []
+        if not domain or not url:
+            reasons.append("missing_domain_or_page")
+        if excluded(domain, blocked):
+            reasons.append("excluded_domain_rule")
+        if any(pattern in url.lower() for pattern in patterns):
+            reasons.append("excluded_page_rule")
         if rank > args.max_rank_per_query_region:
-            continue
-        key = (query, region, domain)
-        current = query_region_domain_best_rank.get(key)
-        if current is None or rank < current:
-            query_region_domain_best_rank[key] = rank
-        domain_rows[domain].append(row)
-
-    aggregated: list[dict[str, str]] = []
-    for domain, kept_rows in domain_rows.items():
-        pair_ranks = {
-            pair: rank for pair, rank in query_region_domain_best_rank.items() if pair[2] == domain
-        }
-        queries: list[str] = []
-        query_seen: set[str] = set()
-        regions: list[str] = []
-        region_seen: set[str] = set()
-        sample_urls: list[str] = []
-        sample_url_seen: set[str] = set()
-        for row in kept_rows:
-            query = clean(row.get("search_query"))
-            region = clean(row.get("search_region"))
-            url = clean(row.get("source_url"))
-            if query and query not in query_seen:
-                query_seen.add(query)
-                queries.append(query)
-            if region and region not in region_seen:
-                region_seen.add(region)
-                regions.append(region)
-            if url and url not in sample_url_seen and len(sample_urls) < 5:
-                sample_url_seen.add(url)
-                sample_urls.append(url)
-
-        pair_values = list(pair_ranks.values())
-        avg_rank = sum(pair_values) / len(pair_values) if pair_values else 0.0
-        aggregated.append(
-            {
-                "domain": domain,
-                "query_region_pairs": str(len(pair_values)),
-                "unique_queries": str(len(queries)),
-                "unique_regions": str(len(regions)),
-                "rows_kept": str(len(kept_rows)),
-                "best_rank": str(min(pair_values) if pair_values else 0),
-                "avg_best_rank": f"{avg_rank:.2f}",
-                "sample_queries": " | ".join(queries[:5]),
-                "sample_urls": " | ".join(sample_urls),
-            }
-        )
-
-    aggregated.sort(
-        key=lambda item: (
-            -int(item["query_region_pairs"]),
-            -int(item["unique_queries"]),
-            -int(item["unique_regions"]),
-            float(item["avg_best_rank"]),
-            item["domain"],
-        )
-    )
-
-    output_tsv = Path(args.output_tsv).expanduser().resolve()
-    write_tsv(
-        output_tsv,
-        [
-            "domain",
-            "query_region_pairs",
-            "unique_queries",
-            "unique_regions",
-            "rows_kept",
-            "best_rank",
-            "avg_best_rank",
-            "sample_queries",
-            "sample_urls",
-        ],
-        aggregated,
-    )
-
+            reasons.append("outside_requested_rank_window")
+        if not reasons and domain:
+            counts[domain] += 1
+        output.append({
+            **source,
+            "input_order": str(index),
+            "normalized_domain": domain,
+            "source_row_sha256": hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+            "source_row_json": raw,
+            "candidate_status": "pending_review" if not reasons else "needs_data",
+            "rule_signals": "|".join(reasons),
+            "decision": "",
+            "reviewer": "",
+        })
+    target = Path(args.output_tsv)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fields = source_fields + ["input_order", "normalized_domain", "source_row_sha256", "source_row_json", "candidate_status", "rule_signals", "decision", "reviewer"]
+    with target.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(output)
     if args.top_domains_file:
-        top_domains = [row["domain"] for row in aggregated[: max(args.top_n, 0)]]
-        top_path = Path(args.top_domains_file).expanduser().resolve()
-        top_path.parent.mkdir(parents=True, exist_ok=True)
-        top_path.write_text("\n".join(top_domains) + ("\n" if top_domains else ""), encoding="utf-8")
-
-    print(
-        f"domains={len(aggregated)} top_n={args.top_n} "
-        f"max_rank_per_query_region={args.max_rank_per_query_region}"
-    )
+        candidates = [domain for domain, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[: max(args.top_n, 0)]]
+        Path(args.top_domains_file).write_text("\n".join(candidates) + ("\n" if candidates else ""), encoding="utf-8")
+    if len(output) != len(source_rows):
+        raise SystemExit("Число строк изменилось")
+    print(f"source_rows={len(source_rows)} preserved_rows={len(output)} automatic_decisions=0")
     return 0
 
 

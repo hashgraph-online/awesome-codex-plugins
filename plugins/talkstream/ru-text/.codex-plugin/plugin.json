@@ -1,7 +1,7 @@
 {
   "name": "ru-text",
-  "version": "1.7.3",
-  "description": "Russian text quality plugin — typography, information style, editorial standards, UX writing, business correspondence",
+  "version": "2.3.0",
+  "description": "Russian text quality for AI agents — neuroslop cleanup, typography, information style, editorial standards, UX writing, business correspondence. Scores text 0–10. 2,000+ linguistic atoms.",
   "author": {
     "name": "Arseniy Kamyshev",
     "email": "nafigator@gmail.com",
@@ -12,19 +12,22 @@
   "license": "MIT",
   "keywords": [
     "russian",
+    "neuroslop",
+    "ai-text-detection",
     "typography",
+    "proofreading",
     "editorial",
     "info-style",
     "ux-writing",
     "text-quality",
     "text-scoring"
   ],
-  "logo": "./logo-round.png",
   "skills": "./skills/",
   "interface": {
     "composerIcon": "./assets/icon.png",
+    "logo": "./logo-round.png",
     "displayName": "ru-text",
-    "shortDescription": "Russian text quality — ~1,044 rules for typography, info-style, editorial, UX writing",
+    "shortDescription": "Russian text quality for AI agents — neuroslop cleanup, typography, info-style, editorial, UX writing, business correspondence",
     "developerName": "Arseniy Kamyshev",
     "category": "Productivity",
     "websiteURL": "https://ru-text.org",

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/opamp.schema.json",
+  "title": "OpampExtension",
+  "description": "Category extension for operational amplifiers (general-purpose, precision, rail-to-rail I/O, rail-to-rail output, JFET-input, CMOS-input, chopper, instrumentation, comparator). Layered on top of base per spec §7. Version 1.0. Field union from LM358 (Fairchild → ON Semi BJT general-purpose dual single-supply, SOIC-8/PDIP-8) + MCP6004 (Microchip CMOS rail-to-rail I/O quad, SOIC-14/PDIP-14/TSSOP-14). v1.4 omits noise_voltage_density / noise_current_density / phase_margin — deferred to v1.5 to avoid spec_value unit enum sprawl (V/√Hz, A/√Hz, degrees).",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["opamp_topology", "channels"],
+  "additionalProperties": false,
+  "properties": {
+    "opamp_topology": {
+      "type": "string",
+      "enum": [
+        "general_purpose",
+        "precision",
+        "rail_to_rail_io",
+        "rail_to_rail_output",
+        "jfet_input",
+        "cmos_input",
+        "chopper",
+        "instrumentation",
+        "comparator"
+      ],
+      "description": "Op-amp functional category. Choose the single closest match. LM358 → general_purpose. MCP6004 → rail_to_rail_io (preferred over cmos_input when both apply — rail_to_rail_io is more specific)."
+    },
+    "channels": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of independent op-amp channels in the package. Single=1, dual=2, quad=4."
+    },
+    "vsupply_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Total supply voltage range V+ to V− (unit: V). For single-supply parts store as min/max of VDD−VSS. For split-supply parts store as the single-supply equivalent (e.g. ±16V → max=32V) with a condition note, or provide two SpecValues for each mode."
+    },
+    "vsupply_split_capable": {
+      "type": ["boolean", "null"],
+      "description": "True when the part is specified for split (bipolar) supply operation. False when single-supply only. Null when not determinable from the datasheet."
+    },
+    "iq_per_amp": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Quiescent current PER op-amp channel (unit: A). NOT total package current. Divide datasheet's total ICC by channels when only total is published. Condition carries VS and load conditions."
+    },
+    "gbw": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Gain-bandwidth product (unit: Hz — NOT MHz; store 1MHz as 1e6). The frequency at which open-loop gain crosses 0dB (unity gain). Condition carries supply voltage and load."
+    },
+    "slew_rate": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Slew rate (unit: V/s — NOT V/µs; store 0.6V/µs as 6e5). Rate of output voltage change under large-signal step conditions. Condition carries supply voltage and load."
+    },
+    "vos": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Input offset voltage (unit: V). Condition carries Vcm and supply. Multiple SpecValues for different temperature conditions."
+    },
+    "ib": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Input bias current (unit: A). BJT inputs are typically nA (e.g. 45nA → 4.5e-8); CMOS/JFET inputs are typically pA (e.g. 1pA → 1e-12). Condition carries temperature."
+    },
+    "cmrr": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Common mode rejection ratio (unit: dB). Condition carries common mode input range and supply. Higher is better."
+    },
+    "psrr": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Power supply rejection ratio (unit: dB). Condition carries supply range. Higher is better."
+    },
+    "vout_swing_high": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Output high swing headroom (unit: V — stored as positive headroom FROM V+). Rail-to-rail parts have ~25mV headroom; general-purpose parts may have 1.5–2V headroom. Condition carries supply voltage and load current."
+    },
+    "vout_swing_low": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Output low swing headroom (unit: V — stored as positive headroom FROM V−). Rail-to-rail parts swing to within ~25mV of V−; general-purpose parts have ~5–20mV headroom at light load. Condition carries supply voltage and load."
+    },
+    "output_drive_current": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Output source or sink current capability (unit: A). May be specified as short-circuit current (ISC) or as current at a given output voltage. Multiple SpecValues for source vs sink or different supply voltages."
+    },
+    "unity_gain_stable": {
+      "type": ["boolean", "null"],
+      "description": "True when the part is specified as stable at unity gain (AV=1). False when minimum gain is greater than 1. Null when not stated. Most general-purpose op-amps are unity-gain stable."
+    },
+    "shutdown_pin": {
+      "type": ["string", "null"],
+      "description": "Shutdown/enable pin number string (matches base.pinout[*].numbers), or null when the part has no shutdown pin. Most op-amps lack a shutdown pin (null). Shutdownable parts include OPA376, MCP6N11, etc."
+    },
+    "thermal_resistance": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Thermal resistance characteristics. Through-hole packages typically have only rtheta_ja; SMD packages may add rtheta_jc.",
+      "properties": {
+        "rtheta_ja": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-ambient thermal resistance (K/W or °C/W). Condition may specify board and copper area conditions."
+        },
+        "rtheta_jc": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-case thermal resistance (K/W or °C/W). Null when not specified."
+        },
+        "rtheta_jl": {
+          "type": ["array", "null"],
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+          "description": "Junction-to-lead thermal resistance (K/W or °C/W). Common for some SMD packages. Null for most op-amp packages."
+        }
+      }
+    },
+    "package": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Package physical characteristics. body_mm uses nested object shape (Phase 3b option A convention — inner keys align with base.schema.json body_mm shape).",
+      "required": ["evidence"],
+      "properties": {
+        "code": {
+          "type": ["string", "null"],
+          "description": "Datasheet package code (e.g. 'SOIC-8', 'PDIP-8', 'SOIC-14', 'TSSOP-14')."
+        },
+        "pin_count": {
+          "type": ["integer", "null"],
+          "description": "Number of leads/pins. Typically 5, 8, or 14 for op-amps."
+        },
+        "pitch_mm": {
+          "type": ["number", "null"],
+          "description": "Lead pitch in millimeters. Null when not applicable."
+        },
+        "body_mm": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "description": "Package body dimensions in millimeters. Nested object per Phase 3b option A convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
+          "properties": {
+            "length": {
+              "type": "number",
+              "description": "Body length in millimeters along the longest axis."
+            },
+            "width": {
+              "type": "number",
+              "description": "Body width in millimeters along the perpendicular-to-length axis."
+            },
+            "height": {
+              "type": "number",
+              "description": "Body height in millimeters (package thickness / standoff direction)."
+            }
+          }
+        },
+        "thermal_pad": {
+          "type": ["boolean", "null"],
+          "description": "True when the package has an exposed thermal pad on the bottom. Null when not determinable."
+        },
+        "evidence": {
+          "$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json#/properties/evidence"
+        }
+      }
+    }
+  }
+}

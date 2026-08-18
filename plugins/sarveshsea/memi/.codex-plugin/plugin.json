@@ -1,0 +1,49 @@
+{
+  "name": "memoire",
+  "version": "2.7.9",
+  "description": "Memi is the design layer for agentic AI.",
+  "author": {
+    "name": "Sarvesh Chidambaram",
+    "url": "https://github.com/sarveshsea"
+  },
+  "homepage": "https://www.memoire.cv/codex-plugin",
+  "repository": "https://github.com/sarveshsea/memi",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "memoire",
+    "mcp",
+    "figma",
+    "design-system",
+    "shadcn",
+    "tailwind",
+    "atomic-design",
+    "ui-quality",
+    "swiftui",
+    "ios"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "memi",
+    "shortDescription": "Agent design CI, file scaffolds, and UI quality tools for Codex.",
+    "longDescription": "memi gives Codex design-system memory, MCP tools, spec-first web and SwiftUI file scaffolds, compact agent briefs, Figma context, Tailwind and shadcn/ui diagnostics, Apple-platform guidance, and research-backed UI audits before interface edits.",
+    "developerName": "Sarvesh Chidambaram",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.memoire.cv/codex-plugin",
+    "privacyPolicyURL": "https://www.memoire.cv/privacy",
+    "termsOfServiceURL": "https://www.memoire.cv/terms",
+    "defaultPrompt": [
+      "Audit this UI with memi before editing.",
+      "Extract tokens and shadcn registry context.",
+      "Create an Atomic Design implementation plan.",
+      "Scaffold and verify a SwiftUI feature."
+    ],
+    "brandColor": "#000000"
+  }
+}

@@ -1,5 +1,6 @@
 {
   "skill_name": "sealos-deploy",
+  "coverage": {"positive": true, "violating": true},
   "evals": [
     {
       "id": 0,
@@ -17,25 +18,25 @@
     {
       "id": 1,
       "prompt": "/sealos-deploy https://github.com/sharkdp/bat",
-      "expected_output": "Low readiness score (0-3), identifies as CLI tool not suitable for cloud deployment, recommends STOP",
+      "expected_output": "Eligibility gate identifies a CLI-only target, reports an ineligible decision with evidence, and stops before readiness scoring, Dockerfile generation, build, template, or deploy without writing project files",
       "files": [],
       "assertions": [
         {"name": "identifies-cli-tool", "description": "Correctly identifies bat as a CLI tool / non-web application"},
-        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for cloud deployment)"},
+        {"name": "eligibility-ineligible", "description": "Classifies the selected target as ineligible before readiness scoring"},
         {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
       "id": 2,
       "prompt": "/sealos-deploy",
-      "expected_output": "Low readiness score (0-3), identifies the current repository as a skills pack or tooling repo rather than a deployable web service, recommends STOP",
+      "expected_output": "Eligibility gate cannot establish a supported deployment unit for the skills/tooling repository and fails closed before readiness scoring or build",
       "files": [],
       "assertions": [
         {"name": "identifies-skill-pack", "description": "Identifies the current repository as a skills pack or tooling repo rather than a standalone web app"},
-        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for direct cloud deployment)"},
+        {"name": "eligibility-unresolved", "description": "Returns ineligible or needs_review because no supported deployment unit is proven"},
         {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
@@ -65,13 +66,13 @@
     {
       "id": 5,
       "prompt": "/sealos-deploy https://github.com/jgraph/drawio-desktop",
-      "expected_output": "Very low readiness score (0-1), identifies as Electron desktop GUI app unsuitable for cloud deployment, recommends STOP",
+      "expected_output": "Eligibility gate identifies an Electron desktop-only unit, reports DESKTOP_GUI_ONLY evidence, and stops before readiness scoring, Dockerfile generation, build, template, or deploy without writing project files",
       "files": [],
       "assertions": [
         {"name": "identifies-desktop-app", "description": "Correctly identifies drawio-desktop as an Electron / desktop GUI application"},
-        {"name": "score-below-4", "description": "Readiness score is < 4 (not suitable for cloud deployment)"},
+        {"name": "eligibility-ineligible", "description": "Returns an ineligible desktop_gui decision with DESKTOP_GUI_ONLY evidence"},
         {"name": "recommends-stop", "description": "Explicitly recommends NOT deploying / STOP"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not score readiness, generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
@@ -89,13 +90,13 @@
     {
       "id": 7,
       "prompt": "/sealos-deploy https://github.com/pallets/flask",
-      "expected_output": "Low score or STOP, correctly identifies Flask as a Python web framework library not a deployable application",
+      "expected_output": "Eligibility gate identifies Flask itself as a framework/library rather than a deployable application and stops before readiness scoring or build",
       "files": [],
       "assertions": [
         {"name": "identifies-library", "description": "Correctly identifies Flask as a framework/library, not a standalone deployable app"},
-        {"name": "score-below-7", "description": "Readiness score is < 7 (library should not be considered highly deployable)"},
+        {"name": "eligibility-ineligible", "description": "Classifies the selected target as a library or otherwise unresolved, not as a web service"},
         {"name": "explains-not-standalone", "description": "Explains why this repository is not directly deployable as a service"},
-        {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+        {"name": "stops-before-build", "description": "Does not generate a Dockerfile, build image, generate template, or deploy"}
       ]
     },
     {
@@ -120,6 +121,284 @@
         {"name": "score-above-4", "description": "Readiness score is >= 4 (deployable threshold)"},
         {"name": "identifies-web-service", "description": "Identifies this as a web application on port 8080"},
         {"name": "produces-structured-report", "description": "Output contains a structured assessment report"}
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "/sealos-deploy https://github.com/toeverything/affine",
+      "expected_output": "Runs the workload eligibility gate before Phase 0.5 template matching; after an eligible result, writes template-match.json and continues normally when no materialized template exists",
+      "files": [],
+      "assertions": [
+        {"name": "runs-eligibility-first", "description": "Resolves a supported deployment target before template matching or Phase 1 scoring"},
+        {"name": "runs-template-fast-path", "description": "Checks configured GitHub repo to Sealos template mappings after eligibility and before Phase 1 assessment"},
+        {"name": "writes-template-match", "description": "Writes .sealos/template-match.json for both matched and unmatched outcomes"},
+        {"name": "does-not-false-positive", "description": "Does not skip source analysis/build/template generation unless a matched template is materialized"}
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "The application URL works, but Launchpad does not show a public address. Diagnose the Sealos template and live deployment.",
+      "expected_output": "Runs the Launchpad public-network check, validates numeric root Ingress backend port and Service port matching, compares the App URL host, and inventories manager-labeled resources before proposing a template repair.",
+      "files": [],
+      "assertions": [
+        {"name": "runs-launchpad-network-check", "description": "Uses sealos-launchpad-network.mjs or the equivalent Launchpad API contract before declaring success"},
+        {"name": "checks-numeric-ingress-port", "description": "Requires backend.service.port.number on the root Prefix Ingress and matches it to Service.spec.ports[].port"},
+        {"name": "compares-app-url-host", "description": "Compares the App URL host with the Launchpad public or custom domain"},
+        {"name": "inventories-live-resources", "description": "Checks manager-labeled Ingresses, Services, ready endpoints, App, Instance, and orphan resource footprint"},
+        {"name": "protects-sensitive-data", "description": "Keeps kubeconfig, environment values, and Secret data out of diagnostic output"}
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Classify this deployment target before continuing: package.json has scripts.start='node server.js', dependencies.express='^5', and devDependencies.electron='^35'. There are no Electron scripts, desktop API imports, or desktop packaging files.",
+      "expected_output": "Treats Electron as an uncorroborated dependency signal rather than a desktop entry point, identifies the Express start command as a web_service candidate, and allows deployment eligibility to pass",
+      "files": [],
+      "assertions": [
+        {"name": "does-not-reject-on-dependency-alone", "description": "Does not return desktop_gui or DESKTOP_GUI_ONLY solely because Electron appears in devDependencies"},
+        {"name": "uses-server-entrypoint-evidence", "description": "Uses the Express dependency plus node server start command as affirmative web-service evidence"},
+        {"name": "eligibility-passes", "description": "Returns an eligible web_service decision and permits readiness assessment to continue"}
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Generate the Sealos Template phase for a Mastodon-style app whose analysis classifies SMTP_PORT as an optional input with the default string \"587\". Expose it as spec.inputs.smtp_port, keep infrastructure replicas and ports numeric, and validate the generated artifact before deployment.",
+      "expected_output": "Generates a Template whose SMTP port default remains the YAML string \"587\", preserves numeric Kubernetes infrastructure fields, and runs the docker-to-sealos quality gate against .sealos/template/index.yaml so R052 blocks an unquoted default before deployment.",
+      "files": [],
+      "assertions": [
+        {"name": "smtp-default-is-string", "description": "Emits spec.inputs.smtp_port.default as a quoted YAML string such as \"587\", never as the numeric scalar 587"},
+        {"name": "input-reference-is-declared", "description": "Declares spec.inputs.smtp_port and references that declared input from the Mastodon SMTP_PORT environment value"},
+        {"name": "infrastructure-numbers-stay-numeric", "description": "Keeps Kubernetes replicas, container ports, and Service ports as numeric YAML fields"},
+        {"name": "validates-generated-artifact", "description": "Runs quality_gate.py with --artifacts pointing to .sealos/template/index.yaml before configuration or deployment"},
+        {"name": "rejects-unquoted-input-default", "description": "Treats R052 or the equivalent string-type validation failure as blocking and fixes the template before continuing"}
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "/sealos-deploy https://github.com/danny-avila/LibreChat，使用官方多组件 Compose；模板中 RAG 固定使用 OpenAI embeddings，并且 PostgreSQL 需要 vector 扩展。只允许使用该 skill 已有的产物。",
+      "expected_output": "Generates the existing Sealos template artifact with pinned component images, official health probes, valid runtime credentials, and a database final-state gate; the complete docker-to-sealos quality gate passes against the exact final template before deployment, with no new artifact type introduced",
+      "files": [],
+      "assertions": [
+        {"name": "pins-component-images", "description": "Resolves :latest or floating LibreChat component tags to an explicit version tag or digest"},
+        {"name": "uses-official-rag-health", "description": "Uses /health on port 8000 for LibreChat RAG probes instead of probing /"},
+        {"name": "validates-format-constrained-credentials", "description": "Does not use bare random() defaults for LibreChat CREDS_KEY/CREDS_IV hex contracts"},
+        {"name": "requires-selected-provider-credential", "description": "OpenAI embeddings is paired with a non-empty required OpenAI credential rather than an optional empty input"},
+        {"name": "gates-rag-on-vector-state", "description": "RAG has an initContainer gate that waits for PostgreSQL and verifies the vector extension before startup"},
+        {"name": "classifies-mongodb-as-database", "description": "Converts the official mongo:8.0.20 service into the pinned MongoDB KubeBlocks Cluster contract"},
+        {"name": "rejects-raw-mongodb-workload", "description": "Emits no MongoDB Deployment, StatefulSet, DaemonSet, Job, CronJob, or standalone Service"},
+        {"name": "does-not-assume-ghcr-private", "description": "Does not add imagePullSecrets solely because an image is hosted on GHCR"},
+        {"name": "fails-closed-before-deploy", "description": "Runs the complete docker-to-sealos quality gate after final template mutation and does not deploy while the gate is failing"},
+        {"name": "keeps-existing-artifact-inventory", "description": "Introduces no generated artifact type beyond the full deploy skill's existing artifact inventory"}
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Deploy a login-gated web app in the default execution mode. The Template API response returns an Instance and App host that differ from the requested app name. Verify the live application before reporting success.",
+      "expected_output": "Runs the Runtime Truth Pass against the returned App URL, checks both the configured entrance path and root path, completes the selected first-user signup or mandatory bootstrap login flow, verifies an authenticated route, scans logs after the workflow and a documented API negative route or unique missing static asset, and keeps credentials redacted.",
+      "files": [],
+      "assertions": [
+        {"name": "uses-returned-app-url", "description": "Uses the actual App URL and live Instance/App identity from the deploy response or live resource rather than reconstructing a host from the requested app name"},
+        {"name": "checks-root-and-entrance", "description": "Exercises both the configured entrance path and the root path from a fresh session and rejects SSR/browser failure text"},
+        {"name": "proves-authenticated-action", "description": "Completes the selected signup or mandatory bootstrap login flow and verifies at least one authenticated page or API route"},
+        {"name": "redacts-runtime-secrets", "description": "Masks passwords, tokens, cookies, CSRF values, captcha payloads, and derived credentials in command output and reports"},
+        {"name": "scans-after-workflow", "description": "Runs log scans after login or setup and after a documented API or missing-static-asset request before acceptance"},
+        {"name": "distinguishes-spa-fallback", "description": "Uses a documented API or missing static asset for negative-route checks when arbitrary SPA routes return the HTML shell with HTTP 200"}
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "The public URL serves the app, but Launchpad shows no public address after a template edit. The HTTP Ingress contains a root path and more specific API paths.",
+      "expected_output": "Runs the Launchpad public-network check, places the root Prefix path first, matches its numeric backend port to the public Service port, and compares the Launchpad host with the live App URL host.",
+      "files": [],
+      "assertions": [
+        {"name": "checks-launchpad-before-http", "description": "Uses sealos-launchpad-network.mjs or the equivalent public-network contract before declaring the deployment reachable"},
+        {"name": "root-route-is-first", "description": "Requires the root Prefix path / to appear before more specific HTTP paths so Launchpad discovers the intended public entry"},
+        {"name": "matches-numeric-port", "description": "Requires backend.service.port.number and matches it to Service.spec.ports[].port"},
+        {"name": "matches-live-host", "description": "Compares the Launchpad public or custom domain with the actual App URL host and manager-labeled backend resources"}
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "A database-backed app has a completed init Job, historical init output, and a worker that depends on migrations. Validate runtime convergence after a cold deployment.",
+      "expected_output": "Treats completed or TTL-expired Jobs and unchanged completed-init output as historical evidence, verifies required live database objects directly, gates migration-dependent workloads on application state, and fails on active log, restart, readiness, or Warning advances.",
+      "files": [],
+      "assertions": [
+        {"name": "checks-database-final-state", "description": "Verifies required databases, tables or views, extensions, indexes, roles, grants, search paths, and migration markers directly"},
+        {"name": "keeps-job-history-scoped", "description": "Uses completed or TTL-expired Job status as historical evidence and does not treat it as proof of current database state"},
+        {"name": "gates-migrations", "description": "Requires migration-dependent workers or gateways to wait for application tables or markers rather than only a database port"},
+        {"name": "classifies-historical-init", "description": "Allows unchanged completed init output marked historicalCompletedInit when completion metadata predates the baseline and remains stable, while retaining blocking status for active init or main-container failures"},
+        {"name": "checks-event-convergence", "description": "Fails on restart deltas, readiness flaps, advancing Warning Events, unresolved Secrets, or recurring traceback signals during the stability window"}
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "Clean up a test deployment that used an Instance, App, PostgreSQL Cluster, PVC, Jobs, and a managed ObjectStorageBucket. Confirm the cleanup result.",
+      "expected_output": "Inventories the complete Sealos footprint, including ObjectStorageBucket resources, and reports cleanup complete only after every listing succeeds and no matching resources remain.",
+      "files": [],
+      "assertions": [
+        {"name": "includes-instance-layer", "description": "Checks instances.app.sealos.io in addition to the App and workload resources"},
+        {"name": "includes-job-and-database-resources", "description": "Inventories Jobs, KubeBlocks Clusters, Services, Ingresses, and PVCs before cleanup"},
+        {"name": "includes-object-storage", "description": "Inventories and accounts for managed ObjectStorageBucket resources and their app-scoped footprint"},
+        {"name": "blocks-on-list-errors", "description": "Keeps cleanup unresolved when a footprint listing has a permission or kubectl error even if visible resources are empty"},
+        {"name": "proves-empty-footprint", "description": "Accepts cleanupComplete only when the successful filtered inventory returns no matching resources"},
+        {"name": "requires-runtime-readiness", "description": "Requires collectionOk and runtimeReady to be true with the expected resource inventory before deployment acceptance"}
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Convert an app that needs an internal runtime credential and optional S3 storage with a PostgreSQL backend. The runtime accepts a quoted opaque seed and derives the final credential before starting.",
+      "expected_output": "Emits a deterministic runtime-derived credential contract, validates the derived value before exec, keeps credential material out of output, and validates local-storage and managed-bucket branches alongside KubeBlocks database Secret keys and final database objects.",
+      "files": [],
+      "assertions": [
+        {"name": "requires-deterministic-secret-derivation", "description": "Allows an opaque spec.defaults seed only when startup deterministically derives and validates the final runtime credential before exec"},
+        {"name": "fails-before-serving-on-invalid-secret", "description": "Stops startup before serving traffic when the derived credential fails the application format or length contract"},
+        {"name": "keeps-secret-material-private", "description": "Keeps the seed, derived credential, database password, and object-storage credentials out of diagnostics and summaries"},
+        {"name": "validates-both-s3-branches", "description": "Validates authenticated upload/read/content/deletion for both local storage and managed ObjectStorageBucket branches, with restricted anonymous raw-object access"},
+        {"name": "verifies-s3-and-db-together", "description": "Checks approved KubeBlocks database Secret keys and required database objects alongside managed object-storage Secret wiring"}
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Prepare a static Sealos deployment contract for an observability web app release. Official Compose enables first-user registration. Helm exposes an optional root username/password overlay, and server startup rejects root passwords that miss documented length or character-class rules. The Sealos Template input form may express type, description, default, required, options, and if; regex, length, character-class, equality, and cross-field checks require pre-deploy validation. Keep the task static: describe the emitted account inputs, failure diagnosis, live account workflow, and durable repair steps.",
+      "expected_output": "Classifies the selected release as functional first-user signup, omits optional root inputs and bootstrap injection, diagnoses password-policy startup exits as configuration failures before resource tuning, verifies registration plus an authenticated action, and repairs both source and live declarative ownership while reporting credential residue with values redacted.",
+      "files": [],
+      "assertions": [
+        {"name": "classifies-first-user-signup", "description": "Uses exact selected-release evidence to classify functional first-user signup as the account mode"},
+        {"name": "omits-optional-root-overlay", "description": "Keeps optional root username/password inputs and their bootstrap environment or config injection out of the emitted Template"},
+        {"name": "diagnoses-config-before-resources", "description": "Treats startup password-policy validation as a configuration-contract failure before CPU or memory tuning"},
+        {"name": "proves-registration-session", "description": "Completes first-user registration after readiness and verifies one authenticated page or API action"},
+        {"name": "repairs-durable-ownership", "description": "Repairs the source Template and highest writable live declarative owner, verifies reconciliation, reports only redacted residue key names, and recommends credential rotation"}
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "Prepare a static Sealos deployment contract for a Frappe-like release whose official initialization requires an administrator identity and password before the web login is usable. Upstream requires a 3-32 character username matching [A-Za-z0-9._-]+ and a 12-128 character password containing at least one uppercase letter, lowercase letter, digit, and symbol. Keep the task static: describe Template inputs, pre-deploy validation, bootstrap wiring, and live authentication proof.",
+      "expected_output": "Classifies the release as deployer-supplied mandatory bootstrap, emits required administrator inputs with no defaults and English descriptions containing the exact 3-32 character username pattern and 12-128 character password-class rules, validates values before Template API deployment, passes them unchanged through the documented initialization path, and uses the same redacted values for an authenticated live smoke.",
+      "files": [],
+      "assertions": [
+        {"name": "classifies-mandatory-bootstrap", "description": "Uses exact selected-release evidence to classify the account mode as deployer-supplied mandatory bootstrap"},
+        {"name": "keeps-required-inputs", "description": "Declares every documented administrator identity/password field as required and omits defaults"},
+        {"name": "describes-exact-constraints", "description": "Places the exact 3-32 character username pattern and 12-128 character password-class rules in the English input descriptions"},
+        {"name": "validates-before-deploy", "description": "Validates the collected credential against the discovered constraints before Template API deployment"},
+        {"name": "preserves-login-values", "description": "Passes the credential unchanged through initialization and live login while keeping its value redacted"}
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "Deploy a source-ready static repository with root index.html, site.css, and site.js but no package.json or build tool.",
+      "expected_output": "Classifies the target as an eligible source-ready static site, scores it above the deployment threshold, packages every static asset in a pinned unprivileged Nginx image, and continues through the normal registry, template, deploy, and runtime-verification flow.",
+      "files": ["index.html", "site.css", "site.js"],
+      "assertions": [
+        {"name": "recognizes-source-ready-assets", "description": "Returns eligible static_web with SOURCE_READY_STATIC_SITE evidence for root index.html plus a source-ready asset tree and no higher-priority build, runtime, container, or sensitive-file signal"},
+        {"name": "scores-static-readiness", "description": "Reports HTML/static_html on port 8080 with a readiness score >= 4"},
+        {"name": "builds-static-nginx-image", "description": "Generates the pinned static Nginx Dockerfile and runs the normal build-push path instead of publishing assets through a ConfigMap"},
+        {"name": "uses-pinned-unprivileged-runtime", "description": "Uses the exact-version nginxinc/nginx-unprivileged base image on port 8080"},
+        {"name": "copies-all-assets-into-image", "description": "Preserves index.html, site.css, site.js, and nested public assets in the image without publishing repository metadata or sensitive files"},
+        {"name": "keeps-runtime-truth", "description": "Still verifies Launchpad networking, the real App URL, logs, missing-static-asset behavior, Event convergence, and the resource footprint"}
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "A locally built image was pushed to GHCR and the new package is private. Continue the Sealos deployment.",
+      "expected_output": "Keeps the private GHCR image, deploys first to obtain the real instance name, immediately creates the same-named image pull Secret from the local gh CLI session, and lets kubelet pull retries recover the Pod without changing package visibility or recreating the Pod.",
+      "files": [],
+      "assertions": [
+        {"name": "deploys-before-fresh-secret", "description": "For a fresh Template API deploy, waits for the successful response before creating the pull Secret"},
+        {"name": "uses-real-instance-name", "description": "Reads the authoritative instance name from the deploy response and creates a Secret with exactly that name"},
+        {"name": "uses-built-in-pull-secret", "description": "Runs ensure-image-pull-secret.mjs or the equivalent built-in Secret path immediately after fresh deployment; an update may refresh the already-known same-named Secret before changing the image"},
+        {"name": "relies-on-kubelet-retry", "description": "Allows kubelet image-pull retries to recover the Pod after Secret creation instead of deleting or recreating the Pod"},
+        {"name": "does-not-change-visibility", "description": "Does not call REST, GraphQL, package settings, or other visibility-changing mechanisms"},
+        {"name": "keeps-credentials-out-of-template-inputs", "description": "Uses local gh CLI credentials to create the namespace Secret without exposing registry credentials as template inputs"},
+        {"name": "continues-with-private-image", "description": "Continues deployment with the pushed GHCR reference instead of rebuilding or switching registries"}
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "Prepare a static Sealos deployment contract for a mail platform release whose official startup requires an administrator account before HTTP is served. The selected runtime supports generated initialization and reads the resolved password from a Kubernetes Secret. Upstream requires a 20-character password containing uppercase, lowercase, digit, and symbol characters, and the deployer does not choose the administrator credential. Keep the task static: describe Template inputs, credential construction and storage, startup validation, and live authentication proof.",
+      "expected_output": "Classifies the release as runtime-generated mandatory bootstrap, omits administrator inputs, deterministically constructs and validates the exact 20-character password format before serving, retains the resolved credential in a Kubernetes Secret, retrieves it without printing, and completes login plus one authenticated action with all credential material redacted.",
+      "files": [],
+      "assertions": [
+        {"name": "classifies-generated-mandatory-bootstrap", "description": "Uses exact selected-release evidence to classify the account mode as runtime-generated mandatory bootstrap"},
+        {"name": "omits-administrator-inputs", "description": "Keeps administrator inputs absent because the selected runtime owns credential generation and the deployer does not choose the value"},
+        {"name": "constructs-exact-format", "description": "Deterministically constructs and validates a 20-character password containing uppercase, lowercase, digit, and symbol characters before HTTP is served"},
+        {"name": "retains-resolved-secret", "description": "Stores the resolved administrator credential in a Kubernetes Secret or the exact documented live runtime source"},
+        {"name": "proves-redacted-login", "description": "Retrieves the resolved credential without printing it and completes login plus one authenticated action with credential material redacted"}
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "Deploy-only output was requested for a public web workload. The Template API returns 201 and the Deployment becomes Ready, while Runtime Truth has not yet run.",
+      "expected_output": "Returns a stopped runtime_pending result, keeps the App URL/live identity and deploy evidence available for the Runtime Truth Pass, and avoids reporting success or handing an unverified state to Canvas.",
+      "files": [],
+      "assertions": [
+        {"name": "requires-runtime-truth", "description": "Treats deployment API success and rollout readiness as incomplete until Runtime Truth evidence exists"},
+        {"name": "returns-runtime-pending", "description": "Returns a safe stopped result with runtime_pending and the single next action to run Runtime Truth"},
+        {"name": "keeps-live-identity", "description": "Preserves the actual App URL, live App/Instance identity, namespace, and image as sanitized evidence"},
+        {"name": "blocks-canvas-handoff", "description": "Does not hand Canvas a verified state or claim Canvas-ready evidence before Runtime Truth"},
+        {"name": "redacts-output", "description": "Keeps credentials, cookies, Secret data, and kubeconfig values out of the stopped report"}
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "Validate Runtime Truth for a worker, a scheduled job, and a private web app in one repository. None exposes a public HTTP route, while the worker has a queue signal and the CronJob has completed one expected run.",
+      "expected_output": "Applies conditional probes: worker readiness/queue/log/event evidence, scheduled-job completion and schedule-window evidence, and private-web business-flow evidence; skips irrelevant Launchpad and browser checks while retaining readiness, convergence, footprint, and redaction gates.",
+      "files": [],
+      "assertions": [
+        {"name": "selects-conditional-matrix", "description": "Selects workload-specific Runtime Truth probes from the worker, scheduled-job, and private-web classes"},
+        {"name": "does-not-force-public-checks", "description": "Skips Launchpad and public URL checks when the selected workload has no public Ingress"},
+        {"name": "proves-worker-signal", "description": "Requires a live ready worker and a documented queue/work signal plus logs/events and restart stability"},
+        {"name": "proves-scheduled-run", "description": "Requires one expected Job/Pod completion and a stability window covering the scheduled period"},
+        {"name": "keeps-common-gates", "description": "Retains first/final baselines, readiness, complete footprint, and sanitized output for every class"}
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "A database-backed S3 application has a healthy Pod and a completed migration Job, but the final table, vector extension, object digest, and anonymous raw-object restriction have not been checked. A Warning Event advances during the stability window.",
+      "expected_output": "Returns stopped or error evidence, requires direct database final-state checks and the authenticated S3 upload/read/digest/delete plus restricted raw-object flow, and fails convergence on the advancing Warning Event even though the Pod is Ready.",
+      "files": [],
+      "assertions": [
+        {"name": "requires-database-final-state", "description": "Does not treat a healthy Pod or completed Job as proof of required tables, extensions, roles, grants, or migration markers"},
+        {"name": "requires-s3-business-flow", "description": "Requires authenticated upload/read/content/delete, managed bucket and Secret wiring, and restricted anonymous raw-object access"},
+        {"name": "fails-warning-advance", "description": "Returns stopped or error when a Warning Event advances during the final baseline comparison"},
+        {"name": "blocks-success-on-partial-evidence", "description": "Keeps Runtime Truth and Canvas handoff blocked until all applicable evidence is complete and redacted"},
+        {"name": "preserves-footprint", "description": "Requires collectionOk and runtimeReady with Instance/App/workload/Job/PVC/KubeBlocks/ObjectStorageBucket evidence"}
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "An UPDATE request presents a `.sealos/state.json` whose live App identity differs from the selected namespace. Continue with kubectl set image.",
+      "expected_output": "Returns stopped before mutation, records the state/live identity mismatch and artifact path, and gives a safe reconciliation action with redacted diagnostics.",
+      "files": ["skills/sealos-deploy/SKILL.md", "skills/sealos-deploy/modules/pipeline.md", "skills/sealos-deploy/scripts/validate-artifacts.mjs"],
+      "assertions": [
+        {"name": "validates-state-live-identity", "description": "Compares stored state identity with the live App/Instance identity before UPDATE mutation"},
+        {"name": "stops-before-set-image", "description": "Does not run kubectl set image while identity reconciliation is failing"},
+        {"name": "names-artifact-and-next-action", "description": "Names the state artifact and instructs the requester to refresh or reconcile it"},
+        {"name": "keeps-canvas-locked", "description": "Does not hand Canvas an unverified state and keeps all credentials redacted"}
+      ]
+    }
+  ,
+{
+      "id": 29,
+      "prompt": "Run /sealos-deploy in Brain managed mode with SEALAI_DEPLOY_MODE=managed and the task-scoped MCP tools available.",
+      "expected_output": "Keeps the local workflow unchanged, preserves the final validated Template without injecting a Brain-owned Instance identity, calls template_ready with the final template SHA, ends the turn on awaiting_user, and resumes from the fixed SEALAI_INPUTS_PATH without creating an inputs-required control file.",
+      "files": [],
+      "assertions": [
+        {"name": "managed-mode-is-explicit", "description": "Enters the managed adapter only for SEALAI_DEPLOY_MODE=managed and leaves local mode behavior unchanged"},
+        {"name": "does-not-inject-brain-identity", "description": "Leaves Template resource metadata and workload Pod templates unchanged; the actual Instance name remains owned by Sealos/Template"},
+        {"name": "hashes-final-template", "description": "Runs the final quality gate after label injection and calls template_ready with the SHA-256 of the exact submitted bytes"},
+        {"name": "awaiting-user-ends-turn", "description": "Treats decision=awaiting_user as a turn boundary before any deployment mutation and lets Brain render the existing Template inputs form"},
+        {"name": "resumes-fixed-inputs", "description": "On resume reads only /run/sealai/deployment/inputs.json via SEALAI_INPUTS_PATH and passes it as deployment arguments without printing values"},
+        {"name": "fails-closed-on-missing-tools", "description": "Stops managed mode when template_ready or deployment_completed is unavailable instead of falling back to files or Brain-side mutation"}
+      ]
+    },
+{
+      "id": 30,
+      "prompt": "A managed deployment reaches Runtime Truth, then deployment_completed returns decision=repair with readiness observations.",
+      "expected_output": "The same Codex Agent inspects the reported Pod/events/logs, diagnoses and repairs the workload, re-applies the template, reruns Runtime Truth, and calls deployment_completed again; it stops at the configured repair/deadline budget and only accepted_stop ends the managed task.",
+      "files": [],
+      "assertions": [
+        {"name": "repair-stays-agent-owned", "description": "Keeps diagnosis, kubectl repair/re-apply, and re-verification inside the Devbox Codex Agent"},
+        {"name": "accepted-stop-is-final", "description": "Treats deployment_completed decision=accepted_stop as the only successful managed completion signal"},
+        {"name": "bounds-repair-loop", "description": "Repairs as many times as needed while honoring SEALAI_TURN_DEADLINE_AT as the single hard limit and fails closed when the deadline is exhausted"}
       ]
     }
   ]

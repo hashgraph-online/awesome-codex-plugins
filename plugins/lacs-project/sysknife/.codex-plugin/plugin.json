@@ -1,0 +1,41 @@
+{
+  "name": "sysknife",
+  "version": "0.7.0",
+  "description": "Linux sysadmin co-pilot as an MCP server: plain-language requests become typed, risk-classified actions that a privileged daemon runs only after out-of-band terminal approval, with an Ed25519-signed audit chain and automatic rollback.",
+  "repository": "https://github.com/lacs-project/sysknife",
+  "author": {
+    "name": "LACS Project",
+    "url": "https://github.com/lacs-project"
+  },
+  "license": "MIT",
+  "keywords": [
+    "linux",
+    "sysadmin",
+    "mcp",
+    "codex",
+    "audit",
+    "approval",
+    "devops"
+  ],
+  "interface": {
+    "displayName": "SysKnife",
+    "shortDescription": "Run Linux admin tasks from Codex behind a typed approval gate",
+    "longDescription": "SysKnife turns a plain-language request into a plan of typed, risk-classified actions. Nothing executes on the model's word: the privileged daemon is the only component that runs anything, it refuses any action outside its catalogue, and medium- and high-risk steps require a single-use approval receipt minted out-of-band by a human running `sysknife approve` in a terminal. Every authorisation decision, and every approval grant, consumption and revocation, is recorded in Ed25519-signed forward hash chains that a third party can verify with only the exported public key. Failed system updates roll back automatically on atomic-host distros.",
+    "developerName": "LACS Project",
+    "category": "DevOps",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "What is using disk space on this machine?",
+      "Install ripgrep",
+      "Show me what SysKnife has run recently",
+      "Verify the audit chain"
+    ],
+    "brandColor": "#FF6B1A",
+    "composerIcon": "./assets/raster/sysknife-256.png",
+    "logo": "./assets/logo/sysknife.svg"
+  },
+  "mcpServers": "./.codex-plugin/mcp.json"
+}

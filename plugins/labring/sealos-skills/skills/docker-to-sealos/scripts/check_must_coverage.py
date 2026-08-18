@@ -144,6 +144,9 @@ def resolve_path(value: str, base: Path) -> Path:
     path = Path(value)
     if path.is_absolute():
         return path
+    cwd_path = path.resolve()
+    if cwd_path.exists():
+        return cwd_path
     return (base / path).resolve()
 
 

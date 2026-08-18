@@ -2,15 +2,15 @@
 
 ## Flag Inventory
 
-| Flag | Category | Declaration Site | Expiry | Current Production Value Per Environment | Owner |
-| --- | --- | --- | --- | --- | --- |
+| Flag | Category | Lifecycle Date Type | Removal Expiry Or Next Review | Retirement Condition | Declaration Site | Current Production Value Per Environment | Responsibility |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 | Flag | Safe Fallback | Outage Behavior | Branch Count |
 | --- | --- | --- | --- |
 
 ## Orphan Report
 
-| Flag | Missing Classification? | Past Expiry? | Unsafe Fallback? | Identical Branches? |
+| Flag | Missing Classification? | Past Removal Or Review? | Unsafe Fallback? | Identical Branches? |
 | --- | --- | --- | --- | --- |
 
 | Flag | Unreachable Branch? | Stale Evaluation? | Registry/Code Mismatch? | Action |
@@ -33,8 +33,9 @@
 
 ## Standing Rule
 
-- Create-time expiry/category/safe-fallback rule:
-- Renewal cadence:
+- Temporary removal-expiry defaults:
+- Long-lived review cadence:
+- Create-time category/lifecycle/responsibility/safe-fallback/retirement rule:
 - Orphan detection:
 
 ## Flag-Debt Scorecard
@@ -42,7 +43,8 @@
 | Metric | Current | Target | Action |
 | --- | --- | --- | --- |
 | Total flags by category |  |  |  |
-| Percent past expiry |  |  |  |
-| Percent without orphan count |  |  |  |
-| Oldest live flag age |  |  |  |
-| Removal velocity |  |  |  |
+| Orphan count |  |  |  |
+| Temporary flags past removal expiry |  |  |  |
+| Long-lived controls past review |  |  |  |
+| Oldest overdue lifecycle date |  |  |  |
+| Temporary-flag removal velocity |  |  |  |

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Set Up Agent Guard"
+  short_description: "Verify Agent Guard setup and live hooks"
+  default_prompt: "Use $setup-agent-guard to verify the plugin-local Agent Guard binary, guide approved dependency installation, confirm Codex hook trust, and prove live protection."

@@ -57,17 +57,6 @@ Produces the operational-acceptance gate for moving a running system between tea
 
 Convert tribal knowledge to a verified acceptance gate: receiver-run runbooks, a deploy and rollback dry-run, paging in the receiver's rotation, and a dated blocker register. The receiving team must pass the gate unaided; an open blocker stops the transfer.
 
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
-
 ## Exceptions
 
 - A short temporary transfer can use a smaller gate only when duration, rollback owner, and emergency escalation are explicit.

@@ -78,8 +78,8 @@ CI pipeline identifiers (format "id" or "id:label", comma-separated, blank to sk
 ### Prompt 2c — Critical Issue Labels
 
 ```
-Critical issue labels (comma-separated, e.g. "priority:critical,severity:blocker", blank to skip):
-> priority:critical, severity:blocker
+Critical issue labels (comma-separated, e.g. "priority::critical,severity:blocker", blank to skip):
+> priority::critical, severity:blocker
 ```
 
 - Raw label strings as they appear in the VCS issue tracker.
@@ -121,7 +121,7 @@ ecosystem-health:
   pipelines:
     - id: main
     - id: deploy-production # Deploy
-  critical-issue-labels: ["priority:critical", "severity:blocker"]
+  critical-issue-labels: ["priority::critical", "severity:blocker"]
 ```
 
 **Idempotency:** If an `ecosystem-health:` key already exists in Session Config,
@@ -141,7 +141,7 @@ exits 0. Re-run to edit: remove the existing block first, then re-run.
     { "id": "main" },
     { "id": "deploy-production", "label": "Deploy" }
   ],
-  "criticalIssueLabels": ["priority:critical", "severity:blocker"]
+  "criticalIssueLabels": ["priority::critical", "severity:blocker"]
 }
 ```
 

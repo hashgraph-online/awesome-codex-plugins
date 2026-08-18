@@ -1,10 +1,11 @@
 {
   "mcpServers": {
     "codex-usage-tracker": {
-      "command": "python3",
-      "args": ["./skills/codex-usage-tracker/scripts/run_mcp.py"],
-      "cwd": ".",
-      "startup_timeout_sec": 120
+      "command": "codex-usage-tracker",
+      "args": [
+        "_mcp"
+      ],
+      "startup_timeout_sec": 30
     }
   }
 }

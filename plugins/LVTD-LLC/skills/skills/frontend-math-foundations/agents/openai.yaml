@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Math Foundations"
+  short_description: "Core math for frontend design"
+  default_prompt: "Use $frontend-math-foundations to explain the minimum math needed for this web layout or UI calculation."

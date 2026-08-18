@@ -1,0 +1,22 @@
+{
+  "status_id": "controller-status-example",
+  "task_id": "task-example",
+  "updated_at": "2024-01-01T00:00:00Z",
+  "updated_by_role": "contaminated-manager-verifier",
+  "current_gate": "clean-planning",
+  "selected_unit_id": "unit-example-flow",
+  "spec_slice_ref": "behavior-spec:unit-example-flow",
+  "coverage_state": "partial",
+  "implementation_state": "not-started",
+  "qc_state": "not-run",
+  "blockers": [],
+  "latest_artifact_refs": [
+    {
+      "artifact_id": "task-manifest-example",
+      "artifact_type": "other",
+      "path": "task-manifest.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "next_safe_action": "Create a fresh role-session brief for the next role."
+}

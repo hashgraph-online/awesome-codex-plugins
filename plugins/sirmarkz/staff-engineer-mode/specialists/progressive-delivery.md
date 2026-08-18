@@ -73,24 +73,13 @@ Use build-once promotion, progressive exposure, predeclared health and canary me
 
 
 
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
-
 ## Exceptions
 
 - Emergency fixes may use a narrower or faster rollout when waiting is riskier than release, but stop criteria and rollback checks still apply.
 - Some destructive data changes cannot be rolled back; they require backup/restore test results, delayed cleanup, and forward-fix criteria.
 - Low-risk internal changes may use lighter checks if blast radius and user risk acceptance using the shared risk-acceptance lifecycle are explicit.
 - Client releases with slow adoption may require forward-fix and kill-switch strategy rather than true rollback.
-- Temporary experiment flags should expire within about 90 days by default; long-lived operational kill switches need a renewal cadence and removal or renewal decision.
+- Temporary experiment flags should expire at the experiment decision or rollout-completion date, with a short provisional review date when timing is uncertain; do not copy a universal day count. Long-lived operational kill switches need a risk-based renewal cadence and an explicit removal or renewal decision.
 
 ## Response Quality Bar
 

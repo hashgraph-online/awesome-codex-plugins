@@ -2,8 +2,8 @@
 
 ## Isolation Model
 
-| Boundary | Tenant Context | Isolation Mechanism | Rationale |
-| --- | --- | --- | --- |
+| Boundary | Tenant Context | Context Source | Authentication Binding | Membership Check | Protected Transit | Boundary Revalidation | Integrity/Conflict Rule | Isolation Mechanism | Rationale |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Data And Access Controls
 
@@ -37,5 +37,5 @@
 
 ## Tenant Audit And Offboarding
 
-| Event/Data | Retention | Deletion Propagation | Review Responsibility |
-| --- | --- | --- | --- |
+| Event/Data | Prohibited/Protected Fields | Redaction/Tokenization | Access And Integrity | Retention/Disposal | Deletion Propagation | Review Responsibility |
+| --- | --- | --- | --- | --- | --- | --- |

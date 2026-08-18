@@ -1,0 +1,11 @@
+{
+  "task_id": "task-example",
+  "result": "spec-slice-complete",
+  "spec_slice_ref": "behavior-spec:unit-example-flow",
+  "coverage_state": "complete",
+  "terminal_report_ref": "implementation-report.json",
+  "qc_report_ref": "qc-report.json",
+  "polish_report_ref": "polish-report.json",
+  "abstract_delta_tickets": [],
+  "returned_at": "2024-01-01T00:00:00Z"
+}

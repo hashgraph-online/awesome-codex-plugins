@@ -3,7 +3,7 @@ name: mobile-release-engineering
 description: "Use when planning mobile rollouts needing staged release, stability checks, offline behavior, or kill switches"
 ---
 
-# Mobile Release Engineering And Crash Budgets
+# Mobile Release Engineering And Stability
 
 ## Iron Law
 
@@ -50,7 +50,7 @@ Mobile releases are hard to roll back, so stability checks must be conservative 
 1. **Define mobile SLIs.** Use crash-free users/sessions, hang rate, startup success, and critical journey success.
 2. **Segment the rollout.** Check by platform, app version, device class, OS version, geography/network, account policy, entitlement, or managed cohort where risk warrants it.
 3. **Set staged thresholds.** Define metrics and sample-size requirements for each widening step, including client-exposure or UI-prominence changes that can create a backend or feature-usage surge.
-4. **Use explicit stability checks.** If local budgets are missing, propose provisional checks with windows: crash-free users at least 99.5%, crash-free sessions at least 99.9%, hang/ANR rate no worse than baseline plus 10% and below the app's severe-alert threshold, measured over each 24-hour rollout step before widening.
+4. **Use calibrated stability checks.** Derive crash-free, hang, startup, and journey thresholds from the current release and cohort baselines, user-impact or reliability targets, repair latency, traffic and adoption shape, sample size, and uncertainty. If local budgets are missing, label proposed thresholds and windows as provisional hypotheses and state the evidence needed to replace them; do not copy universal crash-free percentages, relative-regression limits, or fixed bake times across products.
 5. **Check compatibility.** Verify backend, API, schema, feature flag, config, and environment-target compatibility with old and new app versions. Include response normalization, stale remote config, client-held state, and local data migrations so server rollback does not hide a client crash or startup loop.
 6. **Plan offline and sync behavior.** Test intermittent network, stale config, retry, conflict, and data-loss scenarios.
 7. **Protect privacy.** Avoid sensitive data in crash reports, logs, breadcrumbs, and custom keys.
@@ -63,17 +63,6 @@ Use staged mobile rollout with crash-free, hang, startup, and critical-journey b
 
 
 
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
-
 ## Exceptions
 
 - Emergency security or compliance fixes may move faster, but staged telemetry and rollback/forward-fix criteria still apply.
@@ -85,7 +74,7 @@ Use staged mobile rollout with crash-free, hang, startup, and critical-journey b
 
 - Lead with the staged rollout decision, halt criteria, or stability budget requested.
 - Cover crash-free, hangs, startup, critical journey, segmentation, and repair path before optional mobile release topics.
-- Include numeric stability thresholds and measurement windows when recommending rollout checks; label provisional defaults if the user has not supplied project-specific budgets.
+- Include numeric stability thresholds, measurement windows, minimum sample or confidence, and their derivation from local baselines and impact tolerances; label unsupported values as provisional hypotheses.
 - Make recommendations actionable with checks, stop conditions, and forward-fix or kill-switch actions where relevant.
 - Name the details to inspect, such as crash-free sessions/users, OS/device cohorts, sample sizes, app versions, and telemetry readiness; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
@@ -96,7 +85,7 @@ Use staged mobile rollout with crash-free, hang, startup, and critical-journey b
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Mobile release train and staged rollout plan.
-- Crash-free users/sessions, hang/ANR, startup, and critical-journey budgets with numeric thresholds and measurement windows.
+- Crash-free users/sessions, hang/ANR, startup, and critical-journey budgets with numeric thresholds, measurement windows, minimum sample or confidence, baseline, impact rationale, and recalibration trigger.
 - Device/OS/app-version/account-policy segmentation plan.
 - Client-exposure and feature-usage surge check for new entry points, defaults, notifications, or UI prominence changes.
 - Backend/API/config compatibility plan.
@@ -108,7 +97,7 @@ Use staged mobile rollout with crash-free, hang, startup, and critical-journey b
 
 ## Checks Before Moving On
 
-- `stability_budget`: crash-free, hang, startup, and critical journey thresholds are defined.
+- `stability_budget`: crash-free, hang, startup, and critical-journey thresholds are derived from local baselines and impact tolerance, with windows, minimum signal, uncertainty, and a recalibration trigger.
 - `segment_check`: device, OS, app version, network, account policy, entitlement, and managed-cohort segmentation is considered.
 - `compatibility_check`: backend, API, config, and old-version compatibility are addressed.
 - `exposure_load_check`: client entry-point, default, notification, or UI-prominence changes have expected usage, backend capacity, and critical-journey failure signals before broad exposure.
@@ -124,6 +113,7 @@ Use staged mobile rollout with crash-free, hang, startup, and critical-journey b
 - Backend changes break older app versions.
 - Server rollback is assumed to repair client-held state, local migrations, or cached config without verification.
 - Crash reports include sensitive data.
+- Release thresholds are copied from another product or generic guidance without local baseline, cohort, sample, uncertainty, or repair-time evidence.
 - Rollback is assumed even though client distribution cannot force downgrade.
 
 ## Common Mistakes

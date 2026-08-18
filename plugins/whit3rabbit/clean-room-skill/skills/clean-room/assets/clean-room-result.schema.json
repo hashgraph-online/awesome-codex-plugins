@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Inner Loop Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "result",
+    "spec_slice_ref",
+    "coverage_state",
+    "terminal_report_ref",
+    "qc_report_ref",
+    "abstract_delta_tickets",
+    "returned_at"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "result": {
+      "enum": [
+        "spec-slice-complete",
+        "spec-slice-blocked",
+        "spec-delta-required",
+        "contamination-suspected",
+        "iteration-limit-reached",
+        "no-progress-detected"
+      ]
+    },
+    "spec_slice_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage_state": {
+      "enum": [
+        "complete",
+        "partial",
+        "blocked",
+        "not-run"
+      ]
+    },
+    "terminal_report_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qc_report_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "polish_report_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "abstract_delta_tickets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/abstract_delta_ticket"
+      }
+    },
+    "returned_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "abstract_delta_ticket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary"
+      ],
+      "properties": {
+        "ticket_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "missing-acceptance-criterion",
+            "ambiguity",
+            "missing-equal-output-requirement",
+            "test-gap",
+            "split-required",
+            "implementation-gap",
+            "other"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_clean_change": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "deferred"
+          ]
+        }
+      }
+    }
+  }
+}

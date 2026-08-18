@@ -4,6 +4,14 @@
 
 Detect whether the project already has Docker/K8s configuration and assess its completeness.
 
+## Input and Output Contract
+
+Read `workload.eligibility` and the eligible project description from the
+assessment report. Detection runs only when eligibility is `eligible`; it returns
+an in-memory artifact inventory with repository-relative paths, quality signals,
+`status: complete | partial | none`, and `redaction.ok`. It does not write project
+files or create a deployment artifact.
+
 ## Execution Steps
 
 ### Step 1: Scan for Docker Files
@@ -188,6 +196,9 @@ artifacts:
     has_ci: true | false             # Automated build pipeline
     summary: "Production-ready | Development-ready | Incomplete | None"
 ```
+
+Return the inventory as the `artifacts` field of the readiness report. Keep
+unresolved paths and sensitive configuration values summarized and redacted.
 
 ### Decision Points
 

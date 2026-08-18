@@ -1,0 +1,1 @@
+{"name":"agent-project-master","version":"1.0.0","description":"项目总控 - 项目全局管理和进度跟踪","author":"1139030773-cmd","license":"MIT","capabilities":{"chat":true,"projectManagement":true},"keywords":["项目管理","进度跟踪","任务控制"]}

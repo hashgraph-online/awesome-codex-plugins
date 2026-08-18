@@ -266,6 +266,7 @@ spec:
       containers:
         - name: ${{ defaults.app_name }}
           image: yidadaa/chatgpt-next-web:v2.12.4
+          imagePullPolicy: IfNotPresent
           env:
             - name: OPENAI_API_KEY
               value: ${{ inputs.OPENAI_API_KEY }}
@@ -1434,7 +1435,7 @@ spec:
 
 #### `Object Storage`
 
-We use object storage to provide bucket resource support. You can directly use the following code to deploy a bucket:
+When the application requires S3-compatible storage, create the Sealos bucket unconditionally:
 
 ```yaml
 apiVersion: objectstorage.sealos.io/v1
@@ -1444,6 +1445,31 @@ metadata:
 spec:
   policy: private
 ```
+
+Replace bundled MinIO server workloads, Services, Ingresses, PVCs, local credentials, and provider selectors with the managed bucket. A compatibility proxy may remain for documented protocol adaptation when it records a credential-free HTTPS source URL or `user-request:<reference>` in `docker-to-sealos.object-storage-compatibility-proxy-source`, stays stateless, and omits persistent volumes.
+
+Use a boolean condition only when the official application docs provide a functional storage-disabled or local-filesystem mode:
+
+```yaml
+inputs:
+  enable_object_storage:
+    description: "Enable the optional object storage feature"
+    type: boolean
+    default: "false"
+    required: false
+
+---
+${{ if(inputs.enable_object_storage === 'true') }}
+apiVersion: objectstorage.sealos.io/v1
+kind: ObjectStorageBucket
+metadata:
+  name: ${{ defaults.app_name }}
+spec:
+  policy: private
+${{ endif() }}
+```
+
+Configure the documented storage-disabled or local mode in the false branch. Resolve Sealos, MinIO, AWS S3, and other provider choices during conversion, outside `spec.inputs`.
 
 The policy has three types: private (private bucket, not open), publicRead (shared bucket, open for public read), and publicReadwrite (shared bucket, open for public read and write).
 
@@ -1461,22 +1487,22 @@ spec:
         - name: ACCESS_KEY
           valueFrom:
             secretKeyRef:
-              name: object-storage-key-${{ SEALOS_SERVICE_ACCOUNT }}-${{ defaults.app_name }}
+              name: object-storage-key
               key: accessKey
         - name: SECRET_KEY
           valueFrom:
             secretKeyRef:
-              name: object-storage-key-${{ SEALOS_SERVICE_ACCOUNT }}-${{ defaults.app_name }}
+              name: object-storage-key
               key: secretKey
         - name: EXTERNAL_ENDPOINT
           valueFrom:
             secretKeyRef:
-              name: object-storage-key-${{ SEALOS_SERVICE_ACCOUNT }}-${{ defaults.app_name }}
+              name: object-storage-key
               key: external
         - name: INTERNAL_ENDPOINT
           valueFrom:
             secretKeyRef:
-              name: object-storage-key-${{ SEALOS_SERVICE_ACCOUNT }}-${{ defaults.app_name }}
+              name: object-storage-key
               key: internal
         - name: BUCKET_NAME
           valueFrom:
@@ -1500,9 +1526,11 @@ The CRD itself will be fully migrated according to the template format and field
 
 #### Resource Labels
 
-For all resources deployed through the template marketplace, including system resources such as `deploy`, `service` as well as custom resources such as `app`, `kb database`, etc., a unified label will be added to all of them: `cloud.sealos.io/deploy-on-sealos: $app_name`.
+The template marketplace may attach a rendered deployment label such as `cloud.sealos.io/deploy-on-sealos: $app_name` to deployed resources.
 
 Where `app_name` is the name of the application deployed by the user, which by default ends with a random number, such as `fastgpt-zu1n048s`.
+
+Generated application `StatefulSet` resources that define `spec.volumeClaimTemplates` keep `metadata.labels.app` and `metadata.labels.cloud.sealos.io/app-deploy-manager`, and leave `cloud.sealos.io/deploy-on-sealos` out of both StatefulSet metadata labels and claim template metadata labels.
 
 ## Part 3: `Rendering Process Details`
 

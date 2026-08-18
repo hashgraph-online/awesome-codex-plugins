@@ -1,0 +1,26 @@
+# Local development artifacts
+.env
+.env.*
+*.local
+
+# Build output
+dist/
+build/
+out/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clean-Room Visual Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "index_id",
+    "task_id",
+    "created_at",
+    "created_by_role",
+    "domain",
+    "generator",
+    "limits",
+    "visual_roots",
+    "images",
+    "recommended_batches",
+    "skipped_entries",
+    "aggregate_metrics"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "index_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by_role": {
+      "enum": [
+        "controller-preflight",
+        "contaminated-manager-verifier"
+      ]
+    },
+    "domain": {
+      "const": "contaminated"
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "python_version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "python_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_files",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_batch_items",
+        "ignore_dirs"
+      ],
+      "properties": {
+        "max_files": {
+          "type": "integer"
+        },
+        "max_file_bytes": {
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "type": "integer"
+        },
+        "max_batch_items": {
+          "type": "integer"
+        },
+        "ignore_dirs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "visual_roots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "root_id",
+          "path"
+        ],
+        "properties": {
+          "root_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "image_id",
+          "root_id",
+          "path",
+          "media_type",
+          "width",
+          "height",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "image_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "root_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "media_type": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "recommended_batches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "batch_id",
+          "image_ids",
+          "image_count",
+          "total_bytes",
+          "notes"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "image_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "image_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "skipped_entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "reason",
+          "kind"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "file",
+              "directory"
+            ]
+          }
+        }
+      }
+    },
+    "aggregate_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image_count",
+        "total_bytes",
+        "batch_count",
+        "skipped_count",
+        "skipped_entries_truncated",
+        "media_type_counts"
+      ],
+      "properties": {
+        "image_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "batch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped_entries_truncated": {
+          "type": "boolean"
+        },
+        "media_type_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

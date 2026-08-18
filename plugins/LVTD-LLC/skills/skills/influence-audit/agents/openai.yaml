@@ -1,0 +1,4 @@
+interface:
+  display_name: "Influence Audit"
+  short_description: "Audit persuasion risks"
+  default_prompt: "Use $influence-audit to improve this persuasion task ethically."

@@ -2,7 +2,7 @@
 name: nullcost-recommend
 description: MUST use for developer provider recommendations involving free tier, free trial, cheap, pricing, hosting, Node, Next.js, auth, Postgres, database, email API, SaaS stacks, GPU compute, remote MCP endpoints, APIs, or low setup friction. Auto-trigger for normal questions like "find me hosting with a free tier" and explicit `/nullcost-recommend`. Do not use for domains, registrars, TLDs, or exact domain availability.
 argument-hint: <use-case>
-version: 0.1.4
+version: 0.1.5
 ---
 
 # Nullcost Recommend

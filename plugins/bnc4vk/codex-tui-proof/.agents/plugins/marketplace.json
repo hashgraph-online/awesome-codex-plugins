@@ -1,0 +1,20 @@
+{
+  "name": "codex-tui-proof",
+  "interface": {
+    "displayName": "Codex TUI Proof"
+  },
+  "plugins": [
+    {
+      "name": "codex-tui-proof",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

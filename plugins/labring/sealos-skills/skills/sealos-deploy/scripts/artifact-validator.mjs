@@ -12,6 +12,8 @@ const SCHEMA_FILES = {
   analysis: 'analysis.schema.json',
   'build-result': 'build-result.schema.json',
   state: 'state.schema.json',
+  'template-match': 'template-match.schema.json',
+  'deploy-handoff': 'deploy-handoff.schema.json',
 }
 
 function isPlainObject(value) {
@@ -281,9 +283,9 @@ function validateStateSemantics(data, errors) {
   }
 
   try {
-    const host = new URL(lastDeploy.url).hostname
-    if (!host.endsWith(`.${lastDeploy.region}`)) {
-      pushError(errors, '$.last_deploy.url', 'hostname must end with .<region>')
+    const url = new URL(lastDeploy.url)
+    if (url.protocol !== 'https:') {
+      pushError(errors, '$.last_deploy.url', 'must be a valid https URL')
     }
   } catch {
     pushError(errors, '$.last_deploy.url', 'must be a valid https URL')
@@ -314,6 +316,73 @@ function validateStateSemantics(data, errors) {
   if (latestSuccessfulImage && latestSuccessfulImage !== lastDeploy.image) {
     pushError(errors, '$.last_deploy.image', 'must match the latest successful image-changing history entry')
   }
+
+  if (data.runtime_truth) {
+    const runtimeTruth = data.runtime_truth
+    const identity = runtimeTruth.identity
+    for (const field of ['app_name', 'namespace', 'image', 'url']) {
+      if (identity[field] !== lastDeploy[field]) {
+        pushError(errors, `$.runtime_truth.identity.${field}`, 'must match last_deploy before state can be trusted')
+      }
+    }
+    if (runtimeTruth.status === 'verified' && runtimeTruth.stability_window_seconds < 60) {
+      pushError(errors, '$.runtime_truth.stability_window_seconds', 'verified Runtime Truth requires a 60-second stability window')
+    }
+    if (runtimeTruth.status === 'verified' && runtimeTruth.redaction_status !== 'complete') {
+      pushError(errors, '$.runtime_truth.redaction_status', 'verified Runtime Truth requires complete redaction')
+    }
+  }
+
+  if (data.provenance) {
+    if (!['complete', 'not_applicable'].includes(data.provenance.redaction_status)) {
+      pushError(errors, '$.provenance.redaction_status', 'must record an explicit redaction status')
+    }
+    for (const artifactPath of data.provenance.artifact_paths) {
+      if (path.isAbsolute(artifactPath) || /^[A-Za-z]:[\\/]/.test(artifactPath) || artifactPath.split(/[\\/]+/).includes('..')) {
+        pushError(errors, '$.provenance.artifact_paths', 'must contain repository-relative paths')
+      }
+    }
+  }
+}
+
+function validateHandoffSemantics(data, errors) {
+  if (!['complete', 'not_applicable'].includes(data.redaction.status)) {
+    pushError(errors, '$.redaction.status', 'must record an explicit redaction status')
+  }
+
+  const serialized = JSON.stringify(data)
+  if (/(password|token|cookie|kubeconfig|secret|connection_string)\s*[:=]\s*[^<\s]/i.test(serialized)) {
+    pushError(errors, '$', 'contains a sensitive value; keep only sanitized field names and excerpts')
+  }
+
+  if (data.terminalState.state === 'success' && data.nextAction !== 'none') {
+    pushError(errors, '$.nextAction', 'must be none for terminal success')
+  }
+  if (data.terminalState.state !== 'success' && data.nextAction === 'none') {
+    pushError(errors, '$.nextAction', 'must name a recovery action for stopped or error states')
+  }
+}
+
+export function validateStateLiveIdentity(state, liveIdentity) {
+  const errors = []
+  const expected = state?.last_deploy
+  if (!expected || !liveIdentity || typeof liveIdentity !== 'object') {
+    return { valid: false, errors: [{ path: '$', message: 'state and live identity are required' }] }
+  }
+
+  for (const field of ['app_name', 'namespace', 'image', 'url']) {
+    if (typeof liveIdentity[field] !== 'string' || liveIdentity[field].length === 0) {
+      pushError(errors, `$.live.${field}`, 'is required for state reconciliation')
+    } else if (liveIdentity[field] !== expected[field]) {
+      pushError(errors, `$.live.${field}`, 'does not match validated last_deploy identity')
+    }
+  }
+
+  if (liveIdentity.app_host && liveIdentity.app_host !== expected.app_host) {
+    pushError(errors, '$.live.app_host', 'does not match validated last_deploy identity')
+  }
+
+  return { valid: errors.length === 0, errors }
 }
 
 const SEMANTIC_VALIDATORS = {
@@ -321,6 +390,8 @@ const SEMANTIC_VALIDATORS = {
   analysis: validateAnalysisSemantics,
   'build-result': validateBuildResultSemantics,
   state: validateStateSemantics,
+  'template-match': () => {},
+  'deploy-handoff': validateHandoffSemantics,
 }
 
 export function inferArtifactKind(filePath) {
@@ -334,6 +405,10 @@ export function inferArtifactKind(filePath) {
       return 'build-result'
     case 'state.json':
       return 'state'
+    case 'template-match.json':
+      return 'template-match'
+    case 'deploy-handoff.json':
+      return 'deploy-handoff'
     default:
       return null
   }

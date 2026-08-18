@@ -1,0 +1,23 @@
+{
+  "required_top_level_commands": [
+    "status"
+  ],
+  "deny_command_patterns": [
+    "(^|\\s)--unsafe($|\\s)",
+    "(^|\\s)debug-shell($|\\s)"
+  ],
+  "max_created_files": 50,
+  "forbid_file_path_patterns": [
+    "(^|/)\\.ssh(/|$)",
+    "(^|/)Library/Keychains(/|$)",
+    "(^|/)id_rsa($|\\.)"
+  ],
+  "allow_network_endpoint_patterns": [],
+  "deny_network_endpoint_patterns": [
+    "(^| )10\\.",
+    "(^| )172\\.(1[6-9]|2[0-9]|3[0-1])\\.",
+    "(^| )192\\.168\\."
+  ],
+  "block_if_removed_commands": true,
+  "min_command_count": 1
+}

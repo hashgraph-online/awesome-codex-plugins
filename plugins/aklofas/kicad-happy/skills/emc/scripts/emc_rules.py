@@ -60,7 +60,8 @@ def _is_power_or_ground(name: str) -> bool:
     for prefix in ('gnd', 'vcc', 'vdd', 'vss', 'vee', 'v+', 'v-',
                    '+3v', '+5v', '+12v', '+1v', '+2v', '+24v', '+48v',
                    '3v3', '5v0', '1v8', '1v2', '0v9', '2v5',
-                   'vbat', 'vin', 'vbus', 'vsys', 'vmot', 'vpwr',
+                   'vbat', 'vin', 'vbus', 'vsys', 'vmot', 'vmotor',
+                   'vpwr', 'vm',  # F6: motor supply rails (vm/vmot/vmotor)
                    'avcc', 'avdd', 'dvcc', 'dvdd', 'agnd', 'dgnd',
                    'pgnd', 'earth', 'pwr', 'power'):
         if low == prefix or low.startswith(prefix + '_') or low.startswith(prefix + '/'):
@@ -384,6 +385,10 @@ def check_return_path_coverage(pcb: Dict, severity_threshold: str = 'all') -> Li
                 'If a split is intentional, add a bridge capacitor across the gap.'
             ),
             confidence='heuristic',
+            signal_net=net_name,
+            coverage_pct=round(coverage, 1),
+            trace_mm=round(trace_mm, 2),
+            is_high_speed_or_clock=is_hs,
         ))
 
     return findings
@@ -598,9 +603,49 @@ def check_decoupling_via_distance(pcb: Dict) -> List[Dict]:
     if not via_list:
         return findings
 
+    # KH-341: on 2-layer boards the "via to plane" model doesn't apply —
+    # decoupling current returns through pours/traces, not plane vias.
+    layers = pcb.get('layers', [])
+    copper_layer_count = len([l for l in layers
+                              if l.get('type') in ('signal', 'power')])
+    if copper_layer_count == 2:
+        return findings
+
+    zones = pcb.get('zones', [])
     footprints = pcb.get('footprints', [])
     fp_positions = {fp.get('reference', ''): (fp.get('x') or 0, fp.get('y') or 0)
                     for fp in footprints}
+    fp_by_ref = {fp.get('reference', ''): fp for fp in footprints}
+
+    def _cap_in_same_net_pour(fp: Dict) -> bool:
+        """True if the cap sits inside a same-layer zone of one of its own
+        nets — the pour IS the connection, no via needed (KH-341).
+
+        KH-356: analyzer output strips pad geometry from footprints, so
+        this works from what survives: footprint center + connected_nets
+        (pad_nets fallback). Center containment is a good proxy for a
+        chip cap's pad positions.
+        """
+        fp_layer = fp.get('layer', 'F.Cu')
+        fx = fp.get('x')
+        fy = fp.get('y')
+        if fx is None or fy is None:
+            return False
+        cap_nets = fp.get('connected_nets') or [
+            v.get('net') for v in (fp.get('pad_nets') or {}).values()
+            if isinstance(v, dict) and v.get('net')]
+        for net in cap_nets:
+            for z in zones:
+                if z.get('net_name') != net:
+                    continue
+                if fp_layer not in (z.get('layers') or []):
+                    continue
+                bbox = z.get('filled_bbox') or z.get('outline_bbox')
+                if not bbox or len(bbox) != 4:
+                    continue
+                if bbox[0] <= fx <= bbox[2] and bbox[1] <= fy <= bbox[3]:
+                    return True
+        return False
 
     for entry in decoupling:
         for cap_info in entry.get('nearby_caps', []):
@@ -609,6 +654,10 @@ def check_decoupling_via_distance(pcb: Dict) -> List[Dict]:
                 continue
 
             cx, cy = fp_positions[cap_ref]
+
+            _cap_fp = fp_by_ref.get(cap_ref)
+            if _cap_fp and _cap_in_same_net_pour(_cap_fp):
+                continue
 
             # Find nearest via to this cap
             min_via_dist = float('inf')
@@ -731,7 +780,42 @@ def check_connector_filtering(pcb: Dict, schematic: Optional[Dict] = None) -> Li
                     is_external = True
                     break
 
-            severity = 'HIGH' if is_external else 'LOW'
+            # F6: power-only-connector gate. If every net at this connector
+            # is a power/ground rail (no signal lines), the IO-001 fix isn't
+            # a board-level ferrite bead — a saturating ferrite on a tens-of-
+            # amps DC input would burn. The right answer for power cabling is
+            # a system-level common-mode choke or shielded cable with chassis
+            # termination. Downgrade severity + reword the recommendation.
+            #
+            # The PCB analyzer strips per-pad geometry from output; the
+            # consumer-visible field is `pad_nets`
+            # ({pad_num: {net: name, pin: num}}) — same field IO-002 reads
+            # at line 803. Reading `pads` (the parser-internal field) returns
+            # [] and silently no-ops the gate. Verified against harness
+            # fixtures Tropaion/ZigBee_SmartMeter_Reader and
+            # diondokter/induction-heater.
+            pad_nets = conn.get('pad_nets', {})
+            all_pad_nets = [
+                v.get('net', '') for v in pad_nets.values()
+                if isinstance(v, dict) and v.get('net')
+            ]
+            power_only = (
+                bool(all_pad_nets)
+                and all(_is_power_or_ground(n) for n in all_pad_nets)
+            )
+            if power_only:
+                severity = 'INFO'
+                recommendation = (
+                    f'{conn_ref} appears to be a power-only connector (all '
+                    f'pins are power/ground rails). A board-level ferrite '
+                    f'bead would saturate at typical power-supply currents. '
+                    f'If radiated EMI is a concern on the cable, add a '
+                    f'system-level common-mode choke or use shielded cable '
+                    f'with chassis termination.'
+                )
+            else:
+                severity = 'HIGH' if is_external else 'LOW'
+                recommendation = _suggest_filtering(conn_ref, combined)
             findings.append(_make_finding(
                 'io_filtering', severity, 'IO-001',
                 title=f'No EMC filtering near {conn_ref}',
@@ -742,7 +826,7 @@ def check_connector_filtering(pcb: Dict, schematic: Optional[Dict] = None) -> Li
                     f'common-mode current as low as 5 µA can exceed FCC Class B.'
                 ),
                 components=[conn_ref],
-                recommendation=_suggest_filtering(conn_ref, combined),
+                recommendation=recommendation,
                 confidence='heuristic',
                 fix_params={
                     'type': 'add_component',
@@ -1293,10 +1377,16 @@ def check_stackup(pcb: Dict) -> List[Dict]:
         t1 = layer_type_map.get(l1['name'], 'signal')
         t2 = layer_type_map.get(l2['name'], 'signal')
 
-        # Two adjacent signal layers with no ground/power between them
+        # Two adjacent signal layers with no ground/power between them.
+        # F9: severity scales by copper-layer count — on a 2-layer board
+        # the designer can't insert a reference plane in this revision
+        # (the issue is a stackup choice, not a fixable defect), so demote
+        # to info with a "consider 4-layer next revision" recommendation.
+        # 3+ layers: designer has real reorder options, keep HIGH.
         if t1 == 'signal' and t2 == 'signal':
+            two_layer = len(copper_layers) <= 2
             findings.append(_make_finding(
-                'stackup', 'HIGH', 'SU-001',
+                'stackup', 'INFO' if two_layer else 'HIGH', 'SU-001',
                 title=f'Adjacent signal layers: {l1["name"]}, {l2["name"]}',
                 description=(
                     f'Signal layers {l1["name"]} and {l2["name"]} are adjacent '
@@ -1304,6 +1394,9 @@ def check_stackup(pcb: Dict) -> List[Dict]:
                     f'crosstalk and poor return path control for signals on both layers.'
                 ),
                 recommendation=(
+                    'Consider a 4-layer stackup with internal reference planes '
+                    'for the next revision if signal integrity or EMC issues arise.'
+                    if two_layer else
                     'Reorder stackup to place a ground or power plane between '
                     'every pair of signal layers.'
                 ),
@@ -1954,6 +2047,8 @@ def check_diff_pair_cm_radiation(pcb: Optional[Dict],
                 if comp and comp.get('type') not in ('connector',):
                     mcu_mpn = comp.get('mpn') or comp.get('value', '')
                     mcu_feat = _get_mcu_features(mcu_mpn) if mcu_mpn else None
+                    if mcu_feat and not mcu_feat.get('quality', {}).get('trusted', True):
+                        mcu_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
                     if mcu_feat:
                         usb_speed_resolved = mcu_feat.get('usb_speed')
                         break
@@ -2959,8 +3054,12 @@ def check_thermal_emc(pcb: Optional[Dict],
         # Find ferrite beads
         for fp in footprints:
             ref = fp.get('reference', '')
-            val = fp.get('value', '').lower()
-            lib = fp.get('library', fp.get('lib_id', '')).lower()
+            # KH-326: coerce malformed upstream value (rare parser edge case
+            # where fp_text value has no text body) to empty string.
+            _raw_val = fp.get('value', '')
+            val = _raw_val.lower() if isinstance(_raw_val, str) else ''
+            _raw_lib = fp.get('library', fp.get('lib_id', ''))
+            lib = _raw_lib.lower() if isinstance(_raw_lib, str) else ''
             is_ferrite = ref.startswith('FB') or ('ferrite' in val) or ('bead' in val) or ('ferrite' in lib)
             if not is_ferrite:
                 continue
@@ -3250,6 +3349,19 @@ def check_pdn_impedance(pcb: Optional[Dict],
                     spice_backend, sweep_before=sweep),
                 confidence='datasheet-backed' if spice_verified else 'heuristic',
                 spice_verified=spice_verified,
+                rail=output_rail,
+                target_impedance_ohm=round(z_target, 4),
+                vout_v=vout,
+                transient_amps=round(i_transient, 3),
+                method='spice' if spice_verified else 'analytical',
+                peak_frequency_hz=round(exceeding[0]['freq_mhz'] * 1e6),
+                peak_impedance_ohm=round(exceeding[0]['impedance_ohm'], 4),
+                exceeding_peaks=[
+                    {'frequency_hz': round(p['freq_mhz'] * 1e6),
+                     'impedance_ohm': round(p['impedance_ohm'], 4)}
+                    for p in exceeding
+                ],
+                decoupling_cap_count=len(cap_models),
             ))
         elif peaks:
             # Peaks exist but don't exceed target — INFO
@@ -3269,6 +3381,15 @@ def check_pdn_impedance(pcb: Optional[Dict],
                 recommendation='PDN impedance is within target. No action needed.',
                 confidence='datasheet-backed' if spice_verified else 'heuristic',
                 spice_verified=spice_verified,
+                rail=output_rail,
+                target_impedance_ohm=round(z_target, 4),
+                method='spice' if spice_verified else 'analytical',
+                peaks=[
+                    {'frequency_hz': round(p['freq_mhz'] * 1e6),
+                     'impedance_ohm': round(p['impedance_ohm'], 4)}
+                    for p in peaks
+                ],
+                decoupling_cap_count=len(cap_models),
             ))
 
     return findings

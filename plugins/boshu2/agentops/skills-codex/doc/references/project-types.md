@@ -55,7 +55,7 @@ Rationale: Code repos need more precise docs, ops is next most critical.
 
 ## Type-Specific Behaviors
 
-| Type | `$doc all` | `$doc discover` | `$doc coverage` |
+| Type | `/doc all` | `/doc discover` | `/doc coverage` |
 |------|------------|-----------------|-----------------|
 | CODING | Generate code-maps | Find services, endpoints | Entity coverage |
 | INFORMATIONAL | Validate all docs | Find corpus sections | Link validation |

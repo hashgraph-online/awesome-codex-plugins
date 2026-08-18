@@ -49,7 +49,7 @@ Produces a per-route token and latency budget table, a cache strategy spec for p
 - Token accounting: input tokens, output tokens, cached or reused tokens, average and tail per request, input/output processing load, and whether streaming is used.
 - Latency profile: p50, p95, p99 end-to-end, time-to-first-token where streaming, and provider-side latency vs in-process overhead.
 - Serving capacity: per-route and per-location quota, concurrency, reserved capacity, input/output processing saturation, resource-exhaustion signal, and capacity-change owner.
-- Cache state: prompt-prefix cache, embedding cache, full-response cache, semantic cache, per-tenant scope, TTL, invalidation triggers, and observed hit rates.
+- Cache state: prompt-prefix cache, embedding cache, full-response cache, semantic cache, principal/tenant and entitlement scope, data classification, model/prompt/retrieval/tool versions, TTL, invalidation triggers, authorization-on-hit behavior, and observed hit rates.
 - Retry and timeout policy: max retries, backoff, idempotency of the operation, and the per-retry token cost.
 - Failure modes observed: provider 5xx, rate limits, partial completions, tool-call malformation, schema-validation failures, and the cost amplification of each.
 - Cost data: spend by model, by route, by feature, by tenant where available, and the engineering unit each maps to.
@@ -62,31 +62,20 @@ Produces a per-route token and latency budget table, a cache strategy spec for p
 3. **Set latency budgets per route.** Define p50, p95, and p99 end-to-end targets. For interactive routes, also define a time-to-first-token target if streaming is used. For background jobs, define a wall-clock deadline and a per-item cost ceiling.
 4. **Choose the model class deliberately.** Match the smallest acceptable model to the route's quality bar. State the fallback model class and the conditions that switch to it. Cascading from cheaper to more expensive models is allowed when the cheaper model has a measurable quality threshold; without that threshold, cascading just doubles the cost.
 5. **Set serving capacity.** For each route and location where users depend on it, define quota, concurrency, reserved capacity or admission limit, input/output processing saturation, resource-exhaustion signal, and notification lead time before users see unavailable responses.
-6. **Design the cache layers.** Distinguish prompt-prefix cache (provider-side, depends on stable prefix), embedding cache (deterministic per text plus model version), full-response cache (deterministic per prompt), and semantic cache (lossy, requires confidence threshold and false-hit budget). State scope and invalidation per layer; per-tenant scope is required where prompts contain tenant data.
+6. **Design authorization-aware cache layers.** Distinguish prompt-prefix cache (depends on a stable prefix), embedding cache (deterministic per text plus model version), full-response cache (deterministic per complete authorized request), and semantic cache (lossy, requires a confidence threshold and false-hit budget). Key or partition each layer by every input that can change output or permission, including principal or tenant, entitlement or policy version, data classification, model and prompt version, retrieval corpus or source version, tool policy, locale, and safety configuration where applicable. Reauthorize cache hits and invalidate on permission, source, or policy changes. Do not cache sensitive responses when isolation and invalidation cannot be proven.
 7. **Bound retries and timeouts.** Set max retries, backoff, and a per-call timeout shorter than the upstream timeout. Confirm the operation is idempotent at the model layer or that retries are guarded by an idempotency key. Compute the worst-case token cost as cost-per-attempt times max attempts; that is the real per-request budget.
 8. **Write the degradation policy.** For each route, state what happens when the primary model is unavailable, rate-limited, slower than the latency budget, or returns malformed output. Options include fallback model, cached response, cached approximate response, partial answer with explicit signaling, queued for later, or refused with a defined error contract. Silent fallback that changes user-visible quality without signaling is not allowed.
 9. **Decide batching versus streaming.** For interactive routes, streaming usually wins on perceived latency at similar cost. For batch jobs, batching wins on throughput and per-token cost where the provider supports it; deadlines and partial-failure semantics must be explicit.
 10. **Bound structured-output cost.** Schema-constrained output and tool calls amplify token cost when the model retries to satisfy a schema. Cap retries, validate cheaply before re-prompting, and treat schema-validation failure as a first-class failure mode with a separate counter.
-11. **Attribute cost.** Tag every model call with route, feature, and tenant where applicable. Aggregate spend and tail latency per tag. A cost spike with no per-tag breakdown is a finding by itself.
+11. **Attribute cost safely.** Tag every model call with route, feature, and privacy-safe tenant or workload identifiers where applicable. Do not copy raw prompts, responses, secrets, or personal data into cost telemetry. Aggregate spend and tail latency per tag. A cost spike with no per-tag breakdown is a finding by itself.
 12. **Add guardrails and alerts.** Alert on per-route token-budget breach, per-route resource exhaustion, per-tenant cost anomaly, cache-hit-rate regression, fallback rate, retry amplification, and tail-latency regression after a model or prompt change.
 13. **Rehearse the degraded path.** Periodically force fallback or refusal in a low-impact environment so the degraded contract is real, not theoretical.
 
 ## Synthesized Default
 
-Set per-route token and latency budgets before launch. Choose the smallest acceptable model and a defined fallback. Cache aggressively at the layer that matches the determinism of the call: prompt prefix, embedding, full response, or scoped semantic. Bound retries and structured-output reattempts. Stream for interactivity, batch for throughput. Tag every call for attribution. Always have a degraded path and rehearse it. Treat the prompt assembler as a piece of production code with dedicated budget tests.
+Set per-route token and latency budgets before launch. Choose the smallest acceptable model and a defined fallback. Cache only at layers whose determinism, authorization scope, and invalidation can be proven: prompt prefix, embedding, full response, or scoped semantic. Reauthorize hits and bypass sensitive-response caches when isolation is uncertain. Bound retries and structured-output reattempts. Stream for interactivity, batch for throughput. Tag every call with privacy-safe attribution. Always have a degraded path and rehearse it. Treat the prompt assembler as a piece of production code with dedicated budget tests.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -100,7 +89,7 @@ Set per-route token and latency budgets before launch. Choose the smallest accep
 
 - Lead with the per-route budget table, cache strategy, degradation policy, or attribution model requested.
 - Cover token budget, latency budget, model-class choice, cache layers, retry and timeout bounds, degradation path, and attribution before optional model breadth.
-- Make recommendations actionable with per-route numbers, cache scopes and TTLs, fallback conditions, retry caps, and the alerts that catch regression.
+- Make recommendations actionable with per-route numbers, authorization-sensitive cache keys, hit reauthorization, invalidation triggers, TTLs, fallback conditions, retry caps, and the alerts that catch regression.
 - Name the details to inspect, such as per-route token histograms, latency percentiles, cache hit rates, fallback rate, retry rate, and per-tag spend; do not state a budget without the data behind it.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside model-serving cost and latency. Route prompt-injection and tool-access risk, eval checks, generic backend performance, and generic dollar-cost optimization to the responsible specialist.
@@ -112,11 +101,11 @@ Set per-route token and latency budgets before launch. Choose the smallest accep
 - Per-route budget table with input-token cap, output-token cap, hard cap action, p50/p95/p99 latency target, and time-to-first-token target where streaming.
 - Model-class matrix per route with primary, fallback, and cascade conditions.
 - Serving-capacity plan with quota, concurrency, reserved capacity or admission limit, input/output processing saturation, resource-exhaustion signal, and owner.
-- Cache strategy spec covering prompt-prefix, embedding, full-response, and semantic caches with scope, TTL, invalidation, and observed or target hit rate per layer.
+- Cache strategy spec covering prompt-prefix, embedding, full-response, and semantic caches with output- and authorization-affecting key inputs, hit reauthorization, data classification, TTL, invalidation, and observed or target hit rate per layer.
 - Retry, timeout, and idempotency policy per route with computed worst-case token cost.
 - Degradation policy per route covering primary unavailable, rate-limited, over-budget, and malformed-output cases, with the user-visible contract for each.
 - Structured-output and tool-call cost bound: max validation retries, validation strategy, and the failure-mode counter.
-- Cost-attribution model mapping spend to route, feature, and tenant, with the engineering unit each tag exposes.
+- Cost-attribution model mapping spend to route, feature, and privacy-safe tenant or workload identifiers, with prohibited telemetry fields and the engineering unit each tag exposes.
 - Alert and guardrail set: token-budget breach, tail-latency regression, cache-hit regression, fallback rate, retry amplification, and per-tenant cost anomaly.
 - Rehearsal plan for the degraded path with cadence and verification path.
 
@@ -126,7 +115,7 @@ Set per-route token and latency budgets before launch. Choose the smallest accep
 - `latency_budget_present`: every LLM-backed route has p50/p95/p99 targets and, where streaming, a time-to-first-token target.
 - `model_class_chosen`: every route names a primary model, a fallback model or refusal contract, and any cascade conditions.
 - `serving_capacity`: every production route has quota, concurrency, input/output processing saturation, resource-exhaustion signals, and capacity-change owner.
-- `cache_strategy_specified`: cache layers in use have scope, TTL, invalidation rule, and a target or measured hit rate.
+- `cache_strategy_specified`: cache layers include every output- and authorization-affecting key input, reauthorize hits, invalidate on permission/source/policy changes, and define TTL and a target or measured hit rate.
 - `retry_bound`: retry count, backoff, timeout, idempotency, and worst-case per-call token cost are computed.
 - `degradation_path_specified`: each failure mode (unavailable, rate-limited, over-budget, malformed) has a user-visible contract and is rehearsed.
 - `cost_attribution`: every call is tagged by route, feature, and tenant where applicable; spend can be sliced by tag.
@@ -139,6 +128,8 @@ Set per-route token and latency budgets before launch. Choose the smallest accep
 - A retry storm during a partial provider outage doubled or tripled spend and no retry cap or circuit broke the loop.
 - Schema-constrained or tool-call output retries silently until success, with no reattempt cap.
 - Cache "works" but hit rate is unmeasured; cost behavior changes when the prompt template is edited and no owner notices.
+- A cached response crosses a principal, tenant, entitlement, classification, model/config, retrieval-source, or tool-policy boundary, or a hit bypasses current authorization.
+- Cost tags or traces copy raw prompts, responses, secrets, or personal data when stable privacy-safe identifiers would suffice.
 - The fallback path is documented but has never been exercised; provider failure produces a real outage.
 - Spend is reported in aggregate only and per-tenant or per-feature cost cannot be sliced.
 - Streaming is used for latency optics but the caller still waits for the full response before rendering.
@@ -149,7 +140,7 @@ Set per-route token and latency budgets before launch. Choose the smallest accep
 | --- | --- |
 | Picking the largest model by default | Match the smallest acceptable model to the route's quality bar; name the fallback. |
 | Treating the prompt as free-form | Cap input tokens at the assembler and reject prompts that exceed the budget. |
-| Caching without scope rules | Scope cache by tenant where prompts contain tenant data; state TTL and invalidation. |
+| Caching without authorization scope | Key every output- and permission-affecting input, reauthorize hits, and invalidate on permission, source, or policy change. |
 | Unbounded retries on schema failures | Cap reattempts; treat schema failure as a counted failure mode. |
 | Average-latency budgets | Budget p95 and p99; for interactive paths, also budget time-to-first-token. |
 | No degraded contract | Define what the user sees when the primary model is unavailable; rehearse it. |

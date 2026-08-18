@@ -1,6 +1,6 @@
 ---
 name: bom
-description: BOM (Bill of Materials) management for electronics projects — the primary orchestrator skill that coordinates DigiKey, Mouser, LCSC, element14, JLCPCB, PCBWay, and KiCad skills into a unified workflow. Create, update, and maintain BOMs with part numbers, costs, quantities stored as KiCad symbol properties. ALWAYS trigger this skill for any task involving component sourcing, pricing, ordering, distributor searches, BOM export, or fabrication preparation — even if the user names a specific distributor or fab house (e.g. "search DigiKey for...", "generate JLCPCB BOM", "order from Mouser"). This skill decides which distributor/fab skills to invoke and in what order. Also trigger on phrases like "what parts do I need", "order components", "how much will this cost", "export for JLCPCB", "find parts for this board", "cost estimate", "compare pricing", or "check stock".
+description: BOM (Bill of Materials) management for electronics projects — the workflow skill that coordinates DigiKey, Mouser, LCSC, element14, JLCPCB, PCBWay, and KiCad skills around a unified BOM lifecycle. Create, update, and maintain BOMs with part numbers, costs, quantities stored as KiCad symbol properties. ALWAYS trigger this skill for any task involving component sourcing, pricing, ordering, distributor searches, BOM export, or fabrication preparation — even if the user names a specific distributor or fab house (e.g. "search DigiKey for...", "generate JLCPCB BOM", "order from Mouser"). This skill analyzes the schematic for sourcing gaps, recommends which distributor/fab skills to call for each gap, and writes results back as symbol properties — the agent (or user) performs the actual searches via the called skills. Also trigger on phrases like "what parts do I need", "order components", "how much will this cost", "export for JLCPCB", "find parts for this board", "compare pricing", or "check stock".
 ---
 
 # BOM Management
@@ -42,6 +42,12 @@ echo '{"R1": {"MPN": "RC0805FR-0710KL", "Manufacturer": "Yageo"}}' \
 
 # Sync datasheet URLs from manifest.json back into schematic Datasheet properties
 python3 <skill-path>/scripts/sync_datasheet_urls.py path/to/schematic.kicad_sch --recursive --dry-run
+
+# Translate KiCad/Altium BOM and CPL files into JLCPCB upload format
+# (`pnp --bom` filter drops orphan designators — see skills/jlcpcb/SKILL.md
+# for the 3-step PCBA upload workflow)
+python3 <skill-path>/scripts/translate_bom_pnp.py bom input_bom.csv -o jlc_bom.csv
+python3 <skill-path>/scripts/translate_bom_pnp.py pnp input_cpl.csv -o jlc_cpl.csv --bom jlc_bom.csv
 ```
 
 ## Workflow

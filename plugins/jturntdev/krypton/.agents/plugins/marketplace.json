@@ -1,0 +1,23 @@
+{
+  "name": "krypton",
+  "interface": {
+    "displayName": "Krypton"
+  },
+  "plugins": [
+    {
+      "name": "krypton",
+      "displayName": "Krypton",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Goal-based workflow discipline for Codex and Claude Code that turns requests into ownership, cutover, review-gate, and acceptance-evidence plans.",
+      "icon": "./assets/icon.svg"
+    }
+  ]
+}

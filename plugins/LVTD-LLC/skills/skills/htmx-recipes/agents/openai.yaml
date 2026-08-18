@@ -1,0 +1,7 @@
+interface:
+  display_name: "htmx Recipes"
+  short_description: "Apply common htmx UI recipes"
+  icon_small: "./assets/icons8-code.svg"
+  icon_large: "./assets/icons8-code.svg"
+  brand_color: "#424E5C"
+  default_prompt: "Use $htmx-recipes to implement a common htmx interaction pattern."

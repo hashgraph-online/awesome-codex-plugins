@@ -1,0 +1,4 @@
+interface:
+  display_name: "Krypton VPS Codex App"
+  short_description: "Use a VPS as a Codex App SSH host"
+  default_prompt: "Use $krypton-vps-codex-app to set up or audit my Linux VPS as a Codex App SSH host with repo, tools, security, port forwarding, and proof checks."

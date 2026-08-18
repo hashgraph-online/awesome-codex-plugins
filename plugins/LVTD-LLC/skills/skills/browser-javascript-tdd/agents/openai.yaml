@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browser JavaScript TDD"
+  short_description: "Test-drive DOM behavior"
+  default_prompt: "Use $browser-javascript-tdd to add this browser JavaScript behavior with focused tests."

@@ -1,7 +1,7 @@
 {
   "name": "hotl",
   "description": "Structured guardrails for AI coding: brainstorm, plan, execute, review, and verify.",
-  "version": "2.18.0",
+  "version": "2.22.0",
   "author": {
     "name": "Yiming Wu"
   },

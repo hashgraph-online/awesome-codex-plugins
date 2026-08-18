@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentops.local/schemas/premortem-plan-review.v1.schema.json",
+  "title": "Premortem Plan Review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "intent_digest",
+    "author_context_id",
+    "judge_context_id",
+    "findings",
+    "checked",
+    "not_checked"
+  ],
+  "properties": {
+    "schema_version": {"const": "premortem-plan-review.v1"},
+    "intent_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "author_context_id": {"type": "string", "minLength": 1},
+    "judge_context_id": {"type": "string", "minLength": 1},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "evidence"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "statement": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "checked": {"type": "array", "items": {"type": "string"}},
+    "not_checked": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -39,7 +39,8 @@ Produces the integrated cross-region program: the topology and the control-plane
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Regions in scope and the user populations they serve.
 - Data classes and the residency or sovereignty rules that bind each one.
-- Replication topology and lag between regions for each stateful store.
+- Replication topology, acknowledged-write semantics, durable replicated checkpoints, consistency-group boundaries, observed lag and metric freshness, and reconciliation behavior for each stateful store.
+- Required RPO per data class and measured recoverable-point evidence from prior failovers or restore checks.
 - Control-plane location and whether the data plane can serve without it.
 - Existing failover, routing, and DR posture and their tested state.
 
@@ -47,7 +48,7 @@ Produces the integrated cross-region program: the topology and the control-plane
 
 1. **Decide topology and control-plane boundary.** Choose the region model and state which functions are global control plane versus regional data plane, and the blast radius of losing the control plane.
 2. **Map data residency.** For each data class, state which geographies may store and process it and how requests carrying it pin to a compliant region.
-3. **Set replication-aware affinity.** Define read and write region affinity given replication lag, and pin stateful sessions so a user does not split across regions mid-session. State the data-loss bound (RPO) for an unplanned region failover directly from the replication model: asynchronous replication means bounded data loss equal to replication lag at cutover; choose synchronous (latency and availability cost) versus asynchronous (data-loss cost) deliberately per data class.
+3. **Set replication-aware affinity and recovery bounds.** Define read and write region affinity given observed replication state, and pin stateful sessions so a user does not split across regions mid-session. For each data class, distinguish the required RPO, observed lag, lag-metric freshness, latest durable application-consistent replicated checkpoint, acknowledged-write semantics, consistency-group boundary, and the point proven recoverable in a failover or restore check. Treat lag as a directional health signal, not proof of recoverability or data loss. Choose synchronous or asynchronous replication deliberately from latency, availability, and data-loss tradeoffs, then define reconciliation for writes that may be missing or divergent after failover.
 4. **Define geo-routing.** State how traffic reaches the right region and what happens when a region is unhealthy.
 5. **Write the evacuation runbook.** Define drain, traffic shift, validated cutover, and return-to-normal for losing a region, and who can trigger and abort it.
 6. **Bound residency under failover.** Confirm evacuation does not move data into a non-compliant region; define the compliant fallback or the accepted degradation.
@@ -56,17 +57,6 @@ Produces the integrated cross-region program: the topology and the control-plane
 ## Synthesized Default
 
 Decide topology, residency placement, replication-aware affinity, and a rehearsed evacuation path as one program, then route capacity, consistency, and DR math to their specialists. A rehearsed evacuation runbook with residency bounds is the minimum evidence for an active-active claim.
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -78,7 +68,7 @@ Decide topology, residency placement, replication-aware affinity, and a rehearse
 
 - Lead with the topology, residency, routing, or evacuation decision requested.
 - Cover control-plane boundary, residency map, replication-aware affinity, geo-routing, evacuation, failover residency bounds, and rehearsal before optional regional breadth.
-- Make recommendations actionable with placement tables, routing rules, runbook steps, triggers, abort criteria, and rehearsal evidence where relevant.
+- Make recommendations actionable with placement tables, routing rules, required RPO, durable-checkpoint and metric-freshness evidence, runbook steps, triggers, abort criteria, reconciliation, and rehearsal evidence where relevant.
 - Name the details to inspect, such as region list, data classes, replication lag, routing rules, control-plane dependencies, and failover history; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside the integrated multi-region and residency program; route capacity, consistency, DR restore, and drill execution when those are central.
@@ -90,7 +80,7 @@ Decide topology, residency placement, replication-aware affinity, and a rehearse
 - Data-residency placement map: data class to permitted geographies and request-pinning rule.
 - Replication-lag-aware read and write affinity and stateful-session pinning decision.
 - Geo-routing decision and unhealthy-region behavior.
-- Failover RPO and replication-mode (synchronous vs asynchronous) decision per cross-region data class.
+- Failover recovery table per cross-region data class: required RPO, acknowledged-write semantics, replication mode, observed lag and freshness, durable application-consistent checkpoint, measured recoverable point, consistency-group boundary, and missing/divergent-write reconciliation.
 - Region-evacuation and failover runbook: drain, shift, cutover, return, trigger, abort.
 - Residency-under-failover bound: compliant fallback or accepted degradation.
 - Evacuation-rehearsal handoff to `resilience-experiments`.
@@ -100,7 +90,7 @@ Decide topology, residency placement, replication-aware affinity, and a rehearse
 - `topology_boundary`: control-plane and data-plane regions and the loss blast radius are explicit.
 - `residency_map`: every data class maps to permitted geographies and a request-pinning rule.
 - `replication_affinity`: read and write affinity accounts for replication lag; sessions pin to a region.
-- `failover_rpo`: every cross-region data class states its unplanned-failover data-loss bound and the sync-vs-async replication choice behind it.
+- `failover_rpo`: every cross-region data class separates required RPO, observed lag, metric freshness, durable application-consistent checkpoint, and measured recoverable point, with acknowledged-write and reconciliation semantics behind the replication choice.
 - `geo_routing`: routing and unhealthy-region behavior are defined.
 - `evacuation_runbook`: drain, shift, cutover, return, trigger, and abort are stated.
 - `residency_under_failover`: evacuation cannot move data into a non-compliant region without an accepted decision.
@@ -113,6 +103,7 @@ Decide topology, residency placement, replication-aware affinity, and a rehearse
 - Residency rules treated as input but never enforced in placement or routing.
 - Failover that silently moves regulated data into a non-compliant region.
 - The control plane runs in one region and the data plane cannot serve without it.
+- Replication lag is reported as the failover RPO or exact data-loss amount without durable-checkpoint, acknowledged-write, consistency-group, and recoverability evidence.
 
 ## Common Mistakes
 
@@ -121,4 +112,5 @@ Decide topology, residency placement, replication-aware affinity, and a rehearse
 | Call it active-active without rehearsing region loss | Rehearse evacuation and record the gaps. |
 | Treat residency as a legal note | Enforce it in placement and request pinning. |
 | Ignore replication lag in routing | Pin reads and writes with lag in mind; keep sessions region-stable. |
+| Equate lag with recoverability | Measure an application-consistent recoverable point and state metric freshness, write acknowledgement, and reconciliation semantics. |
 | Forget the control-plane blast radius | State what fails when the control-plane region is lost. |

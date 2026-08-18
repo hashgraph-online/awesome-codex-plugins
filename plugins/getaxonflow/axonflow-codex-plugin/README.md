@@ -295,17 +295,80 @@ If the canary says `mode=community-saas` after you ran Step 1, the plugin is sti
 
 ## Configure
 
-[Step 3](#step-3-point-the-plugin-at-the-platform) above covers `AXONFLOW_ENDPOINT` and `AXONFLOW_AUTH`. One more environment variable worth knowing about:
+[Step 3](#step-3-point-the-plugin-at-the-platform) above covers `AXONFLOW_ENDPOINT` and `AXONFLOW_AUTH`. Two more environment variables worth knowing about:
 
 ```bash
 # Optional: longer request timeout for remote / VPN deployments
 export AXONFLOW_TIMEOUT_SECONDS=12
+
+# Optional (Enterprise): admin-minted per-user token for a VERIFIED
+# {identity, role} — role-scoped access + per-developer audit attribution
+# instead of the shared tenant identity. See "Per-user authorization
+# token" below.
+export AXONFLOW_USER_TOKEN=<token minted by your org admin>
 ```
 
 **Fail behavior:**
 - AxonFlow unreachable (network) → fail-open, tool execution continues
 - AxonFlow auth/config error → fail-closed (exit 2), tool call blocked until config is fixed
+- Per-user token rejected by the platform (HTTP 401) → fail-closed (exit 2) while the token is configured — see below
 - PostToolUse failures → never block (audit and PII scan are best-effort)
+
+### Per-user authorization token (`AXONFLOW_USER_TOKEN`)
+
+The shared `AXONFLOW_AUTH` credential authenticates the *tenant*; the
+**per-user token** identifies the *developer* behind the session. On an
+Enterprise platform that validates per-user tokens (enterprise#2929, first
+platform release after v9.9.0), an org admin mints a token per developer
+(`POST /api/v1/admin/organizations/{org_id}/user-tokens`, or OIDC tokens
+from your IdP), and the plugin sends it as the `X-User-Token` header on
+every governed request — both hooks and the MCP session. The platform
+validates it (signature, expiry, revocation, org binding) and resolves a
+**non-forgeable `{identity, role}`** for the developer: audit rows attribute
+to the verified identity, and role-scoped features (e.g. who can read the
+whole tenant's audit trail vs. only their own rows) key on the validated
+role instead of treating every fleet developer identically.
+
+Resolution precedence on the hook surfaces:
+
+1. **`AXONFLOW_USER_TOKEN`** — set per developer via managed settings / MDM
+   (fleet) or the shell profile (individual). Wins outright.
+2. **`~/.config/axonflow/user-token.json`** — `{"token": "<minted token>"}`.
+   This is the **cross-plugin provisioning path** (the claude plugin reads
+   the same file), so fleet tooling writes ONE file per developer machine.
+   The file **must be `0600`** (owner read/write only); the plugin refuses a
+   group/world-readable token file with a stderr warning rather than loading
+   it silently:
+
+   ```bash
+   umask 077
+   printf '{"token":"%s"}' "<minted token>" > ~/.config/axonflow/user-token.json
+   chmod 600 ~/.config/axonflow/user-token.json
+   ```
+
+3. **Unset** — no `X-User-Token` header is sent (never an empty header) and
+   requests are exactly what a pre-1.6 plugin sends; the platform keeps its
+   least-privilege attribution path (shared tenant identity, own-rows access).
+
+**MCP plane is env-only.** Codex resolves the MCP session's headers itself
+via the `env_http_headers` mapping in `~/.codex/config.toml`, so on that
+plane the token must come from the `AXONFLOW_USER_TOKEN` env var (managed
+settings / MDM); the `user-token.json` fallback covers the hook surfaces
+only. After upgrading the plugin, **re-run
+`bash scripts/install-mcp-with-headers.sh`** so your `config.toml` picks up
+the new `X-User-Token` mapping (Codex omits the header entirely while the
+env var is unset, so the mapping is inert until a token is provisioned).
+
+The token is a **credential**: the plugin never logs or echoes its value,
+and on the hook surfaces a malformed candidate (whitespace/control/quote
+bytes — a mis-paste) is dropped locally with a diagnostic instead of being
+sent. Codex sends the MCP-plane env value **raw**, and the platform **fails
+closed** on a presented-but-invalid token (malformed, expired, revoked,
+minted for a different org): governed calls are then denied — the hooks
+block (exit 2) with a message naming the per-user token as the likely cause
+— until the token is rotated or removed. Rotation/revocation is admin-driven
+on the platform; re-provisioning the new token to the developer's env/file
+is all the plugin needs.
 
 ---
 
@@ -356,7 +419,7 @@ Per-call hooks (terminal command governance) carry your Pro-tier token automatic
 bash scripts/install-mcp-with-headers.sh
 ```
 
-This registers AxonFlow as a codex MCP server AND patches your `~/.codex/config.toml` to inject `X-Axonflow-Client: codex-plugin/<version>` (static) plus `X-License-Token` and `Authorization` resolved from `AXONFLOW_LICENSE_TOKEN` and `AXONFLOW_AUTH` env vars at MCP-session time. The script is idempotent — safe to re-run after a plugin upgrade or token rotation.
+This registers AxonFlow as a codex MCP server AND patches your `~/.codex/config.toml` to inject `X-Axonflow-Client: codex-plugin/<version>` (static) plus `X-License-Token`, `Authorization`, and `X-User-Token` resolved from the `AXONFLOW_LICENSE_TOKEN`, `AXONFLOW_AUTH`, and `AXONFLOW_USER_TOKEN` env vars at MCP-session time (Codex omits any header whose env var is unset). The script is idempotent — safe to re-run after a plugin upgrade or token rotation.
 
 Verify with:
 

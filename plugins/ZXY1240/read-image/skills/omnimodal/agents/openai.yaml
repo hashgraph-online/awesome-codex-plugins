@@ -1,0 +1,4 @@
+interface:
+  display_name: Omnimodal
+  short_description: 识别并生成图片、视频和音频
+  default_prompt: 识别这张图片并提取指定内容。

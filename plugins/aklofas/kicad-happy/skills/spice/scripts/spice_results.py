@@ -1193,7 +1193,7 @@ def build_report(simulation_runs):
 
     report = {
         "analyzer_type": "spice",
-        "schema_version": "1.3.0",
+        "schema_version": "1.4.0",
         "summary": {
             "total": len(simulation_runs),
             "total_findings": len(findings),
@@ -1230,7 +1230,7 @@ def build_report(simulation_runs):
             "by_confidence": {
                 "deterministic": len(findings),
                 "heuristic": 0,
-                "datasheet-backed": 0,
+                "datasheet_backed": 0,
             },
             "by_evidence_source": {},
             "provenance_coverage_pct": 0.0,

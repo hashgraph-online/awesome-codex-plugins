@@ -1,257 +1,169 @@
 #!/usr/bin/env bash
-# init.sh — materialize a new skill from the canonical template
-# Invoked by build.sh; not typically called directly.
-#
-# Usage:
-#   init.sh --interactive <skill-name>
-#   init.sh --like-flag-mode <skill-name> --like <source-skill>
-#   init.sh --absorb <skill-name> --from <path-to-external-SKILL.md>
-
+# Create one metadata-complete canonical skill source package.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-TEMPLATE_REF="$REPO_ROOT/skills/skill-builder/references/skill-template.md"
+REPO_ROOT="${SKILL_BUILDER_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 
-[[ -f "$TEMPLATE_REF" ]] || { echo "init.sh: missing $TEMPLATE_REF" >&2; exit 1; }
+usage() {
+  echo "usage: init.sh --scratch|--template|--external <slug> [--like <slug>|--from <path>]" >&2
+  exit 2
+}
 
-MODE="${1:?usage: init.sh --interactive|--like-flag-mode|--absorb <name> [opts]}"
-shift
+[[ $# -ge 2 ]] || usage
+mode="$1"
+slug="$2"
+shift 2
 
-SKILL_NAME="${1:?missing <skill-name>}"
-shift
+[[ "$slug" =~ ^[a-z][a-z0-9-]*$ ]] || {
+  echo "init.sh: slug must be lowercase-hyphen: $slug" >&2
+  exit 2
+}
 
-# Validate slug
-[[ "$SKILL_NAME" =~ ^[a-z][a-z0-9-]*$ ]] || {
-  echo "init.sh: skill name '$SKILL_NAME' must be lowercase-hyphen (e.g. my-skill)" >&2
+source_hint=""
+case "$mode" in
+  --scratch)
+    [[ $# -eq 0 ]] || usage
+    ;;
+  --template)
+    [[ $# -eq 2 && "$1" == "--like" ]] || usage
+    source_hint="$2"
+    [[ -f "$REPO_ROOT/skills/$source_hint/SKILL.md" ]] || {
+      echo "init.sh: unknown template skill: $source_hint" >&2
+      exit 2
+    }
+    ;;
+  --external)
+    [[ $# -eq 2 && "$1" == "--from" ]] || usage
+    source_hint="$2"
+    [[ -f "$source_hint" ]] || {
+      echo "init.sh: external source does not exist: $source_hint" >&2
+      exit 2
+    }
+    ;;
+  *) usage ;;
+esac
+
+target="$REPO_ROOT/skills/$slug"
+[[ ! -e "$target" ]] || {
+  echo "init.sh: target already exists: $target" >&2
   exit 1
 }
 
-NEW_DIR="$REPO_ROOT/skills/$SKILL_NAME"
-NEW_SKILL_MD="$NEW_DIR/SKILL.md"
-[[ -e "$NEW_DIR" ]] && { echo "init.sh: $NEW_DIR already exists; aborting" >&2; exit 1; }
+tier="${SKILL_TIER:-execution}"
+dependencies="${SKILL_DEPENDENCIES:-[]}"
+capabilities="${SKILL_CAPABILITIES:-[\"${slug//-/_}\"]}"
+effects="${SKILL_EFFECTS:-[]}"
 
-mkdir -p "$NEW_DIR/scripts"
+python3 - "$dependencies" "$capabilities" "$effects" <<'PY'
+import json
+import sys
+for value in sys.argv[1:]:
+    parsed = json.loads(value)
+    if not isinstance(parsed, list) or not all(isinstance(item, str) for item in parsed):
+        raise SystemExit("skill metadata lists must be JSON arrays of strings")
+PY
 
-# --- Per-mode population --------------------------------------------------
-case "$MODE" in
-  --interactive)
-    # Minimal non-blocking defaults; skip prompts in CI by reading env vars
-    TIER="${SKILL_TIER:-execution}"
-    DEPS="${SKILL_DEPS:-[]}"
-    INTENT_MODE="${SKILL_INTENT_MODE:-task}"
-    ;;
+mkdir -p "$target/scripts"
 
-  --like-flag-mode)
-    LIKE_FLAG="${1:-}"; SOURCE_SKILL="${2:-}"
-    [[ "$LIKE_FLAG" == "--like" && -n "$SOURCE_SKILL" ]] || {
-      echo "init.sh --like-flag-mode requires '--like <source-skill>'" >&2
-      exit 1
-    }
-    SOURCE_DIR="$REPO_ROOT/skills/$SOURCE_SKILL"
-    [[ -f "$SOURCE_DIR/SKILL.md" ]] || {
-      echo "init.sh: source skill $SOURCE_DIR/SKILL.md not found" >&2
-      exit 1
-    }
-    # Extract frontmatter values from source for sane defaults
-    TIER="$(awk '/^---$/{n++;next} n==1 && /^[ ]+tier:/{print $2; exit}' "$SOURCE_DIR/SKILL.md")"
-    TIER="${TIER:-execution}"
-    DEPS="[]"
-    INTENT_MODE="$(awk '/^---$/{n++;next} n==1 && /^[ ]+mode:/{print $2; exit}' "$SOURCE_DIR/SKILL.md")"
-    INTENT_MODE="${INTENT_MODE:-task}"
-    ;;
-
-  --absorb)
-    FROM_FLAG="${1:-}"; SOURCE_PATH="${2:-}"
-    [[ "$FROM_FLAG" == "--from" && -n "$SOURCE_PATH" ]] || {
-      echo "init.sh --absorb requires '--from <path-to-external-SKILL.md>'" >&2
-      exit 1
-    }
-    [[ -f "$SOURCE_PATH" ]] || { echo "init.sh: external SKILL.md not found at $SOURCE_PATH" >&2; exit 1; }
-    TIER="${SKILL_TIER:-execution}"
-    DEPS="[]"
-    INTENT_MODE="task"
-    ;;
-
-  *)
-    echo "init.sh: unknown mode '$MODE'" >&2
-    exit 2
-    ;;
-esac
-
-# --- Render frontmatter + skeleton ---------------------------------------
-cat > "$NEW_SKILL_MD" <<EOF
+# The <!-- craft:... --> stubs mirror the 12 craft elements enumerated in
+# references/skill-template.md section 7. The craft scorer strips HTML
+# comments, so a fresh scaffold scores low until the author replaces stubs
+# with real prose.
+cat >"$target/SKILL.md" <<EOF
 ---
-name: $SKILL_NAME
-description: |
-  <one-line: verb + object + domain>
-
-  **Use when:**
-  - <Trigger 1>
-  - <Trigger 2>
-
-  **Triggers:** "<trigger phrase 1>", "<trigger phrase 2>"
-
-  **Not ideal for:**
-  - <Anti-scenario 1>
+name: $slug
+description: 'TODO: state the behavior and concrete trigger phrases for $slug.'
+practices: []
 skill_api_version: 1
-context:
-  window: fork
-  intent:
-    mode: $INTENT_MODE
-  sections:
-    exclude: [HISTORY]
-  intel_scope: topic
+hexagonal_role: supporting
+consumes: []
+produces: []
+context_rel: []
+user-invocable: true
 metadata:
-  tier: $TIER
-  dependencies: $DEPS
+  tier: $tier
+  dependencies: $dependencies
+  capabilities: $capabilities
+  effects: $effects
+  canonical_status: canonical
+  disposition: keep_specialist
   stability: experimental
-output_contract: "TODO: path to schema or output description"
 ---
 
-# /$SKILL_NAME — <Title matching slug>
+# /$slug
 
-<1-2 sentence purpose paragraph>
+TODO: Explain the bounded behavior this skill provides.
 
-## Overview
+<!-- craft:trigger-rich-description Put Triggers:/Use when phrases callers actually say in the frontmatter description. -->
+<!-- craft:causal-insight-line State the one causal insight (Insight:/Why:/a-because-clause) that makes this skill work. -->
+<!-- craft:named-failure-mode Name the concrete failure mode this skill exists to prevent. -->
+<!-- craft:router-shape Map trigger phrases to modes/entry points in a routing table when the skill has modes. -->
 
-<What this skill does, why it matters, and when to use it>
+## Inputs
 
-## ⚠️ Critical Constraints
+TODO: List required inputs and explicit non-goals.
 
-- **Rule 1:** <constraint>. **Why:** <rationale>
+<!-- craft:negative-space State what this skill is NOT for (non-goals / not-for / do-not-use-when). -->
 
-## Workflow
+## Procedure
 
-### Phase 1: <name>
+1. TODO: Perform one bounded operation.
+2. TODO: Check the output against the stated contract.
+3. Report the result and stop.
 
-<instructions>
+<!-- craft:named-loop-stop-condition If any step iterates, name the loop and give a checkable stop condition in the same section. -->
+<!-- craft:quantified-rules Quantify at least one rule with a number and unit. -->
+<!-- craft:anti-pattern-with-corrective Pair each anti-pattern with its corrective in the same section. -->
+<!-- craft:frozen-prompts Provide any reusable prompt as a fenced block marked copy-paste-only. -->
+<!-- craft:runnable-commands Include at least one fenced block with runnable commands. -->
 
-**Checkpoint:** <what to confirm before next phase>
+## Output
 
-## Output Specification
+TODO: Define the artifact or response shape and how a caller checks it.
 
-**Format:** <markdown | json | excel | etc.>
-**Filename:** <naming convention>
-**Structure:** <key sections / fields>
+<!-- craft:measurable-done Give a machine-checkable done signal (done-when phrase, exit 0, validator command). -->
 
-## Quality Rubric
+## Checks
 
-- [ ] <Check 1>
-- [ ] <Check 2>
-- [ ] <Check 3>
+- The output satisfies the declared behavior.
+- No undeclared side effect occurred.
 
-## Examples
+<!-- craft:provenance-citation Cite at least one resolvable repo path or .agents/ao verdict/intent digest grounding this skill. -->
 
-\`\`\`bash
-/$SKILL_NAME <example-args>
-\`\`\`
+## Failure behavior
 
-## Troubleshooting
-
-| Problem | Cause | Solution |
-|---------|-------|----------|
-
-## See Also
-
-- [skill-auditor](../skill-auditor/SKILL.md) — audit this skill before declaring stable
+Report the concrete failure and stop. The caller owns any revision.
 EOF
 
-# --- Mode-specific content injection -------------------------------------
-if [[ "$MODE" == "--absorb" ]]; then
-  # Append a "Source" reference section pointing at the absorbed external doc
-  cat >> "$NEW_SKILL_MD" <<EOF
-
-## References
-
-- Source absorbed from: \`$SOURCE_PATH\`
-EOF
-fi
-
-# --- Companion files -----------------------------------------------------
-cat > "$NEW_DIR/scripts/validate.sh" <<'EOF'
+cat >"$target/scripts/validate.sh" <<'EOF'
 #!/usr/bin/env bash
-# validate.sh — minimal self-validation
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"
-exec bash "$REPO_ROOT/skills/skill-auditor/scripts/audit.sh" "$SKILL_DIR"
+exec bash "$REPO_ROOT/skills/skill-builder/scripts/heal.sh" --check --strict "$SKILL_DIR"
 EOF
-chmod +x "$NEW_DIR/scripts/validate.sh"
-chmod +x "$NEW_DIR" 2>/dev/null || true
+chmod +x "$target/scripts/validate.sh"
 
-# --- Codex parity (slim frontmatter + prompt.md) -------------------------
-CODEX_DIR="$REPO_ROOT/skills-codex/$SKILL_NAME"
-mkdir -p "$CODEX_DIR"
+mkdir -p "$REPO_ROOT/.agents/scratch/skill-builder"
+report="$REPO_ROOT/.agents/scratch/skill-builder/${slug}-build.json"
+python3 - "$report" "$mode" "$slug" "$source_hint" <<'PY'
+import json
+from pathlib import Path
+import sys
 
-# Try /converter if present, otherwise hand-build
-CONVERTER="$REPO_ROOT/skills/converter/scripts/convert.sh"
-if [[ -x "$CONVERTER" ]]; then
-  bash "$CONVERTER" "skills/$SKILL_NAME" codex 2>/dev/null || {
-    echo "init.sh: converter failed; falling back to hand-built codex artifacts" >&2
-  }
-fi
-
-# Hand-build codex SKILL.md (slim frontmatter — NO skill_api_version per learning 2026-05-03)
-if [[ ! -f "$CODEX_DIR/SKILL.md" ]]; then
-  cat > "$CODEX_DIR/SKILL.md" <<EOF
----
-name: $SKILL_NAME
-description: <copy from skills/$SKILL_NAME/SKILL.md description>
----
-
-# /$SKILL_NAME
-
-See \`skills/$SKILL_NAME/SKILL.md\` for the canonical specification.
-
-## Codex Execution Profile
-
-See \`prompt.md\` in this directory.
-EOF
-fi
-
-# Always trim skill_api_version from codex SKILL.md if present
-if grep -q "^skill_api_version:" "$CODEX_DIR/SKILL.md"; then
-  sed -i.bak '/^skill_api_version:/d' "$CODEX_DIR/SKILL.md" && rm -f "$CODEX_DIR/SKILL.md.bak"
-fi
-
-# Hand-build prompt.md
-if [[ ! -f "$CODEX_DIR/prompt.md" ]]; then
-  cat > "$CODEX_DIR/prompt.md" <<EOF
-# Execution Profile: $SKILL_NAME
-
-You are running /$SKILL_NAME.
-
-See \`SKILL.md\` in this directory for full specification, OR
-read \`skills/$SKILL_NAME/SKILL.md\` in the host repo for the canonical document.
-
-Workflow:
-1. Read the user's request
-2. Apply the skill's Workflow section
-3. Produce output per the Output Specification
-4. Self-check against the Quality Rubric
-EOF
-fi
-
-# --- Build report --------------------------------------------------------
-BUILD_REPORT="$REPO_ROOT/.agents/audits/${SKILL_NAME}-build.json"
-mkdir -p "$(dirname "$BUILD_REPORT")"
-cat > "$BUILD_REPORT" <<EOF
-{
-  "mode": "${MODE#--}",
-  "skill_name": "$SKILL_NAME",
-  "files_created": [
-    "skills/$SKILL_NAME/SKILL.md",
-    "skills/$SKILL_NAME/scripts/validate.sh",
-    "skills-codex/$SKILL_NAME/SKILL.md",
-    "skills-codex/$SKILL_NAME/prompt.md"
-  ],
-  "audit_pass": null,
-  "warnings": ["v1 skeleton — manual content fill required for description, constraints, workflow"]
+path = Path(sys.argv[1])
+mode = {"--scratch": "from-scratch", "--template": "from-template", "--external": "absorb-external"}[sys.argv[2]]
+payload = {
+    "mode": mode,
+    "skill_name": sys.argv[3],
+    "files_created": [f"skills/{sys.argv[3]}/SKILL.md", f"skills/{sys.argv[3]}/scripts/validate.sh"],
+    "structure_check_pass": False,
 }
-EOF
+if sys.argv[4]:
+    payload["source_hint"] = sys.argv[4]
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
 
-echo "init.sh: created skill skeleton at $NEW_DIR"
-echo "init.sh: codex parity at $CODEX_DIR"
-echo "init.sh: build report at $BUILD_REPORT"
+echo "init.sh: created $target"

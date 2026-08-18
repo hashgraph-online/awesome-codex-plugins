@@ -1,0 +1,47 @@
+{
+  "name": "boss",
+  "version": "3.10.1",
+  "description": "BMAD pipeline plugin for Codex with installer-managed hooks and shared Boss runtime behavior.",
+  "author": {
+    "name": "echoVic",
+    "email": "137844255@qq.com",
+    "url": "https://github.com/echoVic"
+  },
+  "homepage": "https://github.com/echoVic/boss-skill",
+  "repository": "https://github.com/echoVic/boss-skill",
+  "license": "MIT",
+  "keywords": [
+    "bmad",
+    "pipeline",
+    "codex",
+    "agent-orchestration",
+    "automation"
+  ],
+  "skills": "./skill/",
+  "interface": {
+    "displayName": "Boss",
+    "shortDescription": "Auditable multi-agent engineering workflow for Codex.",
+    "longDescription": "Boss turns Codex into a structured engineering team with PM, architecture, implementation, QA, DevOps, runtime state, hooks, quality gates, and replayable delivery artifacts.",
+    "developerName": "echoVic",
+    "category": "Productivity",
+    "capabilities": [
+      "Planning",
+      "Code Review",
+      "Testing"
+    ],
+    "websiteURL": "https://github.com/echoVic/boss-skill",
+    "privacyPolicyURL": "https://github.com/echoVic/boss-skill/blob/main/docs/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/echoVic/boss-skill/blob/main/docs/TERMS.md",
+    "composerIcon": "./assets/boss-composer-icon.svg",
+    "logo": "./assets/boss-logo.svg",
+    "screenshots": [
+      "./boss-skill-promo.png"
+    ],
+    "defaultPrompt": [
+      "Use Boss to plan and implement this feature.",
+      "Run Boss QA on this project.",
+      "Review this code with Boss."
+    ],
+    "brandColor": "#171717"
+  }
+}

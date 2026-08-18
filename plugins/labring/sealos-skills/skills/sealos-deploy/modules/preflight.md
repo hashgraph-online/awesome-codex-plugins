@@ -2,6 +2,23 @@
 
 Detect the user's environment, record what's available, guide them to fix what's missing.
 
+## Managed-mode gate
+
+Run this gate before the normal local preflight when `SEALAI_DEPLOY_MODE=managed`:
+
+```bash
+node "<SKILL_DIR>/scripts/managed-adapter.mjs" context
+```
+
+The command must succeed with the exact Brain contract. In particular, `SEALAI_INPUTS_PATH` must be `/run/sealai/deployment/inputs.json`; do not substitute a workspace path or create a second input artifact. The active kubeconfig and namespace are supplied by Brain, so managed mode skips OAuth, region/workspace selection, confirmation prompts, and system-tool installation. Use `SEALAI_NAMESPACE` as the target namespace and keep `SEALAI_TURN_DEADLINE_AT` as the hard deadline.
+
+The Codex runtime must expose both task-scoped MCP tools before the first managed action:
+
+- `template_ready({ sha256 })`
+- `deployment_completed({ workloads: [{ apiVersion, kind, name, namespace }] })`
+
+Tool availability is a hard prerequisite, not a best-effort feature. If either exact tool is missing, unavailable, unauthorized, or returns an unusable protocol response, stop managed mode with a fatal error. Do not emulate the call with `control.json`, a report file, an HTTP request, or a Brain-side Kubernetes mutation. Local mode does not run this gate and keeps the existing preflight behavior below.
+
 **Hard rule:** Every run must start with a preflight capability scan before touching the project.
 That means:
 - Detect tool availability first
@@ -10,6 +27,15 @@ That means:
 
 Preflight is responsible for early detection, but only some failures are immediate stop conditions.
 Do not treat Docker, `gh`, or `buildx` as universal entry requirements — they become mandatory only if the run actually needs local image build/push.
+
+### Safety Contract: Immediate and Conditional Capabilities
+
+The preflight result is a typed capability report with `ready`, `immediate_blockers`,
+`conditional_warnings`, `blocked_phases`, and `confirmation_required` fields. Auth,
+workspace, scoped kubeconfig, GitHub clone access, and `curl` are immediate gates for
+the paths that use them. Docker, Docker daemon/buildx, `gh`, registry login, `kubectl`,
+Python/PyYAML, `kompose`, and `crane` remain conditional until the selected workload and
+phase require them. Each warning names its blocked phase and safe next action.
 
 ## Tool Install Policy
 
@@ -22,6 +48,9 @@ Missing <tool>. Install it now? (y/n)
 
 If the user answers `y`, install the tool for the current platform, then re-run the corresponding check.
 If the install command needs elevated privileges, package-manager setup, or manual UI interaction, explain that before running it.
+Record the confirmation and post-install version in the capability report. A missing
+conditional tool keeps the relevant later path `stopped` and leaves provider resources
+untouched.
 
 ## Step 1: Environment Detection
 
@@ -38,7 +67,15 @@ git --version 2>/dev/null
 
 # Optional (enables script acceleration)
 node --version 2>/dev/null
-python3 --version 2>/dev/null
+
+# Conditional (required for Phase 5 template generation and validation)
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+if [ -n "$PYTHON_BIN" ]; then
+  "$PYTHON_BIN" --version 2>/dev/null
+  "$PYTHON_BIN" -c 'import yaml' 2>/dev/null
+fi
+kompose version 2>/dev/null || true
+crane version 2>/dev/null || true
 
 # Optional (enables GHCR push — preferred over Docker Hub)
 gh --version 2>/dev/null
@@ -60,6 +97,9 @@ ENV.docker    = true/false
 ENV.git       = true/false
 ENV.node      = true/false
 ENV.python    = true/false
+ENV.pyyaml    = true/false
+ENV.kompose   = true/false
+ENV.crane     = true/false
 ENV.kubectl   = true/false   (required for update-mode rollout operations)
 ENV.gh        = true/false   (enables zero-interaction GHCR push)
 ENV.curl      = true/false
@@ -117,7 +157,15 @@ docker info 2>/dev/null
   - `sealos-auth.mjs` → AI runs curl to exchange token for kubeconfig (workspace list/switch not available in fallback mode)
 
 **Python:**
-- If missing, Sealos template validation (Phase 5) uses AI self-check instead of `quality_gate.py`
+- Python with PyYAML is required when the run reaches Phase 5.
+- Missing Python or PyYAML is a conditional blocker, not permission to replace the deterministic quality gate with an AI-only self-check.
+- Do not install Python or PyYAML automatically from this workflow; report the missing capability and stop before template generation.
+
+**Compose conversion tools:**
+- `kompose` is required when a supported root Compose file must be converted.
+- `crane` is required when that conversion must resolve a floating image tag.
+- Record missing tools during preflight, but stop only if Phase 5 reaches the matching path.
+- Do not install these tools automatically from this workflow.
 
 **kubectl (required for in-place updates):**
 - Needed for updating already-deployed apps with `kubectl set image` and `kubectl rollout`
@@ -165,16 +213,28 @@ Detect these now and report them early, but do **not** stop a fresh deploy:
 
 These become hard blockers only if the run enters UPDATE mode or needs rollout verification through kubectl.
 
-### 2.4 Early Reporting Rule
+### 2.4 Template-Path Warnings
+
+Detect these now and report them early, but do **not** stop before the run reaches Phase 5:
+- Python or PyYAML missing
+- supported root Compose file present and `kompose` missing
+- floating Compose image tag present and `crane` missing
+
+These findings become hard blockers when Phase 5 reaches the matching generation or validation path.
+
+### 2.5 Early Reporting Rule
 
 At the end of preflight, explicitly tell the user:
 - which items are ready
 - which items are warnings only
 - which later path each warning would block
+- whether Phase 0.5 template fast path can run from the resolved GitHub repo metadata
 
 Example:
 - "Docker is not ready. This will block Phase 4 local build, but we can still continue to detect whether an existing image can be reused."
 - "`kubectl` is missing. Fresh deploy can continue, but UPDATE mode and rollout verification will be blocked until it is installed."
+- "Python with PyYAML is missing. Earlier analysis can continue, but Phase 5 template generation and validation will stop."
+- "Template fast path will check configured GitHub repo → Sealos template mappings before source analysis."
 
 ## Step 3: Project Context
 
@@ -319,7 +379,7 @@ If it still fails, fall back to curl (see below). **Once you switch to curl, use
 The script will:
 1. `POST <region>/api/auth/oauth2/device` with the `client_id` from `config.json`
 2. Output a verification URL and user code to stderr
-3. Auto-open the browser for the user
+3. Try to auto-open the browser for the user with host-appropriate browser commands
 4. Poll `POST <region>/api/auth/oauth2/token` every 5s until approved
 5. Exchange access_token for regional token via `POST <region>/api/auth/regionToken`
 6. Save kubeconfig to `~/.sealos/kubeconfig` (mode 0600)
@@ -327,12 +387,13 @@ The script will:
 
 **Important — AI must always show the clickable URL to the user:**
 Even though the script attempts to auto-open the browser, it may fail (e.g., headless environment, SSH session, sandbox restrictions).
-After running the script, YOU (the AI) must extract the verification URL from stderr output and display it as a clickable link to the user:
+If stderr includes `manual_authorization_required`, immediately extract the verification URL and display it as a clickable link to the user while the script continues polling in the background:
 ```
 Please click the link below to authorize:
 <verification_uri_complete>
 Authorization code: <user_code>
 ```
+If the script reports `Browser opened automatically`, still show the same clickable URL in the chat for remote, web, ACP, SSH, and headless agent hosts because the browser may have opened in the wrong environment.
 This ensures the user can always complete authorization regardless of whether auto-open succeeded.
 
 Stdout outputs JSON result: `{ "kubeconfig_path": "...", "region": "...", "workspace": "ns-xxx" }`
@@ -500,6 +561,19 @@ Only reach this section after:
 - Step 2 capability classification completed
 - Step 4 auth/workspace checks passed
 - And only then Step 3 project context was collected
+
+Before handing control to `modules/pipeline.md`, preserve this order:
+
+1. authenticate and select the workspace;
+2. scope the kubeconfig to that workspace;
+3. collect project context and run the eligibility gate;
+4. resolve the selected build/template/deploy path;
+5. ask for confirmation immediately before each system-tool install, public exposure,
+   credential change, resource deletion, cleanup, or rollback.
+
+Preflight itself performs no provider mutation. Every later mutation reports the exact
+operation, target, impact, confirmation, and post-action evidence with sensitive values
+redacted.
 
 Report to user with a short readiness summary. This is a user-facing status snapshot, not a full artifact dump.
 Keep it focused on the key capabilities and blockers only.

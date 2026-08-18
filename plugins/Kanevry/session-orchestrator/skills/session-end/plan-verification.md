@@ -43,13 +43,16 @@ Compare the files the plan said would be touched against the files actually chan
    - Test files (`*.test.*`, `*.spec.*`, `**/__tests__/**`) corresponding to a touched production file are reclassified as expected (not scope creep)
    - Generated/lock files (`pnpm-lock.yaml`, `*.lock`, `dist/**`, `node_modules/**`) are excluded from both planned and actual sets
    - The `.claude/`, `.codex/`, and `.cursor/` state directories are excluded — they are session artifacts, not code
-5. **Report** in the verification output:
+
+   > **Scope-drift cross-reference:** the S2 warn-only drift tripwire (below) uses its own separately-maintained filter list — `DRIFT_EXCLUDE_PATTERNS` in `scripts/lib/scope-baseline.mjs` — and is NOT derived from the filters above. That list is the shared filter source for both sides of its ratio IN CODE: `writeBaseline()`'s denominator (`countPlannedFiles()`) and `computeDrift()`'s numerator both call the same internal `filterExcluded()` helper (#894 review finding F1 — previously only the numerator was code-filtered; the denominator relied on a coordinator prose instruction to pre-filter before calling `writeBaseline()`, which is why three earlier PRD revisions shipped a tripwire that read a wrong ratio).
+5. **Report** in the verification output. Also call `computeDrift({ repoRoot, threshold: 2.0 })` (`scripts/lib/scope-baseline.mjs`) and append its result — warn-only, informational, never blocks close:
    ```
    File-level grounding:
    - Planned: N files
    - Touched: N files (X% coverage)
    - Unplanned (scope creep): N files [list first 5]
    - Untouched (planned but not edited): N files [list first 5]
+   - Scope drift: filesRatio X.X (Y actual / Z planned, threshold 2.0) — [breached | ok | skipped: <reason>]
    ```
 6. **Append to session metrics** (`grounding` field in the Phase 1.7 JSONL entry):
    ```json
@@ -66,8 +69,8 @@ Compare the files the plan said would be touched against the files actually chan
 - Document what was completed and what remains
 - Create a VCS issue for the remaining work with:
   - Title: `[Carryover] <original task description>`
-  - Labels: `priority:<original>`, `status:ready`
-  - Description: what's done, what's left, context for next session
+  - Labels: `priority::<original>`, `status:ready`
+  - Description: what's done, what's left, context for next session, Revisit-Trigger (mandatory — a concrete reopen condition; a deferral with no named trigger is not a deferral; see `skills/gitlab-ops/SKILL.md § Carryover Template`)
 - Link to original issue if applicable
 
 ### 1.3 Not Started Items
@@ -79,6 +82,22 @@ Compare the files the plan said would be touched against the files actually chan
 - Tasks that were NOT in the plan but were done (fixes, discoveries)
 - Document and attribute to relevant issues
 - If new issues were identified: create them on the VCS platform
+
+### Candidate Record Format (#769)
+
+> Since #769, Phases 1.2 / 1.3 (still-relevant) / 1.4 (unfinished emergent) / 1.6 (SPIRAL/FAILED walk) **no longer file `[Carryover]` issues immediately** — they append **carryover candidates** to an in-memory list that the Phase 1.65 Handover Alignment Gate routes, and Phase 5 Step 3 files the gate's carry-list. The authoritative gate prose (routing, AUQ shapes, fail-open) lives in `SKILL.md § 1.65 Handover Alignment Gate` — this subsection documents only the record shape the phases produce.
+
+Each candidate is a plain object with these fields (JS keys are the ones `routeCandidates` / `normalizeCandidate` in `scripts/lib/handover-gate.mjs` read):
+
+| Concept | JS key | Type | Notes |
+|---|---|---|---|
+| task | `task` | `string` | Task text. Missing/empty → `normalizeCandidate` flags `malformed: true` and routes it to `ask`. |
+| source-phase | `sourcePhase` | `'1.2' \| '1.3' \| '1.4' \| '1.6'` | The Phase-1 bucket that emitted the candidate; used to infer `bucket` when absent. |
+| origin-issue | `originIssue` | `number \| null` | Origin issue IID, or `null` when there is none. **`null` → auto-carry** (dropping a candidate with no origin issue would be real forgetting; keeps `SKILL.md:853` intact). |
+| priority | `priority` | `'critical' \| 'high' \| 'medium' \| 'low' \| null` | `critical`/`high` → auto-carry. `medium`/`low`/`null` (with an origin issue) → middle-band `ask`. |
+| bucket | `bucket` | `'partially-done' \| 'not-started' \| 'emergent' \| 'spiral-failed'` | Maps 1.2→`partially-done`, 1.3→`not-started`, 1.4→`emergent`, 1.6→`spiral-failed`. `spiral-failed` → auto-carry. |
+
+**Routing (deterministic, `routeCandidates`):** a candidate lands in `autoCarry` (non-deselectable, gate-summary only) when `priority ∈ {critical, high}` OR `bucket === 'spiral-failed'` OR `originIssue === null`; otherwise it lands in `ask` (the preselected middle-band multiSelect). SPIRAL/FAILED candidates additionally carry a non-schema `_spiral: { kind, context }` annotation on the coordinator's original object — consumed by the deferred `createSpiralCarryoverIssue` call in Phase 5 Step 3 (`routeCandidates` strips it from its normalized copies).
 
 ### 1.5 Discovery Scan (if enabled)
 
@@ -160,7 +179,25 @@ Finalize session metrics by reading the wave data accumulated during execution:
      total_files_changed: <N>,
      agent_summary: {complete: <N>, partial: <N>, failed: <N>, spiral: <N>},
      waves: [/* {wave, role, agent_count, files_changed, quality} */],
-     // Optional fields populated per the Conditional Fields rules below.
+     // effectiveness is CONSTRUCTED EXPLICITLY (#773) — never left as an
+     // optional field for the coordinator to remember, which is how the
+     // carryover=0 blind spot recurred. `carryover` is the Phase 1.65 gate
+     // carry-list length (see Effectiveness counting rules below), NOT the raw
+     // 1.2+1.3 candidate count.
+     effectiveness: {
+       planned_issues: <N>,
+       completed: <N>,
+       carryover: <N>,   // = Phase 1.65 gate carry-list length (see rules below)
+       emergent: <N>,
+       completion_rate: <0.0-1.0>,
+     },
+     // Handover-gate open-question telemetry (#773) — top-level, additive,
+     // non-negative integers. OMIT (do not write 0) when the gate did not run
+     // (fail-open skip / headless): absent = "not measured", 0 = "measured zero".
+     open_questions_asked: <N>,      // surfaced in AUQ Call 2
+     open_questions_answered: <N>,   // operator answered
+     open_questions_deferred: <N>,   // left `- [ ]`, roundtripped to next session
+     // Other optional fields populated per the Conditional Fields rules below.
    };
    process.stdout.write(JSON.stringify(entry));
    ")
@@ -210,7 +247,10 @@ Finalize session metrics by reading the wave data accumulated during execution:
        "carryover": N,
        "emergent": N,
        "completion_rate": 0.0
-     }
+     },
+     "open_questions_asked": N,
+     "open_questions_answered": N,
+     "open_questions_deferred": N
    }
    ```
 
@@ -219,7 +259,7 @@ Finalize session metrics by reading the wave data accumulated during execution:
 > **Effectiveness counting rules** (extract from Phase 1 verification results):
 > - `planned_issues`: count of issue numbers listed in `<state-dir>/STATE.md` frontmatter `issues:` array. If the `issues` array is empty (e.g., lifecycle simulation sessions that don't target VCS issues), `planned_issues` = 0 — this is expected, not a bug.
 > - `completed`: count of items verified as Done in Phase 1.1 (acceptance criteria met, evidence confirmed)
-> - `carryover`: count of items from Phase 1.2 (partially done) + Phase 1.3 (not started but still relevant)
+> - `carryover`: the **length of the Phase 1.65 gate carry-list**, NOT the raw Phase 1.2 + 1.3 candidate count (#773). Concretely: `autoCarry` ∪ the middle-band `ask` items the operator LEFT SELECTED ∪ the answered-question `impliesWork: true` candidates the gate enqueued. On the fail-open skip (gate disabled / headless / AUQ unavailable) EVERY candidate carries, so `carryover` = the full candidate-list length (autoCarry ∪ ask). This is the count that actually reaches Phase 5 Step 3 filing. **Why this changed:** the old rule counted Phase 1.2 + 1.3 candidates BEFORE the #769 gate could drop any — but since #769 the gate (Phase 1.65) decides carry vs. drop, and the pre-#773 rule was never re-anchored to it, so 41/41 records read `carryover: 0` despite real filtering. Count the gate's OUTPUT, not its INPUT.
 > - `emergent`: count of items documented in Phase 1.4 (work done that was NOT in the original plan)
 > - `completion_rate`: `completed / planned_issues`. If `planned_issues` is 0, set `completion_rate` to 1.0 (vacuously complete — no planned work means nothing was left undone).
 >
@@ -230,7 +270,8 @@ Finalize session metrics by reading the wave data accumulated during execution:
 > **Conditional fields:**
 > - `discovery_stats`: populated ONLY when `discovery-on-close: true` in Session Config AND Phase 1.5 executed successfully. Source: the stats object returned by the discovery skill (see discovery skill Phase 3.6 for schema). When discovery runs in **embedded mode** (Phases 0-3 only), `user_dismissed`, `issues_created`, and `actioned` per category will always be `0` — embedded mode does not perform user triage (Phase 4) or issue creation (Phase 5).
 > - `review_stats`: populated ONLY when Phase 1.8 dispatched the session-reviewer agent AND it returned findings. Source: the session-reviewer's output summary.
-> - `effectiveness`: ALWAYS populated from Phase 1 plan verification results. `completion_rate` = `completed / planned_issues` (0.0-1.0, where 0.0 means nothing was completed).
+> - `effectiveness`: ALWAYS populated from Phase 1 plan verification results. `completion_rate` = `completed / planned_issues` (0.0-1.0, where 0.0 means nothing was completed). Construct it EXPLICITLY in the METRICS_ENTRY snippet (#773) — do not defer it to a "remember to add" optional-field step; that omission is exactly how `carryover: 0` went unnoticed across 41 records.
+> - `open_questions_asked` / `open_questions_answered` / `open_questions_deferred` (#773): the three open-question counts from the Phase 1.65 gate's AUQ Call 2 (identical to the `questions_*` fields on the `orchestrator.handover.gated` event). Top-level, additive, non-negative integers. Populate ONLY when the gate actually ran an interactive triage (the "Closen + Triage" path). OMIT all three (do NOT write `0`) when the gate was skipped (fail-open / headless / disabled) or took the fast-path — absent = "not measured", `0` = "measured, zero questions". The schema validator accepts absent/null/non-negative-integer.
 
 ### 1.8 Session Review
 

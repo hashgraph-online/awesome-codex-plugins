@@ -47,7 +47,7 @@ Engineering documentation is useful only when it is findable, maintained, curren
 
 ## Workflow
 
-1. **Classify docs by job.** Place every doc asset into exactly one quadrant: tutorial (learning-oriented), how-to (task-oriented), reference (information-oriented), or explanation (understanding-oriented). Tag runbooks and decision records separately as operational and architectural artifacts. Split or rewrite any doc that mixes quadrants until each piece sits in one.
+1. **Classify docs by reader job.** Assign each asset a primary mode: tutorial (learning-oriented), how-to (task-oriented), reference (information-oriented), or explanation (understanding-oriented). Tag runbooks and decision records separately as operational and architectural artifacts. Split mixed content only when competing reader jobs make it harder to find, follow, or maintain. An intentional hybrid runbook or decision record may combine concise procedure, reference, and rationale when its primary job and section boundaries stay clear.
 2. **Name the audience.** State who uses the doc and what decision or task it supports.
 3. **Assign responsibility.** Give every critical doc a user/agent responsibility path and an update trigger tied to the system lifecycle. Anonymous docs become stale silently.
 4. **Pick the source of truth.** Remove or mark duplicates so readers know where authority lives. Mark future-state docs as planned; replace current-state operational docs after the live system matches the planned topology, dependency, or recovery change.
@@ -61,17 +61,6 @@ Engineering documentation is useful only when it is findable, maintained, curren
 Use a lightweight documentation lifecycle: classify by user job, define the source of truth, tie updates to system changes, add freshness signals, and archive stale material. Critical runbooks and launch docs should be checked as part of delivery, not after outages show they were wrong.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -88,11 +77,12 @@ Use a lightweight documentation lifecycle: classify by user job, define the sour
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside engineering documentation. Route architecture decisions, incident writeups, or marketing copy only when they are central.
 - Be concise: prefer doc inventories and lifecycle rules over broad writing theory.
+- Scale the artifact to the request: a narrow freshness or source-of-truth question needs the affected inventory row, authority, cadence, staleness signal, and cleanup action; add full topology, operational-freshness, docs-as-code, and findability matrices only for a broad documentation audit.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
-- Documentation inventory **table with explicit columns**: `Doc | Diátaxis quadrant (tutorial / how-to / reference / explanation) | Responsibility path | Source of truth | Last verified | Verification cadence | Staleness signal`. Runbooks and decision records tagged separately as operational/architectural.
+- Documentation inventory **table with explicit columns**: `Doc | Primary Diátaxis mode (tutorial / how-to / reference / explanation) | Responsibility path | Source of truth | Last verified | Verification cadence | Staleness signal`. Runbooks and decision records are tagged separately as operational/architectural; intentional hybrid artifacts name their primary job and secondary section modes.
 - Source-of-truth map that **states the no-duplication rule explicitly** (e.g., "one canonical location per system; duplicates are marked non-authoritative or deleted").
 - Current-state verification for topology, dependency, routing, recovery, and planned-change docs.
 - Freshness rule naming **both verification cadence AND staleness signal** (e.g., "verify every 90 days; mark `stale` if last-verified > cadence or if linked alert/code changed without doc update").
@@ -107,7 +97,7 @@ Use a lightweight documentation lifecycle: classify by user job, define the sour
 
 - `audience_job`: each critical doc names its reader and supported task.
 - `doc_source`: responsibility path and source of truth are explicit.
-- `quadrant_classification`: every doc in the inventory **table carries a visible quadrant label** (tutorial / how-to / reference / explanation); runbooks and decision records tagged separately as operational/architectural. Mixed-quadrant docs are split.
+- `job_classification`: every doc in the inventory **table carries a visible primary mode** (tutorial / how-to / reference / explanation); runbooks and decision records are tagged separately as operational/architectural. Mixed content is split when reader jobs conflict, or its intentional hybrid structure is explicit.
 - `no_duplication_rule`: source-of-truth section states an explicit rule against duplication, beyond "remove duplicates."
 - `current_state_verified`: topology, dependency, routing, recovery, and planned-change docs are marked current after live-state verification.
 - `staleness_signal`: freshness policy names both a cadence and the signal that flips a doc to stale.

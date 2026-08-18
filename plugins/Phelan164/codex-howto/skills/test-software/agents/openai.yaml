@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Software"
+  short_description: "Design and implement high-value software tests"
+  default_prompt: "Use $test-software to create a risk-based test plan and implement the highest-value tests."

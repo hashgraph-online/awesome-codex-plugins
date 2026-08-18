@@ -1,0 +1,19 @@
+{
+  "skill_name": "trust-and-liking",
+  "evals": [
+    {
+      "id": 1,
+      "name": "cold-email-rapport",
+      "prompt": "Rewrite this cold email to build rapport without fake similarity or flattery.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "customer-interview-opener",
+      "prompt": "Design a customer interview opener that creates trust but does not bias answers.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

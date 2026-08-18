@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Architecture Strategy"
+  short_description: "Design sustainable test suites"
+  default_prompt: "Use $test-architecture-strategy to redesign this test suite for confidence and fast feedback."

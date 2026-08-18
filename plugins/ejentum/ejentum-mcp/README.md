@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/ejentum-mcp.svg)](https://www.npmjs.com/package/ejentum-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/node/v/ejentum-mcp.svg)](https://nodejs.org)
-[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.ejentum%2Fejentum--mcp-blue)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ejentum/ejentum-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.ejentum%2Fejentum--mcp-blue)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.ejentum/ejentum-mcp)
 [![Glama score](https://glama.ai/mcp/servers/ejentum/ejentum-mcp/badges/score.svg)](https://glama.ai/mcp/servers/ejentum/ejentum-mcp)
 [![Last commit](https://img.shields.io/github/last-commit/ejentum/ejentum-mcp.svg)](https://github.com/ejentum/ejentum-mcp/commits/main)
 
@@ -317,21 +317,10 @@ Interactive testing with MCP Inspector:
 npx @modelcontextprotocol/inspector npm run dev
 ```
 
-Rebuild and repack the MCPB bundle for a Smithery release:
-
-```bash
-npm run build
-npm prune --omit=dev
-npx -y @anthropic-ai/mcpb pack
-npm install
-npx -y @smithery/cli mcp publish ./ejentum-mcp.mcpb -n ejentum/ejentum-mcp
-```
-
 ---
 
 ## Listings
 
-- [Smithery](https://smithery.ai/servers/ejentum/ejentum-mcp)
 - [Glama](https://glama.ai/mcp/servers/ejentum/ejentum-mcp)
 - [mcp.so](https://mcp.so/server/ejentum-mcp/Ejentum)
 - [npm](https://www.npmjs.com/package/ejentum-mcp): `npm install -g ejentum-mcp`

@@ -29,10 +29,20 @@ Use only the rows that match the requested workflow; do not force agent trace ev
 | Case Set | Source | Slice | Expected Behavior | Required Trace Or State Check | Negative/Adversarial Coverage | Blocking |
 | --- | --- | --- | --- | --- | --- | --- |
 
+## Adversarial Split-Access Record
+
+| Risk Slice | White-Box Architect Inputs | Case Author Access: Black/Gray Box | Withheld From Case Author | Independent/White-Box Review | Coverage Decision |
+| --- | --- | --- | --- | --- | --- |
+
 ## Scoring
 
 | Metric | Calculation | Evidence Source | Threshold | Regression Action |
 | --- | --- | --- | --- | --- |
+
+## Baseline And Candidate Comparison
+
+| Metric Or Slice | Baseline Sample | Candidate Sample | Delta | Uncertainty | Gate Decision |
+| --- | --- | --- | --- | --- | --- |
 
 ## Grader Rubric
 
@@ -45,6 +55,16 @@ Use only the rows that match the requested workflow; do not force agent trace ev
 
 | Input | Version | Source | Integrity Check | Rebuild Trigger |
 | --- | --- | --- | --- | --- |
+
+## Contamination Prevention, Detection, And Response
+
+| Asset Or Holdout | Access/Separation Control | Lineage | Detection Marker | Quarantine Trigger | Rotation/Rebaseline Action |
+| --- | --- | --- | --- | --- | --- |
+
+## Eval Record Handling
+
+| Record Class | Minimum Reproducibility Need | Prohibited Fields | Redaction Or Reference | Access | Retention | Disposal | Integrity |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Failure Triage
 

@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omnimodal"
+version = "3.1.0"
+description = "Omnimodal plugin for text-only models: recognize and generate images, video, and audio through Qwen, Z.AI, or OpenAI-compatible APIs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "good-boy4069" }]
+dependencies = [
+    "httpx>=0.27,<1.0",
+    "imageio-ffmpeg>=0.4,<1.0",
+    "mcp>=1.0,<2.0",
+    "pillow>=10.0,<13.0",
+    "playwright>=1.40,<2.0",
+    "pydantic>=2.0,<3.0",
+    "python-dotenv>=1.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+omnimodal-recognize = "omnimodal.mcp.read_image_server:main"
+omnimodal-generation = "omnimodal.mcp.generation_server:main"
+omnimodal-capture-page = "omnimodal.mcp.capture_page_server:main"
+omnimodal-windows-capture = "omnimodal.mcp.windows_capture_server:main"
+
+[tool.setuptools.packages.find]
+include = ["omnimodal*"]
+
+[tool.setuptools.package-data]
+"omnimodal.assets.windows" = ["*.ps1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# 覆盖率门禁：阻止无测试的新功能合入（当前实际 ~69%）
+addopts = "-q --cov=omnimodal --cov-fail-under=60"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+packages = ["omnimodal"]
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.1.0",
+]

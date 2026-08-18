@@ -3,6 +3,7 @@
 # Usage: counters.sh [--no-cache] [--search <text>]
 
 set -e
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"

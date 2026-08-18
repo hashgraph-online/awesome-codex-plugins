@@ -1,0 +1,19 @@
+{
+  "skill_name": "authority-credibility",
+  "evals": [
+    {
+      "id": 1,
+      "name": "health-authority-audit",
+      "prompt": "Review this health landing page for authority claims and propose safer credibility language.",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "advisor-credential-presentation",
+      "prompt": "We have three advisors and two certifications. How should we present them without overstating authority?",
+      "expected_output": "Identifies relevant Influence principle, checks evidence, flags ethical risks, and provides concrete recommendations or rewrites without inventing proof.",
+      "files": []
+    }
+  ]
+}

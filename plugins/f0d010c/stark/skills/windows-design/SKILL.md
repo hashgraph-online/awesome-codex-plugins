@@ -37,7 +37,7 @@ If the user has already given enough signal in the brief (e.g. "I want a system 
 
 | Track | Reference docs | Default stack |
 |---|---|---|
-| 1. System-like WinUI 3 | `../../references/fluent-design.md` | WinUI 3 + WinAppSDK 1.8 + CommunityToolkit.Mvvm + SettingsControls |
+| 1. System-like WinUI 3 | `../../references/fluent-design.md` | WinUI 3 + current stable Windows App SDK + CommunityToolkit.Mvvm + SettingsControls |
 | 2. Branded WinUI 3 | `../../references/fluent-design.md` + `../../references/branded-fluent.md` | Same as 1 + custom accent override + embedded display font + bespoke surfaces |
 | 3. Tauri 2 + Web | `../../references/web-fonts.md` + `../../references/web-motion.md` + `../../references/web-bans.md` + `../../references/awwwards-ceiling.md` | React 19 + Tailwind v4 + Motion (motion.dev) + Tauri 2 shell |
 | 4. Electron + Web | Same as 3 | React 19 + Tailwind v4 + Motion + Electron shell + electron-builder |
@@ -51,13 +51,14 @@ Before code, read:
 - `../../references/ui-patterns/surface-taxonomy.md`
 - `../../references/ui-patterns/ui-decision-brief.md`
 - `../../references/ui-patterns/desktop-app-archetypes.md`
+- `../../references/ui-patterns/native-desktop-app-quality-contract.md`
 - `../../references/ui-patterns/originality-engine.md`
 - `../../references/ui-patterns/design-recipes.md`
 - `../../references/ui-patterns/anti-default-contrasts.md`
 - `../../references/ui-patterns/visual-hierarchy.md`
 - `../../references/ui-patterns/motion-budget.md`
 
-Write the UI decision brief, desktop archetype brief, originality brief when relevant, and a compact layout sketch before code. Pick the app shape before picking controls: command center, library/collection, workbench, monitoring cockpit, tray utility, media/consumer, document/knowledge, or setup/preferences. Then choose a composition archetype from the product subject: cockpit, command deck, ledger, timeline wall, studio desk, light table, archive index, inspection bay, instrument panel, or another concrete premise. If the sketch becomes sidebar + cards + table, use anti-default contrasts and rewrite it. Windows utilities and admin tools should favor operational density, stable navigation, command surfaces, inspectors, timelines, and low motion. Use SettingsCard/NavigationView strongly for preferences and system-like utilities, but do not make every Windows app a settings shell. Branded consumer apps may use richer content surfaces, but native chrome, Mica/Acrylic rules, Segoe UI Variable, and Fluent icons still apply.
+Write the UI decision brief, desktop archetype brief, native desktop quality brief, originality brief when relevant, and a compact layout sketch before code. Pick the app shape before picking controls: command center, library/collection, workbench, monitoring cockpit, tray utility, media/consumer, document/knowledge, or setup/preferences. Then choose a composition archetype from the product subject: cockpit, command deck, ledger, timeline wall, studio desk, light table, archive index, inspection bay, instrument panel, or another concrete premise. Define window model, command model, resize behavior, native controls, keyboard/focus paths, state coverage, and platform evidence. If the sketch becomes sidebar + cards + table, use anti-default contrasts and rewrite it. Windows utilities and admin tools should favor operational density, stable navigation, command surfaces, inspectors, timelines, and low motion. Use SettingsCard/NavigationView strongly for preferences and system-like utilities, but do not make every Windows app a settings shell. Branded consumer apps may use richer content surfaces, but native chrome, Mica/Acrylic rules, Segoe UI Variable, and Fluent icons still apply.
 
 ## Step 2a — Branded vs system-like (only if track 1 or 2 picked)
 

@@ -1,210 +1,165 @@
 ---
 name: validate
-description: "Run validate."
+description: Freshly judge exact subject content against
 ---
+# Validate
 
-# $validate — Canonical Validator Skill
+Independently judge one exact subject against the acceptance in its existing
+bead or caller source, return one semantic result, and stop. Validate is the
+sole `verdict.v2` writer when persistence is requested. It never asks the model
+to reconstruct Plan or Candidate packets.
 
-> **Role:** validator. Input = artifact (plan, spec, code, PR, fitness gate). Output = `verdict.v1` (PASS / WARN / FAIL with rationale + findings).
+## Preconditions
 
-> **Status (2026-05-08):** introduced ADDITIVE in Phase 1 (m6v5.D.1 / soc-78s2v). Existing validators (council, vibe, pre-mortem, red-team, pr-validate, validation, review, scenario) stay until Phase 2 shim conversion (m6v5.D.2). Fix-C smoke (`soc-wb2aa`) gates Phase 2.
+- The subject is a nonempty implementation candidate: the manifest lists at
+  least one entry, and `store-verdict` refuses an empty one. Plans, audits,
+  reviews, and other control artifacts are not completion subjects unless the
+  caller explicitly requested document review.
+- The intent source is available as a caller-owned artifact or runtime-owned
+  content-addressed snapshot; its acceptance digest is derived automatically.
+- The subject manifest still matches the subject.
+- Author and validator context IDs are explicit.
+- Freshness is explicitly attested with `source: runtime | caller` and an
+  attester identity.
 
-`$validate` is a driving adapter for the `validate_acceptance` port in the
-[Intent-to-Loop Hexagon](../../docs/architecture/intent-to-loop-hexagon.md).
-When the artifact contains a `hexagon:` block, preserve the bounded context,
-context packet, guard adapters, and done state in the verdict.
-When the artifact claims DONE/closed/green, apply the
-[Completion-Claim Kernel](../shared/validation-contract.md#completion-claim-kernel)
-before returning PASS.
+Missing, colliding, or unattested identities produce `NOT_PROVEN`. This is a
+declared trust fact, not cryptographic proof that contexts were isolated.
 
-## Modes (≤8 per Fix-F mode-flag budget)
+## Cross-model fresh validator (caller-elected)
 
-| Mode | Purpose | Replaces (post-Phase 2) |
+A caller may request that the fresh validator run on a different model than
+the author. Dispatch via the controller-session recipe in
+the `agent-native` model-dispatch recipe (`codex-exec` and/or `ntm`,
+probed at runtime). Record author and validator `model_identity` in evidence
+refs and freshness attestation notes — do not change `verdict.v2` schema. If
+the requested validator model has no live adapter, disclose the unsatisfied
+diversity request and proceed same-model; never invoke `claude -p` /
+`claude --print`. Single fresh validator remains the default shape.
+
+## Mutating-check quarantine
+
+Before running any acceptance-listed command, classify it as read-only or
+subject-mutating. Regen scripts, sync scripts, formatters, and anything with
+`--force` are subject-mutating until proven otherwise. Never run a
+subject-mutating check against an uncommitted subject: on 2026-07-15,
+`scripts/test-ci-deterministic-gates.sh` regenerated `skills-codex/` from HEAD
+mid-validation and destroyed the uncommitted subject, forcing `NOT_PROVEN`
+(verdict `b6e759dd...cb6a`); only restoring the subject and revalidating in a
+fresh context produced the PASS (`e9b6cdb8...37b9`). If a mutating check is
+genuinely required by acceptance, run it against a disposable copy or a
+committed subject, never the judged working tree.
+
+## Scope disclosure
+
+`not_checked` has exactly one meaning: **in-scope acceptance surface this
+validation did not verify**. PASS asserts that the whole declared acceptance
+surface was verified, so a PASS carries no `not_checked` entries; the helper
+refuses one and records a `validate.integrity` finding.
+
+That rule never pays for deleting an honest caveat, because every kind of scope
+limit has a home that survives inside a PASS:
+
+| Scope limit | Home | Example |
 |---|---|---|
-| (default) | 2-judge multi-judge consensus on any artifact | `$council` default |
-| `--quick` | Inline single-agent structured review | `$council --quick` |
-| `--deep` | 4-judge thorough review | `$council --deep` |
-| `--mixed` | Cross-vendor (Claude + Codex), N×2 judges | `$council --mixed` |
-| `--debate` | Adversarial 2-round refinement | `$council --debate`, `$red-team` |
-| `--mode=post-impl` | Code-readiness pipeline (complexity → bug-hunt → council) | `$vibe` |
-| `--mode=pre-impl [--target=X]` | Plan/spec validation; target ∈ {scenario,fitness,ratchet,scope,skill,health} | `$pre-mortem`, `$scenario`, `$goals measure`, `$ratchet`, `$scope`, `$skill-auditor`, `ao doctor` |
-| `--mode=pr` | PR-shape verdict (diff review + acceptance check) | `$pr-validate`, `$review` |
+| A criterion proven by a bounded check | `criteria[].reason` on that criterion | "proven by the unit suite; the full integration matrix was not replayed" |
+| A declared non-goal or out-of-scope area | the intent source's non-goals, optionally restated as an evidence-backed boundary criterion in `criteria` | "`cli/**` is a declared non-goal; the diff proves it untouched" |
+| Residual risk or judgment caveat | the caller-facing report | "the migration path is untested against pre-3.0 stores" |
+| Acceptance that genuinely went unverified | `not_checked`, and the result is `NOT_PROVEN` rather than PASS | "criterion 3 needs hardware this context cannot reach" |
 
-**Mode-budget assertion:** 8 modes. Adding a 9th requires demoting an existing one OR refusing the addition (per Fix-F § continuous CI gate).
+Emptying `not_checked` to obtain PASS is a contract violation, not a
+workaround. If acceptance really went unverified, the honest result is
+`NOT_PROVEN`. If the entry was never acceptance in the first place, it belongs
+in one of the other homes, where it stays visible in the stored artifact
+instead of being deleted.
 
-## Quick Start
+## Helper commands
 
-```bash
-$validate path/to/plan.md                  # default 2-judge consensus
-$validate --quick path/to/plan.md          # inline single-agent
-$validate --deep path/to/spec.md           # 4-judge thorough
-$validate --mode=pre-impl path/to/plan.md  # pre-mortem mode
-$validate --mode=post-impl recent          # vibe mode (post-implement)
-$validate --mode=pr 123                    # PR review by PR number
-$validate --mode=pre-impl --target=fitness # fitness gate against GOALS.md
+The helper ships beside this file. Invoke it through this skill's own
+directory rather than a checkout-relative path: `$SKILL_DIR` is the directory
+containing this `SKILL.md` — `skills/validate/` in a repository checkout,
+`.agents/skills/validate/` in an installed runtime.
+
+| Command | Required | Optional |
+|---|---|---|
+| `manifest` | `--root <dir>`, `--include <path>` (repeatable, at least one) | `--exclude <path-or-glob>` (repeatable), `--base-manifest <file>`, `--git-metadata-json <json>`, `--output <file>` |
+| `verify-manifest` | `--root <dir>`, `--manifest <file>` | `--base-manifest <file>` |
+| `snapshot-intent` | `--source <file>` (`-` reads stdin) | `--workspace <dir>`, `--intent-dir <dir>` |
+| `digest` | `<json-file>` positional | none |
+| `store-verdict` | `--draft`, `--intent-source`, `--subject-manifest`, `--author-context-id`, `--validator-context-id`, `--freshness-source <runtime\|caller>`, `--freshness-attester-id`, `--scope-result <PASS\|FAIL\|NOT_PROVEN>` | `--workspace <dir>`, `--verdict-dir <dir>` |
+
+```sh
+python3 "$SKILL_DIR/scripts/validate.py" manifest \
+  --root . --include skills/validate --exclude '**/*.log' --output manifest.json
 ```
 
-Default uses runtime-native subagent spawning. Falls back to `--quick` (inline) when no multi-agent capability detected.
+## Workflow
 
-## Execution
+1. Recompute and compare `subject-manifest.v1` with the `manifest` command
+   above (`--root` plus at least one `--include`). The helper uses only
+   filesystem content; Git commit/tree IDs are optional metadata. Derive the
+   manifest at the start of validation and re-derive it at the end; any
+   mismatch between the two is subject mutation and returns `NOT_PROVEN`.
+2. Confirm the intent-source digest has not changed since implementation. If
+   the subject changed or complete changed-path coverage cannot be derived,
+   return `NOT_PROVEN`.
+3. Adjudicate the actual diff, not a declared path list: compare
+   runtime-derived actual changed paths against the intent's scope classes. A
+   proven out-of-scope path returns `FAIL`; incomplete scope evidence returns
+   `NOT_PROVEN`.
+4. Inspect the exact subject and factual evidence. Reported exit codes are
+   claims, not evidence: re-execute the claimed proofs that bear on acceptance
+   (see the freshness rules below for when a digest-bound receipt suffices).
+   If the subject changes a test, gate, fixture, golden, tolerance, suppression,
+   or acceptance source, determine whether the original intent requires that
+   change and whether green came from implemented behavior rather than a
+   weakened oracle. Green obtained by weakening acceptance is `FAIL`, not
+   evidence of completion.
+   Judge every acceptance criterion and record criterion-level results,
+   findings, evidence references, `checked`, and any acceptance surface that
+   went unverified in `not_checked` (see Scope disclosure).
+5. Choose exactly one semantic result: `PASS`, `FAIL`, or `NOT_PROVEN`. Return
+   it with criterion results, findings, evidence references, `checked`,
+   `not_checked`, the acceptance and subject identities, distinct author and
+   validator context IDs, and the freshness attestation. PASS requires distinct
+   identities, explicit freshness, nonempty checked scope, top-level evidence,
+   evidence for every criterion, and an empty `not_checked`; route bounded
+   proofs, declared non-goals, and residual risk to the homes named in Scope
+   disclosure rather than deleting them or downgrading a proven result.
+6. Only when the caller requests machine-readable evidence or a declared
+   downstream consumer requires it, persist canonical `verdict.v2` with the
+   helper's
+   `store-verdict --draft <draft.json> --intent-source <resolved-intent>
+   --subject-manifest <manifest.json> --author-context-id <id>
+   --validator-context-id <id> --freshness-source <runtime|caller>
+   --freshness-attester-id <id> --scope-result <PASS|FAIL|NOT_PROVEN>`. The
+   helper snapshots the exact resolved intent under
+   `<workspace>/.agents/ao/intents/sha256/<digest>.intent`, then computes and
+   injects intent and subject digests plus author, validator, and freshness
+   facts. Identity and changed-path facts come from runtime-derived inputs and
+   receipts, not model transcription. Storage defaults to
+   `<workspace>/.agents/ao/verdicts/sha256/<digest>.json`; callers may provide
+   `verdict_dir`.
+7. Return the semantic result and, when persisted, the artifact path and digest.
+   Stop.
 
-### Step 1: Resolve mode + target
+The digest is SHA-256 over canonical JSON with `artifact_digest` omitted. Writes
+use a same-directory temporary file, flush, fsync, and atomic rename. Identical
+existing content is idempotent success; conflicting content is an integrity
+failure represented by `NOT_PROVEN`.
 
-Parse `--mode` and `--target`. Default mode is multi-judge. Validate combinations:
+## Freshness without duplication
 
-| Mode | Allowed `--target` |
-|---|---|
-| default, --quick, --deep, --mixed, --debate | n/a |
-| --mode=post-impl | n/a (pipeline scope is recent code changes) |
-| --mode=pre-impl | scenario, fitness, ratchet, scope, skill, health (default: pre-mortem on plan) |
-| --mode=pr | n/a (PR ID/path is positional) |
+Fresh validation means independent judgment over the exact subject. It does not
+require mechanically replaying every author command. Verify intent identity,
+scope, evidence digests, and every acceptance criterion; independently rerun
+the risk-critical, uncertain, or insufficiently evidenced checks. A
+digest-bound deterministic receipt may prove routine facts. Replay an expensive
+full suite only when acceptance requires that result or the supplied receipt
+cannot establish it.
 
-Reject invalid combinations (e.g., `--mode=pr --target=fitness`).
+## Boundary
 
-### Step 2: Load artifact + context
-
-```bash
-# resolve artifact:
-ARTIFACT="${1:-recent}"  # path, PR ID, or "recent"
-
-# load FAIL patterns:
-# (folded into skill body; not a separate hook)
-```
-
-For `--mode=pre-impl`, also load:
-- `.agents/planning-rules/*.md` (compiled planning rules)
-- `.agents/findings/registry.jsonl` (active findings)
-- `.agents/pre-mortem-checks/*.md` (compiled prevention)
-
-For `--mode=post-impl`, run pre-checks:
-- complexity audit (radon for python, gocyclo for go)
-- bug-hunt sweep (skill-body convention; no `$bug-hunt` skill needed)
-
-For `--mode=pr`, fetch the PR diff (`gh pr diff <id>` or path).
-
-### Step 3: Determine spawn backend
-
-1. `spawn_agent` available → Codex sub-agent
-2. `--mixed` requested and Codex CLI available → spawn native judges and pair
-   with Codex CLI judge runs
-3. No multi-agent backend available → fall back to `--quick` (inline
-   single-agent)
-
-Log selected backend in the verdict frontmatter.
-
-### Step 4: Run judges
-
-| Mode | Judges | Perspectives |
-|---|---|---|
-| default | 2 | independent (no labeled perspectives) |
-| --deep | 4 | missing-requirements, feasibility, scope, spec-completeness |
-| --mixed | 2N (default N=3) | same N perspectives across Claude + Codex |
-| --debate | 2+ rounds | adversarial; 2 rounds with critique-rebuttal |
-| --quick | 0 (inline self) | structured review |
-| --mode=post-impl | 2 + pipeline | complexity → bug-hunt → 2-judge council |
-| --mode=pre-impl | 2-4 | per target preset |
-| --mode=pr | 2 | diff-review + acceptance-check |
-
-Each judge gets:
-- artifact path
-- relevant context (planning rules, findings)
-- council FAIL pattern check prompt (top 8)
-- temporal interrogation prompt (--deep + --target=plan)
-
-### Step 5: Mandatory checks (auto-trigger)
-
-For `--mode=pre-impl --target=plan`:
-- temporal interrogation (auto for plans with 5+ files or 3+ deps)
-- error & rescue map
-- council FAIL pattern check (top 8)
-- test pyramid coverage check
-- input validation check (enum-like fields)
-
-For `--mode=post-impl`:
-- L0/L1/L2 coverage check on changed files
-
-For `--mode=pre-impl --target=fitness`:
-- read GOALS.md
-- evaluate each gate against current state
-- report PASS/WARN/FAIL per gate + aggregate
-
-### Step 6: Consolidate to verdict
-
-Each judge returns a per-judge result. Consolidate:
-- PASS only if all judges PASS (or majority for --deep)
-- WARN if any judge raises a warning the others don't dispute
-- FAIL if any judge raises a blocker the others don't override
-
-### Step 7: Write verdict
-
-Output path: `.agents/council/YYYY-MM-DD-validate-<topic-slug>.md`
-
-```markdown
----
-id: validate-YYYY-MM-DD-<slug>
-type: verdict
-date: YYYY-MM-DD
-mode: <mode>
-target: <target or n/a>
-artifact: <path>
-backend: <codex-subagents | claude-teams | opencode | inline>
----
-
-# Validate Verdict — <topic>
-
-## Council Verdict: PASS / WARN / FAIL
-
-| Failure mode | Risk | Severity | Addressed? |
-|---|---|---|---|
-| ... | ... | ... | ... |
-
-## Pseudocode Fixes (when WARN/FAIL)
-(copy-pastable into affected issues per pre-mortem 4.6 contract)
-
-## FAIL Pattern Check
-(top 8 patterns — status per pattern)
-
-## Verdict
-PASS — proceed
-WARN — review concerns, accept risk, or apply fixes
-FAIL — block; revise artifact and rerun
-```
-
-The exact heading `## Council Verdict: PASS / WARN / FAIL` is mandatory — `ao rpi phased` (when present) parses with anchored regex.
-
-### Step 8: Persist findings (when applicable)
-
-For `--mode=pre-impl` reusable findings: append to `.agents/findings/registry.jsonl` (atomic temp+rename).
-
-### Step 9: Report
-
-1. Verdict (PASS/WARN/FAIL).
-2. Key concerns (when not PASS).
-3. Output path.
-4. Recommended next action.
-
-## --target taxonomy (pre-impl)
-
-| `--target` | What gets graded | Replaces |
-|---|---|---|
-| (default) | Plan/spec for an upcoming `$implement` | `$pre-mortem` |
-| scenario | Holdout scenario gate | `$scenario` |
-| fitness | GOALS.md fitness gates | `$goals measure`, `ao goals measure` |
-| ratchet | Brownian Ratchet checkpoint | `$ratchet`, `ao ratchet status` |
-| scope | Frozen-dirs declaration | `$scope` |
-| skill | SKILL.md hygiene + audit | `$skill-auditor`, `$heal-skill` (audit half) |
-| health | Repo health probe | `ao doctor` |
-
-Each target has its own inline check rubric until Phase 2 extraction.
-
-## Constraints (one-role-per-skill)
-
-- **One role: validator.** Output is always a verdict. Never mutates code (delegates to `$implement` for fixes).
-- **No new modes** without dropping/merging an existing one (Fix-F mode-budget cap = 8).
-- **Verdict heading is regex-anchored** — do not alter the `## Council Verdict: ...` text format.
-
-## See Also
-
-- `skills/rpi/SKILL.md` — orchestrator that fires `$validate --mode=pre-impl` after `$plan`
-- `skills/curate/SKILL.md` — miner role (paired canonical skill)
-- `schemas/verdict.v1.schema.json` — output contract
+Validate emits no WARN, confidence, disposition, briefing learning, owner,
+next action, repair, retry, replan, helper, escalation, tracker, Git, release,
+closure, or delivery state. Generic provenance may record a verdict later, but
+ledger availability cannot change its validity.

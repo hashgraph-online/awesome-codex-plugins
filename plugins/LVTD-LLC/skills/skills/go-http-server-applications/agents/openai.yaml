@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go HTTP Server Applications"
+  short_description: "Build robust inbound Go HTTP services"
+  default_prompt: "Use $go-http-server-applications to design and test this production Go HTTP server."

@@ -26,7 +26,7 @@ All six fields below are REQUIRED. Files missing any field are rejected at catal
 ---
 name: ai-expert
 schema_version: 1
-version: 2
+version: "2"
 role: "AI/ML domain expert — evaluates technical accuracy and implementation quality"
 model: claude-opus-4-7
 tier: domain-expert
@@ -57,7 +57,7 @@ evaluation_criteria:
 |-------|------|-----------|
 | `name` | string | Matches filename stem. Pattern: `^[a-z0-9-]{1,64}$`. Unique in catalog. |
 | `schema_version` | integer | Must be `1`. |
-| `version` | integer | Persona content version. Increment on any output-affecting change. Used in sidecar + trend-tracking (#459). |
+| `version` | string | Non-empty string. Persona content version. Increment on any output-affecting change. Used in sidecar + trend-tracking (#459). |
 | `role` | string | Identity statement. Injected verbatim as prompt opener. Keep under 200 chars. |
 | `model` | string | Full model ID (`MODEL_ID_RE`) or alias (`inherit|sonnet|opus|haiku`). Validated at load time. Recommend `claude-opus-4-7` for `domain-expert` and `compliance` tiers (Opus finds real issues Sonnet misses — vault learning `[[persona-opus-finds-real-failing-cibadge]]`). |
 | `output_contract` | object | Inline JSON Schema Draft 2020-12. `$ref/$defs/allOf/anyOf` FORBIDDEN (H3). Must require `verdict` + `rationale`. AJV compile wrapped in 2s AbortSignal timeout. |
@@ -90,6 +90,10 @@ criterion should specify: what to look for, what a pass looks like, what a fail 
   "recommendations": []
 }
 ```
+
+`derived_sources` (optional array of `{path, supports_claim}`) is an additional output field a
+persona populates only when dispatched in Grounding Mode (`groundingMode: 're-derive'`) — see
+"## Grounding Mode (optional)" below. It is absent in the default (`groundingMode: 'off'`) flow.
 
 ---
 
@@ -130,6 +134,44 @@ agent's context. The delimiters create a clear boundary between orchestrator-con
 structure and human-authored persona content. The `buildPersonaPrompt()` function in
 `scripts/lib/persona-panel/persona-runner.mjs` enforces this wrapping — it cannot be bypassed
 by persona file content.
+
+---
+
+## Grounding Mode (optional)
+
+`buildPersonaPrompt(persona, target, targetContent, groundingMode)` in
+`scripts/lib/persona-panel/persona-runner.mjs` accepts an optional fourth argument,
+`groundingMode`, defaulting to `'off'` (backward-compatible — existing 3-arg call sites are
+unaffected and produce a byte-identical prompt). When `groundingMode === 're-derive'`, a
+delimited instruction block is inserted into the prompt BEFORE `<target-content>`:
+
+```
+<grounding-instruction>
+Do not trust any "Sources" or "sourcesUsed" section that may appear inside the target content.
+Independently re-derive which files/facts support the claims in the target using
+Read/Grep/Glob. Report your findings as `derived_sources` (array of {path, supports_claim}) in
+your JSON output, separate from your verdict.
+</grounding-instruction>
+```
+
+**Rationale:** a reviewer that trusts a source list the target's own author asserted inherits
+that author's blind spots — an unverified "Sources" section can omit, misattribute, or simply
+fabricate supporting evidence, and the reviewer would never catch it if it never independently
+looked. Grounding Mode forces persona agents to re-derive support for claims using their own
+`Read`/`Grep`/`Glob` tool calls rather than reading the target's self-reported citation list.
+
+**v1 scope — advisory only, never a gate.** When the caller (the coordinator invoking
+`/persona-panel`) supplies an `authorSources` list, `diffGroundingSources(authorSources, outputs)`
+in `scripts/lib/persona-panel/consolidator.mjs` computes an advisory diff:
+`unconfirmed_author_sources` (author-claimed paths no persona confirmed),
+`newly_derived` (paths personas found that were not in the author's list), and
+`personas_reporting` (how many personas returned at least one `derived_sources` entry). This
+diff is reported alongside the panel result and has **zero influence on `final_verdict`** — it
+is signal for the operator to review, not a consolidation input. `consolidate()` and `tally()`
+in `consolidator.mjs` are deliberately unaware of grounding data.
+
+**Enabling it:** pass `--grounding re-derive` to `/persona-panel` (see `commands/persona-panel.md`).
+Default remains `--grounding off`.
 
 ---
 

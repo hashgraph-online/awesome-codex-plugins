@@ -5,10 +5,15 @@
 | Phase | Behavior | Timeout/Threshold | Owner |
 | --- | --- | --- | --- |
 
+## Authentication And Authorization
+
+| Connection/Action/Subscription | Authenticated Or Deliberately Anonymous | Authentication/Principal Binding | Authorization | Anonymous/Public Scope | Abuse/Rate Bounds | Token Expiry/Revocation | Audit/Disconnect Behavior |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
 ## Reconnect And Resume
 
-| Event | Backoff Rule | Resume Cursor | Replay/Skip Guard |
-| --- | --- | --- | --- |
+| Event | Backoff Rule | Cursor Scope/Epoch | Replay Retention | Expired-Cursor Behavior | Deduplication/Idempotency | Sequence/Gap Guard | Snapshot/Resync |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Backpressure
 

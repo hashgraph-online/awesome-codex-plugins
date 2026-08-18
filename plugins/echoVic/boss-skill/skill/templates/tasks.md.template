@@ -1,0 +1,314 @@
+---
+type: tasks
+outputFor: [frontend, backend, qa]
+dependencies: [prd, tech-review]
+---
+
+# 开发任务规格文档
+
+## 文档信息
+- **功能名称**：{{FEATURE_NAME}}
+- **版本**：1.0
+- **创建日期**：{{DATE}}
+- **作者**：Scrum Master Agent
+- **关联故事**：`.boss/{{FEATURE_NAME}}/prd.md`
+
+## 摘要
+
+> 下游 Agent 请优先阅读本节，需要细节时再查阅完整文档。
+
+- **任务总数**：[N 个任务]
+- **前端任务**：[N 个]
+- **后端任务**：[N 个]
+- **关键路径**：[最长依赖链上的任务]
+- **预估复杂度**：低 / 中 / 高
+- **Blast Radius**：低 / 中 / 高（新增/修改/删除文件数、共享文件、核心模块、依赖变更、安装命令综合评估）
+- **风险确认触发项**：无 / 需确认（列出触发原因）
+
+---
+
+## 0. Repo Preflight 摘要
+
+| 事实 | 发现结果 | 证据命令/文件 |
+|------|----------|---------------|
+| 默认分支 | `unknown` | `git symbolic-ref refs/remotes/origin/HEAD` 或 `git remote show origin` |
+| 当前分支 | `unknown` | `git branch --show-current` |
+| CI 命令 | `unknown` | `.github/workflows/*` / `.gitlab-ci.yml` / 其他 CI 配置 |
+| 测试脚本 | `unknown` | `package.json` / `pyproject.toml` / `go.mod` / 等价文件 |
+| Integration/E2E 覆盖 | `unknown` | 测试脚本与 E2E 配置 |
+| schema enum 来源 | `unknown` | Zod/Yup/OpenAPI/JSON Schema/Prisma/Drizzle/Pydantic |
+| 业务常量 | `unknown` | 用户可见数值、阈值、限制、状态流转、访问策略、内容/资源策略等常量或规则文件 |
+| 访问控制入口 | `unknown` | auth middleware / policy / route guard |
+| 路由约定 | `unknown` | framework route files and docs in repo |
+| migration 风险 | `unknown` | migration/backfill files |
+
+> Repo Preflight 事实由 Boss orchestrator Step 0.4c 提供，Scrum Master 只负责落表；不得自行编造命令结果。`unknown` 表示已检查但尚未确认；必须保留对应证据命令或文件，不得用模板默认值猜测。
+
+---
+
+## 1. 任务概览
+
+### 1.1 统计信息
+| 指标 | 数量 |
+|------|------|
+| 总任务数 | {{TOTAL_TASKS}} |
+| 创建文件 | {{CREATE_COUNT}} |
+| 修改文件 | {{MODIFY_COUNT}} |
+| 测试用例 | {{TEST_COUNT}} |
+
+### 1.2 任务分布
+| 复杂度 | 数量 |
+|--------|------|
+| 低 | {{LOW_COUNT}} |
+| 中 | {{MED_COUNT}} |
+| 高 | {{HIGH_COUNT}} |
+
+### 1.3 Blast Radius 与风险确认
+
+| 指标 | 数量/结论 | 是否触发强制确认 |
+|------|-----------|------------------|
+| 计划写入文件数 | {{TOUCHED_FILE_COUNT}} | 是/否 |
+| 核心模块修改数 | {{CORE_MODULE_COUNT}} | 是/否 |
+| 依赖清单/锁文件 | 无 / `package.json` / `package-lock.json` / 其他生态等价文件 | 是/否 |
+| 依赖安装命令 | 无 / `npm install` / `pnpm install` / `pip install` / 其他生态等价命令 | 是/否 |
+| 数据迁移/删除/权限变更 | 无 / 有 | 是/否 |
+
+**风险确认触发项**：
+- [ ] 写入文件数达到项目阈值（默认 ≥ 10 个；项目可在 `tech-review.md` 中给出更低阈值）
+- [ ] 修改依赖清单、锁文件、构建配置或部署配置
+- [ ] 需要运行依赖安装命令
+- [ ] 修改认证、支付、数据模型、迁移、权限、任务队列、全局状态等核心模块
+- [ ] 删除文件、迁移数据、或执行不可逆操作
+
+> 任一项勾选时，code 阶段派发前必须先由 orchestrator 向用户展示 Blast Radius 摘要并获得确认。
+
+---
+
+## 2. 任务详情
+
+### Story: S-001 - {{STORY_TITLE}}
+
+---
+
+#### Task T-001：{{TASK_TITLE}}
+
+**类型**：创建 / 修改 / 删除
+
+**文件输出列表 / 写集**：
+| 文件路径 | 操作 | 写集风险 | owner | 说明 |
+|----------|------|----------|-------|------|
+| `src/path/to/file.ts` | 创建 | 独占 | T-001 | [变更说明] |
+| `src/path/to/another.ts` | 修改 | 共享文件 | T-001 | [变更说明；若其他任务也修改此文件，必须在依赖图中串行化] |
+
+> 兼容旧字段：本表即为本任务的 **目标文件**。每个任务必须列出计划创建、修改、删除的所有文件；未知路径写 `待确认`，不得留空后再并行派发。
+
+**实现步骤**：
+
+1. **步骤 1**：[步骤描述]
+   ```typescript
+   // 示例代码
+   export function example() {
+     // 实现逻辑
+   }
+   ```
+
+2. **步骤 2**：[步骤描述]
+   - [详细说明]
+   - [注意事项]
+
+3. **步骤 3**：[步骤描述]
+
+**测试用例**：
+
+文件：`tests/path/to/test.ts`
+
+| 用例 ID | 描述 | 类型 |
+|---------|------|------|
+| TC-001-1 | [测试描述] | 单元测试 |
+| TC-001-2 | [测试描述] | 单元测试 |
+
+```typescript
+// 测试示例
+describe('example', () => {
+  it('should do something', () => {
+    // 测试逻辑
+  });
+});
+```
+
+**复杂度**：低 / 中 / 高
+
+**依赖**：无 / T-XXX
+
+**注意事项**：
+- [边界情况 1]
+- [潜在陷阱]
+- [性能考虑]
+
+**完成标志**：
+- [ ] 代码实现完成
+- [ ] 测试用例通过
+- [ ] 代码符合规范
+
+---
+
+#### Task T-002：{{TASK_TITLE}}
+
+**类型**：创建 / 修改 / 删除
+
+**文件输出列表 / 写集**：
+| 文件路径 | 操作 | 写集风险 | owner | 说明 |
+|----------|------|----------|-------|------|
+| `src/components/Example.tsx` | 创建 | 独占 | T-002 | 创建组件 |
+
+> 兼容旧字段：本表即为本任务的 **目标文件**。同一文件若出现在多个任务中，必须标为共享文件并通过依赖边或不同并行安全组避免并发写入。
+
+**实现步骤**：
+
+1. **创建组件文件**
+   ```tsx
+   import React from 'react';
+
+   interface ExampleProps {
+     // props 定义
+   }
+
+   export function Example({ ...props }: ExampleProps) {
+     return (
+       <div>
+         {/* 组件内容 */}
+       </div>
+     );
+   }
+   ```
+
+2. **添加样式**
+   - 使用 Tailwind CSS 或 CSS Modules
+   - 遵循设计规范
+
+3. **导出组件**
+   - 更新 index.ts 导出
+
+**测试用例**：
+
+文件：`tests/components/Example.test.tsx`
+
+| 用例 ID | 描述 | 类型 |
+|---------|------|------|
+| TC-002-1 | 组件渲染正常 | 单元测试 |
+| TC-002-2 | Props 正确传递 | 单元测试 |
+
+**复杂度**：低 / 中 / 高
+
+**依赖**：T-001
+
+---
+
+### Story: S-002 - {{STORY_TITLE}}
+
+---
+
+#### Task T-003：{{TASK_TITLE}}
+...
+
+---
+
+## 3. 实现前检查清单
+
+在开始实现前，确保：
+
+- [ ] 已阅读相关 PRD 和架构文档
+- [ ] 已了解现有代码模式
+- [ ] 开发环境已配置
+- [ ] 依赖已安装（`npm install` / `pnpm install`）
+- [ ] 分支已创建
+
+---
+
+## 4. 任务依赖图
+
+### 4.1 并行安全组
+
+| 并行安全组 | 可并行任务 | 串行前置 | 写集约束 |
+|------------|------------|----------|----------|
+| Group-A | T-001, T-004 | 无 | 同组任务不得写同一个文件 |
+| Group-B | T-002 | Group-A | 修改共享文件，需等待 owner 完成 |
+
+> 编排器派发前必须从每个任务的文件输出列表解析写集；写集重叠的任务不得进入同一并行安全组。`package.json`、锁文件、路由表、`i18n.ts`、`store.ts`、全局配置等共享文件必须指定 owner，并通过显式依赖边或独立并行安全组串行处理。
+
+```mermaid
+graph TD
+    subgraph Story S-001
+        T001[T-001: 基础设置] --> T002[T-002: 核心逻辑]
+        T002 --> T003[T-003: API 集成]
+    end
+    subgraph Story S-002
+        T003 --> T004[T-004: UI 组件]
+        T004 --> T005[T-005: 集成测试]
+    end
+```
+
+### 4.2 Evidence Wave 验收计划
+
+| Evidence Wave | 范围 | Owner 文件 | 红测 | 绿门禁 | Contract Matrix 行 | Stop Condition |
+|---------------|------|------------|------|--------|--------------------|----------------|
+| Wave 1：数据模型/迁移 | schema enum、migration、backfill 风险 | `src/schema/*`, `migrations/*` | `npm test -- tests/schema/feature.test.ts` 预期失败 | `npm test -- tests/schema/feature.test.ts` 通过 | CM-001 | migration 无法回滚、schema 与 UI enum 不一致时停止 |
+| Wave 2：主创建路径 | 主 API、业务规则、核心产物 | `src/api/main.ts`, `src/services/domain.ts` | `npm test -- tests/main-flow.test.ts` 预期失败 | `npm test -- tests/main-flow.test.ts` 通过 | CM-002 | 真实 payload、业务规则或核心产物任一项未验证时停止 |
+| Wave 3：策略/访问路径 | 如适用的内容策略、资源策略、访问控制、列表展示 | `src/api/access.ts`, `src/pages/list.tsx` | `npm test -- tests/access-policy.test.ts` 预期失败 | `npm test -- tests/access-policy.test.ts` 通过 | CM-003 | 如适用，匿名主体、授权主体、非授权主体边界未对齐时停止 |
+
+> 高 Blast Radius 工作不得压成单个大 Wave。每个 Evidence Wave 都必须有范围、Owner 文件、红测、绿门禁、Contract Matrix 行和 Stop Condition；红测必须在实现前失败，绿门禁必须在实现后通过。Stop Condition 失败时不得进入下一 Wave。Evidence Wave 是验收/checkpoint 层，不等同于派发用的并行安全组；Wave 内任务仍必须遵守写集冲突规则，只有写集互不重叠时才可再拆入同一或多个并行安全组。
+
+### 4.3 Contract Matrix
+
+| ID | Contract | UI / Copy | Client Payload | Server Schema | Persistence | Business Rule | Test Evidence |
+|----|----------|-----------|----------------|---------------|-------------|---------------|---------------|
+| CM-001 | 枚举与 schema enum 一致 | 显示真实 schema 支持的用户可见文案 | payload 发送真实 enum 值 | Zod/OpenAPI/Prisma enum 接受同一值 | 保存同一 enum 值 | 禁止 UI 文案发送到不兼容 schema | `npm test -- tests/schema/enum-contract.test.ts` |
+| CM-002 | 如适用，用户可见数值与服务端业务常量一致 | 显示本次操作的数值、阈值或限制 | payload 包含业务动作和必要数量字段 | 服务端校验对应业务常量 | 持久化记录写入一致值 | 不满足业务规则时阻止，成功时只应用一次 | `npm test -- tests/business-contract.test.ts` |
+
+> 跨前后端、存储或业务规则的功能必须保留 Contract Matrix，不得删除。必须覆盖 enum label/schema consistency；如项目适用，还必须覆盖 user-visible value/business-constant consistency、policy/state consistency、artifact or state existence/usability、access-control boundary consistency。没有 Test Evidence 的行视为未验证。
+
+---
+
+## 5. 文件变更汇总
+
+### 5.1 新建文件
+| 文件路径 | 关联任务 | owner | 写集风险 | 说明 |
+|----------|----------|-------|----------|------|
+| `src/path/to/new.ts` | T-001 | T-001 | 独占 | [说明] |
+
+### 5.2 修改文件
+| 文件路径 | 关联任务 | owner | 写集风险 | 变更类型 |
+|----------|----------|-------|----------|----------|
+| `src/path/to/existing.ts` | T-002 | T-002 | 共享文件/独占 | 添加函数 |
+
+### 5.3 测试文件
+| 文件路径 | 关联任务 | owner | 写集风险 | 测试类型 |
+|----------|----------|-------|----------|----------|
+| `tests/path/to/test.ts` | T-001 | T-001 | 独占 | 单元测试 |
+
+---
+
+## 6. 代码规范提醒
+
+### TypeScript
+- 使用严格模式
+- 明确类型声明
+- 避免 `any` 类型
+
+### React
+- 使用函数组件
+- 使用 React Hooks
+- Props 使用 interface 定义
+
+### 测试
+- 测试文件命名：`*.test.ts` 或 `*.spec.ts`
+- 使用描述性测试名称
+- 遵循 AAA 模式（Arrange-Act-Assert）
+
+---
+
+## 变更记录
+
+| 版本 | 日期 | 作者 | 变更内容 |
+|------|------|------|----------|
+| 1.0 | {{DATE}} | Scrum Master Agent | 初始版本 |

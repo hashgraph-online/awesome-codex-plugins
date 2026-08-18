@@ -11,13 +11,13 @@ Prefer the project's existing convention:
 3. Framework-specific files such as `.dev.vars`, `.env.development`, or `apps/*/.env.local` when the code already reads them.
 4. `.env.example` only for placeholder documentation. Never write real secrets into example files.
 
-Before writing secrets, verify the file is ignored:
+Before writing credentials, verify the file is ignored:
 
 ```bash
 git check-ignore .env .env.local .env.development .dev.vars
 ```
 
-If the target file is tracked or not ignored, stop and choose an ignored local env file instead.
+If the target file is tracked or not ignored, stop and choose an ignored local env file instead. Record only the selected file and key names.
 
 ## Env Key Mapping
 
@@ -56,14 +56,15 @@ path style                -> true, when the app exposes such a setting
 2. Replace only the selected keys.
 3. If a key exists and has a non-empty value, preserve the old value in chat as "replaced existing local value" without printing it.
 4. Quote values only if the project's env files already use quotes or the value contains characters that the loader requires quoted.
-5. Never print the full resulting credential set in the final answer.
+5. Never print the full resulting credential set in the final answer or a handoff artifact.
 6. Do not write `CONSOLE_ACCESS_KEY` and `CONSOLE_SECRET_KEY` unless the project already expects those exact names; they are CLI response field names, not generally app env names.
+7. Report replacement status and verification categories while redacting access keys, secret keys, private endpoints, and complete credential blocks.
 
 ## Bucket and Endpoint Choices
 
 Use a private bucket for app uploads unless the user explicitly wants public reads. Prefer presigned URLs for temporary sharing.
 
-Use `secret.external` for local-machine development and `secret.internal` for apps running inside Sealos/Devbox when that runtime can reach the internal endpoint.
+Use `secret.external` for local-machine development and `secret.internal` for apps running inside Sealos/Devbox when that runtime can reach the internal endpoint. Treat both endpoint fields as sensitive infrastructure evidence in reports.
 
 Do not switch a project from local MinIO to Sealos by editing Docker Compose unless the user asks. Updating local env keeps rollback easy.
 
@@ -86,4 +87,4 @@ sealos-cli s3 download <bucket> smoke/sealos-s3-smoke.txt /tmp/sealos-s3-smoke.o
 sealos-cli s3 delete <bucket> smoke/sealos-s3-smoke.txt -o json
 ```
 
-Do not leave temporary objects behind after verification.
+Do not leave temporary objects behind after verification. If credentials are still `updating` or unavailable, return `stopped` and poll `s3 secret` before any env write or object-flow claim.

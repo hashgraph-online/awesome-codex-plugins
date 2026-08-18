@@ -11,6 +11,7 @@ via positions, footprint pad positions, and ZoneFills polygon data.
 from __future__ import annotations
 
 import math
+import re
 
 
 def _node_probe_points(x: float,
@@ -69,17 +70,45 @@ def _dist_point_to_segment(px: float, py: float,
     return math.sqrt((px - proj_x) ** 2 + (py - proj_y) ** 2)
 
 
+def _stackup_sort_key(layer: str) -> tuple[int, int]:
+    """Order copper layers by physical stackup position, not alphabetically.
+
+    KiCad names inner copper layers ``In1.Cu``..``InN.Cu``, numbered
+    top-to-bottom, so the physical order is ``F.Cu < In1.Cu < ... < InN.Cu
+    < B.Cu``. Alphabetical sorting would put ``B.Cu`` first, breaking the
+    "expand a via to the layers between its endpoints" logic below.
+    """
+    if layer == 'F.Cu':
+        return (0, 0)
+    if layer == 'B.Cu':
+        return (2, 0)
+    m = re.match(r'In(\d+)\.Cu', layer)
+    return (1, int(m.group(1))) if m else (1, 0)
+
+
 def _expand_copper_layers(layers: list[str],
                           copper_layers: list[str]) -> list[str]:
-    """Expand wildcard copper layer specs like ``*.Cu``."""
-    expanded: list[str] = []
-    for layer in layers or []:
-        if layer == '*.Cu':
-            expanded.extend(copper_layers)
-        elif '.Cu' in layer:
-            expanded.append(layer)
+    """Expand copper layer specs to the physical layers they actually touch.
+
+    - ``*.Cu`` expands to every copper layer.
+    - A via records only its two endpoint layers (e.g. a through via is
+      ``["F.Cu", "B.Cu"]``); expand it to every layer between the endpoints,
+      inclusive, so it unions through any inner plane it passes through
+      (GH issue #24). ``copper_layers`` must be in physical stackup order.
+    - A single concrete layer (e.g. an SMD pad) is returned unchanged.
+    """
+    cu = [layer for layer in (layers or [])
+          if layer == '*.Cu' or '.Cu' in layer]
+    if '*.Cu' in cu:
+        return list(copper_layers)
+    concrete = [layer for layer in cu if layer in copper_layers]
+    if len(concrete) == 2:
+        i = copper_layers.index(concrete[0])
+        j = copper_layers.index(concrete[1])
+        lo, hi = (i, j) if i <= j else (j, i)
+        return copper_layers[lo:hi + 1]
     # Preserve order while de-duplicating
-    return list(dict.fromkeys(expanded))
+    return list(dict.fromkeys(cu))
 
 
 class UnionFind:
@@ -181,7 +210,7 @@ def build_connectivity_graph(
         for layer in zone.get('layers', []) or []:
             if '.Cu' in layer:
                 copper_layer_set.add(layer)
-    copper_layers = sorted(copper_layer_set) or ['F.Cu', 'B.Cu']
+    copper_layers = sorted(copper_layer_set, key=_stackup_sort_key) or ['F.Cu', 'B.Cu']
 
     # Collect all nodes per net
     net_nodes: dict[str, list[dict]] = {}

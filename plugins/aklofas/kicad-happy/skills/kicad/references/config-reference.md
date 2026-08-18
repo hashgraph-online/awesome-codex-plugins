@@ -1,6 +1,6 @@
 # .kicad-happy.json Config Reference
 
-Configuration file for kicad-happy. Placed in the project directory (or any parent directory). All analyzers, the EMC skill, BOM skill, and kidoc skill read this file automatically.
+Configuration file for kicad-happy. Placed in the project directory (or any parent directory). All analyzers, the EMC skill, and the BOM skill read this file automatically.
 
 ## File Format
 
@@ -43,7 +43,7 @@ Always `1`. Reserved for future schema evolution.
 
 ### `project` (object)
 
-Document metadata. Consumed by kidoc for front matter and by analyzers for report context.
+Document metadata. Consumed by analyzers for report context.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -228,59 +228,6 @@ Explicit design intent overrides. When absent, each field is **auto-detected** f
 
 ---
 
-### `reports` (object)
-
-KiDoc report generation settings. Consumed by `kidoc_scaffold.py` and `kidoc_generate.py`.
-
-#### `reports.classification` (string)
-
-Document classification label (e.g., `"Company Confidential"`, `"Internal Use Only"`). Appears in headers and cover pages.
-
-#### `reports.revision_history` (array of objects)
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `rev` | string | Revision identifier |
-| `date` | string | Date string |
-| `author` | string | Author name |
-| `description` | string | Change summary |
-
-#### `reports.documents` (array of objects)
-
-Each entry defines one document to generate.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | string | Document type: `"hdd"`, `"ce_technical_file"`, `"design_review"`, `"icd"`, `"manufacturing"`, `"schematic_review"`, `"power_analysis"`, `"emc_report"` |
-| `output` | string | Filename template; supports `{project}` and `{rev}` placeholders |
-| `formats` | array of strings | Output formats: `"pdf"`, `"docx"`, `"odt"`, `"html"` |
-| `sections` | array of strings | Override the default section list for this document type |
-| `standards` | array of strings | Standards references to include in the document |
-
-#### `reports.branding` (object)
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `logo` | string | Path to logo image file |
-| `company_name` | string | Company name for headers and cover |
-| `header_left` | string | Left header text template; supports `{company}` |
-| `header_right` | string | Right header text template; supports `{number}`, `{rev}` |
-| `cover_template` | string | Path to custom cover page template |
-| `colors` | object | Color overrides as hex strings (see below) |
-
-**`reports.branding.colors` keys:**
-
-| Key | Description |
-|-----|-------------|
-| `primary` | Primary brand color |
-| `secondary` | Secondary brand color |
-| `accent` | Accent color (links, highlights) |
-| `heading` | Heading text color |
-| `table_header` | Table header background |
-| `table_alt_row` | Alternating table row background |
-
----
-
 ## Complete Example
 
 Production consumer electronics board targeting the EU market. LCSC primary supplier, IPC Class 2, with suppressions, power rail filtering, BOM config, and branding.
@@ -365,50 +312,6 @@ Production consumer electronics board targeting the EU market. LCSC primary supp
     "preferred_passive_size": "0402",
     "test_coverage_target": 0.90,
     "approved_manufacturers": ["Murata", "TDK", "Samsung", "ROHM", "Yageo", "onsemi", "STMicroelectronics"]
-  },
-
-  // ── KiDoc report settings ────────────────────────────────────────────
-  "reports": {
-    "classification": "Company Confidential",
-
-    "revision_history": [
-      { "rev": "A", "date": "2025-11-01", "author": "A. Engineer", "description": "Initial release" },
-      { "rev": "B", "date": "2026-03-15", "author": "A. Engineer", "description": "EMC fixes, ESD added to UART connector" }
-    ],
-
-    "documents": [
-      {
-        "type": "hdd",
-        "output": "{project}_HDD_rev{rev}.pdf",
-        "formats": ["pdf", "docx"],
-        "standards": ["IEC 62368-1", "EN 55032", "EN 55035"]
-      },
-      {
-        "type": "ce_technical_file",
-        "output": "{project}_CE_TechFile_rev{rev}.pdf",
-        "formats": ["pdf"]
-      },
-      {
-        "type": "emc_report",
-        "output": "{project}_EMC_rev{rev}.pdf",
-        "formats": ["pdf", "html"]
-      }
-    ],
-
-    "branding": {
-      "logo": "docs/assets/acme-logo.png",
-      "company_name": "Acme Devices Ltd.",
-      "header_left": "{company} — Confidential",
-      "header_right": "{number} rev {rev}",
-      "colors": {
-        "primary":        "#1A3A5C",
-        "secondary":      "#2E6DA4",
-        "accent":         "#E8A020",
-        "heading":        "#1A3A5C",
-        "table_header":   "#2E6DA4",
-        "table_alt_row":  "#EEF4FA"
-      }
-    }
   }
 }
 ```
@@ -449,12 +352,3 @@ Production consumer electronics board targeting the EU market. LCSC primary supp
 | `design_intent.preferred_passive_size` | string | — | `"0603"` | Yes |
 | `design_intent.test_coverage_target` | number | — | market-adj. | Yes |
 | `design_intent.approved_manufacturers` | array | — | [] | — |
-| `reports.classification` | string | — | — | — |
-| `reports.revision_history` | array | — | — | — |
-| `reports.documents` | array | — | — | — |
-| `reports.branding.logo` | string | — | — | — |
-| `reports.branding.company_name` | string | — | — | — |
-| `reports.branding.header_left` | string | — | — | — |
-| `reports.branding.header_right` | string | — | — | — |
-| `reports.branding.cover_template` | string | — | — | — |
-| `reports.branding.colors` | object | — | — | — |

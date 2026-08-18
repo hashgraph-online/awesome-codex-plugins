@@ -91,8 +91,9 @@ Two flavors:
 
 - **Browser-side / WebMCP** (Persona widget context). Tools are registered on
   `document.modelContext`, snapshotted by Persona, admitted by the chat
-  surface's `behavior.webmcp` policy, and executed in the user's page. Use for
-  browser APIs, page HTML, navigation, and front-end state.
+  surface's `behavior.webmcp` policy, and executed in the user's page when
+  widget `config.webmcp.enabled` is set. Use for browser APIs, page HTML,
+  navigation, and front-end state.
 - **Server-side** (Python/TS SDK on your server). Tools run on your infrastructure. Useful for: calling internal services without exposing them via Runtype, hitting local AI models, working with sensitive data you don't want passing through Runtype.
 
 ### Hidden parameters

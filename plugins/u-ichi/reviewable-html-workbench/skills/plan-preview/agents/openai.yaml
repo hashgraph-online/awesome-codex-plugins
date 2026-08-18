@@ -1,0 +1,20 @@
+display_name: Plan Preview
+short_description: Plan Mode の計画全文を保持し、一時HTML previewで補助情報を増やして確認する / Create temporary visual previews that preserve full plan text.
+default_prompt: Preview this plan as HTML / planをグラフィカルに確認したい
+trigger_examples:
+  - planをグラフィカルに見たい
+  - planを図で確認したい
+  - この計画をHTMLでプレビューして
+  - 計画をHTMLで確認したい
+  - proposed_planをプレビューして
+  - 計画URLを入れて
+  - graphical plan review
+  - preview this plan as HTML
+  - show this plan visually
+  - graphical plan preview
+  - add a plan preview URL
+  - preview the proposed plan
+entrypoint: python3 -m scripts.html_review_workbench.cli
+working_directory: plugin_root
+workflow:
+  - plan-preview

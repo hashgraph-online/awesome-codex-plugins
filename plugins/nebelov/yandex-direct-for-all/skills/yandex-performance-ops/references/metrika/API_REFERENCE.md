@@ -1,102 +1,42 @@
-# API Reference: Dimensions & Metrics
+# Действующие маршруты API Метрики
 
-## Endpoints
+Проверено по официальной документации Яндекса 14 июля 2026 года.
 
-| Endpoint | Description |
-|----------|-------------|
-| `/stat/v1/data` | Table report |
-| `/stat/v1/data/bytime` | Time-series report (use with `group`) |
-| `/stat/v1/data/drilldown` | Hierarchical drill-down |
-| `/stat/v1/data/comparison` | Segment comparison |
+## Отчёты
 
-Append `.csv` for CSV format: `/stat/v1/data.csv`
+| Маршрут | Назначение |
+|---|---|
+| `GET https://api-metrika.yandex.net/stat/v1/data` | табличный отчёт |
+| `GET https://api-metrika.yandex.net/stat/v1/data/bytime` | отчёт с разбивкой по времени |
 
-## Visit Metrics (prefix: ym:s:)
+Для CSV сценарии навыка добавляют `.csv` к маршруту. Основные параметры:
 
-| Metric | Description |
-|--------|-------------|
-| `ym:s:visits` | Total visits |
-| `ym:s:users` | Unique visitors |
-| `ym:s:pageviews` | Page views |
-| `ym:s:bounceRate` | Bounce rate |
-| `ym:s:pageDepth` | Pages per visit |
-| `ym:s:avgVisitDurationSeconds` | Avg visit duration (sec) |
-| `ym:s:crossDeviceUsers` | Cross-device unique visitors |
+- `ids` — счётчики;
+- `metrics` — до 20 метрик;
+- `dimensions` — до 10 группировок;
+- `date1`, `date2` — границы периода;
+- `filters` — фильтр сегментации;
+- `accuracy` — точность выборки;
+- `limit` и `offset` — постраничная выдача табличного отчёта;
+- `group` — интервал для `bytime`, в том числе `day`, `week` и `month`.
 
-## Goal Metrics (replace `<goal_id>`)
+Ответ JSON содержит исходные параметры в `query`, строки в `data`, общие значения в `totals` и признаки выборки `sampled`, `sample_share`, `sample_size` и `sample_space`. При анализе их нельзя терять.
 
-| Metric | Description |
-|--------|-------------|
-| `ym:s:goal<goal_id>visits` | Visits with goal achieved |
-| `ym:s:goal<goal_id>reaches` | Total goal achievements |
-| `ym:s:goal<goal_id>conversionRate` | Conversion rate (visits) |
-| `ym:s:goal<goal_id>userConversionRate` | Conversion rate (users) |
-| `ym:s:goal<goal_id>users` | Users who achieved goal |
+## Управление
 
-## Traffic Source Dimensions (replace `<attribution>`)
+| Маршрут | Назначение |
+|---|---|
+| `GET https://api-metrika.yandex.net/management/v1/counters` | доступные счётчики |
+| `GET https://api-metrika.yandex.net/management/v1/counter/{counter}` | свойства счётчика |
+| `GET https://api-metrika.yandex.net/management/v1/counter/{counter}/goals` | цели счётчика |
 
-Attribution values: `lastsign`, `last`, `first`
+## Авторизация
 
-| Dimension | Description |
-|-----------|-------------|
-| `ym:s:<attr>TrafficSource` | Traffic source type |
-| `ym:s:<attr>SourceEngine` | Detailed source (search engine name, etc.) |
-| `ym:s:<attr>AdvEngine` | Ad system |
-| `ym:s:<attr>ReferalSource` | Referral website |
-| `ym:s:<attr>RecommendationSystem` | Recommendation system |
-| `ym:s:<attr>Messenger` | Messenger |
+Токен передаётся в заголовке `Authorization: OAuth ...`. Для чтения нужно право `metrika:read`; для изменений — `metrika:write`. Эти сценарии используют только чтение.
 
-## UTM Dimensions (replace `<attribution>`)
+## Официальные источники
 
-| Dimension | Description |
-|-----------|-------------|
-| `ym:s:<attr>UTMSource` | utm_source |
-| `ym:s:<attr>UTMMedium` | utm_medium |
-| `ym:s:<attr>UTMCampaign` | utm_campaign |
-| `ym:s:<attr>UTMContent` | utm_content |
-| `ym:s:<attr>UTMTerm` | utm_term |
-
-## Device & Technology Dimensions
-
-| Dimension | Description |
-|-----------|-------------|
-| `ym:s:deviceCategory` | desktop / mobile / tablet |
-| `ym:s:operatingSystem` | OS |
-| `ym:s:browser` | Browser |
-| `ym:s:screenResolution` | Screen resolution |
-
-## Geography Dimensions
-
-| Dimension | Description |
-|-----------|-------------|
-| `ym:s:regionCountry` | Country |
-| `ym:s:regionCity` | City |
-| `ym:s:regionArea` | Region/area |
-
-## Common Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `ids` | Counter ID(s), comma-separated | required |
-| `date1` | Start date (YYYY-MM-DD) | required |
-| `date2` | End date (YYYY-MM-DD) | today |
-| `metrics` | Metrics, comma-separated | required |
-| `dimensions` | Dimensions, comma-separated | - |
-| `filters` | Filter expression | - |
-| `accuracy` | 0-1, where 1 = no sampling | 0.5 |
-| `group` | day / week / month (bytime only) | - |
-| `limit` | Max rows | 100 |
-| `offset` | Row offset for pagination | 1 |
-| `sort` | Sort field (prefix `-` for desc) | - |
-
-## Filter Syntax
-
-```
-ym:s:isRobot=='No'
-ym:s:deviceCategory=='desktop'
-ym:s:lastSignTrafficSource=='organic'
-ym:s:regionCountry=='Россия' AND ym:s:deviceCategory=='mobile'
-```
-
-Operators: `==`, `!=`, `=@` (contains), `!@` (not contains), `=~` (regex), `!~` (not regex)
-Combine with `AND`, `OR`.
+- <https://yandex.ru/dev/metrika/en/stat/openapi/data>
+- <https://yandex.ru/dev/metrika/en/stat/openapi/bytime>
+- <https://yandex.ru/dev/metrika/en/management/openapi/counter/counters>
+- <https://yandex.ru/dev/metrika/en/intro/authorization>

@@ -1,0 +1,6 @@
+.git/
+.github/
+dist/
+target/
+node_modules/
+.DS_Store

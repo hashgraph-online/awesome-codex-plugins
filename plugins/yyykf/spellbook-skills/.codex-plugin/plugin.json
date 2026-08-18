@@ -1,0 +1,44 @@
+{
+  "name": "spellbook-skills",
+  "version": "0.8.3",
+  "description": "Personal skills library for daily workflows (worktrees + branch finishing, compile-only)",
+  "author": {
+    "name": "code4j",
+    "email": "code4j@code4j.site"
+  },
+  "homepage": "https://github.com/yyykf/spellbook-skills",
+  "repository": "https://github.com/yyykf/spellbook-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "worktrees",
+    "workflow",
+    "claude-code",
+    "codex",
+    "plugin"
+  ],
+  "interface": {
+    "displayName": "Spellbook Skills",
+    "shortDescription": "Reusable engineering workflow skills, hooks, and reviewer agents for Codex.",
+    "longDescription": "Spellbook Skills packages reusable engineering workflows for coding agents, including worktree flow, branch finishing, review cleanup, TDD discipline, YApi lookup, Java DDD guidance, and a project context hook.",
+    "developerName": "code4j",
+    "category": "Development & Workflow",
+    "capabilities": [
+      "skills",
+      "hooks",
+      "workflow-guidance",
+      "review-agents"
+    ],
+    "websiteURL": "https://github.com/yyykf/spellbook-skills",
+    "privacyPolicyURL": "https://github.com/yyykf/spellbook-skills/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/yyykf/spellbook-skills/blob/main/LICENSE",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/banner.png",
+      "./assets/workflow.png"
+    ],
+    "brandColor": "#16A394"
+  },
+  "skills": "./skills/"
+}

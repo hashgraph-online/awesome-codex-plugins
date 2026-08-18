@@ -622,6 +622,10 @@ Reviewers can be added with repeatable --reviewer flags.
 --with-default-reviewers merges the repository's configured default reviewers
 into the reviewer list. On Cloud, the current user is automatically excluded.
 
+On Data Center, --source-project and --source-repo select a fork repository for
+the source branch. Each defaults to the destination project or repository when
+omitted. These flags are rejected on Bitbucket Cloud.
+
 Draft pull requests are supported on Cloud (always) and on Data Center 8.18+
 via the --draft flag.
 
@@ -644,6 +648,8 @@ bkt pr create [flags]
 | `--repo` |  | Repository slug override |
 | `--reviewer` |  | Reviewer username or {UUID} (repeatable) |
 | `--source` |  | Source branch (defaults to the current branch) |
+| `--source-project` |  | Source project key (Data Center only; defaults to --project) |
+| `--source-repo` |  | Source repository slug (Data Center only; defaults to --repo) |
 | `--target` |  | Target branch (defaults to the remote's default branch) |
 | `--title` |  | Pull request title (defaults to the first unique commit subject) |
 | `--with-default-reviewers` |  | Add repository default reviewers |
@@ -674,6 +680,10 @@ bkt pr create [flags]
 
   # Create a draft pull request
   bkt pr create --title "WIP: new feature" --draft
+
+  # Create from a Data Center fork into an upstream repository
+  bkt pr create --source-project FORK --source-repo contributor-fork \
+    --project DEST --repo upstream --source feature --target main
 ```
 
 ## bkt pr decline
@@ -848,6 +858,12 @@ When --mine is set without a specific repository, the command lists pull
 requests authored by the authenticated user across all repositories. On Data
 Center this uses the dashboard API; on Cloud it queries the workspace.
 
+--reviewer is the reviewer-facing counterpart: it shows pull requests where the
+authenticated user is a requested reviewer. Without a repository, Data Center
+lists them across all repositories via the dashboard API; Bitbucket Cloud has
+no workspace-wide reviewer endpoint, so --reviewer there requires a repository.
+--mine and --reviewer cannot be combined.
+
 **Alias:** `ls`
 
 ### Usage
@@ -864,6 +880,7 @@ bkt pr list [flags]
 | `--mine` |  | Show pull requests authored by the authenticated user |
 | `--project` |  | Bitbucket project key override |
 | `--repo` |  | Repository slug override |
+| `--reviewer` |  | Show pull requests where the authenticated user is a requested reviewer |
 | `--state` |  | Filter by state (OPEN, MERGED, DECLINED) |
 | `--workspace` |  | Bitbucket workspace override (Cloud) |
 
@@ -890,6 +907,13 @@ bkt pr list [flags]
   # List your own pull requests across all repositories
   bkt pr list --mine
 
+  # List pull requests awaiting your review (Data Center: across all
+  # repositories; Bitbucket Cloud: add --repo)
+  bkt pr list --reviewer
+
+  # List pull requests awaiting your review in a specific repository
+  bkt pr list --reviewer --repo my-repo
+
   # List pull requests with a limit
   bkt pr list --limit 50 --state OPEN
 ```
@@ -898,7 +922,7 @@ bkt pr list [flags]
 
 Merge a pull request. The source branch is closed by default (use
 --close-source=false to keep it). An optional merge strategy can be specified
-(e.g. fast-forward, squash) and a custom merge commit message can be provided.
+(e.g. fast_forward, squash) and a custom merge commit message can be provided.
 
 Works on both Data Center and Cloud. On Data Center, the current PR version
 is used for optimistic locking.
@@ -917,7 +941,7 @@ bkt pr merge <id> [flags]
 | `--message` |  | Merge commit message override |
 | `--project` |  | Bitbucket project key override |
 | `--repo` |  | Repository slug override |
-| `--strategy` |  | Merge strategy ID (e.g., fast-forward) |
+| `--strategy` |  | Merge strategy ID (e.g., rebase_fast_forward) |
 | `--workspace` |  | Bitbucket Cloud workspace override |
 
 ### Inherited Flags
@@ -940,8 +964,8 @@ bkt pr merge <id> [flags]
   # Merge with a custom commit message
   bkt pr merge 42 --message "Release v1.2.0"
 
-  # Merge using fast-forward strategy and keep source branch
-  bkt pr merge 42 --strategy fast-forward --close-source=false
+  # Merge using rebase fast-forward strategy and keep source branch
+  bkt pr merge 42 --strategy rebase_fast_forward --close-source=false
 ```
 
 ## bkt pr publish

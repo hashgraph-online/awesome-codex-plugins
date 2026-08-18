@@ -5,9 +5,8 @@ Manages the analysis/ directory convention: timestamped run folders,
 manifest.json for freshness tracking, source file hashing, retention
 pruning, and .gitignore generation.
 
-Consumed by:
-  - kicad skill (writer): creates runs, updates manifest
-  - kidoc skill (reader): loads current run data via manifest
+Consumed by the kicad skill (writer): creates runs, updates manifest.
+Other tools (diff_analysis, what_if) read runs via the manifest.
 
 Zero external dependencies -- stdlib only.
 """

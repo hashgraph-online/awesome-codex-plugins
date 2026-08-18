@@ -215,9 +215,9 @@ KiCad project to point at. One MPN per line; blank lines and `#`
 comments (full-line and inline) are skipped; generic values are filtered
 via `is_real_mpn()` and de-duplicated. Output defaults to `./datasheets/`
 in the current working directory when `--output` is omitted. Note:
-`ELEMENT14_API_KEY` is still required even in dry-run mode; see the
-v1.4 follow-up in the issue tracker if dry-run credential-independence
-matters for your workflow.
+`ELEMENT14_API_KEY` is checked unconditionally at startup, so
+`--dry-run` still requires the env var to be set even though no
+network calls are made.
 
 The script:
 - **Runs the kicad schematic analyzer** to extract components, MPNs, and distributor PNs

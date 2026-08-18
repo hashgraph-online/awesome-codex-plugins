@@ -1,0 +1,54 @@
+{
+  "name": "krypton",
+  "version": "0.3.2",
+  "description": "Goal-based planning, proof gates, and VPS setup workflows for AI coding agents.",
+  "author": {
+    "name": "jturntdev",
+    "email": "197428481+jturntdev@users.noreply.github.com",
+    "url": "https://github.com/jturntdev"
+  },
+  "homepage": "https://github.com/jturntdev/krypton",
+  "repository": "https://github.com/jturntdev/krypton",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "skills",
+    "planning",
+    "goals",
+    "goal-based-workflow",
+    "goal-based-agents",
+    "execution",
+    "architecture",
+    "code-review",
+    "pr-gate",
+    "acceptance-evidence",
+    "cutover",
+    "vps",
+    "ssh",
+    "codex-app"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Krypton",
+    "shortDescription": "Goal-based agent proof gate",
+    "longDescription": "Use Krypton as the planning and proof gate for goal-based AI coding work: outcome contracts, source-of-truth ownership, contract boundaries, cutover decisions, main-agent execution, review gates, acceptance evidence, and beta VPS setup for Codex App SSH hosts.",
+    "composerIcon": "./assets/icon.svg",
+    "developerName": "jturntdev",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Turn this feature request into a Krypton plan.",
+      "Execute this approved Krypton plan.",
+      "Check this pull request for a Krypton goal package.",
+      "Set up a VPS as a Codex App SSH host."
+    ],
+    "websiteURL": "https://github.com/jturntdev/krypton",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "brandColor": "#7C3AED"
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Service Security"
+  short_description: "Review Rust web auth, cookies, and sessions"
+  default_prompt: "Review or implement secure auth behavior in this Rust service."

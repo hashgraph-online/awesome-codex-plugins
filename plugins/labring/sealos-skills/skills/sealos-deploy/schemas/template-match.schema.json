@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.sh/sealos-deploy/schemas/template-match.schema.json",
+  "title": "Sealos Deploy Template Match Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "generated_at",
+    "matched",
+    "materialized",
+    "repo",
+    "template",
+    "args",
+    "source",
+    "template_path",
+    "reason"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "matched": {
+      "type": "boolean"
+    },
+    "materialized": {
+      "type": "boolean"
+    },
+    "repo": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reference",
+            "github_url"
+          ],
+          "properties": {
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "github_url": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "template": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "title"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "args": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "config",
+        "catalog",
+        "none"
+      ]
+    },
+    "template_path": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": ".sealos/template/index.yaml"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

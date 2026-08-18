@@ -27,6 +27,15 @@ When relevant, route into these companion skills:
 - `frappe-doctype-design`
 - `frappe-search`
 - `frappe-erpnext`
+- `frappe-crm`
+- `frappe-helpdesk`
+- `frappe-lms`
+- `frappe-gameplan`
+- `frappe-drive`
+- `frappe-hrms`
+- `frappe-insights`
+- `frappe-builder`
+- `frappe-payments`
 
 Be opinionated about:
 - not restarting an already running bench

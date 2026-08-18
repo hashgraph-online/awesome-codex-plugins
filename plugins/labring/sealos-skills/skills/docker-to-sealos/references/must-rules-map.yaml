@@ -44,6 +44,10 @@ must_rules:
     enforcement:
       type: rule
       target: R023
+  - must: "For public images that are verified to run as a non-root UID, managed app workloads and init Jobs should set restricted-compatible security context (`runAsNonRoot`, `runAsUser`, `runAsGroup`, `fsGroup`, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`) unless the image requires root or extra capabilities."
+    enforcement:
+      type: manual
+      note: "Requires verified image UID and runtime security-context compatibility evidence."
   - must: "App resource must use `spec.data.url`."
     enforcement:
       type: rule
@@ -56,6 +60,14 @@ must_rules:
     enforcement:
       type: rule
       target: R033
+  - must: "App resource `spec.data.url` must be the browser entry URL that succeeds from a fresh Sealos launch. For apps with safe-path, setup-path, or entrance-path behavior, verify the configured path and root path, then choose the URL that supports login or first-run setup without hidden prior navigation."
+    enforcement:
+      type: manual
+      note: "Requires live Sealos App URL smoke from a fresh browser/session."
+  - must: "SSR/Next.js/React server apps must not use a path that renders a server-side exception as the App URL or HTTP probe. Treat visible `Application error`, `server-side exception`, `Internal Server Error`, or `Unhandled Runtime Error` text as a failed entry path even if the HTTP status is 2xx/3xx."
+    enforcement:
+      type: manual
+      note: "Requires HTTP body/runtime smoke inspection, covered by sealos-live-smoke failure signals."
   - must: "Never use `spec.template` in App resource."
     enforcement:
       type: rule
@@ -80,6 +92,26 @@ must_rules:
     enforcement:
       type: rule
       target: R030
+  - must: "ConfigMap data keys must follow vn naming (`scripts/path_converter.py`), including `/`, `-`, `.`, and other special characters."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "ConfigMaps mounted by managed Deployment/StatefulSet workloads must use `metadata.name == workload.metadata.name`."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "ConfigMap workload volumes must use `<workload-name>-cm`, and every ConfigMap `data` key must be mounted as its own `volumeMount` with `subPath` exactly equal to that key."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "Omit ConfigMap volume `defaultMode` in managed templates. Invoke mounted scripts through `/bin/sh /path/script`; copy to persistent storage and apply `chmod` in an initContainer when an application truly requires an executable file."
+    enforcement:
+      type: rule
+      target: R043
+  - must: "Avoid long inline startup scripts or heredocs in `command`/`args`; place initialization/start scripts in ConfigMap files and invoke them with a short command."
+    enforcement:
+      type: manual
+      note: "Requires semantic length/intent review of startup command content."
   - must: "Application `Service` resources must use the same component name across `metadata.name`, `metadata.labels.app`, `metadata.labels.cloud.sealos.io/app-deploy-manager`, and `spec.selector.app`."
     enforcement:
       type: rule
@@ -88,6 +120,14 @@ must_rules:
     enforcement:
       type: rule
       target: R031
+  - must: "Root-path `Ingress` resources (`pathType: Prefix`, `path: /`) must use `backend.service.port.number`, and the number must match a declared `spec.ports[*].port` on the referenced application `Service`."
+    enforcement:
+      type: rule
+      target: R051
+  - must: "Root-path Prefix routes must be the first entry in each HTTP `paths` list so Launchpad public-address discovery selects the application entry route."
+    enforcement:
+      type: rule
+      target: R051
   - must: "Service `spec.ports[*].name` must be explicitly set (required for multi-port services)."
     enforcement:
       type: rule
@@ -96,6 +136,10 @@ must_rules:
     enforcement:
       type: rule
       target: R026
+  - must: "WebSocket Ingress must include required nginx annotations (`kubernetes.io/ingress.class`, `nginx.ingress.kubernetes.io/proxy-body-size`, `nginx.ingress.kubernetes.io/proxy-read-timeout`, `nginx.ingress.kubernetes.io/proxy-send-timeout`, `nginx.ingress.kubernetes.io/backend-protocol`, `nginx.ingress.kubernetes.io/ssl-redirect`) with `backend-protocol: WS` and `3600` read/send timeouts."
+    enforcement:
+      type: rule
+      target: R048
   - must: "CronJob resources must define labels `cloud.sealos.io/cronjob`, `cronjob-launchpad-name`, and `cronjob-type`; `cloud.sealos.io/cronjob` must equal `metadata.name`, `cronjob-launchpad-name` must be `\"\"`, and `cronjob-type` must be `image`."
     enforcement:
       type: rule
@@ -112,6 +156,30 @@ must_rules:
     enforcement:
       type: manual
       note: "Conflict resolution depends on semantic comparison plus platform/security guardrails."
+  - must: "For existing-template updates, preserve the current template's topology-bearing resource inventory, conditions, and replica counts; for new conversions, preserve the selected Compose topology and `deploy.replicas` values."
+    enforcement:
+      type: rule
+      target: R050
+  - must: "Use official Kubernetes docs/manifests to align application runtime semantics; add optional or recommended workers, caches, and HA replicas only when the selected source topology or explicit user intent includes them."
+    enforcement:
+      type: rule
+      target: R050
+  - must: "Each application feature input must gate only resources and settings for that documented feature; database and object-storage inputs must not change unrelated workload inventory or replica counts."
+    enforcement:
+      type: rule
+      target: R050
+  - must: "Topology-sensitive validation must provide `.sealos/topology-evidence/<app-name>.yaml` as validator-only `TopologyEvidence`; final Sealos Template artifacts must stay free of topology validator metadata."
+    enforcement:
+      type: rule
+      target: R050
+  - must: "When official compose/docs provide a multi-component runtime bundle, template artifacts must preserve runtime-required components, public entry routes, critical env vars, and image versions from the same official release/compose source."
+    enforcement:
+      type: rule
+      target: R046
+  - must: "Templates using official multi-component runtime evidence must provide a separate `RuntimeBundleEvidence` YAML file during validation, while final Sealos Template artifacts stay free of runtime-bundle validator metadata."
+    enforcement:
+      type: rule
+      target: R046
   - must: "Do not use `:latest`."
     enforcement:
       type: rule
@@ -132,7 +200,7 @@ must_rules:
     enforcement:
       type: rule
       target: R015
-  - must: "Public-image managed app workloads must omit `template.spec.imagePullSecrets`; private-registry workloads may reference only the app-scoped pull Secret `${{ defaults.app_name }}`."
+  - must: "Known public-image managed app workloads must omit `template.spec.imagePullSecrets`; when a registry-authenticated workload needs a pull Secret, it may reference only the app-scoped Secret `${{ defaults.app_name }}`."
     enforcement:
       type: rule
       target: R035
@@ -144,6 +212,10 @@ must_rules:
     enforcement:
       type: rule
       target: R006
+  - must: "If a workload emits PodSecurity admission warnings and the image runs as a non-root user, add the restricted-compatible security context before reporting the template ready."
+    enforcement:
+      type: manual
+      note: "Requires live PodSecurity warning and image UID evidence."
   - must: "Do not use `emptyDir`."
     enforcement:
       type: rule
@@ -152,19 +224,80 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires intent-level storage-need inference for each service."
+  - must: "StatefulSet resources with `volumeClaimTemplates` must keep standard workload labels such as `app` and `cloud.sealos.io/app-deploy-manager`, and omit only `cloud.sealos.io/deploy-on-sealos` from both StatefulSet `metadata.labels` and `volumeClaimTemplates[].metadata.labels`."
+    enforcement:
+      type: rule
+      target: R056
+  - must: "`volumeClaimTemplates[].metadata` must include a path-derived `name`, `annotations.path`, and `annotations.value: '1'`, and each claim must match a container `volumeMount` with the same name and path."
+    enforcement:
+      type: rule
+      target: R056
   - must: "PVC request must be `<= 1Gi` unless source spec explicitly requires less."
     enforcement:
       type: rule
       target: R011
-  - must: "ConfigMap keys and volume names must follow vn naming (`scripts/path_converter.py`)."
+  - must: "Classify object storage from official application docs before generating inputs: required capability, application-level optional capability, or externally managed storage."
     enforcement:
       type: manual
-      note: "Needs deterministic vn-name mapping checks against path semantics."
+      note: "Requires semantic review of official application storage modes."
+  - must: "When object storage is required and Sealos S3 compatibility satisfies the application contract, create unconditional `ObjectStorageBucket` resources for the documented bucket topology and inject Sealos object-storage secrets."
+    enforcement:
+      type: manual
+      note: "Requires application-specific compatibility review and object-storage env mapping."
+  - must: "A template with managed `ObjectStorageBucket` must use it as the sole object-store data plane and omit bundled MinIO server workloads, Services, Ingresses, PVCs, and local object-storage credentials."
+    enforcement:
+      type: manual
+      note: "Requires application-specific topology and credential review beyond statically identifiable MinIO server images."
+  - must: "Resolve object-storage provider/backend selector inputs during conversion, and do not combine a managed `ObjectStorageBucket` with bundled `minio/minio`, `bitnami/minio`, or `bitnamilegacy/minio` server images."
+    enforcement:
+      type: rule
+      target: R044
+  - must: "The false branch of an optional object-storage input must configure the storage-disabled/local mode documented by the official source."
+    enforcement:
+      type: rule
+      target: R044
+  - must: "Use a compatibility proxy only when official protocol evidence requires request adaptation."
+    enforcement:
+      type: manual
+      note: "Requires semantic review of the official protocol contract."
+  - must: "An object-storage compatibility proxy must declare `metadata.annotations.docker-to-sealos.object-storage-compatibility-proxy-source` as a credential-free HTTPS source URL or `user-request:<reference>`, remain stateless, and omit persistent volumes."
+    enforcement:
+      type: rule
+      target: R044
+  - must: "External S3/object-storage credential inputs require `metadata.annotations.docker-to-sealos.external-object-storage-source` as a credential-free HTTPS source URL or `user-request:<reference>`, and must not coexist with `ObjectStorageBucket`."
+    enforcement:
+      type: rule
+      target: R047
+  - must: "Managed or private object-storage acceptance must prove authenticated application upload and read/download with matching content, application-proxy or time-bounded presigned delivery, and restricted raw anonymous access; optional object storage must pass both local-storage and managed-bucket branches."
+    enforcement:
+      type: manual
+      note: "Requires authenticated live application traffic, content comparison, and raw object-endpoint access checks for each storage branch."
+  - must: "If object storage/S3 integration is Enterprise, paid, commercial, subscription, or license-gated in the upstream application, keep the public template on the community-supported storage path (for example filesystem/PVC) and expose no standard `ObjectStorageBucket` or S3 input for that feature."
+    enforcement:
+      type: rule
+      target: R049
   - must: "Non-database sensitive values/inputs use direct `env[].value`."
     enforcement:
       type: manual
       note: "Sensitive-value classification requires semantic analysis of env names and source intent."
-  - must: "Business containers must source database connection fields (`endpoint`, `host`, `port`, `username`, `password`) from approved Kubeblocks database secrets via `env[].valueFrom.secretKeyRef`; exception: Redis `host`/`port` may use Sealos Redis Service FQDN and `6379` when the Redis secret only exposes credentials, and MongoDB connection URLs may use the Sealos MongoDB Service FQDN plus `27017` when the MongoDB secret exposes credentials only."
+  - must: "When an official runtime profile constrains an env value's format or length, use a valid literal or a required input without a generated default; bare `${{ random(n) }}` is invalid for hex- or encoding-constrained values."
+    enforcement:
+      type: rule
+      target: R053
+  - must: "Internal credentials that an official runtime library can deterministically derive from opaque entropy may use a quoted instance seed in `spec.defaults`; every consuming role must derive and validate the same final values, remove the seed before exec, and expose no user input for the derived values."
+    enforcement:
+      type: manual
+      target: R053
+      note: "Requires app-specific cryptographic derivation, cross-role consistency, child-process environment, and live runtime validation."
+  - must: "Persisted runtime-secret contracts marked with `docker-to-sealos.runtime-secret-contract: persisted` must generate from durable runtime entropy, apply restrictive permissions with an atomic replacement, validate before `exec`, and keep the final secret out of diagnostics."
+    enforcement:
+      type: rule
+      target: R058
+  - must: "When an official runtime profile selects an external provider, the workload must wire a non-empty required credential for that provider; an optional input with an empty default is invalid."
+    enforcement:
+      type: rule
+      target: R054
+  - must: "Business containers must source database connection fields (`endpoint`, `host`, `port`, `username`, `password`) from approved Kubeblocks database secrets via `env[].valueFrom.secretKeyRef`; exception: Redis `host`/`port` may use Sealos Redis Service FQDN and `6379` when the Redis secret only exposes credentials, and MongoDB `host`/`port` or connection URLs may use the Sealos MongoDB Service FQDN plus `27017` when the MongoDB secret exposes credentials only."
     enforcement:
       type: rule
       target: R017
@@ -188,6 +321,10 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires per-application canonical env dictionary from upstream docs."
+  - must: "For split frontend/API/gateway apps, keep public browser URLs and internal service URLs separate. Frontend/browser callback variables use `https://${{ defaults.<host> }}.${{ SEALOS_CLOUD_DOMAIN }}`; backend-to-backend variables use `http://<service>.$(SEALOS_NAMESPACE).svc.cluster.local:<port>` or the fully rendered Service FQDN."
+    enforcement:
+      type: manual
+      note: "Requires app-specific URL topology review across frontend, API, gateway, and worker env vars."
   - must: "When the application requires its public URL configured via a file-based config system (e.g., node-config `config/default.json`, PHP config files), create a ConfigMap containing the config file with the public URL set to `https://${{ defaults.app_host }}.${{ SEALOS_CLOUD_DOMAIN }}`, and mount it to the application's config directory. The ConfigMap must follow standard naming and label conventions."
     enforcement:
       type: manual
@@ -196,6 +333,34 @@ must_rules:
     enforcement:
       type: rule
       target: R027
+  - must: "Database client images may be used in app `initContainers` and init/migration/bootstrap Jobs for readiness and bootstrap gates."
+    enforcement:
+      type: rule
+      target: R039
+  - must: "For application-specific database compatibility, include an initContainer or startup gate that idempotently creates or repairs required views, aliases, indexes, extensions, privileges, role search paths, and legacy compatibility objects before the business container starts."
+    enforcement:
+      type: manual
+      note: "Requires app-specific runtime/database semantic review and live DB-state verification."
+  - must: "When an official runtime profile declares a database final-state requirement, include an initContainer gate that waits for the database and verifies the required extension or object before the business container starts."
+    enforcement:
+      type: rule
+      target: R055
+  - must: "Managed app main container `command`/`args` must stay close to the image's official entrypoint. Keep only official startup commands, Compose-native args, or a short exec wrapper; move file preparation, permission repair, database bootstrap, and compatibility self-healing into initContainers, Jobs, or ConfigMap scripts."
+    enforcement:
+      type: rule
+      target: R042
+  - must: "Shell wrappers in the main business container must `exec` the final process so signal handling remains correct."
+    enforcement:
+      type: rule
+      target: R042
+  - must: "Database bootstrap SQL must be safe under shell execution: prefer shell-level guard queries plus simple SQL, use single-quoted heredocs for psql variables, and avoid unguarded inline `DO $$` blocks."
+    enforcement:
+      type: manual
+      note: "Requires review of init Job/initContainer shell scripts and SQL quoting."
+  - must: "`psql -c` must not contain `:'var'` psql variable syntax; use heredocs for SQL that needs `-v` interpolation."
+    enforcement:
+      type: manual
+      note: "Requires psql command-form review."
   - must: "Database services must use KubeBlocks `Cluster` resources, not application `Deployment` or `StatefulSet` workloads. `StatefulSet` is allowed for stateful application components only, never for PostgreSQL/MySQL/MongoDB/Redis/Kafka database services."
     enforcement:
       type: rule
@@ -216,7 +381,7 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires label presence checks scoped to PostgreSQL RBAC resources."
-  - must: "Every KubeBlocks database `Cluster` must include `kb.io/database`, `sealos-db-provider-cr`, and `clusterdefinition.kubeblocks.io/name` labels; `sealos-db-provider-cr` must equal `metadata.name`."
+  - must: "Every KubeBlocks database `Cluster` must include `kb.io/database`, `sealos-db-provider-cr`, and `clusterdefinition.kubeblocks.io/name` labels; `sealos-db-provider-cr` must equal `metadata.name` so dbprovider can list and classify the database. Related Pods, Services, and OpsRequests should carry `app.kubernetes.io/instance=<database name>` for detail views."
     enforcement:
       type: rule
       target: R040
@@ -230,8 +395,8 @@ must_rules:
       note: "Requires deep PostgreSQL Cluster schema validation."
   - must: "MongoDB cluster must follow upgraded structure (`componentDef: mongodb`, `serviceVersion: 8.0.4`, labels `kb.io/database` and `app.kubernetes.io/instance`)."
     enforcement:
-      type: manual
-      note: "Requires schema-level validation for MongoDB cluster fields."
+      type: rule
+      target: R057
   - must: "MySQL cluster must follow upgraded structure (`kb.io/database: ac-mysql-8.0.30-1`, `clusterDefinitionRef: apecloud-mysql`, `clusterVersionRef: ac-mysql-8.0.30-1`, `tolerations: []`)."
     enforcement:
       type: manual
@@ -248,42 +413,46 @@ must_rules:
     enforcement:
       type: rule
       target: R038
-  - must: "Do not treat a short smoke test as proof of a stable minimum memory value."
+  - must: "The final CPU and memory limits must be the lowest Sealos ladder tiers that pass role-specific personal low-load validation, while an explicit source hard minimum remains the lower bound."
     enforcement:
       type: manual
-      note: "Review browser/remote desktop templates and smoke evidence before lowering memory."
-  - must: "Validate memory with a fresh deployment, not only a patched warm pod."
+      note: "Requires role-specific runtime evidence for the selected minimum tiers."
+  - must: "Tune CPU and memory separately, one ladder step at a time, and use a fresh rollout or cold execution for every candidate."
     enforcement:
       type: manual
-      note: "Requires deployment evidence outside static YAML validation."
-  - must: "Exercise cold start until readiness, a lightweight page, a real/medium page, an interactive/search page, and a 60s post-smoke stability check."
+      note: "Requires review of the tuning sequence and fresh candidate executions."
+  - must: "A passing long-running workload must complete cold start, become Ready, complete registration or login when applicable, complete at least two representative low-load actions, and remain stable for 60 seconds with zero `OOMKilled` terminations, restarts, readiness flaps, or resource-related timeouts."
     enforcement:
       type: manual
-      note: "Requires runtime smoke coverage evidence."
-  - must: "If observed cgroup memory reaches more than 80% of the limit during smoke, move to the next allowed Sealos memory ladder value."
+      note: "Requires end-to-end runtime and stability evidence."
+  - must: "A passing one-shot initContainer or Job must complete successfully from a cold run and allow every dependent workload to become Ready."
     enforcement:
       type: manual
-      note: "Requires runtime memory observation."
+      note: "Requires cold execution and dependent workload readiness evidence."
+  - must: "If a lower tier fails any acceptance signal, use the next passing tier and repeat final validation from a fresh rollout."
+    enforcement:
+      type: manual
+      note: "Requires failure evidence and a final fresh validation at the selected tier."
+  - must: "Treat observed CPU and memory peaks and utilization percentages as diagnostic evidence; acceptance failures trigger tier promotion."
+    enforcement:
+      type: manual
+      note: "Requires runtime metrics and acceptance evidence."
   - must: "Keep requests derived from limits according to the Sealos resource ladder."
     enforcement:
       type: rule
       target: R038
-  - must: "Bad: Chrome passes a short smoke at `512Mi` but reaches `503Mi`; shipping `512Mi` as the stable minimum is unsafe."
+  - must: "Apply browser-specific validation only to containers that run Chrome, Chromium, VNC, WebRTC desktop, Xvfb, Selkies, noVNC, Kasm, or a similar remote-desktop stack; browser-accessed web applications such as Langflow use the general personal low-load policy."
     enforcement:
       type: manual
-      note: "Negative example for reviewer guidance."
-  - must: "Good: raise to `1024Mi`, set request to `102Mi`, rerun smoke and stability checks."
+      note: "Requires workload classification from the image and runtime process stack."
+  - must: "Exercise cold start through readiness, a lightweight page, a real or medium page, an interactive or search action, and the 60-second stability window."
     enforcement:
       type: manual
-      note: "Positive example for reviewer guidance."
-  - must: "limits: `cpu=200m`, `memory=1024Mi`"
+      note: "Requires browser or remote-desktop interaction evidence."
+  - must: "For Chrome + Xvfb + Selkies with a 4K maximum display, start validation at `limits(cpu=200m,memory=1024Mi)` with derived `requests(cpu=20m,memory=102Mi)`, then test adjacent ladder tiers under the same acceptance contract."
     enforcement:
       type: manual
-      note: "Browser/remote desktop minimum; applied when source workload matches that class."
-  - must: "requests: `cpu=20m`, `memory=102Mi`"
-    enforcement:
-      type: manual
-      note: "Browser/remote desktop minimum request; applied when source workload matches that class."
+      note: "Requires browser-specific ladder testing from the initial candidate."
   - must: "MongoDB: `${{ defaults.app_name }}-mongo-mongodb-account-root` (or `${{ defaults.app_name }}-mongodb-mongodb-account-root` when the MongoDB cluster name uses `-mongodb`)"
     enforcement:
       type: rule
@@ -308,6 +477,10 @@ must_rules:
     enforcement:
       type: rule
       target: R038
+  - must: "Do not add, delete, or change existing `ephemeral-storage` resource fields during existing-template updates unless runtime evidence identifies ephemeral storage pressure; preserve the original requests/limits values while tuning CPU and memory."
+    enforcement:
+      type: manual
+      note: "Requires diff review against the source template or runtime evidence for ephemeral storage pressure."
   - must: "`revisionHistoryLimit: 1`"
     enforcement:
       type: rule
@@ -324,7 +497,51 @@ must_rules:
     enforcement:
       type: manual
       note: "Requires semantic classification of user-supplied versus generated values."
+  - must: "Classify the selected release's account flow as functional first-user signup, mandatory bootstrap credentials, or optional root reconciliation before defining administrator inputs."
+    enforcement:
+      type: manual
+      note: "Requires exact-release account-flow evidence from official sources."
+  - must: "When functional first-user signup is available and optional deploy-time administrator credentials have startup-fatal constraints beyond the Template input schema, use signup and omit administrator/root inputs plus their bootstrap env/config injection."
+    enforcement:
+      type: manual
+      note: "Requires app-specific signup and startup-validation evidence."
+  - must: "When mandatory bootstrap credentials are deployer-selected, declare the documented username or email and password fields in `spec.inputs` as required inputs with no `default`, describe the exact upstream constraints in English, validate the collected values before Template API deployment, and use the same values for live login. Keep database credentials on KubeBlocks secrets."
+    enforcement:
+      type: manual
+      note: "Requires app-specific bootstrap constraints and pre-deploy validation."
+  - must: "When mandatory bootstrap credentials are generated by the supported runtime, construct and validate the exact documented format deterministically, omit administrator inputs unless user selection is documented, retain the resolved credential through a Secret or live runtime source, and use it for redacted live login."
+    enforcement:
+      type: manual
+      note: "Requires app-specific generated-bootstrap evidence, Secret wiring, and redacted live authentication."
+  - must: "Prefer functional first-user signup over optional root reconciliation. Preserve mandatory bootstrap flows such as Frappe when the selected source requires them."
+    enforcement:
+      type: manual
+      note: "Requires semantic review of the selected release's supported account flows."
+  - must: "Every `${{ inputs.<name> }}` reference in a template artifact must have a matching `spec.inputs.<name>` declaration in the same Template CR."
+    enforcement:
+      type: rule
+      target: R045
+  - must: "Every `spec.defaults.<name>.value` and every present `spec.inputs.<name>.default` in a Template CR must deserialize as a YAML string, regardless of the declared input type; quote numeric-, boolean-, and null-like scalars, while omitting `default` remains valid for required inputs."
+    enforcement:
+      type: rule
+      target: R052
   - must: "`inputs.description` must be in English."
     enforcement:
       type: manual
       note: "Requires language detection over input description fields in generated templates."
+  - must: "Startup-critical generated defaults must satisfy the application's documented validation with deterministic format construction. Use generated mandatory bootstrap only when the selected runtime documents deterministic generation and the resolved credential remains available through a Secret or live runtime source for redacted login. Keep first-user signup credentials in the registration flow."
+    enforcement:
+      type: manual
+      note: "Requires app-specific startup validation evidence for generated defaults."
+  - must: "Classify startup configuration-validation exits and repair the account-flow contract before resource tuning. Preserve every user-provided credential byte-for-byte between pre-deploy validation and live login."
+    enforcement:
+      type: manual
+      note: "Requires runtime failure classification and credential-flow verification."
+  - must: "For application-level optional object storage documented by the official source, use a boolean input (for example `enable_s3_storage`) and test with `inputs.<name> === 'true'`. Resolve provider/backend/type/mode/driver selection during conversion and keep those selectors out of `spec.inputs`."
+    enforcement:
+      type: rule
+      target: R044
+  - must: "Optional-managed database contracts marked with `docker-to-sealos.database-mode: optional-managed` must share one boolean condition across the managed Cluster plane and database wiring while defining the documented SQLite or local false branch."
+    enforcement:
+      type: rule
+      target: R059

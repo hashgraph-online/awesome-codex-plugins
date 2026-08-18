@@ -1,6 +1,6 @@
 # test
 
-Test generation, coverage analysis, and TDD workflow. Triggers: "test", "generate tests", "test coverage", "write tests", "tdd", "add tests", "test strategy", "missing tests", "coverage gaps".
+Generate tests and coverage plans. Triggers: "test", "generate tests and coverage plans.", "test skill".
 
 ## Instructions
 

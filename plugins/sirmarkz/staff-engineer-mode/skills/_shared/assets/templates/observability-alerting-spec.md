@@ -25,18 +25,18 @@
 
 ## Alert Policy
 
-| Alert | Urgent/Follow-Up/Diagnostic | Trigger | Runbook | Response |
-| --- | --- | --- | --- | --- |
+| Alert | Urgent/Follow-Up/Diagnostic | Trigger | Urgent Basis | Imminent Harm Evidence | Window | Runbook | Response |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Maintenance Suppression Guard
 
 | Window Or Change | Muted Signal | Owner | Expiry | Replacement Signal | Residual Blind Spot |
 | --- | --- | --- | --- | --- | --- |
 
-## Structured Logs And Events
+## Structured Logs, Events, And Record Safety
 
-| Field | Source | Sensitive? | Standard Or Rule |
-| --- | --- | --- | --- |
+| Record Class Or Field | Purpose | Source | Applicable Correlation Identifier | No Dummy Identifier Rule | Classification | Prohibited Fields | Redaction/Tokenization | Access | Retention/Disposal | Integrity | Volume Bound |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Telemetry Volume And Quota Budget
 

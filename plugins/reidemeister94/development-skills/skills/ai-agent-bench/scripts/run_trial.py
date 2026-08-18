@@ -25,7 +25,7 @@ import subprocess
 import sys
 import time
 import tomllib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -92,7 +92,7 @@ def append_anomaly(
         path.write_text(ANOMALY_HEADER)
 
     existing = path.read_text()
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
 
     section_header = ""
     if run_context:
@@ -132,7 +132,7 @@ def append_anomaly(
 
 def update_status(run_dir: Path, phase: str) -> None:
     """Append a phase transition. Read by the monitor.py sidecar for heartbeat."""
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     with (run_dir / "status.txt").open("a") as f:
         f.write(f"{ts}\t{phase}\n")
 
@@ -175,9 +175,6 @@ def build_agent_command(agent: str, prompt: str, worktree: Path, run_dir: Path) 
             str(worktree),
             prompt,
         ]
-    if agent == "opencode":
-        # Stub — parser captures nothing meaningful yet.
-        return ["bash", "-c", 'echo \'{"type":"opencode_stub","note":"parser not implemented"}\'']
     raise ValueError(f"unknown agent: {agent}")
 
 
@@ -212,7 +209,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--repo", type=Path, required=True)
     ap.add_argument("--config", type=Path, required=True)
-    ap.add_argument("--agent", choices=["claude", "codex", "opencode"], required=True)
+    ap.add_argument("--agent", choices=["claude", "codex"], required=True)
     ap.add_argument("--run", required=True)
     ap.add_argument("--output-base", type=Path)
     ap.add_argument("--skip-pre", action="store_true")
@@ -299,7 +296,7 @@ def main() -> int:
     start_sha = sha.strip()
 
     # Preflight: agent CLI present
-    if not args.skip_agent and args.agent != "opencode" and shutil.which(args.agent) is None:
+    if not args.skip_agent and shutil.which(args.agent) is None:
         append_anomaly(
             repo,
             title="agent CLI missing",
@@ -638,7 +635,7 @@ def main() -> int:
                         disposition="logged and continuing",
                         run_context=run_context,
                     )
-            except (json.JSONDecodeError, OSError):
+            except json.JSONDecodeError, OSError:
                 pass
 
         update_status(run_dir, "done")

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit Frontend Design"
+  short_description: "Audit frontend design quality before editing UI"
+  default_prompt: "Audit this frontend with Memi and return prioritized evidence-backed fixes."

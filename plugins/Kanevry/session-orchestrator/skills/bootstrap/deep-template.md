@@ -396,6 +396,38 @@ Closes #
 
 ---
 
+## Step D5.5: GitHub Mirror Remote
+
+Establishes the `github` remote convention at repo-creation time, so that later mirror-push (session-end §4.4) and mirror-drift auditing (repo-audit `github-mirror-sync`, see below) have something to work against from day one. Skip this step if `VCS = none`.
+
+Run this step when either condition holds:
+- `VCS = gitlab` (GitHub is the natural mirror target for a GitLab-primary repo), OR
+- `mirror: github` is already set in Session Config (an explicit mirror signal, regardless of primary VCS).
+
+Otherwise (`VCS = github` with no mirror signal), skip — the repo's primary remote already IS GitHub, so no mirror is needed.
+
+```bash
+if ! git remote | grep -q '^github$'; then
+  git remote add github https://github.com/<org>/<repo>.git
+  echo "GitHub mirror remote added: github -> https://github.com/<org>/<repo>.git"
+else
+  echo "GitHub mirror remote already present — skipping."
+fi
+
+# Best-effort: establish github/HEAD so repo-audit's github-mirror-sync check can
+# resolve the mirror's default branch. No-op while the mirror is still empty (the
+# GitHub repo may not exist yet); becomes effective once the mirror has content.
+# Never abort bootstrap on failure.
+git fetch github --quiet 2>/dev/null || true
+git remote set-head github --auto 2>/dev/null || true
+```
+
+Replace `<org>/<repo>` with the actual mirror's org/repo slug before running — this step only records the remote pointer, it does not create the GitHub repo itself (that is an out-of-band operator action, e.g. `gh repo create`). No push happens here: the first (and every subsequent) `git push github HEAD` happens at session-end Step 4.4 (`skills/session-end/SKILL.md` § "4.4 GitHub Mirror"), gated on the same `mirror: github` Session Config key. If the remote add fails (e.g. `github` already points elsewhere), log and continue — do not abort bootstrap. The `git fetch`/`set-head` lines are best-effort: until the mirror actually has commits, `github/HEAD` will not resolve and the `github-mirror-sync` audit check simply skips-as-pass (it never false-fails). The `github-mirror-sync` check also falls back to the local default branch, so it works after the first push even if `set-head` was skipped.
+
+**See also:** repo-audit's `github-mirror-sync` check (`scripts/lib/harness-audit/categories/category6.mjs`, Category 6 / Config Hygiene) WARNS post-hoc when local commits have not reached this `github` remote. This step establishes the convention; the audit check is its enforcement counterpart.
+
+---
+
 ## Step D6: Branch Protection
 
 Invoke exactly ONE API call to set branch protection on `main`. Skip this step if `VCS = none`.
@@ -462,7 +494,9 @@ Canonical implementation in [`_shared-template.md#parallel-sessions-rule`](_shar
 
 Write the vendored rule from `$PLUGIN_ROOT/templates/_shared/rules/parallel-sessions.md` to
 `$REPO_ROOT/.claude/rules/parallel-sessions.md` (idempotent: missing→create, identical→skip,
-differs→overwrite). See shared partial for full shell command. Issue #155.
+differs→overwrite). The shared partial also runs
+`cp "$PLUGIN_ROOT/templates/_shared/loop.md" "$REPO_ROOT/.claude/loop.md"` so bare `/loop` gets a
+repo-aware maintenance prompt. See shared partial for full shell command. Issues #155, #633.
 
 Note: Runs before D99. If D99 (via inherited S99) fetches a newer `parallel-sessions.md` from
 the baseline, the baseline version wins (acceptable — S99 is canonical).

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "claude-code-local": {
+      "type": "stdio",
+      "command": "__CONFIGURED_BY_INSTALLER__",
+      "args": []
+    }
+  }
+}

@@ -18,7 +18,7 @@ For each wave, define agents with:
 
 - `Isolation: worktree` means the wave-executor will pass `isolation: "worktree"` to the Agent tool, giving each agent its own git worktree copy
 - `MaxTurns` is enforced via the agent prompt — wave-executor includes a turn limit instruction in each agent's prompt
-- `status` is the mission-status enum value for this wave-plan item (#340). Always `brainstormed` in the initial plan. Wave-executor updates it at gate transitions (validated → in-dev → testing → completed). Values are validated against `scripts/lib/mission-status-schema.mjs`. Rollback to `brainstormed` is allowed from any state.
+- `status` is the mission-status enum value for this wave-plan item (#340). Always `brainstormed` in the initial plan. Wave-executor updates it at gate transitions (validated → in-dev → testing → completed). Rollback to `brainstormed` is allowed from any state. The five values are listed in `SKILL.md` § Mission-Status Enum; nothing validates them mechanically — `setMissionStatus` writes the string it is given to both STATE.md surfaces on purpose, so keeping the value in-enum is the coordinator's job.
 
 > **Deconfliction rule:** Before finalizing agent specs for a wave, verify that no two agents in the same wave list overlapping `Files:` paths. If overlap is found, either merge the agents into one or move one task to a later wave. Two agents editing the same file in parallel causes merge conflicts that require manual resolution.
 
@@ -31,6 +31,8 @@ For each wave, define agents with:
 | deep | 6-8 | 6-10 | 6-8 | 6 | 2-4 |
 
 Read `agents-per-wave` from Session Config to cap the maximum.
+
+> **The Quality column is a CAP, not a target.** Quality capacity is need-gated: the effective count is `min(<column cap>, ceil((HIGH + MED gaps from the most recent qa-strategist run) / 3))`. 0 gaps → 0 test-writing tasks and the wave is skipped (the read-only review panel is unaffected); no qa-strategist signal at all → a conservative 1-2, never the blind cap. Full rule: `SKILL.md` § Agent Count by Tier footnote.
 
 > **Note:** For feature and deep sessions, prefer the complexity-based agent counts from Step 3. This table provides defaults when complexity scoring is skipped (housekeeping) or as a fallback.
 

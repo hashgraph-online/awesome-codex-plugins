@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "produced_for_run_id": "20260427T120000Z-abc123",
+  "produced_at": "2026-04-27T12:00:00Z",
+  "annotations": [
+    {
+      "finding_id": "sch:VM-001:u3",
+      "status": "confirmed",
+      "reason": "VCC at 5V exceeds U3 recommended_operating_max of 3.6V — design issue confirmed.",
+      "confidence": "high",
+      "reviewed_at": "2026-04-27T12:00:00Z"
+    },
+    {
+      "finding_id": "sch:PU-001:r5",
+      "status": "suppressed",
+      "reason": "I2C bus operates at 100 kHz; 10k pull-up is correct per design intent (not the heuristic 4.7k default).",
+      "confidence": "medium",
+      "reviewed_at": "2026-04-27T12:00:00Z"
+    }
+  ],
+  "reviewer_observations": []
+}

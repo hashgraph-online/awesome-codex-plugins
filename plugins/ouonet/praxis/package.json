@@ -1,6 +1,32 @@
 {
-  "name": "praxis",
-  "version": "2.3.2",
+  "name": "@ouonet/praxis",
+  "version": "4.2.3",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "main": ".opencode/plugins/praxis.js"
+  "main": ".opencode/plugins/praxis.js",
+  "bin": {
+    "praxis": "bin/praxis.js"
+  },
+  "keywords": [
+    "triage",
+    "discipline",
+    "skills",
+    "agent",
+    "coding",
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "check": "node --test test/invariants.test.js"
+  }
 }

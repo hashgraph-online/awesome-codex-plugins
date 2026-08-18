@@ -6,29 +6,15 @@ import csv
 import json
 import os
 import re
-import urllib.request
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Set
+
+from check_access_paths import PageManifestStore, fetch_direct_pages, load_direct_access
 
 API_V5 = "https://api.direct.yandex.com/json/v5"
 API_V501 = "https://api.direct.yandex.com/json/v501"
-
-
-def call_api(token: str, login: str, service: str, method: str, params: dict, version: str = "v5") -> dict:
-    base = API_V501 if version == "v501" else API_V5
-    req = urllib.request.Request(
-        f"{base}/{service}",
-        data=json.dumps({"method": method, "params": params}, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Client-Login": login,
-            "Content-Type": "application/json; charset=utf-8",
-            "Accept-Language": "ru",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        return json.loads(resp.read().decode("utf-8"))
 
 
 def normalize(text: str) -> str:
@@ -68,14 +54,16 @@ def load_minus_words(path: str) -> List[str]:
 
 
 def main() -> None:
+    os.umask(0o077)
     ap = argparse.ArgumentParser()
-    ap.add_argument("--token", required=True)
-    ap.add_argument("--login", required=True)
+    ap.add_argument("--access-file", help="Защищённый файл доступа Директа")
     ap.add_argument("--campaign-ids", required=True, help="comma-separated")
     ap.add_argument("--cluster-map", required=True)
     ap.add_argument("--minus-words", required=True)
     ap.add_argument("--output", required=True)
     args = ap.parse_args()
+    access = load_direct_access(args.access_file)
+    token, login = access.token, access.client_login
 
     campaign_ids = [int(x.strip()) for x in args.campaign_ids.split(",") if x.strip()]
     cluster_map = load_cluster_map(args.cluster_map)
@@ -87,32 +75,31 @@ def main() -> None:
 
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     report = {"generated_at": datetime.utcnow().isoformat() + "Z", "campaign_ids": campaign_ids}
+    manifests = PageManifestStore(Path(args.output).with_name(f"{Path(args.output).stem}.collection-manifest.json"))
 
-    camps_resp = call_api(
-        args.token,
-        args.login,
+    camps_result = manifests.add("campaigns", fetch_direct_pages(
+        access,
         "campaigns",
-        "get",
         {"SelectionCriteria": {"Ids": campaign_ids}, "FieldNames": ["Id", "Name", "State", "Status", "NegativeKeywords"]},
-        "v501",
-    )
-    if "error" in camps_resp:
-        raise RuntimeError(camps_resp["error"])
-    campaigns = camps_resp.get("result", {}).get("Campaigns", [])
+        "Campaigns",
+        version="v501",
+    ))
+    if not camps_result.manifest.complete:
+        raise RuntimeError(camps_result.manifest.error)
+    campaigns = camps_result.rows
     cid_to_name = {c["Id"]: c["Name"] for c in campaigns}
     campaign_name_to_id = {v: k for k, v in cid_to_name.items()}
 
-    ag_resp = call_api(
-        args.token,
-        args.login,
+    ag_result = manifests.add("adgroups", fetch_direct_pages(
+        access,
         "adgroups",
-        "get",
         {"SelectionCriteria": {"CampaignIds": campaign_ids}, "FieldNames": ["Id", "Name", "CampaignId"]},
-        "v501",
-    )
-    if "error" in ag_resp:
-        raise RuntimeError(ag_resp["error"])
-    adgroups = ag_resp.get("result", {}).get("AdGroups", [])
+        "AdGroups",
+        version="v501",
+    ))
+    if not ag_result.manifest.complete:
+        raise RuntimeError(ag_result.manifest.error)
+    adgroups = ag_result.rows
 
     target_group_ids: Set[int] = set()
     old_group_ids: Set[int] = set()
@@ -127,20 +114,19 @@ def main() -> None:
         else:
             old_group_ids.add(gid)
 
-    kw_resp = call_api(
-        args.token,
-        args.login,
+    kw_result = manifests.add("keywords", fetch_direct_pages(
+        access,
         "keywords",
-        "get",
         {
             "SelectionCriteria": {"CampaignIds": campaign_ids},
             "FieldNames": ["Id", "Keyword", "AdGroupId", "CampaignId", "State", "AutotargetingCategories"],
         },
-        "v5",
-    )
-    if "error" in kw_resp:
-        raise RuntimeError(kw_resp["error"])
-    keywords = kw_resp.get("result", {}).get("Keywords", [])
+        "Keywords",
+        version="v5",
+    ))
+    if not kw_result.manifest.complete:
+        raise RuntimeError(kw_result.manifest.error)
+    keywords = kw_result.rows
 
     on_target_phrases_by_gid: Dict[int, Set[str]] = defaultdict(set)
     missing_target_phrases = []
@@ -234,4 +220,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

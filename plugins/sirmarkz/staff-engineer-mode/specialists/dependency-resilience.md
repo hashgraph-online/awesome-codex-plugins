@@ -8,7 +8,7 @@ description: "Use when designing or changing remote calls or queues needing time
 ## Iron Law
 
 ```
-NO REMOTE CALL OR QUEUE WITHOUT TIMEOUT, RETRY, IDEMPOTENCY, AND OVERLOAD POLICY
+NO REMOTE CALL OR QUEUE WITHOUT A DEADLINE, RETRY DECISION, IDEMPOTENCY DECISION, AND OVERLOAD POLICY
 ```
 
 If any dependency can wait forever, retry forever, queue forever, or fail ambiguously, the design is not production-safe.
@@ -17,7 +17,7 @@ If any dependency can wait forever, retry forever, queue forever, or fail ambigu
 
 Most cascading failures are dependency failures amplified by callers.
 
-**Core principle:** every remote interaction needs a deadline, retry budget, idempotency story, overload behavior, and observable failure mode.
+**Core principle:** every remote interaction needs a deadline, an explicit retry decision that may be zero, an idempotency story, overload behavior, and an observable failure mode.
 
 ## When To Use
 
@@ -43,7 +43,7 @@ Most cascading failures are dependency failures amplified by callers.
 - Retry count, retry locations, backoff, jitter, retryable status codes/errors, adaptive retry budget, and overload signals that stop retries.
 - Caller behavior for explicit backpressure or rate-limit responses, split by synchronous request paths and asynchronous workers.
 - Mutation idempotency: idempotency key, dedupe window, side effects, and replay behavior.
-- Queue limits: max depth, age, drain rate, consumer concurrency, poison message handling, and DLQ policy.
+- Queue limits: max depth, age, drain rate, consumer concurrency, poison handling, terminal-failure disposition, and optional quarantine or DLQ policy.
 - Overload signals: saturation, errors, latency, admission decisions, rejected work, and load-shed responses.
 - Health checks: liveness, readiness, startup, dependency probes, and failure thresholds.
 
@@ -51,34 +51,23 @@ Most cascading failures are dependency failures amplified by callers.
 
 1. **Build the dependency matrix.** Include synchronous and asynchronous dependencies, third parties, control planes, shared infrastructure, user impact if failed, and caller-side metrics for latency, errors, timeouts, retries, and rejected work.
 2. **Track provider-controlled rejection.** For outbound delivery, integration, or partner paths, monitor dependency-side rejection classes, policy blocks, reputation or allowlist state, and provider escalation paths before user-visible failures dominate normal error metrics.
-3. **Set the caller deadline.** Define the total time budget from the user's perspective, then allocate per-hop timeouts inside it. Calibrate each per-hop timeout from the downstream's measured tail latency (e.g., p99.9) with a target false-timeout rate ≤0.1%; do not infer timeouts from average latency.
-4. **Bound retries.** Retry only when the operation is safe, useful, inside the deadline, jittered, and at one layer only; chained per-layer retries multiply load geometrically (three tries per layer across five layers is 243× load on the deepest dependency). Default to at most one retry on synchronous request-response paths; allow more on asynchronous or batch work with backoff and a dead-letter terminus. Enforce the retry rate with a token-bucket budget that replenishes on healthy responses and drains under systemic failure; do not retry explicit overload signals.
+3. **Set the caller deadline.** Define the total time budget from the user's perspective, then allocate per-hop timeouts inside it. Derive each per-hop timeout from measured tail latency, the user or SLO impact of waiting versus timing out, traffic shape, sample confidence, and connection setup cost. A percentile such as p99.9 and a false-timeout target such as 0.1% are starting examples, not universal defaults; do not infer timeouts from averages.
+4. **Make and bound the retry decision.** Default to zero retries until the operation is proven safe, useful, inside the deadline, jittered, and retried at one layer only. For synchronous calls, one retry can be a starting cap when measurements show it helps; asynchronous work may justify more attempts with backoff and an explicit terminal-failure path. Chained per-layer retries multiply load geometrically. Enforce retry rate with a bounded budget that drains under systemic failure, and do not retry explicit overload signals.
 5. **Handle backpressure by caller mode.** Synchronous callers should usually fail fast, degrade, or perform only the already-budgeted retry when a dependency says it is over limit; repeated retries just add latency and tie up local resources. Asynchronous workers may slow consumption, reduce concurrency, or pause until success rates recover, unless backlog age requirements make them behave more like synchronous paths.
 6. **Make mutations idempotent.** Require idempotency keys or durable dedupe for retryable writes, webhooks, and queue consumers.
 7. **Handle partial batch outcomes.** If a batch call partially succeeds, retry only the failed or unknown items and preserve per-item correlation.
-8. **Control queues.** Set max depth, max age, drain-rate alerts, poison handling, and backpressure before backlogs become unrecoverable.
+8. **Control queues.** Set max depth, max age, drain-rate alerts, poison handling, terminal-failure disposition, and backpressure before backlogs become unrecoverable.
 9. **Smooth mismatched rates.** When callers can outpace dependencies, use durable buffering, controlled workers, and rate limits instead of unbounded memory queues. Size each per-dependency thread or connection pool from Little's Law as a starting estimate: `peak accepted TPS × chosen latency-or-timeout-seconds × safety factor`. Then verify against pool wait time and saturation rather than treating the formula as definitive.
-10. **Design overload response.** Prefer fail-fast, admission control, load shedding, and priority shedding before expensive work starts. When ordering semantics permit, prefer LIFO over FIFO under overload so newer requests are more likely still useful; propagate remaining-deadline hints transitively between hops so downstream services know when to stop. New isolation or admission limits should ship in observe-only mode first to confirm the threshold matches reality, then move to enforcement. Shed requests must remain visible in reject, shed, and error-budget metrics; exclude them only from latency percentiles, otherwise tail regression hides while the system silently fails. Recognize metastable failure: once a feedback loop (retries, queue growth, cache-miss storms) sustains overload, removing the original trigger is not enough; shed or drain load below the sustaining threshold, not merely below the trigger level, to let the system recover.
-11. **Use circuit breakers carefully.** For limiting retry-induced load, prefer a token-bucket retry budget over a breaker because it bounds aggregate retry rate without modal flapping. If a breaker is needed for primary-call protection, prefer additive-increase / multiplicative-decrease over binary open/closed; binary breakers oscillate under partial failure and add a rarely exercised failure mode. Name the threshold, half-open probe policy, close/recovery condition, and user-visible behavior while open.
+10. **Design overload response.** Prefer fail-fast admission control, load shedding, and priority shedding before expensive work starts. Preserve fairness and a maximum queue age by default. Use LIFO only as a measured, bounded exception when the protocol permits reordering, newer work loses value more slowly, and older work cannot starve; define expiry or eviction for old items. Propagate remaining-deadline hints between hops so downstream services know when to stop. Introduce new isolation or admission limits in observe-only mode when feasible, then enforce after the threshold is validated. Keep rejected and shed work visible in reject, shed, and error-budget metrics. Recognize metastable failure: when retries, queues, or cache misses sustain overload, drain below the sustaining threshold before expecting recovery.
+11. **Separate retry, admission, and circuit controls.** Use a bounded retry budget to limit retry-induced load. Use adaptive concurrency or admission control, including additive-increase and multiplicative-decrease where measurements support it, to shape primary-call load. Use a circuit breaker only when calling a known-unhealthy primary path makes failure worse and an open state has a tested user behavior. A breaker keeps explicit closed, open, and recovery-probe semantics; name its threshold, probe policy, recovery condition, and behavior while open.
 12. **Keep health checks local.** Liveness probes must be shallow, with no dependency calls, because a liveness probe that calls a shared dependency triggers cascading restarts the moment that dependency slows. Readiness may check immediate dependencies only when that cannot remove all capacity at once. Reserve enough local capacity (or an admission-bypass path) for cheap health-check responses to remain answerable while the rest of the service sheds overload; otherwise the orchestrator marks healthy instances dead during the exact incident the checks are supposed to survive.
 13. **Keep startup independent where possible.** A restart, deploy, or scale-out path should not need every runtime dependency to be healthy unless the user-visible behavior, retry policy, and fallback are explicit.
 
 ## Synthesized Default
 
-Use bounded timeouts/retries with jitter, idempotent APIs, adaptive retry budgets, rate limiting, queue backpressure, and load shedding as the default. Retry only transient conditions inside the caller deadline and retry budget; do not retry permanent failures, overload signals, or already-successful batch items unless the contract explicitly says to. Treat circuit breakers as an exception mechanism, not the first tool. Avoid fallback unless the fallback is simpler, isolated, capacity-tested, and observably correct under the same dependency failure.
+Use bounded deadlines, explicit retry decisions, idempotent APIs, retry budgets when retries are enabled, rate limiting, queue backpressure, and load shedding. Retry only transient conditions inside the caller deadline and retry budget; do not retry permanent failures, overload signals, or already-successful batch items unless the contract explicitly says to. Treat circuit breakers as an exception mechanism, not the first tool. Avoid fallback unless it is simpler, isolated, capacity-tested, and observably correct under the same dependency failure.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -90,13 +79,14 @@ Use bounded timeouts/retries with jitter, idempotent APIs, adaptive retry budget
 ## Response Quality Bar
 
 - Lead with the dependency risk, timeout/retry budget, overload policy, or failure-mode plan requested.
-- For short design answers, still include concrete values or placeholders for per-dependency timeout, retry count/backoff/idempotency, circuit-breaker open/half-open/recovery thresholds, and the degraded user behavior.
+- For short design answers, include concrete values or explicit unknowns for the deadline, retry count and backoff, idempotency, overload behavior, and degraded user behavior. Include open and recovery thresholds only when a circuit breaker is selected.
 - Cover deadlines, retry safety, idempotency, backpressure, load shedding, health checks, fallbacks, and failure tests before optional resilience breadth.
 - Make recommendations actionable with thresholds, budgets, queue limits, stop criteria, tests, and rollback or disablement steps where relevant.
 - Name the details to inspect, such as dependency p95/p99 latency, error classes, retry counts, queue age, saturation, health-check behavior, and failure-test results; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside dependency resilience and overload. Route API contract, tenant fairness, or capacity-model work only when it materially blocks the failure-mode decision.
 - Be concise: avoid generic retry guidance and prefer compact dependency matrices and budget tables.
+- Scale the artifact to the request: a narrow remote call needs its deadline, retry and idempotency decisions, overload behavior, and failure test; add queue, breaker, health, provider-rejection, and startup modules only when those mechanisms apply.
 
 ## Required Outputs
 
@@ -108,13 +98,13 @@ Use bounded timeouts/retries with jitter, idempotent APIs, adaptive retry budget
 - Backpressure behavior for explicit rate-limit or overload responses, split by synchronous and asynchronous callers.
 - Idempotency and duplicate-handling plan for mutations and consumers.
 - Queue/backpressure/load-shedding policy with thresholds.
-- Circuit-breaker or fail-fast policy for sustained failures, including open threshold, half-open probe policy, close/recovery condition, and behavior while open.
+- Fail-fast or sustained-failure policy; when a circuit breaker is selected, include its open threshold, recovery-probe policy, close condition, and behavior while open.
 - Health-check design separating liveness, readiness, startup, and dependency checks.
 - Failure-mode tests or experiments for slow, erroring, overloaded, and unavailable dependencies.
 
 ## Checks Before Moving On
 
-- `dependency_matrix`: every remote dependency and queue has timeout, retry, and failure behavior.
+- `dependency_matrix`: every remote dependency and queue has a deadline, explicit retry decision including zero, and failure behavior.
 - `deadline_budget`: per-hop timeouts fit inside the end-to-end caller deadline.
 - `retry_safety`: retryable calls, mutations, batch items, and consumers have retry budgets plus idempotency or dedupe behavior.
 - `backpressure_mode`: explicit overload responses stop synchronous retry storms and slow asynchronous workers without hiding backlog age.
@@ -129,7 +119,7 @@ Use bounded timeouts/retries with jitter, idempotent APIs, adaptive retry budget
 - Retrying at client, gateway, service, SDK, and worker layers with no budget.
 - Retrying downstream overload signals or already-successful batch items.
 - Timeout values are absent, default, infinite, or longer than the caller's deadline.
-- A queue has max depth but no max age, drain-rate alert, DLQ, or poison-message policy.
+- A queue has max depth but no max age, drain-rate alert, poison-message policy, or terminal-failure disposition.
 - Health checks call a shared dependency and mark all instances unavailable at once.
 - Fallback is more complex than the primary path or shares the same failing dependency.
 - Recovery assumes removing the trigger ends the outage, ignoring a self-sustaining overload loop that must be drained below its sustaining threshold.

@@ -1,0 +1,20 @@
+{
+  "name": "clean-room-skill",
+  "interface": {
+    "displayName": "Clean Room Skill"
+  },
+  "plugins": [
+    {
+      "name": "clean-room",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development"
+    }
+  ]
+}

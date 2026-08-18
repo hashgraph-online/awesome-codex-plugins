@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manuscript Engagement Analytics"
+  short_description: "Map value pacing and reader dropoff"
+  default_prompt: "Use $manuscript-engagement-analytics to find slow starts, slogs, and dropoff risks in this manuscript."

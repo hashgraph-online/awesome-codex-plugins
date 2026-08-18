@@ -1,0 +1,42 @@
+{
+  "name": "unforgit",
+  "version": "0.9.3",
+  "description": "Git-backed repository memory for AI coding agents using MCP and durable local knowledge.",
+  "author": {
+    "name": "Miguel Medeiros",
+    "url": "https://github.com/MiguelMedeiros"
+  },
+  "homepage": "https://unforgit.com",
+  "repository": "https://github.com/MiguelMedeiros/unforgit-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "mcp",
+    "agents",
+    "repository",
+    "knowledge-base"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Unforgit",
+    "shortDescription": "Git-backed memory for coding agents",
+    "longDescription": "Unforgit gives Codex durable, repository-scoped memory for project decisions, conventions, gotchas, and reusable playbooks through a local-first MCP server.",
+    "developerName": "Miguel Medeiros",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://unforgit.com",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "defaultPrompt": [
+      "@Unforgit search memory for relevant project context before changing code",
+      "@Unforgit remember this durable project decision",
+      "@Unforgit check memory health and sync status"
+    ],
+    "brandColor": "#16A34A",
+    "screenshots": []
+  }
+}

@@ -1,6 +1,6 @@
 interface:
   display_name: "ru-text"
-  short_description: "Russian text quality — typography, info-style, editorial, UX writing, business correspondence"
+  short_description: "Russian text quality — typography, info-style, editorial, UX writing, business correspondence, and AI-text cleanup"
 
 policy:
   allow_implicit_invocation: true

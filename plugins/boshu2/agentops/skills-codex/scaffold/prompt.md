@@ -1,6 +1,6 @@
 # scaffold
 
-Project scaffolding, component generation, and boilerplate setup. Triggers: "scaffold", "new project", "init project", "bootstrap", "create project", "generate component", "setup project", "starter", "boilerplate".
+Stamp a bounded project, component, or CI scaffold and verify the generated result once. Triggers: "scaffold", "create project component or boilerplate".
 
 ## Instructions
 

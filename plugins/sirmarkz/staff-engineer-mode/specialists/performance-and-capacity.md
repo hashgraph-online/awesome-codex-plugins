@@ -3,7 +3,7 @@ name: performance-and-capacity
 description: "Use when tail latency, load tests, saturation, capacity, headroom, or peak/failover traffic need analysis"
 ---
 
-# Capacity Performance And Tail Latency
+# Performance, Capacity, And Tail Latency
 
 ## Iron Law
 
@@ -71,17 +71,6 @@ Users experience tail latency, not averages.
 Optimize around tail percentiles, saturation, queue age, and headroom rather than averages. Combine tail-at-scale design, SRE golden signals, performance baselines, load-shedding practice, and unit-cost discipline when cost is explicitly part of the reliability tradeoff. Name the static-stability and constant-work patterns as the default for headroom: pre-provision capacity that is already available when a domain fails rather than relying on reactive scaling, and add proactive demand forecasting with provisioning lead-time instead of relying on reactive saturation response.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

@@ -1,2 +1,2 @@
-cluster	campaign_name	adgroup_name	match_type	landing_hint
-core	TODO Search Core	TODO Core	intent	/
+route_id	cluster	intent	domain	serp_page_url	site_page_url	landing_url	campaign_name	adgroup_name	group_uid	match_type	landing_hint	allowed_geo	forbidden_words	decision	decision_reason	source_row_sha256	status
+template-route	example-cluster		example.invalid						example-group	default							unverified

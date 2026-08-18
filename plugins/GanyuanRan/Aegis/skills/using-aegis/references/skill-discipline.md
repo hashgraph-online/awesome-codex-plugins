@@ -9,7 +9,7 @@ a host.
 Aegis skills override default system prompt behavior, but **user instructions
 always take precedence**:
 
-1. **User's explicit instructions** (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`,
+1. **User's explicit instructions** (`CLAUDE.md`, `AGENTS.md`,
    direct requests) - highest priority
 2. **Aegis skills** - override default system behavior where they conflict
 3. **Default system prompt** - lowest priority
@@ -31,11 +31,6 @@ current Antigravity surface's Skills / plugin contract has been verified. When
 Antigravity exposes a native skill or slash-command surface, use that host
 mechanism and map Aegis tool names through `references/antigravity-tools.md`.
 
-**In Gemini CLI:** Gemini CLI is a transitional compatibility surface while
-Antigravity support matures. Skills activate via the `activate_skill` tool.
-Gemini loads skill metadata at session start and activates the full content on
-demand.
-
 **In other environments:** Check the platform's documentation for how skills
 are loaded.
 
@@ -46,7 +41,6 @@ Skills use Claude Code tool names. Non-CC platforms: see:
 - `references/copilot-tools.md`
 - `references/codex-tools.md`
 - `references/antigravity-tools.md`
-- `references/gemini-tools.md`
 
 ## The Rule
 
@@ -141,8 +135,9 @@ Before implementation, classify the task:
 
 - **Low complexity:** one local owner, clear behavior, small bug/doc/config
   change. Use TDD Route after concise intent, authority/baseline check, and
-  verification target. In auto mode, the route may be strict, light, or
-  skipped; in off mode, do not automatically require TDD.
+  verification target. TDD Mode defaults to off, so do not automatically
+  require TDD unless auto mode is enabled or the user/project explicitly asks
+  for TDD. In auto mode, the route may be strict, light, or skipped.
 - **Medium complexity:** multi-file or multi-module work, user-visible
   behavior, routing/state flow, API/contract touch, compatibility boundary, or
   multiple acceptance checks. Create a baseline read-set, plan, and atomic tasks
@@ -154,7 +149,7 @@ Before implementation, classify the task:
 
 TDD is the implementation discipline for approved atomic tasks, not the first
 entrypoint for medium- or high-complexity work. TDD Mode controls test-first
-discipline, not completion evidence.
+discipline, not completion evidence, and its default is off.
 
 ## Project Baseline Bootstrap
 
@@ -224,7 +219,7 @@ docs/aegis/
 
 Task Work Record:
 ```
-docs/aegis/work/<slug>/
+docs/aegis/work/YYYY-MM-DD-<slug>/
     ├── 10-intent.md
     ├── 20-checkpoint.md
     ├── 90-evidence.md

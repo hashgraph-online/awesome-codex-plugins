@@ -1,7 +1,7 @@
 {
   "name": "praxis",
-  "version": "2.3.2",
-  "description": "Token-lean discipline skills for coding agents.",
+  "version": "4.2.3",
+  "description": "Praxis triage, living docs, and disciplined workflows for AI coding agents",
   "author": {
     "name": "ouonet"
   },

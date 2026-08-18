@@ -15,11 +15,12 @@
 
 ## INFORMATIONAL Validation
 
-Use Python validator for fast, exhaustive checking:
-
-```bash
-python3 ~/.codex/scripts/doc-validate.py docs/
-```
+No standalone validator script ships with this skill. Run the checks below
+manually — for doc-file presence coverage use the shipped
+`skills/doc/scripts/audit-oss-docs.sh`; for link/orphan/path checks write a
+short throwaway Python script in the target repo (not bash: bash loops are
+O(n*m) and time out on large repos, while Python processes 350+ files in
+seconds with cleaner regex extraction).
 
 ### Checks Performed
 
@@ -27,12 +28,6 @@ python3 ~/.codex/scripts/doc-validate.py docs/
 2. **Orphaned Docs** - Files not referenced from any index
 3. **Index Completeness** - READMEs reference all subdirectories
 4. **Hardcoded Paths** - Absolute paths like /Users/, /home/
-
-### Why Python, Not Bash?
-
-- Bash loops are O(n*m) and timeout on large repos
-- Python processes 350+ files in <5 seconds
-- Regex extraction is cleaner and more reliable
 
 ### Output Format
 
@@ -136,22 +131,6 @@ ORPHANED DOCUMENTATION
 
 ---
 
-## --create-issues Flag
-
-Auto-create tracking issues for gaps:
-
-```bash
-# Prefer beads
-bd create --title "docs: create code-map for $FEATURE" \
-          --type task --priority P1
-
-# Fallback to GitHub
-gh issue create --title "docs: create code-map for $FEATURE" \
-                --label documentation
-```
-
----
-
 ## Semantic Validation (CODING repos)
 
 **Structure vs Semantic:** Structural validation checks formatting. Semantic validation checks if claims are TRUE.
@@ -203,7 +182,7 @@ diff <(grep "Status:" docs/code-map/services/*.md) <(cat docs/agents/catalog.md)
 
 ### --verify-claims Flag
 
-When running `$doc coverage --verify-claims`:
+When running `/doc coverage --verify-claims`:
 
 1. Extract all "Status: X" claims from docs
 2. Query deployment state (oc get pods, oc get agents)

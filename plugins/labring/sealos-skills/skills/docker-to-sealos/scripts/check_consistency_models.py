@@ -17,6 +17,7 @@ TEMPLATE_NAME_PATTERN = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 NEGATIVE_MARKERS = ("wrong example", "❌", "invalid example")
 WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}
 APP_WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet"}
+TEMPLATE_DEPLOY_KEY = "cloud.sealos.io/deploy-on-sealos"
 DB_SECRET_SUFFIXES = (
     "-pg-conn-credential",
     "-mysql-conn-credential",

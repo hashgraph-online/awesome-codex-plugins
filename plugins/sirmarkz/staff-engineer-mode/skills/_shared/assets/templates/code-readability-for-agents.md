@@ -5,10 +5,10 @@
 | Module | Stated Responsibility | Actual Exports | Contradiction | Proposed Fix |
 | --- | --- | --- | --- | --- |
 
-## One-Tool-Call Tests
+## Representative Discovery Trials
 
-| Behavior | Query Used | Candidate Matches | Pass/Fail | Fix |
-| --- | --- | --- | --- | --- |
+| Change Intent | Query Used | Candidate Matches | Navigation Steps | Selected Authority | Verification Path | Pass/Fail Reason | Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Name Collisions
 
@@ -20,10 +20,10 @@
 | File/Function | Current Size | Budget | Proposed Split |
 | --- | --- | --- | --- |
 
-## Canonical Implementation
+## Authority And Intentional Variants
 
-| Behavior | Competing Implementations | Canonical Path | Consolidation Patch |
-| --- | --- | --- | --- |
+| Behavior Contract | Implementations | Accidental Or Intentional? | Public Authority | Selection Rule | Consolidation Or Clarification Patch |
+| --- | --- | --- | --- | --- | --- |
 
 ## Test And Doc Discoverability
 
@@ -47,8 +47,12 @@
 
 | Metric | Current | Target | Action |
 | --- | --- | --- | --- |
-| One-tool-call pass rate |  |  |  |
+| Representative task success |  |  |  |
+| Wrong-file rate |  |  |  |
+| Ambiguity rate |  |  |  |
+| Verification-path success |  |  |  |
+| Search effort |  |  |  |
 | Collision count |  |  |  |
-| God-file count |  |  |  |
+| Mixed-responsibility file count |  |  |  |
 | Oversized-function count |  |  |  |
 | Stale-doc count |  |  |  |

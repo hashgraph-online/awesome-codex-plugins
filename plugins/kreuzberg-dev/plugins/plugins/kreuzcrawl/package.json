@@ -1,0 +1,41 @@
+{
+  "name": "@kreuzberg/opencode-kreuzcrawl",
+  "version": "0.2.2",
+  "description": "OpenCode tools for crawling and scraping with the kreuzcrawl CLI.",
+  "type": "module",
+  "main": ".opencode/plugins/kreuzcrawl.js",
+  "exports": {
+    ".": "./.opencode/plugins/kreuzcrawl.js"
+  },
+  "files": [
+    ".opencode/",
+    "assets/",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kreuzberg-dev/plugins.git",
+    "directory": "plugins/kreuzcrawl"
+  },
+  "homepage": "https://github.com/kreuzberg-dev/plugins/tree/main/plugins/kreuzcrawl",
+  "bugs": {
+    "url": "https://github.com/kreuzberg-dev/plugins/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "web-scraping",
+    "crawling",
+    "html-to-markdown"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.17.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

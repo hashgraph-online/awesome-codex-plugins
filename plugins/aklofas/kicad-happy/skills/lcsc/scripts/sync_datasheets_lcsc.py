@@ -236,6 +236,16 @@ def extract_parts(analyzer_output: dict) -> list[dict]:
 
         has_mpn = is_real_mpn(mpn)
         has_distributor_pn = bool(lcsc_pn or digikey_pn or mouser_pn)
+        # F2: fall back to Value field when MPN is empty but the Value
+        # looks MPN-shaped (and the symbol isn't a generic Device:R/C/L).
+        mpn_from_value = ""
+        if not has_mpn and not has_distributor_pn:
+            value = entry.get("value", "").strip()
+            lib_id = entry.get("lib_id", "")
+            if is_real_mpn(value) and not lib_id.startswith("Device:"):
+                mpn_from_value = value
+                mpn = value
+                has_mpn = True
         if not has_mpn and not has_distributor_pn:
             continue
 

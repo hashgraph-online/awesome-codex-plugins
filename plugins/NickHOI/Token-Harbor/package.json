@@ -1,0 +1,23 @@
+{
+  "name": "token-harbor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix game run build",
+    "lint": "eslint scripts tests game/src game/vite.config.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "typecheck": "tsc --project jsconfig.json",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^10.7.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.7.0",
+    "typescript": "^7.0.2"
+  }
+}

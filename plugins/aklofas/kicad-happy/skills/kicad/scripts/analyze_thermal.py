@@ -24,6 +24,14 @@ import re
 import sys
 import time
 
+from envelopes.thermal import ThermalEnvelope
+from schema_codec import emit_schema
+from inputs_builder import build_inputs, build_upstream_artifact, build_compat
+from capability_mode import get_capability_mode_ref
+from lookup_detectors import detect_tj_exceeds_max
+from lookup_helpers import read_design_context
+
+ANALYZER_SOURCE = "thermal"
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -735,6 +743,22 @@ def compute_thermal_score(findings: list) -> int:
     return max(0, min(100, 100 - penalty))
 
 
+_NO_COMPONENTS_REASON = (
+    "No components had quantifiable power dissipation data "
+    "(missing MPNs or no datasheet extraction cache)"
+)
+
+
+def _resolve_score(findings: list, assessments: list):
+    """Return (score, skipped_reason). Score is None when no components were
+    assessable — a 100/100 default in that case would falsely suggest a clean
+    thermal pass when the analyzer had no data to evaluate (F3)."""
+    if not assessments:
+        return None, _NO_COMPONENTS_REASON
+    return compute_thermal_score(
+        [f for f in findings if not f.get("suppressed")]), None
+
+
 # ---------------------------------------------------------------------------
 # Board thermal summary
 # ---------------------------------------------------------------------------
@@ -784,8 +808,12 @@ def format_text_report(result: dict) -> str:
     lines.append("=" * 60)
     lines.append("")
 
-    score = summary.get("thermal_score", 0)
-    lines.append(f"Thermal score:   {score}/100")
+    score = summary.get("thermal_score")
+    if score is None:
+        reason = summary.get("skipped_reason") or "no components analyzed"
+        lines.append(f"Thermal score:   SKIPPED ({reason})")
+    else:
+        lines.append(f"Thermal score:   {score}/100")
     lines.append(f"Ambient temp:    {summary.get('ambient_c', 25)}°C")
     total_p = summary.get("total_board_dissipation_w", 0)
     lines.append(f"Total dissipation: {total_p:.3f}W")
@@ -848,9 +876,11 @@ def main():
         description="Thermal hotspot estimator for KiCad designs"
     )
     parser.add_argument("--schematic", "-s",
-                        help="Schematic analyzer JSON (from analyze_schematic.py)")
+                        help="Schematic analyzer JSON (from analyze_schematic.py). "
+                             "Auto-resolved from --analysis-dir current run when omitted.")
     parser.add_argument("--pcb", "-p",
-                        help="PCB analyzer JSON (from analyze_pcb.py)")
+                        help="PCB analyzer JSON (from analyze_pcb.py). "
+                             "Auto-resolved from --analysis-dir current run when omitted.")
     parser.add_argument("--output", "-o",
                         help="Output JSON file path (default: stdout)")
     parser.add_argument("--text", action="store_true",
@@ -871,41 +901,32 @@ def main():
     parser.add_argument('--audience', default=None,
                         choices=['designer', 'reviewer', 'manager'],
                         help='Audience level for summaries and --text output')
+    parser.add_argument('--only-deterministic', action='store_true',
+                        help='Accepted for consistency; analyzers never write llm_* fields. '
+                             'Honored by downstream consumers (Phase 4 spec §3.4).')
     args = parser.parse_args()
 
     if args.schema:
-        schema = {
-            "analyzer_type": "string — always 'thermal'",
-            "schema_version": "string — semver (currently '1.3.0')",
-            "summary": {
-                "total_findings": "int",
-                "components_assessed": "int",
-                "active": "int — non-suppressed findings",
-                "suppressed": "int",
-                "critical": "int — deprecated, retained for consumer compat",
-                "high": "int — deprecated, retained for consumer compat",
-                "medium": "int — deprecated, retained for consumer compat",
-                "low": "int — deprecated, retained for consumer compat",
-                "info": "int — deprecated, retained for consumer compat",
-                "by_severity": "{error: int, warning: int, info: int}",
-                "thermal_score": "float (0-100)",
-            },
-            "findings": "[{detector, rule_id, category, severity, confidence, evidence_source, summary, description, components, nets, pins, recommendation, report_context}] — TS-001..005, TP-001..002, TH-DET assessments",
-            "trust_summary": {
-                "total_findings": "int",
-                "trust_level": "'high' | 'mixed' | 'low'",
-                "by_confidence": "{deterministic: int, heuristic: int, datasheet-backed: int}",
-                "by_evidence_source": "{datasheet|topology|heuristic_rule|symbol_footprint|bom|geometry|api_lookup: int}",
-                "provenance_coverage_pct": "float",
-            },
-            "elapsed_s": "float — analysis wall-clock time",
-            "missing_info": "OPTIONAL — {default_rtheta_ja: [ref], default_tj_max: [ref]} when any component used default thermal parameters",
-        }
-        print(json.dumps(schema, indent=2))
-        sys.exit(0)
+        emit_schema(ThermalEnvelope)
+
+    if args.analysis_dir and (not args.schematic or not args.pcb):
+        from analysis_cache import get_current_run
+        from pathlib import Path as _AutoPath
+        _current = get_current_run(args.analysis_dir)
+        if _current is not None:
+            _run_dir, _ = _current
+            if not args.schematic:
+                _sch = _AutoPath(_run_dir) / "schematic.json"
+                if _sch.is_file():
+                    args.schematic = str(_sch)
+            if not args.pcb:
+                _pcb = _AutoPath(_run_dir) / "pcb.json"
+                if _pcb.is_file():
+                    args.pcb = str(_pcb)
 
     if not args.schematic or not args.pcb:
-        parser.error("the --schematic and --pcb arguments are required (except with --schema)")
+        parser.error("the --schematic and --pcb arguments are required "
+                     "(or pass --analysis-dir with a current run containing schematic.json and pcb.json)")
 
     # Load inputs
     try:
@@ -964,6 +985,40 @@ def main():
     if args.ambient == DEFAULT_AMBIENT_C and project.get("ambient_temperature_c"):
         args.ambient = project["ambient_temperature_c"]
 
+    # Build inputs provenance block (Track 1.3).
+    from pathlib import Path as _Path
+    _sch_path = _Path(args.schematic)
+    _pcb_path = _Path(args.pcb)
+    _upstream_artifacts = {
+        "schematic": build_upstream_artifact(_sch_path, schematic),
+        "pcb": build_upstream_artifact(_pcb_path, pcb),
+    }
+    _cfg_path = _Path(args.config) if args.config else None
+    if _cfg_path and not _cfg_path.is_file():
+        _cfg_path = None
+
+    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4) — include
+    # --analysis-dir branch so capability mode lands with outputs, not in
+    # ./analysis fallback.
+    if hasattr(args, "analysis_dir") and args.analysis_dir:
+        _analysis_dir = _Path(args.analysis_dir)
+    elif args.output:
+        _analysis_dir = _Path(args.output).parent
+    else:
+        _analysis_dir = _Path("analysis")
+
+    # Resolve capability_mode_ref BEFORE build_inputs so inputs.run_id ==
+    # capability_mode_ref.run_id (audit Highest-Risk #5).
+    _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
+
+    inputs = build_inputs(
+        source_files=[_sch_path, _pcb_path],
+        upstream_artifacts=_upstream_artifacts,
+        config_path=_cfg_path,
+        run_id=_capability_mode_ref["run_id"],
+    )
+    compat = build_compat()
+
     t0 = time.monotonic()
 
     # Estimate power dissipation
@@ -977,15 +1032,31 @@ def main():
     findings = _generate_findings(assessments)
     findings.extend(_check_thermal_proximity(assessments, pcb))
 
+    # TJ-001 (Phase 4c): recompute TJ via v1.4 facts.base.thermal[theta_ja]
+    # and compare to facts.base.absolute_max[TJ_SYNONYMS]. Soft-skip when
+    # cache miss or below trust gate.
+    _design_ctx = None
+    if args.output:
+        _design_ctx = read_design_context(_Path(args.output).parent)
+    elif hasattr(args, "analysis_dir") and args.analysis_dir:
+        _design_ctx = read_design_context(args.analysis_dir)
+    findings.extend(detect_tj_exceeds_max(
+        assessments,
+        source=ANALYZER_SOURCE,
+        cache_dir=extract_dir,
+        design_context=_design_ctx,
+    ))
+
     # Apply suppressions
     try:
         apply_suppressions(findings, config.get("suppressions", []))
     except NameError:
         pass  # project_config not available
 
-    # Score (only active findings)
-    score = compute_thermal_score(
-        [f for f in findings if not f.get("suppressed")])
+    # Score (only active findings). Returns (None, reason) when no components
+    # were assessable, so a missing-data run reports "skipped" rather than a
+    # misleading 100/100 (F3).
+    score, skipped_reason = _resolve_score(findings, assessments)
 
     # Severity counts over the rule findings (thermal_assessments are
     # merged into findings[] further down and contribute info-level
@@ -1007,20 +1078,25 @@ def main():
 
     elapsed = time.monotonic() - t0
 
-    # Missing information — components with default thermal parameters
-    missing_info = {}
+    # Missing information — components with default thermal parameters.
+    # Always include both keys (with [] when nothing missing) so the
+    # ThermalMissingInfo schema is satisfied whenever the block is
+    # emitted (TH-043). The outer `if missing_info:` guard below still
+    # gates whether to emit the block at all.
     default_rtheta = [a["ref"] for a in assessments
                       if a.get("rtheta_ja_source") == "default"]
-    if default_rtheta:
-        missing_info["default_rtheta_ja"] = default_rtheta
     default_tjmax = [a["ref"] for a in assessments
                      if a.get("tj_max_source") == "default_125"]
-    if default_tjmax:
+    missing_info = {}
+    if default_rtheta or default_tjmax:
+        missing_info["default_rtheta_ja"] = default_rtheta
         missing_info["default_tj_max"] = default_tjmax
 
     result = {
         "analyzer_type": "thermal",
-        "schema_version": "1.3.0",
+        "schema_version": "1.4.0",
+        "inputs": inputs,
+        "compat": compat,
         "summary": {
             "total_findings": len(findings),
             "components_assessed": len(assessments),
@@ -1030,44 +1106,31 @@ def main():
             # per-severity aliases were removed in v1.3 Batch 20).
             "by_severity": dict(counts),
             "thermal_score": score,
+            **({"skipped_reason": skipped_reason} if skipped_reason else {}),
             **board,
         },
         "findings": findings,
-        "thermal_assessments": assessments,
+        "assessments": assessments,
         "elapsed_s": round(elapsed, 3),
     }
     if missing_info:
         result["missing_info"] = missing_info
-
-    # Merge thermal_assessments into findings (TH-DET entries)
-    result["findings"] = result.get("findings", []) + result.pop("thermal_assessments", [])
-
-    # Recompute summary from the merged findings list — the earlier
-    # `counts` block only saw rule findings, not the TH-DET assessments
-    # we just appended. Keep the envelope consistent with findings[].
-    _merged = result.get("findings", [])
-    _merged_counts = {"error": 0, "warning": 0, "info": 0}
-    _merged_suppressed = 0
-    for _f in _merged:
-        if not isinstance(_f, dict):
-            continue
-        _s = str(_f.get("severity", "info")).lower()
-        if _s in _merged_counts:
-            _merged_counts[_s] += 1
-        else:
-            _merged_counts["info"] += 1
-        if _f.get("suppressed"):
-            _merged_suppressed += 1
-    result["summary"]["total_findings"] = len(_merged)
-    result["summary"]["by_severity"] = _merged_counts
-    result["summary"]["active"] = len(_merged) - _merged_suppressed
-    result["summary"]["suppressed"] = _merged_suppressed
 
     from finding_schema import compute_trust_summary
     result["trust_summary"] = compute_trust_summary(result["findings"])
 
     from output_filters import apply_output_filters
     apply_output_filters(result, args.stage, args.audience)
+
+    # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
+    # on it). Runs after filtering; before any output branch.
+    from finding_schema import assign_finding_ids
+    assign_finding_ids(result.get("findings", []), "thermal")
+
+    # Wire capability_mode_ref (Phase 4 spec §3.3).
+    from pathlib import Path as _Path
+    # capability_mode_ref already resolved early — reuse to keep run_id stable.
+    result["capability_mode_ref"] = _capability_mode_ref
 
     # Determine output path
     output_path = args.output
@@ -1097,13 +1160,15 @@ def main():
             out_path = os.path.join(current[0], filename)
         else:
             out_path = os.path.join(analysis_dir, filename)
+        score_str = "SKIPPED" if score is None else f"{score}/100"
         print(f"Thermal analysis complete: {len(findings)} findings "
-              f"(score {score}/100) -> {out_path}", file=sys.stderr)
+              f"(score {score_str}) -> {out_path}", file=sys.stderr)
     elif output_path:
         with open(output_path, "w") as f:
             json.dump(result, f, indent=2)
+        score_str = "SKIPPED" if score is None else f"{score}/100"
         print(f"Thermal analysis complete: {len(findings)} findings "
-              f"(score {score}/100) -> {output_path}", file=sys.stderr)
+              f"(score {score_str}) -> {output_path}", file=sys.stderr)
     elif args.text:
         if args.audience:
             from output_filters import format_text

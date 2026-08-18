@@ -50,6 +50,20 @@ managed by `mcp__archcore__add_relation`. The body MAY cite source code
 (`@path/to/file`), commits, dashboards, and external authorities. See
 `skills/_shared/precision-rules.md` Rule 5.
 
+## Enforcement
+
+The Archcore CLI reports the mechanical part of this contract in the post-tool-use
+hook: the four mandatory sections, a bullet list inside Context, a single
+alternative where the contract asks for two, an alternative carrying no rejection
+verb, and a BCP 14 modal inside a numbered clause — an `adr` records a claim, so
+an obligation it states belongs in a linked `rule` or `spec`. A CLI that predates
+a check reports nothing for it, and no version blocks a write.
+
+Three obligations stay with review at every version: whether Context names a
+*concrete* problem rather than a generic one, whether a consequence is genuinely
+falsifiable, and whether a "Superseded when" trigger is measurable. A program
+finds the section; it does not weigh what the section says.
+
 ## Rationale
 
 MADR 4.0 (September 2024) ships full and minimal templates; the plugin

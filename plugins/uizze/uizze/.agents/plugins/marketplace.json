@@ -1,0 +1,21 @@
+{
+  "name": "uizze",
+  "interface": {
+    "displayName": "UIZZE"
+  },
+  "plugins": [
+    {
+      "name": "uizze",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/uizze/uizze.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

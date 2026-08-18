@@ -15,7 +15,7 @@
     "displayName": "VillageSQL Skills",
     "shortDescription": "Skills for VillageSQL including building extensions from scratch and porting PostgreSQL extensions to VillageSQL.",
     "developerName": "VillageSQL",
-    "category": "Development",
+    "category": "Developer Tools",
     "capabilities": [
       "Interactive",
       "Read",
@@ -23,7 +23,8 @@
     ],
     "websiteURL": "https://villagesql.com",
     "brandColor": "#CC66FF",
-    "composerIcon": "./assets/icon.svg"
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
   },
   "skills": "./skills/"
 }

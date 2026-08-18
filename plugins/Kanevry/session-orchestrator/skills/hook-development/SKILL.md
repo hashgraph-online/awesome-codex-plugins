@@ -292,7 +292,7 @@ enabled=$(jq -r '.strictMode // false' "$CONFIG_FILE" 2>/dev/null)
 
 ## Our in-house examples (read these, not the upstream `examples/`)
 
-- `hooks/pre-bash-destructive-guard.mjs` — policy-driven command blocker, 13 rules in `.orchestrator/policy/blocked-commands.json`
+- `hooks/pre-bash-destructive-guard.mjs` — policy-driven command blocker, 14 rules in `.orchestrator/policy/blocked-commands.json`
 - `hooks/enforce-scope.mjs` — wave-scope boundary enforcement using `.orchestrator/wave-scope.json`
 - `hooks/on-session-start.mjs` — banner + session init
 - `hooks/post-edit-validate.mjs` — validates edits after the fact

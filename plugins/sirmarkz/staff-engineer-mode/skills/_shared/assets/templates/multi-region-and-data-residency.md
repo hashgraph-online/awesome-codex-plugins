@@ -12,8 +12,13 @@
 
 ## Replication-Aware Affinity
 
-| Operation | Write Region | Read Region | Lag Bound | Session Pinning |
-| --- | --- | --- | --- | --- |
+| Operation/Data Class | Replication Mode | Write Region | Read Region | Required RPO | Lag Signal/Freshness | Session Pinning |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Recoverability Evidence
+
+| Operation/Data Class | Observed Recoverable Point | Checkpoint Evidence | Acknowledged-Write Rule | Fencing/Consistency Boundary | Missing/Divergent-Write Reconciliation | Residual Gap |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Geo-Routing
 

@@ -1,6 +1,6 @@
 ---
 name: agent-repo-init
-description: One-click initialization of a multi-agent repository from the Antigravity template. Use this skill when users want to scaffold a new project quickly (`quick` mode) or with runtime defaults (`full` mode) including MCP toggle, swarm preference context, sandbox type, and optional git init. LLM configuration is handled later by ag-setup.
+description: One-click initialization of a multi-agent repository from the RepoBrain template. Use this skill when users want to scaffold a new project quickly (`quick` mode) or with runtime defaults (`full` mode) including MCP toggle, swarm preference context, sandbox type, and optional git init. LLM configuration is handled later by rb-setup.
 ---
 
 # Agent Repo Init
@@ -43,4 +43,4 @@ python skills/agent-repo-init/scripts/init_project.py \
 ## Notes
 - Keep destination outside the current template repository.
 - For `full` mode, review `.context/agent_runtime_profile.md` after generation.
-- Run `/ag-setup` in the generated project to choose and write the LLM endpoint.
+- Run `/rb-setup` in the generated project to choose and write the LLM endpoint.

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/plan.schema.json",
+  "title": "Plan",
+  "description": "Orchestration plan consumed by the dispatcher + merge tools. Phase 3a extraction plans (one file per MPN: <mpn>.plan.json) and Phase 4 review plans share this schema. Top-level oneOf gates per-shape required fields; task-item required is gated on task_type via if/then.",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["tasks"],
+  "additionalProperties": false,
+  "properties": {
+    "plan_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "schema_version": {"type": "string", "description": "Phase 4 review plan top-level version (extraction plans use plan_version)."},
+    "plan_id": {"type": "string", "description": "Phase 4 review plan identifier."},
+    "purpose": {"type": "string", "description": "Phase 4 review plan purpose tag (e.g. phase4_review)."},
+    "mpn": {"type": "string", "minLength": 1},
+    "pdf_path": {"type": "string"},
+    "pdf_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "cache_dir": {"type": "string"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "scout_ref": {"type": "string", "description": "Filename of the unwrapped scout output relative to cache_dir."},
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id"],
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {"type": "string", "minLength": 1},
+          "task_type": {
+            "enum": ["extraction", "review"],
+            "default": "extraction",
+            "description": "Phase 4 amendment per spec §4.5: task family for dispatcher routing."
+          },
+          "subagent_role": {"type": "string", "enum": ["base", "pinout", "regulator", "mcu", "opamp", "transistor", "diode", "crystal"]},
+          "tier": {"type": "string", "enum": ["A", "B", "C"]},
+          "schema": {"type": "string", "description": "Schema path relative to repo root."},
+          "prompt_template": {"type": "string", "description": "Prompt path relative to repo root."},
+          "pages": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+          "depends_on": {"type": "array", "items": {"type": "string"}},
+          "status": {"type": "string", "enum": ["pending", "complete", "failed"]},
+          "result_ref": {"type": ["string", "null"], "description": "Filename of the wrapped result file relative to cache_dir."},
+          "prompt_path": {"type": "string", "description": "Phase 4 review task prompt path relative to repo root."},
+          "result_path": {"type": "string", "description": "Phase 4 review task result output path."},
+          "result_schema": {"type": "string", "description": "Phase 4 review task result schema path relative to repo root."},
+          "input_artifacts": {"type": "array", "items": {"type": "string"}, "description": "Phase 4 review task input artifact paths."}
+        },
+        "if": {
+          "not": {"properties": {"task_type": {"const": "review"}}, "required": ["task_type"]}
+        },
+        "then": {
+          "required": ["task_id", "subagent_role", "tier", "schema", "prompt_template", "pages", "depends_on", "status"]
+        },
+        "else": {
+          "required": ["task_id", "task_type", "tier", "prompt_path", "result_path", "result_schema"]
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["outcomes"],
+      "additionalProperties": false,
+      "properties": {
+        "started_at": {"type": ["string", "null"], "format": "date-time"},
+        "completed_at": {"type": ["string", "null"], "format": "date-time"},
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["task_id", "attempts", "final_status"],
+            "additionalProperties": false,
+            "properties": {
+              "task_id": {"type": "string"},
+              "attempts": {"type": "integer", "minimum": 0},
+              "final_status": {"type": "string", "enum": ["pending", "complete", "failed", "partial"]},
+              "last_error": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          {"required": ["plan_version"]},
+          {"required": ["mpn"]},
+          {"required": ["pdf_path"]},
+          {"required": ["pdf_sha256"]},
+          {"required": ["cache_dir"]},
+          {"required": ["scout_ref"]},
+          {"required": ["execution"]}
+        ]
+      },
+      "then": {
+        "required": ["plan_version", "mpn", "pdf_path", "pdf_sha256", "cache_dir", "scout_ref", "tasks", "execution"]
+      }
+    }
+  ]
+}

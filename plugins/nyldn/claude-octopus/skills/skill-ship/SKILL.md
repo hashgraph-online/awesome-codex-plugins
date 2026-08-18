@@ -1,6 +1,7 @@
 ---
 name: skill-ship
 description: "Package and finalize completed work for delivery — use when a feature is done and ready to ship"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -110,7 +111,7 @@ echo "Current Phase: $CURRENT_PHASE"
 ```bash
 # Check provider availability
 command -v codex &> /dev/null && codex_status="Available" || codex_status="Not installed"
-command -v gemini &> /dev/null && gemini_status="Available" || gemini_status="Not installed"
+command -v agy &> /dev/null && agy_status="Available" || agy_status="Not installed"
 ```
 
 **Output:**
@@ -120,7 +121,7 @@ command -v gemini &> /dev/null && gemini_status="Available" || gemini_status="No
 
 **Providers:**
 - Codex CLI: ${codex_status} - Code security analysis
-- Gemini CLI: ${gemini_status} - Edge case and vulnerability detection
+- Antigravity CLI: ${agy_status} - Additional external-model challenge
 - Claude: Available - Synthesis and final validation
 
 **Estimated Time:** 3-5 minutes
@@ -349,7 +350,7 @@ Present final summary:
 
 - **Security Score:** {score}/100
 - **Quality Score:** {score}/100
-- **Providers Used:** Codex + Gemini + Claude
+- **Providers Used:** Claude plus available external providers
 
 ### Archive
 
@@ -371,7 +372,7 @@ Restore with: `/octo:rollback {CHECKPOINT_TAG}`
 **To start a new project:** `/octo:embrace`
 
 *Multi-AI validation powered by Claude Octopus*
-*Providers: Codex | Gemini | Claude*
+*Providers: Codex | Antigravity | Claude*
 ```
 
 

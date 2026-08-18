@@ -36,7 +36,7 @@ classifiers = [
 keywords = ["mcp", "langfuse", "observability", "tracing", "agents", "llm", "debugging"]
 dependencies = [
     "langfuse>=3.11.2,<5.0.0",
-    "mcp[cli]>=1.6.0",
+    "mcp[cli]>=1.6.0,<2",
     "pydantic>=2.0.0",
     "cachetools>=5.0.0",
 ]

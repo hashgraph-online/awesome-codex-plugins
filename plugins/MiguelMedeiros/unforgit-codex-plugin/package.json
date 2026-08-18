@@ -1,0 +1,7 @@
+{
+  "name": "unforgit-codex-plugin",
+  "version": "0.9.3",
+  "private": true,
+  "description": "Codex plugin bundle for Unforgit repository memory",
+  "license": "MIT"
+}

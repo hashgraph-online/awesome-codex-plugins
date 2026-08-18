@@ -1,0 +1,135 @@
+[project]
+name = "agentpack-cli"
+version = "0.4.3"
+description = "Local context engine for AI coding agents that ranks relevant repo files and builds compact task-focused context packs for Claude Code, Codex, Cursor, Windsurf, MCP, and CI workflows."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "AGPL-3.0-only"}
+keywords = ["ai-coding-agents", "coding-agent", "ai-agent", "claude-code", "developer-tools", "repo-analysis", "repo-context", "context-engine", "mcp-context-engine", "context-router", "context-packing", "prompt-context", "task-focused-context", "reduce-token-usage", "local-first", "repo-map", "mcp", "ci", "codex", "cursor", "windsurf", "antigravity", "ai", "llm", "context", "packing"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+  "typer>=0.12.0",
+  "rich>=13.0.0",
+  "pathspec>=0.12.1",
+  "pydantic>=2.0.0",
+  "tomli-w>=1.0.0",
+  "tiktoken>=0.7.0",
+  "watchdog>=4.0.0",
+  "tree-sitter>=0.23.2",
+  "tree-sitter-language-pack>=0.7.4",
+  "tomli>=2.0.0; python_version < '3.11'"
+]
+
+[project.urls]
+Homepage = "https://github.com/vishal2612200/agentpack"
+Documentation = "https://vishal2612200.github.io/agentpack/"
+Repository = "https://github.com/vishal2612200/agentpack"
+Issues = "https://github.com/vishal2612200/agentpack/issues"
+Changelog = "https://github.com/vishal2612200/agentpack/blob/main/CHANGELOG.md"
+
+[project.scripts]
+agentpack = "agentpack.cli:app"
+
+[project.optional-dependencies]
+watch = [
+  "watchdog>=4.0.0"
+]
+
+mcp = [
+  "mcp>=1.28.1,<2"
+]
+
+tree-sitter = []
+
+all = [
+  "watchdog>=4.0.0",
+  "mcp>=1.28.1,<2",
+  "tree-sitter>=0.23.2",
+  "tree-sitter-language-pack>=0.7.4"
+]
+
+dev = [
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "jsonschema>=4.20.0",
+  "Pillow>=10.0.0",
+  "ruff>=0.15.0,<0.16.0",
+  "mypy",
+  "tomli>=2.0.0; python_version < '3.11'"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.mypy]
+python_version = "3.10"
+files = [
+  "src/agentpack/core/e2e_benchmark.py",
+  "src/agentpack/core/modes.py",
+  "src/agentpack/core/pr_target.py",
+  "src/agentpack/router/service.py",
+  "src/agentpack/router/models.py",
+  "src/agentpack/router/discovery.py",
+  "src/agentpack/router/parser.py",
+  "src/agentpack/router/prompt_builder.py",
+  "src/agentpack/router/scoring.py",
+  "src/agentpack/router/skills_index.py",
+  "src/agentpack/integrations/agents.py",
+  "src/agentpack/integrations/git_hooks.py",
+  "src/agentpack/commands/doctor.py",
+  "src/agentpack/commands/release_check.py",
+  "src/agentpack/commands/benchmark_e2e.py",
+  "src/agentpack/mcp_server.py",
+  "src/agentpack/dashboard/collectors.py",
+  "src/agentpack/analysis/",
+]
+
+# Check listed critical modules without pulling legacy untyped imports into scope.
+follow_imports = "skip"
+
+# Optional integrations and parsers are intentionally absent from the default
+# development install used by the CI type-check step.
+[[tool.mypy.overrides]]
+module = ["mcp", "mcp.*", "tomllib", "tomli", "tree_sitter", "tree_sitter_language_pack"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = [
+  "src/agentpack",
+]
+
+[tool.coverage.report]
+# Whole-package report is descriptive; CI enforces scoped 80% gates.
+fail_under = 0
+show_missing = true
+
+[build-system]
+requires = ["hatchling==1.26.3"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentpack"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+# no shared data needed; package data is included via include-package-data
+
+[tool.hatch.build]
+include = [
+  "src/agentpack/**",
+]

@@ -1,6 +1,6 @@
 {
   "name": "agent-vision",
-  "version": "1.0.3",
+  "version": "1.5.0",
   "description": "macOS-only plugin for explicit local camera frames.",
   "author": {
     "name": "Velocity Works",

@@ -112,8 +112,8 @@ last_updated: YYYY-MM-DD
 
 ## Related Topics
 
-- [Link 1](../path/to/doc.md)
-- [Link 2](../path/to/doc.md)
+- `Link label — ../replace/with/real-doc.md`
+- `Link label — ../replace/with/real-doc.md`
 
 ## References
 

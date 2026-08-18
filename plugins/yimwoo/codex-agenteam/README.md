@@ -59,17 +59,23 @@ or restart Codex so it reloads workspace agents.
 - [**Pipeline & Profiles**](docs/pipeline.md) — stages, gates, verification, resume, CI repair
 - [**CLI Reference**](docs/cli.md) — all skills and runtime commands
 - [**HOTL Integration**](docs/hotl.md) — structured execution with the HOTL plugin
+- [**Benchmarking**](benchmarks/README.md) — reproducible strategy comparisons from run evidence
 
-## Governed Delivery Foundations
+## Current Capabilities
 
-AgenTeam 3.4 adds an optional governance foundation for teams handling larger
-features, multi-phase initiatives, or longer-lived delivery work. You can
-scaffold local assets with `agenteam-rt governed-bootstrap`, record structured
-decisions with `agenteam-rt decision append`, and evaluate starter tripwires
-with `agenteam-rt tripwire check`.
+- **Run control:** configurable stages, role routing, isolation, verification,
+  retries, rework, gates, and resume.
+- **Compatibility and observability:** `doctor`, `status`, `trace`, standups,
+  reports, and portable evidence bundles.
+- **Portable planning:** deterministic workspace-agent export plus
+  evidence-backed benchmark conversion and reporting.
+- **Structured handoffs:** opt-in schema-validated role results with SHA-256
+  provenance, downstream prompt reuse, and trace/evidence metrics.
+- **Governed delivery:** optional decision logs, tripwires, scope audits, and
+  approval evidence for larger or longer-lived work.
 
-These commands are additive. Existing quick fixes, POCs, and standard pipeline
-flows keep working the same way unless you choose to layer governance on top.
+These capabilities are additive. Quick fixes and standard pipelines remain
+lightweight unless you enable structured handoffs or governed delivery.
 
 ---
 

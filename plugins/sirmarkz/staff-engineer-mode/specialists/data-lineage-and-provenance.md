@@ -57,17 +57,6 @@ Produces the governance and audit lineage spine for business and regulated data 
 
 Designate a source-of-record, capture the derivation chain, and build the downstream dependency graph so the team can bound recompute after a bad source. Lineage must survive boundary crossings; per-system lineage that stops at the edge leaves recompute scope unknown. Route pipeline recovery and personal-data lifecycle to their specialists.
 
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
-
 ## Exceptions
 
 - Local diagnostic metrics can use lighter lineage if they are not regulated, reported externally, or used for material decisions.

@@ -36,7 +36,8 @@ Produces a parity matrix across local, CI, staging, and production for the dimen
 - The work is declaring infrastructure desired state, drift reconciliation against that desired state, or admission policy; use `infrastructure-and-policy-as-code`.
 - The work is platform templates, golden paths, or a service catalog; use `platform-golden-paths`.
 - The work is configuration safety in a single environment (validation, preview, blast radius, rollback); use `configuration-and-automation-safety`.
-- The work is secret rotation, key management, or workload identity; use `identity-and-secrets`.
+- The work is runtime secret storage, delivery, or rotation, or workload identity; use `identity-and-secrets`.
+- The work is certificate, cryptographic key, trust root, or algorithm lifecycle; use `cryptography-and-key-lifecycle`.
 - The work is internal service mesh, discovery, or routing; use `internal-service-networking`.
 - The work is an active production incident whose triage cannot wait for parity analysis; use `incident-response-and-postmortems`.
 
@@ -65,26 +66,15 @@ Produces a parity matrix across local, CI, staging, and production for the dimen
 7. **Set action triggers.** When drift exceeds the budget, the action is not "create a generic task." The action is named: block CI promotion, block deploy to the next environment, repair the environment contract, or open an incident-grade follow-up.
 8. **Handle ephemeral and preview environments.** Ephemeral environments are useful only when their parity contract is explicit. State which dimensions they replicate from production and which they intentionally diverge on, so a passing preview means something specific.
 9. **Define preflight parity.** For release preflight stages, state which critical path dimensions must match production closely enough for the result to be trusted.
-10. **Bound third-party dependencies in non-prod.** Decide per dependency whether non-prod uses a stand-in, a sandbox, or the real production endpoint. Each choice has different parity properties; document them.
-11. **Reproduce the failure across environments.** When a "works here, fails there" failure appears, the first action is to reproduce in each relevant environment and identify the dimension responsible. Fix that dimension across the parity contract instead of patching the failing environment alone.
+10. **Bound third-party dependencies in non-prod.** Default to contract-compatible stand-ins or isolated sandboxes and document which latency, error, quota, authentication, and data behaviors they do not reproduce. Contact a production dependency from non-production only with explicit authorization, a constrained identity, data-classification checks, rate and side-effect bounds, and a tested stop path; prefer read-only or provider-supported test operations.
+11. **Reproduce without turning production into a test environment.** Reproduce through local, CI, preview, staging, or a dedicated load environment in the order that best isolates the divergent dimension. In production, prefer telemetry, recorded and sanitized inputs, shadow execution with suppressed side effects, or a bounded canary. Active production mutation requires explicit authority, blast-radius and data controls, stop criteria, and recovery; otherwise mark the production hypothesis unverified rather than experimenting on users.
 12. **Update the parity contract.** After every drift-related incident, update the matrix, the drift budget, or the detection so the same divergence cannot hide again.
 
 ## Synthesized Default
 
-Define required parity and allowed divergence per dimension. Detect drift on parity-required dimensions on a defined cadence. Bound divergence with a budget and a named action when the budget is exceeded. Treat ephemeral and preview environments as parity-explicit, not parity-by-vibes. Reproduce environment-divergent failures in every relevant environment before declaring a fix. Update the contract after every drift-rooted incident.
+Define required parity and allowed divergence per dimension. Detect drift on parity-required dimensions on a defined cadence. Bound divergence with a budget and a named action when the budget is exceeded. Treat ephemeral and preview environments as parity-explicit. Reproduce environment-divergent failures through the safe evidence method defined for each relevant environment; production may use telemetry, sanitized replay, side-effect-suppressed shadowing, or a bounded canary instead of active reproduction. Update the contract after every drift-rooted incident.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -102,8 +92,9 @@ Define required parity and allowed divergence per dimension. Detect drift on par
 - Make recommendations actionable with per-dimension parity status, drift budget, detection cadence, action trigger, and the environment change path.
 - Name the details to inspect, such as dependency-lock comparisons, configuration snapshots, schema versions, clock settings, network reachability checks, and the drift signals that fired or did not fire; do not state parity without the comparison.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
-- Stay inside running-environment parity. Route release-artifact reproducibility, infrastructure desired state, platform templates, single-environment configuration safety, secret lifecycle, internal mesh, and incident command to the responsible specialist.
+- Stay inside running-environment parity. Route release-artifact reproducibility, infrastructure desired state, platform templates, single-environment configuration safety, runtime secret lifecycle, cryptographic material lifecycle, internal mesh, and incident command to the responsible specialist.
 - Be concise: prefer compact parity matrices and budget tables over generic environment-management prose.
+- Scale the artifact to the request: a single divergence needs the compared dimensions, reproduction evidence, and contract repair; add the full environment matrix, drift budget, and action-trigger catalog only for environment-program design or a repository-wide audit.
 
 ## Required Outputs
 
@@ -115,9 +106,9 @@ Define required parity and allowed divergence per dimension. Detect drift on par
 - Action-trigger table mapping each drift-budget breach to the action taken (block CI promotion, block deploy, repair environment contract, open follow-up).
 - Ephemeral and preview environment contract stating replicated and diverged dimensions and what a passing run in those environments means.
 - Preflight parity matrix for critical release paths, including which results are meaningful when intentional divergence remains.
-- Third-party dependency stand-in policy per dependency with the parity properties of each choice.
-- Reproduction protocol for "works here, fails there" failures with the order of environments to reproduce in and the dimension-isolation steps.
-- Follow-up routes to release reproducibility, infrastructure-as-code, platform paths, configuration safety, identity, internal networking, or incident response as needed.
+- Third-party dependency stand-in policy per dependency with parity gaps and the authorization, identity, data, rate, side-effect, stop, and recovery controls for any production-endpoint access.
+- Reproduction protocol for "works here, fails there" failures with environment order, dimension-isolation steps, safe production evidence methods, and the authority required for any active production test.
+- Follow-up routes to release reproducibility, infrastructure-as-code, platform paths, configuration safety, identity and runtime secrets, cryptographic material lifecycle, internal networking, or incident response as needed.
 
 ## Checks Before Moving On
 
@@ -130,6 +121,7 @@ Define required parity and allowed divergence per dimension. Detect drift on par
 - `preflight_environment_match`: release preflight stages match the production dimensions needed for critical-path confidence or state the limits of the result.
 - `ephemeral_contract`: preview and ephemeral environments declare replicated and diverged dimensions explicitly.
 - `reproduction_protocol`: a documented order and method for reproducing environment-divergent failures across environments exists and is used.
+- `production_reproduction_safety`: production evidence defaults to telemetry, sanitized replay, side-effect-suppressed shadowing, or a bounded canary; active mutation has explicit authority and recovery controls.
 
 ## Red Flags - Stop And Rework
 
@@ -141,6 +133,7 @@ Define required parity and allowed divergence per dimension. Detect drift on par
 - An incident's root cause was an environment divergence and the parity contract was not updated.
 - Time, locale, or clock differences across environments are unmeasured even after a date- or timezone-related bug.
 - Stand-in dependencies in non-prod produce different success contracts than the real dependency in production, and the docs do not record the gap.
+- Non-production code calls a production dependency with production data or side effects but no explicit authorization, bounds, stop path, or recovery.
 
 ## Common Mistakes
 

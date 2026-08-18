@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Full-Stack Workflow</title>
+  <desc id="desc">Three connected workflow gates forming a forward path</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101828"/>
+      <stop offset="1" stop-color="#1D2939"/>
+    </linearGradient>
+    <linearGradient id="path" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2E90FA"/>
+      <stop offset="1" stop-color="#12B76A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#background)"/>
+  <path d="M112 256h288" fill="none" stroke="url(#path)" stroke-width="32" stroke-linecap="round"/>
+  <rect x="88" y="144" width="72" height="224" rx="28" fill="#1570EF"/>
+  <rect x="220" y="112" width="72" height="288" rx="28" fill="#2E90FA"/>
+  <rect x="352" y="160" width="72" height="192" rx="28" fill="#12B76A"/>
+  <circle cx="124" cy="256" r="18" fill="#FFFFFF"/>
+  <circle cx="256" cy="256" r="18" fill="#FFFFFF"/>
+  <circle cx="388" cy="256" r="18" fill="#FFFFFF"/>
+</svg>

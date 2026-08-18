@@ -15,7 +15,7 @@ A workload with no resource bounds, no graceful-shutdown path, mistuned probes, 
 
 ## Overview
 
-Produces a runtime-posture spec: per-workload resource requests and limits with the OOM and eviction behavior they imply, a scheduling and placement plan, lifecycle hooks, node lifecycle handling, and a hardened image and security context. Technology-agnostic: reason about the scheduler, the workload, and the node as capabilities, not by product name.
+Produces a runtime-posture spec: per-workload resource requests and explicit limit decisions, memory-limit termination and node-pressure eviction behavior, a scheduling and placement plan, lifecycle hooks, node lifecycle handling, and a hardened image and security context. Technology-agnostic: reason about the scheduler, workload, and node as capabilities, not by product name.
 
 **Core principle:** size the workload to its real demand, drain it cleanly on every disruption, and let probes reflect real readiness, so deploys and node churn cost no requests.
 
@@ -45,9 +45,9 @@ Produces a runtime-posture spec: per-workload resource requests and limits with 
 
 ## Workflow
 
-1. **Set resource bounds.** Choose requests from measured demand and limits from the failure behavior you accept; state what an OOM-kill or eviction does to in-flight work. Distinguish limit failure modes: exceeding a CPU limit throttles (added latency) while exceeding a memory limit terminates the workload (OOM-kill or eviction); set requests and limits accordingly. Keep secrets and sensitive data out of images and out of plain environment variables.
+1. **Set resource bounds.** Choose scheduling requests from measured normal and peak demand. Make an explicit per-resource limit decision from the failure behavior you accept: CPU limits can add throttling latency and may be omitted when admission and capacity controls bound use; memory limits provide containment but crossing one terminates the workload. Treat node-pressure eviction as a separate scheduler or host failure, not as memory-limit termination. State how termination and eviction affect in-flight work. Keep secrets and sensitive data out of images and plain environment variables.
 2. **Define the drain contract.** On shutdown, stop accepting new work, finish or hand off in-flight work within a deadline, then exit; tie the deadline to the orchestrator termination grace period.
-3. **Tune probes to real readiness.** Readiness gates traffic on dependencies and warm state; liveness restarts only on genuine deadlock, never on slow dependencies; startup probes cover cold-start time without masking crashes.
+3. **Tune probes to real readiness.** Readiness should test the workload's local ability to accept and serve work, including required local initialization. Include a remote dependency only when the workload cannot provide any useful response without it and the probe design preserves a fleet-capacity floor or documented degraded mode during a shared dependency outage. Liveness restarts only on local deadlock or irrecoverable process failure, never on a slow dependency; startup probes cover cold-start time without masking crashes.
 4. **Order init and sidecars.** Make startup and shutdown ordering explicit so a workload never serves before its sidecar is ready or outlives a sidecar it depends on.
 5. **Handle node lifecycle.** Define cordon and drain on rotation, and bound autoscaler churn so scale-in does not sever in-flight work; keep a healthy-capacity floor.
 6. **Harden the image and context.** Pin a minimal base, run non-root with a read-only root filesystem where feasible, drop unused capabilities, and set a cold-start and image-size budget.
@@ -56,17 +56,6 @@ Produces a runtime-posture spec: per-workload resource requests and limits with 
 ## Synthesized Default
 
 Set explicit workload bounds, define drain behavior for disruption paths, gate traffic on real readiness, pin a hardened minimal image, and align termination grace with shutdown behavior. A deploy or node drain that drops requests is a defect.
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -81,11 +70,12 @@ Set explicit workload bounds, define drain behavior for disruption paths, gate t
 - Make recommendations actionable with request/limit choices, deadlines, probe thresholds, hardening decisions, and test commands or checks where relevant.
 - Name the details to inspect, such as workload definitions, metrics, shutdown hooks, probe behavior, node-drain logs, and image metadata; do not state details you have not seen.
 - Stay inside workload runtime availability and hardening; route desired-state policy, capacity modeling, and supply-chain provenance away when they are central.
+- Scale the artifact to the request: a narrow resource, drain, probe, or image question needs the decision and its failure test; add the full runtime-posture plan only when the workload or release spans those surfaces.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
-- Per-workload resource bound table: request, limit, OOM and eviction behavior.
+- Per-workload resource table: measured demand, scheduling request, explicit per-resource limit decision, CPU-throttling behavior, memory-limit termination, and node-pressure eviction behavior.
 - Drain contract: shutdown sequence, deadline, and grace-period alignment.
 - Probe spec: readiness, liveness, and startup checks with what each verifies and its thresholds.
 - Init and sidecar ordering decision.
@@ -95,10 +85,10 @@ Set explicit workload bounds, define drain behavior for disruption paths, gate t
 
 ## Checks Before Moving On
 
-- `resource_bounds`: every workload has a request and a limit, with stated OOM and eviction behavior.
-- `limit_failure_modes`: CPU-limit throttling versus memory-limit termination is accounted for, and images/environment carry no embedded secrets.
+- `resource_bounds`: every workload has measured demand, scheduling requests, and explicit limit decisions with stated containment and latency tradeoffs.
+- `limit_failure_modes`: CPU-limit throttling, memory-limit termination, and node-pressure eviction are distinguished, and images or environment definitions carry no embedded secrets.
 - `drain_contract`: shutdown stops intake, finishes or hands off in-flight work, and fits the grace period.
-- `probe_semantics`: readiness gates on real dependencies; liveness does not restart on slow dependencies.
+- `probe_semantics`: readiness reflects local ability to serve; any dependency check preserves a fleet-capacity floor or degraded mode; liveness does not restart on slow dependencies.
 - `lifecycle_order`: init and sidecar startup and shutdown ordering is explicit.
 - `node_lifecycle`: rotation and autoscaler scale-in preserve a capacity floor and do not sever in-flight work.
 - `image_hardening`: minimal base, non-root where feasible, dropped capabilities, size and cold-start budget.
@@ -106,7 +96,8 @@ Set explicit workload bounds, define drain behavior for disruption paths, gate t
 
 ## Red Flags - Stop And Rework
 
-- A workload runs with no memory limit or no request.
+- A workload has no measured demand, scheduling request, or explicit memory-containment decision.
+- Readiness depends on a shared remote dependency and can remove the whole fleet during that dependency's outage.
 - Deploys or node drains drop in-flight requests and that is treated as normal.
 - Liveness probes restart workloads on slow dependencies, amplifying load.
 - A container runs as root with a writable root filesystem and full capabilities.

@@ -8,11 +8,13 @@
 Resolve the effective `discovery-on-close` value:
 
 ```
-effectiveDiscoveryOnClose = config.discoveryOnClose ?? (sessionType === 'housekeeping' ? false : true)
+effectiveDiscoveryOnClose = config.discoveryOnClose ?? true
 ```
 
 - If the user has set `discovery-on-close` explicitly in Session Config, that value always wins (backward compatible).
-- If the field is absent (not configured), the default is **session-type aware**: `false` for `housekeeping`, `true` for `feature` and `deep`.
+- If the field is absent (not configured), the default is `true` for **every** session type.
+
+**Why this is no longer session-type aware (2026-07-29).** The previous default was `false` for `housekeeping` and `true` for `feature`/`deep`, on the theory that housekeeping is lightweight and does not need a scan. Measurement inverted that theory: a read-only diagnostic run of the housekeeping flow across six real consumer repos found the discovery probes are the only substantial project-hygiene surface in the whole system — session-start Phase 4 runs 13 probes, of which exactly two (`ci-status`, `project-hygiene`) inspect the project rather than this tool's own substrate. Defaulting the scan OFF for housekeeping meant the one session type whose entire purpose is cleanup was also the only one running without hygiene diagnostics. Repos that genuinely want the faster close still set `discovery-on-close: false` explicitly, which continues to win.
 
 If `effectiveDiscoveryOnClose` is `false`, skip this section.
 

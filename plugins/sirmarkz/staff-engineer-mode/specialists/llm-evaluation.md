@@ -53,6 +53,7 @@ Classical ML prediction evals belong to `ml-reliability-and-evaluation`; keep th
 - For agentic adversarial evals: the white-box risk architect, black-box or gray-box case author, white-box reviewer, context each role saw, and whether expected traces, reference solutions, implementation notes, happy-path examples, and route rationales were withheld from the case author.
 - Thresholds, confidence needs, flake rate, baseline result, and comparison target.
 - Versioned prompts, models, retrieval inputs, tools, datasets, and harness code.
+- Data classification, access, retention, redaction, and disposal rules for eval cases, prompts, retrieved content, traces, grader rationales, and failure artifacts.
 - Failure triage workflow, severity, waiver rules, and re-run policy.
 
 ## Workflow
@@ -64,25 +65,15 @@ Classical ML prediction evals belong to `ml-reliability-and-evaluation`; keep th
 5. **Separate scoring types.** Use exact checks for structured requirements, trace and final-state checks for agent runs, rubric scoring for judgment, and human judgment for ambiguous high-impact cases. For retrieval-grounded evals, score retrieval quality separately from grounding and answer correctness so failures are attributable. For agent runs, fix task environment, tool fixtures, run isolation, seeds, and repeat-run policy so traces are reproducible and variance is measured.
 6. **Control grader risk.** Define rubrics, blind comparisons where useful, calibration cases, and checks for scoring drift.
 7. **Set thresholds first.** Declare pass, warn, and block criteria before looking at the new result. Report sample size and statistical uncertainty on eval deltas before gating.
-8. **Guard against contamination.** Use held-out sets and canary strings so cases cannot leak into training or few-shot context.
+8. **Prevent and detect contamination.** Prevent exposure with access controls, separated holdouts, prompt/log exclusions, and lineage that records which inputs each model, grader, or case author could see. Use canary strings or equivalent markers to detect suspected exposure; canaries do not prevent leakage. Define quarantine, investigation, rotation, and rebaselining when a marker appears.
 9. **Version inputs.** Link prompts, model, retrieval corpus, tool policy, eval cases, graders, harness code, and task environment to the result.
-10. **Triage failures.** Classify blockers, acceptable regressions, flaky cases, data issues, trace issues, and missing coverage.
-11. **Keep history.** Track baseline, deltas, regressions, waived failures, repeated-run variance, and production incidents that should become future cases.
+10. **Protect eval records.** Minimize stored prompts, retrieved content, traces, grader rationales, and failure artifacts; exclude credentials and unnecessary personal or tenant data; restrict access; define retention and disposal; and use redacted summaries or stable references when raw content is not required to reproduce a failure.
+11. **Triage failures.** Classify blockers, acceptable regressions, flaky cases, data issues, trace issues, and missing coverage.
+12. **Keep history.** Track baseline, deltas, regressions, waived failures, repeated-run variance, and production incidents that should become future cases.
 
 ## Synthesized Default
 
 Use a versioned eval harness whose evidence matches the requested workflow: output checks for LLM responses, retrieval and grounding checks for retrieval-backed answers, and trace plus final-state checks for agent runs. Keep representative cases, slice coverage, deterministic checks where possible, calibrated rubric graders where needed, predefined thresholds, regression history, and explicit failure triage. For a new harness with no history, the first run establishes the baseline that regression history accrues from. Treat aggregate score improvements as insufficient when critical slices or known failure modes regress.
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -96,6 +87,7 @@ Use a versioned eval harness whose evidence matches the requested workflow: outp
 - Cover decision, eval unit, cases, slices, scoring, thresholds, versioning, regression history, and failure handling before optional model discussion.
 - Select mode-specific evidence from the prompt: response evidence for LLM output evals, retrieval evidence for retrieval-grounded evals, and trace/final-state evidence for agentic evals.
 - Make recommendations actionable with dataset changes, grader rules, pass/fail criteria, and rerun policy where relevant.
+- Protect case and trace records with classification, minimization, redaction, access, retention, and disposal rules proportional to the data they contain.
 - Name the details to inspect, such as eval cases, baseline runs, grader rubric, flake rate, slice results, trace logs, final-state checks, versioned inputs, and failure log; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside model-backed evaluation checks. Route security, ML serving, or AI coding controls only when those risks dominate.
@@ -113,6 +105,8 @@ Use a versioned eval harness whose evidence matches the requested workflow: outp
 - Trace, tool-call, state, and final-artifact checks for agentic workflows.
 - Thresholds for pass, warn, block, and rollback.
 - Versioned-input record.
+- Contamination prevention, detection, and response plan.
+- Eval-record handling plan covering prohibited fields, minimization, redaction, access, retention, and disposal.
 - Failure triage table with disposition and next action.
 - Regression history and case-promotion policy.
 
@@ -127,7 +121,8 @@ Use a versioned eval harness whose evidence matches the requested workflow: outp
 - `trace_and_state_checks`: agentic evals check required tool calls, observations, state updates, final state, and final artifact where relevant.
 - `thresholds_predeclared`: pass, warn, and block criteria are set before judging the change.
 - `version_lineage`: prompts, model, data inputs, tools, eval cases, graders, and result are linked.
-- `contamination_guard`: eval sets are held out or canary-marked to detect contamination.
+- `contamination_guard`: access controls and separated holdouts prevent avoidable exposure; markers detect suspected contamination; quarantine, rotation, and rebaselining actions are defined.
+- `record_safety`: eval cases, prompts, retrieved content, traces, grader rationales, and failure artifacts exclude unnecessary sensitive data and have access, retention, redaction, and disposal rules.
 - `delta_significance`: eval-gate decisions report sample size and uncertainty, not point deltas.
 
 ## Red Flags - Stop And Rework
@@ -137,6 +132,8 @@ Use a versioned eval harness whose evidence matches the requested workflow: outp
 - Eval cases are generated from the same prompt being tested with no independent check.
 - Agentic adversarial cases are written from expected traces, reference solutions, implementation notes, happy-path examples, or route rationales.
 - The same agent writes the happy path and final adversarial cases without a separate black-box author or white-box review.
+- Canary strings are treated as a control that prevents exposure rather than a detector that triggers investigation and rotation.
+- Raw prompts, retrieved content, credentials, personal data, or tool results are retained in eval artifacts without a reproducibility need and a handling policy.
 - Failures are waived without a reason or an expiry.
 - Production incidents do not become regression cases.
 
@@ -148,3 +145,4 @@ Use a versioned eval harness whose evidence matches the requested workflow: outp
 | Only happy-path cases | Add edge, adversarial, and regression cases with black-box or gray-box case authorship. |
 | Unversioned prompts | Link every input to every result. |
 | Treating judge output as truth | Calibrate rubrics and inspect failures. |
+| Treating canaries as prevention | Separate access and holdout controls from contamination detection and response. |

@@ -1,20 +1,21 @@
 {
   "name": "agentops",
-  "description": "The operational layer for coding agents. Bookkeeping, validation, and flows that compound knowledge between sessions.",
+  "version": "3.5.0",
+  "description": "The operations layer for agentic engineering: portable skills and evidence contracts connecting intent, coding agents, software factories, and independent judgment.",
   "skills": "./skills-codex",
   "interface": {
     "displayName": "AgentOps",
-    "shortDescription": "Repo-native memory, validation gates, and agent workflows.",
-    "longDescription": "AgentOps packages repo-native memory, validation gates, and agent workflows for Codex so sessions can carry context forward, run repeatable development flows, verify changes locally, and track work through closeout.",
+    "shortDescription": "The operations layer for agentic engineering.",
+    "longDescription": "AgentOps connects intent, coding agents, software factories, context sources, and independent judgment through portable skills and evidence contracts. Codex shapes one behavior, runs one bounded implementation experiment, validates the exact result from fresh context, and can persist a durable verdict. Git, CI, retries, queues, and delivery remain caller-owned.",
     "developerName": "AgentOps",
     "category": "Productivity",
     "capabilities": [
       "Skills"
     ],
     "defaultPrompt": [
-      "Use AgentOps to inspect ready work, claim a bead, and plan the change.",
-      "Use AgentOps to validate this change against the repo gates.",
-      "Use AgentOps to prepare closeout with beads, validation, and push readiness."
+      "Use AgentOps Plan to define one behavior and its evidence.",
+      "Use AgentOps Implement for one bounded RED to GREEN experiment.",
+      "Use AgentOps Validate from fresh context to judge the exact candidate."
     ]
   }
 }

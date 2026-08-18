@@ -5,12 +5,12 @@
 
 ## Why this rule exists
 
-The session-orchestrator plugin is consumed by three platforms (see `skills/_shared/platform-tools.md`):
+The session-orchestrator plugin is consumed by four platforms (see `skills/_shared/platform-tools.md`):
 
 - **Claude Code / Cursor IDE** — canonical instruction file is `CLAUDE.md`.
-- **Codex CLI** — canonical instruction file is `AGENTS.md`.
+- **Codex CLI / Pi** — canonical instruction file is `AGENTS.md`.
 
-Bootstrap accepts both as valid (`skills/bootstrap/_shared-template.md`). Without an explicit alias rule, downstream consumers that hardcode `CLAUDE.md` silently exclude every Codex CLI repo from their checks (see issue #33). The fix is purely additive: every site that resolves the project-instruction file must accept `AGENTS.md` as a fallback alias.
+Bootstrap accepts both as valid (`skills/bootstrap/_shared-template.md`). Without an explicit alias rule, downstream consumers that hardcode `CLAUDE.md` silently exclude every Codex CLI or Pi repo from their checks (see issue #33). The fix is purely additive: every site that resolves the project-instruction file must accept `AGENTS.md` as a fallback alias.
 
 ## Resolution rule (precedence)
 
@@ -23,6 +23,7 @@ Apply these steps in order against the repo root. Stop at the first hit. Never m
 **Invariants:**
 
 - `CLAUDE.md` always wins ties. A repo migrating from Claude Code to Codex CLI keeps the existing `CLAUDE.md` until it is intentionally renamed.
+- Active platform config readers may prefer the native platform file when `SO_PLATFORM` is set (`AGENTS.md` for Codex CLI / Pi). Generic artifact resolution via `resolveInstructionFile()` keeps the `CLAUDE.md`-wins rule above.
 - Empty files are treated as absent. A zero-byte placeholder must not block detection of the alias.
 - Never read both files. Never concatenate, diff, or cross-validate them — the SSOT is whichever the rule selects.
 - The resolved kind (`claude` | `agents`) is part of the contract. Consumers that report paths in JSON output (e.g., `skills/claude-md-drift-check/checker.mjs`) must surface the resolved path so users on either platform can audit the result.

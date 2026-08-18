@@ -1,0 +1,76 @@
+{
+  "name": "@taisly/agent",
+  "version": "0.2.8",
+  "description": "Free AI-first agent kit for publishing short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook through Taisly.",
+  "type": "module",
+  "main": "src/index.js",
+  "mcpName": "io.github.taisly/agent",
+  "homepage": "https://taisly.com/en/ai-agent-kit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taisly/agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/taisly/agent/issues"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "taisly": "src/cli.js"
+  },
+  "files": [
+    ".codex-plugin",
+    ".claude-plugin",
+    "assets",
+    "docs",
+    "glama.json",
+    "LICENSE",
+    "README.md",
+    "server.json",
+    "SKILL.md",
+    "src",
+    "examples"
+  ],
+  "scripts": {
+    "check": "node --check src/config.js && node --check src/setup.js && node --check src/index.js && node --check src/cli.js && node --check src/mcp.js"
+  },
+  "keywords": [
+    "taisly",
+    "taisly-agent-kit",
+    "free-ai-agent-tools",
+    "ai-agent-social-media-posting",
+    "ai-agents",
+    "ai-agent-tools",
+    "agent-skills",
+    "agentic-workflows",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "codex-plugin",
+    "codex-skills",
+    "openai-codex",
+    "claude-plugin",
+    "video-publishing",
+    "video-publishing-api",
+    "social-media",
+    "social-media-automation",
+    "tiktok-api",
+    "tiktok",
+    "instagram-automation",
+    "instagram-reels",
+    "youtube-shorts-publishing",
+    "youtube-shorts",
+    "x",
+    "facebook",
+    "automation",
+    "codex",
+    "claude-code",
+    "cursor",
+    "openclaw"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}

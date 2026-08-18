@@ -7,6 +7,26 @@ description: "HTTP API-based documentation server (always running). Questions ab
 
 HTTP API-based documentation server (always running). Auto-detects project by matching CWD against `DOCS_ROOT` folders.
 
+## Paths
+
+All paths are resolved at runtime. `ALCOVE_HOME` env var overrides the default `~/.alcove`.
+
+| Name | Resolved Path | Description |
+|------|---------------|-------------|
+| ALCOVE_HOME | `~/.alcove` | Root of all alcove data |
+| Docs Root | `~/.alcove/docs` | Project documentation directories |
+| Vaults Root | `~/.alcove/vaults` | Knowledge base vaults |
+| Config | `~/.alcove/config.toml` | Global configuration file |
+| Project Docs | `~/.alcove/docs/{project}/` | Per-project documentation |
+
+Quick resolution from CLI:
+```bash
+alcove path              # show all resolved paths
+alcove path --json       # JSON output (for scripts/AI)
+alcove path docs         # docs root only
+alcove path vaults       # vaults root only
+```
+
 ## Prerequisites
 
 The alcove API server must be running. Check and start with:
@@ -36,21 +56,36 @@ Any question about project design, status, conventions, decisions, env config, t
 
 ## Document Routing
 
-| Question | File |
-|----------|------|
-| "What does this do?" | `PRD.md` |
-| "How is this built?" / code structure | `ARCHITECTURE.md` / `CODE_INDEX.md` |
-| "What's the status?" | `PROGRESS.md` |
-| "Why was X chosen?" | `DECISIONS.md` |
-| "What style to use?" | `CONVENTIONS.md` |
-| "What env vars needed?" | `SECRETS_MAP.md` |
-| "Any known issues?" | `DEBT.md` |
+**IMPORTANT**: This table maps question types to document filenames. When users ask these questions, **SEARCH first** — do not directly fetch files.
 
-Unsure → search via API. **Never contradict existing decisions.**
+| Question | Search Keywords |
+|----------|------------------|
+| "What does this do?" | product requirements PRD |
+| "How is this built?" / code structure | architecture code structure CODE_INDEX |
+| "What's the status?" | progress PROGRESS status |
+| "Why was X chosen?" | decisions DECISIONS rationale |
+| "What style to use?" | conventions CONVENTIONS style guide |
+| "What env vars needed?" | SECRETS_MAP env vars environment |
+| "Any known issues?" | technical debt DEBT backlog issues |
+
+**Workflow**: Search → read results. Never fetch `PRD.md`, `ARCHITECTURE.md` etc. directly based on this table alone.
 
 ## API Reference
 
 ### Search & Discovery
+
+#### Query Construction
+
+**Extract 2-3 key terms from the question.** Avoid natural language filler.
+
+| Question | Key Terms | Query |
+|----------|-----------|-------|
+| "code structure" | code, structure | `q=code+structure` |
+| "Why was X chosen?" | why, chosen | `q=decision` (use DECISIONS.md) |
+| "Any known issues?" | issues, bugs | `q=debt` (use DEBT.md) |
+| "architecture documentation" | architecture | `q=architecture` |
+
+Default: 1-2 keywords from the question.
 
 Use the search endpoint. Project is auto-detected from CWD.
 
@@ -126,9 +161,11 @@ curl -s -X POST $ALCOVE_URL/index-code \
 ```bash
 # Update index — incremental (changed/added/deleted files only), all projects
 curl -s -X POST $ALCOVE_URL/index
+# ↑ DEFAULT for "make new docs searchable" or "rebuild index"
 
 # Update index — single project only
 curl -s -X POST $ALCOVE_URL/projects/PROJECT/index
+# ↑ ONLY when explicitly targeting a specific project
 
 # Check changed files since last index
 curl -s '$ALCOVE_URL/changes?auto_rebuild=true'
@@ -136,6 +173,8 @@ curl -s '$ALCOVE_URL/changes?auto_rebuild=true'
 # Lint docs
 curl -s '$ALCOVE_URL/lint?project=PROJECT'
 ```
+
+**Rule**: Default to `/index` (global). Use `/projects/{name}/index` only when task specifies a single project.
 
 | Action | Method | Endpoint |
 |--------|--------|----------|

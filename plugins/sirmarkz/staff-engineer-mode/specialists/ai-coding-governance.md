@@ -41,7 +41,7 @@ Produces a repo-local rule set for coding agents: allowed and forbidden actions,
 - Current work phase, next decision, what is known, and assumptions where details are missing.
 - Agent capabilities, allowed actions, repo instructions, protected paths, and responsibility rules.
 - Sensitive data boundaries, secrets handling, dependency rules, and generated-content restrictions.
-- Required verification, acceptance checks, change history, commit hygiene, and release checks.
+- Required verification, acceptance checks, change history, commit hygiene, release checks, and the classification and retention of any agent-work records.
 - Existing failure modes: hallucinated APIs, unbounded rewrites, skipped tests, broad diffs, or leaked context.
 - Exception path for emergency fixes, prototypes, and low-risk generated assets.
 
@@ -53,7 +53,7 @@ Produces a repo-local rule set for coding agents: allowed and forbidden actions,
 4. **Require small explainable diffs.** Keep changes small, explain intent, preserve responsibility, and separate mechanical edits from behavior changes.
 5. **Demand records.** Require tests, validation output, static checks, or explicit limitations before accepting agent changes.
 6. **Handle dependencies carefully.** New dependencies need purpose, update path, license/security rationale where applicable, and removal plan if experimental.
-7. **Trace agent work.** Track prompts, tool actions, changed files, verification, and explicit user confirmation where production risk exists.
+7. **Trace agent work safely.** Record the task intent, material tool-action categories, changed files, verification results, and explicit user confirmation where production risk exists. Store raw prompts, command output, or file content only when necessary for a named investigation or reproducibility need. Define classification, prohibited fields, redaction or pseudonymization, access, retention and disposal, integrity, and volume bounds; use references or digests instead of copying secrets, personal data, private logs, or sensitive source into the record.
 8. **Tune the rules.** Convert repeated agent mistakes into clearer instructions, tests, or automated checks.
 
 ## Synthesized Default
@@ -61,17 +61,6 @@ Produces a repo-local rule set for coding agents: allowed and forbidden actions,
 Use repo-local agent instructions, least-privilege tool access, protected-path rules, sensitive-data boundaries, small diffs, mandatory verification results, and human responsibility for production changes. Treat AI-generated code as untrusted until tests, checks, and source-specific details show it fits the system.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -88,6 +77,7 @@ Use repo-local agent instructions, least-privilege tool access, protected-path r
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside AI-assisted development controls. Use deployed LLM security or model-evaluation guidance only when that surface is the central risk.
 - Be concise: prefer enforceable repo rules and checks over broad AI statements.
+- Scale the artifact to the request: return the core rule, data boundary, and verification check for a narrow prompt; add dependency, traceability, and exception modules only when those surfaces are in scope.
 
 ## Required Outputs
 
@@ -97,7 +87,7 @@ Use repo-local agent instructions, least-privilege tool access, protected-path r
 - Sensitive-data and secret-handling boundaries.
 - Verification and acceptance checks for agent changes.
 - Dependency and generated-content acceptance rules.
-- Traceability checklist.
+- Traceability checklist with record classification, minimization, prohibited fields, redaction, access, retention and disposal, integrity, and volume bounds.
 - Exception rule with user confirmation and expiry.
 
 ## Checks Before Moving On
@@ -106,13 +96,14 @@ Use repo-local agent instructions, least-privilege tool access, protected-path r
 - `data_boundary`: secrets, sensitive records, and private context handling are addressed.
 - `small_diff`: changes are small enough to understand and tied to a user-visible change trail.
 - `verification_required`: tests or validation results are required before acceptance.
-- `work_record`: prompt, action, diff, checks, and confirmation are linked where risk warrants.
+- `work_record`: task intent, material action categories, diff, checks, and confirmation are linked where risk warrants, without retaining unnecessary secrets, personal data, private logs, or sensitive source.
 
 ## Red Flags - Stop And Rework
 
 - Agent output is accepted because it looks plausible.
 - The agent rewrites unrelated files without explicit user confirmation.
 - Sensitive logs, secrets, or user data are pasted into prompts unnecessarily.
+- Raw prompts, command output, or repository content are retained as trace evidence without classification, minimization, access, and disposal rules.
 - New dependencies appear with no rationale, update path, or removal plan.
 - Verification is described but not run.
 

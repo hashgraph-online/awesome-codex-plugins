@@ -1,0 +1,10 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DocFlow icon">
+  <rect width="128" height="128" rx="28" fill="#1F6FEB"/>
+  <path d="M35 28H78L96 46V100H35V28Z" fill="white"/>
+  <path d="M78 28V46H96" fill="#DDEBFF"/>
+  <path d="M48 58H82" stroke="#1F6FEB" stroke-width="7" stroke-linecap="round"/>
+  <path d="M48 74H82" stroke="#1F6FEB" stroke-width="7" stroke-linecap="round"/>
+  <path d="M48 90H68" stroke="#1F6FEB" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="35" cy="34" r="11" fill="#0A2540"/>
+  <path d="M30 34L34 38L41 30" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

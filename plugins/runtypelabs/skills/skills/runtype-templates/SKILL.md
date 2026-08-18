@@ -33,6 +33,23 @@ For the template wrapper itself, read `runtype://types/fpo-template`; for the
 wrapped `productObject`, read `types-fpo` because the current FPO default is
 version `2.0`.
 
+## Set Up A Product From A Link
+
+When a user provides a `use.runtype.com/now?...` quick-start URL, a
+`runtype.com/examples/<slug>` page, or a direct FPO/template JSON URL, do not open the
+login-gated dashboard page. Pass the original link directly to
+`create_product_from_example` as `url` (or use a known `slug` from
+`list_example_templates`).
+
+1. Supply import-time values through the tool's `variables` argument. If required
+   variables are missing, ask for the returned values and retry.
+2. Draft examples require `allow_draft: true`; use it only when the user intends to
+   install that draft.
+3. Call `get_product_setup` with the created product id. Complete automatable setup and
+   return the remaining secret, OAuth, or surface-install URLs to the user.
+4. Test the result at its user-facing layer. For an agent, call `execute_agent` with a
+   `messages` array of `{ "role": "user", "content": "..." }` turns.
+
 ## Template Shape
 
 An FPO template wraps a product object and import-time variables:

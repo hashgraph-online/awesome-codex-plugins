@@ -1,0 +1,7 @@
+interface:
+  display_name: "Say It Straight"
+  short_description: "Direct, natural prose without stock AI tone"
+  default_prompt: "Use $superloopy:say-it-straight to make this writing direct, concise, and natural without changing facts or protected text."
+
+policy:
+  allow_implicit_invocation: false

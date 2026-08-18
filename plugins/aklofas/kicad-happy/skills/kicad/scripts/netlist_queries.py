@@ -308,7 +308,7 @@ class NetlistQueries:
         return result
 
     # ------------------------------------------------------------------
-    # Net name annotations for kidoc rendering
+    # Net name annotations for downstream consumers
     # ------------------------------------------------------------------
 
     def pin_net_annotations(self) -> dict[str, dict[str, str]]:

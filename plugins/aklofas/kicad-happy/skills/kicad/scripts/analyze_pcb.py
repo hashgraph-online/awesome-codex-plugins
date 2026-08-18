@@ -37,8 +37,13 @@ from kicad_utils import (is_ground_name, is_power_net_name,
                          extract_pro_design_rules, extract_pro_text_variables,
                          load_kicad_dru, load_lib_tables)
 from pcb_connectivity import build_connectivity_graph
-from finding_schema import compute_trust_summary, sort_findings
+from finding_schema import compute_trust_summary, sort_findings, assign_finding_ids
+from envelopes.pcb import PCBEnvelope
+from schema_codec import emit_schema
+from inputs_builder import build_inputs, build_compat
+from capability_mode import get_capability_mode_ref
 
+ANALYZER_SOURCE = "pcb"
 
 # ---------------------------------------------------------------------------
 # Geometry helpers
@@ -609,9 +614,12 @@ def extract_footprints(root: list) -> list[dict]:
             for ft in find_all(fp, "fp_text"):
                 if len(ft) >= 3:
                     if ft[1] == "reference":
-                        ref = ft[2]
+                        # Some footprints have no text after the field name —
+                        # ft[2] is then an attribute s-expression, not a string.
+                        # Coerce to empty string in that case (KH-326).
+                        ref = ft[2] if isinstance(ft[2], str) else ""
                     elif ft[1] == "value":
-                        value = ft[2]
+                        value = ft[2] if isinstance(ft[2], str) else ""
 
         mpn = get_property(fp, "MPN") or get_property(fp, "Mfg Part") or ""
 
@@ -764,8 +772,20 @@ def extract_footprints(root: list) -> list[dict]:
 
             pads.append(pad_info)
 
-        # Extract courtyard bounding box (absolute coordinates)
+        # Extract courtyard geometry: bounding box + chained outline polygons
         crtyd_pts: list[tuple[float, float]] = []
+        crtyd_segs: list[tuple[tuple[float, float], tuple[float, float]]] = []
+        crtyd_polys: list[list[tuple[float, float]]] = []
+        crtyd_unchainable = False  # arcs/circles → polygon set would be incomplete
+
+        def _fp_to_abs(lx: float, ly: float) -> tuple[float, float]:
+            if angle != 0:
+                rad = math.radians(-angle)
+                rx = lx * math.cos(rad) - ly * math.sin(rad)
+                ry = lx * math.sin(rad) + ly * math.cos(rad)
+                lx, ly = rx, ry
+            return (x + lx, y + ly)
+
         for gtype in ("fp_line", "fp_rect", "fp_circle", "fp_poly", "fp_arc"):
             for item in find_all(fp, gtype):
                 item_layer = get_value(item, "layer")
@@ -775,27 +795,48 @@ def extract_footprints(root: list) -> list[dict]:
                 if gtype == "fp_poly":
                     pts = find_first(item, "pts")
                     if pts:
+                        poly = []
                         for xy in find_all(pts, "xy"):
                             if len(xy) >= 3:
-                                lx, ly = float(xy[1]), float(xy[2])
-                                if angle != 0:
-                                    rad = math.radians(-angle)
-                                    rx = lx * math.cos(rad) - ly * math.sin(rad)
-                                    ry = lx * math.sin(rad) + ly * math.cos(rad)
-                                    lx, ly = rx, ry
-                                crtyd_pts.append((x + lx, y + ly))
+                                poly.append(_fp_to_abs(float(xy[1]), float(xy[2])))
+                        if len(poly) >= 3:
+                            crtyd_polys.append(poly)
+                        crtyd_pts.extend(poly)
                     continue
+                if gtype == "fp_line":
+                    p1 = find_first(item, "start")
+                    p2 = find_first(item, "end")
+                    if p1 and p2 and len(p1) >= 3 and len(p2) >= 3:
+                        seg_a = _fp_to_abs(float(p1[1]), float(p1[2]))
+                        seg_b = _fp_to_abs(float(p2[1]), float(p2[2]))
+                        crtyd_segs.append((seg_a, seg_b))
+                        crtyd_pts.extend((seg_a, seg_b))
+                    continue
+                if gtype == "fp_rect":
+                    p1 = find_first(item, "start")
+                    p2 = find_first(item, "end")
+                    if p1 and p2 and len(p1) >= 3 and len(p2) >= 3:
+                        sx, sy = float(p1[1]), float(p1[2])
+                        ex, ey = float(p2[1]), float(p2[2])
+                        corners = [_fp_to_abs(cx_, cy_) for cx_, cy_ in
+                                   ((sx, sy), (ex, sy), (ex, ey), (sx, ey))]
+                        crtyd_polys.append(corners)
+                        crtyd_pts.extend(corners)
+                    continue
+                # fp_circle / fp_arc: bbox contribution only — polygon set
+                # stays disabled so overlap falls back to the AABB (KH-350)
+                crtyd_unchainable = True
                 for key in ("start", "end", "center", "mid"):
                     node = find_first(item, key)
                     if node and len(node) >= 3:
-                        lx, ly = float(node[1]), float(node[2])
-                        # Transform to absolute coordinates
-                        if angle != 0:
-                            rad = math.radians(-angle)
-                            rx = lx * math.cos(rad) - ly * math.sin(rad)
-                            ry = lx * math.sin(rad) + ly * math.cos(rad)
-                            lx, ly = rx, ry
-                        crtyd_pts.append((x + lx, y + ly))
+                        crtyd_pts.append(_fp_to_abs(float(node[1]), float(node[2])))
+
+        if crtyd_segs and not crtyd_unchainable:
+            _chained = _chain_segments(crtyd_segs)
+            if _chained:
+                crtyd_polys.extend(_chained)
+            else:
+                crtyd_unchainable = True
 
         fp_entry: dict = {
             "library": fp_lib,
@@ -852,10 +893,85 @@ def extract_footprints(root: list) -> list[dict]:
                 "min_x": round(min(cxs), 3), "min_y": round(min(cys), 3),
                 "max_x": round(max(cxs), 3), "max_y": round(max(cys), 3),
             }
+            if crtyd_polys and not crtyd_unchainable:
+                fp_entry["courtyard_poly"] = [
+                    [[round(vx_, 3), round(vy_, 3)] for vx_, vy_ in poly]
+                    for poly in crtyd_polys
+                ]
 
         footprints.append(fp_entry)
 
     return footprints
+
+
+def _chain_segments(segs: list, tol: float = 0.01) -> list | None:
+    """Chain undirected 2D segments into closed loops (KH-350).
+
+    Returns a list of polygons (each a list of (x, y) vertices, implicit
+    closure) or None when any chain fails to close within tolerance —
+    callers then keep the AABB-only behavior.
+    """
+    def _close(p, q):
+        return abs(p[0] - q[0]) <= tol and abs(p[1] - q[1]) <= tol
+
+    remaining = [s for s in segs if not _close(s[0], s[1])]
+    polys = []
+    while remaining:
+        a, b = remaining.pop()
+        path = [a, b]
+        while not _close(path[0], path[-1]):
+            tail = path[-1]
+            for i, (p, q) in enumerate(remaining):
+                if _close(p, tail):
+                    path.append(q)
+                    break
+                if _close(q, tail):
+                    path.append(p)
+                    break
+            else:
+                return None  # open chain
+            remaining.pop(i)
+        poly = path[:-1]
+        if len(poly) < 3:
+            return None
+        polys.append(poly)
+    return polys
+
+
+def _point_in_polys(px: float, py: float, polys: list) -> bool:
+    """Even-odd ray-casting membership over a list of polygons."""
+    inside = False
+    for poly in polys:
+        n = len(poly)
+        j = n - 1
+        for i in range(n):
+            xi, yi = poly[i][0], poly[i][1]
+            xj, yj = poly[j][0], poly[j][1]
+            if (yi > py) != (yj > py):
+                if px < (xj - xi) * (py - yi) / (yj - yi) + xi:
+                    inside = not inside
+            j = i
+    return inside
+
+
+def _refined_overlap_mm2(polys_a: list, polys_b: list,
+                         ix1: float, iy1: float, ix2: float, iy2: float,
+                         samples: int = 24) -> float:
+    """True courtyard overlap area inside the AABB-intersection box,
+    estimated by grid-sampling membership in both polygon sets (KH-350)."""
+    w = ix2 - ix1
+    h = iy2 - iy1
+    if w <= 0 or h <= 0:
+        return 0.0
+    hits = 0
+    for i in range(samples):
+        px = ix1 + (i + 0.5) * w / samples
+        for j in range(samples):
+            py = iy1 + (j + 0.5) * h / samples
+            if (_point_in_polys(px, py, polys_a)
+                    and _point_in_polys(px, py, polys_b)):
+                hits += 1
+    return w * h * hits / (samples * samples)
 
 
 def extract_tracks(root: list) -> dict:
@@ -1191,6 +1307,11 @@ def _extract_keepout_zones(zones: list[dict],
             'restrictions': z.get('keepout', {}),
             'bounding_box': bbox,
             'area_mm2': z.get('outline_area_mm2', 0),
+            # Net the keepout is associated with — items on this net are
+            # ALLOWED inside the keepout (KiCad rule-area semantic). 0 / ""
+            # means "no specific net" → keepout applies to all items.
+            'net': z.get('net', 0),
+            'net_name': z.get('net_name', ''),
         }
         # Find footprints near this keepout zone
         if bbox and len(bbox) == 4:
@@ -1363,6 +1484,11 @@ def extract_board_outline(root: list) -> dict:
         "edge_count": len(edges),
         "edges": edges,
         "bounding_box": bbox,
+        # Convenience aliases so consumers don't have to reach into bounding_box.
+        # bbox already accounts for arc extrema (see EQ-100 above), so these are
+        # correct on arc-edge outlines too; None only when no Edge.Cuts geometry.
+        "width_mm": bbox["width"] if bbox else None,
+        "height_mm": bbox["height"] if bbox else None,
     }
 
 
@@ -3392,6 +3518,43 @@ def _is_rf_module(fp: dict) -> bool:
     return False
 
 
+# Edge-mount footprint categories: by-design at the board edge — PM-002 edge
+# clearance should demote to info (not warning/error) for these. rc.2 4.1
+# expansion (SparkFun review).
+_EDGE_MOUNT_LIBRARY_KEYWORDS = (
+    'SMA_Edge',                           # edge-launch SMA antenna connectors
+    'USB_C_Receptacle',                   # vertical/board-edge USB-C
+    'USB_Mini', 'USB_Micro',              # board-edge USB Mini/Micro
+    'USB_A_Vertical', 'USB_B_Vertical',
+    'MagJack',                            # RJ45 with integrated mag — by-edge
+    'microSD', 'SD_Card',                 # microSD/SD card edge sockets
+    'BarrelJack',                         # DC barrel jack at edge
+    'Standoff', 'Mounting',               # mounting features near edge are intentional
+    'TerminalBlock',                      # screw terminals at board edge
+    'Phoenix_MSTB',                       # Phoenix MSTB/MSTBA/MSTBVA terminal-block family (F8)
+    'JST_', 'Molex_PicoBlade',            # edge-launched JST/Molex wire-to-board
+)
+_EDGE_MOUNT_VALUE_KEYWORDS = (
+    'EDGE', 'VERTICAL',                   # value-string hints
+)
+
+
+def _is_edge_mount_footprint(fp: dict) -> bool:
+    """Return True if the footprint is designed to sit at the board edge
+    (board-edge connector, edge-launch antenna, mounting hole, etc.).
+    PM-002 demotes edge-clearance findings to info for these.
+    """
+    library = fp.get('library', '') or fp.get('footprint', '') or ''
+    value = fp.get('value', '') or ''
+    for kw in _EDGE_MOUNT_LIBRARY_KEYWORDS:
+        if kw.lower() in library.lower():
+            return True
+    for kw in _EDGE_MOUNT_VALUE_KEYWORDS:
+        if kw in value.upper():
+            return True
+    return False
+
+
 def analyze_placement(footprints: list[dict], outline: dict) -> dict:
     """Component placement analysis — courtyard overlaps and edge clearance.
 
@@ -3419,6 +3582,21 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                 ox = min(cy_a["max_x"], cy_b["max_x"]) - max(cy_a["min_x"], cy_b["min_x"])
                 oy = min(cy_a["max_y"], cy_b["max_y"]) - max(cy_a["min_y"], cy_b["min_y"])
                 overlap_mm2 = round(ox * oy, 3)
+                # KH-350: AABB is only a pre-filter — notched courtyards
+                # (QFP cross shapes) fill their corners in bbox space. With
+                # chained polygons on both parts, measure the true overlap.
+                _polys_a = fp_a.get("courtyard_poly")
+                _polys_b = fp_b.get("courtyard_poly")
+                if _polys_a and _polys_b:
+                    _refined = _refined_overlap_mm2(
+                        _polys_a, _polys_b,
+                        max(cy_a["min_x"], cy_b["min_x"]),
+                        max(cy_a["min_y"], cy_b["min_y"]),
+                        min(cy_a["max_x"], cy_b["max_x"]),
+                        min(cy_a["max_y"], cy_b["max_y"]))
+                    if _refined <= 0.0:
+                        continue
+                    overlap_mm2 = round(_refined, 3)
                 is_rf_overlap = _is_rf_module(fp_a) or _is_rf_module(fp_b)
                 # RF module courtyards deliberately encode the antenna RF
                 # keepout (e.g., ESP32-S3-WROOM-1 extends ~7mm past the body
@@ -3446,7 +3624,7 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                     "confidence": "deterministic",
                     "evidence_source": "topology",
                     "summary": f"Courtyard overlap between {fp_a['reference']} and {fp_b['reference']} ({overlap_mm2}mm\u00b2){rf_note}",
-                    "description": f"Components {fp_a['reference']} and {fp_b['reference']} have overlapping courtyards on {fp_a['layer']} ({overlap_mm2}mm\u00b2 overlap area).",
+                    "description": f"Components {fp_a['reference']} and {fp_b['reference']} have overlapping courtyards on {fp_a['layer']} ({overlap_mm2}mm\u00b2 overlap area). Threshold: \u22651.0mm\u00b2 = error, else warning; RF-module overlaps demote to info (courtyard encodes RF keepout).",
                     "components": [fp_a["reference"], fp_b["reference"]],
                     "nets": [],
                     "pins": [],
@@ -3487,18 +3665,42 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                 clearance = round(min_edge, 2)
                 # RF module footprints deliberately put the courtyard past the
                 # board edge to expose the antenna to free space (WROOM-1 etc.).
-                # Downgrade the edge-clearance finding to info with a note.
+                # Edge-mount footprints (SMA_Edge, USB_C vertical, MagJack,
+                # microSD, BarrelJack, mounting holes, etc.) belong at the
+                # board edge by design. Both demote the edge-clearance finding
+                # to info with a hint.
                 is_rf = _is_rf_module(fp)
+                is_edge_mount = _is_edge_mount_footprint(fp)
                 if is_rf:
                     severity = 'info'
                     rf_suffix = (' (RF module antenna at board edge — '
                                  'verify antenna clearance, not a body collision)')
+                elif is_edge_mount:
+                    severity = 'info'
+                    rf_suffix = (' (edge-mount footprint — by-design at board edge)')
                 elif clearance < 0.5:
                     severity = 'error'
                     rf_suffix = ''
                 else:
                     severity = 'warning'
                     rf_suffix = ''
+                _summary = f"{fp['reference']} is {clearance}mm from board edge{rf_suffix}"
+                _description = (f"Component {fp['reference']} on {fp['layer']} is only "
+                                f"{clearance}mm from the board edge, risking damage "
+                                f"during depaneling or handling.")
+                _recommendation = (f"Move {fp['reference']} further from board edge "
+                                   f"(currently {clearance}mm, recommend >= 1.0mm)")
+                if clearance < 0 and not is_rf and not is_edge_mount:
+                    # KH-344: negative clearance means the courtyard overhangs
+                    # the outline — "move further from edge" is nonsense there.
+                    _summary = (f"{fp['reference']} courtyard overhangs board "
+                                f"edge by {abs(clearance)}mm")
+                    _description = (f"Component {fp['reference']} on {fp['layer']} has "
+                                    f"a courtyard extending {abs(clearance)}mm past the "
+                                    f"board outline. If not intentional (castellated or "
+                                    f"edge-mount part), it will collide with the edge.")
+                    _recommendation = (f"Verify the overhang on {fp['reference']} is "
+                                       f"intentional; if not, place it inside the outline.")
                 edge_close.append({
                     "component": fp["reference"],
                     "layer": fp["layer"],
@@ -3509,12 +3711,12 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                     "severity": severity,
                     "confidence": "deterministic",
                     "evidence_source": "topology",
-                    "summary": f"{fp['reference']} is {clearance}mm from board edge{rf_suffix}",
-                    "description": f"Component {fp['reference']} on {fp['layer']} is only {clearance}mm from the board edge, risking damage during depaneling or handling.",
+                    "summary": _summary,
+                    "description": _description,
                     "components": [fp["reference"]],
                     "nets": [],
                     "pins": [],
-                    "recommendation": f"Move {fp['reference']} further from board edge (currently {clearance}mm, recommend >= 1.0mm)",
+                    "recommendation": _recommendation,
                     "report_context": {"section": "Placement", "impact": "manufacturability", "standard_ref": ""},
                 })
 
@@ -5121,6 +5323,47 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
     return results
 
 
+# Generic-passive reference designators (C, R, L, FB + digits, optionally
+# with a hierarchical sheet prefix like "U1/C5"). F10: CP-002 skips these
+# because on a 2-layer board with a GND pour every decoupling cap's VCC
+# pad is "uncovered" — that's expected, not a finding. Components on real
+# touch / antenna pads use TP-prefixed refs or non-passive libraries and
+# are surfaced via CP-003.
+_PASSIVE_REF_RE = re.compile(r"^([A-Za-z0-9_]+/)?(C|R|L|FB)\d+$")
+
+
+def _nearest_zone_copper_distance(fx: float, fy: float, fp_layer: str,
+                                  gnd_zones: list) -> tuple:
+    """Distance from a point to the nearest same-layer GND zone copper.
+
+    KH-339: prefers filled_bbox (actual copper) over outline_bbox — the
+    zone outline routinely overstates copper reach. Returns (distance,
+    basis) where basis is 'filled_bbox' or 'outline_bbox' (None if no
+    candidate zone).
+    """
+    min_dist = float('inf')
+    basis = None
+    for gz in gnd_zones:
+        if fp_layer not in gz.get("layers", []):
+            continue
+        gz_basis = "filled_bbox" if gz.get("filled_bbox") else "outline_bbox"
+        bbox = gz.get("filled_bbox") or gz.get("outline_bbox")
+        if not bbox or len(bbox) != 4:
+            continue
+        bx_min, by_min, bx_max, by_max = bbox
+        # EQ-102: d = √((px-zx)² + (py-zy)²) for point-to-zone-pour proximity.
+        # Source: Self-evident — 2D Euclidean distance to the nearest
+        #   axis-aligned bounding-box edge (dx/dy clamped to 0 when the
+        #   point is inside the box on that axis).
+        dx = max(bx_min - fx, 0, fx - bx_max)
+        dy = max(by_min - fy, 0, fy - by_max)
+        dist = math.sqrt(dx * dx + dy * dy)
+        if dist < min_dist:
+            min_dist = dist
+            basis = gz_basis
+    return min_dist, basis
+
+
 def analyze_copper_presence(footprints: list[dict], zones: list[dict],
                             zone_fills: ZoneFills,
                             ref_layer_map: dict[str, str] | None = None) -> dict:
@@ -5279,31 +5522,39 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
         "opposite_layer_summary": opp_summary,
     }
 
-    # The interesting signal: components WITHOUT opposite-layer copper
+    # The interesting signal: components WITHOUT opposite-layer copper.
+    # F10: emit CP-002 findings only for non-passive references — on a
+    # 2-layer board with a GND pour on the opposite side, every decoupling
+    # cap's VCC pad would otherwise fire CP-002, drowning the info tier.
+    # Actual touch-sensitive / RF components are still surfaced via CP-003.
+    # The summary list (`no_opposite_layer_copper`) keeps everything so
+    # consumers that want the raw uncovered set still have it.
     if opp_uncovered:
         result["no_opposite_layer_copper"] = sorted(opp_uncovered)
-        result["no_opposite_layer_copper_findings"] = [{
-            "component": _ref,
-            "detector": "analyze_copper_presence",
-            "rule_id": "CP-002",
-            "category": "copper_integrity",
-            "severity": "info",
-            "confidence": "deterministic",
-            "evidence_source": "geometry",
-            "summary": f"No opposite-layer copper under {_ref}",
-            "description": (
-                f"Component {_ref} has no copper zone on the opposite layer."
-            ),
-            "components": [_ref],
-            "nets": [],
-            "pins": [],
-            "recommendation": "",
-            "report_context": {
-                "section": "Copper Integrity",
-                "impact": "Return path / shielding",
-                "standard_ref": "",
-            },
-        } for _ref in sorted(opp_uncovered)]
+        cp_002_refs = [r for r in opp_uncovered if not _PASSIVE_REF_RE.match(r)]
+        if cp_002_refs:
+            result["no_opposite_layer_copper_findings"] = [{
+                "component": _ref,
+                "detector": "analyze_copper_presence",
+                "rule_id": "CP-002",
+                "category": "copper_integrity",
+                "severity": "info",
+                "confidence": "deterministic",
+                "evidence_source": "geometry",
+                "summary": f"No opposite-layer copper under {_ref}",
+                "description": (
+                    f"Component {_ref} has no copper zone on the opposite layer."
+                ),
+                "components": [_ref],
+                "nets": [],
+                "pins": [],
+                "recommendation": "",
+                "report_context": {
+                    "section": "Copper Integrity",
+                    "impact": "Return path / shielding",
+                    "standard_ref": "",
+                },
+            } for _ref in sorted(cp_002_refs)]
 
     if foreign_zone_details:
         result["same_layer_foreign_zones"] = foreign_zone_details
@@ -5327,37 +5578,28 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
             continue
         fx, fy = fp.get("x", 0), fp.get("y", 0)
         fp_layer = fp.get("layer", "F.Cu")
-        min_dist = float('inf')
-        for gz in gnd_zones:
-            if fp_layer not in gz.get("layers", []):
-                continue
-            bbox = gz.get("outline_bbox")
-            if not bbox or len(bbox) != 4:
-                continue
-            bx_min, by_min, bx_max, by_max = bbox
-            # EQ-102: d = √((px-zx)² + (py-zy)²) for point-to-zone-pour proximity.
-            # Source: Self-evident — 2D Euclidean distance to the nearest
-            #   axis-aligned bounding-box edge (dx/dy clamped to 0 when the
-            #   point is inside the box on that axis).
-            dx = max(bx_min - fx, 0, fx - bx_max)
-            dy = max(by_min - fy, 0, fy - by_max)
-            dist = math.sqrt(dx * dx + dy * dy)
-            min_dist = min(min_dist, dist)
+        min_dist, _basis = _nearest_zone_copper_distance(fx, fy, fp_layer,
+                                                         gnd_zones)
         if min_dist < float('inf'):
+            _conf = "deterministic" if _basis == "filled_bbox" else "heuristic"
+            _note = ("" if _basis == "filled_bbox" else
+                     " (zone outline basis — fill data unavailable; actual "
+                     "copper may be farther)")
             touch_clearances.append({
                 "ref": ref,
                 "layer": fp_layer,
                 "gnd_clearance_mm": round(min_dist, 2),
+                "measurement_basis": _basis,
                 "detector": "analyze_copper_presence",
                 "rule_id": "CP-003",
                 "category": "copper_integrity",
                 "severity": "info",
-                "confidence": "deterministic",
+                "confidence": _conf,
                 "evidence_source": "geometry",
                 "summary": f"Touch pad {ref} GND clearance {round(min_dist, 2)}mm",
                 "description": (
                     f"Touch pad {ref} on {fp_layer}: {round(min_dist, 2)}mm "
-                    f"clearance to nearest GND zone."
+                    f"clearance to nearest GND zone copper{_note}."
                 ),
                 "components": [ref],
                 "nets": [],
@@ -5728,6 +5970,36 @@ def analyze_silkscreen_pad_overlaps(footprints: list[dict], board_texts: list[di
     return findings
 
 
+def _point_in_pad(vx: float, vy: float, px: float, py: float,
+                  width: float, height: float, shape: str,
+                  pad_angle: float) -> bool:
+    """Point-in-pad test for VP-001 (KH-340): circle/oval exact, other
+    shapes as a rotated bounding rect. Pad `at` angles in .kicad_pcb are
+    absolute (they already include the footprint rotation)."""
+    dx = vx - px
+    dy = vy - py
+    if pad_angle:
+        # Inverse of the local->absolute rotation used in extract_footprints
+        rad = math.radians(-pad_angle)
+        c, s = math.cos(rad), math.sin(rad)
+        dx, dy = dx * c + dy * s, -dx * s + dy * c
+    hw = width / 2
+    hh = height / 2
+    if shape == "circle":
+        r = max(hw, hh)
+        return dx * dx + dy * dy <= r * r
+    if shape == "oval":
+        # Stadium: center rect capped by semicircles of radius min(hw, hh)
+        r = min(hw, hh)
+        if hw >= hh:
+            cx = max(abs(dx) - (hw - r), 0.0)
+            return cx * cx + dy * dy <= r * r
+        cy = max(abs(dy) - (hh - r), 0.0)
+        return dx * dx + cy * cy <= r * r
+    # rect / roundrect / trapezoid / custom: rotated bounding rect
+    return abs(dx) <= hw and abs(dy) <= hh
+
+
 def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set) -> list[dict]:
     """VP-001: Detect vias inside SMD pads that aren't tented."""
     findings: list[dict] = []
@@ -5744,25 +6016,31 @@ def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set
         for pad in fp.get("pads", []):
             if pad.get("type") != "smd":
                 continue
+            # KH-349: pads "disabled" by clearing all copper layers
+            # (e.g. (layers "Dwgs.User")) can't have via-in-pad issues.
+            _pad_layers = pad.get("layers") or []
+            if _pad_layers and not any(l.endswith(".Cu") for l in _pad_layers):
+                continue
             px = pad.get("abs_x")
             py = pad.get("abs_y")
             if px is None or py is None:
                 continue
-            hw = pad.get("width", 0) / 2
-            hh = pad.get("height", 0) / 2
-            if hw <= 0 or hh <= 0:
+            pw = pad.get("width", 0)
+            ph = pad.get("height", 0)
+            if pw <= 0 or ph <= 0:
                 continue
             pad_num = pad.get("number", "?")
             smd_pads.append((ref, pad_num, pad.get("net_name", ""),
-                             px - hw, py - hh, px + hw, py + hh))
+                             px, py, pw, ph,
+                             pad.get("shape", "rect"), pad.get("angle", 0)))
 
     for via in via_list:
         vx = via.get("x")
         vy = via.get("y")
         if vx is None or vy is None:
             continue
-        for ref, pad_num, net, x1, y1, x2, y2 in smd_pads:
-            if x1 <= vx <= x2 and y1 <= vy <= y2:
+        for ref, pad_num, net, ppx, ppy, pw, ph, pshape, pangle in smd_pads:
+            if _point_in_pad(vx, vy, ppx, ppy, pw, ph, pshape, pangle):
                 # Check tenting
                 via_layers = via.get("layers", [])
                 # A via is tented if it has solder mask coverage (heuristic: look for F.Mask/B.Mask)
@@ -5885,6 +6163,12 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
         restrictions = kz.get("restrictions", {})
         kz_name = kz.get("name", "unnamed")
         kz_layers = kz.get("layers", [])
+        # KiCad rule-area "allowed net" — items on this net are ALLOWED
+        # inside the keepout (e.g., an antenna keepout that excludes copper
+        # except the antenna's own net). 0 / "" / None means "no exemption,
+        # restrict all items". rc.2 4.1 expansion (SparkFun review).
+        kz_allowed_net_id = kz.get("net") or 0
+        kz_allowed_net_name = kz.get("net_name") or ""
 
         # Check footprints
         if restrictions.get("footprints", False):
@@ -5896,10 +6180,25 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
                 if not any(l in kz_layers or l == "*" or "*.Cu" in kz_layers for l in [fp_layer]):
                     continue
                 if kx1 <= fx <= kx2 and ky1 <= fy <= ky2:
+                    # Net exclusion: if any pad of this footprint is on the
+                    # keepout's allowed net, the footprint is permitted here.
+                    if kz_allowed_net_name:
+                        fp_nets = fp.get("connected_nets", []) or list(
+                            (fp.get("pad_nets") or {}).values())
+                        # pad_nets values are dicts with 'net' key; connected_nets is strings
+                        fp_net_names = set()
+                        for n in fp_nets:
+                            if isinstance(n, str):
+                                fp_net_names.add(n)
+                            elif isinstance(n, dict) and n.get("net"):
+                                fp_net_names.add(n["net"])
+                        if kz_allowed_net_name in fp_net_names:
+                            continue
                     findings.append({
                         "component": ref,
                         "keepout_name": kz_name,
                         "keepout_layers": kz_layers,
+                        "keepout_allowed_net": kz_allowed_net_name,
                         "detector": "analyze_keepout_violations",
                         "rule_id": "KO-001",
                         "category": "placement",
@@ -5923,10 +6222,18 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
                 if vx is None or vy is None:
                     continue
                 if kx1 <= vx <= kx2 and ky1 <= vy <= ky2:
+                    # Net exclusion: a via on the keepout's allowed net is
+                    # permitted (e.g., an antenna trace's tuning via inside
+                    # the antenna keepout).
+                    if kz_allowed_net_id:
+                        via_net_id = via.get("net")
+                        if via_net_id == kz_allowed_net_id:
+                            continue
                     findings.append({
                         "via_x": round(vx, 2),
                         "via_y": round(vy, 2),
                         "keepout_name": kz_name,
+                        "keepout_allowed_net": kz_allowed_net_name,
                         "detector": "analyze_keepout_violations",
                         "rule_id": "KO-001",
                         "category": "placement",
@@ -6154,8 +6461,7 @@ def analyze_pcb(path: str, *, proximity: bool = False,
 
     result = {
         "analyzer_type": "pcb",
-        "schema_version": "1.3.0",
-        "file": str(path),
+        "schema_version": "1.4.0",
         "kicad_version": generator_version,
         "file_version": version,
         "statistics": stats,
@@ -6186,8 +6492,8 @@ def analyze_pcb(path: str, *, proximity: bool = False,
 
     if pad_distances:
         result["pad_to_pad_distances"] = pad_distances
-    if power_routing:
-        result["power_net_routing"] = power_routing
+    # TH-043-residual: always emit (schema-required); empty list when no power routing.
+    result["power_net_routing"] = power_routing if power_routing else []
     if decoupling:
         result["decoupling_placement"] = decoupling
         # Flat decoupling proximity matrix for EMC/cross-verify consumers
@@ -6210,8 +6516,8 @@ def analyze_pcb(path: str, *, proximity: bool = False,
         if loop_areas:
             result["switching_loop_areas"] = loop_areas
 
-    if ground_domains["domain_count"] > 0:
-        result["ground_domains"] = ground_domains
+    # TH-043-residual: always emit (schema-required); domain_count=0 is meaningful info.
+    result["ground_domains"] = ground_domains
     if current_capacity["power_ground_nets"] or current_capacity["narrow_signal_nets"]:
         result["current_capacity"] = current_capacity
     if thermal["zone_stitching"] or thermal["thermal_pads"]:
@@ -6226,9 +6532,10 @@ def analyze_pcb(path: str, *, proximity: bool = False,
     if proximity:
         result["trace_proximity"] = analyze_trace_proximity(tracks, net_names)
 
-    # New extraction sections — always include if non-empty
-    if metadata:
-        result["board_metadata"] = metadata
+    # board_metadata + design_rule_compliance are required envelope keys
+    # (schema declares them dict not Optional[dict]). Always emit, even
+    # when empty, so schema-vs-emit drift can't surface (TH-043).
+    result["board_metadata"] = metadata or {}
     if dimensions:
         result["dimensions"] = dimensions
     if groups:
@@ -6238,12 +6545,14 @@ def analyze_pcb(path: str, *, proximity: bool = False,
     if project_settings:
         result["project_settings"] = project_settings
 
-    # Design rule compliance (project rules vs actual layout)
+    # Design rule compliance (project rules vs actual layout) — always emit
+    # at least an empty dict so the schema-required key is present.
     if project_settings:
         design_compliance = analyze_design_rule_compliance(
             tracks, vias, project_settings)
-        if design_compliance:
-            result["design_rule_compliance"] = design_compliance
+        result["design_rule_compliance"] = design_compliance or {}
+    else:
+        result["design_rule_compliance"] = {}
 
     # Manufacturing and assembly analysis
     if dfm:
@@ -6350,8 +6659,8 @@ def analyze_pcb(path: str, *, proximity: bool = False,
     if placement:
         findings.extend(placement.get('courtyard_overlaps', []))
         findings.extend(placement.get('edge_clearance_warnings', []))
-        if placement.get('density'):
-            result['placement_density'] = placement['density']
+    # TH-043-residual: always emit (schema-required); empty dict when placement/density missing.
+    result['placement_density'] = (placement or {}).get('density') or {}
 
     thermal_sec = result.pop('thermal_analysis', None)
     if thermal_sec:
@@ -6389,6 +6698,7 @@ def analyze_pcb(path: str, *, proximity: bool = False,
     sort_findings(findings)
 
     result['findings'] = findings
+    result['assessments'] = []
     result['trust_summary'] = compute_trust_summary(findings)
 
     # Build summary
@@ -6403,60 +6713,6 @@ def analyze_pcb(path: str, *, proximity: bool = False,
     }
 
     return result
-
-
-def _get_schema():
-    """Return JSON output schema description for --schema flag."""
-    return {
-        "analyzer_type": "string — always 'pcb'",
-        "schema_version": "string — semver (currently '1.3.0')",
-        "summary": {"total_findings": "int", "by_severity": {"error": "int", "warning": "int", "info": "int"}},
-        "trust_summary": {
-            "total_findings": "int",
-            "trust_level": "string — 'high' | 'mixed' | 'low'",
-            "by_confidence": "{deterministic: int, heuristic: int, datasheet-backed: int}",
-            "by_evidence_source": "{datasheet|topology|heuristic_rule|symbol_footprint|bom|geometry|api_lookup: int}",
-            "provenance_coverage_pct": "float",
-        },
-        "findings": "[{detector, rule_id, severity, confidence, evidence_source, summary, category, components, nets, pins, recommendation, ...}] — flat list of all findings",
-        "file": "string — input file path",
-        "kicad_version": "string", "file_version": "string",
-        "statistics": {
-            "footprint_count": "int", "front_side": "int", "back_side": "int",
-            "smd_count": "int", "tht_count": "int", "copper_layers_used": "int",
-            "copper_layer_names": "[string]", "track_segments": "int", "via_count": "int",
-            "zone_count": "int", "total_track_length_mm": "float",
-            "board_width_mm": "float|null", "board_height_mm": "float|null",
-            "net_count": "int", "routing_complete": "bool", "unrouted_net_count": "int",
-        },
-        "layers": "[{name, type, index: int}]",
-        "setup": "object — design rules, pad_to_mask_clearance, etc.",
-        "nets": "{str(net_id): net_name}",
-        "net_name_to_id": "{net_name: int (net ID)} — reverse of nets",
-        "board_outline": {
-            "bounding_box": "{x_min, y_min, x_max, y_max, width, height: float}",
-            "outline_type": "string (rectangle|complex_polygon|...)",
-            "segments": "[{x1, y1, x2, y2: float, layer}]",
-        },
-        "component_groups": "{prefix: {count: int, type, examples: [ref]}}",
-        "footprints": "[{reference, value, library (lib:footprint path), footprint (alias of library), layer, x: float, y: float, angle: float, type: smd|through_hole|mixed, mpn, manufacturer, description, exclude_from_bom: bool, exclude_from_pos: bool, dnp: bool, pad_nets: {pad_number: {net: string, pin: string}}, connected_nets: [string]}]",
-        "tracks": {
-            "segment_count": "int", "arc_count": "int",
-            "width_distribution": "{width_mm_str: count}",
-            "layer_distribution": "{layer_name: count}",
-            "_with_full_flag": "segments: [{x1, y1, x2, y2, width: float, layer, net: int}], arcs: [{x1, y1, x2, y2, mid_x, mid_y, width: float, layer}]",
-        },
-        "vias": {
-            "count": "int", "size_distribution": "{size_str: count}",
-            "_analysis": "via_in_pad: [ref], via_fanout: {ref: {via_count, fanout_traces}}, via_current: [warning]",
-            "_with_full_flag": "vias: [{x, y: float, layers: [string], size, drill: float, net: int|null, type: 'through|blind|buried|micro'}]",
-        },
-        "zones": "[{net: int (net ID), net_name: string (net name), priority: int, layers: [string], bounding_box, island_count: int, thermal_bridging, filled: bool, is_keepout: bool (opt), keepout: {tracks, vias, pads, copperpour, footprints} (opt)}]",
-        "keepout_zones": "[{name, layers: [string], restrictions: {tracks, vias, pads, copperpour, footprints}, bounding_box: [min_x, min_y, max_x, max_y], area_mm2: float, nearby_components: [string]}]",
-        "connectivity": {"routing_complete": "bool", "unrouted_count": "int", "unconnected_pads": "[{reference, pad, expected_net}]"},
-        "net_lengths": "{net_name: {track_length_mm: float, via_count: int, layer_transitions: int}}",
-        "_optional_sections": "power_net_routing, decoupling_placement, ground_domains, current_capacity, thermal_analysis, placement_analysis, trace_proximity (--proximity), dfm, tombstoning_risk, thermal_pad_vias, copper_presence",
-    }
 
 
 def main():
@@ -6490,11 +6746,13 @@ def main():
                         help='Radius (mm) for copper-presence in return-path analysis (default: 0.5)')
     parser.add_argument('--gp001-debug', action='store_true',
                         help='Emit per-sample diagnostic JSON to analysis dir')
+    parser.add_argument('--only-deterministic', action='store_true',
+                        help='Accepted for consistency; analyzers never write llm_* fields. '
+                             'Honored by downstream consumers (Phase 4 spec §3.4).')
     args = parser.parse_args()
 
     if args.schema:
-        print(json.dumps(_get_schema(), indent=2))
-        sys.exit(0)
+        emit_schema(PCBEnvelope)
 
     if not args.pcb:
         parser.error("the following arguments are required: pcb")
@@ -6521,6 +6779,33 @@ def main():
     except ImportError:
         config = {"version": 1, "project": {}, "suppressions": []}
 
+    # Build inputs provenance block (Track 1.3).
+    # Resolve canonical analysis_dir ONCE (used for capability_mode_ref).
+    # Includes --analysis-dir, fixing audit Highest-Risk #4 (split with output).
+    if args.analysis_dir:
+        _analysis_dir = Path(args.analysis_dir)
+    elif args.output:
+        _analysis_dir = Path(args.output).parent
+    else:
+        _analysis_dir = Path("analysis")
+
+    # Resolve capability_mode_ref BEFORE build_inputs so inputs.run_id ==
+    # capability_mode_ref.run_id (audit Highest-Risk #5).
+    _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
+
+    _pcb_path = Path(args.pcb)
+    if args.config:
+        _cfg_path = Path(args.config) if Path(args.config).is_file() else None
+    else:
+        _default_cfg = _pcb_path.parent / ".kicad-happy.json"
+        _cfg_path = _default_cfg if _default_cfg.is_file() else None
+    inputs = build_inputs(
+        source_files=[_pcb_path],
+        config_path=_cfg_path,
+        run_id=_capability_mode_ref["run_id"],
+    )
+    compat = build_compat()
+
     schematic_data = None
     if args.schematic:
         try:
@@ -6541,6 +6826,11 @@ def main():
                          schematic_data=schematic_data,
                          return_path_radius_mm=args.return_path_radius_mm,
                          gp001_debug=args.gp001_debug)
+    # Inject provenance and drop legacy 'file' key (already removed from
+    # internal result assembly, but belt-and-suspenders).
+    result["inputs"] = inputs
+    result["compat"] = compat
+    result.pop("file", None)
 
     # GP-001 debug: write per-sample diagnostics to disk and strip from output
     gp001_debug_data = result.pop("_gp001_debug_samples", None)
@@ -6598,10 +6888,18 @@ def main():
     from output_filters import apply_output_filters
     apply_output_filters(result, args.stage, args.audience)
 
+    # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
+    # on it). Runs after all filtering; before any output branch.
+    assign_finding_ids(result.get('findings', []), 'pcb')
+
     if args.text:
         from output_filters import format_text
         print(format_text(result.get('findings', []), args.audience or 'designer', args.stage))
         sys.exit(0)
+
+    # Wire capability_mode_ref (Phase 4 spec §3.3).
+    # capability_mode_ref already resolved early — reuse to keep run_id stable.
+    result["capability_mode_ref"] = _capability_mode_ref
 
     indent = None if args.compact else 2
     output = json.dumps(result, indent=indent, default=str)

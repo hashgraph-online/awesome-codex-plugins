@@ -65,11 +65,11 @@ When no token is set, the server logs a warning indicating open access.
 2. **Bind to localhost** (the default) unless you have a specific need for remote access.
 3. **Review vault links** — symlinked vaults point to external directories. Ensure those directories don't contain sensitive files outside your intended scope.
 4. **Don't commit** the alcove doc-repo into public repositories. It contains private project documentation.
-5. **Review embedding model downloads** — the `alcove-full` feature downloads ML models at runtime. Verify the cache directory is on a trusted filesystem.
+5. **Review embedding model downloads** — the `full-macos` / `full-cross` feature sets download ML models at runtime. Verify the cache directory is on a trusted filesystem.
 
 ## Dependencies
 
-Alcove is written in Rust and uses a minimal dependency set. Optional features (`alcove-full`, `alcove-server`) pull in additional crates for embedding (`fastembed`), vector storage (`rusqlite`), and HTTP serving (`axum`).
+Alcove is written in Rust and uses a minimal dependency set. Optional feature sets (`full-macos`, `full-cross`) and the `alcove-server` feature pull in additional crates for embedding (`fastembed`), vector storage (`rusqlite`), and HTTP serving (`axum`).
 
 To audit dependencies:
 

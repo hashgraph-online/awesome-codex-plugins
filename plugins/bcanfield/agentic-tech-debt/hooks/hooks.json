@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/session-start.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/drop.py",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/feedback.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/stop.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

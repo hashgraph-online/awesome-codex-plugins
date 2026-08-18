@@ -49,26 +49,15 @@ Accessibility is a release quality property, not a post-launch polish pass.
 3. **Check semantics and names.** Ensure controls expose meaningful structure, labels, state, and relationships.
 4. **Verify operation.** Test keyboard-only paths, assistive-technology paths, and component snapshots for completion.
 5. **Check perception.** Review contrast, text resizing, motion, timing, media alternatives, and status updates where relevant.
-6. **Combine results.** Use automated checks for broad regressions and manual checks for interaction quality. State that automated checks cover only a minority of success criteria (per the ACT Rules model); manual and assistive-technology testing is required for the rest, including 200% resize, 400%/reflow, focus order, and reduced-motion.
+6. **Combine results.** Use automated checks for the success criteria their rules can evaluate and manual checks for interaction quality. Automated results cannot establish complete conformance; manual and assistive-technology testing remains necessary for behavior such as resize and reflow, focus order, reduced motion, announcements, and task completion.
 7. **Check release.** Block critical journey failures; track lower-risk defects with severity, expiry, and retest date.
 8. **Prevent recurrence.** Add component tests, examples, lint rules, or review checks for repeated failure patterns.
 
 ## Synthesized Default
 
-Check critical journeys with a named conformance target, automated checks, manual assistive-technology scripts, keyboard completion tests, dated repair plans for accepted deviations, and regression tests for known defects. Accessibility checks should be part of launch readiness for user-facing changes. Default the named conformance level to WCAG 2.2 AA (override-able by the user) so the agent can supply the level the Iron Law requires instead of blocking on it.
+Check critical journeys with a named conformance target, automated checks, manual assistive-technology scripts, keyboard completion tests, dated repair plans for accepted deviations, and regression tests for known defects. Accessibility checks should be part of launch readiness for user-facing changes. For web content, use WCAG 2.2 AA as the provisional default unless the user supplies another target. For native surfaces, name the applicable platform or native accessibility requirements and use a documented mapping such as WCAG2ICT where it fits; do not present a web-content conformance claim as native-app certification.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -87,11 +76,12 @@ Check critical journeys with a named conformance target, automated checks, manua
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them, explicitly requested tool-specific guidance, or a named assistive technology is needed for test results.
 - Stay inside accessibility engineering. Route performance, mobile rollout, or broad legal policy only when those are central.
 - Be concise: prefer journey-based check tables over broad accessibility lectures.
+- Scale the artifact to the request: a narrow question needs the target, affected journey, applicable checks, and decision; add the full exception, regression, and release matrices only when the change or risk calls for them.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
-- Accessibility conformance target and journey inventory.
+- Accessibility conformance target for the surface and journey inventory.
 - Release check matrix: automated checks, manual checks, blocking status, and repair path.
 - Critical journey manual test script.
 - Exception register with severity, expiry, compensating path, and retest, using the shared risk-acceptance lifecycle plus the shared compensating-control format where a deviation is accepted.
@@ -101,7 +91,7 @@ Check critical journeys with a named conformance target, automated checks, manua
 ## Checks Before Moving On
 
 - `target_defined`: conformance expectation and critical journeys are named.
-- `conformance_level`: a named conformance level is set (default WCAG 2.2 AA) and the automated-vs-manual coverage split is explicit.
+- `conformance_level`: a named target is set for the surface (provisionally WCAG 2.2 AA for web content) and the automated-versus-manual coverage split is explicit.
 - `journey_complete`: users can complete critical flows through supported input and assistive paths.
 - `mixed_testing`: automated checks and hands-on testing are both used where interaction quality matters.
 - `exception_responsibility`: every exception has severity, user-confirmed reason, expiry, and compensating path.

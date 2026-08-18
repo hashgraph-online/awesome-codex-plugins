@@ -1,7 +1,7 @@
 {
-  "generator": "manual-maintained",
+  "generator": "codex-sync",
   "source_skill": "skills/refactor",
   "layout": "modular",
-  "source_hash": "bc6dba8ed3658a2c1d3a7950289dfde9f86fac8f238018246f2c196073f9d506",
-  "generated_hash": "ef99b3fea67e2ae5d9da0ba16cdf540af2a94c5b04c336c04cece7dd85c106e8"
+  "source_hash": "19aededa001917f28711593f30a0a01f2c9d6218db189abf5148535c51152098",
+  "generated_hash": "8586c4c6bd56e9b30189255e7e81d883de1c5e6c4da90001622cfe6779a94a40"
 }

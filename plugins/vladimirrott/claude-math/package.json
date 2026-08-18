@@ -1,0 +1,58 @@
+{
+  "name": "claude-math",
+  "version": "0.5.0",
+  "description": "Render math legibly in Claude Code and OpenAI Codex CLI. Emits Unicode glyphs instead of unrenderable LaTeX in the terminal. A stopgap until hosts render math natively.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-code-plugin",
+    "codex",
+    "codex-cli",
+    "codex-skills",
+    "skill",
+    "math",
+    "latex",
+    "katex",
+    "unicode",
+    "terminal"
+  ],
+  "homepage": "https://github.com/vladimirrott/claude-math",
+  "bugs": {
+    "url": "https://github.com/vladimirrott/claude-math/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vladimirrott/claude-math.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Vladimir Rotariu",
+    "email": "vladimirrott@users.noreply.github.com"
+  },
+  "type": "module",
+  "bin": {
+    "claude-math": "bin/claude-math.js"
+  },
+  "files": [
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".agents/",
+    "skills/",
+    "SECURITY.md",
+    "bin/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "prepack": "node bin/claude-math.js prepack",
+    "prepublishOnly": "npm test && npm pack --dry-run"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

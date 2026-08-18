@@ -1,10 +1,20 @@
 ---
 name: brainstorming
-description: "Use when defining new features, product behavior, UI/component design, architecture choices, contract changes, or ambiguous medium/high-complexity work before implementation."
+description: "Use when defining ambiguous or high-complexity new features, product behavior, UI/component design, architecture choices, contract changes, or when grilling/pressure-testing a plan or design. Routine small requests stay on the fast path."
 ---
+
+<EXPLICIT-MODE-GATE>
+If activation mode is explicit (`~/.config/aegis/config.toml` has
+`activation_mode = "explicit"`, or `AEGIS_ACTIVATION_MODE=explicit` is visible
+in the environment) and the current user request did not explicitly invoke
+Aegis or this skill by name, exit back to the fast path: answer concisely
+without this workflow's checklist, ceremony, or document requirements. If the
+user explicitly named Aegis or this skill, proceed normally.
+</EXPLICIT-MODE-GATE>
 
 # Execute
 
+→ Direct grilling or plan/design pressure-test? → Enter `Grilling Mode` below. Soft challenge intent? → Use its one-line mode confirmation. Do not start normal design artifacts, document writing, task planning, or implementation during the interview.
 → New feature, product behavior, UI/component design, architecture/contract change, or ambiguous medium/high-complexity work? → **Design first. No implementation until the needed design/spec is approved.**
   1. Explore project context → read authority docs, check for existing patterns
   2. Ask clarifying questions one at a time (prefer multiple choice)
@@ -23,28 +33,79 @@ Start by understanding the current project context and authority boundary, then 
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take implementation action for work that matches this skill until you have presented the required design/spec and the user has approved it where this workflow requires approval.
 </HARD-GATE>
 
-## Route Away When It Is Small
+## Grilling Mode
 
-Do not force this workflow onto low-complexity work. A tiny wording edit,
-single-owner bug fix, simple config/status question, or local utility change
-can proceed through concise intent, baseline check, TDD/debugging, and
-verification. If uncertainty or impact grows, escalate back here and write the
-smallest stabilizing spec.
+### Mode Precedence
+
+While Grilling Mode is active, it overrides the normal brainstorming execution
+flow. Suspend `Checklist`, `The Process`, the `Compact output contract`, and
+all documentation or design-transition requirements until the user exits the
+interview; retain the no-implementation hard gates.
+
+### Grilling Entry Signals
+
+- **Direct:** The user asks to grill or interrogate an idea, plan, or design, or explicitly requests a pressure-test. Direct phrases include `grill me`, `grill this plan`, `审问我`, `盘问我`, and `拷问我`. Enter the mode immediately.
+- **Soft:** The user asks to challenge assumptions, find holes, red-team, or "别顺着我" about a draft idea, plan, or design. Ask only: `Grill or normal brainstorming?` Enter the mode only after confirmation.
+- **Not grilling:** A bare/literal phrase reference, or a PR, diff, or current-code review. Explain literal phrases normally; route implementation review to `requesting-code-review`.
+
+### Opening Card
+
+After the user has entered the mode, emit this once in the user's language, then begin the interview:
+
+```text
+◆ Grilling Session
+Target: <idea / plan / design>
+Question path: value -> boundaries -> failure modes -> acceptance
+Pace: deep (default) | fast (user-requested)
+```
+
+### Pace
+
+- **Deep:** Ask exactly one decision question per turn when it is blocking or depends on the previous answer. State the recommended answer and the most relevant trade-off before waiting.
+- **Fast:** Only when the user explicitly asks for a fast or batched interview (for example, `fast`, `batch`, `快问`, or `一次问几个`), ask at most three independent decision questions. Give each question its recommendation and trade-off, then wait for the user's responses. Return to deep pace for dependent follow-ups.
+
+1. Explore the codebase and current authority docs for facts before asking. Do not ask the user for facts that can be found locally.
+2. The user owns the decision. Do not treat a recommendation, a tentative answer, or a shared-understanding checkpoint as final approval.
+3. Aside from the one-time opening card, keep the turn to the observation, recommendation, and the selected pace's questions. Do not emit a full design ceremony, write docs, create a plan, or implement while the interview is active.
+4. End when the user says to stop, defer, or that the questions are sufficient. Summarize confirmed decisions, assumptions, unresolved questions, and the next optional step. That summary does not grant completion authority.
+5. If the user asks to proceed after the interview, return to the normal brainstorming design gate. A design/spec still needs the required approval before planning or implementation.
+
+## Route Away / Doc Necessity Gate
+
+Do not force this workflow onto low-complexity work. A tiny
+wording edit, single-owner bug fix, simple config/status question, local
+utility change, or mechanical multi-file change can proceed through concise
+intent, baseline check, TDD/debugging, and verification without any new
+document. Run the Doc Necessity Gate before writing any spec, plan, ADR, or
+baseline artifact:
+
+1. Does an existing spec/plan/ADR/baseline already cover this change surface?
+   -> Update that owner document in place; never create a sibling document.
+2. Is the surface durable/irreversible (schema, public API, owner, dependency
+   direction, migration, compat-path retirement), cross-session/cross-person
+   handoff, approval-gated, or authority-required?
+   -> Yes: write the smallest artifact for that surface (see Documentation).
+   -> No: write no document; keep compact drafts in-session.
+3. Re-check at edit time and at closeout; escalate to the smallest stabilizing
+   spec if uncertainty or impact grows.
 
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, recent commits, authority docs, CONTEXT.md
+1. **Explore project context** — check files, docs, recent commits, authority
+   docs, and passively consume relevant active `CONTEXT.md` language without
+   loading active modeling
 2. **Choose the path and scope** — real design? diagnosis? route accordingly or decompose first
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `ImpactStatementDraft`
-5. **Propose 2-3 approaches** — with trade-offs and your recommendation
-6. **Present design** — in sections scaled to complexity, get user approval where required
-7. **Write spec artifact** — save a Spec Brief or Design Spec under `docs/aegis/specs/` when persistent requirements are needed
-8. **Spec self-review** — check for placeholders, contradictions, ambiguity, scope, boundary
-9. **User reviews written spec** — ask user to review before proceeding
-10. **Transition to implementation** — invoke writing-plans skill (terminal state)
+4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `BaselineUsageDraft`, `ImpactStatementDraft`
+5. **Run existence check when adding new surfaces** — only if an approach adds a new owner, skill, artifact, adapter, fallback, workflow step, or benchmark metric
+6. **Propose 2-3 approaches** — with trade-offs and your recommendation
+7. **Present design** — in sections scaled to complexity, get user approval where required
+8. **Write spec artifact** — only after the Doc Necessity Gate passes and no existing owner spec/plan covers the surface; if covered, update that document instead of creating a sibling
+9. **Spec self-review** — check for placeholders, contradictions, ambiguity, scope, boundary
+10. **User reviews written spec** — ask user to review before proceeding
+11. **Transition to implementation** — invoke writing-plans skill (terminal state)
 
 **The terminal state is invoking writing-plans.** Do NOT invoke any other implementation skill.
 
@@ -53,22 +114,90 @@ You MUST create a task for each of these items and complete them in order:
 **Understanding the idea:**
 - Check current project state first (files, docs, recent commits)
 - Read relevant authority docs before asking deep questions
+- Use existing canonical terms in questions, options, scenarios, and the spec.
+  If terminology crystallizes or conflicts, compose
+  `establishing-project-context`; do not leave the resolution only in the spec.
 - If the request is diagnosis/root-cause/follow-up to an approved plan → route to correct workflow
 - If the request spans multiple independent subsystems → flag and decompose first
 - Ask clarifying questions one at a time, prefer multiple choice
 - Separate facts, assumptions, unknowns while exploring
 
-**Working artifacts:** Keep three drafts: `TaskIntentDraft` (outcome, goal,
+**Working artifacts:** Keep four drafts: `TaskIntentDraft` (outcome, goal,
 success evidence, stop condition, non-goals, scope, risks),
-`BaselineReadSetHint` (candidate docs, authority gaps), `ImpactStatementDraft`
-(affected layers, owners, invariants, compat, non-goals). Refresh when scope
-changes.
+`BaselineReadSetHint` (candidate docs, authority gaps),
+`BaselineUsageDraft` (required refs, optionally delivered context refs,
+acknowledged-before-plan refs, cited refs, missing refs, advisory decision),
+and `ImpactStatementDraft` (affected layers, owners, invariants, compat,
+non-goals). Refresh when scope changes.
 
-**Compact output contract:** `TaskIntentDraft`, `BaselineReadSetHint`,
-`ImpactStatementDraft`, `Product Risk Lens`, `Architecture Integrity Lens`,
+**Compact output contract:** `Aegis Visibility`, `TaskIntentDraft`, `BaselineReadSetHint`,
+`BaselineUsageDraft`, `Requirement Ready Check`, `ImpactStatementDraft`,
+`Existence Check`, `Product Risk Lens`, `Architecture Integrity Lens`,
 `Baseline Role Alignment`, `Plan-Time Complexity Check`, `Options`, and
 `Decision Needed`. Use this compact shape before expanding into a full design
 structure.
+
+`Aegis Visibility` for this workflow names why design/spec clarification comes
+before implementation and what drift, overbuild, wrong-owner, or missing
+acceptance risk that restraint reduces. Keep it natural and task-specific; do
+not turn it into a fixed skill trace.
+
+Use a compact `BaselineUsageDraft` whenever the design direction depends on
+specific baseline docs or current-authority refs:
+
+```text
+BaselineUsageDraft:
+- Required baseline refs:
+- Delivered context refs:
+- Acknowledged before plan refs:
+- Cited in design refs:
+- Missing refs:
+- Decision: continue | needs-baseline-readback | needs-verification | pause-for-user | blocked
+```
+
+`Delivered context refs` is optional host-projected bookkeeping only. It is not
+authoritative proof that a host injected or the model internally consumed a
+context payload. The artifact exists to make baseline/context attention drift
+visible before the design is recommended or approved.
+
+Use a compact `Requirement Ready Check` before recommending a design when the
+requirement is not already confirmed and complete:
+
+```text
+Requirement Ready Check:
+- Requirement source refs:
+- Goals and scope refs:
+- User / scenario refs:
+- Requirement item refs:
+- Acceptance / verification criteria refs:
+- Open blocker questions:
+- Decision: ready | needs-source | needs-goal-alignment | needs-scenario | needs-acceptance-criteria | needs-clarification | needs-user-decision | blocked
+```
+
+Treat task intent, conversation, source documents, and agent inference as
+candidate requirement sources until project authority confirms them. If the
+decision is not `ready`, keep the design at proposal/spec clarification level;
+do not turn the gap into implementation tasks.
+
+**Existence Check:** Before recommending an approach that adds a new owner,
+skill, artifact, host adapter, fallback, compatibility path, workflow step, or
+benchmark metric, check whether it needs to exist. Use
+`docs/current/AEGIS_MINIMALITY_REFERENCE.md` as the reference. Do not force this
+onto ordinary feature design that reuses existing owners and artifacts.
+
+```text
+Existence Check:
+- Proposed new surface:
+- Existing owner / reuse candidate:
+- Why existing surface is insufficient:
+- Creation proof:
+- Entropy / retirement impact:
+- Decision: reuse-existing | add-with-proof | defer | reject | needs-first-principles-review
+```
+
+If the decision is `reuse-existing`, recommend the reuse path instead of a new
+surface. If the decision is `add-with-proof`, carry the proof, verification
+signal, and any retirement trigger into the design/spec.
 
 **Product Risk Lens:** For ambiguous product, feature, UI, workflow, or
 architecture choices, add a compact review lens, not persona roleplay:
@@ -90,27 +219,34 @@ medium/high work, inspect the likely owner files and current shape. This is an
 advisory design pressure check, not a gate and not completion authority. Do not
 force it onto tiny low-risk edits.
 
+Use `using-aegis/references/complexity-governance.md` for the shared artifact
+classes, pressure-signal interpretation, and over-budget handling.
+
 ```text
+Complexity Budget:
+- Artifact class:
+- Target files / artifacts:
+- Current pressure:
+- Projected post-change pressure:
+- Budget result: within-budget | at-risk | over-budget
+- Planned governance:
+
 Plan-Time Complexity Check:
 - Better file boundary:
 - Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
 ```
 
-Pressure signals: 800+ line source file, 80+ line block, router/manager/handler
-or generic utility receiving a new responsibility, fallback/adapter/guard
-growth, duplicate owner risk, or owner mismatch. A new file still needs a clear
-owner, contract, and retirement story.
-
 **Exploring approaches:** Propose 2-3 approaches with trade-offs and
 recommendation. Make scope boundary explicit: what's in, what's deferred, what
 belongs elsewhere.
 
-Before approach selection, use `first-principles-review` and its
-`Decision Hygiene Review` when the candidate direction introduces a new owner,
-duplicate owner, fallback, adapter, compat-only carrier, delete-first question,
-unverified assumption, or "long-term stable" claim. Do not make it a
-universal design ceremony; return to this workflow once the decision surface is
-clean.
+Before approach selection, use `Existence Check` for any proposed new surface.
+Escalate to `first-principles-review` and its `Decision Hygiene Review` when
+the candidate direction still introduces a new owner, duplicate owner,
+fallback, adapter, compat-only carrier, delete-first question, unverified
+assumption, or "long-term stable" claim after the existence check. Do not make
+either check a universal design ceremony; return to this workflow once the
+decision surface is clean.
 
 When the central decision is internal retirement vs compat retention vs
 persistent-state confirmation, compose `anti-entropy-governance`. It classifies
@@ -183,7 +319,9 @@ create accepted architecture memory from unexecuted ideas.
    - Design Spec: `docs/aegis/specs/YYYY-MM-DD-<topic>-design.md` for high
      complexity, architecture, contract, migration, cross-module, or ambiguous
      behavior requiring user review.
-   Specs always go to `specs/` — never to `work/`.
+   Specs always go to `specs/` — never to `work/`. `docs/aegis/work/`
+   holds session-level drafts, not project documents; only promote a draft to
+   `specs/` or `plans/` when the Doc Necessity Gate passes.
 
 3. **Update INDEX.md:**
    Prefer configured Aegis workspace support: `python <aegis-workspace-helper> append-index --root
@@ -193,12 +331,20 @@ create accepted architecture memory from unexecuted ideas.
    After the append, run `python <aegis-workspace-helper> check --root
    <target-project-root>` when configured workspace support is available. This validates
    structure and index coverage only; it does not grant completion authority.
+   INDEX bookkeeping: creating a document registers it; updating an existing
+   document does not change the index; superseding or deleting a document
+   updates the index.
 
 4. Commit the design document to git.
 
-5. Include the latest `TaskIntentDraft`, `BaselineReadSetHint`, and `ImpactStatementDraft` inline or in an appendix when they materially shaped the design.
+5. Include the latest `TaskIntentDraft`, `BaselineReadSetHint`,
+   `BaselineUsageDraft`, and `ImpactStatementDraft` inline or in an appendix
+   when they materially shaped the design.
 
 6. Record explicit non-goals and compatibility boundaries so the later implementation plan does not drift.
+7. Cross-repo changes: decide per change surface per repo; a durable
+   cross-repo contract is recorded as an ADR in the owning repo, with the other
+   side carrying only its local impact (mirror relationship, no duplication).
 
 **Spec Self-Review:**
 After writing the spec document, look at it with fresh eyes:
@@ -244,8 +390,10 @@ When creating `docs/aegis/BASELINE-GOVERNANCE.md` for the first time, use this t
 # Baseline Governance
 
 ## 1. Baseline Roles
-- Product / Requirement Baseline: problem, accepted behavior, success evidence,
-  non-goals, workflow constraints, and approved requirement/spec intent.
+- Product / Requirement Baseline: confirmed requirement sources, target state,
+  goals and scope, users / scenarios, requirement items, acceptance /
+  verification criteria, non-goals, workflow constraints, open questions,
+  change records, and approved requirement/spec intent.
 - Architecture / Runtime Boundary Baseline: canonical owner, contract,
   source-of-truth boundary, dependency direction, compatibility, runtime-ready
   boundary, and retirement state.
@@ -326,8 +474,11 @@ Status: `initial dual-baseline snapshot`
 
 ## 4. Product / Requirement Baseline
 ### 4.1 Current Truth
-- accepted problem
-- target user or workflow
+- confirmed requirement sources or current authority gaps
+- target state, goals, and scope
+- target users, roles, usage scenarios, or system scenarios
+- functional, quality, constraint, and delivery / transition requirement items
+- acceptance / verification criteria and evidence expectations
 - success evidence, value claim, or phase focus already fixed
 
 ### 4.2 Non-negotiables

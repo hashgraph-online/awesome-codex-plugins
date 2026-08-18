@@ -13,13 +13,26 @@ Do not add
 encyclopedias, Q&A/forum threads, scraped mirrors, SEO summaries, anonymous
 content farms, or unmaintained unofficial copies when a primary source exists.
 
+## Freshness Contract
+
+| Field | Rule |
+| --- | --- |
+| Last verified | 2026-07-10 |
+| Verification cadence | Quarterly and before every major release. |
+| Staleness signal | A standards body publishes a replacement, a versioned URL redirects to a newer approved version, or a scheduled link check fails. |
+| Historical handling | Retain a superseded source only when it provides historical context, and label it `Historical` with its current replacement nearby. |
+
 Sections below are grouped by source owner: company, project, standards body,
 publisher, or named author, except for the curated public outage case-study
 section. The large company source-owner sections appear first alphabetically,
 followed by Microsoft, then the remaining source-owner sections. Outside the
 case-study section, they are not grouped by skill topic.
 
-### Public Outage And Incident Case Studies
+### Historical Public Outage And Incident Case Studies
+
+These first-party reports document resolved incidents. Retain a report only
+while its specific first-party page remains reachable; if the publisher
+withdraws it, remove the entry instead of substituting a generic dashboard.
 - AWS Post-Event Summary - Amazon S3 Service Disruption in US-EAST-1: https://aws.amazon.com/message/41926/
 - AWS Post-Event Summary - Amazon EC2 and Amazon RDS Service Disruption in US East: https://aws.amazon.com/message/65648/
 - AWS Post-Event Summary - October 22, 2012 AWS Service Event in US East: https://aws.amazon.com/message/680342/
@@ -127,13 +140,12 @@ case-study section, they are not grouped by skill topic.
 - Azure Post Incident Review - Australia East Power and Cooling Recovery: https://azure.status.microsoft/en-us/status/history/?trackingId=VVTQ-J98
 - Google Cloud Incident Report - Cloud, Workspace, and Security Operations 503 Errors: https://status.cloud.google.com/incidents/ow5i3PPK96RduMcb1SsW
 - Google Cloud Incident Report - Access Context Manager Capacity Reduction Fail-Closed Errors: https://status.cloud.google.com/incidents/rjV26MkG41n1YSAWL97S
-- Google Cloud Incident Report - Assured Workloads Access-Management Configuration Regression: https://status.cloud.google.com/incidents/b0d8af783677531b
+- Google Cloud Incident Report - Assured Workloads Access-Management Configuration Regression: https://status.cloud.google.com/incidents/qNkjeU849eNkxgkT4FP4
 - Google Cloud Incident Report - IAM Policy Propagation Deletion Traffic Delay: https://status.cloud.google.com/incidents/BnzamL7pXnge8zLHyjyK
 - Google Cloud Incident Report - US-EAST1 Fail-Open Network Control Plane Partition: https://status.cloud.google.com/incidents/8cY8jdUpEGGbsSMSQk7J
 - Google Cloud Incident Report - US-WEST1 Control Plane and Data Plane Unavailability: https://status.cloud.google.com/incidents/u6rQ2nNVbhAFqGCcTm58
 - Google Cloud Incident Report - US-EAST1 Cooling Mitigation Management Component Disablement: https://status.cloud.google.com/incidents/DyCcy7iGtWqLYEyJBWrC
 - Google Cloud Incident Report - US-EAST5-C Utility Power And UPS Battery Failure: https://status.cloud.google.com/incidents/N3Dw7nbJ7rk7qwrtwh7X
-- Google Cloud Incident Report - US-EAST4-A Rack Power Loss and Backup Transition Failure: https://status.cloud.google.com/incidents/d2c1c98b8729d08c
 - Google Cloud Incident Report - US-EAST1-C Distributed Storage Memory Consumption Multi-Service Degradation: https://status.cloud.google.com/incidents/6sfxucMj6DuhVzmj9Xr8
 - Google Cloud Incident Report - Australia-Southeast2 Network POP Voltage Tolerance Mismatch: https://status.cloud.google.com/incidents/Pvq1RGrACDwogEE8hcrm
 - Google Cloud Incident Report - Australia-Southeast2 Network Equipment Feeder Voltage Reboot: https://status.cloud.google.com/incidents/8DhiwfKvD987f5tJrj1G
@@ -168,7 +180,7 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - App Engine Channel API Client Library Redirect Regression: https://status.cloud.google.com/incident/appengine/15001
 - Google Cloud Incident Report - App Engine Service Account Credential Backend Migration: https://status.cloud.google.com/incident/appengine/15025
 - Google Cloud Incident Report - ReCAPTCHA Client Request Target Regression: https://status.cloud.google.com/incidents/MzARofVtutSd2HB5vmkT
-- Google Cloud Incident Report - App Engine Secret Delivery Release Regression: https://status.cloud.google.com/incidents/60b6e40f1b85afe8
+- Google Cloud Incident Report - App Engine Secret Delivery Release Regression: https://status.cloud.google.com/incidents/Q9MUHCFVpqouJbGrzneJ
 - Google Cloud Incident Report - App Engine Traffic Router Retry Amplification: https://status.cloud.google.com/incident/appengine/16008
 - Google Cloud Incident Report - App Engine Managed VM Retry Amplification and Datacenter Diversion: https://status.cloud.google.com/incident/appengine/15021
 - Google Cloud Incident Report - App Engine Storage Maintenance Replica Failover Failure: https://status.cloud.google.com/incident/appengine/15019
@@ -182,10 +194,10 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - App Engine Blobstore and Deployment Internal Blob Storage Overload: https://status.cloud.google.com/incident/appengine/19007
 - Google Cloud Incident Report - App Engine Admin and Deployment Single-Datacenter Storage Dependency: https://status.cloud.google.com/incident/appengine/14042
 - Google Cloud Incident Report - App Engine Admin Console Storage Software Update Degradation: https://status.cloud.google.com/incident/appengine/14020
-- Google Cloud Incident Report - Deployment Manager Rollout Strategy Request Discard Regression: https://status.cloud.google.com/incidents/2156613897d13131
+- Google Cloud Incident Report - Deployment Manager Rollout Strategy Request Discard Regression: https://status.cloud.google.com/incidents/twcreT5UAMxRTKm7Y4Q9
 - Google Cloud Incident Report - App Engine Flexible Deployment Backend Datacenter Latency: https://status.cloud.google.com/incidents/hP4n1sd1k6xkj79uRuH7
 - Google Cloud Incident Report - Cloud Deploy Rollout Status Target-State Mismatch: https://status.cloud.google.com/incidents/HDuuY3KnTHM3zyBeLYEL
-- Firebase Status Incident - App Hosting Automatic Rollouts Setting Failure: https://status.firebase.google.com/incidents/06369a9ff7c4b3c6
+- Firebase Status Incident - App Hosting Automatic Rollouts Setting Failure: https://status.firebase.google.com/incidents/HkK8snnXw4jYrUVfYbNw
 - Firebase Status Incident - Data Connect Downstream Control Plane Rollback: https://status.firebase.google.com/incidents/w4DehHGFDs5pQbjE4A6E
 - Firebase Status Incident - Realtime Database Trigger Rollout Incompatibility: https://status.firebase.google.com/incidents/XNiKkpH5kjXQFkEQvVWF
 - Firebase Status Incident - Announcement-Driven Console Traffic Spike: https://status.firebase.google.com/incidents/HDk9cwJdZuTKoRoypTPP
@@ -204,11 +216,11 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - App Engine Serverless File Serving Configuration Regression: https://status.cloud.google.com/incidents/mvpNTsgUmf2LL7PdgmyF
 - Google Cloud Incident Report - US-WEST1 Packet Loss: https://status.cloud.google.com/incident/cloud-networking/19020
 - Google Cloud Incident Report - Compute Engine Network Administration Operation Latency: https://status.cloud.google.com/incident/compute/19008
-- Google Cloud Incident Report - Spectrum Access System Heartbeat Grant Loss: https://status.cloud.google.com/incidents/36d0457c4c49b9bb
+- Google Cloud Incident Report - Spectrum Access System Heartbeat Grant Loss: https://status.cloud.google.com/incidents/jbmpspqA9t4fGpz8q6DT
 - Google Cloud Incident Report - Compute Engine Management Operations Retry Backlog: https://status.cloud.google.com/incident/compute/15059
 - Google Cloud Incident Report - HTTP(S) Load Balancer First-Tier Configuration Regression: https://status.cloud.google.com/incident/compute/16020
 - Google Cloud Incident Report - External HTTPS Load Balancer Configuration Propagation Backlog: https://status.cloud.google.com/incidents/uSjFxRvKBheLA4Zr5qHs
-- Google Cloud Incident Report - Load Balancer Configuration Delete Race Pipeline Stall: https://status.cloud.google.com/incidents/b803bf3eb928e123
+- Google Cloud Incident Report - Load Balancer Configuration Delete Race Pipeline Stall: https://status.cloud.google.com/incidents/HoppX9SAc7jshpz6H52u
 - Google Cloud Incident Report - External HTTPS Load Balancer SSL Certificate Rollback Safety Check: https://status.cloud.google.com/incidents/xtW5y29FeYgjfLW3AwKY
 - Google Cloud Incident Report - Load Balancer Certificate Configuration Rewrite Overload: https://status.cloud.google.com/incidents/oAxmtvN5RuKAYHMG4ToR
 - Google Cloud Incident Report - Load Balancer and DNS Configuration Distribution Backend Unresponsiveness: https://status.cloud.google.com/incidents/xPBioHpy54CfwBS6v1ia
@@ -229,15 +241,15 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Compute Engine API Enum Case-Sensitivity Compatibility Regression: https://status.cloud.google.com/incident/compute/15065
 - Google Cloud Incident Report - Compute Engine VM Traffic Cap Isolation Regression: https://status.cloud.google.com/incident/compute/15046
 - Google Cloud Incident Report - Compute Engine Quota Exclusion Regression: https://status.cloud.google.com/incident/compute/16003
-- Google Cloud Incident Report - Compute Engine Billing Metering Discount Mismatch: https://status.cloud.google.com/incidents/db9636724fe3f156
+- Google Cloud Incident Report - Compute Engine Billing Metering Discount Mismatch: https://status.cloud.google.com/incidents/LGFBxyLwbh92E47fAzJ5
 - Google Cloud Incident Report - Autoscaler Metric Policy Validation Regression: https://status.cloud.google.com/incidents/SjJ3FN51MAEJy7cZmoss
 - Google Cloud Incident Report - Compute Engine New Instance Network Registration Queue Coupling: https://status.cloud.google.com/incident/compute/15057
 - Google Cloud Incident Report - Compute Engine IP Address Allocation Overload New Instance Connectivity: https://status.cloud.google.com/incident/compute/15024
 - Google Cloud Incident Report - Compute Engine External IP Allocation Retry Amplification: https://status.cloud.google.com/incident/compute/15023
 - Google Cloud Incident Report - Compute Engine Route Announcement Configuration Loss: https://status.cloud.google.com/incident/compute/16007
-- Google Cloud Incident Report - Compute Engine Persistent Disk Snapshot Cell Failure: https://status.cloud.google.com/incidents/ce8e9820e21086ea
+- Google Cloud Incident Report - Compute Engine Persistent Disk Snapshot Cell Failure: https://status.cloud.google.com/incidents/wJFDrQsNzpVBqMnQsk9j
 - Google Cloud Incident Report - Compute Engine Cleanup Pipeline API Resource Contention: https://status.cloud.google.com/incident/compute/15039
-- Google Cloud Incident Report - Compute Engine Health Check Control-Plane Network Configuration: https://status.cloud.google.com/incidents/9d5c69a458dc8c19
+- Google Cloud Incident Report - Compute Engine Health Check Control-Plane Network Configuration: https://status.cloud.google.com/incidents/mqTeLo1HJysUpJ3sp2gK
 - Google Cloud Incident Report - Compute Engine Network Control Plane Restart Configuration Issue: https://status.cloud.google.com/incident/compute/15052
 - Google Cloud Incident Report - Compute Engine ACL State Corruption Instance Creation Failures: https://status.cloud.google.com/incident/compute/18012
 - Google Cloud Incident Report - Compute Engine ACL Outbound Traffic Block: https://status.cloud.google.com/incident/compute/18013
@@ -260,13 +272,11 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Cloud Storage JSON API Memory Termination and Traffic Isolation: https://status.cloud.google.com/incident/storage/17002
 - Google Cloud Incident Report - Cloud Storage JSON API Rate Limit Retry Amplification: https://status.cloud.google.com/incident/storage/16021
 - Google Cloud Incident Report - Cloud Storage Traffic Surge Retry Amplification: https://status.cloud.google.com/incident/storage/16027
-- Google Cloud Incident Report - Cloud Storage Bucket Creation UI API Rollout Regression: https://status.cloud.google.com/incidents/e2e973235687b856
 - Google Cloud Incident Report - Cloud Storage Fiber Cut Capacity Loss: https://status.cloud.google.com/incident/storage/16017
 - Google Cloud Incident Report - Cloud Storage Inter-Datacenter Link Loss Large-Object Upload Errors: https://status.cloud.google.com/incident/storage/16015
 - Google Cloud Incident Report - Cloud Storage Internal Service Bad Configuration Canary Failure: https://status.cloud.google.com/incident/storage/16020
 - Google Cloud Incident Report - Cloud Storage Signed URL Keypair Automation Regression: https://status.cloud.google.com/incident/storage/16029
 - Google Cloud Incident Report - Cloud Storage Metadata Store Feature Load During Maintenance: https://status.cloud.google.com/incident/storage/18005
-- Google Cloud Incident Report - Cloud Storage Internal Job Backend Database Overload: https://status.cloud.google.com/incidents/3fb281544e037ffe
 - Google Cloud Incident Report - Cloud Storage Replication Job Upload Resource Contention: https://status.cloud.google.com/incident/storage/16024
 - Google Cloud Incident Report - Cloud Storage Metadata Shard Hot-Object Overload: https://status.cloud.google.com/incident/storage/16023
 - Google Cloud Incident Report - Cloud Storage Northeast North America Source Throttling Bug: https://status.cloud.google.com/incident/storage/17005
@@ -276,23 +286,21 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Cloud Pub/Sub Error Rate and Latency: https://status.cloud.google.com/incident/cloud-pubsub/19001
 - Google Cloud Incident Report - Cloud Pub/Sub Control Plane Storage Quota Feedback Loop: https://status.cloud.google.com/incident/cloud-pubsub/16003
 - Google Cloud Incident Report - Cloud Pub/Sub Metadata Permission Rollout and Ordering Repair: https://status.cloud.google.com/incidents/ghMho2Gka33Exr9UNavz
-- Google Cloud Incident Report - Cloud Scheduler Service-Agent Permission Regression: https://status.cloud.google.com/incidents/16feb655dd188233
+- Google Cloud Incident Report - Cloud Scheduler Service-Agent Permission Regression: https://status.cloud.google.com/incidents/fEXXEicMtx5SaVZz2Gt7
 - Google Cloud Incident Report - Cloud Dataflow Pipeline Orchestration Configuration Rejection: https://status.cloud.google.com/incident/cloud-dataflow/16001
 - Google Cloud Incident Report - Cloud Dataflow Job Control-Plane Rollout Misconfiguration: https://status.cloud.google.com/incidents/vcRkm91DVuWNGWMw9w84
 - Google Cloud Incident Report - Dataflow Deleted Worker Streaming Job Stall: https://status.cloud.google.com/incidents/2qH61fdyC5mGGtzqst5b
-- Google Cloud Incident Report - Cloud Data Fusion Service Account Access-Control Migration: https://status.cloud.google.com/incidents/44020772293b6a62
-- Google Cloud Incident Report - Dataflow Streaming Timers Missing Output Failure: https://status.cloud.google.com/incidents/38ac6cbece4f4649
+- Google Cloud Incident Report - Cloud Data Fusion Service Account Access-Control Migration: https://status.cloud.google.com/incidents/4nR6XkpFyo6VZcdrE5Ap
+- Google Cloud Incident Report - Dataflow Streaming Timers Missing Output Failure: https://status.cloud.google.com/incidents/XCBDehwBA59WmvYPit7i
 - Google Cloud Incident Report - Healthcare API Change Notification Replay Gap: https://status.cloud.google.com/incidents/812oTid69iFd4Wqw2P97
 - Google Cloud Incident Report - Dataproc Component Gateway Regional Rollout 400 Errors: https://status.cloud.google.com/incidents/ZJoBx7kocBokFxS1ZN5p
 - Google Cloud Incident Report - Cloud Bigtable Machine Isolation Packet Loss: https://status.cloud.google.com/incidents/TzTbUF4sxVhj1mcK9j25
 - Google Cloud Incident Report - Bigtable Alternate-Target Backup Restore: https://status.cloud.google.com/incidents/MienCfpExt57cMBTgL4x
-- Google Cloud Incident Report - VMware Engine Peer Circuit Loss: https://status.cloud.google.com/incidents/3aff44e0203c595f
-- Google Cloud Incident Report - VMware Engine Management Plane Certificate Expiry: https://status.cloud.google.com/incidents/8214964b95739d70
+- Google Cloud Incident Report - VMware Engine Management Plane Certificate Expiry: https://status.cloud.google.com/incidents/oSkQCweQ7xWmgu1g1Jps
 - Google Cloud Incident Report - Cloud Firestore Nonpeak Capacity Configuration Regression: https://status.cloud.google.com/incidents/w7D5XGtVfMGcdcg4Zzud
 - Google Cloud Incident Report - Firestore Project Isolation Query Performance Degradation: https://status.cloud.google.com/incidents/riSP7URjvJ5yrdAV16Mo
 - Google Cloud Incident Report - Cloud Spanner Frontend Server Resource Contention: https://status.cloud.google.com/incidents/TQ7kUbAPqaEXrxqGKTP9
-- Google Cloud Incident Report - Cloud Spanner Operational Metadata Configuration Overload: https://status.cloud.google.com/incidents/7b5b3b04020e8482
-- Google Cloud Incident Report - Cloud Spanner Metrics Export Rollout Flag Regression: https://status.cloud.google.com/incidents/0c022bf97757a985
+- Google Cloud Incident Report - Cloud Spanner Metrics Export Rollout Flag Regression: https://status.cloud.google.com/incidents/o44ZUgX95KF11F7cqd5v
 - Google Cloud Incident Report - Cloud Spanner Feature Rollout Capacity Operation Timeout: https://status.cloud.google.com/incidents/2j8xsJMSyDhmgfJriGeR
 - Google Cloud Incident Report - Cloud SQL Private-IP Request Field Regression: https://status.cloud.google.com/incidents/vzLcXyKkP3atEPw4z6Dy
 - Google Cloud Incident Report - Cloud SQL Private-IP Creation Networking API Migration: https://status.cloud.google.com/incidents/SJKw6R2zPUpwVzRPqahh
@@ -300,7 +308,7 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Cloud SQL Replica Site Packet-Loss Restart Coupling: https://status.cloud.google.com/incident/cloud-sql/17004
 - Google Cloud Incident Report - Cloud SQL Router Power Maintenance Restart: https://status.cloud.google.com/incident/cloud-sql/17008
 - Google Cloud Incident Report - Cloud SQL Password Validation Internal Connection Exhaustion: https://status.cloud.google.com/incidents/MqpDy4VdUKuQkw1GXPTo
-- Google Cloud Incident Report - Cloud SQL Create Queue Backlog Memory Growth: https://status.cloud.google.com/incidents/6a66f2844ac7e4ef
+- Google Cloud Incident Report - Cloud SQL Create Queue Backlog Memory Growth: https://status.cloud.google.com/incidents/y7wwfrMbL3UNpsrfCYxN
 - Google Cloud Incident Report - Cloud SQL External Traffic Classification Authorization Regression: https://status.cloud.google.com/incident/cloud-sql/17002
 - Google Cloud Incident Report - Compute Engine Regional Metadata Store Failover Failure: https://status.cloud.google.com/incidents/XwnegjADrYy2GHJphG2V
 - Google Cloud Incident Report - Europe Router Capacity Failure: https://status.cloud.google.com/incident/appengine/15023
@@ -310,7 +318,6 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - KMS Backward-Incompatible Rollout: https://status.cloud.google.com/incident/cloud-datastore/19006
 - Google Cloud Incident Report - IAM Asia Configuration Downstream Create Failures: https://status.cloud.google.com/incidents/LdVmYRCym6X8E7ELZCtp
 - Google Cloud Incident Report - Cloud IAM ACL Request Field Validation Bypass: https://status.cloud.google.com/incident/cloud-iam/18001
-- Google Cloud Incident Report - Cloud IAM Signer Verifier Key Distribution Mismatch: https://status.cloud.google.com/incidents/60c3071b1ddb366a
 - Google Cloud Incident Report - BigQuery API Routing Configuration Regression: https://status.cloud.google.com/incident/bigquery/18015
 - Google Cloud Incident Report - BigQuery Large Join Lock Contention: https://status.cloud.google.com/incident/bigquery/18003
 - Google Cloud Incident Report - BigQuery Streaming DoS Protection Traffic Segregation: https://status.cloud.google.com/incident/bigquery/18026
@@ -322,11 +329,11 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - BigQuery Router Large-Response Capacity Shrink: https://status.cloud.google.com/incident/bigquery/18037
 - Google Cloud Incident Report - BigQuery API Traffic Verification Human-Challenge Regression: https://status.cloud.google.com/incident/bigquery/18012
 - Google Cloud Incident Report - BigQuery Load Job Column Name Compatibility Rollout: https://status.cloud.google.com/incidents/hwsiBA1sa9TF49BoiGYm
-- Google Cloud Incident Report - BigQuery Data Transfer Runtime Parameter Validation Regression: https://status.cloud.google.com/incidents/0e16f49ca5c4462b
+- Google Cloud Incident Report - BigQuery Data Transfer Runtime Parameter Validation Regression: https://status.cloud.google.com/incidents/Hko5cWSXxGSsxfiSpg4n
 - Google Cloud Incident Report - BigQuery Streaming Backend Concurrent Connection Limit: https://status.cloud.google.com/incidents/LztMRFrCwWofMbzRENLW
 - Google Cloud Incident Report - BigQuery Shuffle Scheduler Canary Rate Limit: https://status.cloud.google.com/incident/bigquery/19002
 - Google Cloud Incident Report - BigQuery Scheduler Overload Protection and Query Backlog: https://status.cloud.google.com/incident/bigquery/19003
-- Google Cloud Incident Report - BigQuery Capacity Increase Scheduler Rebalancing Latency: https://status.cloud.google.com/incidents/5a3f653896a2285a
+- Google Cloud Incident Report - BigQuery Capacity Increase Scheduler Rebalancing Latency: https://status.cloud.google.com/incidents/b29RZjsCa4Xuq874upMd
 - Google Cloud Incident Report - BigQuery Configuration Rollout Ordering and Rollback Queue: https://status.cloud.google.com/incident/bigquery/18036
 - Google Cloud Incident Report - BigQuery Streaming Stale Configuration Cache Query Errors: https://status.cloud.google.com/incident/bigquery/18004
 - Google Cloud Incident Report - BigQuery Audit Logging Memory Leak Rollout: https://status.cloud.google.com/incidents/Gt6njQyniuxXViQULV2T
@@ -360,13 +367,13 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - US-CENTRAL1 Network Expansion Inter-Region Replication Packet Loss: https://status.cloud.google.com/incident/cloud-networking/18004
 - Google Cloud Incident Report - Media CDN Configuration Rollback and Machine Reboot Recovery: https://status.cloud.google.com/incidents/1mJnJrkjLxicpPtF455R
 - Google Cloud Incident Report - Media CDN Management Plane Dependency Configuration Change: https://status.cloud.google.com/incidents/JPHxXMidtAZnmwFEWLLa
-- Google Cloud Incident Report - Cloud Armor Configuration Storage Write Errors: https://status.cloud.google.com/incidents/b8ad2d92a1e4969e
+- Google Cloud Incident Report - Cloud Armor Configuration Storage Write Errors: https://status.cloud.google.com/incidents/DXiQQW2ipyeeNsq9RFxz
 - Google Cloud Incident Report - Cloud Armor Control Plane Storage Writer Stall: https://status.cloud.google.com/incidents/KPYTXQW4gRhXvTsZ1Fj9
 - Google Cloud Incident Report - Cloud Armor Backend Storage Stuck Policy Operations: https://status.cloud.google.com/incidents/m4b47Ln94TRKJz93setH
 - Google Cloud Incident Report - Cloud Armor Customer Configuration Latent Policy Evaluation Bug: https://status.cloud.google.com/incidents/4XgaZGR3Qx17jirVX6bG
-- Google Cloud Incident Report - South America Single-Source Traffic Spike Throttling: https://status.cloud.google.com/incidents/c7ee364df5117a09
+- Google Cloud Incident Report - South America Single-Source Traffic Spike Throttling: https://status.cloud.google.com/incidents/1YfiHrPee4d8Cvofxxwp
 - Google Maps Platform Incident - South America Routing Backend Capacity Spillover: https://status.cloud.google.com/maps-platform/incidents/F4UVoCCUVVCrrR1LP7cR
-- Google Cloud Incident Report - Apigee Edge NAT Address Attachment Misconfiguration: https://status.cloud.google.com/incidents/6246592166dd8712
+- Google Cloud Incident Report - Apigee Edge NAT Address Attachment Misconfiguration: https://status.cloud.google.com/incidents/tJSctv9JBC8tdGCty6T9
 - Google Cloud Incident Report - Apigee Internal Certificate Rotation Failure: https://status.cloud.google.com/incidents/sPyYB214xAhqnoxNrrnW
 - Google Cloud Incident Report - External Proxy Load Balancer Configuration Pipeline Race: https://status.cloud.google.com/incidents/6PM5mNd43NbMqjCZ5REh
 - Google Cloud Incident Report - Cloud Networking Latency and Packet Loss: https://status.cloud.google.com/incident/cloud-networking/21006
@@ -387,7 +394,7 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Multi-Region Fiber Path Transient Packet Loss: https://status.cloud.google.com/incidents/MtMwhU6SXrpBeg5peXqY
 - Google Cloud Incident Report - Transpacific Backbone Hardware Failure Packet Loss: https://status.cloud.google.com/incidents/aA3kbJm5nwvVTKnYbrWM
 - Google Cloud Incident Report - Multi-Region Networking Physical Damage Reduced Capacity: https://status.cloud.google.com/incidents/nieR2aLyg1rwFKq1aWZU
-- Google Cloud Incident Report - Cloud Interconnect Physical Link Packet Loss: https://status.cloud.google.com/incidents/10e811f9ea0755d5
+- Google Cloud Incident Report - Cloud Interconnect Physical Link Packet Loss: https://status.cloud.google.com/incidents/QEXJUo5kYdf9YVXPiCCF
 - Google Cloud Incident Report - Chicago Interconnect Metro Device Repair Outage: https://status.cloud.google.com/incidents/3CMcRiqNus4M1xFysuvw
 - Google Cloud Incident Report - Asia-Northeast1 Regional Network Topology Upgrade: https://status.cloud.google.com/incident/appengine/17006
 - Google Cloud Incident Report - Europe-West4 Maglev Priority Demotion: https://status.cloud.google.com/incident/cloud-networking/18013
@@ -409,9 +416,7 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - BigQuery Storage Usage Pipeline Queue Skew: https://status.cloud.google.com/incidents/4NXQMwQJEXPDYnL6LELy
 - Google Cloud Incident Report - Datastore High-Write Database Rollout Regression: https://status.cloud.google.com/incident/cloud-datastore/19001
 - Google Cloud Incident Report - Datastore High-Load Latent Bug: https://status.cloud.google.com/incident/cloud-datastore/17002
-- Google Cloud Incident Report - Datastore Traffic Spike Capacity Increase: https://status.cloud.google.com/incidents/4a14936124a9bb28
 - Google Cloud Incident Report - Firestore Client Component Unsupported Field Regression: https://status.cloud.google.com/incidents/RaEdFWGBZ8T8iFwEVqCJ
-- Google Cloud Incident Report - Firestore Quota Adjustment Batch Job Lock Contention: https://status.cloud.google.com/incidents/4336611b66958264
 - Google Cloud Incident Report - Memorystore Health-Check Repair Failure: https://status.cloud.google.com/incidents/CYyJ69B4pN2xBSMEgnDZ
 - Google Cloud Incident Report - Cloud SQL First Generation Startup Service Capacity Exhaustion: https://status.cloud.google.com/incident/cloud-sql/17010
 - Google Cloud Incident Report - Cloud SQL Control Plane Metadata Database Overload: https://status.cloud.google.com/incident/cloud-sql/17017
@@ -426,26 +431,23 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Cloud Monitoring Query Processor Memory Scaling and Metric Gaps: https://status.cloud.google.com/incidents/ERzzrJqeGR2GCW51XKFv
 - Google Cloud Incident Report - Cloud Monitoring Indexing Service Task Overload: https://status.cloud.google.com/incidents/KVM7mPBRCJoedGLFLvwy
 - Google Cloud Incident Report - Cloud Monitoring Permission Change Metadata Access Restriction: https://status.cloud.google.com/incidents/N6EJou2rCwoEt8nowd2o
-- Google Cloud Incident Report - Cloud Monitoring Schema Permission Rollout Regression: https://status.cloud.google.com/incidents/9fa376e638fded6d
-- Google Cloud Incident Report - Cloud Monitoring Descriptor Dependency Overload: https://status.cloud.google.com/incidents/8bac58e8a8258168
-- Google Cloud Incident Report - Cloud Monitoring Metric Processing Rollout Gaps: https://status.cloud.google.com/incidents/d3e848304b7d0436
+- Google Cloud Incident Report - Cloud Monitoring Schema Permission Rollout Regression: https://status.cloud.google.com/incidents/RivmN5B2aPTZu8oftVDX
+- Google Cloud Incident Report - Cloud Monitoring Descriptor Dependency Overload: https://status.cloud.google.com/incidents/yC6jA5p6Taoij6pPgSSW
 - Google Cloud Incident Report - Cloud Pub/Sub Monitoring Metrics Underreporting: https://status.cloud.google.com/incidents/B1hD4KAtcxiyAWkcANfV
-- Google Cloud Incident Report - Cloud Pub/Sub Monitoring Backend Config Metric Gaps: https://status.cloud.google.com/incidents/14d96b12acac1d54
 - Google Cloud Incident Report - Cloud Logging Cross-Project Sink Subscriber Backlog: https://status.cloud.google.com/incidents/AY59eBBxFZnaZgUSYQUf
-- Google Cloud Incident Report - Cloud Logging Configuration Validation Read Surge: https://status.cloud.google.com/incidents/5209a1f6f59ec911
-- Google Cloud Incident Report - Cloud Logging File-System Upgrade Reinitialization: https://status.cloud.google.com/incidents/c1661d3ebcc67df4
+- Google Cloud Incident Report - Cloud Logging File-System Upgrade Reinitialization: https://status.cloud.google.com/incidents/gFhaHLtkkPrs5N5dNMRG
 - Google Cloud Incident Report - Cloud KMS Batch Read Ramp-Up Dependency Overload: https://status.cloud.google.com/incidents/ukkfXQc8CEeFZbSTYQi7
-- Google Cloud Incident Report - Cloud Logging Query Processing Cluster Migration Bad State: https://status.cloud.google.com/incidents/17c15e0deca0add3
+- Google Cloud Incident Report - Cloud Logging Query Processing Cluster Migration Bad State: https://status.cloud.google.com/incidents/RjNTHWDbP1x8zQk8U7nL
 - Google Cloud Incident Report - Cloud Logging Indexing Backend Configuration Query Timeouts: https://status.cloud.google.com/incidents/txaxJMs7eNMV5cHwgfRP
-- Google Cloud Incident Report - Cloud Logging Cluster Migration Bad State Recurrence: https://status.cloud.google.com/incidents/c1fb3e274d027299
+- Google Cloud Incident Report - Cloud Logging Cluster Migration Bad State Recurrence: https://status.cloud.google.com/incidents/YbV2DEHWkBk3WVRekrUc
 - Google Cloud Incident Report - Cloud Logging Dynamic Provisioning Backlog: https://status.cloud.google.com/incidents/bMAYzVmupVWVNUjPhchQ
 - Google Cloud Incident Report - Container Node Metadata DNS Resolution Regression: https://status.cloud.google.com/incident/container-engine/15001
 - Google Cloud Incident Report - GKE Log Processor Excess Messages Quota Exhaustion: https://status.cloud.google.com/incidents/y5XvpyBXFhsphSt4DfiE
 - Google Cloud Incident Report - GKE Metadata Server Debug Log Volume Regression: https://status.cloud.google.com/incidents/3UK9zjDHGXJ2oP2WboFR
-- Google Cloud Incident Report - GKE Nodepool Operations Resource Contention: https://status.cloud.google.com/incidents/de4928f89f17ca68
-- Google Cloud Incident Report - Admin Workstation Account Expiry Login Failure: https://status.cloud.google.com/incidents/1e587be918ab58ed
-- Google Cloud Incident Report - GKE Backend Authentication Rollout Token Errors: https://status.cloud.google.com/incidents/7e36f08feeca677e
-- Google Cloud Incident Report - GKE Control Plane Retry-Amplified Backend Traffic: https://status.cloud.google.com/incidents/4ed76753de470b1e
+- Google Cloud Incident Report - GKE Nodepool Operations Resource Contention: https://status.cloud.google.com/incidents/CcVrekxu6kxWYTuitVf4
+- Google Cloud Incident Report - Admin Workstation Account Expiry Login Failure: https://status.cloud.google.com/incidents/A27EJTBQ6anaCdeNX6zp
+- Google Cloud Incident Report - GKE Backend Authentication Rollout Token Errors: https://status.cloud.google.com/incidents/SDkKgEgDZJCrvutAz3bn
+- Google Cloud Incident Report - GKE Control Plane Retry-Amplified Backend Traffic: https://status.cloud.google.com/incidents/4Sie4sXFPougA2Ku24pT
 - Google Cloud Incident Report - GKE GPU Driver Artifact Access Failure: https://status.cloud.google.com/incidents/aRSt8sTQLKMTVgdbbK6P
 - Google Cloud Incident Report - GKE Automatic Upgrade Runtime Restart Regression: https://status.cloud.google.com/incidents/vFhgfrfzzrx6zQo69SdQ
 - Google Cloud Incident Report - Distributed Edge Backend Safe Mode Management Operation Block: https://status.cloud.google.com/incidents/g1qS6Fj8LihRWYQmCjDJ
@@ -459,25 +461,23 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Compute Engine Third-Party Agent Update VM Crash Recovery: https://status.cloud.google.com/incidents/DK3LfKowzJPpZq4Q9YqP
 - Google Cloud Incident Report - Cloud Composer Invalid Proxy Configuration Outbound Dependency Block: https://status.cloud.google.com/incidents/1ZyKFNVutyrwCYpwWUMp
 - Google Cloud Incident Report - Cloud Shell Production Validation Script Regression: https://status.cloud.google.com/incidents/Hrepehs4bLtgxEefSzSw
-- Google Cloud Incident Report - Cloud Functions Regional Load Increase Queue Aborts: https://status.cloud.google.com/incidents/a12c452f20572e6c
+- Google Cloud Incident Report - Cloud Functions Regional Load Increase Queue Aborts: https://status.cloud.google.com/incidents/16SSwVXrYSLjy8fEMvyZ
 - Google Cloud Incident Report - Cloud Functions Update Mask Client Contract Regression: https://status.cloud.google.com/incident/cloud-functions/18002
-- Google Cloud Incident Report - Cloud Run Transport Scheme Compatibility Regression: https://status.cloud.google.com/incidents/fc254bc0408a69c8
-- Google Cloud Incident Report - Cloud Run Request Surge Deployment Failure: https://status.cloud.google.com/incidents/6e3ffacedeab56a5
+- Google Cloud Incident Report - Cloud Run Transport Scheme Compatibility Regression: https://status.cloud.google.com/incidents/qfgJm8m4WPn2Ej2Z7vc2
+- Google Cloud Incident Report - Cloud Run Request Surge Deployment Failure: https://status.cloud.google.com/incidents/FwyeeZDrGMZCEXvRLEpr
 - Google Cloud Incident Report - Cloud Workstations Configuration Change API Server Overload: https://status.cloud.google.com/incidents/TZMCWaQRtAmX9ZDVwYUx
 - Google Cloud Incident Report - Cloud Storage Internal Rollout Faults: https://status.cloud.google.com/incidents/NXMPMbVyi51BMicBX3ga
-- Google Cloud Incident Report - Cloud Vision OCR Model Performance Regression: https://status.cloud.google.com/incidents/b8e3ee9a24136e60
+- Google Cloud Incident Report - Cloud Vision OCR Model Performance Regression: https://status.cloud.google.com/incidents/BNZwWJfvtjg3HxKA3bjY
 - Google Cloud Incident Report - AI Training Dependency Runtime Version Removal: https://status.cloud.google.com/incidents/ty5QqQdPZaypH55Mifkz
 - Google Cloud Incident Report - Vertex AI Serving Segmentation Faults: https://status.cloud.google.com/incidents/HcNDMn4YeG57exykghT7
-- Google Cloud Incident Report - Vertex AI Prediction Endpoint Cleanup Deletion Regression: https://status.cloud.google.com/incidents/edc42b4d49d24e96
 - Google Cloud Incident Report - Vertex AI Large Model Storage Provisioning Configuration: https://status.cloud.google.com/incidents/2GcJSJ2mZp3xw91PbJ87
-- Google Cloud Incident Report - Document AI UI and API Rollout Misalignment: https://status.cloud.google.com/incidents/72733f7bbb7fa274
+- Google Cloud Incident Report - Document AI UI and API Rollout Misalignment: https://status.cloud.google.com/incidents/Mqgi3ZvBPdfMeQ5CduK2
 - Google Cloud Incident Report - Vertex AI Gemini Safety Filtering Configuration Capacity Loss: https://status.cloud.google.com/incidents/41E5S3mkTGDfkZuJZH5k
-- Google Cloud Incident Report - Vertex Gemini Response-Heavy Decode Processing Load: https://status.cloud.google.com/incidents/fcf0d5db0a7d9447
+- Google Cloud Incident Report - Vertex Gemini Response-Heavy Decode Processing Load: https://status.cloud.google.com/incidents/C6iBziKqKCHx95xCV3fU
 - Google Cloud Incident Report - Vertex Gemini API Dependency Configuration Bad State: https://status.cloud.google.com/incidents/LmCfJJpvATwjmLQiyzX8
 - Google Cloud Incident Report - Vertex AI Search Noncanonical URL Index Amplification: https://status.cloud.google.com/incidents/LJNvUNYaax4RLNahVQ6p
 - Google Cloud Incident Report - Support Case Creation Shared Persistence Backpressure: https://status.cloud.google.com/incidents/MXtAVH2fTnMpaCDx53JN
-- Google Cloud Incident Report - Support Widget UI Server Rollout Regression: https://status.cloud.google.com/incidents/56e685bec6cc76e3
-- Google Cloud Incident Report - Support Case Update Entitlement Backlog Row Locks: https://status.cloud.google.com/incidents/711f2664f0cee2dc
+- Google Cloud Incident Report - Support Widget UI Server Rollout Regression: https://status.cloud.google.com/incidents/m6gcTj6EdTDt7oLjR5da
 - Google Cloud Incident Report - Support Ticket Persistence Vendor Query Subsystem Outage: https://status.cloud.google.com/incidents/NEtbe4S7pMgACeuopMaZ
 - Google Cloud Incident Report - Support Ticket Persistence Unbounded Resource Consumption: https://status.cloud.google.com/incidents/cyHovCjtDs1RPbZAKsme
 - Google Cloud Incident Report - Support File Upload GSLB Address Migration: https://status.cloud.google.com/incidents/5fYoeLUgYW8TaNeGwkm5
@@ -506,29 +506,27 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Chronicle Security API Feed Ingestion Cache Refresh Overload: https://status.cloud.google.com/incidents/AessYzCE2FaA6yGCHgyw
 - Google Cloud Incident Report - Chronicle SOAR Non-Admin Permission Regression: https://status.cloud.google.com/incidents/285CgEr7WAXjNeEC78gX
 - Google Security Products Incident - SecOps Data Transport Configuration Regression: https://status.cloud.google.com/security/incidents/J1eKogZgryLaWGatjjB2
-- Google Security Products Incident - SecOps Batch Pipeline Detection Misconfiguration: https://status.cloud.google.com/security/incidents/b76bc632d4a42e32
-- Google Security Products Incident - SecOps Rule Processing Job Configuration Shortfall: https://status.cloud.google.com/security/incidents/e2a775f5b5c2461a
+- Google Security Products Incident - SecOps Batch Pipeline Detection Misconfiguration: https://status.cloud.google.com/security/incidents/yVxWZR7GEgDyNU4nonyt
+- Google Security Products Incident - SecOps Rule Processing Job Configuration Shortfall: https://status.cloud.google.com/security/incidents/ADpMn2nYWFLnAJyRkFrf
 - Google Security Products Incident - SecOps Upstream Data Feed Outage Recovery Validation: https://status.cloud.google.com/security/incidents/yBEtUV3QGJkmVLuWp5qe
-- Google Cloud Incident Report - SecOps Dashboard Internal License Revocation: https://status.cloud.google.com/incidents/ecb83e32da3b7036
 - Google Security Products Incident - Mandiant Alert Document Restore Broken Links: https://status.cloud.google.com/security/incidents/Fq7fcqsXSP2ehqeun6Lv
 - Google Cloud Incident Report - Mandiant Security Validation Sequence Column Limit Exhaustion: https://status.cloud.google.com/incidents/psbdfLBYU9GR3bNNq7HT
-- Google Cloud Incident Report - Mandiant Transition Redirect Rule Cache Persistence: https://status.cloud.google.com/incidents/721ac9b423b49896
+- Google Cloud Incident Report - Mandiant Transition Redirect Rule Cache Persistence: https://status.cloud.google.com/incidents/gtxYCj2223df49HggFgK
 - Google Cloud Incident Report - Mandiant Third-Party Console Display Semantics False Ingestion Gap: https://status.cloud.google.com/incidents/fLYHLzSGXGkLkAjc8MJG
 - Google Security Products Incident - Mandiant SSO Redirect Configuration Rollback: https://status.cloud.google.com/security/incidents/JLVDftY1pzg8uCmfnPsp
 - Google Security Products Incident - Mandiant Long-Running Operation Redundant Task Backlog: https://status.cloud.google.com/security/incidents/oaZqH4QbPwJgUySP5vcq
-- Google Security Products Incident - Mandiant Oversized Third-Party Signature Detection Backlog: https://status.cloud.google.com/security/incidents/b5d114313d557192
-- Google Cloud Incident Report - Security Command Center Detection Enablement UI State Regression: https://status.cloud.google.com/incidents/bc549225c2498391
+- Google Security Products Incident - Mandiant Oversized Third-Party Signature Detection Backlog: https://status.cloud.google.com/security/incidents/cSxDAnszXHrxJNsSrT1u
+- Google Cloud Incident Report - Security Command Center Detection Enablement UI State Regression: https://status.cloud.google.com/incidents/JW3dWx6mNFZJPfToA8oa
 - Google Cloud Incident Report - Cloud Build Worker VM Quota Retry Storm: https://status.cloud.google.com/incidents/fmTFD58FDR7Qy6qq6H6U
 - Google Cloud Incident Report - Cloud Build Pull Request Trigger Partner Permission Semantics: https://status.cloud.google.com/incidents/AQ2XT5utr5zovdxoE64s
 - Google Cloud Incident Report - Cloud Build Trigger Resource Name Format Mismatch: https://status.cloud.google.com/incidents/1cPiGbWDMYHFMcTaLADd
 - Google Cloud Incident Report - Cloud CLI Service Account Feature-Flag Parsing Regression: https://status.cloud.google.com/incidents/1BQCF3xEvQvQPkSmpLx4
 - Google Security Products Incident - SecOps Real-Time Rule Reprocessing Gap: https://status.cloud.google.com/security/incidents/Ay6BtSp81X1cQJU25Eww
-- Google Security Products Incident - SecOps Log Normalization Backend Rollout Delay: https://status.cloud.google.com/security/incidents/31d5dbdd47c12d28
-- Google Security Products Incident - SecOps Third-Party Alert Ingestion Update Regression: https://status.cloud.google.com/security/incidents/d2aefb957f3c0d7f
+- Google Security Products Incident - SecOps Log Normalization Backend Rollout Delay: https://status.cloud.google.com/security/incidents/UHSBVcYPUw21V9AuT9a5
+- Google Security Products Incident - SecOps Third-Party Alert Ingestion Update Regression: https://status.cloud.google.com/security/incidents/T5oHvSQGpfW2dkmFN7UU
 - Google Security Products Incident - SecOps Xenon V1 Feed Fetch System Ingestion Delay: https://status.cloud.google.com/security/incidents/Zfr1w9qmvYc1ykDqdCEJ
 - Google Security Products Incident - SecOps Versioned Feed Fetch System Ingestion Delay: https://status.cloud.google.com/security/incidents/S19EmQLF3Y6nrCfXnmo1
-- Google Security Products Incident - SecOps Malformed Feed Update Request Handling: https://status.cloud.google.com/security/incidents/45d34927abc65376
-- Google Security Products Incident - SecOps Curated Detection Rule Disablement: https://status.cloud.google.com/security/incidents/63975845af88a8a5
+- Google Security Products Incident - SecOps Curated Detection Rule Disablement: https://status.cloud.google.com/security/incidents/7WCNAQPiBAxm2cCq3rBX
 - Google Security Products Incident - SecOps Programmatic Search API Configuration Rollback: https://status.cloud.google.com/security/incidents/kWKB2qnWpPpvogWyHwE4
 - Google Security Products Incident - SecOps Storage Configuration Hotspot Query Timeouts: https://status.cloud.google.com/security/incidents/914tnmfqkQf3BKpMxrnc
 - Google Security Products Incident - SecOps Search Query Engine Inadvertent Dependency: https://status.cloud.google.com/security/incidents/pAscPvTiicGA68Xf8t6H
@@ -550,11 +548,10 @@ case-study section, they are not grouped by skill topic.
 - Google Workspace Incident Report - Classroom iOS Local Database Migration Regression: https://www.google.com/appsstatus/dashboard/incidents/nukLGccNGE22LWLXw5Tu
 - Google Workspace Incident Report - Classroom Android Staging Backend Release Misconfiguration: https://www.google.com/appsstatus/dashboard/incidents/17yVRt1dxPg9L7WZHfXw
 - Google Workspace Incident Report - Classroom Database Schema Rollout CPU Saturation: https://www.google.com/appsstatus/dashboard/incidents/KjFLjecwg9xeewnUYjh1
-- Google Workspace Incident Report - Classroom Regional Database Hotspot Software Bug: https://www.google.com/appsstatus/dashboard/incidents/d45948df8bbdbb16
 - Google Workspace Incident Report - Endpoint Management Legacy Enrollment Runtime Compatibility: https://www.google.com/appsstatus/dashboard/incidents/UYc9QNUSG1gniUUcDkDy
 - Google Workspace Incident Report - Voice Call Routing Configuration Regression: https://www.google.com/appsstatus/dashboard/incidents/Wu3HXaSU9YPogZaVu4Y9
 - Google Workspace Incident Report - Voice Inbound Message Partner Forwarding Failure: https://www.google.com/appsstatus/dashboard/incidents/wcmpFQgUkBfufusqcHPV
-- Google Workspace Incident Report - Voice Registration Traffic Capacity Overload: https://www.google.com/appsstatus/dashboard/incidents/5a866530279a0685
+- Google Workspace Incident Report - Voice Registration Traffic Capacity Overload: https://www.google.com/appsstatus/dashboard/incidents/cuYQpSPwGyTRb1Uuf4ED
 - Google Workspace Incident Report - Voice Device Reconnect Retry Storm: https://www.google.com/appsstatus/dashboard/incidents/jkx7uigB29SrPe8zwvfZ
 - Google Workspace Incident Report - Gmail Queue Callback Configuration Backlog: https://www.google.com/appsstatus/dashboard/incidents/aw35PEC9zRoTE8rNHWL6
 - Google Workspace Incident Report - Gmail High-Load Restart Regression: https://www.google.com/appsstatus/dashboard/incidents/F5NGEmCZ9EC3gNGCckn6
@@ -564,7 +561,7 @@ case-study section, they are not grouped by skill topic.
 - Google Workspace Incident Report - Gmail Fiber Maintenance and Background Traffic Overload: https://www.google.com/appsstatus/dashboard/incidents/4XQNFXAa34SoEbbetAka
 - Google Workspace Incident Report - Gmail Traffic Management Configuration Rollback: https://www.google.com/appsstatus/dashboard/incidents/8C9piNvBvjPKodwHU9H2
 - Google Workspace Incident Report - Gmail Message Router Traffic Pattern Overload: https://www.google.com/appsstatus/dashboard/incidents/Hjq8CpkhWroicw7R1wSh
-- Google Workspace Incident Report - Gmail External Recipient Provider Connection Rejections: https://www.google.com/appsstatus/dashboard/incidents/3d9755a7468371bb
+- Google Workspace Incident Report - Gmail External Recipient Provider Connection Rejections: https://www.google.com/appsstatus/dashboard/incidents/224ozRqzW4sFBDK8hLnT
 - Google Workspace Incident Report - Gmail Dynamic Mail Dependency Crash Backlog: https://www.google.com/appsstatus/dashboard/incidents/fUoeMVUu4mVDY4Wyg8Cf
 - Google Workspace Incident Report - Gmail Overbroad Banner Configuration Release: https://www.google.com/appsstatus/dashboard/incidents/tSLaDvw5B6xw53ez1s1D
 - Google Workspace Incident Report - Sheets Finance Function Backend Configuration Regression: https://www.google.com/appsstatus/dashboard/incidents/bRkLdn3pfJQz2LbdanpR
@@ -577,37 +574,35 @@ case-study section, they are not grouped by skill topic.
 - Google Workspace Incident Report - Meet Static Content Cache Warmup Regression: https://www.google.com/appsstatus/dashboard/incidents/muX1XjAhRG1krLmwbQsW
 - Google Workspace Incident Report - Meet Livestream Player Signal Gap: https://www.google.com/appsstatus/dashboard/incidents/bVq3DHMPJjg2tUrnetmf
 - Google Workspace Incident Report - Meet Livestream Player Integration Rollout Regression: https://www.google.com/appsstatus/dashboard/incidents/3U9C1tA43Nd5E3nWhDDY
-- Google Workspace Incident Report - Meet Broadcast Integration Rollback In-Flight Streams: https://www.google.com/appsstatus/dashboard/incidents/92c7e9c62363627c
+- Google Workspace Incident Report - Meet Broadcast Integration Rollback In-Flight Streams: https://www.google.com/appsstatus/dashboard/incidents/iWYUDm5oWtEt2tub3Lht
 - Google Workspace Incident Report - Meet Livestream Message Delivery Overload: https://www.google.com/appsstatus/dashboard/incidents/k71P8nHp32hgcMSsC3mR
 - Google Workspace Incident Report - Meet Livestream GFE Mapping Regression: https://www.google.com/appsstatus/dashboard/incidents/nET2J1jtqMvNqgSK6pap
 - Google Workspace Incident Report - Meet and Duo Group Audio Rollout: https://www.google.com/appsstatus/dashboard/incidents/i9yJ37aV9yTk21B2DusS
 - Google Workspace Incident Report - Meet Android UI Prominence Usage Surge: https://www.google.com/appsstatus/dashboard/incidents/AqnPb3cc3JPV96CpxGgL
 - Google Workspace Incident Report - Meet iOS Registration Error-Handling Regression: https://www.google.com/appsstatus/dashboard/incidents/P5p24TrPaTRq3cYo1WJ8
 - Google Workspace Incident Report - Gmail and Drive iOS Account-Policy Access Check Regression: https://www.google.com/appsstatus/dashboard/incidents/i9ft228hE1E3ZGfikQCH
-- Google Workspace Incident Report - Drive iOS Education Under-18 Release Regression: https://www.google.com/appsstatus/dashboard/incidents/6e8968f0539cb1a8
+- Google Workspace Incident Report - Drive iOS Education Under-18 Release Regression: https://www.google.com/appsstatus/dashboard/incidents/taYbzuYcJi4dpc1aXZkS
 - Google Workspace Incident Report - Meet Hardware OS Upgrade Network Boot Stuck State: https://www.google.com/appsstatus/dashboard/incidents/8M5Hsx4d2Y9SFYUCqjyj
 - Google Workspace Incident Report - Meet Web Frontend Blocking Dependency Deadlock: https://www.google.com/appsstatus/dashboard/incidents/F9Tft7xb3xqenFoKvY4W
 - Google Workspace Incident Report - Meet Experiment Configuration Evaluation Lock Contention: https://www.google.com/appsstatus/dashboard/incidents/Cy8B1om17oecUkKm3G9Q
 - Google Workspace Incident Report - ML Serving Control Plane Model Availability Regression: https://www.google.com/appsstatus/dashboard/incidents/6GdahVtGTryxTdh56iLP
 - Google Workspace Incident Report - Gemini Extension Feature Rollout Configuration: https://www.google.com/appsstatus/dashboard/incidents/EDinMUwayovibax78KZJ
 - Google Workspace Incident Report - Gemini Code Change Rollback: https://www.google.com/appsstatus/dashboard/incidents/q2AU1kpKWNdBCDtAyjLi
-- Google Workspace Incident Report - Gemini Conversation Metadata Deletion Recovery: https://www.google.com/appsstatus/dashboard/incidents/6378971f822febb4
-- Google Workspace Incident Report - Gemini Conversation Database Capacity And Application Bugs: https://www.google.com/appsstatus/dashboard/incidents/7f8d05bc882674c1
+- Google Workspace Incident Report - Gemini Conversation Database Capacity And Application Bugs: https://www.google.com/appsstatus/dashboard/incidents/1hr418kjGyBZ9ugXy3W3
 - Google Workspace Incident Report - NotebookLM Model Access Control: https://www.google.com/appsstatus/dashboard/incidents/pJzo6KcR37eV8bCLdXgS
 - Google Workspace Incident Report - NotebookLM Account Tier Recognition Regression: https://www.google.com/appsstatus/dashboard/incidents/jjs1U2FFkRyhjaacpvVv
-- Google Security Products Incident - SecOps Gemini Query Generation Resource Configuration: https://status.cloud.google.com/security/incidents/16cd4b6f0c4bc2f9
+- Google Security Products Incident - SecOps Gemini Query Generation Resource Configuration: https://status.cloud.google.com/security/incidents/6RQbu9GCPnQiVoJqHBUJ
 - Google Workspace Incident Report - Support UI Select Component Boundary Regression: https://www.google.com/appsstatus/dashboard/incidents/79iVdMKGvjfeHpdG2J6L
 - Google Workspace Incident Report - Support Case Creation Rollout Traffic Diversion: https://www.google.com/appsstatus/dashboard/incidents/FoXARVPND3oeDBu6tLuT
 - Google Workspace Incident Report - Drive and Apps Script Access-Control Cleanup: https://www.google.com/appsstatus/dashboard/incidents/qPG3UXdDaYVhcA9DT8zG
 - Google Workspace Incident Report - Drive Desktop Admin Policy Default Regression: https://www.google.com/appsstatus/dashboard/incidents/1hSNYy2ihYPewRrRji6R
 - Google Workspace Incident Report - Docs and Slides Backend Storage Policy Validation Failure: https://www.google.com/appsstatus/dashboard/incidents/ubuv1bKMuStaemGtqLb5
 - Google Workspace Incident Report - Gmail and Drive PDF Rendering Dependency: https://www.google.com/appsstatus/dashboard/incidents/SwA8chvNSrGA9WPLtyYu
-- Google Workspace Incident Report - Gmail and Drive PDF Annotation Display Regression: https://www.google.com/appsstatus/dashboard/incidents/e655aa6d22f8e256
+- Google Workspace Incident Report - Gmail and Drive PDF Annotation Display Regression: https://www.google.com/appsstatus/dashboard/incidents/sNYNFVMFzzZhLdJPxgvU
 - Google Workspace Incident Report - Apps Script Third-Party Add-On Load Surge: https://www.google.com/appsstatus/dashboard/incidents/DR1JYH2tW69g9BobX8e6
 - Google Workspace Incident Report - Apps Script Add-On Database Hotspot: https://www.google.com/appsstatus/dashboard/incidents/QNFwydEugqSm2e4UScci
 - Google Workspace Incident Report - Gmail Front End QUIC Canary Regression: https://www.google.com/appsstatus/dashboard/incidents/AFdF8J4m8XKadmM9NrVK
 - Google Workspace Incident Report - Gmail Web Third-Party Extension Compatibility Regression: https://www.google.com/appsstatus/dashboard/incidents/MUomphETLLW7et9VPTYa
-- Google Workspace Incident Report - Gmail Mobile EDU UX Stack Regression: https://www.google.com/appsstatus/dashboard/incidents/de77227e8c810281
 - Google Workspace Incident Report - Gmail Android Authentication Change Account State Regression: https://www.google.com/appsstatus/dashboard/incidents/xZEAwY6ckkm8kkjRa2Kp
 - Google Workspace Incident Report - Chat Database Connection Channel Exhaustion: https://www.google.com/appsstatus/dashboard/incidents/cBqWsGSSiP486x3kKqju
 - Google Workspace Incident Report - Chat Database Maintenance Lock Contention: https://www.google.com/appsstatus/dashboard/incidents/kAS3CYqGhecvgBGnzecT
@@ -622,7 +617,7 @@ case-study section, they are not grouped by skill topic.
 - Google Workspace Incident Report - ChromeOS Device Management Policy Fetch Overload: https://www.google.com/appsstatus/dashboard/incidents/96Dcae9UcSDexAmQHhwW
 - Google Workspace Incident Report - ChromeOS Authentication Service Response Configuration: https://www.google.com/appsstatus/dashboard/incidents/sowQNioouYdVq6hNkZti
 - Google Workspace Incident Report - Chrome Password Manager Feature-Guard Regression: https://www.google.com/appsstatus/dashboard/incidents/bRXnorYZuuVLDDqctj87
-- Google Workspace Incident Report - ChromeOS Authentication Method Release Regression: https://www.google.com/appsstatus/dashboard/incidents/924879617a39fb9e
+- Google Workspace Incident Report - ChromeOS Authentication Method Release Regression: https://www.google.com/appsstatus/dashboard/incidents/B6TDyZ3a2dhAg59QcpZE
 - Google Cloud Incident Report - Cloud SQL MySQL Continuous Migration GTID Dump Bug: https://status.cloud.google.com/incidents/aCXLk4u6GJoLn9PqSMm1
 - Google Workspace Incident Report - Managed Client Local Authentication Policy Conflict: https://www.google.com/appsstatus/dashboard/incidents/uKjV4s9GxApbBd95AwW4
 - Google Workspace Incident Report - Admin Console First-Admin Domain Verification Regression: https://www.google.com/appsstatus/dashboard/incidents/XafPwePF23NQJgPNtPrC
@@ -642,7 +637,6 @@ case-study section, they are not grouped by skill topic.
 - Google Cloud Incident Report - Cloud Monitoring Uptime South America Backend Link Cut: https://status.cloud.google.com/incidents/QDGjaHNBytaX4kad7zsb
 - Google Workspace Incident Report - AppSheet Autoscaling Control Removal and Failover Gap: https://www.google.com/appsstatus/dashboard/incidents/JiwWc1AHjeGuPxh6RUwJ
 - Google Workspace Incident Report - AppSheet Connector Authentication Visibility Regression: https://www.google.com/appsstatus/dashboard/incidents/gwMkZKeZCE1eAC6z5EvH
-- Google Cloud Incident Report - AppSheet Primary Database Resource Contention: https://status.cloud.google.com/incidents/62b64fcad647220b
 - Google Cloud Incident Report - Batch Transaction Contention Queue Stall: https://status.cloud.google.com/incidents/P43dHoyBajdZ82B1kubv
 - Google Cloud Incident Report - AppSheet Schema Migration Authentication Retry Cascade: https://status.cloud.google.com/incidents/qB1du5LQfSHCJjWR88Fi
 - Google Cloud Incident Report - Cloud Pub/Sub Change Notification Feedback Loop: https://status.cloud.google.com/incidents/5yL8cbrpS3ssbYjRZQJv
@@ -820,6 +814,7 @@ case-study section, they are not grouped by skill topic.
 - Azure Architecture Center - Tenancy Models for a Multitenant Solution: https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/tenancy-models
 - Microsoft Cloud Security Benchmark v2 Preview - Overview: https://learn.microsoft.com/en-us/security/benchmark/azure/overview
 - Microsoft Research - Diagnosing Sample Ratio Mismatch in Online Controlled Experiments: https://www.microsoft.com/en-us/research/publication/diagnosing-sample-ratio-mismatch-in-online-controlled-experiments-a-taxonomy-and-rules-of-thumb-for-practitioners/
+- Microsoft Research - Patterns of Trustworthy Experimentation: Post-Experiment Stage: https://www.microsoft.com/en-us/research/articles/patterns-of-trustworthy-experimentation-post-experiment-stage/
 
 ### ACM Queue
 - ACM Queue - Systems Correctness Practices at AWS: https://queue.acm.org/detail.cfm?id=3712057
@@ -835,6 +830,9 @@ case-study section, they are not grouped by skill topic.
 
 ### CNCF
 - OpenTelemetry Documentation: https://opentelemetry.io/docs/
+
+### Diátaxis
+- Daniele Procida - Diátaxis Documentation Framework: https://diataxis.fr/
 
 ### FIRST
 - FIRST EPSS - Exploit Prediction Scoring System: https://www.first.org/epss/
@@ -875,19 +873,23 @@ case-study section, they are not grouped by skill topic.
 - MITRE ATT&CK Campaigns: https://attack.mitre.org/campaigns/
 - MITRE ATT&CK Data and Tools: https://attack.mitre.org/resources/attack-data-and-tools/
 - MITRE CWE-707 - Improper Neutralization: https://cwe.mitre.org/data/definitions/707.html
-- MITRE CWE Top 25 Most Dangerous Software Weaknesses: https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html
+- MITRE CWE Top 25 Most Dangerous Software Weaknesses 2024 [Historical]: https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html
+- MITRE CWE Top 25 Most Dangerous Software Weaknesses 2025: https://cwe.mitre.org/top25/index.html
 
 ### NIST
 - NIST SP 800-218 - Secure Software Development Framework PDF: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-218.pdf
 - NIST SP 800-207 - Zero Trust Architecture PDF: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf
 - NIST SP 800-190 - Application Container Security Guide PDF: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-190.pdf
-- NIST SP 800-88 Revision 1 - Guidelines for Media Sanitization PDF: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-88r1.pdf
+- NIST SP 800-88 Revision 1 - Guidelines for Media Sanitization [Historical]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-88r1.pdf
+- NIST SP 800-88 Revision 2 - Guidelines for Media Sanitization: https://csrc.nist.gov/pubs/sp/800/88/r2/final
 - NIST Cybersecurity Framework 2.0 PDF: https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf
 - NIST FIPS 203 - Module-Lattice-Based Key-Encapsulation Mechanism Standard PDF: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf
 - NIST FIPS 204 - Module-Lattice-Based Digital Signature Standard PDF: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf
 - NIST FIPS 205 - Stateless Hash-Based Digital Signature Standard PDF: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf
 - NIST Privacy Framework 1.0 PDF: https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.01162020.pdf
-- NIST SP 800-53 Revision 5 - Security and Privacy Controls PDF: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf
+- NIST SP 800-53 Revision 5 - Original 2020 Security and Privacy Controls PDF [Historical]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf
+- NIST SP 800-53 Release 5.2.0 - Current Control Catalog: https://csrc.nist.gov/Projects/risk-management/sp800-53-controls/release-search#!/800-53
+- NIST SP 800-53 Release 5.2.0 - Official Release Announcement: https://csrc.nist.gov/News/2025/nist-releases-revision-to-sp-800-53-controls
 - NIST SP 800-37 Revision 2 - Risk Management Framework PDF: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-37r2.pdf
 - NIST SP 800-39 - Managing Information Security Risk PDF: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-39.pdf
 - NIST SP 800-128 - Security-Focused Configuration Management PDF: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-128.pdf
@@ -903,20 +905,32 @@ case-study section, they are not grouped by skill topic.
 - OpenSSF AI/ML Security WG MVSR: https://raw.githubusercontent.com/ossf/ai-ml-security/main/mvsr.md
 
 ### SLSA
-- SLSA - Supply-chain Levels for Software Artifacts Specification: https://slsa.dev/spec/v1.0/
+- SLSA Specification v1.0 [Historical]: https://slsa.dev/spec/v1.0/
+- SLSA Specification v1.2: https://slsa.dev/spec/v1.2/
 
 ### OWASP
 - OWASP ASVS 5.0.0 Requirements CSV: https://raw.githubusercontent.com/OWASP/ASVS/v5.0.0/5.0/docs_en/OWASP_Application_Security_Verification_Standard_5.0.0_en.csv
-- OWASP Top 10:2021 A01 Broken Access Control: https://owasp.org/Top10/2021/A01_2021-Broken_Access_Control/
-- OWASP Top 10:2021 A02 Cryptographic Failures: https://owasp.org/Top10/2021/A02_2021-Cryptographic_Failures/
-- OWASP Top 10:2021 A03 Injection: https://owasp.org/Top10/2021/A03_2021-Injection/
-- OWASP Top 10:2021 A04 Insecure Design: https://owasp.org/Top10/2021/A04_2021-Insecure_Design/
-- OWASP Top 10:2021 A05 Security Misconfiguration: https://owasp.org/Top10/2021/A05_2021-Security_Misconfiguration/
-- OWASP Top 10:2021 A06 Vulnerable and Outdated Components: https://owasp.org/Top10/2021/A06_2021-Vulnerable_and_Outdated_Components/
-- OWASP Top 10:2021 A07 Identification and Authentication Failures: https://owasp.org/Top10/2021/A07_2021-Identification_and_Authentication_Failures/
-- OWASP Top 10:2021 A08 Software and Data Integrity Failures: https://owasp.org/Top10/2021/A08_2021-Software_and_Data_Integrity_Failures/
-- OWASP Top 10:2021 A09 Security Logging and Monitoring Failures: https://owasp.org/Top10/2021/A09_2021-Security_Logging_and_Monitoring_Failures/
-- OWASP Top 10:2021 A10 Server-Side Request Forgery: https://owasp.org/Top10/2021/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/
+- OWASP Top 10:2021 A01 Broken Access Control [Historical]: https://owasp.org/Top10/2021/A01_2021-Broken_Access_Control/
+- OWASP Top 10:2021 A02 Cryptographic Failures [Historical]: https://owasp.org/Top10/2021/A02_2021-Cryptographic_Failures/
+- OWASP Top 10:2021 A03 Injection [Historical]: https://owasp.org/Top10/2021/A03_2021-Injection/
+- OWASP Top 10:2021 A04 Insecure Design [Historical]: https://owasp.org/Top10/2021/A04_2021-Insecure_Design/
+- OWASP Top 10:2021 A05 Security Misconfiguration [Historical]: https://owasp.org/Top10/2021/A05_2021-Security_Misconfiguration/
+- OWASP Top 10:2021 A06 Vulnerable and Outdated Components [Historical]: https://owasp.org/Top10/2021/A06_2021-Vulnerable_and_Outdated_Components/
+- OWASP Top 10:2021 A07 Identification and Authentication Failures [Historical]: https://owasp.org/Top10/2021/A07_2021-Identification_and_Authentication_Failures/
+- OWASP Top 10:2021 A08 Software and Data Integrity Failures [Historical]: https://owasp.org/Top10/2021/A08_2021-Software_and_Data_Integrity_Failures/
+- OWASP Top 10:2021 A09 Security Logging and Monitoring Failures [Historical]: https://owasp.org/Top10/2021/A09_2021-Security_Logging_and_Monitoring_Failures/
+- OWASP Top 10:2021 A10 Server-Side Request Forgery [Historical]: https://owasp.org/Top10/2021/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/
+- OWASP Top 10:2025 Introduction: https://owasp.org/Top10/2025/0x00_2025-Introduction/
+- OWASP Top 10:2025 A01 Broken Access Control: https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/
+- OWASP Top 10:2025 A02 Security Misconfiguration: https://owasp.org/Top10/2025/A02_2025-Security_Misconfiguration/
+- OWASP Top 10:2025 A03 Software Supply Chain Failures: https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/
+- OWASP Top 10:2025 A04 Cryptographic Failures: https://owasp.org/Top10/2025/A04_2025-Cryptographic_Failures/
+- OWASP Top 10:2025 A05 Injection: https://owasp.org/Top10/2025/A05_2025-Injection/
+- OWASP Top 10:2025 A06 Insecure Design: https://owasp.org/Top10/2025/A06_2025-Insecure_Design/
+- OWASP Top 10:2025 A07 Authentication Failures: https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/
+- OWASP Top 10:2025 A08 Software or Data Integrity Failures: https://owasp.org/Top10/2025/A08_2025-Software_or_Data_Integrity_Failures/
+- OWASP Top 10:2025 A09 Security Logging and Alerting Failures: https://owasp.org/Top10/2025/A09_2025-Security_Logging_and_Alerting_Failures/
+- OWASP Top 10:2025 A10 Mishandling of Exceptional Conditions: https://owasp.org/Top10/2025/A10_2025-Mishandling_of_Exceptional_Conditions/
 - OWASP Cheat Sheet Series - Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
 - OWASP Cheat Sheet Series - Injection Prevention: https://cheatsheetseries.owasp.org/cheatsheets/Injection_Prevention_Cheat_Sheet.html
 - OWASP Cheat Sheet Series - SQL Injection Prevention: https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
@@ -931,6 +945,7 @@ case-study section, they are not grouped by skill topic.
 
 ### W3C
 - W3C - Web Content Accessibility Guidelines 2.2: https://www.w3.org/TR/WCAG22/
+- W3C - Guidance on Applying WCAG 2 to Non-Web ICT (WCAG2ICT 2.2): https://www.w3.org/TR/wcag2ict-22/
 - W3C - Accessibility Conformance Testing Rules Format: https://www.w3.org/TR/act-rules-format/
 - W3C - PROV-Overview, the Provenance data model: https://www.w3.org/TR/prov-overview/
 - WHATWG HTML Living Standard - Server-Sent Events: https://html.spec.whatwg.org/multipage/server-sent-events.html

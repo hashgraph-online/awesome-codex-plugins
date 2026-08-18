@@ -1,9 +1,9 @@
 {
   "name": "graymatter",
-  "version": "0.2.1",
-  "description": "Durable memory, shared graph state, and live api-docs schema awareness for Codex and OpenClaw agents.",
+  "version": "0.3.3+codex.20260806225400",
+  "description": "Persistent, secure memory and shared context for AI agents.",
   "author": {
-    "name": "ValkyrLabs",
+    "name": "Valkyr Labs Inc.",
     "email": "support@valkyrlabs.com",
     "url": "https://valkyrlabs.com/"
   },
@@ -12,44 +12,43 @@
   "license": "Proprietary",
   "keywords": [
     "graymatter",
-    "memory",
+    "secure-memory",
     "durable-memory",
-    "agent-memory",
-    "schema-awareness",
-    "analytics",
-    "semantic-layer",
+    "shared-context",
     "mcp",
-    "valkyrai",
+    "retrieval-receipts",
+    "context-pages",
+    "agent-memory",
+    "graymatter-light",
+    "valoride",
     "openclaw",
-    "codex"
+    "codex",
+    "chatgpt"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
+  "apps": "./.app.json",
   "interface": {
     "displayName": "GrayMatter",
-    "shortDescription": "Durable memory and live schema context for agents",
-    "longDescription": "GrayMatter gives Codex and OpenClaw agents a durable memory layer, shared graph context, authenticated awareness of the live ValkyrAI api-0 schema, and a bundled mcp-server for direct tool access. Use it to persist decisions, query context, inspect business objects, and coordinate agent state through ValkyrAI.",
-    "developerName": "ValkyrLabs",
+    "shortDescription": "Persistent, secure memory and shared context for AI agents",
+    "longDescription": "GrayMatter gives ChatGPT, Codex, ValorIDE, OpenClaw, and other MCP-compatible agents secure durable memory, bounded task-specific context, reusable procedures, retrieval receipts, a bundled mcp-server, and optional GrayMatter Light local mode while preserving api-0 authentication, RBAC, ACL, and tenant isolation.",
+    "developerName": "Valkyr Labs Inc.",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/ValkyrLabs/GrayMatter",
-    "privacyPolicyURL": "https://github.com/ValkyrLabs/GrayMatter/blob/main/docs/privacy-policy.md",
-    "termsOfServiceURL": "https://valkyrlabs.com/v1/docs/Legal/tos/",
-    "composerIcon": "./assets/composer-icon.svg",
-    "logo": "./assets/logo.svg",
+    "websiteURL": "https://valkyrlabs.com/",
+    "privacyPolicyURL": "https://valkyrlabs.com/privacy-policy",
+    "termsOfServiceURL": "https://valkyrlabs.com/terms",
+    "composerIcon": "./assets/graymatter-logo.png",
+    "logo": "./assets/graymatter-logo.png",
     "defaultPrompt": [
-      "Use GrayMatter to remember this decision",
-      "Query GrayMatter for relevant context",
-      "Inspect the live api-docs schema with GrayMatter",
-      "Use GrayMatter to set up analytics context"
+      "Search GrayMatter before asking me to repeat context.",
+      "Compile task-specific context from GrayMatter.",
+      "Save this durable decision in GrayMatter."
     ],
-    "brandColor": "#245B4A",
-    "screenshots": [
-      "./assets/screenshot.svg"
-    ]
+    "brandColor": "#245B4A"
   }
 }

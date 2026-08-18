@@ -1,0 +1,22 @@
+{
+  "name": "plori",
+  "interface": {
+    "displayName": "plori"
+  },
+  "plugins": [
+    {
+      "name": "plori",
+      "displayName": "plori",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "description": "Create and drive plori cloud agents (each an AI agent on its own cloud computer) over MCP: create_agent, invoke_agent, schedule_run, and more, plus a skill for the connect flow."
+    }
+  ]
+}

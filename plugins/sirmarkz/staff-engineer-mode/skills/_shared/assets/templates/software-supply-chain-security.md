@@ -1,5 +1,10 @@
 # Software Supply Chain Security Plan
 
+## Control Matrix
+
+| Surface | Threat | Preventive Control | Detective Control | Verification | Owner |
+| --- | --- | --- | --- | --- | --- |
+
 ## Source-To-Deploy Map
 
 | Stage | Actor | Input | Output | Control |
@@ -12,6 +17,16 @@
 
 | Artifact | Build Time | Confirmation Path | Verification Location |
 | --- | --- | --- | --- |
+
+## Dependency Pinning And Namespace Scope
+
+| Dependency/Namespace | Exact Version/Digest | Resolution Source | Pinning/Namespace Scope | Shadowing Check | Owner |
+| --- | --- | --- | --- | --- | --- |
+
+## Provenance Maturity
+
+| Artifact | Current Tier | Target Tier | Admission Verification | Gap/Deadline |
+| --- | --- | --- | --- | --- |
 
 ## Provenance Consumer Compatibility
 

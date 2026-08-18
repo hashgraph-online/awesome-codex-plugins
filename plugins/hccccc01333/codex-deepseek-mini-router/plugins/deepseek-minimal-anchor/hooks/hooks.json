@@ -1,0 +1,43 @@
+{
+  "description": "DeepSeek mini-router: Pro gets the Minimal one-sentence anchor, Flash gets the decide-and-verify router persona at session start (including compact re-anchor), Flash-only per-turn guidance, and a best-effort trajectory report.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/anchor-session.mjs\"",
+            "timeout": 10,
+            "additionalContextLimit": 3000,
+            "statusMessage": "DeepSeek mini-router"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/maintain-mode.mjs\"",
+            "timeout": 10,
+            "additionalContextLimit": 2500,
+            "statusMessage": "DeepSeek mode guidance"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/report-trajectory.mjs\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

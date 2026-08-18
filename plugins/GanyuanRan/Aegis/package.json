@@ -1,17 +1,48 @@
 {
   "name": "aegis",
-  "version": "2.0.7",
+  "version": "2.8.1",
   "type": "module",
   "main": ".opencode/plugins/aegis.js",
   "keywords": [
     "pi-package",
     "agent-skills",
     "aegis",
-    "method-pack"
+    "method-pack",
+    "dsh-plugin",
+    "deepseek-harness"
   ],
+  "dsh": {
+    "bundle": {
+      "patch": "./extensions/dsh/cordis.patch.yml"
+    }
+  },
   "pi": {
     "skills": [
       "./skills"
+    ],
+    "extensions": [
+      "./extensions/pi"
     ]
+  },
+  "omp": {
+    "extensions": [
+      "./extensions/omp"
+    ]
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-agent": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-skill-filesystem": "^0.1.0-rc.6"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-agent": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-skill-filesystem": {
+      "optional": true
+    }
   }
 }

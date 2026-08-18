@@ -2,6 +2,13 @@
 
 ## Context
 
+## Goals And Non-Goals
+
+| Goals | Non-Goals |
+| --- | --- |
+
+## Constraints
+
 ## Decision Drivers
 
 | Driver | Priority | Evidence | Tradeoff |
@@ -13,6 +20,9 @@
 | --- | --- | --- | --- | --- |
 
 ## Decision
+
+| Decision Responsibility Or Check Path | Reversibility Cost | Reconsideration Trigger |
+| --- | --- | --- |
 
 ## Status
 

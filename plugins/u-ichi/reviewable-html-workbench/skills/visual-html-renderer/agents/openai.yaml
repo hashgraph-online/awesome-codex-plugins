@@ -1,0 +1,27 @@
+display_name: Visual HTML Renderer
+short_description: 図示つきHTML生成とPreview Runtimeを扱う共通レンダラー / Shared renderer for visual HTML previews.
+default_prompt: Create a visual HTML preview / 図示つきHTMLレポートを生成して
+trigger_examples:
+  - html出力して
+  - HTMLにして
+  - HTMLで出して
+  - この内容をHTMLで出して
+  - HTMLでプレビューして
+  - HTMLレンダラー
+  - HTML出力を共通化
+  - 図示つきHTML
+  - visual HTML renderer
+  - render this as HTML
+  - turn this into HTML
+  - create an HTML preview
+  - generate a visual HTML report
+  - make this a reviewable HTML document
+  - diagrammed HTML report
+entrypoint: python3 -m scripts.html_review_workbench.cli
+working_directory: plugin_root
+workflow:
+  - attach-image
+  - check-model
+  - render
+  - validate
+  - preview

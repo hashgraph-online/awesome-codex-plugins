@@ -213,6 +213,11 @@ inline) are skipped; generic values (`100nF`, `DNP`) are filtered via
 `is_real_mpn()` and de-duplicated. Output defaults to `./datasheets/` in
 the current working directory when `--output` is omitted.
 
+**Rate limiting** — the script paces API calls with a 1.0s delay between
+requests by default (Mouser's Search API allows 30 calls/min on the free
+tier; 1.0s stays comfortably under). Override with `--delay <seconds>` if
+you have a higher-tier key or want to slow things down further.
+
 ### Single Datasheet Download
 
 Use `fetch_datasheet_mouser.py` for one-off downloads.

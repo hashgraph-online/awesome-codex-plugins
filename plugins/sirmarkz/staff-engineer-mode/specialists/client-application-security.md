@@ -11,13 +11,13 @@ description: "Use when securing a browser or mobile client against client-side i
 NO CLIENT TRUST WITHOUT SERVER-SIDE ENFORCEMENT, SAFE STORAGE, AND OUTPUT-SINK DEFENSE ON THE DEVICE
 ```
 
-The client is attacker-controlled. Every check it makes is a hint, not a guarantee, and every secret it holds is already disclosed.
+The client runs in an attacker-observable environment. Treat shipped static credentials and client-side checks as recoverable or bypassable. Short-lived tokens and device-bound, non-exportable keys can still reduce risk when protected by the platform and backed by server-side authorization.
 
 ## Overview
 
 Client application security covers the attacker-controlled execution surface of a browser or mobile app: client-side injection sinks, local data storage, transport trust, tamper and reverse-engineering exposure, and unsafe entry points such as deep links and embedded web views. Server-side input defense, identity issuance, and model-output handling are owned elsewhere; this file owns what runs on the user's device.
 
-**Core principle:** never trust the client for authorization, never store a real secret on it, neutralize client-side sinks, and harden the entry points an attacker can drive.
+**Core principle:** never trust the client for authorization, do not embed reusable credentials that rely on client secrecy, use protected storage for necessary tokens or device-bound keys, neutralize client-side sinks, and harden attacker-driven entry points.
 
 ## When To Use
 
@@ -47,8 +47,8 @@ Client application security covers the attacker-controlled execution surface of 
 ## Workflow
 
 1. **Set the client trust boundary.** List every decision the client currently makes and move authorization, pricing, and limits to server-side enforcement; keep only UX hints on the client.
-2. **Neutralize client sinks.** Apply contextual output encoding for dynamic markup, avoid eval-like execution of untrusted input, and set a restrictive content-security policy or platform equivalent against injection.
-3. **Secure local storage.** Store only what is necessary; keep tokens and sensitive data in platform-protected storage, never in plaintext or world-readable locations, and avoid embedding real secrets in the shipped binary.
+2. **Neutralize client sinks.** Prefer APIs that place untrusted values into text or typed properties instead of parsing them as code or markup. Apply context-correct encoding at remaining render boundaries; when the product permits untrusted rich markup, use a maintained allowlist sanitizer and keep it out of script, style, event-handler, and executable URL contexts. Avoid eval-like execution. Use a restrictive content-security policy or platform equivalent as defense in depth, not as a substitute for safe sinks.
+3. **Secure local storage.** Store only what is necessary; keep short-lived tokens, sensitive data, and device-bound or non-exportable keys in platform-protected storage, never in plaintext or world-readable locations. Do not embed reusable service credentials, private signing material, or shared API secrets in the shipped binary.
 4. **Harden transport.** Require TLS, resist downgrade and mixed content, and apply certificate or key pinning where the threat model and update cadence justify it, with a recovery path for rotation.
 5. **Harden entry points.** Validate and authorize deep links, intents, URL schemes, and inter-app messages; treat externally supplied parameters as untrusted; constrain embedded web views (disable unsafe bridges, restrict navigation and file access).
 6. **Plan for tampering.** Assume the binary can be inspected and modified; do not rely on client-side checks for security, and add tamper/root signals only as defense-in-depth, not as a control.
@@ -57,18 +57,7 @@ Client application security covers the attacker-controlled execution surface of 
 
 ## Synthesized Default
 
-Treat the client as untrusted: enforce all authorization server-side, neutralize client-side injection sinks, keep sensitive data out of plaintext local storage and out of the binary, harden transport and external entry points, and add tamper signals only as defense-in-depth. Verify with negative tests that a modified client cannot exceed server-enforced limits.
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current client code, manifests, or incidents as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
+Treat the client as untrusted: enforce authorization server-side, use safe render sinks and maintained sanitization where markup is allowed, keep reusable static credentials out of the binary, protect necessary short-lived tokens or device-bound keys, harden transport and external entry points, and use tamper signals only as defense in depth. Verify with negative tests that a modified client cannot exceed server-enforced limits.
 
 ## Exceptions
 
@@ -85,13 +74,14 @@ Treat the client as untrusted: enforce all authorization server-side, neutralize
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside client-side application security. Route server-side input defense, LLM-output risk, identity issuance, and client performance when those are central.
 - Be concise: prefer a sink/entry-point matrix over generic mobile or web security background.
+- Scale the artifact to the request: a narrow sink, storage, or entry-point question needs the trust decision, control, and negative test; add the full client posture only when the request spans those surfaces.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Client trust-boundary map: client hints versus server-enforced decisions.
 - Client-side sink inventory with neutralization per sink.
-- Local-storage classification and protection plan, including no-secrets-in-binary.
+- Local-storage classification and protection plan, distinguishing recoverable embedded credentials from protected short-lived tokens and device-bound or non-exportable keys.
 - Transport-trust and pinning decision with rotation/recovery path.
 - Entry-point hardening for deep links, schemes, intents, and web views.
 - Tamper/reverse-engineering posture as defense-in-depth.
@@ -100,8 +90,8 @@ Treat the client as untrusted: enforce all authorization server-side, neutralize
 ## Checks Before Moving On
 
 - `server_enforced`: authorization, pricing, and limits are enforced server-side; the client holds only hints.
-- `client_sinks`: dynamic markup, eval-like execution, and web views have contextual encoding and an injection policy.
-- `local_storage`: sensitive data and tokens use protected storage; no real secret ships in the binary.
+- `client_sinks`: untrusted values use text or typed-property sinks where possible; permitted markup has context-correct encoding or maintained sanitization; executable contexts are excluded; policy controls remain defense in depth.
+- `local_storage`: sensitive data and necessary tokens or device-bound keys use protected storage; no reusable credential that relies on client secrecy ships in the binary.
 - `transport_trust`: TLS is required, downgrade is resisted, and pinning (if used) has a rotation/recovery path.
 - `entry_points`: deep links, schemes, intents, and web views validate and authorize external input.
 - `tamper_posture`: client checks are defense-in-depth only; security does not depend on them.
@@ -110,8 +100,8 @@ Treat the client as untrusted: enforce all authorization server-side, neutralize
 ## Red Flags - Stop And Rework
 
 - Authorization, pricing, or feature limits are enforced only on the client.
-- A real secret or API key is shipped in the client binary or stored in plaintext.
-- Untrusted content reaches a client sink with no contextual encoding or policy.
+- A reusable service credential, shared API secret, or private signing key is shipped in the client binary, or sensitive material is stored in plaintext.
+- Untrusted content reaches an interpreting client sink without a safe API, context-correct encoding, or maintained sanitization.
 - A deep link, scheme, or web view accepts external input without validation or authorization.
 - Security relies on tamper or root detection the attacker can disable.
 - Sensitive data is written to logs, caches, screenshots, or clipboard without redaction.
@@ -121,7 +111,7 @@ Treat the client as untrusted: enforce all authorization server-side, neutralize
 | Mistake | Correction |
 | --- | --- |
 | Trusting client checks | Enforce authorization and limits server-side; client checks are hints. |
-| Secrets in the binary | Never ship real secrets to the device; fetch scoped, short-lived ones. |
+| Credentials in the binary | Do not ship reusable credentials that depend on client secrecy; issue scoped, short-lived tokens or device-bound keys where needed. |
 | Plaintext local storage | Use platform-protected storage and classify what is stored. |
 | Open entry points | Validate and authorize deep links, schemes, intents, and web views. |
 | Pinning with no recovery | Pair pinning with a rotation/recovery path to avoid lockout. |

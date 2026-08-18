@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+    # Before merge, review the upstream release and update the workflow's
+    # trailing release tag plus REVIEWED_ACTION_PINS in scripts/release_quality.py.

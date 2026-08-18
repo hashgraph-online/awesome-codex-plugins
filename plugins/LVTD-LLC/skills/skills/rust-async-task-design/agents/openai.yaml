@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Async Task Design"
+  short_description: "Design Rust async tasks, futures, and Tokio runtime boundaries"
+  default_prompt: "Review this Rust async code for task ownership, await safety, blocking work, and cancellation."

@@ -27,7 +27,7 @@ AMQ gives agents a **local interoperability bus**: they can send messages, reply
 - **Cross-project federation** — Route messages across peer repos, preserve reply routing, and run decision threads that span projects.
 - **Swarm mode** — Join Claude Code Agent Teams, claim tasks, and bridge task notifications into AMQ.
 - **Optional adapters** — Lightweight Symphony hooks and an experimental Kanban bridge can emit normal AMQ messages with structured metadata.
-- **Operational diagnostics** — `amq doctor --ops` shows queue depth, DLQ state, presence freshness, and integration hints.
+- **Operational diagnostics** — `amq doctor --ops` shows queue depth, sibling-session backlogs, DLQ state, presence freshness, and integration hints.
 
 ![AMQ Demo — Claude and Codex collaborating via split-pane terminal](docs/assets/demo.gif)
 
@@ -52,7 +52,7 @@ Installs to `~/.local/bin` or `~/go/bin` (no sudo required). Verify: `amq --vers
 curl -fsSL https://raw.githubusercontent.com/avivsinai/agent-message-queue/main/scripts/install.sh | bash -s -- --skill
 ```
 
-Review the script before running; it verifies release checksums when possible.
+Review the script before running. Installation fails unless `checksums.txt` has exactly one valid entry for the selected asset and `sha256sum` or `shasum` verifies it before extraction.
 
 ### 2. Install Skill
 
@@ -70,49 +70,152 @@ For manual installation or troubleshooting, see [INSTALL.md](INSTALL.md).
 
 ### Updating
 
+For Homebrew installations:
+```bash
+brew upgrade amq
+```
+
+For installations made with the install script or another manual binary install:
 ```bash
 amq upgrade
 ```
+
+### Keepalive companion
+
+`amq-keepalive` is developed and released from this repository alongside AMQ.
+`make build` produces both binaries, and each AMQ release includes a separate
+`amq-keepalive` archive stamped with the same release version. Verify a build
+with any equivalent form:
+
+```bash
+amq-keepalive -v
+amq-keepalive --version
+amq-keepalive version
+```
+
+See [COOP.md](COOP.md#supervisor-recipes) for the operational guide.
 
 ## Quick Start
 
 ### 1. Initialize Project
 
 ```bash
-amq coop init
+amq setup
 ```
 
-Creates `.amqrc`, mailboxes for `claude` and `codex`, and updates `.gitignore`.
+Detects supported agent CLIs and launcher preferences, previews the project
+declaration, then creates `.amqrc`, `.amq/launch.json`, local preferences,
+the default session, and roster mailboxes.
 
-Optionally add shell aliases (`amc` for Claude, `amx` for Codex):
-```bash
-eval "$(amq shell-setup)"
-```
-
-### 2. Start Agent Sessions
-
-```bash
-# Terminal 1 — Claude Code
-amc
-
-# Terminal 2 — Codex CLI
-amx
-```
-
-Each alias sets up the environment, starts wake notifications, and launches the agent. For isolated sessions (multiple pairs working on different features):
+Automation uses a stateless preview and applies only that approved digest. The
+first non-interactive setup must name the roster, default session, and launcher
+preference explicitly:
 
 ```bash
-amc feature-a          # Claude in feature-a session
-amx feature-a          # Codex in feature-a session
+setup_args=(--agents claude,codex --default-session collab --launcher-preference commands)
+setup_preview="$(amq setup --preview --json "${setup_args[@]}")"
+setup_digest="$(printf '%s\n' "$setup_preview" | jq -r '.preview.digest')"
+amq setup --apply "$setup_digest" "${setup_args[@]}"
 ```
 
-Without aliases, use `amq coop exec` directly:
+`--preview` performs zero writes. `--apply` recomputes the preview and exits `6`
+without writing if its `sha256:<hex>` digest differs. `-y` remains available
+for callers that already own an approval gate, but it cannot be combined with
+`--preview` or `--apply`.
+
+Provider arguments belong in the committed `.amq/launch.json`, so `launch`
+can validate and include them in its semantic trust digest. For example:
+
+```json
+{
+  "schema": 1,
+  "default_session": "collab",
+  "agents": [
+    {
+      "handle": "claude",
+      "adapter": "claude",
+      "command": ["claude", "--permission-mode", "acceptEdits"],
+      "resume_policy": "enabled"
+    },
+    {
+      "handle": "codex",
+      "adapter": "codex",
+      "command": ["codex", "--sandbox", "workspace-write", "--ask-for-approval", "on-request"],
+      "resume_policy": "enabled"
+    }
+  ],
+  "layout": {"type": "columns"}
+}
+```
+
+Dangerous permission-bypass flags are not valid committed arguments. Keep them
+in an operator-controlled direct `coop exec` invocation when that low-level
+path is intentionally required.
+
+### 2. Launch or Resume a Session
+
 ```bash
-amq coop exec claude -- --dangerously-skip-permissions
-amq coop exec --session feature-a codex
+amq launch
+amq session create feature-x   # once, before the first named-session launch
+amq launch --session feature-x
+amq session resume feature-x
 ```
 
-Managed launchers can add `--require-wake` to fail instead of launching the agent when the wake watcher cannot start.
+`launch` reads the committed roster, selects the declared default session when
+`--session` is absent, and resumes exact provider-qualified conversation IDs.
+It never uses a provider's "last" or "continue" heuristic. The first semantic
+plan, and each semantic plan change, requires an interactive trust
+confirmation stored outside the worktree. Non-interactive or `--json` calls
+exit `6` until that digest is trusted. An unknown `session resume` name exits
+`3` and writes nothing. Managed backends use a fail-closed recovery journal;
+see [Managed launch recovery](docs/launch-recovery.md).
+
+The `commands` backend prints complete `coop exec` commands and exits `6`
+because executing them is the remaining operator action. Paste those emitted
+lines exactly, one per terminal. Do not reconstruct them from examples: they
+bind the selected session, launch nonce, provider arguments, and execution
+ticket.
+
+Each command sets up the session environment, starts wake notifications, and
+launches the agent. See [COOP.md](COOP.md#running-co-op-mode) for co-op
+operations and [the wake acknowledgement contract](docs/wake-doorbell-acknowledgement.md)
+for notification retries.
+
+> **First-message check:** start both agents before sending the test message.
+> A newly started wake deliberately baselines messages that were already
+> waiting, so they remain unread but do not trigger a notification. If you sent
+> first, run `amq drain --include-body` in the target agent.
+
+For isolated sessions (multiple pairs working on different features):
+
+```bash
+amq session create feature-a
+amq launch --session feature-a
+```
+
+Again, paste the complete commands emitted by `launch` into separate terminals.
+
+Optional aliases are a convenience, not part of the canonical quickstart.
+A bare `eval "$(amq shell-setup)"` affects only the current shell. To make
+aliases such as `amc`, `amx`, and `amg` available in future terminals, add the
+setup command to your shell startup file:
+
+```bash
+# zsh
+amq shell-setup --shell zsh >> ~/.zshrc
+
+# bash
+amq shell-setup --shell bash >> ~/.bashrc
+```
+
+Run the appropriate append command once, then open a new terminal or source
+that startup file. Use the bare `eval` only when you intentionally want aliases
+in one already-open shell.
+
+`coop init` and direct `coop exec` provisioning remain available as legacy
+low-level plumbing. See [COOP.md](COOP.md#low-level-provisioning) for those
+paths, operator-only bypass examples, and advanced wake options; they are not a
+second project-onboarding flow.
 
 ### 3. Send & Receive
 
@@ -146,7 +249,11 @@ amq receipts list --me codex --msg-id <msg_id>
 amq reply --id <msg_id> --kind review_response --body "LGTM with comments"
 ```
 
-`amq read`, `amq drain`, and `amq monitor` now share the same strict header validation. If a message in `inbox/new` is corrupt or has malformed headers, the command moves it to DLQ and emits a `dlq` receipt instead of leaving it in place.
+`read`, `drain`, and `monitor` apply the same strict message validation. Invalid
+messages move to DLQ and produce a `dlq` receipt. Participating shells also pin
+their exact session context and refuse mismatched mailbox operations. See
+[Session routing and safety](docs/session-routing.md) for routing, raw-root
+overrides, worktree isolation, doctor repair gates, and backlog discovery.
 
 ### 4. Inspect Health
 
@@ -154,7 +261,79 @@ amq reply --id <msg_id> --kind review_response --body "LGTM with comments"
 amq doctor
 amq doctor --ops
 amq doctor --ops --json
+amq wake check --me codex
+amq wake check --me codex --json
+amq wake check --me codex --json --json-schema=2
+amq doctor --ops --json --json-schema=2
+amq doctor --ops --fix-wake-locks
+amq wake repair --me codex
+amq wake recover-owner --me codex
+amq wake retire --me codex --inject-via /absolute/injector \
+  --retry-until injected --inject-arg exec --inject-arg terminal-id
 ```
+
+`amq wake check` is read-only: it reports whether this process can start or
+repair a wake, and a `restart_capability` of `agent_safe`, `operator_only`, or
+`unavailable` with an exact next action. Automated agents may act only on
+`agent_safe`; leave a live wake running otherwise, and never downgrade a
+TIOCSTI refusal to attention-only. `doctor --ops` reports the same fields for
+every discovered lock.
+
+Wakes started by `coop exec` self-upgrade in place when a newer AMQ is
+installed, without changing PID, terminal ownership, or unread work; disable
+with `amq wake --no-self-upgrade` or `AMQ_WAKE_NO_SELF_UPGRADE=1`.
+`--json-schema=2` (requires `--json`) replaces prose parsing with a closed,
+machine-stable action/actor/reason contract; schema 1 remains the
+byte-compatible default. See
+[docs/wake-lifecycle.md](docs/wake-lifecycle.md#91-self-upgrade) for the
+candidate-bounding rules and the full schema-2 contract.
+
+Wake locks are `stale` (AMQ proved the owner is gone or mismatched —
+`--fix-wake-locks` removes them after a re-check) or `unverified` (AMQ could
+not prove either way, so it leaves the lock in place; confirm manually before
+removing `.wake.lock`). Only a narrowly eligible artifact — an aged, malformed,
+conclusively ownerless lock or orphan target of the exact shapes the invariant
+doc permits — is moved to a timestamped `.quarantined` name so acquisition can
+proceed; every other shape is preserved in place. `doctor --ops` reports the
+count and newest age, and `amq cleanup --wake-quarantine-older-than <duration>`
+removes quarantined artifacts explicitly (`--dry-run` is non-mutating). See
+[docs/wake-state-invariants.md](docs/wake-state-invariants.md) for exactly
+which lock/target shapes qualify for each state.
+
+`amq wake repair` restarts an eligible `--inject-via` wake from its saved
+target after a proven-stale or unverified-ownerless lock, using continuity
+state (`.wake.repair-floor`) so messages that arrived while the notifier was
+down remain eligible to notify. It refuses raw terminal wakes and owner-bound
+claims; output goes to `agents/<agent>/.wake.repair.log`.
+`amq wake recover-owner` is the separate path for an owner-bound
+`--wake-inject-via` claim: a live owner releases its own claim (via the
+inherited `AMQ_WAKE_OWNER` token) from the same OS session, or AMQ removes a
+conclusively dead owner's claim outright — there is no force mode.
+`amq wake retire` stops only an identity-confirmed live `--inject-via` wake
+whose executable, arguments, and saved target all match (or removes an
+exactly-bound stale lock without signaling); results are exactly `refused`,
+`retired`, or `retired_with_residue` (an exit-0 warning that target/state
+cleanup was incomplete). See
+[docs/wake-lifecycle.md](docs/wake-lifecycle.md) and
+[docs/wake-state-invariants.md](docs/wake-state-invariants.md) for the
+repair-floor, ownership, and residue-convergence contracts.
+
+The lifecycle boundaries:
+
+- repair = replace a proven-stale inject-via wake.
+- recover-owner = stop/release one owner-bound inject-via claim/artifact.
+- `doctor --ops --fix-wake-locks` = remove a proven-stale lock.
+- retire = stop an identity-confirmed live inject-via wake.
+- launchd, systemd, or the owning shell = stop a raw wake (retire does not
+  unload supervisors or promise they won't restart a wake).
+
+`amq who` and `amq doctor --ops` distinguish `notifier_live` (a verified live
+wake lock — proves notification is attached, not that messages are consumed)
+from `recent_activity` (a fresh `last_seen` without that proof); see
+[CLAUDE.md](CLAUDE.md#doctor--ops) for the full semantics. Consumption itself
+is the job of `drain`/`monitor`, evidenced by receipts. For long-running
+`wake`/`monitor` under systemd or launchd, see
+[Supervisor recipes](COOP.md#supervisor-recipes).
 
 ## Message Kinds & Priority
 
@@ -197,7 +376,11 @@ For the full command reference, see [CLAUDE.md](CLAUDE.md).
 
 ## Global Root Fallback
 
-Most AMQ commands resolve the queue root from the project `.amqrc` or the default `.agent-mail` layout in the current tree. For agents launched outside the repo root by external orchestrators, you can configure a global fallback instead:
+Most AMQ commands resolve the queue root from the project `.amqrc` or the
+default `.agent-mail` layout in the current tree. For agents launched outside
+an AMQ-enabled repo by external orchestrators, you can configure a global
+root. Explicit `AMQ_GLOBAL_ROOT` does not shadow project `.amqrc`, but it does
+take precedence over repo-local auto-detection:
 
 ```bash
 export AMQ_GLOBAL_ROOT="$HOME/.agent-mail"
@@ -212,8 +395,39 @@ Or create `~/.amqrc`:
 Root resolution precedence is:
 
 ```text
-flags > AM_ROOT > project .amqrc > AMQ_GLOBAL_ROOT > ~/.amqrc > auto-detect
+explicit --root > AM_ROOT > project-local .amqrc > AMQ_GLOBAL_ROOT > implicit fallbacks
 ```
+
+Inside a Git worktree or bare repository, the remaining eligible fallback is
+repo-local detected `.agent-mail`; implicit `~/.amqrc` is refused. Outside
+Git, `~/.amqrc` remains a convenience fallback and precedes detected
+`.agent-mail`. Set
+`AMQ_GLOBAL_ROOT` explicitly when shared routing is intentional.
+
+`coop exec` honors that precedence before bootstrap. In a Git worktree with no
+eligible root, it bootstraps `<git-top>/.agent-mail`; `--session X` creates that
+named session afterward, while `--no-init` preserves the refusal. `coop init`
+is the explicit local-bootstrap command and also targets the Git top. Bare
+repositories do not auto-bootstrap.
+
+If a project `.amqrc` exists but cannot be read or parsed, AMQ stops instead
+of silently delivering through a lower-precedence fallback. Use an explicit
+`--root` or `AM_ROOT` when you intentionally need to override that config.
+
+For an external orchestrator or plain shell that should stay pinned to one
+session, opt in explicitly:
+
+```sh
+amq_context="$(amq env --session auth --me claude --export)" && eval "$amq_context"
+```
+
+Every shell-mode `amq env` output replaces the complete context: `AM_ROOT`,
+`AM_ROOT_ID`, `AM_ME`, `AM_BASE_ROOT`, `AM_BASE_ROOT_ID`, and `AM_SESSION`.
+The two `_ID` values are opaque physical-identity tokens emitted or unset by
+AMQ; do not set them manually. Sessionless output sets `AM_BASE_ROOT` to the
+exact root and writes an empty `AM_SESSION`, so changing to another sessionless
+root is detectable. `--export` additionally prints a stderr note that the
+terminal is pinned. Treat this as one terminal, one session.
 
 Auto-detect covers the default `.agent-mail` layout, including `.agent-mail/<session>` session roots without `.amqrc`. Custom root names and peer config still require `.amqrc` or explicit flags/env.
 This same chain is used by `amq env`, `amq doctor`, and the integration commands, so Symphony and Kanban-launched agents can find the correct queue even when they are not started from the project directory.
@@ -284,12 +498,49 @@ Common command groups:
 
 | Area | Commands |
 |------|----------|
-| Core messaging | `init`, `send`, `list`, `read`, `drain`, `reply`, `thread`, `watch`, `monitor`, `receipts` |
-| Collaboration | `coop init`, `coop exec`, `swarm list`, `swarm join`, `swarm tasks`, `swarm bridge` |
+| Core messaging | `init`, `send`, `list`, `read`, `drain`, `reply`, `thread`, `trace`, `watch`, `monitor`, `receipts` |
+| Collaboration | `setup`, `launch`, `coop init`, `coop exec`, `session create`, `session list`, `session resume`, `swarm list`, `swarm join`, `swarm tasks`, `swarm bridge` |
 | Integrations | `integration symphony init`, `integration symphony emit`, `integration kanban bridge` |
-| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
+| Operations | `presence set`, `presence list`, `route explain`, `who`, `doctor`, `doctor --ops`, `wake check`, `wake repair`, `wake recover-owner`, `wake retire`, `cleanup`, `dlq *`, `upgrade`, `env`, `shell-setup` |
+
+Canonical schema-selecting diagnostic forms:
+
+```text
+amq wake check --me <agent> [--root <path>] [--strict] [--json] [--json-schema <1|2>]
+amq doctor [--root <path>] [--base-root <path>] [--ignore-session-pin] [--ops] [--fix-wake-locks] [--fix-mailboxes] [--json] [--json-schema <1|2>]
+amq cleanup [--tmp-older-than <duration>] [--wake-quarantine-older-than <duration>] [--launch-journal --root <session-root>] [--dry-run] [--yes]
+```
+
+`--json-schema` requires `--json`.
+
+### Exit codes
+
+AMQ exposes stable process exit codes for scripts and agent consumers:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success. The command completed normally. |
+| `1` | General error. The failure has no more specific exit-code classification. |
+| `2` | Usage error. Arguments, flags, or command input are invalid. |
+| `3` | Not found. A requested resource such as a mailbox, message, session, agent, or configuration does not exist. |
+| `4` | Timeout. A watch, monitor, receipt wait, or delivery wait reached its deadline. |
+| `5` | Context mismatch. A syntactically valid route was refused, including a pin conflict or an ineligible implicit root inside Git. |
+| `6` | Action required. The command cannot proceed without an operator action (stale conversation token, unknown backend inspect, untrusted config, blocked rebind). |
+
+The numeric meaning is the machine contract; stderr is human-readable context
+and should not be parsed as a stable discriminator. `--json` does not change
+these process exit codes. A read-only `list` on a mismatched session pin warns
+and continues; commands that consume or mutate mailbox state fail with code
+`5`.
+
+When a command reports per-agent outcomes, whole-command failures that precede
+any per-agent work keep codes `2`, `5`, and `3` and preempt mixed results. Once
+per-agent work begins, the process exit code is the highest-precedence per-agent
+outcome: `6` over `4` over `1` over `0`. Expected dispositions (`disabled`,
+`unsupported`, and policy-consistent `fresh`) contribute `0`.
 
 For the full CLI syntax, examples, and message schema, see [CLAUDE.md](CLAUDE.md).
+For the read-only trace contract and its evidence limits, see [docs/trace.md](docs/trace.md).
 
 ## How It Works
 
@@ -313,9 +564,16 @@ Building something on AMQ? Open an issue or PR to be listed here.
 ## Documentation
 
 - [INSTALL.md](INSTALL.md) — Alternative installation methods
+- [docs/amq-keepalive.md](docs/amq-keepalive.md) — Keepalive command and safety reference
+- [docs/session-routing.md](docs/session-routing.md) — Session selection, routing guards, and worktree behavior
+- [docs/wake-operations.md](docs/wake-operations.md) — Wake inspection, repair, recovery, and retirement
+- [docs/wake-lifecycle.md](docs/wake-lifecycle.md) — Wake lock/target state contract, self-upgrade, log retention, JSON schema, injector identity
+- [docs/wake-doorbell-acknowledgement.md](docs/wake-doorbell-acknowledgement.md) — Wake retry ladder and `--retry-until` acknowledgement contract
+- [docs/wake-state-invariants.md](docs/wake-state-invariants.md) — Wake artifact ownership, lock states, and quarantine invariants
 - [docs/adapter-contract.md](docs/adapter-contract.md) — Formal v1 adapter contract for integration messages
 - [docs/adr-layer-extensions.md](docs/adr-layer-extensions.md) — ADR for stable layer extension surfaces
-- [COOP.md](COOP.md) — Co-op mode protocol & best practices
+- [docs/trace.md](docs/trace.md) — Read-only trace contract and evidence limits
+- [COOP.md](COOP.md) — Co-op workflow and supervisor operations
 - [CLAUDE.md](CLAUDE.md) — Agent instructions, CLI reference, architecture
 
 ## Development
@@ -337,7 +595,9 @@ Files are universal, debuggable, and work everywhere. No connection strings, no 
 Those require infrastructure. AMQ is for local inter-process communication where agents share a filesystem. No server to configure or keep running.
 
 **What about Windows?**
-The core queue works on Windows. The `amq wake` notification feature requires WSL.
+Native Windows supports the core queue, but not `coop exec` or `wake`. Use WSL
+with the Linux binary for the complete co-op workflow. See the explicit
+[platform capability matrix](INSTALL.md#platform-capability-matrix).
 
 **Is this production-ready?**
 For local development workflows, yes. AMQ is intentionally simple—it's not trying to be a distributed message broker.

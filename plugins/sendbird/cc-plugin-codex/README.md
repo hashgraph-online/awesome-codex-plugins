@@ -34,7 +34,7 @@ That includes:
 - Built-in Codex subagent orchestration for rescue and background review flows
 - Session-scoped tracked jobs with status, result, and cancel commands
 - Background completion nudges that steer you to the right `$cc:result <job-id>`
-- An optional stop-time review gate
+- An optional turn-end review gate
 - GitHub CI coverage on Windows, macOS, and Linux
 
 It follows the shape of [openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) but runs in the opposite direction.
@@ -46,7 +46,8 @@ It follows the shape of [openai/codex-plugin-cc](https://github.com/openai/codex
 Install from the Sendbird marketplace:
 
 ```bash
-codex marketplace add sendbird/codex-marketplace
+codex plugin marketplace add sendbird/codex-marketplace
+codex plugin add cc@sendbird
 ```
 
 Then install `cc` from the Sendbird marketplace inside Codex, and run `$cc:setup` once.
@@ -77,6 +78,7 @@ $cc:setup
 ```
 
 All checks should pass. If any fail, `$cc:setup` tells you what to fix.
+If setup adds the marketplace-qualified plugin-data root and legacy migration roots to the writable-root list, restart Codex and rerun the same command; a requested review-gate toggle waits for that restart.
 
 ### 3. Try It
 
@@ -115,17 +117,20 @@ Quick routing rule:
 Standard read-only review of your current work.
 
 ```text
-$cc:review                          # review uncommitted changes (default: opus + xhigh effort)
+$cc:review                          # review uncommitted changes (default: opus)
 $cc:review --base main              # review branch vs main
 $cc:review --scope branch           # explicitly compare branch tip to base
 $cc:review --background             # run in background, check with $cc:status later
-$cc:review --model sonnet           # switch to sonnet (defaults to high effort)
-$cc:review --model opus --effort high   # opus with a lighter effort
+$cc:review --model sonnet           # switch to sonnet
+$cc:review --model fable            # use Fable
+$cc:review --model opus --effort xhigh  # explicitly raise opus effort
 ```
 
-**Flags:** `--base <ref>`, `--scope <auto|working-tree|branch>`, `--wait`, `--background`, `--model <model>`, `--effort <low|medium|high|max>`
+**Flags:** `--base <ref>`, `--scope <auto|working-tree|branch>`, `--wait`, `--background`, `--model <model>`, `--effort <low|medium|high|xhigh|max>`
 
-**Defaults:** model `opus` (resolves to `claude-opus-4-7[1m]`, the 1M-context variant) with `xhigh` effort. If you pick `sonnet`, it resolves to `claude-sonnet-4-6[1m]` (also 1M context) and the default effort drops to `high`. `haiku` resolves to `claude-haiku-4-5` and has no effort setting. Pass `--model` and `--effort` to override.
+**Defaults:** model `opus`, and no effort at all. After trimming surrounding whitespace, the friendly aliases `fable`, `opus`, `sonnet`, and `haiku` are matched case-insensitively and canonicalized to lowercase; every other `--model` value passes through unchanged for Claude Code to resolve, including full model IDs and provider-specific names. `--effort` is forwarded only when you pass it, so each model keeps whatever effort Claude Code defaults to. Claude Code owns which effort levels each model supports, so check `/model` rather than assuming a level applies everywhere.
+
+**Model discovery:** run `/model` in Claude Code to see the models and effort levels available to your current account and provider, then pass the selected alias or full ID to this plugin. The plugin intentionally does not maintain a static model catalog, a per-model effort table, or force `[1m]`; Claude Code owns alias versions, supported effort levels, managed restrictions, provider routing, and extended-context eligibility.
 
 Scope `auto` (the default) inspects `git status` and chooses between working-tree and branch automatically.
 
@@ -169,8 +174,8 @@ $cc:rescue --model sonnet --effort medium investigate the flaky test
 | `--resume-last` | Alias for `--resume` |
 | `--fresh` | Force a new task (don't resume) |
 | `--write` | Allow file edits (default) |
-| `--model <model>` | Claude model (`opus`, `sonnet`, `haiku`, or full ID; defaults to `opus`. The `opus` and `sonnet` aliases resolve to their 1M-context variants `claude-opus-4-7[1m]` and `claude-sonnet-4-6[1m]`.) |
-| `--effort <level>` | Reasoning effort: `low`, `medium`, `high`, `xhigh`, `max` (default: `xhigh` for opus, `high` for sonnet, unset for haiku) |
+| `--model <model>` | Any Claude Code model alias, full model ID, or provider-specific name; defaults to `opus`. Run `/model` in Claude Code to discover options available to your account and provider. |
+| `--effort <level>` | Reasoning effort: `low`, `medium`, `high`, `xhigh`, `max`. Unset by default, so the model keeps Claude Code's own effort default. Claude Code owns which levels each model supports. |
 | `--prompt-file <path>` | Read task description from a file |
 
 **Resume behavior:** If you don't pass `--resume` or `--fresh`, rescue checks for a resumable Claude session and asks once whether to continue or start fresh. Your phrasing guides the recommendation — "continue the last run" → resume, "start over" → fresh.
@@ -215,12 +220,12 @@ $cc:cancel task-abc123              # cancel a running job
 
 ```text
 $cc:setup                           # verify everything
-$cc:setup --enable-review-gate      # turn on stop-time review gate
+$cc:setup --enable-review-gate      # turn on turn-end review gate
 $cc:setup --disable-review-gate     # turn it off
 ```
 
 Setup checks Claude Code availability, native plugin hook feature gates, and review-gate state. If Claude Code isn't installed, it offers to install it.
-This is also the repair path for marketplace-installed copies of the plugin: `$cc:setup` confirms `[features].hooks = true` and `[features].plugin_hooks = true`, then trusts this plugin's current native hook hashes so Codex loads the bundled hooks from the active plugin cache.
+This is also the repair path for marketplace-installed copies of the plugin: `$cc:setup` confirms `[features].hooks = true` and `[features].plugin_hooks = true`, trusts this plugin's current native hook hashes, and allows sandboxed writes to Codex's injected marketplace-qualified plugin-data root plus the legacy roots needed for one-time migration. If those writable roots were just added, restart Codex and rerun setup before changing the review gate.
 
 ## Background Jobs
 
@@ -251,16 +256,17 @@ $cc:result task-abc123
 
 ## Review Gate
 
-The review gate is an **optional** stop-time hook. When enabled, pressing Ctrl+C in Codex triggers a Claude Code review of the last Codex response before the stop is accepted.
+The review gate is an **optional turn-end hook**. When enabled, Codex runs a Claude Code review of the last Codex response before the turn is allowed to finish.
 
-- Claude returns `ALLOW:` → stop proceeds normally.
-- Claude returns `BLOCK:` → stop is rejected; Codex continues.
+- Claude returns `ALLOW:` → the turn finishes normally.
+- Claude returns `BLOCK:` → the turn is blocked; Codex continues with the review feedback.
 
 **Caveats:**
 
 - **Disabled by default.** Enable with `$cc:setup --enable-review-gate`.
-- **Token cost.** Every Ctrl+C triggers a Claude invocation. This can drain usage limits quickly if you stop often.
-- **15-minute timeout.** The gate has a hard timeout. If Claude doesn't respond, the stop is allowed.
+- **Uses your Claude Code defaults.** The gate does not pass `--model` or `--effort`; set your preferred default in Claude Code if you want the gate to use a specific model or effort level.
+- **Token cost.** Every edit-producing turn can trigger a Claude invocation. This can drain usage limits quickly in active coding sessions.
+- **15-minute timeout.** The gate has a hard timeout. If Claude doesn't respond, the turn remains blocked and the error points you to a manual review.
 - **Skip-on-no-edits.** The gate computes a working-tree fingerprint baseline and skips review when the last Codex turn made no net edits.
 - **Not in nested sessions.** Child sessions (e.g., rescue subagents) suppress the gate to avoid feedback loops.
 
@@ -273,13 +279,14 @@ The review gate is an **optional** stop-time hook. When enabled, pressing Ctrl+C
 | **Host** | Claude Code hosts the plugin | Codex hosts the plugin |
 | **Commands** | `/codex:review`, `/codex:rescue`, … | `$cc:review`, `$cc:rescue`, … |
 | **Runtime** | Codex app-server + broker | Fresh `claude -p` subprocess per invocation |
-| **Review gate** | Reviews previous Claude response | Reviews previous Codex response |
-| **Model flags** | Codex model names and effort controls | Claude model names and effort values (`low` / `medium` / `high` / `max`) |
+| **Review gate trigger** | End of Claude Code turn | End of Codex turn |
+| **Review gate target** | Reviews previous Claude response | Reviews previous Codex response |
+| **Model flags** | Codex model names and effort controls | Claude model names and effort values (`low` / `medium` / `high` / `xhigh` / `max`) |
 
 ### Where This Goes Further
 
-- **Smart review gate** — fingerprints the working tree and skips review when the last Codex turn made no net edits, avoiding unnecessary token spend.
-- **Nested-session awareness** — suppresses stop-time review and unread-result prompts in child runs, keeping interactive hooks attached to the user-facing thread only.
+- **Smart review gate** — fingerprints the working tree and skips turn-end review when the last Codex turn made no net edits, avoiding unnecessary token spend.
+- **Nested-session awareness** — suppresses turn-end review and unread-result prompts in child runs, keeping interactive hooks attached to the user-facing thread only.
 - **Tracked job ownership** — background jobs track unread/viewed state and session ownership, with safe PID-validated cleanup on session exit.
 - **Built-in background notify** — rescue and review flows can now wake the parent thread and point directly to `$cc:result <job-id>` instead of relying only on later polling.
 - **Unread-result nudges** — completed background jobs are still surfaced in your next prompt as a reliable fallback.
@@ -380,7 +387,7 @@ $cc:review --scope working-tree
 ```
 
 **Review gate draining tokens**
-Disable it: `$cc:setup --disable-review-gate`. The gate fires on every Ctrl+C, which adds up.
+Disable it: `$cc:setup --disable-review-gate`. The gate can fire after every edit-producing turn, which adds up.
 
 **Background jobs not cleaned up**
 Jobs are terminated when the Codex session that owns them exits. If a session crashes without cleanup, use `$cc:status` and `$cc:cancel <job-id>` to clean up any leftovers.

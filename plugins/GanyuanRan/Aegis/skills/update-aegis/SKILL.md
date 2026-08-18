@@ -1,6 +1,6 @@
 ---
 name: update-aegis
-description: Use when the user says `aegis:update`, asks to update or upgrade an installed Aegis method-pack, wants the latest Aegis version, or asks whether Aegis is current on this host.
+description: "Use when the user says `aegis:update`, asks to update or upgrade an installed Aegis method-pack, wants the latest Aegis version, or asks whether Aegis is current on this host."
 ---
 
 # Update Aegis
@@ -58,6 +58,52 @@ python scripts/aegis-update.py register \
   --reload-hint "restart CodeBuddy"
 ```
 
+Prefixed direct-child host example:
+
+```bash
+python scripts/aegis-update.py register \
+  --host copilot \
+  --sync-mode junction \
+  --discovery-shape direct-child \
+  --discovery-root <target-repo>/.github/skills \
+  --discovery-name-prefix aegis- \
+  --reload-hint "restart Copilot session or reopen the repository"
+```
+
+Kimi Code CLI automatic installations are plugin-managed. Do not use the Aegis
+updater against Kimi's managed plugin copy. In Kimi, run the native update or
+reinstall flow, verify the selected managed plugin, then reload:
+
+```text
+/plugins install https://github.com/GanyuanRan/Aegis
+/plugins info aegis
+/reload
+```
+
+If Kimi requires confirmation or removal before replacing the managed copy,
+follow its exact plugin-manager prompt. Then locate the managed root from
+`/plugins info aegis` and run:
+
+```bash
+cd <aegis-method-pack-root>
+python scripts/aegis-doctor.py --json --host-profile kimi-code-auto
+```
+
+Kimi Code CLI **Explicit Compatibility Installation** example:
+
+```bash
+python scripts/aegis-update.py register \
+  --host kimi-code \
+  --sync-mode junction \
+  --reload-hint "restart Kimi Code CLI"
+```
+
+When `--discovery-root` is omitted for `kimi`, `kimi-code`, or
+`kimi-code-cli`, the updater uses `$KIMI_CODE_HOME/skills` or, when
+`KIMI_CODE_HOME` is unset, `~/.kimi-code/skills`. Use this updater path only
+when the Aegis Kimi plugin is disabled or uninstalled and the user has selected
+explicit compatibility mode.
+
 Plugin-managed hosts can be registered, but the updater reports that the host
 plugin manager owns the update path:
 
@@ -100,9 +146,11 @@ python scripts/aegis-update.py update --host <host> --stash --json
 Treat the update as complete only when the updater reports the selected host and
 the post-update doctor verification succeeds. For link-based discovery roots
 (`junction`, `symlink`, or `repo-only`), the updater passes `discoveryRoot`
-through to `aegis-doctor.py --discovery-root`. For copy-based hosts, it verifies
-that copied Aegis skill directories exist after the copy step, then runs doctor
-against the method-pack root.
+through to `aegis-doctor.py --discovery-root`; when a registered direct-child
+view declares `discoveryNamePrefix`, the updater also passes
+`--discovery-name-prefix`. For copy-based hosts, it verifies that copied Aegis
+skill directories exist after the copy step, then runs doctor against the
+method-pack root.
 
 When multiple registered hosts share the same `methodPackRoot`, the updater now
 reuses a single method-pack checkout update and then refreshes each host's
@@ -119,3 +167,8 @@ Report:
 
 If the updater skips a `plugin-managed` host, state that the host plugin manager
 owns the update path and give the reload or reinstall hint.
+
+For Kimi automatic installations, completion also requires `/plugins info
+aegis`, `/reload` or `/new`, the `kimi-code-auto` doctor profile, and the
+host-native automatic-entry checks from `docs/README.kimi-code.md`. File
+discovery or a generic doctor result alone is not sufficient.

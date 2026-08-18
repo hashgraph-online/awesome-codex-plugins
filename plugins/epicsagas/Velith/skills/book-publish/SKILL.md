@@ -16,9 +16,9 @@ description: "Phase 5: Publishing. Convert to EPUB/PDF/MOBI/TXT/Markdown, cover 
 
 **Titles**: 22+ candidates across 5 categories (descriptive, emotional, question, metaphor, provocative).
 
-**Agents**: `cover-designer` → concepts + image prompts. `marketing-expert` → personas, channels, 12-week calendar, launch checklist.
+**Agents**: `cover-designer` → concepts + image prompts. `illustrator` → interior illustration plan (see `/book-illustrate`). `marketing-expert` → personas, channels, 12-week calendar, launch checklist.
 
-Output: `publish/` directory with all formats + metadata + title-candidates.md + cover/concepts.md + marketing-plan.md.
+Output: `publish/` directory with all formats + metadata + title-candidates.md + cover/concepts.md + illustrations/plan.md + marketing-plan.md.
 
 Gate: EPUB + PDF generated, metadata complete, 22+ titles, cover concepts, marketing plan.
 
@@ -34,5 +34,5 @@ Gate: EPUB + PDF generated, metadata complete, 22+ titles, cover concepts, marke
 Update the project dashboard status:
 
 ```bash
-node {PLUGIN_ROOT}/skills/book-status/scripts/scan-project.js [project-dir] --plugin-root={PLUGIN_ROOT}
+node {PLUGIN_ROOT}/velith.mjs scan [project-dir] --plugin-root={PLUGIN_ROOT}
 ```

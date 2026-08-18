@@ -243,4 +243,4 @@ All fields required. `notes` is a string array (empty when no anomalies detected
 ## See Also
 
 `skills/convergence-monitoring/SKILL.md` · `skills/wave-executor/wave-loop.md` ·
-`.orchestrator/metrics/events.jsonl` schema · `docs/adr/006-autonomous-overnight-research.md`
+`.orchestrator/metrics/events.jsonl` schema

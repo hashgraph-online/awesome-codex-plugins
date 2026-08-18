@@ -33,6 +33,8 @@ Installs once. Detects what you already have. Adds only what's missing.
 | **GitNexus** | fewer file reads | Configures MCP server + auto-reindex hook (if GitNexus binary installed) |
 | **Caveman ultra** | ~75% | Sets compressed conversation mode (if Caveman plugin installed) |
 | **RTK hook** | 60-90% CLI | Adds CLI output compression hook (if RTK binary installed) |
+| **Ponytail** | less code written | Installs the real ponytail plugin: YAGNI ladder, stdlib/native first, no speculative abstraction |
+| **Model ladder** | cost + quota | Spawns every subagent one tier below the session model (Opus runs Sonnet workers, etc.) via a PreToolUse hook |
 
 **Detection-first**: Espresso checks what's already configured and skips it.
 Never overwrites your existing rules or config. Never installs duplicates.
@@ -53,6 +55,25 @@ With Espresso:
 ```
 
 Same information. 70-85% fewer tokens with the full stack.
+
+### Three axes, not one
+
+Caveman compresses how Claude **talks**. Ponytail compresses how much Claude
+**writes**. Verbose prose is cheap next to the real waste: an agent that builds
+a 120-line cache class, adds a dependency, scaffolds "for later", then iterates
+on its own bloat. Ponytail stops it at the first solution that works, before the
+wrong code is ever written. Espresso installs both so the axes stack.
+
+The third axis is **cost per token**, not token count. The model ladder spawns
+every subagent one tier below the session model: an Opus session dispatches
+Sonnet workers, a Fable session dispatches Opus workers. Discovery, mechanical
+checks, and verbose-output tasks do not need top-tier reasoning, so the expensive
+model keeps judgement and synthesis while cheaper workers do the rest. Each tier
+down roughly halves cost per MTok and preserves the capped quota of Opus and
+Fable. Fable 5 is the priciest tier and drains fastest, so a Fable session
+dispatching Opus workers is where the ladder saves most. Paired with a delegation
+rule that says when to spawn, tasks offload the expensive tier automatically, at
+equal quality on bounded work.
 
 ---
 
@@ -124,6 +145,12 @@ brew install rtk-ai/tap/rtk                 # CLI output compression (60-90%)
 
 Restart your agent after installing any of these. Espresso detects and configures on next session.
 
+**Ponytail is the exception**: you don't install it yourself. Espresso installs
+the real [ponytail](https://github.com/DietrichGebert/ponytail) plugin for you on
+first run (it runs the same `marketplace add` + `install` commands you would).
+It's the upstream plugin, not a copy, so it updates from its own marketplace
+like any other plugin.
+
 ### What each companion does
 
 **GitNexus** — builds a knowledge graph of your codebase (functions, classes, call chains, execution flows). Instead of Claude grepping through files to understand code, it queries the graph. Fewer file reads = fewer tokens. Espresso configures the MCP server and adds an auto-reindex hook that keeps the index fresh after every session.
@@ -131,6 +158,13 @@ Restart your agent after installing any of these. Espresso detects and configure
 **RTK** (Rust Token Killer) — transparent proxy that compresses CLI output before it enters context. `git status`, `npm test`, `docker ps` output shrinks 60-90%. You run commands normally — RTK intercepts and compresses automatically via hook.
 
 **Caveman** — compresses Claude's conversation style. Drops articles, filler words, pleasantries, hedging. "Bug in auth middleware. Token expiry uses < not <=. Fix:" instead of 4 paragraphs. ~75% output token reduction.
+
+**Ponytail** - the lazy senior dev. Before writing code, the agent climbs a
+ladder: does this need to exist (YAGNI), stdlib, native platform feature,
+installed dependency, one line, only then more. Stops at the first rung that
+holds. Never cuts validation, security, or tests. The biggest token drain is an
+agent over-building then iterating on its own bloat; ponytail kills it at the
+source. Espresso installs the real plugin and pins it to ultra.
 
 ---
 
@@ -143,13 +177,18 @@ On first session (Claude Code / Codex), the install hook creates:
 ├── exa.md                         # Exa-only web search
 ├── git.md                         # Clean commits (no signatures)
 ├── gitnexus.md                    # GitNexus first for code exploration
-└── project-rules-suggestion.md    # Suggest rules in new projects
+├── project-rules-suggestion.md    # Suggest rules in new projects
+├── subagent-model-economy.md      # Model ladder: spawn one tier below session
+└── subagent-delegation.md         # When to offload work to cheaper workers
 
+Model ladder hook                  # PreToolUse Agent|Task, registered via plugin (default on)
 ~/.config/caveman/config.json      # {"defaultMode": "ultra"} (if Caveman found)
+~/.config/ponytail/config.json     # {"defaultMode": "ultra"} (Ponytail companion)
 ~/.claude.json → mcpServers.gitnexus  # GitNexus MCP server (if binary found)
 ~/.claude/settings.json → hooks.Stop  # GitNexus auto-reindex (if binary found)
 ~/.claude/.espresso-active         # Mode flag
 ~/.claude/.espresso-setup-done     # First-run marker (prevents re-running)
+~/.claude/.espresso-ponytail-done  # Ponytail install marker (install + update)
 ```
 
 Nothing is created if it already exists.
@@ -158,12 +197,18 @@ Nothing is created if it already exists.
 
 ## How It Works
 
-Two hooks fire automatically:
+Three hooks fire automatically:
 
 1. **SessionStart** — first run: scans existing setup, installs only what's missing, outputs summary. Every run: injects output rules as system context.
 2. **UserPromptSubmit** — reinforces rules every turn to prevent drift mid-session.
+3. **PreToolUse (Agent|Task)** — the model ladder: rewrites each subagent spawn to one tier below the session model. Reads the live model from the transcript, so a mid-session `/model` switch is tracked. Forks and agents that pin their own model are left untouched. Default on; disable with `touch ~/.claude/.espresso-ladder-off`.
 
 No skills, no extra files loaded in context. Pure hooks.
+
+The ponytail companion has its own one-shot marker (`.espresso-ponytail-done`),
+separate from the main setup flag. New users get it on install; existing users
+get it on their next session after updating espresso. It runs once, then never
+again.
 
 ### Cross-Agent Compatibility
 
@@ -176,7 +221,7 @@ No skills, no extra files loaded in context. Pure hooks.
 | **Copilot** | `AGENTS.md` | No — rules only |
 | **Others** | `AGENTS.md` at project root | No — rules only |
 
-Claude Code and Codex get the full stack (output rules + global rules + RTK hook + Caveman config).
+Claude Code and Codex get the full stack (output rules + global rules + RTK hook + Caveman config + Ponytail plugin).
 Other agents get the output rules via `AGENTS.md` — still 40-60% savings.
 
 ---
@@ -190,8 +235,14 @@ Other agents get the output rules via `AGENTS.md` — still 40-60% savings.
 | GitNexus | fewer file reads | If gitnexus binary found |
 | RTK | 60-90% CLI | If RTK binary found |
 | Caveman ultra | ~75% conversation | If Caveman plugin found |
+| Ponytail | 47-77% on code tasks* | Always (real plugin auto-installed) |
+| Model ladder | cost + quota per spawn | Always (Claude Code) |
 
 **Full stack: 70-85% total token reduction** vs vanilla.
+
+\*Ponytail's figure is measured on code-generation tasks, a different
+denominator than the 70-85% prose number. They compress different things, so
+don't add them together.
 
 ---
 
@@ -240,12 +291,19 @@ Restart Claude Code. Hooks only activate on session start.
 ### Clean up everything Espresso created
 ```bash
 rm ~/.claude/rules/exa.md ~/.claude/rules/git.md ~/.claude/rules/gitnexus.md ~/.claude/rules/project-rules-suggestion.md
-rm ~/.claude/.espresso-active ~/.claude/.espresso-setup-done
-rm ~/.config/caveman/config.json
+rm ~/.claude/rules/subagent-model-economy.md ~/.claude/rules/subagent-delegation.md
+rm ~/.claude/.espresso-active ~/.claude/.espresso-setup-done ~/.claude/.espresso-ponytail-done
+rm -f ~/.claude/.espresso-ladder-off
+rm ~/.config/caveman/config.json ~/.config/ponytail/config.json
 ```
+
+The model ladder hook lives inside the plugin, so uninstalling the plugin removes
+it. Its per-session model cache under `~/.claude/.espresso-model-cache/` can be
+deleted too.
 
 The RTK hook in `~/.claude/settings.json` stays (it's useful independently).
 Caveman plugin stays (uninstall separately with `/uninstall-plugin caveman` if wanted).
+Ponytail plugin stays too (uninstall separately with `/uninstall-plugin ponytail` if wanted).
 
 ### Cursor / Windsurf / Others
 Delete the `AGENTS.md` you copied, or remove `espresso.mdc` from `.cursor/rules/`.

@@ -8,16 +8,16 @@ description: "Use when telemetry, dashboards, alert rules, or runbooks need desi
 ## Iron Law
 
 ```
-TELEMETRY STARTS FROM USER SYMPTOMS; URGENT ALERTS NEED USER IMPACT, URGENCY, ACTIONABILITY, AND A RUNBOOK
+TELEMETRY STARTS FROM USER OR SYSTEM RISK; URGENT ALERTS NEED IMPACT OR IMMINENT HARM, URGENCY, ACTIONABILITY, AND A RUNBOOK
 ```
 
-Telemetry that does not map to a user-visible symptom is decoration. An alert that lacks impact, urgency, actionability, or a runbook should not be urgent by default. The two halves are co-designed: signals exist so that someone can act on them, and urgent alerts fire only on signals that show user-felt impact.
+Telemetry should map to a user-visible symptom or a defined security, integrity, safety, durability, or imminent resource-exhaustion risk. An alert that lacks impact or imminent harm, urgency, actionability, or a runbook should not be urgent by default. The two halves are co-designed: signals exist so someone can act before or during material harm, while ordinary service-health alerts remain symptom-first.
 
 ## Overview
 
-Produces telemetry requirements tied to user journeys, a dashboard specification that answers impact and recent change, and an alert policy where every urgent alert has user impact, urgency, actionability, and a runbook. Refuses host-health urgent alerts, anonymous alerts, and dashboards built from whatever the platform happened to emit.
+Produces telemetry requirements tied to user journeys and defined system risks, a dashboard specification that answers impact and recent change, and an alert policy where every urgent alert has material impact or a tested imminent-harm signal, urgency, actionability, and a runbook. Refuses anonymous alerts, untested predictive alerts, and dashboards built from whatever the platform happened to emit.
 
-**Core principle:** instrument user-visible symptoms first, then add enough causal context to debug without guessing.
+**Core principle:** instrument user-visible symptoms first for ordinary service health, while allowing actionable security, integrity, safety, durability, and tested imminent-exhaustion signals to alert before user impact; add enough causal context to debug without guessing.
 
 ## When To Use
 
@@ -51,11 +51,11 @@ Produces telemetry requirements tied to user journeys, a dashboard specification
 
 ## Workflow
 
-1. **Start with symptoms.** Define what users notice: failed requests, slow actions, stale data, dropped work, lost messages, or incorrect results.
+1. **Start with material outcomes.** Define what users notice: failed requests, slow actions, stale data, dropped work, lost messages, or incorrect results. Also name security, integrity, safety, durability, or resource-exhaustion conditions where waiting for visible user impact would make response too late.
 2. **Add golden signals.** Capture latency, traffic, errors, and saturation for services; utilization, saturation, and errors for resources.
 3. **Instrument dependencies.** Include call count, latency, errors, timeouts, retries, queue depth, queue age, and drain rate.
 4. **Connect events.** Propagate trace context across every service boundary so the trace identifier is global to a request and span identifiers are local to each unit of work; attach deployment/change markers.
-5. **Structure logs and events.** Require a baseline field set on every entry: UTC timestamp, severity, service identifier, trace identifier, request identifier, and message, plus stable fields for operation, tenant/customer context where safe, dependency, result, error class, and latency.
+5. **Structure and protect logs and events.** Require UTC timestamp, severity, service identifier, and a bounded event summary on every entry. Use trace and request identifiers when request context exists; otherwise use the applicable job, run, message, change, or operation correlation identifier. Never emit a dummy identifier merely to fill a schema. Add privacy-safe tenant/customer context, dependency, result, error class, and latency only when useful. Define classification, purpose, prohibited fields, minimization, redaction or tokenization, access, retention/disposal, and integrity controls. Prefer identifiers and redacted summaries over raw sensitive payloads.
 6. **Bound telemetry volume.** Give high-volume logs, traces, and generated events explicit volume budgets, cardinality limits, and quota-exhaustion behavior. Treat telemetry rollout changes like production changes when extra noise can hide, drop, or bill critical signals.
 7. **Map threat detections when required.** For security detection work, connect each abuse case to a detection hypothesis, data component or audit event, signal expression, effective enablement check, freshness or normalization lag, owner, severity, and response route. Verify the backend coverage state after onboarding or configuration changes so a visible enabled setting cannot mask a disabled detector.
 8. **Design telemetry pipelines.** Define where telemetry is received, transformed, sampled, redacted, queued, routed, and exported; state what happens under collector, validation-lookup, sink, quota, or backpressure failure. Validate source event size and shape, sink rules, and export rules before activation; bound validation reads with cache behavior, capacity budgets, and stale or missing configuration handling; isolate oversized or invalid source events and invalid sink state so one feed or destination cannot backlog unrelated telemetry streams.
@@ -64,26 +64,15 @@ Produces telemetry requirements tied to user journeys, a dashboard specification
 11. **Make absent signals explicit.** Emit zero when zero is meaningful, and treat missing samples as a separate health state so silence cannot look healthy.
 12. **Instrument operational channels.** Track whether status, support, escalation, and responder tools are healthy enough to detect and communicate impact; keep an alternate path when the primary path depends on the affected system.
 13. **Guard suppression windows.** During maintenance, test, migration, or noisy rollout windows, state which alerts are muted, when muting expires, who owns it, and which replacement signal still catches resource exhaustion, stuck work, or user impact.
-14. **Alert on symptoms.** Use SLO burn or direct user-impact alerts. Keep diagnostic and causal alerts as follow-ups unless urgent and actionable. Each alert rule should name the expression or symptom, window, labels, severity, owner, annotations, runbook, and expected noise behavior.
+14. **Alert on symptoms or imminent harm.** Use SLO burn or direct user-impact alerts for ordinary service health. Permit urgent security, integrity, safety, durability, or resource-exhaustion alerts before user impact only when the signal is a tested leading indicator, material harm is near enough to require action now, and a runbook can change the outcome. Keep other diagnostic and causal alerts as follow-ups. Each alert rule should name the expression or symptom, risk or impact, window, labels, severity, owner, annotations, runbook, and expected noise behavior.
 15. **Identify affected customers with privacy controls.** For customer-impacting services, define privacy-safe signals that support impact scoping and notification.
 16. **Attach runbooks.** Every urgent alert needs triage steps, impact check, mitigation options, fallback path, and rollback/fallback links.
 
 ## Synthesized Default
 
-Use SLO/user-journey symptoms, layered health models, golden signals, fault-domain labels, structured events, distributed context, deployment markers, and dependency signals as the default telemetry set. Use urgent alerts only when action is required now; use dashboards and follow-ups for investigation and slow-burn work.
+Use SLO/user-journey symptoms, layered health models, golden signals, fault-domain labels, protected structured events, distributed context, deployment markers, and dependency signals as the default telemetry set. Use urgent alerts only when action is required now to address user impact or prevent material security, integrity, safety, durability, or exhaustion harm; use dashboards and follow-ups for investigation and slow-burn work.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -95,7 +84,7 @@ Use SLO/user-journey symptoms, layered health models, golden signals, fault-doma
 ## Response Quality Bar
 
 - Lead with the dashboard spec, alert classification, telemetry gap, or runbook requirement requested.
-- Cover user journeys, health states, golden signals, dependency context, deployment markers, privacy-safe events, urgent-alert policy, and runbooks before optional observability breadth.
+- Cover user journeys and pre-impact risk exceptions, health states, golden signals, dependency context, deployment markers, protected records, urgent-alert policy, and runbooks before optional observability breadth.
 - Make recommendations actionable with metric/log/trace names, thresholds, routes, runbook links, failure response, and rollout checks where relevant.
 - Name the details to inspect, such as SLOs, metric sources, log fields, trace context, alert history, runbook content, deploy markers, and sensitive-data handling; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
@@ -110,8 +99,8 @@ Use SLO/user-journey symptoms, layered health models, golden signals, fault-doma
 - Metric definition table covering unit, source, labels, threshold/window, owner path, missing-signal behavior, and backfill or permanent-gap semantics.
 - Telemetry consumer table for alerts, autoscaling, automation, reports, and other control loops, including fail-safe behavior when data is missing or underreported.
 - Fault-domain and affected-customer scoping signals where relevant.
-- Alert policy with urgent/follow-up/diagnostic classification.
-- Structured log/event field standard and sensitive-data handling.
+- Alert policy with urgent/follow-up/diagnostic classification and an explicit basis of direct user impact or tested imminent security, integrity, safety, durability, or exhaustion harm.
+- Structured log/event field and record-safety standard covering the applicable correlation identifier, a no-dummy-identifier rule, classification, purpose, prohibited fields, minimization, redaction/tokenization, access, retention/disposal, integrity, and bounded summaries instead of raw sensitive payloads.
 - Telemetry volume and quota budget covering expected rate, burst behavior, cardinality limit, drop risk, and noise rollback.
 - Maintenance suppression plan listing muted alerts, owner, expiry, replacement signal, and residual blind spot.
 - Security detection mapping for threat-model-driven abuse cases when detection is in scope, including effective enablement or coverage check and data freshness or normalization lag.
@@ -123,9 +112,10 @@ Use SLO/user-journey symptoms, layered health models, golden signals, fault-doma
 
 ## Checks Before Moving On
 
-- `symptom_first`: urgent alerts map to SLO burn or direct user-visible impact.
+- `urgent_basis`: urgent alerts map to SLO burn, direct user-visible impact, or a tested leading indicator of imminent material security, integrity, safety, durability, or exhaustion harm with an actionable response.
 - `health_model`: component and dependency signals aggregate into critical-journey and workload health states.
 - `causal_context`: telemetry includes dependency, correlation, version/change, and saturation context.
+- `correlation_context`: request/trace identifiers appear when request context exists; jobs, runs, messages, changes, or operations use their applicable identifier; schemas do not manufacture dummy identifiers.
 - `fault_domain_context`: telemetry can separate impact by location, deployment unit, partition, shard, tenant, or deployment stage where those domains exist.
 - `dashboard_scan`: the first dashboard view shows user impact quickly and supports drill-down by scope, fault domain, dependency, change, and recovery state.
 - `metric_definition`: user-facing metrics define unit, source, labels, threshold/window, and missing-signal behavior.
@@ -139,14 +129,16 @@ Use SLO/user-journey symptoms, layered health models, golden signals, fault-doma
 - `security_detection_map`: threat-driven detections connect abuse case, data source, signal, effective enablement or coverage check, freshness or normalization lag, owner, severity, and response route.
 - `alert_rule_definition`: urgent alerts define expression or symptom, window, labels, severity, owner, annotations, runbook, and expected noise behavior.
 - `runbook_link`: every urgent alert has a runbook with impact check, mitigation, fallback, and verification.
-- `privacy_check`: sensitive data handling is defined for logs, traces, labels, and events.
+- `privacy_check`: logs, traces, labels, and events define prohibited fields, minimization, redaction/tokenization, access, retention/disposal, and integrity; raw sensitive payloads are not the default record.
 - `debug_path`: dashboards answer impact, scope, cause candidates, recent changes, and recovery state.
 
 ## Red Flags - Stop And Rework
 
 - Dashboards start from whatever the platform emits instead of user journeys.
 - Every dependency error triggers an urgent alert even when retries hide user impact.
+- A causal or predictive signal triggers an urgent alert before user impact without a tested imminent-harm model, actionable response, and runbook.
 - Logs contain sensitive data or unbounded high-cardinality fields without controls.
+- Non-request records contain fabricated trace or request identifiers instead of the applicable job, run, message, change, or operation correlation identifier.
 - A telemetry change can emit enough logs, spans, or events to exhaust quota, drop unrelated signals, or create billing impact without a rollback or exclusion path.
 - Alerts have no runbook or response path.
 - Alert rules omit owner, window, labels, annotations, or expected noise behavior.
@@ -162,3 +154,4 @@ Use SLO/user-journey symptoms, layered health models, golden signals, fault-doma
 | Urgent alerts on causes | Alert on symptoms; use causes for debugging. |
 | Ignoring changes | Add deployment, config, and feature markers. |
 | Logging prose | Use stable structured fields. |
+| Requiring request IDs on every record | Use request/trace IDs only for request context and the applicable job/run/message/change/operation identifier elsewhere; never synthesize dummy IDs. |

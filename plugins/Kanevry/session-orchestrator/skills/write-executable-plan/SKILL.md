@@ -190,7 +190,7 @@ Write to: `docs/plans/YYYY-MM-DD-<feature-slug>.md`
 
 Use the template in `plan-template.md` (same directory as this SKILL.md) as the structural guide. Fill every slot. The written plan must:
 
-- Open with `# Plan: <feature title>` and a `Source:` / `Created:` / `Status: draft` header block
+- Open with `# Plan: <feature title>` and a `Source:` / `Created:` / `Status: draft` header block. The `Source:` line MUST carry the tracking Issue/Epic reference inline as `#NNN` (e.g. `Source: docs/prd/2026-07-09-foo.md (#786)`). This `#NNN` is load-bearing: it is the anchor the `archive-closed-plans` custom-phase reads (via `scripts/archive-closed-prds.mjs`) to detect that a plan's feature/Epic is closed and archive the plan into the Meta-Vault. A plan with no `#NNN` in its header is never archived (fail-closed `no-epic-ref`) — it lingers in `docs/plans/` indefinitely.
 - Include a whole-plan `## Files` section listing all Create / Modify / Test paths across all Tasks
 - Contain one `## Task N: <title>` section per Task, each with its per-task `### Files` block and Steps 1-5
 - Pass the Phase 4 linter with zero hits

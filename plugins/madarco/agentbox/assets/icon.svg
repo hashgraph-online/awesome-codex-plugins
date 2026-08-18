@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="AgentBox">
+  <rect width="512" height="512" rx="96" fill="#0d1117"/>
+  <!-- back box (parallel) -->
+  <g opacity="0.45">
+    <path d="M150 150 L286 110 L398 150 L262 190 Z" fill="#3b82f6"/>
+    <path d="M150 150 L262 190 L262 318 L150 278 Z" fill="#1e40af"/>
+    <path d="M398 150 L262 190 L262 318 L398 278 Z" fill="#2563eb"/>
+  </g>
+  <!-- front box -->
+  <g>
+    <path d="M114 214 L256 170 L398 214 L256 258 Z" fill="#60a5fa"/>
+    <path d="M114 214 L256 258 L256 402 L114 358 Z" fill="#2563eb"/>
+    <path d="M398 214 L256 258 L256 402 L398 358 Z" fill="#1d4ed8"/>
+  </g>
+</svg>

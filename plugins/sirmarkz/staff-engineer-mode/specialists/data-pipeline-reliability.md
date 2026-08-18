@@ -1,6 +1,6 @@
 ---
 name: data-pipeline-reliability
-description: "Use when designing or operating batch/streaming pipelines needing freshness SLIs, validation, lineage, or replay"
+description: "Use when designing or operating batch/streaming pipelines needing freshness SLIs, validation, replay, or recovery"
 ---
 
 # Data Pipeline Reliability
@@ -65,17 +65,6 @@ Critical data pipelines are production systems whose users notice stale, missing
 Treat critical pipelines like services: SLI/SLO, validation checks, lineage, idempotent replay, symptom alerts, and recovery runbooks. A successful job is not enough if published data is stale, incomplete, or wrong.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 

@@ -1,12 +1,14 @@
 ---
 name: dev-code-review
-description: 'Use when reviewing uncommitted or staged git changes before commit. Trigger on: 帮我 commit, 我要 commit, commit 一下, 准备提交, pre-commit, 提交前检查, 看下这次修改, commit 前看一下, I want to commit, let''s commit, review my changes. Checks conventions, functionality, wiring, comments, and dead code; emits a commit message only when READY. Does not mutate the working tree. Route to dev-commit-writer only when the user explicitly asks to skip review or wants only a commit message.'
+description: 'Use when reviewing uncommitted or staged git changes before commit. Trigger on: 帮我 commit, 我要 commit, commit 一下, 准备提交, pre-commit, 提交前检查, 看下这次修改, commit 前看一下, I want to commit, let''s commit, review my changes. Checks conventions, functional correctness, security/reliability/performance hotspots, wiring, comments, and dead code; emits a commit message only when READY. Does not mutate the working tree. Route to dev-commit-writer only when the user explicitly asks to skip review or wants only a commit message.'
 ---
 
 # Dev Code Review
 
+IRON LAW: NO READY VERDICT WITHOUT WIRING EVIDENCE, AND NO COMMIT MESSAGE UNLESS READY.
+
 Focused review on the **current git working tree** right before a commit.
-Goal: catch 规范、功能、闭环、注释、废代码 problems **before** they enter history.
+Goal: catch 规范、功能、安全/可靠性风险、闭环、注释、废代码 problems **before** they enter history.
 
 This is NOT a full architecture review. Stay scoped to what actually changed in this diff.
 
@@ -62,6 +64,18 @@ skill 内部规则在与 baseline 冲突时**以局部为准**(例如严重度 r
 
 ---
 
+## Red flags — backtrack if any appear
+
+If any red flag appears, stop and correct the review before reporting:
+
+- You judged 闭环 without running the required `git grep` evidence command or naming an exemption.
+- A finding has no concrete `path:line`, no clear axis, or no actionable fix.
+- You are about to report an architecture/style preference as P0/P1 without a concrete functional, security, reliability, performance, wiring, or maintainability risk.
+- The diff is large or mixed-concern, but you have not done the scope check.
+- Verdict is not `✅ READY`, but you are about to output a `Commit` section.
+
+---
+
 ## Step 1 — Gather the change set
 
 Run these read-only commands. They never mutate the working tree:
@@ -80,6 +94,12 @@ git log --oneline -10     # recent commit message style
 - If `$ARGUMENTS` contains `--staged` / `staged` / `--cached` → restrict to `git diff --cached`.
 - If `$ARGUMENTS` contains `--path=<glob>` (or a bare path) → restrict to that path.
 - If there are zero changes → stop and tell the user. Do not invent findings.
+
+### Diff size / concern grouping
+
+- If the diff is large (>500 changed lines), summarize changed files by module/feature area before judging findings, then review in batches. Keep the final report ≤60 lines; do not downgrade concrete blockers just because the diff is large.
+- If the diff mixes unrelated concerns, group your reasoning by logical feature area and apply the baseline scope check. Unrelated drive-by changes that should be split remain a P1 scope finding.
+- For generated, lockfile, or pure data-heavy diffs, review the human-authored source of truth first and mention skipped generated/data files in Scope.
 
 ### File-reading rules
 
@@ -105,7 +125,8 @@ Use this rubric to keep severity consistent across runs:
 - **P0 (BLOCK)** — any of:
   - 未闭环 (new symbol / route / component / config key with no consumer)
   - Secret / credential / API key / token leaked
-  - Clear functional defect that will fail on the first real call (null-deref guaranteed, inverted condition, broken auth check, SQL injection)
+  - Clear functional defect that will fail on the first real call (null-deref guaranteed, inverted condition, broken auth check, injection)
+  - Security flaw with direct exploitability or data exposure (auth bypass, missing tenant/ownership check, unsafe command/file path from user input)
   - Destructive change that breaks others' working tree (broken migration, deleted public API still in use)
 - **P1 (FIX)** — any of:
   - Unhandled edge case (null / empty / 0 / negative / overflow / concurrent re-entry) where the path is reachable
@@ -114,6 +135,7 @@ Use this rubric to keep severity consistent across runs:
   - Project lint config violation
   - Naming / style severely inconsistent with surrounding file
   - Missing input validation at a trust boundary
+  - Reachable reliability/performance regression (race condition, missing transaction/idempotency, N+1/hot-path loop, unbounded memory/IO)
 - **P2 (NIT)** — any of:
   - Redundant / stale / decorative comments
   - Small duplicated block (one helper would do)
@@ -138,6 +160,16 @@ Before judging the functional axis, scan `.claude/artifacts/{designs,plans,fixes
 - If multiple unrelated slugs exist, do not guess; mention that artifact alignment could not be determined.
 
 Clear divergence from an active spec, ADR, or fix artifact is a functional finding. If the implementation is reasonable but the artifact is stale, report artifact drift instead of silently accepting the mismatch.
+
+### Risk checklist loading
+
+Load `references/risk-checklist.md` **only when relevant**:
+
+- Diff touches auth/authz, tenant or ownership boundaries, network/API handlers, database writes/queries, file paths, shell commands, deserialization, crypto, logging of payloads, dependency/source changes, concurrency, caching, pagination, or hot-path loops.
+- Diff adds/removes public endpoints, background jobs, migrations, feature flags, SDK/API clients, or code that handles untrusted input.
+- You suspect a security/reliability/performance issue but need a compact checklist to avoid missing common cases.
+
+Keep findings mapped to the existing axes. Security, reliability, and performance problems normally belong to **功能**, unless the issue is purely unused/dead code.
 
 ### 1. 规范 (Code style & conventions)
 
@@ -166,6 +198,9 @@ Read the diff as if you have to ship it:
 - Async / await / Future / Promise correctness — no fire-and-forget that should be awaited.
 - State updates: are they safe under concurrent calls / re-entry?
 - Inputs from network / user / disk validated at the boundary?
+- Security boundaries: auth/authz/tenant checks preserved; no injection, SSRF, path traversal, unsafe deserialization, weak crypto, or sensitive logging introduced.
+- Reliability/data integrity: transactions/idempotency/retry semantics remain correct; no check-then-act race, lost update, partial write, or resource leak.
+- Performance: no new N+1 query, unbounded pagination/load, expensive hot-path loop, cache without invalidation/TTL, or main-thread blocking work.
 
 ### 3. 闭环 (Is the change actually wired up end-to-end?)
 
@@ -225,12 +260,24 @@ Comments should explain **why**, not **what**. Flag:
 - Re-exports / shims / "for backwards compat" wrappers added without a real consumer.
 - Empty files, empty classes, placeholder stubs that this diff didn't actually fill in.
 - Old code path the new code replaced — should it be deleted in this same commit?
+- Deletion candidates: distinguish **safe delete now** from **defer with plan**.
+  - Safe delete now → list in `Cleanup` only when evidence shows no active consumers and deletion is within this commit's scope.
+  - Defer with plan → report as a P2/P1 finding instead of `Cleanup`, naming the missing evidence/precondition (telemetry, migration, external consumer check, rollback path).
 
 ---
 
 ## Step 4 — Report
 
 输出语言跟随用户提问语言(中文提问出中文报告)。**严格按下列模板**,不要加寒暄、不要复述用户原话、不要解释自己在做什么。
+
+Before output, run this self-check:
+
+- Verdict matches the rubric: P0 / 闭环 ✗ / secret → `❌ BLOCK`; P1 only → `⚠ FIX P1`; no P0/P1/debug/dead-code → `✅ READY`.
+- Scope includes file count, added/removed lines, and staged/unstaged/both.
+- Every new public symbol has `git grep` evidence or an explicit framework/public-API exemption.
+- Every finding has `path:line`, one of `规范 / 功能 / 闭环 / 注释 / 废码`, and one actionable fix sentence.
+- `Commit` is omitted unless Verdict is `✅ READY`.
+- Full report stays ≤60 lines.
 
 ```
 ━━━ Dev Code Review ━━━
@@ -275,7 +322,7 @@ Commit
 3. **Axis Check** 用 `✓ / ⚠ / ✗` 单字符,**仅在非 ✓ 时**追加一行说明。全部 ✓ 时整张表保留但说明列留空。
 4. **Findings** 严格按 `[P?] path:line  <axis>  <问题>` 单行 + 缩进 `→ <修复>` 单行 的两行结构。axis 取值固定:`规范 / 功能 / 闭环 / 注释 / 废码`。
 5. **没有 P0/P1/P2 时**,整段 `Findings` 写一行 `  none` 即可,不要写"无"、"暂无问题"这类废话。
-6. **Cleanup 段** 仅列出**可一次性删除**的内容。如无可清理项,整段省略(连标题一起省)。
+6. **Cleanup 段** 仅列出**可一次性删除**的内容。如无可清理项,整段省略(连标题一起省)。需要迁移、遥测、外部消费者确认或 rollback plan 的删除项不要放 Cleanup,改写成 Finding。
 7. **Commit 段** 仅在 Verdict = `✅ READY` 时输出。其他 Verdict 下整段省略 —— 还没到提交时机。
 8. Commit message 格式:跟随仓库 `git log --oneline -10` 观察到的风格;仓库无明显风格时退回 conventional commits(`feat|fix|refactor|docs|test|chore|perf|ci|style|build`)。subject 不加句号,祈使语气,≤72 字符。
 9. 同一文件多个 finding 按行号升序排列。跨文件按 P0 → P1 → P2 排列,同级别内按文件路径字典序。
@@ -320,8 +367,10 @@ Cleanup
 - **不要** mutate working tree(不要 `git add` / `git commit` / `git stash` / 改文件),除非用户在确认报告后明确说"帮我修"。
 - **不要** 编造 line number —— 没把握就只引用文件名。
 - **不要** 把"代码能跑"等同于"闭环" —— 必须验证调用方存在(或属于豁免清单)。
+- **不要** 把架构洁癖当成阻塞问题 —— 只有造成具体功能、安全、可靠性、性能、闭环或维护风险时才报 finding。
 - **不要** 输出超长报告。没问题的轴线一句话带过即可,把篇幅留给真问题。
 - **不要** 一次性把整个 `references/lang-conventions.md` 读进来,只读本次 diff 涉及的语言小节。
+- **不要** 默认加载 `references/risk-checklist.md`;只有命中 Risk checklist loading 条件时才读。
 - 用户说"只看 staged" / "只看某路径"时严格遵守,不要扩大范围。
 - 评审与实现分开:本 skill 只评审,不写实现代码。如需修复,由用户在下一轮明确指示后进行。
 

@@ -1,0 +1,68 @@
+{
+  "name": "@maestrofrontier/frontier",
+  "version": "1.15.0",
+  "description": "Maestro Frontier is an opt-in, zero-dependency local multi-CLI fusion engine for AI coding agents. Compose an Opus 5 and Codex model panel, set provider-supported effort, judge its one-shot read-only responses, and synthesize one grounded answer. Optional orchestration policy hooks are independent and off by default.",
+  "keywords": ["multi-cli-fusion", "fusion-engine", "frontier", "model-panel", "orchestration", "claude-code", "gemini", "codex", "agents"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbanderas/maestro.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "maestro": "bin/maestro.cjs"
+  },
+  "files": [
+    "bin/maestro.cjs",
+    "frontier/catalog.cjs",
+    "frontier/smoke.cjs",
+    "frontier/compose.cjs",
+    "frontier/cli.cjs",
+    "frontier/config.cjs",
+    "frontier/dispatch.cjs",
+    "frontier/judge.cjs",
+    "frontier/progress.cjs",
+    "frontier/presets.cjs",
+    "frontier/run.cjs",
+    "frontier/runlock.cjs",
+    "frontier/schema.cjs",
+    "frontier/semaphore.cjs",
+    "frontier/synthesize.cjs",
+    "scripts/install.cjs",
+    "scripts/codex-telemetry.cjs",
+    ".codex-plugin/",
+    ".agents/plugins/marketplace.json",
+    "codex-skills/",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".cursorrules",
+    "docs/orchestration.md",
+    "docs/codex.md",
+    "commands/",
+    "integrations/",
+    "assets/icon.png",
+    "hooks/frontier-autorun.cjs",
+    "hooks/hooks.json",
+    "hooks/maestro-discipline-gate.cjs",
+    "hooks/maestro-doctrine-guard.cjs",
+    "hooks/maestro-gate-reminder.cjs",
+    "hooks/maestro-gate-telemetry.cjs",
+    "hooks/maestro-loop-guard.cjs",
+    "hooks/maestro-phase-scope.cjs",
+    "hooks/maestro-statusline-sync.cjs",
+    "hooks/maestro-subagent-guard.cjs",
+    "hooks/maestro-terse-mode.cjs",
+    "hooks/maestro-toolbudget-advisory.cjs",
+    "hooks/maestro-verify-gate.cjs",
+    "settings/cli.cjs",
+    "settings/config.cjs"
+  ],
+  "scripts": {
+    "test": "node scripts/run-hook-tests.cjs",
+    "lint": "npx --yes markdownlint-cli2",
+    "bench-verify": "node scripts/bench-verify.cjs"
+  }
+}

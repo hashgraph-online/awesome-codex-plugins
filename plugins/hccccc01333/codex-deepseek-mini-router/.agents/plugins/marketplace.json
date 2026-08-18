@@ -1,0 +1,20 @@
+{
+  "name": "codex-deepseek-mini-router",
+  "interface": {
+    "displayName": "DeepSeek Mini-Router"
+  },
+  "plugins": [
+    {
+      "name": "deepseek-minimal-anchor",
+      "source": {
+        "source": "local",
+        "path": "./plugins/deepseek-minimal-anchor"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

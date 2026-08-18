@@ -1,0 +1,43 @@
+{
+  "name": "agentpack",
+  "version": "0.4.3",
+  "description": "Thin Codex plugin for AgentPack ranked repo context.",
+  "author": {
+    "name": "AgentPack",
+    "url": "https://github.com/vishal2612200/agentpack"
+  },
+  "homepage": "https://vishal2612200.github.io/agentpack/codex-plugin/",
+  "repository": "https://github.com/vishal2612200/agentpack",
+  "license": "AGPL-3.0-only",
+  "keywords": [
+    "agentpack",
+    "codex",
+    "context",
+    "coding-agents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AgentPack",
+    "shortDescription": "Start Codex with ranked repo context.",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/route-demo.svg"
+    ],
+    "longDescription": "AgentPack is a local context engine, not a coding agent. This plugin gives Codex lightweight commands for routing tasks, refreshing context packs, and reviewing diffs with the existing local AgentPack CLI or MCP tools.",
+    "developerName": "AgentPack",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://vishal2612200.github.io/agentpack/",
+    "privacyPolicyURL": "https://vishal2612200.github.io/agentpack/privacy/",
+    "termsOfServiceURL": "https://vishal2612200.github.io/agentpack/terms/",
+    "defaultPrompt": [
+      "Use $agentpack-review to review the current PR.",
+      "Use $agentpack-resolve to address all PR comments.",
+      "Use $agentpack to orient this repository task."
+    ],
+    "brandColor": "#1F6FEB"
+  }
+}

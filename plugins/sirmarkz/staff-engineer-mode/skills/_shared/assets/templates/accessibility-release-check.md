@@ -4,6 +4,8 @@
 
 - Product or surface:
 - Release or change:
+- Conformance target for this surface:
+- Target basis (web content / native platform / documented mapping):
 - Audience and assistive technologies:
 - Source of truth for requirements:
 

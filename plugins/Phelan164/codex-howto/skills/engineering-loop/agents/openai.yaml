@@ -1,0 +1,4 @@
+interface:
+  display_name: "Engineering Loop"
+  short_description: "Develop, test, review, and verify changes"
+  default_prompt: "Use $engineering-loop to implement this change through a complete local develop-test-review cycle."

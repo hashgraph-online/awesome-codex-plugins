@@ -1,0 +1,21 @@
+{
+  "name": "costguard",
+  "interface": {
+    "displayName": "Costguard"
+  },
+  "plugins": [
+    {
+      "name": "costguard",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/mbanderas/costguard.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -182,4 +182,4 @@ The Promotion AUQ's "Worktree anlegen" path (P3.1) creates a new sibling worktre
 
 - `bootstrap-gate.md` — sibling Phase-0 gate (HARD; orthogonal layer)
 - `.claude/rules/parallel-sessions.md` — PSA-001 through PSA-006 (behavioural rules complementing this mechanical layer)
-- `docs/prd/2026-05-26-parallel-aware-sessions.md` § 3 P1 + § 3.A P1 — acceptance criteria this preamble satisfies
+- "Parallel-Aware Sessions" (#568; archived in the private Meta-Vault) § 3 P1 + § 3.A P1 — acceptance criteria this preamble satisfies

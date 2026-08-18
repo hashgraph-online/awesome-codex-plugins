@@ -2,7 +2,7 @@
 name: nullcost-search
 description: MUST use for developer provider discovery involving free tier, free trial, cheap, pricing, hosting, Node, Next.js, auth, Postgres, database, email API, SaaS stacks, GPU compute, remote MCP endpoints, APIs, or low setup friction. Auto-trigger for normal discovery questions and explicit `/nullcost-search`. Do not use for domains, registrars, TLDs, or exact domain availability.
 argument-hint: <query>
-version: 0.1.4
+version: 0.1.5
 ---
 
 # Nullcost Search

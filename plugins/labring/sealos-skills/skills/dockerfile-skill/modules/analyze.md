@@ -4,6 +4,14 @@
 
 Analyze a project to extract all information needed for Dockerfile generation.
 
+## Input and Ownership Contract
+
+Accept a local path or GitHub source plus an optional readiness report. Record
+source provenance, readiness fields, detected framework/package manager, workspace
+scope, migration/runtime concerns, candidate output files, and `redaction.ok`.
+Analysis is read-only. It produces a plan for named packaging files and never
+silently replaces an existing project file.
+
 ## Execution Steps
 
 ### Pre-loaded Context (Optional)
@@ -252,8 +260,27 @@ Look for:
 - `Dockerfile` / `Dockerfile.*`
 - `docker-compose.yml` / `docker-compose.yaml`
 - `.dockerignore`
+- `docker-entrypoint.sh` / `docker-entrypoint-*.sh`
+- `DOCKER.md` / `docker-deploy.md`
+- `.env.docker.local` as a placeholder-only environment template
 
-If found, extract key decisions for reference (DO NOT blindly copy).
+If found, extract key decisions for reference and add each path to the owned-file
+decision table. Do not blindly copy or replace an existing file. Preserve existing
+documentation, entrypoints, and environment templates unless the user authorizes a
+specific replacement.
+
+For each candidate file, record:
+
+```yaml
+owned_files:
+  - path: Dockerfile
+    status: existing | missing
+    action: preserve | update_with_authorization | create
+    reason: redacted explanation
+```
+
+When `action: update_with_authorization` is required, stop before mutation and
+return the exact file scope, impact, and safe next action.
 
 ### Step 8: Detect Workspace/Monorepo Configuration
 
@@ -303,6 +330,9 @@ workspace:
   - "apps/desktop/src/main/package.json"
   - "e2e/package.json"
 ```
+
+Merge workspace findings into the analysis payload. Keep the payload small enough
+for the generation module to reuse without rescanning the repository.
 
 ### Step 9: Detect Package Manager Configuration
 

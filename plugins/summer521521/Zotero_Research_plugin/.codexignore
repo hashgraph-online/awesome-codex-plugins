@@ -1,0 +1,15 @@
+.git/
+node_modules/
+.venv/
+tmp/
+logs/
+*.log
+*.sqlite
+*.db
+*.pdf
+*.epub
+*.docx
+*.bak
+*.zip
+*.7z
+.env

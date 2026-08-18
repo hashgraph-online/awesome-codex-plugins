@@ -1,0 +1,15 @@
+{
+  "name": "vidseeds-mcp",
+  "version": "1.9.2",
+  "private": true,
+  "description": "Public VidSeeds.ai MCP connector package for Codex, Claude Code, and registry-compatible MCP catalogs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarrotGamesStudios/vidseeds-mcp.git"
+  },
+  "scripts": {
+    "scan": "plugin-scanner scan . --profile public-marketplace",
+    "verify": "plugin-scanner verify ."
+  }
+}

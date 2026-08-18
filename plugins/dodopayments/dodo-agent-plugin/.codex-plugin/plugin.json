@@ -1,6 +1,6 @@
 {
   "name": "dodopayments",
-  "version": "0.3.3",
+  "version": "0.5.0",
   "description": "Dodo Payments tools for Codex: integration skills + API/docs MCP servers.",
   "author": {
     "name": "Dodo Payments",
@@ -21,9 +21,10 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
+    "composerIcon": "./assets/icon.svg",
     "displayName": "Dodo Payments",
     "shortDescription": "Payments, billing, subscriptions - integrated into Codex.",
-    "longDescription": "Official Dodo Payments plugin. Bundles eight integration skills (checkout, subscriptions, webhooks, usage-based billing, credits, license keys, billing SDK, best practices) plus two MCP servers: a live API server and a documentation search server.",
+    "longDescription": "Official Dodo Payments plugin. Bundles seventeen integration skills (checkout, subscriptions, mobile checkout, webhooks, framework adapters, usage-based billing, credits, license keys, products, discounts, localized pricing, customers, refunds and disputes, billing SDK, Better Auth, testing and go-live, best practices) plus two MCP servers: a live API server and a documentation search server.",
     "developerName": "Dodo Payments",
     "category": "Developer Tools",
     "defaultPrompt": [

@@ -125,7 +125,7 @@ in `../_shared/test-decay-risks.md`.
 
 Follow the same sub-steps as Step 2 (classify → apply → verify → summarize),
 using T-prefix risk codes. For production files with no test coverage at all,
-record as T2 (Missing Tests). A test scaffold that adds a pure-function test is
+record as T5 (Coverage Illusion). A test scaffold that adds a pure-function test is
 **Safe**; adding tests that require new test infrastructure is **Residual**.
 
 ---
@@ -222,7 +222,7 @@ Output the final report. Use the standard Report Template from
 ```
 # Brooks-Lint — Full Sweep Report
 Mode: Full Sweep | Scope: <files or directory>
-Config: .brooks-lint.yaml applied (N risks disabled, M paths ignored)   # omit if no config
+Config: .brooks-lint.yaml applied (strictness: <preset>, N risks disabled, M paths ignored)   # omit if no config
 
 ## Dimension Summary
 | Dimension | Scanned | Safe Applied | Extended Applied | Reverted | Residual |

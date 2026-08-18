@@ -5,8 +5,7 @@ description: >
   flags structural decay across a codebase, drawing on twelve classic engineering books.
   Triggers when: user asks to audit architecture, review folder/module structure,
   check for circular imports, understand how the codebase is organized, or asks
-  "does this follow clean architecture?", "why does everything depend on everything?",
-  "are our layers correct?", "where should this code live?".
+  "does this follow clean architecture?" or "why does everything depend on everything?".
   Also triggers for onboarding requests: "explain this codebase to a new developer"
   or "give me a codebase tour" (use onboarding mode).
   Do NOT trigger for: PR-level code review (use brooks-review) or line-level refactoring
@@ -17,10 +16,12 @@ description: >
 
 ## Setup
 
-1. Read `../_shared/common.md` for the Iron Law, Project Config, Report Template, and Health Score rules
-2. Read `../_shared/source-coverage.md` for book-level coverage, exceptions, and tradeoffs
-3. Read `../_shared/decay-risks.md` for symptom definitions and source attributions
-4. Read `architecture-guide.md` in this directory for the audit framework
+Read in order:
+
+1. `../_shared/common.md` — Iron Law, Project Config, Report Template, Health Score
+2. `../_shared/source-coverage.md` — book coverage, exceptions, tradeoffs
+3. `../_shared/decay-risks.md` — symptom definitions and source attributions
+4. `architecture-guide.md` (this directory) — the audit framework
 
 ## Process
 
@@ -29,8 +30,8 @@ description: >
 directory and follow it instead of `architecture-guide.md`. This mode explains rather
 than diagnoses — no Health Score, no Iron Law findings.
 
-**If the user has not specified files or a directory to audit:** apply Auto Scope
-Detection from `../_shared/common.md` to determine the audit scope before proceeding.
+**Scope:** if the user did not specify files or a directory, apply Auto Scope Detection
+(`../_shared/common.md`) first.
 
 1. Gather codebase context and draw the module dependency graph as Mermaid (Steps 0–1 of the guide)
 2. Scan for each decay risk in the order specified (Steps 2–4 of the guide)

@@ -16,6 +16,42 @@ AMQ does **not** protect against:
 - **Malicious agents with same-user access**: If an attacker has shell access as the same user, they can read/write queue files directly
 - **Multi-user scenarios**: AMQ is not designed for use across user accounts
 
+### Rooted Delivery Boundary
+
+After `send` or `reply` authorizes a source and destination tree, AMQ opens each
+tree once with Go's `os.Root` and performs mailbox delivery, directory sync,
+presence touch, and outbox writes relative to that pinned directory capability.
+Replacing the authorized path or one of its ancestors with a symlink cannot
+redirect those writes outside the opened tree. Relative symlinks that remain
+inside the tree continue to work; symlinks that escape it are refused.
+
+This boundary does not defend against filesystem namespace changes below an
+already opened root, including privileged bind mounts, or against writing to
+pre-existing device files. Those cases require separate mount and file-type
+hardening and remain outside the rooted-delivery guarantee.
+
+### Threat model and accepted residuals
+
+AMQ is a **personal, single-user, on-machine** tool: each engineer runs it under
+their own account on their own machine. The security bar reflects that. An
+attacker who already has the ability to run code as your user, or to swap
+symlinks in your home/ancestor directories mid-command, has full control of your
+environment; defending the message queue against them would not meaningfully
+improve your posture. Accordingly, the following are **accepted residuals**, not
+defended against:
+
+- **Untrusted-ancestor / TOCTOU alias swaps.** A different-euid local attacker
+  who can retarget an ancestor symlink between commands (cross-command alias
+  retarget for `--project`/`--session` routes; ABA swaps of config or message
+  files) is out of scope. Legitimate in-tree symlinks continue to work.
+- **Bind mounts and device files below an opened root** (as noted above).
+
+What AMQ **does** defend correctness for, because these bite without any
+attacker: no duplicate message injection or delivery, no cross-tree leakage from
+ordinary misconfiguration, owner-only `0700`/`0600` permissions, and handle/ID
+validation. Bugs and reliability are the priority; same-machine security
+hardening beyond the above is intentionally out of scope.
+
 ### Known Risks
 
 #### TIOCSTI Terminal Injection (`amq wake`)
@@ -42,6 +78,8 @@ AMQ enforces strict permissions:
 - **Message IDs**: Cannot start with `.`, cannot contain path separators
 
 ## Reporting a Vulnerability
+
+Windows runtime is out of scope for cross-tree identity and `.amqrc` authority hardening; it degrades to legacy lexical behavior.
 
 Please report security issues by opening a GitHub Security Advisory for this repository. If that is not available, open a regular issue and label it `security`.
 

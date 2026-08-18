@@ -22,6 +22,12 @@
 brew install avivsinai/tap/bitbucket-cli
 ```
 
+### WinGet (Windows)
+
+```powershell
+winget install AvivSinai.Bitbucket-CLI
+```
+
 ### Scoop (Windows)
 
 ```powershell
@@ -168,7 +174,7 @@ npx skild install @avivsinai/bkt -t claude -y
 
 ```bash
 git clone https://github.com/avivsinai/bitbucket-cli.git
-cp -r bitbucket-cli/.claude/skills/bkt ~/.claude/skills/
+cp -r bitbucket-cli/skills/bkt ~/.claude/skills/
 ```
 
 </details>
@@ -396,9 +402,14 @@ make test       # Run unit tests
 make fmt        # Format code
 make lint       # Run linters
 make tidy       # Tidy go modules
+make check-skills # Verify generated skill mirrors
+make sync-skills  # Regenerate skill mirrors from skills/bkt
 ```
 
 `go test ./...` runs fast smoke coverage that wires the CLI against an in-memory Bitbucket mock (see `pkg/cmd/smoke/cli_smoke_test.go`).
+
+`skills/bkt/` is canonical. After editing it, run `make sync-skills` to refresh
+the committed `.claude/skills/bkt/` and `.agents/skills/bkt/` mirrors.
 
 ## Troubleshooting
 

@@ -61,7 +61,7 @@ description: >
 
 - `karpathy-guidelines`
 - `maven-qa`
-- `browser-smoke-testing`
+- `browser-qa`
 - `systematic-debugging`
 
 

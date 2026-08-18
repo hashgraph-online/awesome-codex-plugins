@@ -84,10 +84,28 @@ wrappers, the SDK handles NULL and error plumbing — no inner `try/catch`
 needed. The `try/catch` rule applies to all entry points called directly
 by the server and to every VDF implementation function.
 
-**Deterministic attribute.** Mark VDFs used in CHECK constraints as
-deterministic (exact method: from builder headers) or the server rejects
-the `CREATE TABLE`. Functions returning random or time-dependent values
-(e.g., `*_generate`, `uuid_*v7`) must NOT be marked deterministic.
+**Deterministic attribute.** `.deterministic(bool)` controls whether a VDF
+may appear in generated columns and CHECK constraints — the server rejects
+non-deterministic VDFs in both contexts. Set `deterministic(true)` on pure
+functions (same input always produces the same output). Do not set it on
+generators, random-output functions, or time-dependent functions (e.g.,
+`*_generate`, `uuid_*v7`). Default is `false`.
+
+Note: the flag does not currently affect query optimizer caching for VEF
+functions. Its only effect today is gating generated-column and
+CHECK-constraint eligibility.
+
+**Hash function for custom types.** `.hash<&fn>()` on `make_type` is
+optional. When omitted the server falls back to hashing the raw binary
+bytes of the stored value — correct for types with a canonical binary
+encoding (one unique bit pattern per logical value). It is incorrect for
+types that store floating-point data: `-0.0` and `+0.0` have different
+bit patterns but compare as equal, so the binary fallback places them in
+different hash buckets and GROUP BY / COUNT(DISTINCT) produce wrong
+results. Add `.hash<&fn>()` whenever your type stores floats or any value
+with multiple valid binary representations for the same logical value.
+Normalize before hashing (e.g., `v = (v == 0.0) ? 0.0 : v` converts
+`-0.0` to `+0.0`).
 
 **Entry point shape** (verbal — do not copy code from this skill): Every
 VDF entry point checks the input null flag, performs its work, sets the

@@ -238,7 +238,7 @@ npx skills add alchaincyf/huashu-design
 
 - `agents/specialists/` 提供规划、review、build-fix、验证、文档和语言专项能力。
 - `skills/` 当前承载 195+ 技能，覆盖六大类：
-	- 调试与验证：browser-smoke-testing、pairwise-test-design、testcontainers-integration-testing、systematic-debugging、eval-harness 等
+	- 调试与验证：browser-qa、pairwise-test-design、testcontainers-integration-testing、systematic-debugging、eval-harness 等
   - 高能动性与压力协议：pua、pua-p7、pua-p9、pua-pro、pua-loop、pua-yes、pua-mama
 	- 编排与效率：parallel-execution、wave-execution、strategic-compact、cost-aware-llm-pipeline、subagent-driven-development
 	- 学习与记忆：continuous-learning-v2、error-experience-library、evolution-core
@@ -351,7 +351,15 @@ TSP 的公开能力是在多个社区项目、技能仓库和工程方法论的�
 - 分发：通过安装模块 `knowledge-graph` 与组件 `capability:knowledge-graph` 提供；默认纳入 `developer`、`team`、`research` 与 `full` profile，`core` 保持轻量。
 - 治理边界：TSP 通过 `scripts/install-codegraph.js` 使用 CodeGraph 官方 standalone installer，不使用 `--target=auto`；Claude `SessionStart` 可在新项目静默执行 `codegraph init -i`，Codex/OpenCode 仅写入说明和诊断边界；Graphify/GitNexus 的自动 setup 类命令仍不在本仓库执行。
 
-## 近期新增功能（v2.0.0 → v2.3.0）
+## 近期新增功能（v2.0.0 → v2.5.4）
+
+### Governance Freshness Alignment（v2.5.4）
+
+- npm 包版本、插件 manifest、README 近期功能范围和 CHANGELOG 顶部版本已统一到 `2.5.4`。
+- 当前完整测试 runner 为 `node tests/run-all.js`，验证覆盖 297 个测试点（229 个 JS 测试点 + 68 个 Python unittest），不再沿用 v2.1.0 的历史“97 个用例”口径。
+- `validate-doc-freshness.js` 已接入 `.github/workflows/ci.yml`，在 CI 的 Build, Validate, and Install Smoke job 中作为硬门禁运行。
+- `commands-core` 的 Codex selective-install 缺口已有回归证据：`tests/test_codex_install_plan.js` 验证 full/team profile 不再跳过 `commands-core`。
+- `cangming` target 明确归入 Hidden compatibility；公开 onboarding 主线仍只聚焦 `claude`、`codex`、`opencode`。
 
 ### Karpathy Main-Flow Defaults & Release Hardening（v2.3.0）
 
@@ -499,7 +507,7 @@ YAML 驱动的 DAG 工作流执行 CLI，内置于 npm 包：
 
 - `scripts/` 目录 100% JavaScript 化，34 个 Python 脚本完成迁移/删除
 - 新增 JS smoke tests 和统一测试 runner（`tests/run-all.js`）
-- 全量测试 97 个用例通过
+- v2.1.0 当轮验收曾覆盖 97 个用例；当前完整 runner 已扩展为 297 个测试点，见 v2.5.4 治理对齐记录
 
 ### VitePress 文档站
 
@@ -685,8 +693,8 @@ OPENCODE_CONFIG_DIR=/tmp/opencode ./scripts/install-opencode.sh
 
 | Support level | Targets | `team` profile depth | Notes |
 |------|---------|----------------------|-------|
-| Recommended | `claude`, `codex`, `opencode` | 完整主链；仅跳过 target-intentional runtime gaps | 完整公开 workflow 链路、quick-start、安装验证与回归覆盖 |
-| Hidden compatibility | `cursor`, `antigravity`, `gemini`, `codebuddy`, `copilot`, `windsurf`, `augment` | 不作为公开承诺 | 适配器可继续存在以兼容旧用户，但不进入公开 wizard / release matrix |
+| Recommended | `claude`, `codex`, `opencode`, `grok` | 完整主链；仅跳过 target-intentional runtime gaps | 完整公开 workflow 链路、quick-start、安装验证与回归覆盖 |
+| Hidden compatibility | `antigravity`, `gemini`, `cangming`, `codebuddy`, `copilot`, `windsurf`, `augment` | 不作为公开承诺 | 适配器可继续存在以兼容旧用户，但不进入公开 wizard / release matrix |
 
 当前公开 quick-start / recipes / examples 聚焦 `claude`、`codex`、`opencode`。其他 targets 属于隐藏兼容，不应按 full parity 预期使用。
 

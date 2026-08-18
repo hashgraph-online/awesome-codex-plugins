@@ -1,156 +1,187 @@
 #!/usr/bin/env python3
-"""Verify that the research bundle is present before manual analysis starts."""
+"""Проверить проект исследования по переносимому манифесту."""
 
 from __future__ import annotations
 
 import argparse
 import csv
 import json
-from pathlib import Path
+import os
+import re
+import tempfile
+from pathlib import Path, PurePosixPath
+from urllib.parse import urlparse
 
 
-def pick_first_existing(paths: list[Path]) -> Path:
-    for path in paths:
-        if path.exists():
-            return path
-    return paths[0]
+class VerificationError(RuntimeError):
+    pass
 
 
-def count_tsv_rows(path: Path) -> int:
-    if not path.exists():
-        return 0
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.reader(handle, delimiter="\t")
-        rows = list(reader)
-    return max(len(rows) - 1, 0)
+def safe_relative(value: str) -> Path:
+    pure = PurePosixPath(value)
+    if pure.is_absolute() or ".." in pure.parts or not pure.parts:
+        raise VerificationError(f"Небезопасный путь в манифесте: {value}")
+    return Path(*pure.parts)
 
 
-def count_json_files(path: Path) -> int:
-    if not path.exists():
-        return 0
-    return len(list(path.glob("*.json")))
+def read_tsv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        return list(reader.fieldnames or []), list(reader)
 
 
-def count_dirs(path: Path) -> int:
-    if not path.exists():
-        return 0
-    return len([item for item in path.iterdir() if item.is_dir()])
+def validate_source_register(path: Path, errors: list[str]) -> bool:
+    if not path.is_file():
+        return False
+    fields, rows = read_tsv(path)
+    required = {
+        "source_id", "source_type", "source_url", "captured_at", "status", "evidence_path",
+        "reviewer", "reviewed_at", "expires_at", "reversal_ref",
+    }
+    missing = required - set(fields)
+    if missing:
+        errors.append(f"source-register.tsv: отсутствуют поля {sorted(missing)}")
+        return False
+    confirmed_ready = True
+    for number, row in enumerate(rows, 2):
+        status = (row.get("status") or "").strip()
+        fact_values = [row.get("source_type"), row.get("source_url"), row.get("captured_at"), row.get("evidence_path"), row.get("reviewer"), row.get("reviewed_at")]
+        if status == "confirmed" and not all((value or "").strip() for value in fact_values):
+            errors.append(f"source-register.tsv:{number}: confirmed без источника, времени, доказательства или проверяющего")
+        if status != "confirmed":
+            confirmed_ready = False
+    return confirmed_ready and bool(rows)
 
 
-def count_chunk_raw_dirs(path: Path) -> int:
-    if not path.exists():
-        return 0
-    total = 0
-    for chunk_dir in path.iterdir():
-        raw_dir = chunk_dir / "raw"
-        if chunk_dir.is_dir() and raw_dir.exists():
-            total += count_dirs(raw_dir)
-    return total
+def _specific_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def validate_routing(path: Path, errors: list[str]) -> bool:
+    if not path.is_file():
+        return False
+    fields, rows = read_tsv(path)
+    required = {"intent", "domain", "serp_page_url", "site_page_url", "campaign_name", "adgroup_name", "status"}
+    missing = required - set(fields)
+    if missing:
+        errors.append(f"routing-map.tsv: отсутствуют поля {sorted(missing)}")
+        return False
+    ready = True
+    for number, row in enumerate(rows, 2):
+        domain = (row.get("domain") or "").strip()
+        if domain and ("://" in domain or "/" in domain or not re.fullmatch(r"[A-Za-z0-9.-]+", domain)):
+            errors.append(f"routing-map.tsv:{number}: поле domain смешано с адресом страницы")
+        for field in ("serp_page_url", "site_page_url"):
+            value = (row.get(field) or "").strip()
+            if value and not _specific_url(value):
+                errors.append(f"routing-map.tsv:{number}: {field} должен содержать полный адрес конкретной страницы")
+        status = (row.get("status") or "").strip()
+        meaningful = any((row.get(field) or "").strip() for field in ("intent", "serp_page_url", "site_page_url", "campaign_name", "adgroup_name"))
+        if not meaningful and status != "unverified":
+            errors.append(f"routing-map.tsv:{number}: пустой маршрут должен иметь status=unverified")
+        if status != "confirmed":
+            ready = False
+    return ready and bool(rows)
+
+
+def validate_facts(path: Path, source_path: Path, errors: list[str]) -> bool:
+    if not path.is_file() or not source_path.is_file():
+        return False
+    fields, rows = read_tsv(path)
+    required = {"fact_id", "fact", "source_id", "status", "evidence_path", "reviewer", "reviewed_at", "expires_at"}
+    missing = required - set(fields)
+    if missing:
+        errors.append(f"fact-check-log.tsv: отсутствуют поля {sorted(missing)}")
+        return False
+    _, sources = read_tsv(source_path)
+    confirmed_sources = {(row.get("source_id") or "").strip() for row in sources if (row.get("status") or "").strip() == "confirmed"}
+    ready = True
+    for number, row in enumerate(rows, 2):
+        status = (row.get("status") or "").strip()
+        if status == "confirmed":
+            values = [row.get("fact"), row.get("source_id"), row.get("evidence_path"), row.get("reviewer"), row.get("reviewed_at")]
+            if not all((value or "").strip() for value in values):
+                errors.append(f"fact-check-log.tsv:{number}: confirmed без источника, времени, доказательства или проверяющего")
+            elif (row.get("source_id") or "").strip() not in confirmed_sources:
+                errors.append(f"fact-check-log.tsv:{number}: confirmed ссылается на неподтверждённый источник")
+        else:
+            ready = False
+    return ready and bool(rows)
+
+
+def atomic_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def verify(root: Path, manifest_path: Path) -> dict[str, object]:
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise VerificationError("Манифест отсутствует или повреждён") from exc
+    if manifest.get("schema_version") != "1.0" or not isinstance(manifest.get("artifacts"), list):
+        raise VerificationError("Манифест имеет неподдерживаемую схему")
+    errors: list[str] = []
+    checks: list[dict[str, object]] = []
+    for item in manifest["artifacts"]:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+            errors.append("Манифест содержит неверное описание артефакта")
+            continue
+        relative = safe_relative(item["path"])
+        path = root / relative
+        kind = item.get("kind", "file")
+        exists = path.is_file() if kind == "file" else path.is_dir()
+        if item.get("required", True) and not exists:
+            errors.append(f"Отсутствует обязательный артефакт: {relative.as_posix()}")
+        checks.append({"path": relative.as_posix(), "kind": kind, "exists": exists})
+    for relative, required_fields in (manifest.get("tsv_contracts") or {}).items():
+        path = root / safe_relative(relative)
+        if not path.is_file():
+            continue
+        fields, _ = read_tsv(path)
+        missing = set(required_fields) - set(fields)
+        if missing:
+            errors.append(f"{relative}: отсутствуют поля {sorted(missing)}")
+    sources_ready = validate_source_register(root / "source-register.tsv", errors)
+    routes_ready = validate_routing(root / "routing-map.tsv", errors)
+    facts_ready = validate_facts(root / "fact-check-log.tsv", root / "source-register.tsv", errors)
+    return {
+        "status": "ready" if not errors else "rejected",
+        "structure_complete": not any(error.startswith("Отсутствует обязательный") for error in errors),
+        "confirmed_sources_ready": sources_ready,
+        "confirmed_routes_ready": routes_ready,
+        "confirmed_facts_ready": facts_ready,
+        "checks": checks,
+        "errors": errors,
+    }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-dir", default=".")
+    parser.add_argument("--manifest")
     parser.add_argument("--output-json", required=True)
-    parser.add_argument("--output-md", required=True)
     args = parser.parse_args()
-
     root = Path(args.project_dir).expanduser().resolve()
-    firecrawl_wave_dir = pick_first_existing(
-        [
-            root / "research/raw/competitors/firecrawl/validated-keywords-wave-02",
-            root / "research/raw/competitors/firecrawl/validated-keywords-wave-01",
-        ]
-    )
-    sitemap_wave_dir = pick_first_existing(
-        [
-            root / "research/raw/competitors/sitemaps/validated-keywords-wave-03",
-            root / "research/raw/competitors/sitemaps/validated-keywords-wave-02",
-            root / "research/raw/competitors/sitemaps/validated-keywords-wave-01",
-        ]
-    )
-    sitemap_chunk_dir = root / "research/raw/competitors/sitemaps/validated-keywords-wave-03-chunks"
-    sitemap_raw_dirs = count_dirs(sitemap_wave_dir / "raw")
-    if sitemap_raw_dirs == 0:
-        sitemap_raw_dirs = count_chunk_raw_dirs(sitemap_chunk_dir)
-
-    checks = [
-        ("client_kb", root / "client-kb.md", (root / "client-kb.md").exists()),
-        ("company_footprint", root / "research/analysis/company-footprint.md", (root / "research/analysis/company-footprint.md").exists()),
-        ("landing_inventory", root / "research/analysis/landing-inventory.md", (root / "research/analysis/landing-inventory.md").exists()),
-        ("direct_inventory", root / "research/analysis/direct-account-inventory.md", (root / "research/analysis/direct-account-inventory.md").exists()),
-        ("metrika_inventory", root / "research/analysis/metrika-goals-inventory.md", (root / "research/analysis/metrika-goals-inventory.md").exists()),
-        ("wordstat_wave1_summary", root / "research/semantics/nevgroup-lighting/raw/wordstat_wave1_single_token/_summary.json", (root / "research/semantics/nevgroup-lighting/raw/wordstat_wave1_single_token/_summary.json").exists()),
-        ("wordstat_wave2_summary", root / "research/semantics/nevgroup-lighting/raw/wordstat_wave2_two_token/_summary.json", (root / "research/semantics/nevgroup-lighting/raw/wordstat_wave2_two_token/_summary.json").exists()),
-        ("wordstat_wave1_render", root / "research/semantics/nevgroup-lighting/render/wordstat_wave1_single_token/all_rows_by_count.tsv", (root / "research/semantics/nevgroup-lighting/render/wordstat_wave1_single_token/all_rows_by_count.tsv").exists()),
-        ("wordstat_wave2_render", root / "research/semantics/nevgroup-lighting/render/wordstat_wave2_two_token/all_rows_by_count.tsv", (root / "research/semantics/nevgroup-lighting/render/wordstat_wave2_two_token/all_rows_by_count.tsv").exists()),
-        ("validated_keyword_matrix", root / "research/analysis/validated-keyword-matrix.tsv", (root / "research/analysis/validated-keyword-matrix.tsv").exists()),
-        ("geo_matrix", root / "research/jobs/geo-matrix.tsv", (root / "research/jobs/geo-matrix.tsv").exists()),
-        ("organic_jobs", root / "research/jobs/organic-serp-jobs.tsv", (root / "research/jobs/organic-serp-jobs.tsv").exists()),
-        ("ad_jobs_optional", root / "research/jobs/ad-serp-jobs.tsv", True),
-        ("organic_serp_results", root / "research/raw/competitor-search/api-wave-02-validated-keywords/serp_results.tsv", (root / "research/raw/competitor-search/api-wave-02-validated-keywords/serp_results.tsv").exists()),
-        ("page_capture_jobs", root / "research/jobs/page-capture-jobs.tsv", (root / "research/jobs/page-capture-jobs.tsv").exists()),
-        ("sitemap_jobs", root / "research/jobs/sitemap-jobs.tsv", (root / "research/jobs/sitemap-jobs.tsv").exists()),
-        ("firecrawl_validated_wave", firecrawl_wave_dir, count_json_files(firecrawl_wave_dir) > 0),
-        (
-            "sitemap_validated_wave",
-            sitemap_wave_dir,
-            sitemap_raw_dirs > 0 and count_tsv_rows(sitemap_wave_dir / "candidate_urls.tsv") > 0,
-        ),
-        ("analysis_chain", root / "research/analysis/analysis-chain.md", (root / "research/analysis/analysis-chain.md").exists()),
-        ("analysis_prompt_pack", root / "research/analysis/analysis-prompt-pack.md", (root / "research/analysis/analysis-prompt-pack.md").exists()),
-    ]
-
-    metrics = {
-        "competitor_register_rows": count_tsv_rows(root / "competitor-raw-register.tsv"),
-        "organic_rows_current": count_tsv_rows(root / "research/raw/competitor-search/api-wave-02-validated-keywords/serp_results.tsv"),
-        "company_footprint_rows": count_tsv_rows(root / "research/raw/company-footprint/api-wave-01-full/serp_results.tsv"),
-        "competitor_footprint_rows": count_tsv_rows(root / "research/raw/competitor-footprint/api-wave-01-full/serp_results.tsv"),
-        "wordstat_wave1_files": count_json_files(root / "research/semantics/nevgroup-lighting/raw/wordstat_wave1_single_token"),
-        "wordstat_wave2_files": count_json_files(root / "research/semantics/nevgroup-lighting/raw/wordstat_wave2_two_token"),
-        "validated_keyword_rows": count_tsv_rows(root / "research/analysis/validated-keyword-matrix.tsv"),
-        "organic_job_rows": count_tsv_rows(root / "research/jobs/organic-serp-jobs.tsv"),
-        "ad_job_rows": count_tsv_rows(root / "research/jobs/ad-serp-jobs.tsv"),
-        "page_capture_job_rows": count_tsv_rows(root / "research/jobs/page-capture-jobs.tsv"),
-        "sitemap_job_rows": count_tsv_rows(root / "research/jobs/sitemap-jobs.tsv"),
-        "firecrawl_json_files": count_json_files(firecrawl_wave_dir),
-        "firecrawl_error_files": len(list(firecrawl_wave_dir.glob("*.error.txt"))) if firecrawl_wave_dir.exists() else 0,
-        "sitemap_site_dirs": sitemap_raw_dirs,
-        "sitemap_candidate_rows": count_tsv_rows(sitemap_wave_dir / "candidate_urls.tsv"),
-    }
-
-    status = {
-        "checks": [
-            {"name": name, "path": str(path), "ok": ok}
-            for name, path, ok in checks
-        ],
-        "metrics": metrics,
-        "ready_for_manual_analysis": all(ok for _, _, ok in checks),
-    }
-
-    output_json = Path(args.output_json).expanduser().resolve()
-    output_md = Path(args.output_md).expanduser().resolve()
-    output_json.parent.mkdir(parents=True, exist_ok=True)
-    output_md.parent.mkdir(parents=True, exist_ok=True)
-    output_json.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    lines = [
-        "# Pre-Analysis Verification",
-        "",
-        f"Ready for manual analysis: `{'yes' if status['ready_for_manual_analysis'] else 'no'}`",
-        "",
-        "## Checks",
-        "",
-    ]
-    for item in status["checks"]:
-        lines.append(f"- `{item['name']}`: `{'ok' if item['ok'] else 'missing'}` -> `{item['path']}`")
-    lines.extend(["", "## Metrics", ""])
-    for key, value in metrics.items():
-        lines.append(f"- `{key}`: `{value}`")
-    output_md.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-    print(json.dumps({"ready_for_manual_analysis": status["ready_for_manual_analysis"], **metrics}, ensure_ascii=False))
-    return 0
+    manifest_path = Path(args.manifest).expanduser().resolve() if args.manifest else root / "research-manifest.json"
+    try:
+        result = verify(root, manifest_path)
+    except VerificationError as exc:
+        result = {"status": "rejected", "structure_complete": False, "confirmed_sources_ready": False, "confirmed_routes_ready": False, "confirmed_facts_ready": False, "checks": [], "errors": [str(exc)]}
+    atomic_json(Path(args.output_json).expanduser().resolve(), result)
+    print(json.dumps({key: result[key] for key in ("status", "structure_complete", "confirmed_sources_ready", "confirmed_routes_ready", "confirmed_facts_ready")}, ensure_ascii=False))
+    return 0 if result["status"] == "ready" else 1
 
 
 if __name__ == "__main__":

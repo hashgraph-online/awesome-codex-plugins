@@ -1,0 +1,59 @@
+{
+  "name": "falsegreen-skill",
+  "version": "0.8.2",
+  "description": "LLM skill for false-positive test detection (J1-J6 protocol)",
+  "keywords": [
+    "claude-code-plugin",
+    "testing",
+    "test-smells",
+    "code-quality",
+    "false-positive",
+    "robotframework"
+  ],
+  "homepage": "https://github.com/vinicq/falsegreen-skill",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vinicq/falsegreen-skill"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "falsegreen-skill": "bin/falsegreen-llm.js"
+  },
+  "scripts": {
+    "validate": "node scripts/validate-package.mjs && node scripts/check-catalog-consistency.mjs && node scripts/check-scanner-coverage.mjs && node scripts/sync-cursor-mdc.mjs --check && node scripts/sync-host-files.mjs --check",
+    "sync:cursor": "node scripts/sync-cursor-mdc.mjs",
+    "sync:hosts": "node scripts/sync-host-files.mjs",
+    "smoke": "node test/smoke.cjs",
+    "test": "node test/smoke.cjs && node test/fix-gate.cjs",
+    "build:targets": "node scripts/build-targets.mjs",
+    "version": "node -e \"const fs=require('fs');const v=require('./package.json').version;['.claude-plugin/plugin.json','.codex-plugin/plugin.json','gemini-extension.json'].forEach(f=>{const p=JSON.parse(fs.readFileSync(f));p.version=v;fs.writeFileSync(f,JSON.stringify(p,null,2)+'\\n')});\" && git add .claude-plugin/ .codex-plugin/ gemini-extension.json"
+  },
+  "files": [
+    "SKILL.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    "llm.md",
+    "reference.md",
+    "providers.md",
+    "models.yaml",
+    "fragments/",
+    "assets/",
+    "gemini-extension.json",
+    "bin/",
+    "docs/",
+    "skills/",
+    "contexts/",
+    "examples/",
+    "schema/",
+    "scripts/",
+    ".cursor/",
+    ".gemini/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".antigravity-plugin/",
+    ".agents/"
+  ]
+}

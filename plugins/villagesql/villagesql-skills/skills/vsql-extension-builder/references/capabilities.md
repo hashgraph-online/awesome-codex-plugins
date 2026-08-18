@@ -3,6 +3,16 @@
 Do not assume limitations from prior knowledge. Probe the SDK and the
 running server.
 
+**Confirm negatives before recording them.** A syntax error on a guessed
+statement form proves only that the guess was wrong, not that the
+capability is missing. Before recording "X does not exist" as a
+limitation, check the server grammar (`grep -i '<keyword>' sql/sql_yacc.yy`
+in the server source) and search the server's open issues for the
+capability name — an issue that presupposes the statement exists means
+it does. When citing a server issue number in shipped docs, verify it is
+still open first; a closed issue usually means the behavior it describes
+has changed.
+
 ## Header-discoverable (Phase 2 bootstrap)
 
 Assess all capabilities from the typed API headers (`vsql.h` and the
@@ -60,12 +70,33 @@ the first time, and record results in `.claude/tracking/limitations.md`.
   `AVG`. If they fail, only `COUNT(DISTINCT)`, `MIN`, `MAX`, and
   `GROUP_CONCAT` are safe — document this constraint.
 
-- **Extension upgrade path.** Test `ALTER EXTENSION` or equivalent. If it
-  doesn't exist, type changes require `UNINSTALL` + `INSTALL` — document
-  for users.
+- **Extension upgrade path.** The in-place upgrade statement is
+  `ALTER EXTENSION <name> VERSION '<version>' AT RESTART` — the `VERSION`
+  and `AT RESTART` clauses are required, so a bare `ALTER EXTENSION <name>`
+  is a syntax error and proves nothing. Test the full form, with populated
+  custom-type columns present. Only if it fails should you document
+  `UNINSTALL` + `INSTALL` as the upgrade path.
 
 - **REAL-returning functions with integer input.** If the extension includes
   a `.returns(REAL)` function, test it with an INT column and inspect the
   result type via `DESCRIBE`. If it shows INT rather than DOUBLE, document
   the `CAST(col AS DOUBLE)` or `col * 1.0` workaround, record the limitation,
   and link [villagesql-server#608](https://github.com/villagesql/villagesql-server/issues/608).
+
+- **STRING return size and charset.** Two behaviors affect any function
+  returning text. Both change across server versions — probe the running
+  server rather than trusting this file:
+  1. **Size is bounded by the declared buffer size.** STRING returns are
+     capped at the `.buffer_size()` the function declares at
+     registration, not at a server-wide constant. (Older servers
+     silently truncated all STRING returns at 255 bytes; that is fixed.)
+     If the extension returns large payloads, size the buffer to match
+     and test with a result longer than 255 bytes to confirm the running
+     server does not truncate.
+  2. **JSON functions reject the result without CONVERT.** Even where
+     `CHARSET(<func>(...))` reports `utf8mb4`, MySQL JSON functions
+     (`JSON_EXTRACT`, `JSON_TABLE`, etc.) reject a VDF STRING result
+     with `ERROR 3144: Cannot create a JSON value from a string with
+     CHARACTER SET 'binary'`. Wrap the argument in
+     `CONVERT(... USING utf8mb4)` and document that step in the README
+     if users will consume the output as JSON.

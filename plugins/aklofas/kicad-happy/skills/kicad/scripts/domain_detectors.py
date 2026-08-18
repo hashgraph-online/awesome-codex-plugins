@@ -4113,6 +4113,10 @@ _LEVEL_SHIFTER_KEYWORDS = (
     "txb0", "txs0", "tca9", "lsf0", "sn74lvc", "sn74avc",
     "sn74cb3", "sn74cbt", "nlsx", "nts0", "fxl", "adg320",
     "max395", "gtl2", "pca960", "tca641", "fxma", "txu0",
+    # 4.1 expansion (rc.2): SparkFun + Manas reviews
+    "lvc1t45", "lvc2t45", "lvc8t45",  # 74LVC*T45 / SN74LVC*T45 translator family
+    "nvt20",                          # NXP NVT200x autobus translator
+    "pca9306", "pca9517",             # NXP/TI I2C bus repeaters with level translation
 )
 
 _VCCA_PINS = {"VCCA", "VA", "VCC_A", "VREF1", "VREF_A", "VIN_A", "VDDA"}
@@ -4821,6 +4825,14 @@ _LED_VF = {
     "green": 3.2, "blue": 3.2, "white": 3.2, "uv": 3.5,
 }
 
+# Per-color Vf floor — the MINIMUM forward voltage below which an LED of
+# this color will not light at all. Used by LA-004 to flag LEDs on rails
+# that are below their color's floor. rc.2 4.1 expansion (Manas review).
+_LED_VF_FLOOR = {
+    "red": 1.85, "orange": 2.0, "yellow": 2.0, "amber": 2.0,
+    "green": 2.1, "blue": 3.0, "white": 3.0, "uv": 3.2,
+}
+
 
 def _estimate_led_vf(comp: dict) -> float:
     """Estimate LED forward voltage from value/lib_id color hints."""
@@ -4829,6 +4841,16 @@ def _estimate_led_vf(comp: dict) -> float:
         if color in combined:
             return vf
     return 2.0  # default to red/generic
+
+
+def _detect_led_color(comp: dict) -> str | None:
+    """Return the lowercase color string for an LED, or None if no color
+    hint is present in value/lib_id."""
+    combined = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
+    for color in _LED_VF.keys():
+        if color in combined:
+            return color
+    return None
 
 
 def audit_led_circuits(ctx: AnalysisContext,
@@ -5036,6 +5058,54 @@ def audit_led_circuits(ctx: AnalysisContext,
 
         entry["provenance"] = make_provenance("led_audit", "deterministic", claimed_components=[ref])
         results.append(entry)
+
+        # LA-004 — rail-Vf floor check: if v_supply is below the LED's
+        # color floor, the LED can't forward-bias at all. rc.2 4.1
+        # expansion (Manas review).
+        if supply_net:
+            v_supply = parse_voltage_from_net_name(supply_net)
+            color = _detect_led_color(comp)
+            floor = _LED_VF_FLOOR.get(color) if color else None
+            if v_supply is not None and floor is not None and v_supply < floor:
+                results.append({
+                    "ref": ref,
+                    "type": "indicator_led",
+                    "detector": "audit_led_circuits",
+                    "rule_id": "LA-004",
+                    "category": "led_control",
+                    "severity": "warning",
+                    "confidence": "heuristic",
+                    "evidence_source": "topology",
+                    "summary": (f"LED {ref} ({color}) on {supply_net}: "
+                                f"rail {v_supply:.2f}V is below the "
+                                f"{color}-LED Vf floor of {floor:.2f}V "
+                                f"— LED will not light"),
+                    "description": (f"LED {ref} is a {color} LED on rail "
+                                    f"{supply_net} ({v_supply:.2f}V). "
+                                    f"The minimum forward voltage for a "
+                                    f"{color} LED is ~{floor:.2f}V; below "
+                                    f"this the diode does not forward-bias "
+                                    f"and no light is emitted."),
+                    "components": [ref],
+                    "nets": [supply_net],
+                    "pins": [],
+                    "supply_net": supply_net,
+                    "supply_voltage": v_supply,
+                    "color": color,
+                    "color_vf_floor": floor,
+                    "recommendation": (
+                        f"Either move {ref} to a rail at or above "
+                        f"{floor:.2f}V, or select a {color} LED variant "
+                        f"with a lower-than-typical Vf (specialty parts "
+                        f"exist down to ~1.8V for red)."
+                    ),
+                    "report_context": {
+                        "section": "LED Audit",
+                        "impact": "Indicator LED never lights",
+                        "standard_ref": "",
+                    },
+                    "provenance": make_provenance("led_audit", "heuristic", claimed_components=[ref]),
+                })
 
     return results
 
@@ -5907,7 +5977,8 @@ def detect_i2c_address_conflicts(ctx: AnalysisContext) -> list[dict]:
                 fix_params={'type': 'swap_connection', 'components': refs[1:], 'change': 'Rewire address pins', 'basis': f'{dev_type} base 0x{base:02X}'},
                 impact='Bus corruption — multiple devices respond to same address',
                 provenance=make_provenance('i2c_addr_conflict', 'deterministic', claimed_components=refs),
-            ))
+            
+                source=ctx.source,))
     return results
 
 

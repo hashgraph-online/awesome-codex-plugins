@@ -1,0 +1,4 @@
+interface:
+  display_name: "Django Spike De-Spike Workflow"
+  short_description: "Turn Django spikes into tested code"
+  default_prompt: "Use $django-spike-despike-workflow to de-spike this Django prototype into production-quality tested code."

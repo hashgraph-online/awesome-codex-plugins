@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Ownership Borrowing"
+  short_description: "Resolve Rust ownership, borrow, and lifetime design issues"
+  default_prompt: "Fix this Rust code's ownership and borrowing design without unnecessary cloning."

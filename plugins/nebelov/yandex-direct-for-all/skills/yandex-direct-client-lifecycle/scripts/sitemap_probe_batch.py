@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 import time
@@ -14,7 +15,18 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from xml.etree import ElementTree as ET
 
-import requests
+for candidate in (
+    Path(__file__).resolve().parents[3] / "scripts",
+    Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "plugins/yandex-direct-for-all/scripts",
+    Path(os.environ.get("CLAUDE_HOME", Path.home() / ".claude")) / "plugins/yandex-direct-for-all/scripts",
+):
+    if (candidate / "portable_http.py").is_file():
+        sys.path.insert(0, str(candidate))
+        break
+else:
+    raise RuntimeError("Не найден переносимый HTTP-слой yandex-direct-for-all")
+
+import portable_http as requests  # noqa: E402
 
 
 USER_AGENT = (

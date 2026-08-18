@@ -45,21 +45,21 @@ Agent Harness Skills turns those expectations into reusable repository practices
 
 ## Included Skills
 
-The skills form a capability map for building and improving an agent-ready repository:
+The suite deliberately stays small: four core skills plus one optional governance skill.
 
-- `repo-harness-assessment`: assess a repository's current agent/harness maturity and identify the smallest useful next slice.
-- `agent-entrypoint-design`: design `AGENTS.md`, mirrored agent files, instruction precedence, and source-of-truth navigation.
-- `repo-contracts-and-boundaries`: turn architecture and directory boundaries into mechanical checks, baselines, and allowlists.
+- `repo-harness-assessment`: assess harness maturity, reconcile agent entrypoints, map existing roles, and identify the smallest useful next slice.
+- `repo-contracts-and-boundaries`: turn architecture, schemas, structural quality, baselines, and allowlists into mechanical checks and gradual debt reduction.
 - `validation-harness-design`: design repo validation entrypoints, test matrix, JSON/JUnit outputs, and CI gates.
 - `runtime-evidence-and-tracing`: design run IDs, request IDs, artifact bundles, runtime traces, and failure evidence.
-- `agent-ledger-and-delivery`: design collaboration ledgers, delivery evidence summaries, and links between tasks, commits, and reviews.
-- `quality-gardening`: design quality snapshots, structural metrics, debt thresholds, and generated quality reports.
-- `design-doc-and-task-board`: coordinate design documents, work-state surfaces such as `tasks.md`, exec plans, status updates, acceptance criteria, and task-to-change traceability.
-- `atomic-commit-discipline`: split work into minimal commits, include related task-state updates, verify diffs, run scoped checks, and keep related evidence together.
+- `work-state-and-delivery`: optionally coordinate design docs, tracked work, execution plans, delivery records, acceptance criteria, artifacts, and repository commit-coupling policy.
+
+General model knowledge such as ordinary commit execution is not kept as a standalone skill. It belongs in the target repository's entrypoint or contributor policy. A standalone skill must add a stable schema, mechanical procedure, repository context, high-risk guardrail, or measured evaluation benefit.
+
+For version `0.1.x` users, `agent-entrypoint-design` moved into `repo-harness-assessment`, `quality-gardening` moved into `repo-contracts-and-boundaries`, and the design/task, ledger/delivery, and repository commit-policy skills became `work-state-and-delivery`.
 
 Shared methodology support:
 
-- `references/harness-profiles.json`: machine-readable repository archetypes and role mappings for library, service, monorepo, CLI/tooling, docs-only, and regulated/high-audit repositories.
+- `references/harness-profiles.json`: machine-readable repository archetypes, role mappings, and role-to-skill routing for library, service, monorepo, CLI/tooling, docs-only, and regulated/high-audit repositories.
 - `templates/`: neutral starter templates for missing roles such as entrypoints, validation matrices, delivery records, work-state surfaces, runtime evidence summaries, and quality reports.
 - `Detected Mapping`: every skill output should name the repository's existing equivalent artifacts before recommending new files.
 
@@ -182,7 +182,7 @@ Use this repository when you want an agent to answer questions like:
 - "How should this project structure `AGENTS.md` and validation commands?"
 - "How do we connect observed behavior to request traces?"
 - "Should this requirement live in a work-state surface such as `tasks.md`, a design doc, or an exec plan?"
-- "How should these changes be split into atomic commits?"
+- "Define how task updates and delivery artifacts should couple to commits in this repository."
 
 ## Repository Layout
 
@@ -201,6 +201,7 @@ gemini-extension.json
 skills/
   <skill-name>/SKILL.md
 docs/
+  model-evaluation.md
   README.opencode.md
   scenario-tests.md
 references/

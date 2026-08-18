@@ -26,6 +26,7 @@ Invoke any of these when appropriate:
 |---|---|
 | `hotl:brainstorming` | Before any feature work — design with HOTL contracts |
 | `hotl:writing-plans` | After design approval — produces `docs/plans/YYYY-MM-DD-<slug>-workflow.md` |
+| `hotl:governed-execution` | Preferred execution entry point — selects host driver/profile while preserving renewable ownership, bounded loops, effect evidence, and receipts |
 | `hotl:executing-plans` | Linear execution with human checkpoints |
 | `hotl:loop-execution` | Execute a workflow file with loops + auto-approve |
 | `hotl:subagent-execution` | Delegated step runner over the loop execution engine — delegates eligible steps to fresh subagents |
@@ -39,7 +40,7 @@ Invoke any of these when appropriate:
 | `hotl:receiving-code-review` | Invoked when review findings arrive — verify, evaluate against contracts, then implement |
 | `hotl:code-review` | After completing implementation, before merging |
 | `hotl:pr-reviewing` | Review a PR across multiple dimensions — description, code, scan, tests |
-| `hotl:resuming` | Resume an interrupted workflow run with verify-first strategy |
+| `hotl:resuming` | Resume an interrupted workflow run with verify-first effect recovery and explicit ownership takeover/handoff |
 | `hotl:verification-before-completion` | Before claiming work is done |
 | `hotl:setup-project` | To generate adapter files for Codex, Cline, Cursor, Copilot |
 
@@ -53,6 +54,8 @@ Invoke any of these when appropriate:
 ## HOTL Operating Principles
 
 **Human-on-the-Loop:** Set intent + constraints upfront. AI executes autonomously within guardrails. Human reviews final output.
+
+**Long-running harness contract:** Host goals, automations, background agents, hooks, and handoffs provide scheduling and liveness only. HOTL's renewable controller, serialized state, runtime loop/budget stops, effect reconciliation, explicit finish disposition, and sufficient receipt remain authoritative.
 
 **Three contracts every implementation workflow should define:**
 1. **Intent contract:** objective, constraints, success criteria

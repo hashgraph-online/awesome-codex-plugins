@@ -126,13 +126,18 @@ class ComposeToTemplateTests(unittest.TestCase):
             )
             ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
             backend_service_name = ingress["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"]
+            backend_service_port = ingress["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["port"]
             self.assertEqual("${{ defaults.app_name }}", ingress["metadata"]["name"])
             self.assertEqual("${{ defaults.app_name }}", backend_service_name)
+            self.assertEqual({"number": 80}, backend_service_port)
             self.assertEqual(
                 "${{ defaults.app_name }}",
                 ingress["metadata"]["labels"]["cloud.sealos.io/app-deploy-manager"],
             )
             workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+            self.assertEqual(1, workload["spec"]["replicas"])
+            self.assertEqual("1", workload["metadata"]["annotations"]["deploy.cloud.sealos.io/minReplicas"])
+            self.assertEqual("1", workload["metadata"]["annotations"]["deploy.cloud.sealos.io/maxReplicas"])
             self.assertNotIn("imagePullSecrets", workload["spec"]["template"]["spec"])
             self.assertEqual(
                 {
@@ -176,6 +181,56 @@ class ComposeToTemplateTests(unittest.TestCase):
             )
             self.assertEqual([], violations)
 
+    def test_preserves_compose_deploy_replicas(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(
+                compose,
+                """
+                services:
+                  app:
+                    image: nginx:1.27.2
+                    deploy:
+                      replicas: 3
+                """,
+            )
+
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("demo"),
+            )
+
+            docs = parse_yaml_documents(index_path)
+            workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+            self.assertEqual(3, workload["spec"]["replicas"])
+            self.assertEqual("3", workload["metadata"]["annotations"]["deploy.cloud.sealos.io/minReplicas"])
+            self.assertEqual("3", workload["metadata"]["annotations"]["deploy.cloud.sealos.io/maxReplicas"])
+
+    def test_rejects_invalid_compose_deploy_replicas(self):
+        invalid_values = ("0", "-1", "true", "'2'", "2.5")
+        for invalid_value in invalid_values:
+            with self.subTest(invalid_value=invalid_value), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                compose = root / "docker-compose.yml"
+                write_file(
+                    compose,
+                    f"""
+                    services:
+                      app:
+                        image: nginx:1.27.2
+                        deploy:
+                          replicas: {invalid_value}
+                    """,
+                )
+
+                with self.assertRaisesRegex(ValueError, "deploy.replicas must be a positive integer"):
+                    convert_compose_to_template(
+                        compose_path=compose,
+                        output_root=root / "template",
+                        meta=self._meta("demo"),
+                    )
 
     def test_uses_svgl_svg_logo_when_available(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -393,6 +448,83 @@ class ComposeToTemplateTests(unittest.TestCase):
             ports = service["spec"]["ports"]
             self.assertEqual("tcp-9000", ports[0]["name"])
             self.assertEqual("tcp-9443", ports[1]["name"])
+            workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+            self.assertNotIn("imagePullSecrets", workload["spec"]["template"]["spec"])
+
+    def test_generates_websocket_ingress_for_named_websocket_port(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(
+                compose,
+                """
+                services:
+                  app:
+                    image: ghcr.io/example/demo:1.0.0
+                    ports:
+                      - target: 3000
+                        published: 3000
+                        protocol: tcp
+                        name: websocket
+                """,
+            )
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("demo"),
+            )
+            docs = parse_yaml_documents(index_path)
+            workload = next(doc for doc in docs if doc.get("kind") in {"Deployment", "StatefulSet"})
+            service = next(doc for doc in docs if doc.get("kind") == "Service")
+            ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
+
+            container_port = workload["spec"]["template"]["spec"]["containers"][0]["ports"][0]
+            service_port = service["spec"]["ports"][0]
+            self.assertEqual("websocket", container_port["name"])
+            self.assertEqual("websocket", service_port["name"])
+            self.assertEqual(
+                {
+                    "kubernetes.io/ingress.class": "nginx",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "32m",
+                    "nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+                    "nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
+                    "nginx.ingress.kubernetes.io/backend-protocol": "WS",
+                    "nginx.ingress.kubernetes.io/ssl-redirect": "true",
+                },
+                ingress["metadata"]["annotations"],
+            )
+
+    def test_generates_websocket_ingress_for_websocket_url_env(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(
+                compose,
+                """
+                services:
+                  app:
+                    image: ghcr.io/example/demo:1.0.0
+                    ports:
+                      - "3000:3000"
+                    environment:
+                      PUBLIC_WEBSOCKET_URL: wss://demo.example.com
+                """,
+            )
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("demo"),
+            )
+            docs = parse_yaml_documents(index_path)
+            service = next(doc for doc in docs if doc.get("kind") == "Service")
+            ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
+
+            self.assertEqual("tcp-3000", service["spec"]["ports"][0]["name"])
+            self.assertEqual("WS", ingress["metadata"]["annotations"]["nginx.ingress.kubernetes.io/backend-protocol"])
+            self.assertEqual(
+                "3600",
+                ingress["metadata"]["annotations"]["nginx.ingress.kubernetes.io/proxy-read-timeout"],
+            )
 
     def test_drops_https_port_when_http_port_exists(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -452,6 +584,71 @@ class ComposeToTemplateTests(unittest.TestCase):
             mounts = workload["spec"]["template"]["spec"]["containers"][0]["volumeMounts"]
             mount_paths = [item["mountPath"] for item in mounts]
             self.assertEqual(["/var/lib/demo"], mount_paths)
+
+    def test_generates_configmap_file_mounts_from_compose_configs(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(root / "config" / "app-config.yaml", "mode: production\n")
+            write_file(
+                compose,
+                """
+                services:
+                  app:
+                    image: nginx:1.27.2
+                    configs:
+                      - source: app_config
+                        target: /opt/demo/app-config.yaml
+                configs:
+                  app_config:
+                    file: ./config/app-config.yaml
+                """,
+            )
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("demo"),
+            )
+            docs = parse_yaml_documents(index_path)
+            kinds = [doc.get("kind") for doc in docs if isinstance(doc, dict)]
+            self.assertEqual(["Template", "ConfigMap", "Deployment", "App"], kinds)
+
+            key = "vn-optvn-demovn-appvn-configvn-yaml"
+            configmap = next(doc for doc in docs if doc.get("kind") == "ConfigMap")
+            self.assertEqual("${{ defaults.app_name }}", configmap["metadata"]["name"])
+            self.assertEqual(
+                {
+                    "app": "${{ defaults.app_name }}",
+                    "cloud.sealos.io/app-deploy-manager": "${{ defaults.app_name }}",
+                },
+                configmap["metadata"]["labels"],
+            )
+            self.assertEqual({"mode": "production"}, yaml.safe_load(configmap["data"][key]))
+
+            workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+            self.assertNotIn("volumeClaimTemplates", workload["spec"])
+            pod_spec = workload["spec"]["template"]["spec"]
+            self.assertNotIn("imagePullSecrets", pod_spec)
+            self.assertEqual(
+                [
+                    {
+                        "name": "${{ defaults.app_name }}-cm",
+                        "mountPath": "/opt/demo/app-config.yaml",
+                        "subPath": key,
+                        "readOnly": True,
+                    }
+                ],
+                pod_spec["containers"][0]["volumeMounts"],
+            )
+            self.assertEqual(
+                [
+                    {
+                        "name": "${{ defaults.app_name }}-cm",
+                        "configMap": {"name": "${{ defaults.app_name }}"},
+                    }
+                ],
+                pod_spec["volumes"],
+            )
 
     def test_template_defaults_keep_double_brace_placeholders(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -664,6 +861,38 @@ class ComposeToTemplateTests(unittest.TestCase):
             self.assertIn("ak healthcheck", " ".join(str(item) for item in readiness_cmd))
             self.assertIn("ak healthcheck", " ".join(str(item) for item in startup_cmd))
 
+    def test_generates_official_librechat_component_health_probes(self):
+        profiles = (
+            ("ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.3.0", 8000),
+            ("ghcr.io/clickhouse/librechat-admin-panel:v0.0.1", 3000),
+        )
+        for image, port in profiles:
+            with self.subTest(image=image), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                compose = root / "docker-compose.yml"
+                write_file(
+                    compose,
+                    f"""
+                    services:
+                      app:
+                        image: {image}
+                        ports:
+                          - "{port}:{port}"
+                    """,
+                )
+                index_path, _ = convert_compose_to_template(
+                    compose_path=compose,
+                    output_root=root / "template",
+                    meta=self._meta("librechat-component"),
+                )
+                docs = parse_yaml_documents(index_path)
+                workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+                container = workload["spec"]["template"]["spec"]["containers"][0]
+                for probe_name in ("livenessProbe", "readinessProbe", "startupProbe"):
+                    http_get = container[probe_name]["httpGet"]
+                    self.assertEqual("/health", http_get["path"])
+                    self.assertEqual(port, http_get["port"])
+
     def test_maps_compose_healthcheck_to_liveness_and_readiness(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -732,14 +961,33 @@ class ComposeToTemplateTests(unittest.TestCase):
             )
             docs = parse_yaml_documents(index_path)
             workload = next(doc for doc in docs if doc.get("kind") == "StatefulSet")
+            self.assertEqual(
+                {
+                    "cloud.sealos.io/app-deploy-manager": "${{ defaults.app_name }}",
+                    "app": "${{ defaults.app_name }}",
+                },
+                workload["metadata"]["labels"],
+            )
             mounts = workload["spec"]["template"]["spec"]["containers"][0]["volumeMounts"]
             mount_paths = [item["mountPath"] for item in mounts]
             self.assertEqual(["/data"], mount_paths)
             pvcs = workload["spec"]["volumeClaimTemplates"]
             pvc_names = [item["metadata"]["name"] for item in pvcs]
             self.assertEqual(["vn-data"], pvc_names)
+            self.assertNotIn("labels", pvcs[0]["metadata"])
 
-    def test_rejects_latest_image_tag(self):
+    def test_resolves_latest_image_tag_to_precise_version(self):
+        def fake_run(command, capture_output=True, text=True):  # noqa: ANN001
+            if command[-2:] == ["digest", "nginx:latest"]:
+                return CompletedProcess(command, 0, stdout="sha256:abc\n", stderr="")
+            if command[-2:] == ["ls", "nginx"]:
+                return CompletedProcess(command, 0, stdout="latest\n1.27.2\n1.26.3\n", stderr="")
+            if command[-2:] == ["digest", "nginx:1.27.2"]:
+                return CompletedProcess(command, 0, stdout="sha256:abc\n", stderr="")
+            if command[-2:] == ["digest", "nginx:1.26.3"]:
+                return CompletedProcess(command, 0, stdout="sha256:def\n", stderr="")
+            return CompletedProcess(command, 1, stdout="", stderr="unexpected command")
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             compose = root / "docker-compose.yml"
@@ -751,12 +999,18 @@ class ComposeToTemplateTests(unittest.TestCase):
                     image: nginx:latest
                 """,
             )
-            with self.assertRaises(ValueError):
-                convert_compose_to_template(
-                    compose_path=compose,
-                    output_root=root / "template",
-                    meta=self._meta("demo"),
-                )
+            with mock.patch("compose_to_template.shutil.which", return_value="/usr/local/bin/crane"):
+                with mock.patch("compose_to_template.subprocess.run", side_effect=fake_run):
+                    index_path, _ = convert_compose_to_template(
+                        compose_path=compose,
+                        output_root=root / "template",
+                        meta=self._meta("demo"),
+                    )
+
+            docs = parse_yaml_documents(index_path)
+            workload = next(doc for doc in docs if doc.get("kind") == "Deployment")
+            self.assertEqual("nginx:1.27.2", workload["spec"]["template"]["spec"]["containers"][0]["image"])
+            self.assertEqual("nginx:1.27.2", workload["metadata"]["annotations"]["originImageName"])
 
     def test_resolves_compose_image_default_expressions(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -910,8 +1164,16 @@ class ComposeToTemplateTests(unittest.TestCase):
             )
             docs = parse_yaml_documents(index_path)
             workload = next(doc for doc in docs if doc.get("kind") in {"Deployment", "StatefulSet"})
+            service = next(doc for doc in docs if doc.get("kind") == "Service")
+            ingress = next(doc for doc in docs if doc.get("kind") == "Ingress")
             self.assertEqual("StatefulSet", workload["kind"])
             self.assertIn("volumeClaimTemplates", workload["spec"])
+            self.assertEqual(workload["metadata"]["name"], workload["spec"]["serviceName"])
+            self.assertEqual(workload["metadata"]["name"], service["metadata"]["name"])
+            self.assertEqual(
+                service["metadata"]["name"],
+                ingress["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"],
+            )
             request = workload["spec"]["volumeClaimTemplates"][0]["spec"]["resources"]["requests"]["storage"]
             self.assertEqual("1Gi", request)
 
@@ -927,6 +1189,9 @@ class ComposeToTemplateTests(unittest.TestCase):
                     image: ghcr.io/example/demo:1.0.0
                     environment:
                       REDIS_HOST: redis
+                      REDIS_PORT: "6379"
+                      REDIS_PASSWORD: super-secret
+                      REDIS_URL: redis://:super-secret@redis:6379/0
                   redis:
                     image: redis:7.2.7
                 """,
@@ -946,6 +1211,8 @@ class ComposeToTemplateTests(unittest.TestCase):
 
             cluster = next(doc for doc in docs if doc.get("kind") == "Cluster")
             assert_db_visibility_labels(self, cluster, "redis")
+            component_names = {item["name"] for item in cluster["spec"]["componentSpecs"]}
+            self.assertEqual({"redis", "redis-sentinel"}, component_names)
             redis_comp = next(item for item in cluster["spec"]["componentSpecs"] if item["name"] == "redis")
             redis_data = redis_comp["volumeClaimTemplates"][0]["spec"]["resources"]["requests"]["storage"]
             self.assertEqual("1Gi", redis_data)
@@ -959,12 +1226,41 @@ class ComposeToTemplateTests(unittest.TestCase):
             self.assertEqual("50m", sentinel_comp["resources"]["requests"]["cpu"])
             self.assertEqual("51Mi", sentinel_comp["resources"]["requests"]["memory"])
 
+            raw_redis_workloads = []
+            for doc in docs:
+                if doc.get("kind") not in {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}:
+                    continue
+                containers = doc.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+                if any(item.get("image", "").split(":", 1)[0].rsplit("/", 1)[-1] == "redis" for item in containers):
+                    raw_redis_workloads.append(doc)
+            self.assertEqual([], raw_redis_workloads)
+
             deployment = next(doc for doc in docs if doc.get("kind") == "Deployment")
             env = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
-            redis_host = next(item for item in env if item["name"] == "REDIS_HOST")
+            env_by_name = {item["name"]: item for item in env}
+            redis_host = env_by_name["REDIS_HOST"]
             self.assertEqual(
                 "${{ defaults.app_name }}-redis-redis-redis.${{ SEALOS_NAMESPACE }}.svc.cluster.local",
                 redis_host.get("value"),
+            )
+            self.assertEqual("6379", env_by_name["REDIS_PORT"].get("value"))
+            self.assertEqual(
+                {
+                    "name": "${{ defaults.app_name }}-redis-redis-account-default",
+                    "key": "password",
+                },
+                env_by_name["REDIS_PASSWORD"]["valueFrom"]["secretKeyRef"],
+            )
+            self.assertEqual(
+                {
+                    "name": "${{ defaults.app_name }}-redis-redis-account-default",
+                    "key": "password",
+                },
+                env_by_name["SEALOS_REDIS_REDIS_PASSWORD"]["valueFrom"]["secretKeyRef"],
+            )
+            self.assertEqual(
+                "redis://:$(SEALOS_REDIS_REDIS_PASSWORD)@$(SEALOS_REDIS_REDIS_HOST):$(SEALOS_REDIS_REDIS_PORT)/0",
+                env_by_name["REDIS_URL"].get("value"),
             )
 
     def test_generates_mysql_cluster_resources_and_secret_env_mapping(self):
@@ -1055,6 +1351,108 @@ class ComposeToTemplateTests(unittest.TestCase):
             host_ref = mongo_host.get("valueFrom", {}).get("secretKeyRef", {})
             self.assertEqual("${{ defaults.app_name }}-mongo-mongodb-account-root", host_ref.get("name"))
             self.assertEqual("host", host_ref.get("key"))
+
+    def test_librechat_mongodb_8_0_20_never_enters_application_workload_path(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(
+                compose,
+                """
+                services:
+                  api:
+                    image: ghcr.io/danny-avila/librechat:v0.8.0-rc2
+                    ports:
+                      - "3080:3080"
+                    environment:
+                      MONGO_URI: mongodb://mongo:27017/LibreChat
+                  mongo:
+                    image: mongo:8.0.20
+                    command:
+                      - mongod
+                      - --noauth
+                    volumes:
+                      - mongo-data:/data/db
+                volumes:
+                  mongo-data:
+                """,
+            )
+
+            index_path, _ = convert_compose_to_template(
+                compose_path=compose,
+                output_root=root / "template",
+                meta=self._meta("librechat"),
+            )
+            docs = parse_yaml_documents(index_path)
+
+            mongodb_clusters = [
+                doc
+                for doc in docs
+                if doc.get("kind") == "Cluster"
+                and doc.get("metadata", {}).get("labels", {}).get("kb.io/database") == "mongodb-8.0.4"
+            ]
+            self.assertEqual(1, len(mongodb_clusters))
+            mongo_component = mongodb_clusters[0]["spec"]["componentSpecs"][0]
+            self.assertEqual("mongodb", mongo_component["componentDef"])
+            self.assertEqual("8.0.4", mongo_component["serviceVersion"])
+            self.assertEqual(
+                {
+                    "limits": {"cpu": "500m", "memory": "512Mi"},
+                    "requests": {"cpu": "50m", "memory": "51Mi"},
+                },
+                mongo_component["resources"],
+            )
+
+            raw_workload_kinds = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}
+            raw_mongo_images = []
+            for doc in docs:
+                if doc.get("kind") not in raw_workload_kinds:
+                    continue
+                spec = doc.get("spec", {})
+                if doc.get("kind") == "CronJob":
+                    template_spec = (
+                        spec.get("jobTemplate", {}).get("spec", {}).get("template", {}).get("spec", {})
+                    )
+                else:
+                    template_spec = spec.get("template", {}).get("spec", {})
+                raw_mongo_images.extend(
+                    container.get("image")
+                    for container in template_spec.get("containers", [])
+                    if str(container.get("image", "")).startswith("mongo:")
+                )
+            self.assertEqual([], raw_mongo_images)
+            self.assertFalse(
+                any(
+                    doc.get("kind") == "Service"
+                    and "mongo" in str(doc.get("metadata", {}).get("name", "")).lower()
+                    for doc in docs
+                )
+            )
+
+    def test_refuses_database_only_compose_instead_of_generating_statefulset(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compose = root / "docker-compose.yml"
+            write_file(
+                compose,
+                """
+                services:
+                  mongo:
+                    image: mongo:8.0.20
+                    command: [mongod, --noauth]
+                    volumes:
+                      - mongo-data:/data/db
+                volumes:
+                  mongo-data:
+                """,
+            )
+
+            with self.assertRaisesRegex(ValueError, "no application service"):
+                convert_compose_to_template(
+                    compose_path=compose,
+                    output_root=root / "template",
+                    meta=self._meta("mongo-only"),
+                )
 
     def test_composes_mongodb_url_with_service_host_and_credential_secret(self):
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -1,6 +1,7 @@
 ---
 name: flow-discover
-description: "Multi-AI research using Codex and Gemini CLIs (Double Diamond Discover phase)"
+description: "Multi-AI research using available external providers (Double Diamond Discover phase)"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -14,32 +15,33 @@ description: "Multi-AI research using Codex and Gemini CLIs (Double Diamond Disc
 ## Compaction-Resistant Contract
 
 - Dispatch MUST go through background agents that call `${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh probe-single`; direct single-model research is not a valid substitute.
-- Use the dynamic fleet from `build-fleet.sh`; the plugin can route across Codex, Gemini, Copilot, Qwen, OpenCode, Ollama, Perplexity, OpenRouter, Cursor Agent, and Claude depending on local availability.
+- Use the dynamic fleet from `build-fleet.sh`; the plugin can route across Codex, Antigravity, Copilot, Qwen, OpenCode, Ollama, Perplexity, OpenRouter, Cursor Agent, and Claude depending on local availability.
 - Before synthesis, run `${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh agent-summary` and use only providers reported as `ok`, `degraded`, or `timeout` with usable output.
 - For `standard` and `deep` research, require at least 2 usable provider outputs unless fewer providers are installed; failed/rejected providers are reported as gaps, not cited as evidence.
 
-## Pre-Discovery: Project Initialization
+## Pre-Discovery: Optional Project Persistence
 
-Before starting discovery:
-1. Check if `.octo/` directory exists
-2. If NOT exists: Call `./scripts/octo-state.sh init_project` to create it
-3. Update `.octo/STATE.md`:
-   - current_phase: 1
-   - phase_position: "Discovery"
-   - status: "in_progress"
+Workflow state is stored in the host workspace by default. Only create the
+project-local `.octo/` lifecycle artifacts when the user explicitly opts in by
+setting `OCTOPUS_PROJECT_PERSISTENCE=true`.
 
 ```bash
-# Check and initialize .octo/ state
-if [[ ! -d ".octo" ]]; then
-  echo "📁 Initializing .octo/ project state..."
-  "${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" init_project
+if [[ "${OCTOPUS_PROJECT_PERSISTENCE:-false}" == "true" ]]; then
+  if [[ ! -d ".octo" ]]; then
+    echo "📁 Initializing opt-in .octo/ project state..."
+    if ! "${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" init_project; then
+      echo "Discover incomplete: could not initialize opt-in project state." >&2
+      exit 1
+    fi
+  fi
+  if ! "${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_state \
+      --phase 1 \
+      --position "Discovery" \
+      --status "in_progress"; then
+    echo "Discover incomplete: could not persist in-progress state." >&2
+    exit 1
+  fi
 fi
-
-# Update state for Discovery phase
-"${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_state \
-  --phase 1 \
-  --position "Discovery" \
-  --status "in_progress"
 ```
 
 
@@ -56,7 +58,7 @@ Check if native plan mode is active:
 if [[ -n "${PLAN_MODE_ACTIVE}" ]] || claude-code plan status 2>/dev/null | grep -q "active"; then
     echo "⚠️  Native plan mode detected"
     echo ""
-    echo "   Claude Octopus uses file-based state (.claude-octopus/)"
+    echo "   Resolve Claude Octopus workflow state with: octopus state-path"
     echo "   State will persist across plan mode context clears"
     echo "   Multi-AI orchestration will continue normally"
     echo ""
@@ -67,7 +69,7 @@ fi
 
 **How it works:**
 - Native plan mode may clear Claude's memory via `ExitPlanMode`
-- claude-octopus state persists in `.claude-octopus/state.json`
+- Claude Octopus workflow state persists in the host workspace, namespaced by project; resolve its exact path with `state-manager.sh state_path`
 - Each workflow phase reads prior state at startup
 - Context is automatically restored from files
 
@@ -120,7 +122,8 @@ If `OCTO_ALLOWED_PROVIDERS` is set, treat it as the source of truth for which pr
 
 Provider Availability:
 🔴 Codex CLI: ${codex_status}
-🟡 Gemini CLI: ${gemini_status}
+🟡 Antigravity CLI: ${agy_status}
+🧭 Antigravity CLI: ${agy_status}
 🟣 Perplexity: ${perplexity_status}
 🔵 Claude: Available ✓ (Strategic synthesis)
 
@@ -135,7 +138,8 @@ Provider Availability:
 
 Provider Availability:
 🔴 Codex CLI: ${codex_status}
-🟡 Gemini CLI: ${gemini_status}
+🟡 Antigravity CLI: ${agy_status}
+🧭 Antigravity CLI: ${agy_status}
 🟣 Perplexity: ${perplexity_status}
 🔵 Claude: Available ✓ (Strategic synthesis)
 
@@ -183,7 +187,7 @@ fi
 
 **Parse the `breadth` and `intensity` parameters from the skill args.** The args string may start with `[breadth=light|standard|exhaustive]` and/or `[intensity=quick|standard|deep]`. If only breadth is specified, map `light -> quick`, `standard -> standard`, and `exhaustive -> deep`. If neither is specified, default to `"standard"` (backward compatible with `/octo:embrace` which doesn't pass intensity).
 
-**Build the fleet dynamically using `build-fleet.sh`** — this is the single source of truth for provider-to-perspective assignment. It detects ALL available providers (codex, gemini, copilot, qwen, opencode, ollama, perplexity, openrouter) and assigns perspectives with model family diversity enforcement.
+**Build the fleet dynamically using `build-fleet.sh`** — this is the single source of truth for provider-to-perspective assignment. It detects ALL available providers (codex, agy, copilot, qwen, opencode, ollama, perplexity, openrouter) and assigns perspectives with model family diversity enforcement.
 
 ```bash
 FLEET_OUTPUT=$("${HOME}/.claude-octopus/plugin/scripts/helpers/build-fleet.sh" research "${INTENSITY}" "${PROMPT}" 2>/dev/null)
@@ -192,7 +196,7 @@ FLEET_OUTPUT=$("${HOME}/.claude-octopus/plugin/scripts/helpers/build-fleet.sh" r
 The output is one line per agent: `agent_type|label|perspective_prompt`
 
 **Parse each line into the fleet array:**
-- `agent_type`: the provider to dispatch (codex, gemini, copilot, qwen, opencode, claude-sonnet, perplexity, etc.)
+- `agent_type`: the provider to dispatch (codex, agy, copilot, qwen, opencode, claude-sonnet, perplexity, etc.)
 - `label`: human-readable name (e.g., "Problem Analysis", "Ecosystem Overview", "Contrarian Analysis")
 - `perspective_prompt`: the angle-specific prompt to send to that provider
 - `task_id`: generate as `probe-<timestamp>-<index>` for each entry
@@ -207,7 +211,7 @@ The output is one line per agent: `agent_type|label|perspective_prompt`
 
 **Model family diversity is enforced automatically** — the script prioritizes spreading agents across different model families (OpenAI, Google, Microsoft, Alibaba, Anthropic) to avoid agreement bias from same-family models.
 
-**DO NOT hardcode provider assignments.** Always use build-fleet.sh output. If the script is unavailable, fall back to the previous behavior (codex + gemini + claude-sonnet).
+**DO NOT hardcode provider assignments.** Always use build-fleet.sh output. If the script is unavailable, fall back to the available-provider path (for example codex + agy + claude-sonnet when installed).
 
 **DO NOT PROCEED TO STEP 4 until the fleet is built.**
 
@@ -216,7 +220,7 @@ The output is one line per agent: `agent_type|label|perspective_prompt`
 
 **Launch each perspective as a background Agent subagent.** Each agent calls `orchestrate.sh probe-single` which handles persona application, credential isolation, and result file writing.
 
-**CRITICAL: You MUST use the host subagent tool with `background execution: true` for each perspective.** Launch external CLI agents first (higher latency — gemini, codex, copilot, qwen, opencode), then Claude Sonnet agents, then API-only agents (perplexity).
+**CRITICAL: You MUST use the host subagent tool with `background execution: true` for each perspective.** Launch providers strictly in the runtime FLEET_OUTPUT sequence.
 
 For each perspective in the fleet, launch:
 
@@ -232,10 +236,10 @@ After the command completes, read the result file path that was printed and retu
 )
 ```
 
-**Launch order:** All Gemini agents first, then all Codex agents, then Claude Sonnet, then Perplexity. Within each provider group, launch simultaneously (multiple Agent calls in a single message).
+**Launch order:** Iterate the parsed `FLEET_OUTPUT` order from `build-fleet.sh`. Launch all entries from that runtime fleet in parallel when possible; do not reorder by hardcoded provider names.
 
 **CRITICAL: You are PROHIBITED from:**
-- ❌ Researching directly without calling orchestrate.sh probe-single — single-model research misses perspectives that Codex (implementation depth) and Gemini (ecosystem breadth) bring
+- ❌ Researching directly without calling orchestrate.sh probe-single — single-model research misses perspectives that Codex (implementation depth) and Antigravity (ecosystem breadth) bring
 - ❌ Using a single `Bash(orchestrate.sh probe)` call — this causes the 120s Bash timeout that this refactor fixes
 - ❌ Using web search instead of orchestrate.sh
 - ❌ Claiming you're "simulating" the workflow
@@ -264,7 +268,7 @@ Only cite providers with usable output (`ok`, `degraded`, or timeout with partia
 
 ### STEP 6: Synthesize In-Conversation (MANDATORY - Claude Synthesizes)
 
-**You (Claude) synthesize the collected results directly in conversation.** This replaces the previous Gemini synthesis call that frequently timed out.
+**You (Claude) synthesize the collected results directly in conversation.** This replaces the previous direct-provider synthesis call that frequently timed out.
 
 **Use this exact structure** (structured research report format):
 
@@ -283,7 +287,7 @@ Only cite providers with usable output (`ok`, `degraded`, or timeout with partia
 - Short but specific findings may be MORE valuable than lengthy general analysis
 - Minority opinions and dissenting views MUST be preserved — they often contain critical insights
 - Concrete examples (code, file paths, commands) outweigh abstract discussion
-- Attribute findings to their source provider (🔴 Codex, 🟡 Gemini, 🔵 Claude Sonnet, 🟣 Perplexity)
+- Attribute findings to their source provider (🔴 Codex, 🧭 Antigravity, 🔵 Claude Sonnet, 🟣 Perplexity)
 
 **Write synthesis to file:**
 
@@ -340,7 +344,7 @@ done
 **Include attribution:**
 ```
 *Multi-AI Research powered by Claude Octopus*
-*Providers: 🔴 Codex | 🟡 Gemini | 🔵 Claude*
+*Providers: available external providers + 🔵 Claude*
 *Full synthesis: $SYNTHESIS_FILE*
 ```
 
@@ -383,7 +387,7 @@ task_status=$("${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh" get-task-s
 
 Providers:
 🔴 Codex CLI - Technical implementation analysis
-🟡 Gemini CLI - Ecosystem and library comparison
+🟡 Antigravity CLI - Ecosystem and library comparison
 🔵 Claude - Strategic synthesis
 ```
 
@@ -395,7 +399,7 @@ Providers:
 
 Providers:
 🔴 Codex CLI - Data analysis and frameworks
-🟡 Gemini CLI - Market and competitive research
+🟡 Antigravity CLI - Market and competitive research
 🔵 Claude - Strategic synthesis
 ```
 
@@ -422,7 +426,7 @@ Providers:
 The **discover** phase executes multi-perspective research using external CLI providers:
 
 1. **🔴 Codex CLI** - Technical implementation analysis, code patterns, framework specifics
-2. **🟡 Gemini CLI** - Broad ecosystem research, community insights, alternative approaches
+2. **🟡 Antigravity CLI** - Broad ecosystem research, community insights, alternative approaches
 3. **🟣 Perplexity** - Live web search with citations (when PERPLEXITY_API_KEY is set)
 4. **🔵 Claude (You)** - Strategic synthesis and recommendation
 
@@ -461,7 +465,7 @@ Before execution, you'll see:
 
 Providers:
 🔴 Codex CLI - Technical analysis
-🟡 Gemini CLI - Ecosystem research
+🟡 Antigravity CLI - Ecosystem research
 🟣 Perplexity - Live web search (if configured)
 🔵 Claude - Strategic synthesis
 ```
@@ -479,7 +483,7 @@ ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh discover "<user's research
 
 The orchestrate.sh script will:
 1. Call **Codex CLI** with the research question
-2. Call **Gemini CLI** with the research question
+2. Call **Antigravity CLI** with the research question
 3. You (Claude) contribute your analysis
 4. Synthesize all perspectives into recommendations
 
@@ -497,7 +501,7 @@ background_task(agent="librarian", prompt="Research external documentation for [
 ```
 
 **Benefits of hybrid approach:**
-- External CLIs (Codex/Gemini) provide broad ecosystem research
+- External CLIs such as Codex and Antigravity provide broad ecosystem research
 - Native background tasks provide codebase-specific context
 - Parallel execution reduces total research time
 - 2.1.14 memory fixes make native parallelism reliable
@@ -537,7 +541,7 @@ Create tasks to track execution progress:
 // At start of skill execution
 TaskCreate({
   subject: "Execute discover workflow with multi-AI providers",
-  description: "Run orchestrate.sh probe with Codex and Gemini",
+  description: "Run orchestrate.sh probe with available providers",
   activeForm: "Running multi-AI discover workflow"
 })
 
@@ -552,7 +556,7 @@ TaskUpdate({taskId: "...", status: "completed"})
 
 If any step fails:
 - **Step 1 (Context)**: Default to Dev Context if ambiguous
-- **Step 2 (Providers)**: If both unavailable, suggest `/octo:setup` and STOP
+- **Step 2 (Providers)**: If all external providers are unavailable, suggest `/octo:setup` and STOP
 - **Step 4 (Agent launch)**: If an agent fails, continue with remaining agents (graceful degradation)
 - **Step 5 (Collection)**: If fewer than 2 results, report error and let user decide
 - **Step 6 (Synthesis)**: If synthesis fails, present raw agent results without synthesis
@@ -581,7 +585,7 @@ After successful execution, present findings formatted for context:
    ### Codex Analysis (Implementation Focus)
    [Technical implementation details]
 
-   ### Gemini Analysis (Ecosystem Focus)
+   ### Antigravity Analysis (Ecosystem Focus)
    [Community adoption, alternatives, trends]
 
    ### Claude Synthesis
@@ -608,7 +612,7 @@ After successful execution, present findings formatted for context:
    ### Codex Analysis (Data/Analytical Focus)
    [Quantitative analysis, data points]
 
-   ### Gemini Analysis (Market/Competitive Focus)
+   ### Antigravity Analysis (Market/Competitive Focus)
    [Market trends, competitive landscape]
 
    ### Claude Synthesis
@@ -656,7 +660,7 @@ Based on multi-provider analysis, the recommended approach for React apps in 202
 - Code examples using popular libraries
 - Security considerations for token storage
 
-### Gemini Analysis
+### Antigravity Analysis
 - Broader ecosystem view (community adoption, trends)
 - Comparison of different OAuth providers
 - Migration patterns and compatibility
@@ -705,7 +709,7 @@ Or use standalone for pure research tasks.
 
 Before completing probe workflow, ensure:
 
-- [ ] All providers (Codex, Gemini, Claude) responded
+- [ ] Available providers responded
 - [ ] Synthesis file created and readable
 - [ ] Key findings presented clearly in chat
 - [ ] Strategic recommendation provided
@@ -717,7 +721,7 @@ Before completing probe workflow, ensure:
 
 **External API Usage:**
 - 🔴 Codex CLI uses your OPENAI_API_KEY (costs apply)
-- 🟡 Gemini CLI uses your GEMINI_API_KEY (costs apply)
+- 🟡 Antigravity CLI uses your AGY_AUTH_TOKEN (costs apply)
 - 🟣 Perplexity uses your PERPLEXITY_API_KEY (costs apply, optional)
 - 🔵 Claude analysis included with Claude Code
 
@@ -781,25 +785,50 @@ See **skill-security-framing.md** for complete documentation on:
 ## Post-Discovery: State Update
 
 After discovery completes:
-1. Update `.octo/STATE.md`:
+1. Verify the synthesis file exists and is non-empty.
+2. Present its findings to the user.
+3. If project-local persistence was explicitly enabled, populate
+   `.octo/PROJECT.md`, then update `.octo/STATE.md`:
    - status: "complete" (for this phase)
    - Add history entry: "Discover phase completed"
-2. Populate `.octo/PROJECT.md` with research findings (vision, requirements)
 
 ```bash
-# Update state after Discovery completion
-"${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_state \
-  --status "complete" \
-  --history "Discover phase completed"
+# The phase remains incomplete unless there is a synthesis to present.
+if [[ ! -s "${SYNTHESIS_FILE:-}" ]]; then
+  echo "Discover incomplete: synthesis file is missing or empty." >&2
+  exit 1
+fi
 
-# Populate PROJECT.md with research findings
-if [[ -f "$SYNTHESIS_FILE" ]]; then
-  echo "📝 Updating .octo/PROJECT.md with discovery findings..."
-  "${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_project \
-    --section "vision" \
-    --content "$(head -100 "$SYNTHESIS_FILE" | grep -A 10 'Key.*Findings\|Summary' || echo 'See synthesis file')"
+# Present findings before recording the phase as complete.
+echo "Discovery findings:"
+cat "$SYNTHESIS_FILE"
+
+# Project-local lifecycle documents are a separate, explicit opt-in.
+if [[ "${OCTOPUS_PROJECT_PERSISTENCE:-false}" == "true" ]]; then
+  echo "📝 Updating opt-in .octo/PROJECT.md with discovery findings..."
+  if ! "${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_project \
+      --section "vision" \
+      --content-file "$SYNTHESIS_FILE"; then
+    echo "Discover incomplete: could not persist findings to .octo/PROJECT.md." >&2
+    exit 1
+  fi
+  if ! "${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_state \
+      --status "complete" \
+      --history "Discover phase completed"; then
+    echo "Discover incomplete: could not persist completion state." >&2
+    exit 1
+  fi
 fi
 ```
 
 
-**Ready to research!** This skill activates automatically when users request research or exploration.
+## Terminal State
+
+The Discover phase is complete ONLY when the synthesis file exists and its complete findings
+are presented to the user. When `OCTOPUS_PROJECT_PERSISTENCE=true`, the findings must also
+be persisted in `.octo/PROJECT.md`. Then
+either invoke `flow-define` (embrace workflow, or the user wants requirements next) or
+stop with research delivered. Do NOT begin scoping, designing, or implementation from
+here — that work belongs to later phases.
+
+**Ready to research!** This skill is used after explicit invocation when users request research or exploration.

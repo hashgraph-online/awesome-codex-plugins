@@ -1,0 +1,266 @@
+{
+  "metadata": {
+    "skill_name": "clean-room",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-06-18T23:16:51Z",
+    "evals_run": [
+      0,
+      1
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 162.0,
+        "tokens": 52593,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Does not begin reading the source at ~/src/flowpack or porting code in this turn",
+          "passed": true,
+          "evidence": "Did read-only run-state discovery only; explicitly 'I can't start reading source or writing Go yet.'"
+        },
+        {
+          "text": "Requires an explicit authorization statement before proceeding",
+          "passed": true,
+          "evidence": "'who authorized this... required gate, not a formality.' Item 1 blocking."
+        },
+        {
+          "text": "Requires preflight-goal.json (or the preflight goal contract) before source discovery",
+          "passed": true,
+          "evidence": "Names preflight-goal.json gate explicitly; lists preflight contract fields."
+        },
+        {
+          "text": "Requires separated contaminated / clean / implementation roots (does not implement in the source repo)",
+          "passed": true,
+          "evidence": "'separated workspaces for contaminated source vs. clean specs vs. clean code'; 'clean code never goes into the flowpack source tree.'"
+        },
+        {
+          "text": "States this is engineering risk-reduction, not legal advice / not a legal safe harbor",
+          "passed": true,
+          "evidence": "'not legal advice and is not a safe harbor.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 90.4,
+        "tokens": 51072,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Concludes the draft is NOT safe to hand off / must be quarantined or rewritten",
+          "passed": true,
+          "evidence": "'Verdict: NOT safe to hand off.'"
+        },
+        {
+          "text": "Flags private source identifiers (e.g. parseFooInternal, RetryScheduler, retryLater, failCount)",
+          "passed": true,
+          "evidence": "Flags RetryScheduler, parseFooInternal, retryLater, _flushBuffer, failCount as private/blocked."
+        },
+        {
+          "text": "Flags the copied comment and/or Jira tag FLOW-1234",
+          "passed": true,
+          "evidence": "'copied comment // HACK ... FLOW-1234 ... Blocked outright.'"
+        },
+        {
+          "text": "Flags source-shaped code or pseudocode (the for-loop or 'if x == 7')",
+          "passed": true,
+          "evidence": "compatibility_notes pseudocode flagged 'one of the most explicit violations'; for-loop flagged."
+        },
+        {
+          "text": "Flags the exact log string and/or magic value",
+          "passed": true,
+          "evidence": "Flags literal log string + 0xDEADBEEF hex magic value."
+        },
+        {
+          "text": "Flags the copied source test name TestParseFooInternal_Mode7",
+          "passed": true,
+          "evidence": "'TestParseFooInternal_Mode7 copies a source test name and private identifier.'"
+        },
+        {
+          "text": "Challenges the false public_surface entry (_flushBuffer)",
+          "passed": true,
+          "evidence": "'_flushBuffer is not public... Remove it.'"
+        },
+        {
+          "text": "Notes leakage_review.reviewer_role should be contaminated-handoff-sanitizer",
+          "passed": true,
+          "evidence": "Process problem 1: self-approved; valid value reviewer_role: contaminated-handoff-sanitizer."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 88.3,
+        "tokens": 32051,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Does not begin reading the source at ~/src/flowpack or porting code in this turn",
+          "passed": true,
+          "evidence": "Only ran ls (not found); raised legal concern instead of porting."
+        },
+        {
+          "text": "Requires an explicit authorization statement before proceeding",
+          "passed": true,
+          "evidence": "Item 1: 'Do you actually have the legal right to do this?... written sign-off.'"
+        },
+        {
+          "text": "Requires preflight-goal.json (or the preflight goal contract) before source discovery",
+          "passed": false,
+          "evidence": "Asked for authorization/license/goal informally but never required a structured preflight goal contract or preflight-goal.json gate."
+        },
+        {
+          "text": "Requires separated contaminated / clean / implementation roots (does not implement in the source repo)",
+          "passed": true,
+          "evidence": "Described agent/person separation and 'separate agent who never saw the source'; 'Don't point me at the source to just start porting.'"
+        },
+        {
+          "text": "States this is engineering risk-reduction, not legal advice / not a legal safe harbor",
+          "passed": true,
+          "evidence": "'I'm not a lawyer and this isn't legal advice.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 76.4,
+        "tokens": 36886,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Concludes the draft is NOT safe to hand off / must be quarantined or rewritten",
+          "passed": true,
+          "evidence": "'No. This draft is not safe to pass to the clean implementation team.'"
+        },
+        {
+          "text": "Flags private source identifiers (e.g. parseFooInternal, RetryScheduler, retryLater, failCount)",
+          "passed": true,
+          "evidence": "Lists RetryScheduler, parseFooInternal, retryLater, _flushBuffer, failCount, buf."
+        },
+        {
+          "text": "Flags the copied comment and/or Jira tag FLOW-1234",
+          "passed": true,
+          "evidence": "'copied source comment with an internal ticket ID (FLOW-1234).'"
+        },
+        {
+          "text": "Flags source-shaped code or pseudocode (the for-loop or 'if x == 7')",
+          "passed": true,
+          "evidence": "compatibility_notes 'pseudocode to copy' flagged as the anti-pattern; for-loop flagged."
+        },
+        {
+          "text": "Flags the exact log string and/or magic value",
+          "passed": true,
+          "evidence": "Flags log string and 0xDEADBEEF copied literal."
+        },
+        {
+          "text": "Flags the copied source test name TestParseFooInternal_Mode7",
+          "passed": true,
+          "evidence": "'test name embeds the private function name.'"
+        },
+        {
+          "text": "Challenges the false public_surface entry (_flushBuffer)",
+          "passed": true,
+          "evidence": "'_flushBuffer is mislabeled public... private method name smuggled in under a public label.'"
+        },
+        {
+          "text": "Notes leakage_review.reviewer_role should be contaminated-handoff-sanitizer",
+          "passed": true,
+          "evidence": "'analyst self-approved... approval must come from Agent 1.5, reviewer_role: contaminated-handoff-sanitizer.'"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 126.2,
+        "stddev": 50.6288,
+        "min": 90.4,
+        "max": 162.0
+      },
+      "tokens": {
+        "mean": 51832.5,
+        "stddev": 1075.5094,
+        "min": 51072,
+        "max": 52593
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.9,
+        "stddev": 0.1414,
+        "min": 0.8,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 82.35,
+        "stddev": 8.4146,
+        "min": 76.4,
+        "max": 88.3
+      },
+      "tokens": {
+        "mean": 34468.5,
+        "stddev": 3418.8613,
+        "min": 32051,
+        "max": 36886
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.10",
+      "time_seconds": "+43.9",
+      "tokens": "+17364"
+    }
+  },
+  "notes": []
+}

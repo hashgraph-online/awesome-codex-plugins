@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Clean Room icon</title>
+  <desc id="desc">A divided teal room with a clean specification document.</desc>
+  <rect width="512" height="512" rx="96" fill="#0F172A"/>
+  <path d="M96 120c0-17.7 14.3-32 32-32h256c17.7 0 32 14.3 32 32v272c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32V120Z" fill="#F8FAFC"/>
+  <path d="M256 88h128c17.7 0 32 14.3 32 32v272c0 17.7-14.3 32-32 32H256V88Z" fill="#CCFBF1"/>
+  <path d="M256 88v336" stroke="#0F766E" stroke-width="20" stroke-linecap="round"/>
+  <path d="M148 168h64M148 216h64M148 264h64" stroke="#334155" stroke-width="20" stroke-linecap="round"/>
+  <path d="M300 168h64M300 216h64M300 264h64" stroke="#0F766E" stroke-width="20" stroke-linecap="round"/>
+  <path d="M152 344h208" stroke="#14B8A6" stroke-width="24" stroke-linecap="round"/>
+</svg>

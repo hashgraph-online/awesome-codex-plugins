@@ -1,7 +1,7 @@
 {
   "name": "simple-man",
-  "version": "0.1.0",
-  "description": "High-compression professional communication mode for Codex.",
+  "version": "0.2.0",
+  "description": "Concise, low-noise Agent Skill for Codex without reduced work quality.",
   "author": {
     "name": "Maksim Burtsev",
     "url": "https://github.com/Maksim-Burtsev"
@@ -12,7 +12,11 @@
   "keywords": [
     "communication",
     "brevity",
+    "agent-skill",
     "coding-agent",
+    "concise-output",
+    "technical-communication",
+    "token-efficiency",
     "productivity"
   ],
   "skills": "./skills/",

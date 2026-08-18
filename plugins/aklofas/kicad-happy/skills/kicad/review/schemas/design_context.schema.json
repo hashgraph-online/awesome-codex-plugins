@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.dev/schemas/design_context.schema.json",
+  "title": "Layer 2 Design Context",
+  "description": "Closed-set design context inferred by design_context subagent. Phase 4 spec §4.2.",
+  "type": "object",
+  "required": ["design_category", "environment", "compliance_targets",
+                "user_declared_intent", "confidence", "evidence", "resolution"],
+  "additionalProperties": false,
+  "properties": {
+    "design_category": {
+      "oneOf": [
+        {"$ref": "#/$defs/design_category_enum"},
+        {"$ref": "#/$defs/triple_design_category"}
+      ]
+    },
+    "environment": {
+      "oneOf": [
+        {"$ref": "#/$defs/environment_enum"},
+        {"$ref": "#/$defs/triple_environment"}
+      ]
+    },
+    "compliance_targets": {"type": "array", "items": {"type": "string"}},
+    "user_declared_intent": {"type": ["string", "null"]},
+    "confidence": {"enum": ["high", "medium", "low"]},
+    "evidence": {"type": "string"},
+    "resolution": {"enum": ["inferred_only", "user_override", "agree"]}
+  },
+  "$defs": {
+    "design_category_enum": {
+      "enum": ["mcu_dev_board", "motor_controller", "power_supply",
+                "sensor_node", "audio", "rf_frontend", "industrial_io", "general"]
+    },
+    "environment_enum": {
+      "enum": ["hobby", "consumer", "industrial", "automotive",
+                "medical", "aerospace", "unspecified"]
+    },
+    "triple_design_category": {
+      "type": "object",
+      "required": ["inferred", "declared", "effective"],
+      "additionalProperties": false,
+      "properties": {
+        "inferred": {"oneOf": [{"$ref": "#/$defs/design_category_enum"}, {"type": "null"}]},
+        "declared": {"oneOf": [{"$ref": "#/$defs/design_category_enum"}, {"type": "null"}]},
+        "effective": {"$ref": "#/$defs/design_category_enum"}
+      }
+    },
+    "triple_environment": {
+      "type": "object",
+      "required": ["inferred", "declared", "effective"],
+      "additionalProperties": false,
+      "properties": {
+        "inferred": {"oneOf": [{"$ref": "#/$defs/environment_enum"}, {"type": "null"}]},
+        "declared": {"oneOf": [{"$ref": "#/$defs/environment_enum"}, {"type": "null"}]},
+        "effective": {"$ref": "#/$defs/environment_enum"}
+      }
+    }
+  }
+}

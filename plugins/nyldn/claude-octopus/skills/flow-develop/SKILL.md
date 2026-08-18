@@ -1,6 +1,7 @@
 ---
 name: flow-develop
-description: "Multi-AI implementation using Codex and Gemini CLIs (Double Diamond Develop phase)"
+description: "Multi-AI implementation using available external providers (Double Diamond Develop phase)"
+disable-model-invocation: true
 ---
 
 > **Host: Codex CLI** — This skill was designed for Claude Code and adapted for Codex.
@@ -132,7 +133,8 @@ If `OCTO_ALLOWED_PROVIDERS` is set, treat it as the source of truth for which pr
 
 Provider Availability:
 🔴 Codex CLI: ${codex_status} - Code generation and patterns
-🟡 Gemini CLI: ${gemini_status} - Alternative approaches
+🟡 Antigravity CLI: ${agy_status} - Alternative approaches
+🧭 Antigravity CLI: ${agy_status} - Additional external-model challenge
 🔵 Claude: Available ✓ - Integration and quality gates
 
 💰 Estimated Cost: $0.02-0.10
@@ -146,7 +148,8 @@ Provider Availability:
 
 Provider Availability:
 🔴 Codex CLI: ${codex_status} - Structure and framework application
-🟡 Gemini CLI: ${gemini_status} - Content and narrative development
+🟡 Antigravity CLI: ${agy_status} - Content and narrative development
+🧭 Antigravity CLI: ${agy_status} - Additional external-model challenge
 🔵 Claude: Available ✓ - Integration and quality review
 
 💰 Estimated Cost: $0.02-0.10
@@ -209,7 +212,7 @@ ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh develop "<user's implement
 ```
 
 **CRITICAL: You are PROHIBITED from:**
-- ❌ Implementing directly without calling orchestrate.sh — single-model implementation misses alternative approaches and edge cases that Codex and Gemini surface through independent analysis
+- ❌ Implementing directly without calling orchestrate.sh — single-model implementation misses alternative approaches and edge cases that external providers surface through independent analysis
 - ❌ Writing code without multi-provider perspectives
 - ❌ Claiming you're "simulating" the workflow
 - ❌ Proceeding to Step 4 without running this command
@@ -222,7 +225,7 @@ If running in Claude Code v2.1.16+, users will see **real-time progress indicato
 
 **Phase 1 - External Provider Execution (Parallel):**
 - 🔴 Generating code and patterns (Codex)...
-- 🟡 Exploring alternative approaches (Gemini)...
+- 🟡 Exploring alternative approaches (Antigravity)...
 
 **Phase 2 - Synthesis (Sequential):**
 - 🔵 Integrating and applying quality gates...
@@ -292,16 +295,16 @@ fi
 Read the synthesis file and present:
 - Recommended approach
 - Implementation steps
-- Code overview from all perspectives (Codex, Gemini, Claude)
+- Code overview from all available perspectives
 - Quality gates results
 - Request user confirmation before implementing
 
-**After user confirms, STEP 6: Implement the solution using Write/Edit tools**
+**After user confirms: Implement the solution using Write/Edit tools**
 
 **Include attribution:**
 ```
 *Multi-AI Implementation powered by Claude Octopus*
-*Providers: 🔴 Codex | 🟡 Gemini | 🔵 Claude*
+*Providers: available external providers + 🔵 Claude*
 *Full implementation plan: $SYNTHESIS_FILE*
 ```
 
@@ -338,7 +341,7 @@ Analyze the user's prompt and project to determine context:
 
 Providers:
 🔴 Codex CLI - Code generation and patterns
-🟡 Gemini CLI - Alternative approaches
+🟡 Antigravity CLI - Alternative approaches
 🔵 Claude - Integration and quality gates
 ```
 
@@ -350,7 +353,7 @@ Providers:
 
 Providers:
 🔴 Codex CLI - Structure and framework application
-🟡 Gemini CLI - Content and narrative development
+🟡 Antigravity CLI - Content and narrative development
 🔵 Claude - Integration and quality review
 ```
 
@@ -377,7 +380,7 @@ Providers:
 The **develop** phase generates multiple implementation approaches using external CLI providers:
 
 1. **🔴 Codex CLI** - Implementation-focused, code generation, technical patterns
-2. **🟡 Gemini CLI** - Alternative approaches, edge cases, best practices
+2. **🟡 Antigravity CLI** - Alternative approaches, edge cases, best practices
 3. **🔵 Claude (You)** - Integration, refinement, and final implementation
 
 This is the **divergent** phase for solutions - we explore different implementation paths before converging on the best approach.
@@ -419,7 +422,7 @@ Before execution, you'll see:
 
 Providers:
 🔴 Codex CLI - Code generation and patterns
-🟡 Gemini CLI - Alternative approaches
+🟡 Antigravity CLI - Alternative approaches
 🔵 Claude - Integration and refinement
 ```
 
@@ -436,7 +439,7 @@ ${HOME}/.claude-octopus/plugin/scripts/orchestrate.sh develop "<user's implement
 
 The orchestrate.sh script will:
 1. Call **Codex CLI** with the implementation task
-2. Call **Gemini CLI** with the implementation task
+2. Call **Antigravity CLI** with the implementation task
 3. You (Claude) contribute implementation analysis
 4. Synthesize approaches and recommend best path
 
@@ -480,7 +483,7 @@ When this skill is invoked, follow the EXECUTION CONTRACT above exactly. The con
 3. **Blocking Step 3**: Execute orchestrate.sh develop via native shell command tool
 4. **Blocking Step 4**: Verify synthesis file exists
 5. **Step 5**: Present implementation plan, get user confirmation
-6. **Step 6**: Implement the solution using Write/Edit tools
+6. **After confirmation**: Implement the solution using Write/Edit tools
 
 Each step is **mandatory and blocking** - you cannot proceed to the next step until the current one completes successfully.
 
@@ -507,7 +510,7 @@ TaskUpdate({taskId: "...", status: "completed"})
 
 If any step fails:
 - **Step 1 (Context)**: Default to Dev Context if ambiguous
-- **Step 2 (Providers)**: If both unavailable, suggest `/octo:setup` and STOP
+- **Step 2 (Providers)**: If all external providers are unavailable, suggest `/octo:setup` and STOP
 - **Step 3 (orchestrate.sh)**: Show bash error, check logs, report to user
 - **Step 4 (Validation)**: If synthesis missing, show orchestrate.sh logs, DO NOT substitute with direct implementation
 
@@ -531,8 +534,8 @@ After successful execution, present implementation plan with:
    ### Codex Approach
    [Key implementation details from Codex]
 
-   ### Gemini Approach
-   [Alternative considerations from Gemini]
+   ### Antigravity Approach
+   [Alternative considerations from Antigravity]
 
    ### Final Implementation
    [Your integrated solution]
@@ -594,7 +597,7 @@ Based on multi-provider analysis, I recommend a layered approach:
 - Redis for token blacklisting
 - Comprehensive error handling
 
-### Gemini Approach
+### Antigravity Approach
 - Passport.js integration suggestion
 - Rate limiting on auth endpoints
 - Multi-factor auth consideration
@@ -743,7 +746,7 @@ After writing code, ensure:
 
 **External API Usage:**
 - 🔴 Codex CLI uses your OPENAI_API_KEY (costs apply)
-- 🟡 Gemini CLI uses your GEMINI_API_KEY (costs apply)
+- 🟡 Antigravity CLI uses your AGY_AUTH_TOKEN (costs apply)
 - 🔵 Claude analysis included with Claude Code
 
 Tangle workflows typically cost $0.02-0.10 per task depending on complexity and code length.
@@ -752,20 +755,21 @@ Tangle workflows typically cost $0.02-0.10 per task depending on complexity and 
 ## Post-Development: Checkpoint
 
 After development completes:
-1. Update `.octo/STATE.md` with completion
+1. Run fresh targeted tests for the changed behavior through
+   `skill-verification-gate`; stop if they fail.
 2. Create checkpoint: `git tag octo-checkpoint-post-develop-$(date +%Y%m%d-%H%M%S)`
-3. Add history entry with files modified
+3. Update `.octo/STATE.md` with completion and add a history entry with files modified.
 
 ```bash
-# Update state after Development completion
-"${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_state \
-  --status "complete" \
-  --history "Develop phase completed"
-
-# Create git checkpoint tag
+# Enter this block only after fresh targeted tests pass.
 checkpoint_tag="octo-checkpoint-post-develop-$(date +%Y%m%d-%H%M%S)"
 git tag "$checkpoint_tag" -m "Post-develop checkpoint from embrace workflow"
 echo "📌 Created checkpoint: $checkpoint_tag"
+
+# Update state only after verification and checkpoint creation succeed.
+"${HOME}/.claude-octopus/plugin/scripts/octo-state.sh" update_state \
+  --status "complete" \
+  --history "Develop phase completed"
 
 # Record files modified in this phase
 modified_files=$(git diff --name-only HEAD~1 2>/dev/null || echo "See git log")
@@ -774,4 +778,11 @@ modified_files=$(git diff --name-only HEAD~1 2>/dev/null || echo "See git log")
 ```
 
 
-**Ready to build!** This skill activates automatically when users request implementation or building features.
+## Terminal State
+
+The Develop phase is complete ONLY when the implementation exists, the post-develop
+checkpoint tag is created, and targeted tests pass fresh (see `skill-verification-gate`).
+Then invoke `flow-deliver` for validation. Do NOT declare the work done from here —
+completion claims belong to the Deliver phase after review.
+
+**Ready to build!** This skill is used after explicit invocation when users request implementation or building features.

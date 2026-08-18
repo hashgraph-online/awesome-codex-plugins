@@ -1,0 +1,13 @@
+{
+  "matlab": {
+    "command": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "./scripts/start-matlab-mcp.ps1"
+    ],
+    "tool_timeout_sec": 300
+  }
+}

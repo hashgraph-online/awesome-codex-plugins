@@ -3,7 +3,7 @@ name: tenant-isolation
 description: "Use when multi-tenant systems need tenant context, data partitioning, quotas, cross-tenant tests, or safe telemetry"
 ---
 
-# Tenant Isolation And Data Protection
+# Tenant Isolation And Resource Boundaries
 
 ## Iron Law
 
@@ -19,7 +19,7 @@ If a request or query can lose tenant context, cross-tenant leakage or impact is
 
 Multi-tenancy fails when tenant context is optional.
 
-**Core principle:** carry tenant and data classification through every request, query, log, metric, trace, audit event, quota, and operational workflow.
+**Core principle:** derive tenant context from an authenticated principal or trusted server-side mapping, reject conflicting caller input, then carry tenant and data classification through every request, query, log, metric, trace, audit event, quota, and operational workflow.
 
 ## When To Use
 
@@ -43,7 +43,7 @@ Multi-tenancy fails when tenant context is optional.
 - Data classification, PII/sensitive fields, retention, deletion, export, and residency constraints.
 - Request, query, cache, event, batch, search, analytics, and support/admin paths that carry tenant data.
 - Tenant-controlled configuration, metadata, limits, or scripts read by shared workers or serving paths.
-- Access controls, tenant context propagation, activity logs, row/object boundaries, and break-glass behavior.
+- Authentication binding, trusted tenant-resolution source, membership and impersonation rules, conflicting caller-supplied identifiers, tenant context propagation, activity logs, row/object boundaries, and break-glass behavior.
 - Quotas, rate limits, concurrency caps, noisy-neighbor risks, and per-tenant isolation needs.
 - Fairness model: quota key, per-workload limits, burst sharing, unplanned capacity behavior, limit visibility, and high-cardinality admission dimensions.
 - Admission point for tenant limits, dynamic limit update path, fair-share behavior, and privacy-safe impact scoping.
@@ -51,8 +51,8 @@ Multi-tenancy fails when tenant context is optional.
 
 ## Workflow
 
-1. **Define tenancy.** State what tenant means, how tenant IDs are assigned, and which resources are tenant-scoped. Define the model: silo means dedicated stack per tenant; pool means shared stack with logical isolation; bridge means shared control plane with tenant-dedicated data or runtime boundaries.
-2. **Map tenant context.** Follow tenant context through request handling, storage, caches, events, jobs, logs, metrics, traces, and admin tools.
+1. **Define and bind tenancy.** State what tenant means, how tenant IDs are assigned, and which resources are tenant-scoped. Derive the active tenant from an authenticated principal, validated membership, or a trusted server-side mapping; treat caller-supplied tenant identifiers as claims to verify, not authority. Reject missing, conflicting, or unauthorized tenant input, and define tightly controlled support impersonation or break-glass behavior. Define the model: silo means dedicated stack per tenant; pool means shared stack with logical isolation; bridge means shared control plane with tenant-dedicated data or runtime boundaries.
+2. **Map integrity-protected tenant context.** Follow trusted tenant context through request handling, storage, caches, events, jobs, logs, metrics, traces, and admin tools. Protect internal propagation against caller override and revalidate it at storage, cache, event, job, export, and support boundaries rather than trusting transit alone.
 3. **Choose isolation model.** Use silo, pool, bridge, hybrid, or isolation-group boundaries based on data sensitivity, blast radius, scale, cost, and tenant-specific residency or compliance needs. Isolation groups separate sets of tenants from each other while preserving finer isolation inside each group.
 4. **Choose data partitioning.** State whether tenants use separate stores, separate schemas/namespaces, shared schemas with enforced tenant predicates, or tenant-scoped encryption and credentials.
 5. **Enforce data boundaries.** Apply tenant filters, scoped credentials, row/object boundaries, query guards, cache-key tenant assertions, and cross-tenant tests.
@@ -60,25 +60,14 @@ Multi-tenancy fails when tenant context is optional.
 7. **Control noisy neighbors.** Add per-tenant or per-workload quotas, rate limits, concurrency caps, and load-shedding rules where shared capacity exists; enforce cheap admission checks before expensive work when possible. Decide whether unused shared capacity can be borrowed, when planned usage takes priority over burst usage, how limits change safely during an event, and how admission accuracy is measured. Keep cross-tenant fairness policy here; route caller-dependency overload behavior to `dependency-resilience` when the decision is not tenant-specific.
 8. **Protect privacy surfaces.** Minimize, redact, tokenize, encrypt, or segregate sensitive data in logs, telemetry, exports, and support views.
 9. **Handle tenant offboarding.** Propagate deletion and access removal through stores, caches, indexes, derived data, exports, backup expiry, and support tooling.
-10. **Audit high-risk access.** Record administrative, support, export, deletion, and cross-tenant operations in tenant-scoped activity logs; define retention long enough for investigation, compliance, and incident investigation.
+10. **Audit high-risk access safely.** Record administrative, support, export, deletion, and cross-tenant operations in tenant-scoped activity logs; define prohibited fields, redaction or tokenization, access, integrity, retention, disposal, and review responsibility. Prefer stable actor, tenant, action, and resource references over raw customer content.
 11. **Verify isolation.** Use tests, probes, reviews, and monitoring for cross-tenant reads/writes, poison tenant state, and capacity abuse.
 
 ## Synthesized Default
 
-Make tenant context mandatory and enforce it at multiple layers: application, data access, cache/event/job processing, audit, and observability. Choose the weakest shared-tenancy model that still satisfies blast-radius and data-boundary requirements, then combine tenant quotas with privacy-aware logging and cross-tenant tests.
+Derive mandatory tenant context from authenticated identity or a trusted server-side mapping, reject conflicting caller claims, and enforce it at multiple layers: application, data access, cache/event/job processing, audit, and observability. Choose the weakest shared-tenancy model that still satisfies blast-radius and data-boundary requirements, then combine tenant quotas with privacy-aware logging and cross-tenant tests.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -90,7 +79,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 ## Response Quality Bar
 
 - Lead with the isolation model, cross-tenant risk, boundary-control plan, or test gap requested.
-- Cover tenant context propagation, data access boundaries, cache/event/job paths, quotas, privacy-safe telemetry, support access, and cross-tenant tests before optional tenancy breadth.
+- Cover authenticated tenant derivation, conflicting-input rejection, integrity-protected propagation, data access boundaries, cache/event/job paths, quotas, privacy-safe telemetry, support access, and cross-tenant tests before optional tenancy breadth.
 - Make recommendations actionable with enforcement layers, query/key rules, quotas, tenant-scoped activity logs with retention, test cases, and stop criteria where relevant.
 - Name the details to inspect, such as request flows, schema keys, cache keys, job payloads, event envelopes, support-tool logs, quota metrics, audit retention settings, and cross-tenant test results; do not state details you have not seen.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
@@ -101,7 +90,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Tenant isolation model and rationale.
-- Tenant context propagation map.
+- Tenant identity-binding and context propagation map with authenticated source, membership check, conflicting-input behavior, protected transit, and boundary revalidation.
 - Data partitioning and isolation-group decision when applicable.
 - Data classification and sensitive-field handling plan.
 - Access, query, cache, event, and job boundary controls.
@@ -110,12 +99,12 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 - Dynamic tenant-limit update path and privacy-safe impact scoping signals.
 - Tenant-controlled config validation, quarantine, and independent repair path.
 - Privacy-safe logging/telemetry/support review.
-- Tenant-scoped audit log requirements, including covered events, protected fields, retention period or retention policy, and review responsibility.
+- Tenant-scoped audit log requirements, including covered events, prohibited and protected fields, redaction/tokenization, access and integrity controls, retention/disposal, and review responsibility.
 - Cross-tenant test requirements, including forced-tenant mismatch, missing-tenant-filter detection, random tenant-ID probes, and cache-key assertions.
 
 ## Checks Before Moving On
 
-- `tenant_context`: every request/query/job/event/cache path preserves tenant context or is explicitly tenant-neutral.
+- `tenant_context`: every request/query/job/event/cache path derives tenant context from authenticated identity or a trusted mapping, rejects conflicting caller claims, protects propagation from override, and revalidates it at each enforcement boundary or is explicitly tenant-neutral.
 - `data_boundary`: data access controls enforce tenant isolation where shared stores exist.
 - `tenant_config_quarantine`: invalid tenant-controlled config or metadata cannot crash shared readers or affect other tenants.
 - `privacy_check`: sensitive data handling is defined for logs, traces, metrics, errors, exports, and support tools.
@@ -130,6 +119,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 ## Red Flags - Stop And Rework
 
 - Tenant ID is passed as an optional parameter.
+- A caller-supplied tenant identifier becomes authoritative without authenticated membership validation, or can override trusted server-side context.
 - Logs or traces include raw PII or tenant secrets.
 - Background jobs process tenant data without tenant-scoped responsibility.
 - One tenant's malformed config or metadata can crash a shared worker or repair tool.
@@ -141,6 +131,7 @@ Make tenant context mandatory and enforce it at multiple layers: application, da
 | Mistake | Correction |
 | --- | --- |
 | Treating tenant isolation as only authz | Enforce tenant context through data, cache, jobs, telemetry, and audit. |
+| Trusting propagated tenant IDs | Bind context to authenticated membership, reject conflicts, and revalidate it at every enforcement boundary. |
 | Treating global load shedding as fairness | Add tenant-aware quotas, burst rules, and per-tenant saturation signals. |
 | Trusting manual review | Add cross-tenant tests and query guards. |
 | Logging for convenience | Redact, tokenize, or omit sensitive fields. |

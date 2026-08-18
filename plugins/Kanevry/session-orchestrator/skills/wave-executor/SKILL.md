@@ -2,7 +2,7 @@
 name: wave-executor
 user-invocable: false
 tags: [orchestration, execution, agents, waves]
-model: opus
+model: inherit
 model-preference: opus
 model-preference-codex: gpt-5.4-mini
 model-preference-cursor: claude-sonnet-4-6
@@ -245,8 +245,8 @@ Each agent prompt MUST include:
 1. **Clear scope boundary**: "You are working on [X]. Do NOT modify files outside [paths]."
 2. **Full context**: file paths, current code structure, issue description. If a bite-sized executable plan exists at `docs/plans/<feature>.md` for the wave's tasks (see `skills/write-executable-plan/SKILL.md`), include the path in each agent's prompt and instruct the agent to follow the plan's 5-step structure verbatim.
 3. **Acceptance criteria**: measurable definition of done
-4. **Rule references**: "Follow patterns in <state-dir>/rules/[relevant].md"
-5. **Testing expectation**: "Write tests for your changes" or "Run existing tests"
+4. **Rule references**: the wave's applicable rules are injected automatically as the `<APPLICABLE-RULES>` block produced by `scripts/print-applicable-rules.mjs` (see `wave-loop.md` § "Pre-Dispatch: Glob-Scoped Rule Injection (#336/#694)"). The block is computed once per wave from the wave's `allowedPaths` and prepended to every agent prompt — do not hand-copy rule paths into the prompt. Past **learnings** arrive separately as the `<LEARNINGS-INDEX>` block from `scripts/print-learnings-index.mjs` (see `wave-loop.md` § "Pre-Dispatch: Learnings-Index Injection (#1014)"), computed **per agent** from its own file scope rather than once per wave.
+5. **Testing expectation** (need-gated): "Before writing any test, name the concrete bug a NEW test would catch that the existing suite does not. No nameable bug → write NO test and report `no-tests-needed: <reason>` — that is a SUCCESS outcome, not a gap. With a nameable bug: exactly one test for it. Running existing tests is always mandatory."
 6. **Commit instruction**: "Do NOT commit. The coordinator handles commits."
 7. **Turn limit**: Include the maxTurns instruction from `circuit-breaker.md`
 8. **Verification before completion**: Before claiming any task done, run the verification command and quote the evidence inline. See `.claude/rules/verification-before-completion.md`.
@@ -268,17 +268,22 @@ Wave-executor agents may propose memory entries (learnings) mid-session via the 
 During this wave, you may propose a learning to the session's memory via the CLI:
 
   SO_WAVE_AGENT=1 node scripts/memory-propose.mjs \
-      --type <one of: workflow-pattern|anti-pattern|pattern|recurring-issue|fragile-file|effective-sizing|proven-pattern|mode-selector-accuracy|hardware-pattern|autopilot-effectiveness> \
+      --type <one of: workflow-pattern|anti-pattern|recurring-issue|fragile-file|effective-sizing|proven-pattern|mode-selector-accuracy|hardware-pattern|autopilot-effectiveness|domain-regression|convention|architecture-pattern|design-pattern> \
       --subject "one-line title (max 100 chars, no newlines)" \
       --insight "your discovery paragraph (max 2000 chars)" \
       --evidence "concrete proof: code citation / log excerpt / commit ref (max 5000 chars)" \
-      --confidence <0.5 to 1.0>
+      --confidence <0.5 to 1.0> \
+      --file-paths "scripts/lib/a.mjs,scripts/lib/b.mjs"
 
 MUST prefix with `SO_WAVE_AGENT=1` — without it the CLI returns exit 3 `rejected-wrong-context`. The env-var is the per-process guard that distinguishes wave-executor agents from coordinator-context invocations.
+
+`--file-paths` is optional but strongly encouraged: repo-relative path(s) this learning applies to (repeatable and/or comma-separated, deduped; rejects absolute paths, `..` segments, embedded newlines, entries over 256 chars, and more than 20 entries). Without `--file-paths` this learning can never become `/reconcile`-eligible — the reconciliation engine can only convert a learning into a conditional `.claude/rules/*.md` rule when it carries a non-empty scope (issue #900).
 
 Exit code 0 = queued (the coordinator will present at session-end via AskUserQuestion); 1 = quota-exceeded; 2 = rejected-low-confidence (below floor 0.5); 3 = rejected-wrong-context (STATE.md not active OR SO_WAVE_AGENT != "1"); 4 = error (arg validation or internal).
 
 Use ONLY when you find a recurring pattern, anti-pattern, or constraint worth carrying into future sessions. The coordinator confirms each proposal before it lands in learnings.jsonl. Do NOT over-propose — quota is bounded per wave.
+
+Analyzer-only learning types, including `autonomy-verdict`, are intentionally not valid here; those are emitted by `/evolve` after their analyzer-specific evidence gates pass.
 ```
 
 **Skip injection** when:
@@ -396,6 +401,8 @@ in Session Config, the gate uses `runQualityGateWithRetry()` from
 `scripts/lib/quality-gate.mjs` which dispatches up to `max-retries` (default 2)
 fixer-agent dispatches on failure.
 
+**Quality-wave Full-Gate mandate (#724 C6):** the inter-wave gate following the **Quality wave** is ALWAYS the Full Gate (typecheck + test + lint) — never the cached Incremental short-circuit. The wave-executor threads the wave's `waveRole` into `shouldSkipIncremental` (see `wave-loop.md § Baseline cache check`); when `waveRole === 'Quality'` the cache is bypassed mechanically, so a valid cache or a narrow diff cannot downgrade the Quality-wave close-safety gate. See `skills/quality-gates/SKILL.md § Variant 3: Full Gate` — its dual consumers are session-end (Phase 2) and the Quality wave, and its Baseline-Cache invariant records that both are un-skippable.
+
 ### Invocation
 
 ```javascript
@@ -452,17 +459,21 @@ When an agent's task scope includes vault paths (`~/Projects/vault/` or vault su
 
 See `wave-loop.md` § Pre-Dispatch: Frontmatter-Guard Injection for the exact contract. The snippet generator is `scripts/lib/frontmatter-guard.mjs` (skill: `skills/frontmatter-guard/`).
 
+## Path-Cousin-Guard (#730.3)
+
+When a wave agent's file scope includes a NEW file target, the wave-executor injects a mechanical grep-based "cousin path" check into the agent's prompt before dispatch — preventing the recurring failure class where an agent creates a duplicate file at a nearby path instead of finding/extending the existing one. See `wave-loop.md` § Pre-Dispatch: Path-Cousin-Guard Injection for the exact contract.
+
 ## Worker-Pool Dispatch (#415)
 
 An opt-in bounded-concurrency cursor-based pull loop that replaces the default Promise.all() fan-out for agent dispatch. Controlled by three Session Config fields under the `worker-pool` object:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `worker-pool.enabled` | boolean | `false` | When `false` (default), the existing single-message parallel Agent() dispatch is used (backward-compatible). When `true`, `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` is used instead. |
+| `worker-pool.enabled` | boolean | `false` | When `false` (default), the small-batch Agent() dispatch is used (3–4 calls per message, cumulative up to `agents-per-wave`; large single-message fan-outs of >4 are forbidden — see `wave-loop.md § Dispatch Agents`, conf 1.0 silent-drop evidence). When `true`, `runWavePool()` from `scripts/lib/wave-executor/pool.mjs` is used instead. |
 | `worker-pool.max-parallel` | integer | value of `agents-per-wave` | Maximum concurrent workers in the pool. Falls back to `agents-per-wave` when unset. Useful for capping concurrency below `agents-per-wave` on memory-constrained hosts. |
 | `worker-pool.drain-timeout-ms` | integer | `10000` (10 s) | When an abort signal fires mid-run (e.g., a MAX_HOURS kill-switch), workers are sent SIGTERM via their per-worker AbortController and the pool waits at most this many milliseconds before returning partial results. |
 
-**Backward compatibility:** `worker-pool.enabled` defaults to `false`. All existing sessions that omit the `worker-pool` block behave identically to before — full Promise.all() fan-out, all agents start simultaneously. No migration required.
+**Backward compatibility:** `worker-pool.enabled` defaults to `false`. Sessions that omit the `worker-pool` block use the default small-batch Agent() dispatch (3–4 calls per message, waiting for each batch's tool-results before the next batch — never a large single-message fan-out). No migration required.
 
 **When to enable:** use `worker-pool.enabled: true` when `agents-per-wave` is high (≥ 8) and the host is memory-constrained, or when you want to observe incremental agent completion rather than waiting for all agents to finish before inter-wave checks begin.
 

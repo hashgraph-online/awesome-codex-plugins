@@ -12,8 +12,8 @@
 
 ## Record Inventory
 
-| Record | Source | Cadence | Retention |
-| --- | --- | --- | --- |
+| Record | Source/Reference | Classification | Minimum Evidence | Prohibited Fields | Redaction/Pseudonymization | Access | Cadence | Retention And Disposal | Integrity | Volume Bounds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Scorecard
 

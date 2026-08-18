@@ -17,6 +17,7 @@
 | Expected effect |  |
 | Blast radius |  |
 | Recovery result |  |
+| Record safety profile | <classification; prohibited fields; redaction; access; retention/disposal; integrity; volume bound> |
 
 ## Contract
 
@@ -30,8 +31,8 @@
 
 ## Bulk Input Contract
 
-| Field | Required? | Validation | Duplicate Rule | Current-Value Precondition | Per-Target Cap |
-| --- | --- | --- | --- | --- | --- |
+| Field | Required? | Validation | Row Identity | Duplicate Rule | Skipped-Row Handling | Current-Value Precondition | Per-Target Cap | Aggregate Limit |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Runtime Values And Overrides
 
@@ -82,8 +83,8 @@
 
 ## Recovery
 
-| Failure Mode | Rollback Target | Recovery Action | Owner | Verification |
-| --- | --- | --- | --- | --- |
+| Failure Mode | Rollback Target | Minimum Prior State | Protected Storage/Reference | Access And Integrity | Retention And Disposal | Recovery Action | Owner | Verification |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Derived-State Cleanup
 

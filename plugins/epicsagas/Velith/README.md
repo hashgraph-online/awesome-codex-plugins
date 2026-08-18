@@ -9,7 +9,7 @@
   <a href="https://github.com/epicsagas/Velith/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/epicsagas/Velith?style=for-the-badge&labelColor=0d1117&color=58a6ff&logo=git&logoColor=white" /></a>
 </p>
 <p>
-  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.1.4-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
+  <a href=".claude-plugin/plugin.json"><img alt="Version" src="https://img.shields.io/badge/version-0.4.1-fc8d62?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-3fb950?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://claude.ai/code"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-plugin-bc8cff?style=for-the-badge&labelColor=0d1117" /></a>
   <a href="https://github.com/openai/codex"><img alt="Codex CLI" src="https://img.shields.io/badge/Codex_CLI-plugin-10a37f?style=for-the-badge&labelColor=0d1117" /></a>
@@ -25,7 +25,7 @@
   <a href="docs/i18n/README.pt-BR.md">Português</a>
 </p>
 
-**Structure emergence, not text generation.** AI-native publishing pipeline for structured long-form creation — from blank page to publishable EPUB/PDF.
+**Build books like software.** A multi-phase pipeline that turns long-form knowledge — books, RFCs, whitepapers, design docs, technical guides — into structured artifacts, not isolated prompts. From blank page to publishable EPUB/PDF.
 
 `Phase 0: Onboarding → Phase 1: Ideation → Phase 2: Outlining → Phase 3: Drafting → Phase 4: Editing → Phase 5: Publishing`
 
@@ -35,11 +35,18 @@
 
 ## Why Velith?
 
-Writing a book with raw LLM prompts gives you disconnected chapters, inconsistent voice, and no structure. Velith treats books as **structured artifacts — not isolated prompts**. Each phase builds on persistent context to create coherent long-form work, with quality gates at every stage.
+Most AI "writing tools" are a single prompt and a blank page — they give you disconnected chapters, drifting voice, and no structure. Velith is the opposite: a **plan-then-execute pipeline** that validates before it writes, gates quality at every stage, and keeps the whole manuscript coherent end to end.
+
+You wouldn't ship code without a spec, tests, and review — so don't ship a book (or an RFC, or a whitepaper) without an outline, continuity checks, and an edit pass. Velith brings software-engineering discipline to long-form knowledge.
 
 ## Benchmark
 
 What the pipeline does to unstructured input — [try it yourself →](https://huggingface.co/spaces/epicsaga/Velith)
+
+> **Note:** the live demo and the numbers below are produced by the HF Space's
+> **open-source NLP heuristics** (no LLM calls) — they illustrate the kind of
+> transformation each phase targets, not measured output of a full LLM run.
+> End-to-end LLM-produced books live in the author's vault.
 
 | Metric | Raw Input | After Velith Pipeline |
 |--------|-----------|----------------------|
@@ -53,10 +60,23 @@ What the pipeline does to unstructured input — [try it yourself →](https://h
 |--|---------|----------------|
 | 📋 | 6-phase pipeline | Each phase validates before moving on — no rework |
 | 📖 | 7 genre templates | Fiction, non-fiction, technical, screenplay, poetry, game, academic (+ custom via genre-creator) |
-| 🤖 | 7 specialized agents | Architecture, drafting, scene generation, continuity, style, cover, marketing |
+| 🤖 | 8 specialized agents | Architecture, drafting, scene generation, continuity, style, cover, illustrations, marketing |
 | ✏️ | 5-stage editing | Assessment → Developmental → Line → Copy → Proofread |
 | 🔄 | Resume anywhere | Skip completed chapters, pick up from where you left off |
 | 📦 | EPUB, PDF, MOBI, TXT, Markdown | Publish-ready files via Pandoc + Calibre |
+
+## One pipeline, many artifacts
+
+Velith ships as a book pipeline — but the same 6 phases apply to **any long-form structured knowledge**. It doesn't matter whether the artifact is a 300-page novel or a 12-page RFC; the plan-then-execute flow, quality gates, and agents are identical.
+
+| Artifact | Genre skill | Typical output |
+|----------|-------------|----------------|
+| Novel / Story | `book-fiction` | EPUB / PDF / MOBI |
+| Non-fiction book | `book-nonfiction` | EPUB / PDF |
+| RFC / Design doc | `book-technical` | Markdown / PDF |
+| Whitepaper / Research report | `book-academic` | PDF (citations) |
+| Course material / Tutorial | `book-technical` | EPUB / PDF |
+| Game scenario / Lore bible | `book-game` | Markdown / EPUB |
 
 ## Comparison
 
@@ -80,7 +100,7 @@ What the pipeline does to unstructured input — [try it yourself →](https://h
 /plugin install velith@epicsagas
 ```
 
-All 16 skills and 7 agents are available immediately. No further steps needed.
+All 17 skills and 8 agents are available immediately. No further steps needed.
 
 Updates with `/plugin update velith@epicsagas`.
 
@@ -92,7 +112,7 @@ Updates with `/plugin update velith@epicsagas`.
 codex plugin marketplace add epicsagas/plugins
 ```
 
-Velith provides 16 skills (via `.agents/skills/`) and 7 custom subagents (via `.codex/agents/`):
+Velith provides 17 skills (via `.agents/skills/`) and 8 custom subagents (via `.codex/agents/`):
 
 | Subagent | Role |
 |----------|------|
@@ -102,6 +122,7 @@ Velith provides 16 skills (via `.agents/skills/`) and 7 custom subagents (via `.
 | `continuity-editor` | Cross-chapter consistency checks |
 | `style-doctor` | AI-slop detection, voice consistency |
 | `cover-designer` | Cover concepts + image prompts |
+| `illustrator` | Interior illustrations + style-consistent prompts |
 | `marketing-expert` | Reader personas, launch strategy |
 
 Codex auto-discovers skills from `.agents/skills/` and subagents from `.codex/agents/*.toml`. No extra configuration needed.
@@ -118,7 +139,7 @@ agy plugin install https://github.com/epicsagas/Velith
 
 Agy auto-discovers skills and agents from the repository root. No extra configuration needed.
 
-**Prerequisites:** [Agy](https://github.com/nicepkg/antigravity) installed and configured.
+**Prerequisites:** [Agy](https://antigravity.google/docs/cli-install) installed and configured.
 
 ### Cursor
 
@@ -179,6 +200,7 @@ The plugin guides you through:
 | `/book-draft` | 3 | Draft chapters (all/specific/resume) with parallel agents |
 | `/book-edit` | 4 | 5-stage editing pipeline |
 | `/book-publish` | 5 | Format to EPUB/PDF/MOBI, cover, marketing |
+| `/book-illustrate` | 3-5 | Interior illustrations — scene extraction, style-consistent prompts, placement plan |
 | `/book-status` | — | Terminal dashboard + `--ui` for browser dashboard |
 | `/book-fiction` | — | Fiction patterns (15-beat, Snowflake, character bible) |
 | `/book-nonfiction` | — | Non-fiction patterns (problem-solution, evidence hierarchy) |
@@ -199,6 +221,7 @@ The plugin guides you through:
 | `style-doctor` | Voice/tone consistency, AI-slop detection |
 | `scene-generator` | Scene-level breakdown with GMC+RDD structure (fiction only) |
 | `cover-designer` | Cover concepts + Midjourney/DALL-E image prompts |
+| `illustrator` | Interior illustrations — scene extraction, style bible, prompt generation |
 | `marketing-expert` | Reader personas, channel strategy, 12-week launch calendar |
 
 ## Visual Dashboard
@@ -208,7 +231,7 @@ The plugin guides you through:
 `/book-status --ui` opens a Svelte-based progress dashboard in your browser. The dashboard auto-refreshes every 5 seconds:
 
 - 6-phase pipeline tracker (Onboarding → Ideation → Outlining → Drafting → Editing → Publishing)
-- 7 agent status cards (book-architect, chapter-writer, continuity-editor, cover-designer, marketing-expert, scene-generator, style-doctor)
+- 8 agent status cards (book-architect, chapter-writer, continuity-editor, cover-designer, illustrator, marketing-expert, scene-generator, style-doctor)
 - Chapter outline, drafts table, and 5-stage editing kanban
 - Output file status (EPUB/PDF/MOBI/TXT/MD) with publish checklist
 - Project settings and command reference

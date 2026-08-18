@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "artifact": "ui-design-variants",
+  "feature": "{{FEATURE_NAME}}",
+  "updatedAt": "{{DATE}}T00:00:00Z",
+  "strategy": "{{VARIANT_STRATEGY}}",
+  "variants": [
+    {
+      "variantId": "A",
+      "name": "方案A: {{VARIANT_A_NAME}}",
+      "concept": "{{VARIANT_A_CONCEPT}}",
+      "tradeoffs": {
+        "pros": [],
+        "cons": []
+      },
+      "designData": {
+        "mode": "wireframe",
+        "pages": [],
+        "components": [],
+        "prototype": {},
+        "implementationHints": {}
+      }
+    },
+    {
+      "variantId": "B",
+      "name": "方案B: {{VARIANT_B_NAME}}",
+      "concept": "{{VARIANT_B_CONCEPT}}",
+      "tradeoffs": {
+        "pros": [],
+        "cons": []
+      },
+      "designData": {
+        "mode": "wireframe",
+        "pages": [],
+        "components": [],
+        "prototype": {},
+        "implementationHints": {}
+      }
+    }
+  ],
+  "comparison": {
+    "dimensions": ["视觉复杂度", "开发成本", "用户学习曲线", "可扩展性", "品牌一致性", "移动端适配"],
+    "matrix": []
+  },
+  "recommendation": {
+    "variantId": "A",
+    "reason": "{{RECOMMENDATION_REASON}}"
+  },
+  "selectedVariantId": null
+}

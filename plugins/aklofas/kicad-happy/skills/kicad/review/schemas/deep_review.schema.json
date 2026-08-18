@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "deep_review",
+  "description": "Durable, evidence-linked Deep Review findings (v2.0 spec 3.C). Validated by deep_review_gate.py via _mini_jsonschema (keyword subset - no $ref/anyOf/pattern). Cross-field rules (at least one design anchor AND at least one evidence source per finding) are enforced in gate code, not schema.",
+  "type": "object",
+  "required": ["schema_version", "produced_for_run_id", "produced_at", "findings", "quarantined"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "produced_for_run_id": {"type": "string", "minLength": 1},
+    "produced_at": {"type": "string", "format": "date-time"},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["detector", "category", "severity", "confidence", "summary", "evidence"],
+        "properties": {
+          "detector": {"const": "deep_review"},
+          "category": {"type": "string", "minLength": 1},
+          "severity": {"enum": ["error", "warning", "info"]},
+          "confidence": {"enum": ["high", "medium", "low"]},
+          "summary": {"type": "string", "minLength": 1},
+          "description": {"type": "string"},
+          "recommendation": {"type": "string"},
+          "finding_id": {"type": "string"},
+          "evidence_checked": {"enum": ["full", "partial"]},
+          "components": {"type": "array", "items": {"type": "string"}},
+          "nets": {"type": "array", "items": {"type": "string"}},
+          "pins": {"type": "array", "items": {"type": "string"}},
+          "evidence": {
+            "type": "object",
+            "properties": {
+              "components": {"type": "array", "items": {"type": "string"}},
+              "nets": {"type": "array", "items": {"type": "string"}},
+              "pins": {"type": "array", "items": {"type": "string"}},
+              "datasheet": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["mpn", "quote"],
+                  "properties": {
+                    "mpn": {"type": "string", "minLength": 1},
+                    "page": {"type": "integer"},
+                    "quote": {"type": "string", "minLength": 1}
+                  }
+                }
+              },
+              "computation": {
+                "type": "object",
+                "required": ["description", "result"],
+                "properties": {
+                  "description": {"type": "string", "minLength": 1},
+                  "script": {"type": "string"},
+                  "result": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "quarantined": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["quarantine_reason"],
+        "properties": {
+          "quarantine_reason": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

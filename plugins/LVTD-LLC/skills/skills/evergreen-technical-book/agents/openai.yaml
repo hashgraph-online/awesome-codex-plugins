@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evergreen Technical Book"
+  short_description: "Keep technical books durable"
+  default_prompt: "Use $evergreen-technical-book to separate timeless book content from updateable companion resources."

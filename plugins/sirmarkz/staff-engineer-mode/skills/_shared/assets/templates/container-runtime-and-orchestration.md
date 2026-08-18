@@ -2,8 +2,8 @@
 
 ## Resource Bounds
 
-| Workload | Request | Limit | OOM Behavior | Eviction Behavior |
-| --- | --- | --- | --- | --- |
+| Workload | Measured Demand | Scheduling Request | CPU Limit Decision | CPU-Throttling Behavior | Memory Limit Decision | Memory-Limit Termination | Node-Pressure Eviction |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Drain Contract
 
@@ -12,8 +12,8 @@
 
 ## Probe Spec
 
-| Workload | Readiness Check | Liveness Check | Startup Check | Thresholds |
-| --- | --- | --- | --- | --- |
+| Workload | Readiness Check | Shared-Dependency Behavior | Fleet-Capacity Floor Or Degraded Mode | Liveness Check | Startup Check | Thresholds |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Lifecycle Ordering
 

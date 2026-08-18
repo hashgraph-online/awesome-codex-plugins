@@ -3,11 +3,14 @@
 
 from __future__ import annotations
 
+from collections import Counter
+import ipaddress
 import re
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
+from urllib.parse import unquote_plus, urlsplit
 
-from check_consistency_models import LATEST_IMAGE_PATTERN, TEMPLATE_NAME_PATTERN, Rule, ScanContext, Violation
+from check_consistency_models import LATEST_IMAGE_PATTERN, TEMPLATE_NAME_PATTERN, Rule, ScanContext, Violation, YamlDocument
 from check_consistency_helpers_violations import (
     add_doc_violation,
     check_managed_workload_setting,
@@ -16,10 +19,12 @@ from check_consistency_helpers_workload import (
     get_template_spec,
     has_managed_workload_marker,
     is_app_workload_document,
+    is_managed_app_workload_document,
     iter_containers,
     iter_documents_by_kind,
     iter_workload_secret_refs,
 )
+from check_consistency_parser import find_line
 
 
 TEMPLATE_ARTIFACT_SUFFIXES = {".yaml", ".yml"}
@@ -73,6 +78,15 @@ HTTP_INGRESS_REQUIRED_ANNOTATIONS: Dict[str, str] = {
         "}"
     ),
 }
+WEBSOCKET_INGRESS_REQUIRED_ANNOTATIONS: Dict[str, str] = {
+    "kubernetes.io/ingress.class": "nginx",
+    "nginx.ingress.kubernetes.io/proxy-body-size": "32m",
+    "nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+    "nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
+    "nginx.ingress.kubernetes.io/backend-protocol": "WS",
+    "nginx.ingress.kubernetes.io/ssl-redirect": "true",
+}
+WEBSOCKET_PORT_NAME_TOKENS = {"websocket", "ws", "wss"}
 CRONJOB_LABEL_KEY = "cloud.sealos.io/cronjob"
 CRONJOB_REQUIRED_LABELS: Dict[str, str] = {
     "cronjob-launchpad-name": "",
@@ -95,12 +109,29 @@ DATABASE_WORKLOAD_IMAGE_NAMES = {
     "timescaledb",
     "valkey",
 }
-OFFICIAL_HEALTH_HTTP_EXPECTATIONS: Dict[str, Dict[str, str]] = {
+DATABASE_RAW_WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}
+DATABASE_RAW_RESOURCE_KINDS = DATABASE_RAW_WORKLOAD_KINDS | {"Service"}
+DATABASE_CLIENT_JOB_TOKENS = {"init", "migrate", "migration", "bootstrap", "setup", "seed", "backup", "restore"}
+DATABASE_RESOURCE_NAME_TOKENS = {"postgres", "postgresql", "mysql", "mariadb", "mongo", "mongodb", "redis", "kafka"}
+OFFICIAL_HEALTH_HTTP_EXPECTATIONS: Dict[str, Dict[str, Any]] = {
     "goauthentik/server": {
         "liveness_path": "/-/health/live/",
         "readiness_path": "/-/health/ready/",
         "startup_path": "/-/health/ready/",
-    }
+        "port": 9000,
+    },
+    "ghcr.io/danny-avila/librechat-rag-api-dev-lite": {
+        "liveness_path": "/health",
+        "readiness_path": "/health",
+        "startup_path": "/health",
+        "port": 8000,
+    },
+    "ghcr.io/clickhouse/librechat-admin-panel": {
+        "liveness_path": "/health",
+        "readiness_path": "/health",
+        "startup_path": "/health",
+        "port": 3000,
+    },
 }
 OFFICIAL_HEALTH_WORKER_EXEC_EXPECTATIONS: Dict[str, Dict[str, str]] = {
     "goauthentik/server": {
@@ -109,12 +140,696 @@ OFFICIAL_HEALTH_WORKER_EXEC_EXPECTATIONS: Dict[str, Dict[str, str]] = {
         "startup_command": "ak healthcheck",
     },
 }
+RUNTIME_ENV_VALUE_CONSTRAINTS: Dict[str, Dict[str, Dict[str, Any]]] = {
+    "ghcr.io/danny-avila/librechat": {
+        "CREDS_KEY": {"format": "hex", "length": 64},
+        "CREDS_IV": {"format": "hex", "length": 32},
+    },
+}
+RUNTIME_CREDENTIAL_REQUIREMENTS: Dict[str, Tuple[Dict[str, Any], ...]] = {
+    "ghcr.io/danny-avila/librechat-rag-api-dev-lite": (
+        {
+            "provider_env": "EMBEDDINGS_PROVIDER",
+            "provider_value": "openai",
+            "credential_envs": ("RAG_OPENAI_API_KEY", "OPENAI_API_KEY"),
+        },
+    ),
+}
+RUNTIME_STARTUP_GATE_EXPECTATIONS: Dict[str, Dict[str, Tuple[str, ...]]] = {
+    "ghcr.io/danny-avila/librechat-rag-api-dev-lite": {
+        "required_tokens": ("pg_isready",),
+        "required_any_tokens": ("vector", "pg_extension", "to_regtype"),
+    },
+}
+KNOWN_PUBLIC_IMAGE_REPOSITORIES = {
+    "nginx",
+    "docker.io/library/nginx",
+    "ghcr.io/clickhouse/librechat-admin-panel",
+    "ghcr.io/danny-avila/librechat",
+    "ghcr.io/danny-avila/librechat-rag-api-dev-lite",
+}
+TEMPLATE_DEFAULT_REF_RE = re.compile(r"^\$\{\{\s*defaults\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}$")
+TEMPLATE_INPUT_FULL_REF_RE = re.compile(r"^\$\{\{\s*inputs\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}$")
+HEX_VALUE_RE = re.compile(r"^[0-9a-fA-F]+$")
+MAIN_CONTAINER_BOOTSTRAP_RE = re.compile(
+    r"\b(?:cp|rsync|chmod|chown|psql|createdb|dropdb|mysql|mongosh|redis-cli|sed|awk|"
+    r"envsubst|openssl|useradd|groupadd|apk|apt-get|yum|dnf|pip|npm|pnpm|yarn)\b"
+)
+MAIN_CONTAINER_ALLOWED_SHORT_SETUP_RE = re.compile(r"^\s*mkdir\s+-p\s+[-./A-Za-z0-9_ ]+\s+&&\s+exec\s+\S+")
+MAIN_CONTAINER_SHELLS = {"sh", "/bin/sh", "bash", "/bin/bash", "ash", "/bin/ash"}
+MAIN_CONTAINER_MAX_SCRIPT_CHARS = 160
+MAIN_CONTAINER_MAX_SCRIPT_COMMANDS = 2
+CONFIGMAP_DATA_KEY_RE = re.compile(r"^vn-[a-z0-9]+(?:vn-[a-z0-9]+)*$")
+OBJECT_STORAGE_INPUT_TEXT_RE = re.compile(
+    r"\b(?:object\s*storage|objectstorage|s3|s3-compatible|bucket|binary\s+data|external\s+storage)\b",
+    re.IGNORECASE,
+)
+LICENSE_GATED_TEXT_RE = re.compile(
+    r"\b(?:enterprise|paid|commercial|premium|subscription|license|licensed|licence|licenced)\b",
+    re.IGNORECASE,
+)
+OBJECT_STORAGE_BRANCH_MARKER_RE = re.compile(
+    r"(?:\bObjectStorageBucket\b|\bobject-storage-key\b|\bobject\s+storage\b|\bs3[_-]|\bs3\b|"
+    r"\baws_access_key_id\b|\baws_secret_access_key\b|\bstorage_s3\b|\bs3-compatible\b|"
+    r"\bbucket(?:_name)?\b|\bminio\b)",
+    re.IGNORECASE,
+)
+OBJECT_STORAGE_WIRING_BRANCH_MARKER_RE = re.compile(
+    r"(?:\bkind\s*:\s*secret\b|\bsecretkeyref\b|\b(?:aws_access_key_id|aws_secret_access_key)\b|"
+    r"\b(?:s3|object[_-]?storage|minio|bucket)[_-]?(?:access|secret|endpoint|bucket|key|credential|region|url)\b|"
+    r"\b(?:initcontainer|init-container)\b)",
+    re.IGNORECASE,
+)
+OBJECT_STORAGE_PROVIDER_VALUE_RE = re.compile(
+    r"\b(?:s3|s3 compatible|object storage|minio|sealos objectstorage|sealos object storage|aws s3|external s3)\b",
+    re.IGNORECASE,
+)
+OBJECT_STORAGE_PROVIDER_DECISION_VALUE_RE = re.compile(
+    r"\b(?:aws\s+s3|sealos\s+object\s*storage|managed\s+(?:s3|object\s*storage)|bundled\s+minio)\b",
+    re.IGNORECASE,
+)
+OBJECT_STORAGE_INPUT_TEXT_MAX_ITEMS = 32
+OBJECT_STORAGE_INPUT_TEXT_MAX_VALUE_CHARS = 512
+OBJECT_STORAGE_INPUT_TEXT_MAX_CHARS = 4096
+OBJECT_STORAGE_UNSAFE_INPUT_MARKER = "object storage provider"
+OBJECT_STORAGE_SELECTOR_TOKENS = {"PROVIDER", "BACKEND", "TYPE", "MODE", "DRIVER"}
+OBJECT_STORAGE_PROVIDER_DECISION_TOKENS = {"USE", "ENABLE", "ENABLED", "DISABLE", "DISABLED"}
+OBJECT_STORAGE_CONFIG_TOKENS = {
+    "ACCESS",
+    "BUCKET",
+    "CAPACITY",
+    "CLASS",
+    "DOMAIN",
+    "ENDPOINT",
+    "KEY",
+    "PASSWORD",
+    "POLICY",
+    "REGION",
+    "SECURE",
+    "SECRET",
+    "SIZE",
+    "SSL",
+    "TLS",
+    "URL",
+    "USER",
+    "USERNAME",
+}
+OBJECT_STORAGE_PROXY_ROLE_TOKENS = {"ADAPTER", "COMPAT", "COMPATIBILITY", "GATEWAY", "PROXY"}
+OBJECT_STORAGE_PROXY_HELPER_TOKENS = {"CHECK", "INIT", "PROBE", "WAIT"}
+PERSISTENT_VOLUME_SOURCE_KEYS = {
+    "awsElasticBlockStore",
+    "azureDisk",
+    "azureFile",
+    "cephfs",
+    "cinder",
+    "csi",
+    "fc",
+    "flexVolume",
+    "flocker",
+    "gcePersistentDisk",
+    "glusterfs",
+    "hostPath",
+    "iscsi",
+    "nfs",
+    "persistentVolumeClaim",
+    "photonPersistentDisk",
+    "portworxVolume",
+    "quobyte",
+    "rbd",
+    "scaleIO",
+    "storageos",
+    "vsphereVolume",
+}
+MINIO_SERVER_IMAGE_RE = re.compile(
+    r"(?:^|/)(?:minio/minio|bitnami(?:legacy)?/minio)(?::|@|$)",
+    re.IGNORECASE,
+)
+EXTERNAL_OBJECT_STORAGE_SOURCE_ANNOTATION = "docker-to-sealos.external-object-storage-source"
+OBJECT_STORAGE_COMPATIBILITY_PROXY_SOURCE_ANNOTATION = (
+    "docker-to-sealos.object-storage-compatibility-proxy-source"
+)
+OBJECT_STORAGE_USER_REQUEST_EVIDENCE_RE = re.compile(
+    r"user-request:[A-Za-z0-9][A-Za-z0-9._/-]*"
+)
+OBJECT_STORAGE_SOURCE_EVIDENCE_MAX_CHARS = 2048
+OBJECT_STORAGE_SOURCE_SENSITIVE_QUERY_TOKENS = {
+    "access",
+    "auth",
+    "authorization",
+    "apikey",
+    "credential",
+    "key",
+    "password",
+    "secret",
+    "sig",
+    "signature",
+    "token",
+}
+AWS_OBJECT_STORAGE_INPUT_RE = re.compile(
+    r"^AWS_(?:ACCESS_KEY(?:_ID)?|SECRET(?:_ACCESS)?_KEY|SESSION_TOKEN|"
+    r"ENDPOINT(?:_URL)?(?:_S3)?|REGION|DEFAULT_REGION|S3_BUCKET(?:_NAME)?|BUCKET(?:_NAME)?)$",
+    re.IGNORECASE,
+)
+AWS_OBJECT_STORAGE_CONTEXT_RE = re.compile(
+    r"\b(?:s3|object\s*storage|minio|external\s*storage)\b",
+    re.IGNORECASE,
+)
+EXTERNAL_OBJECT_STORAGE_DESCRIPTION_RE = re.compile(
+    r"\b(?:s3|object\s*storage|minio)\b",
+    re.IGNORECASE,
+)
+EXTERNAL_OBJECT_STORAGE_CONFIG_TOKENS = {
+    "BUCKET",
+    "CREDENTIAL",
+    "CREDENTIALS",
+    "ENDPOINT",
+    "KEY",
+    "PASSWORD",
+    "REGION",
+    "SECRET",
+    "TOKEN",
+    "URL",
+    "USER",
+    "USERNAME",
+}
+MANAGED_OBJECT_STORAGE_TOGGLE_NAMES = {
+    "ENABLE_OBJECT_STORAGE",
+    "ENABLE_S3_STORAGE",
+    "ENABLE_SEALOS_OBJECT_STORAGE",
+    "ENABLE_SEALOS_OBJECTSTORAGE",
+    "ENABLE_S3",
+    "USE_OBJECT_STORAGE",
+    "USE_MANAGED_OBJECT_STORAGE",
+    "USE_MANAGED_S3",
+    "USE_SEALOS_OBJECT_STORAGE",
+    "USE_SEALOS_OBJECTSTORAGE",
+    "USE_SEALOS_S3",
+}
+TEMPLATE_IF_RE = re.compile(r"\$\{\{\s*if\s*\((.*?)\)\s*\}\}")
+TEMPLATE_ELSE_RE = re.compile(r"\$\{\{\s*else\(\)\s*\}\}")
+TEMPLATE_ENDIF_RE = re.compile(r"\$\{\{\s*endif\(\)\s*\}\}")
+TEMPLATE_INPUT_REF_RE = re.compile(r"\binputs\.([A-Za-z_][A-Za-z0-9_]*)\b")
+RUNTIME_BUNDLE_EVIDENCE_KIND = "RuntimeBundleEvidence"
+RUNTIME_SECRET_CONTRACT_ANNOTATION = "docker-to-sealos.runtime-secret-contract"
+DATABASE_MODE_ANNOTATION = "docker-to-sealos.database-mode"
+RUNTIME_BUNDLE_SOURCE_FIELD = "source"
+RUNTIME_BUNDLE_IMAGES_FIELD = "images"
+RUNTIME_BUNDLE_COMPONENTS_FIELD = "components"
+RUNTIME_BUNDLE_ROUTES_FIELD = "routes"
+RUNTIME_BUNDLE_ENVS_FIELD = "env"
+TOPOLOGY_EVIDENCE_KIND = "TopologyEvidence"
+TOPOLOGY_EVIDENCE_DIR = "topology-evidence"
+TOPOLOGY_RESOURCE_KINDS = {
+    "Deployment",
+    "StatefulSet",
+    "DaemonSet",
+    "CronJob",
+    "Cluster",
+    "ObjectStorageBucket",
+}
+TOPOLOGY_REPLICA_KINDS = {"Deployment", "StatefulSet"}
 
 
 def _iter_template_artifact_documents(context: ScanContext) -> Iterable:
     for doc in iter_documents_by_kind(context, "Template"):
         if doc.path.suffix.lower() in TEMPLATE_ARTIFACT_SUFFIXES:
             yield doc
+
+
+def _iter_template_artifact_paths(context: ScanContext) -> Iterable[Path]:
+    for path in sorted(context.file_texts):
+        if path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if path.name != "index.yaml":
+            continue
+        yield path
+
+
+def _line_number_for_offset(text: str, offset: int) -> int:
+    return text.count("\n", 0, offset) + 1
+
+
+def _metadata_annotations(data: Dict[str, Any]) -> Dict[str, Any]:
+    metadata = data.get("metadata")
+    annotations = metadata.get("annotations") if isinstance(metadata, dict) else None
+    return annotations if isinstance(annotations, dict) else {}
+
+
+def _split_runtime_bundle_values(value: Any) -> List[str]:
+    if isinstance(value, list):
+        raw = "\n".join(str(item) for item in value if item is not None)
+    elif value is None:
+        raw = ""
+    else:
+        raw = str(value)
+    return [item.strip() for item in re.split(r"[\n,]+", raw) if item.strip()]
+
+
+def _parse_runtime_bundle_route_string(value: str) -> Tuple[str, str]:
+    if "->" in value:
+        path, service = value.split("->", 1)
+    elif "=" in value:
+        path, service = value.split("=", 1)
+    else:
+        path, service = value, ""
+    return path.strip(), service.strip()
+
+
+def _parse_runtime_bundle_routes(value: Any) -> List[Tuple[str, str]]:
+    routes: List[Tuple[str, str]] = []
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, dict):
+                path = item.get("path")
+                service = item.get("service")
+                routes.append(
+                    (
+                        path.strip() if isinstance(path, str) else "",
+                        service.strip() if isinstance(service, str) else "",
+                    )
+                )
+                continue
+            routes.append(_parse_runtime_bundle_route_string(str(item)))
+        return routes
+    for item in _split_runtime_bundle_values(value):
+        routes.append(_parse_runtime_bundle_route_string(item))
+    return routes
+
+
+def _iter_runtime_bundle_evidence_documents(context: ScanContext) -> Iterable[YamlDocument]:
+    for doc in iter_documents_by_kind(context, RUNTIME_BUNDLE_EVIDENCE_KIND):
+        if doc.path.suffix.lower() in TEMPLATE_ARTIFACT_SUFFIXES:
+            yield doc
+
+
+def _runtime_bundle_spec(doc: YamlDocument) -> Dict[str, Any]:
+    data = doc.data
+    spec = data.get("spec") if isinstance(data, dict) else None
+    return spec if isinstance(spec, dict) else {}
+
+
+def _template_artifacts_by_name(context: ScanContext) -> Dict[str, YamlDocument]:
+    templates: Dict[str, YamlDocument] = {}
+    for doc in _iter_template_artifact_documents(context):
+        if not isinstance(doc.data, dict):
+            continue
+        name = _metadata_name(doc.data)
+        if name:
+            templates[name] = doc
+    return templates
+
+
+def _iter_ingress_routes(data: Dict[str, Any]) -> Iterable[Tuple[str, str]]:
+    spec = data.get("spec")
+    rules = spec.get("rules") if isinstance(spec, dict) else None
+    if not isinstance(rules, list):
+        return
+    for rule in rules:
+        http = rule.get("http") if isinstance(rule, dict) else None
+        paths = http.get("paths") if isinstance(http, dict) else None
+        if not isinstance(paths, list):
+            continue
+        for path_entry in paths:
+            if not isinstance(path_entry, dict):
+                continue
+            path_value = path_entry.get("path")
+            backend = path_entry.get("backend")
+            service = backend.get("service") if isinstance(backend, dict) else None
+            service_name = service.get("name") if isinstance(service, dict) else None
+            if isinstance(path_value, str) and isinstance(service_name, str):
+                routes_tuple = (path_value.strip(), service_name.strip())
+                if routes_tuple[0] and routes_tuple[1]:
+                    yield routes_tuple
+
+
+def _collect_runtime_bundle_state(context: ScanContext, artifact_path: Path) -> Dict[str, set]:
+    state = {
+        "images": set(),
+        "workloads": set(),
+        "services": set(),
+        "routes": set(),
+        "envs": set(),
+    }
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if doc.path != artifact_path:
+            continue
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+
+        kind = doc.data.get("kind")
+        name = _metadata_name(doc.data)
+        if kind == "Service" and name:
+            state["services"].add(name)
+        elif kind == "Ingress":
+            state["routes"].update(_iter_ingress_routes(doc.data))
+
+        if not is_app_workload_document(doc) or not has_managed_workload_marker(doc.data):
+            continue
+        if name:
+            state["workloads"].add(name)
+
+        annotations = _metadata_annotations(doc.data)
+        origin_image = annotations.get("originImageName")
+        if isinstance(origin_image, str) and origin_image.strip():
+            state["images"].add(origin_image.strip())
+
+        for container in iter_containers(doc.data):
+            image = container.get("image")
+            if isinstance(image, str) and image.strip():
+                state["images"].add(image.strip())
+            env_list = container.get("env")
+            if not isinstance(env_list, list):
+                continue
+            for env_item in env_list:
+                if not isinstance(env_item, dict):
+                    continue
+                env_name = env_item.get("name")
+                if isinstance(env_name, str) and env_name.strip():
+                    state["envs"].add(env_name.strip())
+    return state
+
+
+def _iter_topology_evidence_documents(context: ScanContext) -> Iterable[YamlDocument]:
+    for doc in iter_documents_by_kind(context, TOPOLOGY_EVIDENCE_KIND):
+        if doc.path.suffix.lower() in TEMPLATE_ARTIFACT_SUFFIXES:
+            yield doc
+
+
+def _normalize_topology_when(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip())
+
+
+def _topology_conditions_by_line(text: str) -> Dict[int, Tuple[str, ...]]:
+    active: List[str] = []
+    conditions: Dict[int, Tuple[str, ...]] = {}
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        match = TEMPLATE_IF_RE.search(line)
+        if match is not None:
+            active.append(_normalize_topology_when(match.group(1)))
+        conditions[line_number] = tuple(active)
+        if TEMPLATE_ENDIF_RE.search(line) and active:
+            active.pop()
+    return conditions
+
+
+def _topology_when_for_document(
+    doc: YamlDocument,
+    conditions_by_line: Dict[int, Tuple[str, ...]],
+) -> str:
+    api_line = doc.start_line
+    for offset, line in enumerate(doc.source.splitlines()):
+        if re.match(r"^\s*apiVersion\s*:", line):
+            api_line = doc.start_line + offset
+            break
+    active = conditions_by_line.get(api_line, ())
+    return " && ".join(active) if active else "always"
+
+
+def _is_kubeblocks_cluster(data: Dict[str, Any]) -> bool:
+    api_version = data.get("apiVersion")
+    return (
+        data.get("kind") == "Cluster"
+        and isinstance(api_version, str)
+        and api_version.startswith("apps.kubeblocks.io/")
+    )
+
+
+def _topology_cluster_components(data: Dict[str, Any]) -> Optional[Tuple[Tuple[str, int], ...]]:
+    spec = data.get("spec")
+    component_specs = spec.get("componentSpecs") if isinstance(spec, dict) else None
+    if not isinstance(component_specs, list) or not component_specs:
+        return None
+
+    components: Dict[str, int] = {}
+    for component in component_specs:
+        if not isinstance(component, dict):
+            return None
+        name = component.get("name")
+        replicas = component.get("replicas")
+        if (
+            not isinstance(name, str)
+            or not name.strip()
+            or isinstance(replicas, bool)
+            or not isinstance(replicas, int)
+            or replicas < 1
+            or name.strip() in components
+        ):
+            return None
+        components[name.strip()] = replicas
+    return tuple(sorted(components.items()))
+
+
+def _topology_record_label(record: Tuple[str, str, str, Optional[int], Tuple[Tuple[str, int], ...]]) -> str:
+    kind, name, when, replicas, components = record
+    details = [f"{kind}/{name}", f"when={when}"]
+    if replicas is not None:
+        details.append(f"replicas={replicas}")
+    if components:
+        rendered = ",".join(f"{component}={count}" for component, count in components)
+        details.append(f"components={rendered}")
+    return " ".join(details)
+
+
+def _collect_topology_records(
+    context: ScanContext,
+    artifact_path: Path,
+    violations: List[Violation],
+) -> Tuple[
+    List[Tuple[str, str, str, Optional[int], Tuple[Tuple[str, int], ...]]],
+    Dict[Tuple[str, str, str, Optional[int], Tuple[Tuple[str, int], ...]], YamlDocument],
+]:
+    text = context.file_texts.get(artifact_path, "")
+    conditions_by_line = _topology_conditions_by_line(text)
+    records: List[Tuple[str, str, str, Optional[int], Tuple[Tuple[str, int], ...]]] = []
+    docs_by_record: Dict[
+        Tuple[str, str, str, Optional[int], Tuple[Tuple[str, int], ...]],
+        YamlDocument,
+    ] = {}
+
+    for doc in context.yaml_documents:
+        if doc.skip_checks or doc.path != artifact_path or not isinstance(doc.data, dict):
+            continue
+        kind = doc.data.get("kind")
+        if kind not in TOPOLOGY_RESOURCE_KINDS:
+            continue
+        if kind == "Cluster" and not _is_kubeblocks_cluster(doc.data):
+            continue
+
+        name = _metadata_name(doc.data)
+        if not name:
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*metadata\s*:",
+                default_pattern=r"^\s*kind\s*:",
+                message="topology-bearing resources must define metadata.name",
+            )
+            continue
+
+        replicas: Optional[int] = None
+        if kind in TOPOLOGY_REPLICA_KINDS:
+            spec = doc.data.get("spec")
+            raw_replicas = spec.get("replicas", 1) if isinstance(spec, dict) else 1
+            if isinstance(raw_replicas, bool) or not isinstance(raw_replicas, int) or raw_replicas < 1:
+                add_doc_violation(
+                    violations,
+                    rule_id="R050",
+                    doc=doc,
+                    pattern=r"^\s*replicas\s*:",
+                    default_pattern=r"^\s*spec\s*:",
+                    message="Deployment and StatefulSet spec.replicas must be a positive integer",
+                )
+            else:
+                replicas = raw_replicas
+
+        components: Tuple[Tuple[str, int], ...] = ()
+        if kind == "Cluster":
+            parsed_components = _topology_cluster_components(doc.data)
+            if parsed_components is None:
+                add_doc_violation(
+                    violations,
+                    rule_id="R050",
+                    doc=doc,
+                    pattern=r"^\s*componentSpecs\s*:",
+                    default_pattern=r"^\s*spec\s*:",
+                    message=(
+                        "KubeBlocks Cluster topology requires non-empty componentSpecs with unique names "
+                        "and positive integer replicas"
+                    ),
+                )
+            else:
+                components = parsed_components
+
+        record = (
+            str(kind),
+            name,
+            _topology_when_for_document(doc, conditions_by_line),
+            replicas,
+            components,
+        )
+        records.append(record)
+        docs_by_record.setdefault(record, doc)
+
+    return records, docs_by_record
+
+
+def _parse_topology_evidence_resources(
+    doc: YamlDocument,
+    resources: Any,
+    violations: List[Violation],
+) -> List[Tuple[str, str, str, Optional[int], Tuple[Tuple[str, int], ...]]]:
+    if not isinstance(resources, list) or not resources:
+        add_doc_violation(
+            violations,
+            rule_id="R050",
+            doc=doc,
+            pattern=r"^\s*resources\s*:",
+            default_pattern=r"^\s*spec\s*:",
+            message="TopologyEvidence spec.resources must be a non-empty list",
+        )
+        return []
+
+    records: List[Tuple[str, str, str, Optional[int], Tuple[Tuple[str, int], ...]]] = []
+    for item in resources:
+        if not isinstance(item, dict):
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*resources\s*:",
+                message="TopologyEvidence resources entries must be objects",
+            )
+            continue
+
+        kind = item.get("kind")
+        name = item.get("name")
+        when = item.get("when")
+        if kind not in TOPOLOGY_RESOURCE_KINDS:
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*kind\s*:",
+                default_pattern=r"^\s*resources\s*:",
+                message=f"TopologyEvidence resource kind must be one of {sorted(TOPOLOGY_RESOURCE_KINDS)}",
+            )
+            continue
+        if not isinstance(name, str) or not name.strip():
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*name\s*:",
+                default_pattern=r"^\s*resources\s*:",
+                message="TopologyEvidence resources entries must define a non-empty name",
+            )
+            continue
+        if not isinstance(when, str) or not when.strip():
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*when\s*:",
+                default_pattern=r"^\s*resources\s*:",
+                message="TopologyEvidence resources entries must define when as always or a template condition",
+            )
+            continue
+
+        replicas: Optional[int] = None
+        raw_replicas = item.get("replicas")
+        if kind in TOPOLOGY_REPLICA_KINDS:
+            if isinstance(raw_replicas, bool) or not isinstance(raw_replicas, int) or raw_replicas < 1:
+                add_doc_violation(
+                    violations,
+                    rule_id="R050",
+                    doc=doc,
+                    pattern=r"^\s*replicas\s*:",
+                    default_pattern=r"^\s*resources\s*:",
+                    message="TopologyEvidence Deployment and StatefulSet entries require positive integer replicas",
+                )
+                continue
+            replicas = raw_replicas
+        elif raw_replicas is not None:
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*replicas\s*:",
+                default_pattern=r"^\s*resources\s*:",
+                message=f"TopologyEvidence {kind} entries do not use replicas",
+            )
+            continue
+
+        components: Tuple[Tuple[str, int], ...] = ()
+        raw_components = item.get("components")
+        if kind == "Cluster":
+            if not isinstance(raw_components, list) or not raw_components:
+                add_doc_violation(
+                    violations,
+                    rule_id="R050",
+                    doc=doc,
+                    pattern=r"^\s*components\s*:",
+                    default_pattern=r"^\s*resources\s*:",
+                    message="TopologyEvidence Cluster entries require a non-empty components list",
+                )
+                continue
+            parsed_components: Dict[str, int] = {}
+            invalid_component = False
+            for component in raw_components:
+                if not isinstance(component, dict):
+                    invalid_component = True
+                    break
+                component_name = component.get("name")
+                component_replicas = component.get("replicas")
+                if (
+                    not isinstance(component_name, str)
+                    or not component_name.strip()
+                    or isinstance(component_replicas, bool)
+                    or not isinstance(component_replicas, int)
+                    or component_replicas < 1
+                    or component_name.strip() in parsed_components
+                ):
+                    invalid_component = True
+                    break
+                parsed_components[component_name.strip()] = component_replicas
+            if invalid_component:
+                add_doc_violation(
+                    violations,
+                    rule_id="R050",
+                    doc=doc,
+                    pattern=r"^\s*components\s*:",
+                    default_pattern=r"^\s*resources\s*:",
+                    message=(
+                        "TopologyEvidence Cluster components require unique non-empty names and "
+                        "positive integer replicas"
+                    ),
+                )
+                continue
+            components = tuple(sorted(parsed_components.items()))
+        elif raw_components is not None:
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*components\s*:",
+                default_pattern=r"^\s*resources\s*:",
+                message=f"TopologyEvidence {kind} entries do not use components",
+            )
+            continue
+
+        records.append(
+            (
+                str(kind),
+                name.strip(),
+                _normalize_topology_when(when),
+                replicas,
+                components,
+            )
+        )
+    return records
 
 
 def _is_non_empty_value(value: Any, expected_type: type) -> bool:
@@ -133,6 +848,8 @@ def _extract_template_directory_name(path: Path) -> str:
         return ""
     index = parts.index("template")
     if index + 1 >= len(parts):
+        return ""
+    if parts[index + 1] == "index.yaml" and index > 0 and parts[index - 1] == ".sealos":
         return ""
     return parts[index + 1]
 
@@ -1083,7 +1800,411 @@ def check_configmap_labels_match_name(context: ScanContext) -> List[Violation]:
     return violations
 
 
+def _metadata_name(data: Any) -> Optional[str]:
+    if not isinstance(data, dict):
+        return None
+    metadata = data.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+    name = metadata.get("name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    return None
+
+
+def _configmap_documents_by_path(context: ScanContext) -> Dict[Path, Dict[str, YamlDocument]]:
+    by_path: Dict[Path, Dict[str, YamlDocument]] = {}
+    for doc in iter_documents_by_kind(context, "ConfigMap"):
+        name = _metadata_name(doc.data)
+        if name is None:
+            continue
+        by_path.setdefault(doc.path, {})[name] = doc
+    return by_path
+
+
+def _configmap_data_keys(doc: YamlDocument) -> Set[str]:
+    if not isinstance(doc.data, dict):
+        return set()
+    data = doc.data.get("data")
+    if not isinstance(data, dict):
+        return set()
+    return {key for key in data.keys() if isinstance(key, str)}
+
+
+def _iter_configmap_volumes(template_spec: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    volumes = template_spec.get("volumes")
+    if not isinstance(volumes, list):
+        return
+    for volume in volumes:
+        if not isinstance(volume, dict):
+            continue
+        config_map = volume.get("configMap")
+        if not isinstance(config_map, dict):
+            continue
+        config_name = config_map.get("name")
+        volume_name = volume.get("name")
+        if not isinstance(config_name, str) or not config_name.strip():
+            continue
+        if not isinstance(volume_name, str) or not volume_name.strip():
+            continue
+        yield volume
+
+
+def _iter_volume_mounts(template_spec: Dict[str, Any], volume_name: str) -> Iterable[Dict[str, Any]]:
+    for container in iter_containers(template_spec):
+        mounts = container.get("volumeMounts")
+        if not isinstance(mounts, list):
+            continue
+        for mount in mounts:
+            if not isinstance(mount, dict):
+                continue
+            if mount.get("name") == volume_name:
+                yield mount
+
+
+def _string_list(value: Any) -> List[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [str(item) for item in value if item is not None]
+    return []
+
+
+def _is_shell_command(value: str) -> bool:
+    return Path(value).name.lower() in {"sh", "bash", "ash", "zsh", "busybox"}
+
+
+def _check_configmap_script_execution(
+    doc: YamlDocument,
+    template_spec: Dict[str, Any],
+    volume_name: str,
+    configmap_doc: YamlDocument,
+    violations: List[Violation],
+) -> None:
+    data = configmap_doc.data.get("data") if isinstance(configmap_doc.data, dict) else None
+    if not isinstance(data, dict):
+        return
+    mounted_files = {
+        str(mount.get("mountPath")): str(mount.get("subPath"))
+        for mount in _iter_volume_mounts(template_spec, volume_name)
+        if isinstance(mount, dict)
+        and isinstance(mount.get("mountPath"), str)
+        and isinstance(mount.get("subPath"), str)
+    }
+    if not mounted_files:
+        return
+
+    for container in template_spec.get("initContainers") or []:
+        if not isinstance(container, dict):
+            continue
+        command = _string_list(container.get("command"))
+        if not command:
+            continue
+        command_path = command[0]
+        if command_path in mounted_files and not _is_shell_command(command_path):
+            violations.append(
+                Violation(
+                    rule_id="R043",
+                    path=doc.path,
+                    line=find_line(doc, r"^\s*command\s*:"),
+                    message=(
+                        "initContainer must invoke ConfigMap-mounted scripts through a shell interpreter; "
+                        f"direct execution of {command_path} is unsupported"
+                    ),
+                )
+            )
+
+    for container in template_spec.get("containers") or []:
+        if not isinstance(container, dict):
+            continue
+        command = _string_list(container.get("command"))
+        args = _string_list(container.get("args"))
+        if not command:
+            continue
+        command_path = command[0]
+        if command_path in mounted_files and not _is_shell_command(command_path):
+            violations.append(
+                Violation(
+                    rule_id="R043",
+                    path=doc.path,
+                    line=find_line(doc, r"^\s*command\s*:"),
+                    message=(
+                        f"main container must invoke ConfigMap-mounted scripts through a shell interpreter; "
+                        f"direct execution of {command_path} is unsupported"
+                    ),
+                )
+            )
+        referenced_paths = set(command[1:] + args).intersection(mounted_files)
+        for mount_path in referenced_paths:
+            key = mounted_files[mount_path]
+            script = data.get(key)
+            if not isinstance(script, str) or not mount_path.endswith((".sh", ".bash")):
+                continue
+            if not re.search(r"\bexec\s+", script):
+                violations.append(
+                    Violation(
+                        rule_id="R043",
+                        path=configmap_doc.path,
+                        line=find_line(configmap_doc, re.escape(key)),
+                        message=(
+                            f"main ConfigMap startup script {key} must end with exec of the official process"
+                        ),
+                    )
+                )
+
+
+def _iter_configmap_default_mode_lines(doc: YamlDocument) -> Iterable[Tuple[int, str]]:
+    lines = doc.source.splitlines()
+    in_config_map = False
+    config_map_indent = -1
+
+    for offset, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        indent = len(line) - len(line.lstrip(" "))
+        if in_config_map and indent <= config_map_indent:
+            in_config_map = False
+            config_map_indent = -1
+
+        if re.match(r"^\s*configMap\s*:\s*(?:#.*)?$", line):
+            in_config_map = True
+            config_map_indent = indent
+            continue
+
+        if in_config_map and re.match(r"^\s*defaultMode\s*:", line):
+            yield doc.start_line + offset, stripped
+
+
+def _configmap_default_mode_violation(line_text: str) -> Optional[str]:
+    _, _, raw_value = line_text.partition(":")
+    value = raw_value.split("#", 1)[0].strip().strip("'\"")
+    if value.startswith("0") and value != "0":
+        return (
+            "ConfigMap volume defaultMode should be omitted; leading-zero modes can be rendered as "
+            "invalid decimal values by the Sealos template path"
+        )
+    try:
+        numeric_value = int(value, 10)
+    except ValueError:
+        return "ConfigMap volume defaultMode should be omitted unless explicitly required"
+    if numeric_value > 0o777:
+        return (
+            "ConfigMap volume defaultMode must be omitted or use a Kubernetes-valid decimal file mode "
+            "(0-511)"
+        )
+    return "ConfigMap volume defaultMode should be omitted unless explicitly required"
+
+
+def check_configmap_file_mount_contract(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    configmaps_by_path = _configmap_documents_by_path(context)
+
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not is_managed_app_workload_document(doc):
+            continue
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if doc.path.name != "index.yaml":
+            continue
+        if not isinstance(doc.data, dict):
+            continue
+        if doc.data.get("kind") not in {"Deployment", "StatefulSet"}:
+            continue
+
+        workload_name = _metadata_name(doc.data)
+        if workload_name is None:
+            continue
+        template_spec = get_template_spec(doc.data)
+        if not isinstance(template_spec, dict):
+            continue
+
+        local_configmaps = configmaps_by_path.get(doc.path, {})
+        for line_number, line_text in _iter_configmap_default_mode_lines(doc):
+            message = _configmap_default_mode_violation(line_text)
+            if message is None:
+                continue
+            violations.append(Violation(rule_id="R043", path=doc.path, line=line_number, message=message))
+
+        for volume in _iter_configmap_volumes(template_spec):
+            volume_name = str(volume.get("name")).strip()
+            config_map = volume.get("configMap")
+            assert isinstance(config_map, dict)
+            configmap_name = str(config_map.get("name")).strip()
+            configmap_doc = local_configmaps.get(configmap_name)
+            if configmap_doc is None:
+                continue
+
+            expected_volume_name = f"{workload_name}-cm"
+            if configmap_name != workload_name:
+                violations.append(
+                    Violation(
+                        rule_id="R043",
+                        path=doc.path,
+                        line=find_line(doc, r"^\s*configMap\s*:"),
+                        message=(
+                            "ConfigMap mounted by a managed workload must use the workload metadata.name; "
+                            f"expected configMap.name {workload_name}, got {configmap_name}"
+                        ),
+                    )
+                )
+
+            if volume_name != expected_volume_name:
+                violations.append(
+                    Violation(
+                        rule_id="R043",
+                        path=doc.path,
+                        line=find_line(doc, r"^\s*volumes\s*:"),
+                        message=(
+                            "ConfigMap volume name must be the managed workload name plus '-cm'; "
+                            f"expected {expected_volume_name}, got {volume_name}"
+                        ),
+                    )
+                )
+
+            items = config_map.get("items")
+            if isinstance(items, list):
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    key = item.get("key")
+                    item_path = item.get("path")
+                    if isinstance(key, str) and isinstance(item_path, str) and item_path != key:
+                        violations.append(
+                            Violation(
+                                rule_id="R043",
+                                path=doc.path,
+                                line=find_line(doc, r"^\s*items\s*:"),
+                                message=(
+                                    "ConfigMap volume items.path must equal items.key when items are used, "
+                                    "so volumeMount.subPath can match the ConfigMap data key"
+                                ),
+                            )
+                        )
+
+            data_keys = _configmap_data_keys(configmap_doc)
+            if not data_keys:
+                continue
+            for data_key in sorted(data_keys):
+                if CONFIGMAP_DATA_KEY_RE.fullmatch(data_key):
+                    continue
+                violations.append(
+                    Violation(
+                        rule_id="R043",
+                        path=configmap_doc.path,
+                        line=find_line(configmap_doc, re.escape(data_key)),
+                        message=(
+                            "ConfigMap data keys for mounted files must follow scripts/path_converter.py "
+                            f"vn naming; got {data_key}"
+                        ),
+                    )
+                )
+
+            mounts = list(_iter_volume_mounts(template_spec, volume_name))
+            mounted_keys: Set[str] = set()
+            for mount in mounts:
+                sub_path = mount.get("subPath")
+                mount_path = mount.get("mountPath")
+                if not isinstance(sub_path, str) or not sub_path.strip():
+                    violations.append(
+                        Violation(
+                            rule_id="R043",
+                            path=doc.path,
+                            line=find_line(doc, r"^\s*volumeMounts\s*:"),
+                            message=(
+                                "Each ConfigMap file must be mounted as an independent volumeMount with "
+                                "subPath equal to the ConfigMap data key; directory mounts are not allowed"
+                            ),
+                        )
+                    )
+                    continue
+                if sub_path not in data_keys:
+                    violations.append(
+                        Violation(
+                            rule_id="R043",
+                            path=doc.path,
+                            line=find_line(doc, re.escape(sub_path)),
+                            message=(
+                                "ConfigMap volumeMount.subPath must exactly match a ConfigMap data key; "
+                                f"got {sub_path}"
+                            ),
+                        )
+                    )
+                    continue
+                if not isinstance(mount_path, str) or not mount_path.startswith("/"):
+                    violations.append(
+                        Violation(
+                            rule_id="R043",
+                            path=doc.path,
+                            line=find_line(doc, re.escape(sub_path)),
+                            message="ConfigMap volumeMount.mountPath must be an absolute file path",
+                        )
+                    )
+                mounted_keys.add(sub_path)
+
+            missing_keys = sorted(data_keys - mounted_keys)
+            if missing_keys:
+                violations.append(
+                    Violation(
+                        rule_id="R043",
+                        path=configmap_doc.path,
+                        line=find_line(configmap_doc, re.escape(missing_keys[0])),
+                        message=(
+                            "Every ConfigMap data key must have a separate volumeMount using the same subPath; "
+                            f"missing mounts for {', '.join(missing_keys)}"
+                        ),
+                    )
+                )
+
+            _check_configmap_script_execution(doc, template_spec, volume_name, configmap_doc, violations)
+
+    return violations
+
+
 def _iter_root_prefix_ingress_backend_service_names(data: Dict[str, Any]) -> Iterable[str]:
+    spec = data.get("spec")
+    rules = spec.get("rules") if isinstance(spec, dict) else None
+    if not isinstance(rules, list):
+        return
+    for rule in rules:
+        http = rule.get("http") if isinstance(rule, dict) else None
+        paths = http.get("paths") if isinstance(http, dict) else None
+        if not isinstance(paths, list):
+            continue
+        for path in paths:
+            if not isinstance(path, dict):
+                continue
+            if path.get("pathType") != "Prefix" or path.get("path") != "/":
+                continue
+            backend = path.get("backend") if isinstance(path, dict) else None
+            service = backend.get("service") if isinstance(backend, dict) else None
+            service_name = service.get("name") if isinstance(service, dict) else None
+            if isinstance(service_name, str) and service_name.strip():
+                yield service_name.strip()
+
+
+def _iter_ingress_http_path_lists(data: Dict[str, Any]) -> Iterable[List[Any]]:
+    spec = data.get("spec")
+    rules = spec.get("rules") if isinstance(spec, dict) else None
+    if not isinstance(rules, list):
+        return
+    for rule in rules:
+        http = rule.get("http") if isinstance(rule, dict) else None
+        paths = http.get("paths") if isinstance(http, dict) else None
+        if isinstance(paths, list):
+            yield paths
+
+
+def _is_root_prefix_ingress_path(path: Any) -> bool:
+    return (
+        isinstance(path, dict)
+        and path.get("pathType") == "Prefix"
+        and path.get("path") == "/"
+    )
+
+
+def _iter_ingress_backend_service_names(data: Dict[str, Any]) -> Iterable[str]:
     spec = data.get("spec")
     rules = spec.get("rules") if isinstance(spec, dict) else None
     if not isinstance(rules, list):
@@ -1162,12 +2283,217 @@ def check_ingress_name_matches_backends(context: ScanContext) -> List[Violation]
     return violations
 
 
+def _iter_root_prefix_ingress_backend_services(data: Dict[str, Any]) -> Iterable[Mapping[str, Any]]:
+    spec = data.get("spec")
+    rules = spec.get("rules") if isinstance(spec, dict) else None
+    if not isinstance(rules, list):
+        return
+    for rule in rules:
+        http = rule.get("http") if isinstance(rule, dict) else None
+        paths = http.get("paths") if isinstance(http, dict) else None
+        if not isinstance(paths, list):
+            continue
+        for path in paths:
+            if not isinstance(path, dict):
+                continue
+            if path.get("pathType") != "Prefix" or path.get("path") != "/":
+                continue
+            backend = path.get("backend")
+            service = backend.get("service") if isinstance(backend, dict) else None
+            yield service if isinstance(service, dict) else {}
+
+
+def _collect_declared_service_ports(context: ScanContext) -> Dict[Tuple[Path, str], Set[int]]:
+    ports_by_service: Dict[Tuple[Path, str], Set[int]] = {}
+    for doc in iter_documents_by_kind(context, "Service"):
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if doc.path.name != "index.yaml" or not isinstance(doc.data, dict):
+            continue
+        metadata = doc.data.get("metadata")
+        service_name = metadata.get("name") if isinstance(metadata, dict) else None
+        if not isinstance(service_name, str) or not service_name.strip():
+            continue
+        spec = doc.data.get("spec")
+        ports = spec.get("ports") if isinstance(spec, dict) else None
+        service_key = (doc.path, service_name.strip())
+        if not isinstance(ports, list):
+            ports_by_service.setdefault(service_key, set())
+            continue
+        declared_ports = ports_by_service.setdefault(service_key, set())
+        for port in ports:
+            port_number = port.get("port") if isinstance(port, dict) else None
+            if isinstance(port_number, int) and not isinstance(port_number, bool):
+                declared_ports.add(port_number)
+    return ports_by_service
+
+
+def check_root_ingress_backend_port_numbers(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    ports_by_service = _collect_declared_service_ports(context)
+
+    for doc in iter_documents_by_kind(context, "Ingress"):
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if doc.path.name != "index.yaml" or not isinstance(doc.data, dict):
+            continue
+
+        for paths in _iter_ingress_http_path_lists(doc.data):
+            has_root_prefix = any(_is_root_prefix_ingress_path(path) for path in paths)
+            if has_root_prefix and not _is_root_prefix_ingress_path(paths[0] if paths else None):
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=r"^\s*path\s*:\s*['\"]?/['\"]?\s*$",
+                    default_pattern=r"^\s*paths\s*:",
+                    message=(
+                        "Root-path Prefix Ingress route must be first in its HTTP path list "
+                        "for Launchpad public-address discovery"
+                    ),
+                )
+
+        for service in _iter_root_prefix_ingress_backend_services(doc.data):
+            service_name = service.get("name")
+            if not isinstance(service_name, str) or not service_name.strip():
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=r"^\s*service\s*:",
+                    default_pattern=r"^\s*backend\s*:",
+                    message="Root-path Prefix Ingress backend.service.name must reference a declared Service",
+                )
+                continue
+            service_name = service_name.strip()
+
+            port = service.get("port")
+            port_number = port.get("number") if isinstance(port, dict) else None
+            uses_named_port = isinstance(port, dict) and "name" in port
+            if not isinstance(port_number, int) or isinstance(port_number, bool) or uses_named_port:
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=r"^\s*port\s*:",
+                    default_pattern=r"^\s*service\s*:",
+                    message=(
+                        "Root-path Prefix Ingress backend.service.port must use an integer number "
+                        "for Launchpad public-address discovery"
+                    ),
+                )
+                continue
+
+            service_key = (doc.path, service_name)
+            if service_key not in ports_by_service:
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=re.escape(service_name),
+                    default_pattern=r"^\s*service\s*:",
+                    message=f"Ingress backend Service {service_name} is not declared in the template artifact",
+                )
+                continue
+
+            declared_ports = ports_by_service[service_key]
+            if port_number not in declared_ports:
+                declared_text = ", ".join(str(value) for value in sorted(declared_ports)) or "none"
+                add_doc_violation(
+                    violations,
+                    rule_id="R051",
+                    doc=doc,
+                    pattern=str(port_number),
+                    default_pattern=r"^\s*port\s*:",
+                    message=(
+                        f"Ingress backend port {port_number} must match Service {service_name} "
+                        f"spec.ports[*].port; declared ports: {declared_text}"
+                    ),
+                )
+
+    return violations
+
+
 def _normalize_annotation_value(value: Any) -> Optional[str]:
     if isinstance(value, str):
         return "\n".join(line.rstrip() for line in value.strip().splitlines())
     if value is None:
         return None
     return str(value).strip()
+
+
+def _is_websocket_port_name(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return normalized in WEBSOCKET_PORT_NAME_TOKENS or any(
+        token in WEBSOCKET_PORT_NAME_TOKENS for token in normalized.split("-")
+    )
+
+
+def _service_port_key(value: Any) -> Optional[str]:
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _collect_service_websocket_ports(context: ScanContext) -> Dict[str, Set[str]]:
+    ports_by_service: Dict[str, Set[str]] = {}
+    for doc in iter_documents_by_kind(context, "Service"):
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if doc.path.name != "index.yaml":
+            continue
+        if not isinstance(doc.data, dict):
+            continue
+        metadata = doc.data.get("metadata")
+        service_name = metadata.get("name") if isinstance(metadata, dict) else None
+        if not isinstance(service_name, str) or not service_name.strip():
+            continue
+        spec = doc.data.get("spec")
+        ports = spec.get("ports") if isinstance(spec, dict) else None
+        if not isinstance(ports, list):
+            continue
+        for port in ports:
+            if not isinstance(port, dict):
+                continue
+            if not _is_websocket_port_name(port.get("name")):
+                continue
+            for key in ("name", "port", "targetPort"):
+                port_key = _service_port_key(port.get(key))
+                if port_key is None:
+                    continue
+                ports_by_service.setdefault(service_name.strip(), set()).add(port_key)
+    return ports_by_service
+
+
+def _iter_ingress_backend_service_ports(data: Mapping[str, Any]) -> Iterable[Tuple[str, str]]:
+    spec = data.get("spec")
+    rules = spec.get("rules") if isinstance(spec, dict) else None
+    if not isinstance(rules, list):
+        return
+
+    for rule in rules:
+        http = rule.get("http") if isinstance(rule, dict) else None
+        paths = http.get("paths") if isinstance(http, dict) else None
+        if not isinstance(paths, list):
+            continue
+        for path in paths:
+            backend = path.get("backend") if isinstance(path, dict) else None
+            service = backend.get("service") if isinstance(backend, dict) else None
+            if not isinstance(service, dict):
+                continue
+            name = service.get("name")
+            port = service.get("port")
+            if not isinstance(name, str) or not isinstance(port, dict):
+                continue
+            port_key = _service_port_key(port.get("name"))
+            if port_key is None:
+                port_key = _service_port_key(port.get("number"))
+            if port_key is not None:
+                yield name.strip(), port_key
 
 
 def check_http_ingress_annotations(context: ScanContext) -> List[Violation]:
@@ -1215,6 +2541,62 @@ def check_http_ingress_annotations(context: ScanContext) -> List[Violation]:
     return violations
 
 
+def check_websocket_ingress_annotations(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    service_websocket_ports = _collect_service_websocket_ports(context)
+    for doc in iter_documents_by_kind(context, "Ingress"):
+        if doc.path.suffix.lower() not in TEMPLATE_ARTIFACT_SUFFIXES:
+            continue
+        if doc.path.name != "index.yaml":
+            continue
+        if not isinstance(doc.data, dict):
+            continue
+
+        metadata = doc.data.get("metadata")
+        annotations = metadata.get("annotations") if isinstance(metadata, dict) else None
+        backend_protocol = None
+        if isinstance(annotations, dict):
+            backend_protocol = _normalize_annotation_value(
+                annotations.get("nginx.ingress.kubernetes.io/backend-protocol")
+            )
+
+        routes_websocket_port = any(
+            port_key in service_websocket_ports.get(service_name, set())
+            for service_name, port_key in _iter_ingress_backend_service_ports(doc.data)
+        )
+        declares_websocket = backend_protocol is not None and backend_protocol.upper() == "WS"
+
+        if not declares_websocket and not routes_websocket_port:
+            continue
+
+        if not isinstance(annotations, dict):
+            add_doc_violation(
+                violations,
+                rule_id="R048",
+                doc=doc,
+                pattern=r"^\s*annotations\s*:",
+                default_pattern=r"^\s*metadata\s*:",
+                message="WebSocket Ingress metadata.annotations must define the required WS annotation set",
+            )
+            continue
+
+        for key, expected in WEBSOCKET_INGRESS_REQUIRED_ANNOTATIONS.items():
+            actual_normalized = _normalize_annotation_value(annotations.get(key))
+            expected_normalized = _normalize_annotation_value(expected)
+            if actual_normalized == expected_normalized:
+                continue
+            add_doc_violation(
+                violations,
+                rule_id="R048",
+                doc=doc,
+                pattern=re.escape(key),
+                default_pattern=r"^\s*annotations\s*:",
+                message=f"Ingress annotation '{key}' must match the required WebSocket default",
+            )
+
+    return violations
+
+
 def _is_template_artifact_document(doc) -> bool:
     return doc.path.suffix.lower() in TEMPLATE_ARTIFACT_SUFFIXES and doc.path.name == "index.yaml"
 
@@ -1232,20 +2614,218 @@ def _image_repository_basename(image: str) -> str:
     return reference.rsplit("/", 1)[-1].lower()
 
 
+def _image_repository(image: str) -> str:
+    reference = image.strip()
+    if "@" in reference:
+        reference = reference.split("@", 1)[0]
+    slash_index = reference.rfind("/")
+    colon_index = reference.rfind(":")
+    if colon_index > slash_index:
+        reference = reference[:colon_index]
+    return reference.lower()
+
+
 def _is_database_image(image: str) -> bool:
     return _image_repository_basename(image) in DATABASE_WORKLOAD_IMAGE_NAMES
 
 
-def _is_database_like_workload(doc) -> bool:
-    if not is_app_workload_document(doc) or not isinstance(doc.data, dict):
+def _normalize_database_token(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-")
+
+
+def _iter_mapping_values(value: Any) -> Iterable[str]:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if isinstance(key, str):
+                yield key
+            yield from _iter_mapping_values(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _iter_mapping_values(item)
+    elif isinstance(value, str):
+        yield value
+
+
+def _matches_database_resource_name(value: Any) -> bool:
+    return _normalize_database_token(value) in DATABASE_RESOURCE_NAME_TOKENS
+
+
+def _contains_any_database_token(value: Any, tokens: Set[str]) -> bool:
+    normalized = _normalize_database_token(value)
+    if not normalized:
+        return False
+    return bool(set(normalized.split("-")) & tokens)
+
+
+def _is_database_client_job(doc) -> bool:
+    if not isinstance(doc.data, dict) or doc.data.get("kind") not in {"Job", "CronJob"}:
         return False
 
+    metadata = doc.data.get("metadata")
+    names: List[Any] = []
+    if isinstance(metadata, dict):
+        names.append(metadata.get("name"))
     for container in iter_containers(doc.data):
+        names.append(container.get("name"))
+
+    return any(_contains_any_database_token(name, DATABASE_CLIENT_JOB_TOKENS) for name in names)
+
+
+def _workload_template_spec(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    kind = data.get("kind")
+    spec = data.get("spec")
+    if not isinstance(spec, dict):
+        return None
+
+    if kind in {"Deployment", "StatefulSet", "DaemonSet", "Job"}:
+        template = spec.get("template")
+        template_spec = template.get("spec") if isinstance(template, dict) else None
+        return template_spec if isinstance(template_spec, dict) else None
+
+    if kind == "CronJob":
+        job_template = spec.get("jobTemplate")
+        job_spec = job_template.get("spec") if isinstance(job_template, dict) else None
+        template = job_spec.get("template") if isinstance(job_spec, dict) else None
+        template_spec = template.get("spec") if isinstance(template, dict) else None
+        return template_spec if isinstance(template_spec, dict) else None
+
+    return None
+
+
+def _iter_main_workload_containers(data: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    template_spec = _workload_template_spec(data)
+    containers = template_spec.get("containers") if isinstance(template_spec, dict) else None
+    if not isinstance(containers, list):
+        return
+    for container in containers:
+        if isinstance(container, dict):
+            yield container
+
+
+def _is_database_like_workload(doc) -> bool:
+    if not isinstance(doc.data, dict):
+        return False
+    if doc.data.get("kind") not in DATABASE_RAW_WORKLOAD_KINDS:
+        return False
+    if _is_database_client_job(doc):
+        return False
+
+    for container in _iter_main_workload_containers(doc.data):
         image = container.get("image")
         if isinstance(image, str) and _is_database_image(image):
             return True
+        if _matches_database_resource_name(container.get("name")):
+            return True
 
     return False
+
+
+def _is_database_like_service(doc) -> bool:
+    if not isinstance(doc.data, dict) or doc.data.get("kind") != "Service":
+        return False
+
+    metadata = doc.data.get("metadata")
+    if isinstance(metadata, dict):
+        for value in _iter_mapping_values(
+            {
+                "name": metadata.get("name"),
+                "labels": metadata.get("labels"),
+            }
+        ):
+            if _matches_database_resource_name(value):
+                return True
+
+    spec = doc.data.get("spec")
+    if isinstance(spec, dict):
+        selector = spec.get("selector")
+        if isinstance(selector, dict):
+            for value in _iter_mapping_values(selector):
+                if _matches_database_resource_name(value):
+                    return True
+
+    return False
+
+
+def _as_string_list(value: Any) -> List[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [str(item) for item in value if item is not None and str(item).strip()]
+    return []
+
+
+def _shell_script_part(container: Dict[str, Any]) -> str:
+    command = _as_string_list(container.get("command"))
+    args = _as_string_list(container.get("args"))
+    if not command:
+        return ""
+    shell = command[0].strip().lower()
+    if shell not in MAIN_CONTAINER_SHELLS:
+        return ""
+
+    candidates: List[str] = []
+    for item in command[1:] + args:
+        stripped = item.strip()
+        if stripped in {"-c", "-ec", "-e", "-eux", "-euxc", "-ex", "-exc", "-lc"}:
+            continue
+        candidates.append(item)
+    return "\n".join(candidates).strip()
+
+
+def _is_allowed_short_main_container_wrapper(script: str) -> bool:
+    normalized = " ".join(script.split())
+    if not normalized:
+        return True
+    if "\n" in script:
+        return False
+    if len(normalized) > MAIN_CONTAINER_MAX_SCRIPT_CHARS:
+        return False
+    if MAIN_CONTAINER_ALLOWED_SHORT_SETUP_RE.match(normalized):
+        return True
+    if normalized.startswith("exec "):
+        return True
+    return False
+
+
+def _main_container_startup_issue(container: Dict[str, Any]) -> Optional[str]:
+    command = _as_string_list(container.get("command"))
+    args = _as_string_list(container.get("args"))
+    if not command and not args:
+        return None
+
+    shell_script = _shell_script_part(container)
+    if not shell_script:
+        multiline_parts = [part for part in command + args if "\n" in part]
+        operator_parts = [
+            part
+            for part in command + args
+            if re.search(r"(?:&&|\|\|)", part) and MAIN_CONTAINER_BOOTSTRAP_RE.search(part)
+        ]
+        if multiline_parts:
+            script = "\n".join(multiline_parts)
+        elif operator_parts:
+            script = " ".join(operator_parts)
+        else:
+            return None
+    else:
+        script = shell_script
+
+    normalized = " ".join(script.split())
+    command_count = len([part for part in re.split(r"\s*(?:&&|;|\|\|)\s*", normalized) if part.strip()])
+
+    if _is_allowed_short_main_container_wrapper(script):
+        return None
+    if "\n" in script:
+        return "main container startup uses a multi-line shell script"
+    if len(normalized) > MAIN_CONTAINER_MAX_SCRIPT_CHARS:
+        return "main container startup command is too long for an auditable runtime entry"
+    if command_count > MAIN_CONTAINER_MAX_SCRIPT_COMMANDS:
+        return "main container startup chains too many commands"
+    if MAIN_CONTAINER_BOOTSTRAP_RE.search(normalized):
+        return "main container startup contains bootstrap/setup commands"
+    if shell_script and "exec " not in normalized:
+        return "main container shell wrapper should exec the final process"
+    return None
 
 
 def check_database_services_use_clusters(context: ScanContext) -> List[Violation]:
@@ -1255,18 +2835,1328 @@ def check_database_services_use_clusters(context: ScanContext) -> List[Violation
             continue
         if not isinstance(doc.data, dict):
             continue
-        if doc.data.get("kind") not in {"Deployment", "StatefulSet"}:
+        kind = doc.data.get("kind")
+        if kind not in DATABASE_RAW_RESOURCE_KINDS:
             continue
-        if not _is_database_like_workload(doc):
+
+        is_database_resource = _is_database_like_service(doc) if kind == "Service" else _is_database_like_workload(doc)
+        if not is_database_resource:
             continue
 
         add_doc_violation(
             violations,
             rule_id="R039",
             doc=doc,
-            pattern=r"^\s*kind\s*:\s*(?:Deployment|StatefulSet)\s*$",
+            pattern=r"^\s*kind\s*:\s*(?:Deployment|StatefulSet|DaemonSet|Job|CronJob|Service)\s*$",
             default_pattern=r"^\s*kind\s*:",
-            message="database services must use KubeBlocks Cluster resources, not raw Deployment/StatefulSet workloads",
+            message="database services require KubeBlocks Cluster resources; raw Kubernetes resources are invalid",
+        )
+
+    return violations
+
+
+def check_main_container_startup_contract(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if not _is_template_artifact_document(doc):
+            continue
+        if not is_app_workload_document(doc) or not has_managed_workload_marker(doc.data):
+            continue
+
+        template_spec = get_template_spec(doc.data)
+        containers = template_spec.get("containers") if isinstance(template_spec, dict) else None
+        if not isinstance(containers, list):
+            continue
+
+        for container in containers:
+            if not isinstance(container, dict):
+                continue
+            issue = _main_container_startup_issue(container)
+            if issue is None:
+                continue
+            add_doc_violation(
+                violations,
+                rule_id="R042",
+                doc=doc,
+                pattern=r"^\s*(command|args)\s*:",
+                default_pattern=r"^\s*containers\s*:",
+                message=(
+                    f"{issue}; move file preparation, permissions, database bootstrap, "
+                    "and compatibility repair into initContainers, Jobs, or ConfigMap scripts. "
+                    "Keep only the official entrypoint/args or a short exec wrapper in the main container."
+                ),
+            )
+
+    return violations
+
+
+def _template_inputs_by_path(context: ScanContext) -> Dict[Path, Dict[str, str]]:
+    inputs_by_path: Dict[Path, Dict[str, str]] = {}
+    for doc in _iter_template_artifact_documents(context):
+        if not isinstance(doc.data, dict):
+            continue
+        spec = doc.data.get("spec")
+        inputs = spec.get("inputs") if isinstance(spec, dict) else None
+        if not isinstance(inputs, dict):
+            continue
+
+        input_types: Dict[str, str] = {}
+        for input_name, input_spec in inputs.items():
+            if not isinstance(input_name, str) or not isinstance(input_spec, dict):
+                continue
+            input_type = input_spec.get("type")
+            if isinstance(input_type, str):
+                input_types[input_name] = input_type.strip().lower()
+        inputs_by_path[doc.path] = input_types
+    return inputs_by_path
+
+
+def _template_input_specs_by_path(context: ScanContext) -> Dict[Path, Dict[str, Dict[str, Any]]]:
+    inputs_by_path: Dict[Path, Dict[str, Dict[str, Any]]] = {}
+    for doc in _iter_template_artifact_documents(context):
+        if not isinstance(doc.data, dict):
+            continue
+        spec = doc.data.get("spec")
+        inputs = spec.get("inputs") if isinstance(spec, dict) else None
+        if not isinstance(inputs, dict):
+            continue
+
+        input_specs = inputs_by_path.setdefault(doc.path, {})
+        for input_name, input_spec in inputs.items():
+            if isinstance(input_name, str) and isinstance(input_spec, dict):
+                input_specs[input_name] = input_spec
+    return inputs_by_path
+
+
+def _template_default_specs_by_path(context: ScanContext) -> Dict[Path, Dict[str, Any]]:
+    defaults_by_path: Dict[Path, Dict[str, Any]] = {}
+    for doc in _iter_template_artifact_documents(context):
+        if not isinstance(doc.data, dict):
+            continue
+        spec = doc.data.get("spec")
+        defaults = spec.get("defaults") if isinstance(spec, dict) else None
+        if isinstance(defaults, dict):
+            defaults_by_path[doc.path] = defaults
+    return defaults_by_path
+
+
+def _runtime_env_entries(container: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    env_entries: Dict[str, Dict[str, Any]] = {}
+    env = container.get("env")
+    if not isinstance(env, list):
+        return env_entries
+    for item in env:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if isinstance(name, str) and name.strip():
+            env_entries[name.strip()] = item
+    return env_entries
+
+
+def _resolve_template_runtime_value(
+    raw_value: Any,
+    default_specs: Mapping[str, Any],
+    input_specs: Mapping[str, Dict[str, Any]],
+) -> Tuple[str, Any]:
+    if not isinstance(raw_value, str):
+        return "literal", raw_value
+
+    value = raw_value.strip()
+    default_match = TEMPLATE_DEFAULT_REF_RE.fullmatch(value)
+    if default_match:
+        default_spec = default_specs.get(default_match.group(1))
+        if isinstance(default_spec, dict):
+            return "default", default_spec.get("value")
+        return "default", default_spec
+
+    input_match = TEMPLATE_INPUT_FULL_REF_RE.fullmatch(value)
+    if input_match:
+        input_spec = input_specs.get(input_match.group(1))
+        if not isinstance(input_spec, dict):
+            return "missing_input", None
+        if input_spec.get("required") is True and "default" not in input_spec:
+            return "required_input", None
+        return "input_default", input_spec.get("default")
+
+    return "literal", raw_value
+
+
+def _runtime_value_satisfies_constraint(value: Any, constraint: Mapping[str, Any]) -> bool:
+    expected_format = constraint.get("format")
+    expected_length = constraint.get("length")
+    if not isinstance(value, str):
+        return False
+    if isinstance(expected_length, int) and len(value) != expected_length:
+        return False
+    if expected_format == "hex":
+        return HEX_VALUE_RE.fullmatch(value) is not None
+    return False
+
+
+def check_runtime_env_value_constraints(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    defaults_by_path = _template_default_specs_by_path(context)
+    inputs_by_path = _template_input_specs_by_path(context)
+
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if not _is_template_artifact_document(doc):
+            continue
+        if not is_app_workload_document(doc) or not has_managed_workload_marker(doc.data):
+            continue
+
+        template_spec = get_template_spec(doc.data)
+        containers = template_spec.get("containers") if isinstance(template_spec, dict) else None
+        if not isinstance(containers, list):
+            continue
+
+        for container in containers:
+            if not isinstance(container, dict):
+                continue
+            image = container.get("image")
+            if not isinstance(image, str):
+                continue
+            expectations = RUNTIME_ENV_VALUE_CONSTRAINTS.get(_image_repository(image))
+            if not expectations:
+                continue
+
+            env_entries = _runtime_env_entries(container)
+            for env_name, constraint in expectations.items():
+                env_item = env_entries.get(env_name)
+                if env_item is None:
+                    add_doc_violation(
+                        violations,
+                        rule_id="R053",
+                        doc=doc,
+                        pattern=r"^\s*env\s*:",
+                        default_pattern=r"^\s*containers\s*:",
+                        message=f"{env_name} is required by the official runtime contract",
+                    )
+                    continue
+
+                source_kind, resolved_value = _resolve_template_runtime_value(
+                    env_item.get("value"),
+                    defaults_by_path.get(doc.path, {}),
+                    inputs_by_path.get(doc.path, {}),
+                )
+                if source_kind == "required_input":
+                    continue
+                if _runtime_value_satisfies_constraint(resolved_value, constraint):
+                    continue
+
+                expected_format = constraint.get("format", "documented")
+                expected_length = constraint.get("length")
+                expected_text = f"{expected_length}-character {expected_format}" if expected_length else str(expected_format)
+                add_doc_violation(
+                    violations,
+                    rule_id="R053",
+                    doc=doc,
+                    pattern=rf"^\s*-\s*name\s*:\s*{re.escape(env_name)}\s*$",
+                    default_pattern=r"^\s*env\s*:",
+                    message=(
+                        f"{env_name} must use a valid {expected_text} value or a required input "
+                        "without a generated default; generic random() output does not satisfy this contract"
+                    ),
+                )
+
+    return violations
+
+
+def _runtime_value_is_nonempty_credential(
+    raw_value: Any,
+    default_specs: Mapping[str, Any],
+    input_specs: Mapping[str, Dict[str, Any]],
+) -> bool:
+    source_kind, resolved_value = _resolve_template_runtime_value(raw_value, default_specs, input_specs)
+    if source_kind == "required_input":
+        return True
+    if not isinstance(resolved_value, str):
+        return False
+    value = resolved_value.strip()
+    if not value:
+        return False
+    if value.startswith("${{") and value.endswith("}}"):
+        return False
+    return True
+
+
+def check_runtime_provider_credentials(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    defaults_by_path = _template_default_specs_by_path(context)
+    inputs_by_path = _template_input_specs_by_path(context)
+
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if not _is_template_artifact_document(doc):
+            continue
+        if not is_app_workload_document(doc) or not has_managed_workload_marker(doc.data):
+            continue
+
+        template_spec = get_template_spec(doc.data)
+        containers = template_spec.get("containers") if isinstance(template_spec, dict) else None
+        if not isinstance(containers, list):
+            continue
+
+        for container in containers:
+            if not isinstance(container, dict):
+                continue
+            image = container.get("image")
+            if not isinstance(image, str):
+                continue
+            requirements = RUNTIME_CREDENTIAL_REQUIREMENTS.get(_image_repository(image), ())
+            if not requirements:
+                continue
+
+            env_entries = _runtime_env_entries(container)
+            for requirement in requirements:
+                provider_env = str(requirement["provider_env"])
+                provider_item = env_entries.get(provider_env)
+                if provider_item is None:
+                    continue
+                provider_kind, provider_value = _resolve_template_runtime_value(
+                    provider_item.get("value"),
+                    defaults_by_path.get(doc.path, {}),
+                    inputs_by_path.get(doc.path, {}),
+                )
+                if provider_kind == "required_input":
+                    continue
+                if not isinstance(provider_value, str):
+                    continue
+                if provider_value.strip().lower() != str(requirement["provider_value"]).lower():
+                    continue
+
+                credential_names = tuple(str(item) for item in requirement["credential_envs"])
+                if any(
+                    credential_name in env_entries
+                    and _runtime_value_is_nonempty_credential(
+                        env_entries[credential_name].get("value"),
+                        defaults_by_path.get(doc.path, {}),
+                        inputs_by_path.get(doc.path, {}),
+                    )
+                    for credential_name in credential_names
+                ):
+                    continue
+
+                add_doc_violation(
+                    violations,
+                    rule_id="R054",
+                    doc=doc,
+                    pattern=rf"^\s*-\s*name\s*:\s*{re.escape(provider_env)}\s*$",
+                    default_pattern=r"^\s*env\s*:",
+                    message=(
+                        f"{provider_env}={provider_value.strip()} requires one non-empty credential env "
+                        f"from {', '.join(credential_names)}; an optional input with an empty default is invalid"
+                    ),
+                )
+
+    return violations
+
+
+def _configmap_data_text_for_names(context: ScanContext, path: Path, names: Set[str]) -> str:
+    parts: List[str] = []
+    if not names:
+        return ""
+    for doc in iter_documents_by_kind(context, "ConfigMap"):
+        if doc.path != path or not isinstance(doc.data, dict):
+            continue
+        if _metadata_name(doc.data) not in names:
+            continue
+        data = doc.data.get("data")
+        if isinstance(data, dict):
+            parts.extend(str(value) for value in data.values())
+    return "\n".join(parts)
+
+
+def _startup_gate_text(context: ScanContext, doc: YamlDocument, template_spec: Mapping[str, Any]) -> str:
+    init_containers = template_spec.get("initContainers")
+    if not isinstance(init_containers, list) or not init_containers:
+        return ""
+
+    parts: List[str] = []
+    mounted_volume_names: Set[str] = set()
+    for container in init_containers:
+        if not isinstance(container, dict):
+            continue
+        parts.append(_container_command_text(container))
+        mounts = container.get("volumeMounts")
+        if isinstance(mounts, list):
+            for mount in mounts:
+                name = mount.get("name") if isinstance(mount, dict) else None
+                if isinstance(name, str) and name.strip():
+                    mounted_volume_names.add(name.strip())
+
+    configmap_names: Set[str] = set()
+    volumes = template_spec.get("volumes")
+    if isinstance(volumes, list):
+        for volume in volumes:
+            if not isinstance(volume, dict):
+                continue
+            name = volume.get("name")
+            if name not in mounted_volume_names:
+                continue
+            config_map = volume.get("configMap")
+            configmap_name = config_map.get("name") if isinstance(config_map, dict) else None
+            if isinstance(configmap_name, str) and configmap_name.strip():
+                configmap_names.add(configmap_name.strip())
+
+    parts.append(_configmap_data_text_for_names(context, doc.path, configmap_names))
+    return "\n".join(parts).lower()
+
+
+def check_runtime_startup_gates(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if not _is_template_artifact_document(doc):
+            continue
+        if not is_app_workload_document(doc) or not has_managed_workload_marker(doc.data):
+            continue
+
+        template_spec = get_template_spec(doc.data)
+        containers = template_spec.get("containers") if isinstance(template_spec, dict) else None
+        if not isinstance(containers, list):
+            continue
+
+        for container in containers:
+            if not isinstance(container, dict):
+                continue
+            image = container.get("image")
+            if not isinstance(image, str):
+                continue
+            expectation = RUNTIME_STARTUP_GATE_EXPECTATIONS.get(_image_repository(image))
+            if not expectation:
+                continue
+
+            gate_text = _startup_gate_text(context, doc, template_spec)
+            required_tokens = expectation.get("required_tokens", ())
+            required_any_tokens = expectation.get("required_any_tokens", ())
+            has_required = all(token.lower() in gate_text for token in required_tokens)
+            has_required_any = not required_any_tokens or any(
+                token.lower() in gate_text for token in required_any_tokens
+            )
+            if has_required and has_required_any:
+                continue
+
+            add_doc_violation(
+                violations,
+                rule_id="R055",
+                doc=doc,
+                pattern=r"^\s*initContainers\s*:",
+                default_pattern=r"^\s*containers\s*:",
+                message=(
+                    "this runtime requires an initContainer final-state gate that waits for PostgreSQL "
+                    "and verifies the required vector extension before the business container starts"
+                ),
+            )
+
+    return violations
+
+
+def check_template_input_references_declared(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    inputs_by_path = _template_inputs_by_path(context)
+
+    for path in _iter_template_artifact_paths(context):
+        text = context.file_texts.get(path, "")
+        if not text:
+            continue
+        declared_inputs = inputs_by_path.get(path)
+        if declared_inputs is None:
+            has_template_doc = any(doc.path == path for doc in _iter_template_artifact_documents(context))
+            if not has_template_doc:
+                continue
+            declared_inputs = {}
+
+        seen: set[str] = set()
+        for match in TEMPLATE_INPUT_REF_RE.finditer(text):
+            input_name = match.group(1)
+            if input_name in declared_inputs or input_name in seen:
+                continue
+            seen.add(input_name)
+            violations.append(
+                Violation(
+                    rule_id="R045",
+                    path=path,
+                    line=_line_number_for_offset(text, match.start()),
+                    message=(
+                        f"inputs.{input_name} is referenced but missing from this Template CR spec.inputs"
+                    ),
+                )
+            )
+
+    return violations
+
+
+def _yaml_mapping_key_match(line: str, key: str) -> Optional[re.Match[str]]:
+    escaped = re.escape(key)
+    return re.match(rf"^(?P<indent>\s*)(?:{escaped}|'{escaped}'|\"{escaped}\")\s*:", line)
+
+
+def _template_mapping_field_line(
+    doc: YamlDocument,
+    collection_name: str,
+    entry_name: str,
+    field_name: str,
+) -> int:
+    lines = doc.source.splitlines()
+    collection_index: Optional[int] = None
+    collection_indent = -1
+
+    for index, line in enumerate(lines):
+        match = _yaml_mapping_key_match(line, collection_name)
+        if match is None:
+            continue
+        collection_index = index
+        collection_indent = len(match.group("indent"))
+        break
+
+    if collection_index is None:
+        return doc.start_line
+
+    entry_index: Optional[int] = None
+    entry_indent = -1
+    for index in range(collection_index + 1, len(lines)):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= collection_indent:
+            break
+        match = _yaml_mapping_key_match(line, entry_name)
+        if match is None or len(match.group("indent")) <= collection_indent:
+            continue
+        entry_index = index
+        entry_indent = len(match.group("indent"))
+        break
+
+    if entry_index is None:
+        return doc.start_line + collection_index
+
+    for index in range(entry_index + 1, len(lines)):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= entry_indent:
+            break
+        match = _yaml_mapping_key_match(line, field_name)
+        if match is not None and len(match.group("indent")) > entry_indent:
+            return doc.start_line + index
+
+    return doc.start_line + entry_index
+
+
+def _yaml_value_type_name(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, float):
+        return "number"
+    if isinstance(value, list):
+        return "sequence"
+    if isinstance(value, dict):
+        return "mapping"
+    return type(value).__name__
+
+
+def check_template_default_scalar_types(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+
+    for doc in _iter_template_artifact_documents(context):
+        if not isinstance(doc.data, dict):
+            continue
+        spec = doc.data.get("spec")
+        if not isinstance(spec, dict):
+            continue
+
+        for collection_name, field_name in (("defaults", "value"), ("inputs", "default")):
+            entries = spec.get(collection_name)
+            if not isinstance(entries, dict):
+                continue
+            for entry_name, entry_spec in entries.items():
+                if not isinstance(entry_name, str) or not isinstance(entry_spec, dict):
+                    continue
+                if field_name not in entry_spec or isinstance(entry_spec[field_name], str):
+                    continue
+                violations.append(
+                    Violation(
+                        rule_id="R052",
+                        path=doc.path,
+                        line=_template_mapping_field_line(
+                            doc,
+                            collection_name,
+                            entry_name,
+                            field_name,
+                        ),
+                        message=(
+                            f"spec.{collection_name}.{entry_name}.{field_name} must be a YAML string, "
+                            f"got {_yaml_value_type_name(entry_spec[field_name])}; encode this field as a "
+                            "string and quote numeric-, boolean-, and null-like scalars"
+                        ),
+                    )
+                )
+
+    return violations
+
+
+def _find_branch_sections(lines: List[str], start_index: int) -> Tuple[int, Optional[int]]:
+    depth = 0
+    else_index: Optional[int] = None
+    for index in range(start_index, len(lines)):
+        line = lines[index]
+        if TEMPLATE_IF_RE.search(line):
+            depth += 1
+        if TEMPLATE_ELSE_RE.search(line) and depth == 1 and else_index is None:
+            else_index = index
+        if TEMPLATE_ENDIF_RE.search(line):
+            depth -= 1
+            if depth <= 0:
+                return index, else_index
+    return min(len(lines), start_index + 80), else_index
+
+
+def _find_branch_end(lines: List[str], start_index: int) -> int:
+    return _find_branch_sections(lines, start_index)[0]
+
+
+def _branch_uses_object_storage(branch_text: str) -> bool:
+    return OBJECT_STORAGE_BRANCH_MARKER_RE.search(branch_text) is not None
+
+
+def _branch_uses_object_storage_wiring(branch_text: str) -> bool:
+    return (
+        OBJECT_STORAGE_BRANCH_MARKER_RE.search(branch_text) is not None
+        and OBJECT_STORAGE_WIRING_BRANCH_MARKER_RE.search(branch_text) is not None
+    )
+
+
+def _branch_has_configuration(branch_text: str) -> bool:
+    return any(
+        line.strip() and not line.lstrip().startswith("#")
+        for line in branch_text.splitlines()
+    )
+
+
+def _branch_uses_local_storage_mode(branch_text: str) -> bool:
+    return re.search(
+        r"\b(?:local|sqlite|filesystem|file[-_ ]?system|file[-_ ]?storage|persistentvolumeclaim|pvc|"
+        r"disabled?|disable|off)\b|"
+        r"\b(?:storage|object_storage|s3)[_-]?(?:mode|backend|provider|enabled?)\s*[:=]\s*"
+        r"(?:['\"]?(?:false|local|disabled|off))",
+        branch_text,
+        re.IGNORECASE,
+    ) is not None
+
+
+def _condition_input_refs(condition: str) -> List[str]:
+    return [match.group(1) for match in TEMPLATE_INPUT_REF_RE.finditer(condition)]
+
+
+def _condition_uses_true_comparison(condition: str, input_name: str) -> bool:
+    escaped = re.escape(input_name)
+    return re.fullmatch(
+        rf"\s*inputs\.{escaped}\s*===\s*['\"]true['\"]\s*",
+        condition,
+    ) is not None
+
+
+def _bounded_object_storage_input_text(
+    input_spec: Dict[str, Any],
+    *,
+    include_description: bool,
+) -> str:
+    values: List[str] = []
+    unsafe_input = False
+    total_chars = 0
+
+    def append_scalar(value: Any) -> None:
+        nonlocal total_chars, unsafe_input
+        if not isinstance(value, (str, int, float, bool)):
+            if value is not None:
+                unsafe_input = True
+            return
+        remaining = OBJECT_STORAGE_INPUT_TEXT_MAX_CHARS - total_chars
+        if remaining <= 0:
+            unsafe_input = True
+            return
+        text = str(value)
+        allowed = min(OBJECT_STORAGE_INPUT_TEXT_MAX_VALUE_CHARS, remaining)
+        if len(text) > allowed:
+            unsafe_input = True
+        bounded_text = text[:allowed]
+        values.append(bounded_text)
+        total_chars += len(bounded_text)
+
+    if include_description:
+        append_scalar(input_spec.get("description"))
+    append_scalar(input_spec.get("default"))
+    options = input_spec.get("options")
+    if isinstance(options, list):
+        if len(options) > OBJECT_STORAGE_INPUT_TEXT_MAX_ITEMS:
+            unsafe_input = True
+        for item in options[:OBJECT_STORAGE_INPUT_TEXT_MAX_ITEMS]:
+            append_scalar(item)
+    else:
+        append_scalar(options)
+
+    if unsafe_input:
+        values.insert(0, OBJECT_STORAGE_UNSAFE_INPUT_MARKER)
+    return re.sub(r"[_-]+", " ", " ".join(values))[:OBJECT_STORAGE_INPUT_TEXT_MAX_CHARS]
+
+
+def _object_storage_input_text(input_spec: Dict[str, Any]) -> str:
+    return _bounded_object_storage_input_text(input_spec, include_description=True)
+
+
+def _object_storage_input_value_text(input_spec: Dict[str, Any]) -> str:
+    return _bounded_object_storage_input_text(input_spec, include_description=False)
+
+
+def _tokens_have_object_storage_identity(tokens: Set[str]) -> bool:
+    return (
+        bool(tokens.intersection({"S3", "MINIO", "OBJECTSTORAGE"}))
+        or {"OBJECT", "STORAGE"}.issubset(tokens)
+    )
+
+
+def _container_has_object_storage_env(container: Dict[str, Any]) -> bool:
+    env = container.get("env")
+    if not isinstance(env, list):
+        return False
+    for item in env:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if not isinstance(name, str):
+            continue
+        tokens = set(_normalize_template_input_name(name).split("_"))
+        if _tokens_have_object_storage_identity(tokens):
+            return True
+    return False
+
+
+def _is_object_storage_provider_selector(input_name: str, input_spec: Dict[str, Any]) -> bool:
+    normalized = _normalize_template_input_name(input_name)
+    tokens = set(normalized.split("_"))
+    raw_input_type = input_spec.get("type")
+    input_type = raw_input_type.strip().lower() if isinstance(raw_input_type, str) else ""
+    has_selector_name = bool(tokens.intersection(OBJECT_STORAGE_SELECTOR_TOKENS))
+    has_object_storage_name = (
+        "S3" in tokens
+        or "MINIO" in tokens
+        or "OBJECTSTORAGE" in tokens
+        or {"OBJECT", "STORAGE"}.issubset(tokens)
+    )
+    is_provider_decision = has_object_storage_name and (
+        bool(tokens.intersection({"MANAGED", "SEALOS"}))
+        or (
+            "AWS" in tokens
+            and bool(tokens.intersection(OBJECT_STORAGE_PROVIDER_DECISION_TOKENS))
+        )
+    )
+    if is_provider_decision:
+        return True
+    if tokens.intersection(OBJECT_STORAGE_CONFIG_TOKENS) and not has_selector_name:
+        return False
+    is_numeric_capacity = input_type in {"integer", "number"} and (
+        bool(tokens.intersection({"CAPACITY", "SIZE"}))
+        or {"MINIO", "STORAGE"}.issubset(tokens)
+    )
+    if is_numeric_capacity and not has_selector_name:
+        return False
+
+    if "MINIO" in tokens and (
+        len(tokens) == 1 or bool(tokens.intersection(OBJECT_STORAGE_PROVIDER_DECISION_TOKENS))
+    ):
+        return True
+
+    if has_selector_name and has_object_storage_name:
+        return True
+    if has_selector_name and "STORAGE" in tokens:
+        return True
+
+    input_text = _object_storage_input_text(input_spec)
+    input_value_text = _object_storage_input_value_text(input_spec)
+    has_object_storage_text = OBJECT_STORAGE_PROVIDER_VALUE_RE.search(input_text) is not None
+    has_object_storage_value = OBJECT_STORAGE_PROVIDER_VALUE_RE.search(input_value_text) is not None
+    if has_selector_name and has_object_storage_text:
+        return True
+    if "USE" in tokens and OBJECT_STORAGE_PROVIDER_DECISION_VALUE_RE.search(input_text) is not None:
+        return True
+    if input_type in {"choice", "select"} and has_object_storage_value:
+        return True
+    if input_type in {"integer", "number"} and "STORAGE" in tokens and has_object_storage_text:
+        return True
+    return input_type == "string" and "STORAGE" in tokens and has_object_storage_value
+
+
+def _is_minio_server_image(image: str) -> bool:
+    return MINIO_SERVER_IMAGE_RE.search(image.strip()) is not None
+
+
+def _is_valid_object_storage_hostname(hostname: str) -> bool:
+    try:
+        ipaddress.ip_address(hostname)
+        return True
+    except ValueError:
+        pass
+
+    try:
+        ascii_hostname = hostname.encode("idna").decode("ascii")
+    except UnicodeError:
+        return False
+    if len(ascii_hostname) > 253 or ascii_hostname.strip(".") != ascii_hostname:
+        return False
+    labels = ascii_hostname.split(".")
+    return all(
+        re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label) is not None
+        for label in labels
+    )
+
+
+def _is_sensitive_object_storage_source_key(key: str) -> bool:
+    separated_key = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", key)
+    normalized_key = re.sub(r"[^a-z0-9]+", "_", separated_key.lower()).strip("_")
+    query_tokens = set(normalized_key.split("_"))
+    compact_key = normalized_key.replace("_", "")
+    return bool(
+        query_tokens.intersection(OBJECT_STORAGE_SOURCE_SENSITIVE_QUERY_TOKENS)
+        or compact_key in OBJECT_STORAGE_SOURCE_SENSITIVE_QUERY_TOKENS
+    )
+
+
+def _object_storage_source_parameter_keys(
+    component: str,
+    *,
+    require_assignment: bool = False,
+) -> List[str]:
+    fields = re.split(r"[&;]", unquote_plus(component))
+    if len(fields) > 64:
+        raise ValueError("too many URL parameters")
+    return [
+        field.partition("=")[0]
+        for field in fields
+        if field and (not require_assignment or "=" in field)
+    ]
+
+
+def _is_valid_object_storage_source_evidence(value: str) -> bool:
+    value = value.strip()
+    if (
+        not value
+        or len(value) > OBJECT_STORAGE_SOURCE_EVIDENCE_MAX_CHARS
+        or any(character.isspace() for character in value)
+    ):
+        return False
+    if OBJECT_STORAGE_USER_REQUEST_EVIDENCE_RE.fullmatch(value):
+        return True
+
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+        if parsed.scheme.lower() != "https" or not hostname:
+            return False
+        if not _is_valid_object_storage_hostname(hostname):
+            return False
+        if parsed.username is not None or parsed.password is not None:
+            return False
+        _ = parsed.port
+        parameter_keys = _object_storage_source_parameter_keys(
+            parsed.query
+        ) + _object_storage_source_parameter_keys(parsed.fragment, require_assignment=True)
+    except ValueError:
+        return False
+
+    for key in parameter_keys:
+        if _is_sensitive_object_storage_source_key(key):
+            return False
+    return True
+
+
+def _compatibility_proxy_image(doc: YamlDocument) -> Optional[str]:
+    metadata = doc.data.get("metadata") if isinstance(doc.data, dict) else None
+    resource_name = metadata.get("name") if isinstance(metadata, dict) else None
+    normalized_name = _normalize_template_input_name(resource_name) if isinstance(resource_name, str) else ""
+    name_tokens = set(normalized_name.split("_"))
+    containers = list(iter_containers(doc.data))
+    resource_has_role = bool(name_tokens.intersection(OBJECT_STORAGE_PROXY_ROLE_TOKENS))
+    resource_has_object_storage = _tokens_have_object_storage_identity(name_tokens)
+    for container in containers:
+        image = container.get("image")
+        container_name = container.get("name")
+        container_tokens = (
+            set(_normalize_template_input_name(container_name).split("_"))
+            if isinstance(container_name, str)
+            else set()
+        )
+        if container_tokens.intersection(OBJECT_STORAGE_PROXY_HELPER_TOKENS):
+            continue
+        has_role = resource_has_role or bool(
+            container_tokens.intersection(OBJECT_STORAGE_PROXY_ROLE_TOKENS)
+        )
+        has_object_storage = (
+            resource_has_object_storage
+            or _tokens_have_object_storage_identity(container_tokens)
+            or _container_has_object_storage_env(container)
+        )
+        if has_role and has_object_storage and isinstance(image, str) and image.strip():
+            return image
+    return None
+
+
+def _compatibility_proxy_uses_persistent_storage(data: Dict[str, Any]) -> bool:
+    spec = data.get("spec")
+    if isinstance(spec, dict):
+        claim_templates = spec.get("volumeClaimTemplates")
+        if isinstance(claim_templates, list) and claim_templates:
+            return True
+
+    template_spec = get_template_spec(data)
+    if not isinstance(template_spec, dict):
+        return False
+    volumes = template_spec.get("volumes")
+    if not isinstance(volumes, list):
+        return False
+    return any(
+        isinstance(volume, dict) and bool(set(volume).intersection(PERSISTENT_VOLUME_SOURCE_KEYS))
+        for volume in volumes
+    )
+
+
+def check_object_storage_input_contract(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    inputs_by_path = _template_inputs_by_path(context)
+    input_specs_by_path = _template_input_specs_by_path(context)
+    provider_inputs_by_path: Dict[Path, Set[str]] = {}
+
+    for doc in _iter_template_artifact_documents(context):
+        input_specs = input_specs_by_path.get(doc.path, {})
+        provider_inputs = provider_inputs_by_path.setdefault(doc.path, set())
+        for input_name, input_spec in input_specs.items():
+            if not _is_object_storage_provider_selector(input_name, input_spec):
+                continue
+            provider_inputs.add(input_name)
+            violations.append(
+                Violation(
+                    rule_id="R044",
+                    path=doc.path,
+                    line=find_line(doc, rf"^\s*{re.escape(input_name)}\s*:"),
+                    message=(
+                        f"object storage provider/backend selector inputs.{input_name} must be resolved "
+                        "during conversion; expose only an application-level enable/disable boolean"
+                    ),
+                )
+            )
+
+    for path in _iter_template_artifact_paths(context):
+        text = context.file_texts.get(path, "")
+        lines = text.splitlines()
+        input_types = inputs_by_path.get(path, {})
+        seen: set[tuple[Path, int, str]] = set()
+        bucket_conditions: Set[str] = set()
+        wiring_conditions: Set[str] = set()
+        condition_lines: Dict[str, int] = {}
+
+        for index, line in enumerate(lines):
+            match = TEMPLATE_IF_RE.search(line)
+            if match is None:
+                continue
+            condition = match.group(1)
+            input_names = _condition_input_refs(condition)
+            if not input_names:
+                continue
+
+            branch_end, else_index = _find_branch_sections(lines, index)
+            true_branch_end = else_index if else_index is not None else branch_end
+            true_branch_text = "\n".join(lines[index + 1 : true_branch_end])
+            normalized_condition = re.sub(r"\s+", " ", condition.strip())
+            condition_lines.setdefault(normalized_condition, index + 1)
+            if re.search(r"\bObjectStorageBucket\b|objectstorage\.sealos", true_branch_text, re.IGNORECASE):
+                bucket_conditions.add(normalized_condition)
+            elif _branch_uses_object_storage_wiring(true_branch_text):
+                wiring_conditions.add(normalized_condition)
+            if not _branch_uses_object_storage(true_branch_text):
+                continue
+
+            if not any(input_name in provider_inputs_by_path.get(path, set()) for input_name in input_names):
+                false_branch_text = (
+                    "\n".join(lines[else_index + 1 : branch_end])
+                    if else_index is not None
+                    else ""
+                )
+                if (
+                    else_index is None
+                    or not _branch_has_configuration(false_branch_text)
+                    or not _branch_uses_local_storage_mode(false_branch_text)
+                ):
+                    marker = (path, index + 1, "__false_branch__")
+                    if marker not in seen:
+                        seen.add(marker)
+                        violations.append(
+                            Violation(
+                                rule_id="R044",
+                                path=path,
+                                line=index + 1,
+                                message=(
+                                    "optional object storage/S3 branch must define an explicit else() "
+                                    "with the documented storage-disabled or local-filesystem mode"
+                                ),
+                            )
+                        )
+
+            for input_name in input_names:
+                if input_name in provider_inputs_by_path.get(path, set()):
+                    continue
+                input_type = input_types.get(input_name)
+                if input_type == "boolean" and _condition_uses_true_comparison(condition, input_name):
+                    continue
+                marker = (path, index + 1, input_name)
+                if marker in seen:
+                    continue
+                seen.add(marker)
+                if input_type == "boolean":
+                    detail = "but the condition must test inputs.<name> === 'true'"
+                else:
+                    detail = (
+                        "but binary object storage choices must be declared as type: boolean "
+                        "and tested with inputs.<name> === 'true'"
+                    )
+                violations.append(
+                    Violation(
+                        rule_id="R044",
+                        path=path,
+                        line=index + 1,
+                        message=(
+                            f"optional object storage/S3 branch uses inputs.{input_name}, {detail}"
+                        ),
+                    )
+                )
+
+        mismatched_wiring = wiring_conditions - bucket_conditions
+        if bucket_conditions and mismatched_wiring:
+            first_condition = sorted(mismatched_wiring, key=lambda value: condition_lines.get(value, 0))[0]
+            violations.append(
+                Violation(
+                    rule_id="R044",
+                    path=path,
+                    line=condition_lines.get(first_condition, 1),
+                    message=(
+                        "object storage Bucket, provider, Secret, and initialization branches must share "
+                        "the same boolean condition; mismatched condition: " + first_condition
+                    ),
+                )
+            )
+
+    artifact_paths = set(_iter_template_artifact_paths(context))
+    object_storage_paths = {
+        doc.path
+        for doc in context.yaml_documents
+        if not doc.skip_checks
+        and isinstance(doc.data, dict)
+        and doc.data.get("kind") == "ObjectStorageBucket"
+        and doc.path in artifact_paths
+    }
+    reported_minio_paths: Set[Path] = set()
+    for doc in context.yaml_documents:
+        if doc.path not in object_storage_paths or doc.path in reported_minio_paths:
+            continue
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if doc.data.get("kind") not in DATABASE_RAW_WORKLOAD_KINDS:
+            continue
+        for container in iter_containers(doc.data):
+            image = container.get("image")
+            if not isinstance(image, str) or not _is_minio_server_image(image):
+                continue
+            reported_minio_paths.add(doc.path)
+            violations.append(
+                Violation(
+                    rule_id="R044",
+                    path=doc.path,
+                    line=find_line(doc, rf"^\s*image\s*:\s*['\"]?{re.escape(image)}['\"]?\s*$"),
+                    message=(
+                        "managed ObjectStorageBucket must be the sole object-store data plane; "
+                        f"remove bundled MinIO server image {image}"
+                    ),
+                )
+            )
+            break
+
+    compatibility_proxy_sources = {
+        doc.path: _metadata_annotations(doc.data).get(
+            OBJECT_STORAGE_COMPATIBILITY_PROXY_SOURCE_ANNOTATION,
+            "",
+        )
+        for doc in _iter_template_artifact_documents(context)
+    }
+    for doc in context.yaml_documents:
+        if doc.path not in artifact_paths or doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        if doc.data.get("kind") not in DATABASE_RAW_WORKLOAD_KINDS:
+            continue
+        proxy_image = _compatibility_proxy_image(doc)
+        if proxy_image is None:
+            continue
+
+        source = compatibility_proxy_sources.get(doc.path, "")
+        if not isinstance(source, str) or not _is_valid_object_storage_source_evidence(source):
+            violations.append(
+                Violation(
+                    rule_id="R044",
+                    path=doc.path,
+                    line=find_line(doc, rf"^\s*image\s*:\s*['\"]?{re.escape(proxy_image)}['\"]?\s*$"),
+                    message=(
+                        "object-storage compatibility proxies require metadata.annotations."
+                        f"{OBJECT_STORAGE_COMPATIBILITY_PROXY_SOURCE_ANNOTATION} with a credential-free "
+                        "HTTPS source URL or user-request:<reference> evidence"
+                    ),
+                )
+            )
+            continue
+
+        if _compatibility_proxy_uses_persistent_storage(doc.data):
+            violations.append(
+                Violation(
+                    rule_id="R044",
+                    path=doc.path,
+                    line=find_line(doc, r"^\s*(?:persistentVolumeClaim|volumeClaimTemplates)\s*:"),
+                    message=(
+                        "object-storage compatibility proxies must remain stateless and must not "
+                        "use persistent storage"
+                    ),
+                )
+            )
+
+    return violations
+
+
+def _normalize_template_input_name(value: str) -> str:
+    separated = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", value)
+    separated = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", "_", separated)
+    return re.sub(r"[^A-Z0-9]+", "_", separated.upper()).strip("_")
+
+
+def _tokens_have_external_object_storage_config(tokens: Set[str]) -> bool:
+    return bool(tokens.intersection(EXTERNAL_OBJECT_STORAGE_CONFIG_TOKENS))
+
+
+def _is_explicit_external_object_storage_input_name(normalized: str) -> bool:
+    tokens = set(normalized.split("_"))
+    has_object_storage = _tokens_have_object_storage_identity(tokens)
+    return has_object_storage and (
+        "EXTERNAL" in tokens or _tokens_have_external_object_storage_config(tokens)
+    )
+
+
+def _is_described_external_object_storage_input(input_name: str, input_spec: Any) -> bool:
+    input_text = _template_input_text(input_name, input_spec)
+    if EXTERNAL_OBJECT_STORAGE_DESCRIPTION_RE.search(input_text) is None:
+        return False
+    tokens = set(_normalize_template_input_name(input_name).split("_"))
+    return _tokens_have_external_object_storage_config(tokens)
+
+
+def _external_object_storage_input_names(doc: YamlDocument) -> List[str]:
+    spec = doc.data.get("spec") if isinstance(doc.data, dict) else None
+    inputs = spec.get("inputs") if isinstance(spec, dict) else None
+    if not isinstance(inputs, dict):
+        return []
+
+    input_items = [(key, value) for key, value in inputs.items() if isinstance(key, str)]
+    explicit_names: Set[str] = set()
+    for key, input_spec in input_items:
+        normalized = _normalize_template_input_name(key)
+        if normalized in MANAGED_OBJECT_STORAGE_TOGGLE_NAMES:
+            continue
+        if _is_explicit_external_object_storage_input_name(
+            normalized
+        ) or _is_described_external_object_storage_input(key, input_spec):
+            explicit_names.add(key)
+
+    has_aws_named_s3_context = False
+    for key, _ in input_items:
+        normalized = _normalize_template_input_name(key)
+        if AWS_OBJECT_STORAGE_INPUT_RE.fullmatch(normalized) and "S3" in set(normalized.split("_")):
+            has_aws_named_s3_context = True
+            break
+    has_aws_described_s3_context = any(
+        AWS_OBJECT_STORAGE_INPUT_RE.fullmatch(_normalize_template_input_name(key))
+        and AWS_OBJECT_STORAGE_CONTEXT_RE.search(_template_input_text(key, input_spec)) is not None
+        for key, input_spec in input_items
+    )
+    has_aws_object_storage_context = (
+        bool(explicit_names) or has_aws_named_s3_context or has_aws_described_s3_context
+    )
+    names: List[str] = []
+    for key, _ in input_items:
+        normalized = _normalize_template_input_name(key)
+        if normalized in MANAGED_OBJECT_STORAGE_TOGGLE_NAMES:
+            continue
+        if key in explicit_names or (
+            has_aws_object_storage_context and AWS_OBJECT_STORAGE_INPUT_RE.fullmatch(normalized)
+        ):
+            names.append(key)
+    return names
+
+
+def _external_object_storage_source(doc: YamlDocument) -> str:
+    annotations = _metadata_annotations(doc.data) if isinstance(doc.data, dict) else {}
+    value = annotations.get(EXTERNAL_OBJECT_STORAGE_SOURCE_ANNOTATION)
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _iter_template_inputs(spec: Dict[str, Any]) -> Iterable[Tuple[str, Any]]:
+    inputs = spec.get("inputs")
+    if isinstance(inputs, dict):
+        for name, input_spec in inputs.items():
+            if isinstance(name, str):
+                yield name, input_spec
+        return
+    if isinstance(inputs, list):
+        for item in inputs:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name")
+            if isinstance(name, str):
+                yield name, item
+
+
+def _template_input_text(name: str, input_spec: Any) -> str:
+    parts = [name]
+    if isinstance(input_spec, dict):
+        for key in ("label", "title", "description", "default", "value"):
+            value = input_spec.get(key)
+            if isinstance(value, str):
+                parts.append(value)
+    elif isinstance(input_spec, str):
+        parts.append(input_spec)
+    return "\n".join(parts)
+
+
+def _object_storage_branch_inputs_by_path(context: ScanContext) -> Dict[Path, set[str]]:
+    inputs_by_path: Dict[Path, set[str]] = {}
+    for path in _iter_template_artifact_paths(context):
+        text = context.file_texts.get(path, "")
+        lines = text.splitlines()
+        for index, line in enumerate(lines):
+            match = TEMPLATE_IF_RE.search(line)
+            if match is None:
+                continue
+            input_names = _condition_input_refs(match.group(1))
+            if not input_names:
+                continue
+            branch_end, else_index = _find_branch_sections(lines, index)
+            true_branch_end = else_index if else_index is not None else branch_end
+            true_branch_text = "\n".join(lines[index + 1 : true_branch_end])
+            if not _branch_uses_object_storage(true_branch_text):
+                continue
+            inputs_by_path.setdefault(path, set()).update(input_names)
+    return inputs_by_path
+
+
+def _input_declaration_line(doc: YamlDocument, input_name: str) -> int:
+    escaped = re.escape(input_name)
+    inputs_line = doc.line_locator.find(r"^\s*inputs\s*:", default=doc.start_line)
+    list_name_line = doc.line_locator.find(
+        rf"^\s*name\s*:\s*['\"]?{escaped}['\"]?\s*$",
+        default=inputs_line,
+    )
+    return doc.line_locator.find(rf"^\s*{escaped}\s*:", default=list_name_line)
+
+
+def check_license_gated_object_storage_options(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    object_storage_branch_inputs = _object_storage_branch_inputs_by_path(context)
+
+    for doc in _iter_template_artifact_documents(context):
+        spec = doc.data.get("spec") if isinstance(doc.data, dict) else None
+        if not isinstance(spec, dict):
+            continue
+        branch_inputs = object_storage_branch_inputs.get(doc.path, set())
+
+        for input_name, input_spec in _iter_template_inputs(spec):
+            input_text = _template_input_text(input_name, input_spec)
+            if LICENSE_GATED_TEXT_RE.search(input_text) is None:
+                continue
+
+            normalized_name = _normalize_template_input_name(input_name)
+            is_object_storage_input = (
+                input_name in branch_inputs
+                or normalized_name in MANAGED_OBJECT_STORAGE_TOGGLE_NAMES
+                or _is_explicit_external_object_storage_input_name(normalized_name)
+                or OBJECT_STORAGE_INPUT_TEXT_RE.search(input_text) is not None
+            )
+            if not is_object_storage_input:
+                continue
+
+            violations.append(
+                Violation(
+                    rule_id="R049",
+                    path=doc.path,
+                    line=_input_declaration_line(doc, input_name),
+                    message=(
+                        "license-gated object storage/S3 features must not be exposed as standard "
+                        "public-template inputs; use the community-supported filesystem/PVC mode "
+                        "or create a dedicated enterprise template only when explicitly requested"
+                    ),
+                )
+            )
+
+    return violations
+
+
+def check_external_object_storage_inputs(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    object_storage_paths = {
+        doc.path
+        for doc in context.yaml_documents
+        if not doc.skip_checks and isinstance(doc.data, dict) and doc.data.get("kind") == "ObjectStorageBucket"
+    }
+
+    for doc in _iter_template_artifact_documents(context):
+        input_names = _external_object_storage_input_names(doc)
+        if not input_names:
+            continue
+
+        if doc.path in object_storage_paths:
+            add_doc_violation(
+                violations,
+                rule_id="R047",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(input_names[0])}\s*:",
+                default_pattern=r"^\s*inputs\s*:",
+                message=(
+                    "templates with managed ObjectStorageBucket resources must not expose external "
+                    "S3/object-storage credential inputs"
+                ),
+            )
+            continue
+
+        source = _external_object_storage_source(doc)
+        if source and _is_valid_object_storage_source_evidence(source):
+            continue
+
+        add_doc_violation(
+            violations,
+            rule_id="R047",
+            doc=doc,
+            pattern=rf"^\s*{re.escape(input_names[0])}\s*:",
+            default_pattern=r"^\s*inputs\s*:",
+            message=(
+                f"external S3/object-storage input {input_names[0]} requires metadata.annotations."
+                f"{EXTERNAL_OBJECT_STORAGE_SOURCE_ANNOTATION} with a credential-free HTTPS source URL or "
+                "user-request:<reference> evidence"
+            ),
         )
 
     return violations
@@ -1508,7 +4398,7 @@ def _is_worker_args(args: Any) -> bool:
     return first == "worker"
 
 
-def _probe_has_http_path(probe: Any, expected_path: str) -> bool:
+def _probe_has_http_path(probe: Any, expected_path: str, expected_port: Optional[int] = None) -> bool:
     if not isinstance(probe, dict):
         return False
     http_get = probe.get("httpGet")
@@ -1517,7 +4407,11 @@ def _probe_has_http_path(probe: Any, expected_path: str) -> bool:
     if http_get.get("path") != expected_path:
         return False
     port = http_get.get("port")
-    return isinstance(port, (int, str)) and bool(str(port).strip())
+    if not isinstance(port, (int, str)) or not str(port).strip():
+        return False
+    if expected_port is None:
+        return True
+    return str(port).strip() == str(expected_port)
 
 
 def _probe_has_exec_command(probe: Any, expected_fragment: str) -> bool:
@@ -1607,7 +4501,8 @@ def check_official_health_probes(context: ScanContext) -> List[Violation]:
         liveness = container.get("livenessProbe")
         readiness = container.get("readinessProbe")
         startup = container.get("startupProbe")
-        if not _probe_has_http_path(liveness, expected["liveness_path"]):
+        expected_port = expected.get("port")
+        if not _probe_has_http_path(liveness, expected["liveness_path"], expected_port):
             add_doc_violation(
                 violations,
                 rule_id="R024",
@@ -1616,10 +4511,10 @@ def check_official_health_probes(context: ScanContext) -> List[Violation]:
                 default_pattern=r"^\s*containers\s*:",
                 message=(
                     "workloads with official health checks must define livenessProbe "
-                    "with the official endpoint path"
+                    "with the official endpoint path and port"
                 ),
             )
-        if not _probe_has_http_path(readiness, expected["readiness_path"]):
+        if not _probe_has_http_path(readiness, expected["readiness_path"], expected_port):
             add_doc_violation(
                 violations,
                 rule_id="R024",
@@ -1628,10 +4523,10 @@ def check_official_health_probes(context: ScanContext) -> List[Violation]:
                 default_pattern=r"^\s*containers\s*:",
                 message=(
                     "workloads with official health checks must define readinessProbe "
-                    "with the official endpoint path"
+                    "with the official endpoint path and port"
                 ),
             )
-        if not _probe_has_http_path(startup, expected["startup_path"]):
+        if not _probe_has_http_path(startup, expected["startup_path"], expected_port):
             add_doc_violation(
                 violations,
                 rule_id="R024",
@@ -1640,9 +4535,231 @@ def check_official_health_probes(context: ScanContext) -> List[Violation]:
                 default_pattern=r"^\s*containers\s*:",
                 message=(
                     "workloads with slow startup and official health checks must define startupProbe "
-                    "with the official endpoint path"
+                    "with the official endpoint path and port"
                 ),
             )
+    return violations
+
+
+def check_runtime_bundle_consistency(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    templates = _template_artifacts_by_name(context)
+
+    for doc in _iter_runtime_bundle_evidence_documents(context):
+        spec = _runtime_bundle_spec(doc)
+        source = spec.get(RUNTIME_BUNDLE_SOURCE_FIELD)
+        if not isinstance(source, str) or not source.strip():
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(RUNTIME_BUNDLE_SOURCE_FIELD)}\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message="runtime bundle evidence must declare spec.source",
+            )
+            continue
+
+        app_name = spec.get("appName")
+        if not isinstance(app_name, str) or not app_name.strip():
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=r"^\s*appName\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message="runtime bundle evidence must declare spec.appName matching Template metadata.name",
+            )
+            continue
+
+        template_doc = templates.get(app_name.strip())
+        if template_doc is None:
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=r"^\s*appName\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message=(
+                    "runtime bundle evidence spec.appName must match a Template metadata.name "
+                    "in the scanned artifacts"
+                ),
+            )
+            continue
+
+        state = _collect_runtime_bundle_state(context, template_doc.path)
+        expected_images = _split_runtime_bundle_values(spec.get(RUNTIME_BUNDLE_IMAGES_FIELD))
+        expected_components = _split_runtime_bundle_values(spec.get(RUNTIME_BUNDLE_COMPONENTS_FIELD))
+        expected_routes = _parse_runtime_bundle_routes(spec.get(RUNTIME_BUNDLE_ROUTES_FIELD))
+        expected_envs = _split_runtime_bundle_values(spec.get(RUNTIME_BUNDLE_ENVS_FIELD))
+
+        if not any((expected_images, expected_components, expected_routes, expected_envs)):
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=r"^\s*spec\s*:",
+                message=(
+                    "runtime bundle evidence must declare expected images, "
+                    "components, routes, or env vars"
+                ),
+            )
+            continue
+
+        missing_images = [image for image in expected_images if image not in state["images"]]
+        if missing_images:
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(RUNTIME_BUNDLE_IMAGES_FIELD)}\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message=(
+                    "runtime bundle image versions must match one official compose/release source; "
+                    f"missing expected image(s): {', '.join(missing_images)}"
+                ),
+            )
+
+        missing_components = [component for component in expected_components if component not in state["workloads"]]
+        if missing_components:
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(RUNTIME_BUNDLE_COMPONENTS_FIELD)}\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message=(
+                    "runtime bundle components must be emitted as explicit managed workloads; "
+                    f"missing component(s): {', '.join(missing_components)}"
+                ),
+            )
+
+        missing_routes: List[str] = []
+        for route_path, service_name in expected_routes:
+            if not route_path or not service_name:
+                missing_routes.append(f"{route_path or '<missing-path>'}=<missing-service>")
+                continue
+            if service_name not in state["services"] or (route_path, service_name) not in state["routes"]:
+                missing_routes.append(f"{route_path}={service_name}")
+        if missing_routes:
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(RUNTIME_BUNDLE_ROUTES_FIELD)}\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message=(
+                    "runtime bundle routes must expose official entry paths through matching Services "
+                    f"and Ingress rules; missing route(s): {', '.join(missing_routes)}"
+                ),
+            )
+
+        missing_envs = [env_name for env_name in expected_envs if env_name not in state["envs"]]
+        if missing_envs:
+            add_doc_violation(
+                violations,
+                rule_id="R046",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(RUNTIME_BUNDLE_ENVS_FIELD)}\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message=(
+                    "runtime bundle critical env vars must remain present on managed workloads; "
+                    f"missing env var(s): {', '.join(missing_envs)}"
+                ),
+            )
+
+    return violations
+
+
+def check_topology_evidence_consistency(context: ScanContext) -> List[Violation]:
+    violations: List[Violation] = []
+    templates = _template_artifacts_by_name(context)
+
+    for doc in _iter_topology_evidence_documents(context):
+        spec = _runtime_bundle_spec(doc)
+        app_name = spec.get("appName")
+        source = spec.get("source")
+
+        if not isinstance(app_name, str) or not app_name.strip():
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*appName\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message="TopologyEvidence must declare spec.appName matching Template metadata.name",
+            )
+            continue
+        app_name = app_name.strip()
+
+        expected_path = doc.path.parent.name == TOPOLOGY_EVIDENCE_DIR and doc.path.parent.parent.name == ".sealos"
+        if not expected_path or doc.path.name != f"{app_name}.yaml":
+            violations.append(
+                Violation(
+                    rule_id="R050",
+                    path=doc.path,
+                    line=doc.start_line,
+                    message=(
+                        "TopologyEvidence must use .sealos/topology-evidence/<appName>.yaml; "
+                        f"expected .sealos/topology-evidence/{app_name}.yaml"
+                    ),
+                )
+            )
+
+        if not isinstance(source, str) or not source.strip():
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*source\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message="TopologyEvidence must declare a non-empty spec.source",
+            )
+
+        template_doc = templates.get(app_name)
+        if template_doc is None:
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*appName\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message="TopologyEvidence spec.appName must match a Template in the scanned artifacts",
+            )
+            continue
+
+        expected_records = _parse_topology_evidence_resources(doc, spec.get("resources"), violations)
+        actual_records, docs_by_record = _collect_topology_records(context, template_doc.path, violations)
+        if not expected_records:
+            continue
+
+        expected_counter = Counter(expected_records)
+        actual_counter = Counter(actual_records)
+        for record, count in (expected_counter - actual_counter).items():
+            add_doc_violation(
+                violations,
+                rule_id="R050",
+                doc=doc,
+                pattern=r"^\s*resources\s*:",
+                default_pattern=r"^\s*spec\s*:",
+                message=(
+                    "topology evidence resource is missing or changed in the template: "
+                    f"{_topology_record_label(record)} (count={count})"
+                ),
+            )
+        for record, count in (actual_counter - expected_counter).items():
+            resource_doc = docs_by_record[record]
+            violations.append(
+                Violation(
+                    rule_id="R050",
+                    path=resource_doc.path,
+                    line=resource_doc.start_line,
+                    message=(
+                        "template contains a topology resource absent from evidence: "
+                        f"{_topology_record_label(record)} (count={count})"
+                    ),
+                )
+            )
+
     return violations
 
 
@@ -1826,12 +4943,6 @@ def check_image_pull_secret_refs(context: ScanContext) -> List[Violation]:
         template_spec = get_template_spec(doc.data)
         image_pull_secrets = template_spec.get("imagePullSecrets") if isinstance(template_spec, dict) else None
 
-        # Public images should omit imagePullSecrets entirely. When a private-registry
-        # workload does declare pull secrets, only the app-scoped runtime-managed
-        # secret is allowed so templates do not depend on undeclared custom secrets.
-        if image_pull_secrets is None:
-            continue
-
         referenced_names: List[str] = []
         if isinstance(image_pull_secrets, list):
             for item in image_pull_secrets:
@@ -1841,8 +4952,28 @@ def check_image_pull_secret_refs(context: ScanContext) -> List[Violation]:
                 if isinstance(name, str) and name.strip():
                     referenced_names.append(name.strip())
 
-        if referenced_names == ["${{ defaults.app_name }}"]:
+        has_pull_secret = len(referenced_names) > 0
+        has_only_app_pull_secret = referenced_names == ["${{ defaults.app_name }}"]
+
+        if not has_pull_secret:
             continue
+
+        if not has_only_app_pull_secret:
+            message = (
+                "registry-authenticated workloads may reference only the app-scoped image pull secret "
+                "`${{ defaults.app_name }}` via template.spec.imagePullSecrets"
+            )
+        else:
+            image_repositories = {
+                _image_repository(str(container.get("image")))
+                for container in iter_containers(doc.data)
+                if isinstance(container.get("image"), str)
+            }
+            if not image_repositories or not all(
+                repository in KNOWN_PUBLIC_IMAGE_REPOSITORIES for repository in image_repositories
+            ):
+                continue
+            message = "known public-image managed app workloads must omit template.spec.imagePullSecrets"
 
         add_doc_violation(
             violations,
@@ -1850,13 +4981,161 @@ def check_image_pull_secret_refs(context: ScanContext) -> List[Violation]:
             doc=doc,
             pattern=r"^\s*imagePullSecrets\s*:",
             default_pattern=r"^\s*template\s*:",
-            message=(
-                "imagePullSecrets may be omitted for public images; if declared for "
-                "private-registry workloads, it must reference only the app-scoped "
-                "secret `${{ defaults.app_name }}`"
-            ),
+            message=message,
         )
 
+    return violations
+
+
+def _artifact_text(context: ScanContext, path: Path) -> str:
+    return "\n".join(str(doc.data) for doc in context.yaml_documents if doc.path == path and isinstance(doc.data, dict)).lower()
+
+
+def _runtime_secret_contract_requirements(text: str) -> List[str]:
+    text = text.replace("\\n", "\n").replace("\\t", "\t")
+    text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    format_shape = re.compile(r"\[[0-9a-f].*\]|\bhex\b|\b64\b")
+    format_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:grep|case|test|wc|expr)\b", text)
+        if format_shape.search(text[match.start() : match.start() + 256])
+    ]
+    entropy_position = text.find("/dev/urandom")
+    umask_match = re.search(r"\bumask\s+0*77\b", text)
+    chmod_match = re.search(r"\bchmod\s+(?:0*600|[\"']?0600[\"']?)\b", text)
+    move_match = re.search(r"\bmv\b", text)
+    temp_match = re.search(r"\b(?:mktemp|tmp)\b", text)
+    order_requirements = [
+        ("umask before entropy", umask_match is not None and entropy_position >= 0 and umask_match.start() < entropy_position),
+        ("format validation before replacement", move_match is not None and any(entropy_position < position < move_match.start() for position in format_positions)),
+        ("temporary file before replacement", move_match is not None and temp_match is not None and temp_match.start() < move_match.start()),
+        ("0600 permissions before replacement", move_match is not None and chmod_match is not None and chmod_match.start() < move_match.start()),
+    ]
+    requirements: List[Tuple[str, bool]] = [
+        ("/dev/urandom", "/dev/urandom" in text),
+        ("umask 077", re.search(r"\bumask\s+0*77\b", text) is not None),
+        (
+            "format validation",
+            bool(format_positions),
+        ),
+        ("temporary file", re.search(r"\b(?:mktemp|tmp)\b", text) is not None),
+        ("0600 permissions", re.search(r"\bchmod\s+(?:0*600|[\"']?0600[\"']?)\b", text) is not None),
+        ("atomic replacement", re.search(r"\bmv\b", text) is not None),
+        ("persistent data path", re.search(r"/app/data|persistentvolumeclaim|volumeclaimtemplates|claimname", text) is not None),
+        ("read and export", re.search(r"\b(?:cat|read|source|awk|sed)\b", text) is not None and re.search(r"\bexport\b", text) is not None),
+        (
+            "secret redaction",
+            re.search(
+                r"(?m)^[ \t]*(?:echo|printf|logger)\b(?![^\n]*(?:2)?>>?\s*(?:[\"'/]|[$A-Za-z_.-]))[^\n]*\$[A-Za-z_][A-Za-z0-9_]*",
+                text,
+            )
+            is None,
+        ),
+        ("exec", re.search(r"\bexec\b", text) is not None),
+    ]
+    requirements.extend(order_requirements)
+    return [label for label, present in requirements if not present]
+
+
+def check_persisted_runtime_secret_contract(context: ScanContext) -> List[Violation]:
+    """Validate opt-in persisted runtime-secret contracts without guessing app-specific env names."""
+    violations: List[Violation] = []
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        annotations = _metadata_annotations(doc.data)
+        if annotations.get(RUNTIME_SECRET_CONTRACT_ANNOTATION) != "persisted":
+            continue
+        artifact_text = _artifact_text(context, doc.path)
+        missing = _runtime_secret_contract_requirements(artifact_text)
+        high_availability = re.search(r"replicas\s*['\"]?\s*:\s*['\"]?(?:[2-9]|[1-9][0-9]+)", artifact_text) is not None
+        per_pod_storage = "volumeclaimtemplates" in artifact_text or "persistentvolumeclaim" in artifact_text
+        shared_source = re.search(r"secretkeyref|external|shared|clustersecret|secretname", artifact_text) is not None
+        if high_availability and per_pod_storage and not shared_source:
+            missing.append("shared secret source for high-availability per-Pod storage")
+        if missing:
+            add_doc_violation(
+                violations,
+                rule_id="R058",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(RUNTIME_SECRET_CONTRACT_ANNOTATION)}\s*:",
+                default_pattern=r"^\s*metadata\s*:",
+                message=(
+                    "persisted runtime-secret contract is missing: " + ", ".join(missing)
+                ),
+            )
+    return violations
+
+
+def check_optional_database_branch_contract(context: ScanContext) -> List[Violation]:
+    """Validate opt-in optional-managed database branches from explicit conversion metadata."""
+    violations: List[Violation] = []
+    for doc in context.yaml_documents:
+        if doc.skip_checks or not isinstance(doc.data, dict):
+            continue
+        annotations = _metadata_annotations(doc.data)
+        if annotations.get(DATABASE_MODE_ANNOTATION) != "optional-managed":
+            continue
+        artifact_text = (
+            _artifact_text(context, doc.path)
+            + "\n"
+            + context.file_texts.get(doc.path, "")
+        ).lower()
+        has_boolean_branch = "inputs." in artifact_text and "true" in artifact_text and "else" in artifact_text
+        has_local_mode = any(marker in artifact_text for marker in ("sqlite", "local", "filesystem", "disabled"))
+        has_managed_mode = "cluster" in artifact_text or "kubeblocks" in artifact_text
+        branch_conditions: Set[str] = set()
+        wiring_conditions: Set[str] = set()
+        invalid_condition = False
+        lines = artifact_text.splitlines()
+        condition_matches = list(re.finditer(r"\$\{\{\s*if\s*\((.*?)\)\s*\}\}", artifact_text))
+        for match in condition_matches:
+            condition = match.group(1).strip()
+            start = artifact_text[: match.start()].count("\n")
+            branch_end, else_index = _find_branch_sections(lines, start)
+            true_end = else_index if else_index is not None else branch_end
+            true_branch = "\n".join(lines[start + 1 : true_end])
+            managed_branch = re.search(r"\b(?:cluster|kubeblocks|database)\b", true_branch) is not None
+            wiring_branch = re.search(
+                r"\b(?:database[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|db[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|secretkeyref|postgres|mysql|mongodb|redis)\b",
+                true_branch,
+            ) is not None
+            if not managed_branch and not wiring_branch:
+                continue
+            refs = _condition_input_refs(condition)
+            if len(refs) != 1 or not _condition_uses_true_comparison(condition, refs[0]):
+                invalid_condition = True
+            else:
+                if managed_branch:
+                    branch_conditions.add(condition)
+                if wiring_branch:
+                    wiring_conditions.add(condition)
+            if else_index is None or not _branch_uses_local_storage_mode("\n".join(lines[else_index + 1 : branch_end])):
+                if managed_branch:
+                    invalid_condition = True
+
+        if re.search(
+            r"\b(?:database[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|db[_-]?(?:dsn|url|uri|connection(?:string)?|host|port|user(?:name)?|password)|secretkeyref)\b",
+            artifact_text,
+        ) and not wiring_conditions:
+            invalid_condition = True
+        if condition_matches and has_managed_mode and not branch_conditions:
+            invalid_condition = True
+        same_condition = len(branch_conditions | wiring_conditions) <= 1
+        if branch_conditions and not has_boolean_branch:
+            invalid_condition = True
+        if not (has_boolean_branch and has_local_mode and has_managed_mode and same_condition and not invalid_condition):
+            add_doc_violation(
+                violations,
+                rule_id="R059",
+                doc=doc,
+                pattern=rf"^\s*{re.escape(DATABASE_MODE_ANNOTATION)}\s*:",
+                default_pattern=r"^\s*metadata\s*:",
+                message=(
+                    "optional-managed database contracts must include a boolean true branch for the managed "
+                    "Cluster path and an explicit false branch for SQLite or documented local storage"
+                ),
+            )
     return violations
 
 
@@ -1877,16 +5156,32 @@ APP_RULES: Dict[str, Rule] = {
     "R022": Rule("R022", check_template_i18n_zh_title_absent),
     "R023": Rule("R023", check_template_categories_allowed),
     "R024": Rule("R024", check_official_health_probes),
+    "R053": Rule("R053", check_runtime_env_value_constraints),
+    "R054": Rule("R054", check_runtime_provider_credentials),
+    "R055": Rule("R055", check_runtime_startup_gates),
+    "R058": Rule("R058", check_persisted_runtime_secret_contract),
+    "R059": Rule("R059", check_optional_database_branch_contract),
+    "R046": Rule("R046", check_runtime_bundle_consistency),
+    "R050": Rule("R050", check_topology_evidence_consistency),
     "R036": Rule("R036", check_cronjob_required_labels),
     "R015": Rule("R015", check_origin_image_name_matches_container),
     "R020": Rule("R020", check_service_ports_have_names),
     "R029": Rule("R029", check_service_labels_match_selector_app),
     "R030": Rule("R030", check_configmap_labels_match_name),
+    "R043": Rule("R043", check_configmap_file_mount_contract),
+    "R044": Rule("R044", check_object_storage_input_contract),
+    "R045": Rule("R045", check_template_input_references_declared),
+    "R052": Rule("R052", check_template_default_scalar_types),
+    "R047": Rule("R047", check_external_object_storage_inputs),
+    "R049": Rule("R049", check_license_gated_object_storage_options),
     "R031": Rule("R031", check_ingress_name_matches_backends),
+    "R051": Rule("R051", check_root_ingress_backend_port_numbers),
     "R026": Rule("R026", check_http_ingress_annotations),
+    "R048": Rule("R048", check_websocket_ingress_annotations),
     "R027": Rule("R027", check_postgres_custom_db_init_job),
     "R037": Rule("R037", check_postgres_secret_refs_match_cluster_name),
     "R039": Rule("R039", check_database_services_use_clusters),
+    "R042": Rule("R042", check_main_container_startup_contract),
     "R008": Rule("R008", check_deploy_manager_label_match_name),
     "R034": Rule("R034", check_app_label_match_name),
     "R028": Rule("R028", check_container_names_match_workload_name),

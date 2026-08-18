@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/crystal.schema.json",
+  "title": "CrystalExtension",
+  "description": "Category extension for crystals and resonators (AT-cut quartz, ceramic resonators, TCXO, VCXO, OCXO). Layered on top of base per spec §7. Version 1.0. Field union from ABM8G-106-12.000MHZ-T (Abracon 12 MHz AT-cut SMD crystal, 3.2×2.5×1.0 mm). Phase 3b ships only one full extraction (no second MVP MPN was on the harness sanity-vector list); broader coverage deferred to v1.5 with TCXO/VCXO/OCXO fixtures.",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["crystal_type"],
+  "additionalProperties": false,
+  "properties": {
+    "crystal_type": {
+      "type": "string",
+      "enum": ["at_cut", "ceramic_resonator", "tcxo", "vcxo", "ocxo"],
+      "description": "Crystal or resonator type. at_cut: standard AT-cut quartz (most common for MHz-range consumer parts). ceramic_resonator: ceramic resonator (lower Q, wider tolerance, cheaper). tcxo: temperature-compensated crystal oscillator (integrated oscillator circuit). vcxo: voltage-controlled crystal oscillator. ocxo: oven-controlled crystal oscillator (highest stability)."
+    },
+    "frequency": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Nominal resonant frequency in Hz. Store MHz as Hz (e.g. 12 MHz → 12000000). Store kHz as Hz (e.g. 32.768 kHz → 32768). Evidence from cover page or frequency table."
+    },
+    "frequency_tolerance": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Initial frequency tolerance at +25°C in ppm (unit: 'ppm'). Symmetric tolerance stored as min/max (e.g. ±20 ppm → min=-20, max=20). Condition should note the reference temperature."
+    },
+    "frequency_stability": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Frequency stability over the operating temperature range in ppm (unit: 'ppm'), referenced to +25°C. Stored as min/max symmetric envelope. Condition specifies the temperature range."
+    },
+    "aging": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Long-term frequency aging drift in ppm (unit: 'ppm'). Condition should note the time window (e.g. 'first year'). Stored as min/max symmetric envelope (e.g. ±3 ppm/year → min=-3, max=3). Most datasheets specify aging only for the first year."
+    },
+    "load_capacitance": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Specified load capacitance in Farads (unit: 'F'). Store pF as F (e.g. 12 pF → 1.2e-11, 18 pF → 1.8e-11). This is the capacitance the oscillator circuit must present to the crystal to achieve the nominal frequency. Common values: 8 pF, 10 pF, 12 pF, 18 pF, 20 pF."
+    },
+    "motional_capacitance": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Motional (series) capacitance C1 of the Butterworth–Van Dyke equivalent circuit in Farads (unit: 'F'). Typically 1–3 fF for AT-cut crystals (e.g. 2 fF → 2e-15). Published only for AT-cut quartz; ceramic resonators, TCXO, VCXO, OCXO rarely publish this parameter. Set null when not on the datasheet."
+    },
+    "motional_inductance": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Motional inductance L1 of the Butterworth–Van Dyke equivalent circuit in Henries (unit: 'H'). Typically millihenry to henry range for AT-cut crystals. Published only for AT-cut quartz; ceramic resonators, TCXO, VCXO, OCXO rarely publish this parameter. Set null when not on the datasheet."
+    },
+    "esr_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Maximum equivalent series resistance (ESR or R1) in Ohms (unit: 'Ω'). This is a maximum spec — use the max field. Condition may specify frequency and load capacitance. Higher ESR parts require higher oscillator gain."
+    },
+    "drive_level_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Maximum allowable crystal excitation power in Watts (unit: 'W'). Store µW as W (e.g. 100 µW → 1e-4). This is a maximum spec — use the max field. Exceeding drive level causes aging acceleration and frequency deviation."
+    },
+    "operating_temp_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Operating temperature range in degrees Celsius (unit: '°C'). Stored as min/max. Common grades: commercial (0 to +70°C), industrial (-40 to +85°C), automotive (-40 to +125°C)."
+    },
+    "mode": {
+      "type": ["string", "null"],
+      "enum": ["fundamental", "overtone_3rd", "overtone_5th", null],
+      "description": "Resonance mode of operation. fundamental: first overtone (most common for consumer crystals ≤30 MHz). overtone_3rd: third overtone (used for 30–100 MHz range). overtone_5th: fifth overtone (used for higher frequencies). null for ceramic resonators (which operate at fundamental but don't publish this term explicitly), TCXO, VCXO, OCXO (which integrate the oscillator circuit)."
+    },
+    "package": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Package physical characteristics. body_mm uses nested object shape (Phase 3b convention — inner keys align with base.schema.json body_mm shape).",
+      "required": ["evidence"],
+      "properties": {
+        "code": {
+          "type": ["string", "null"],
+          "description": "Datasheet package code (e.g. 'SMD-3225', 'SMD-2016', 'HC-49/US', 'SMD-5032'). 3225 = 3.2×2.5 mm, 2016 = 2.0×1.6 mm, etc."
+        },
+        "body_mm": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "description": "Package body dimensions in millimeters. Nested object per Phase 3b option A convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
+          "properties": {
+            "length": {
+              "type": "number",
+              "description": "Body length in millimeters along the longest plan-view axis."
+            },
+            "width": {
+              "type": "number",
+              "description": "Body width in millimeters along the perpendicular-to-length axis."
+            },
+            "height": {
+              "type": "number",
+              "description": "Body height in millimeters (package thickness / standoff direction)."
+            }
+          }
+        },
+        "evidence": {
+          "$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json#/properties/evidence"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+[project]
+name = "codex-context-guard"
+version = "0.7.3"
+description = "A local correctness sidecar for long-running Codex tasks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "Gerui Lv"}]
+keywords = ["codex", "context", "compaction", "hooks", "recovery"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/GreenLv/codex-context-guard"
+Repository = "https://github.com/GreenLv/codex-context-guard"
+Issues = "https://github.com/GreenLv/codex-context-guard/issues"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+extend-exclude = [".codex"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

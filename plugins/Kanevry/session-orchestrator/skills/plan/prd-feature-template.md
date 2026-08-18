@@ -36,6 +36,24 @@
 - {{excluded-1 — why}}
 - {{excluded-2 — why}}
 
+## User Stories
+
+> Optional intent layer — emitted only when the Wave-1 story toggle is "yes". Leave blank or delete this section if §3/§3.A acceptance criteria already capture the intent. Stories are the "who/why"; acceptance criteria are the "verify".
+
+### US-1 (→ {{Feature Area}})
+**Als** {{Persona}} **möchte ich** {{Capability}}, **damit** {{Nutzen}}.
+- ↳ AC: {{§3 / §3.A reference to ≥1 acceptance criterion}}
+
+### US-2 (→ {{Feature Area}})
+**Als** {{Persona}} **möchte ich** {{Capability}}, **damit** {{Nutzen}}.
+- ↳ AC: {{§3 / §3.A reference to ≥1 acceptance criterion}}
+
+> **Alternative form (job-story / JTBD):** if the Wave-1 toggle selected "Ja (job-story)" instead of "Ja (Als/möchte/damit)", emit each story in this shape instead of US-1/US-2 above — use ONE form consistently across the whole section, never mix:
+>
+> ### US-1 (→ {{Feature Area}})
+> **When** {{situation}}, **I want** {{motivation}}, **so I can** {{outcome}}.
+> - ↳ AC: {{§3 / §3.A reference to ≥1 acceptance criterion}}
+
 ## 3. Acceptance Criteria
 
 ### {{Feature Area 1}}
@@ -105,9 +123,9 @@ Then {{graceful handling}}
 
 ## 5. Risks & Dependencies
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| {{risk-1}} | {{impact}} | {{mitigation}} |
+| Risk | Impact | Mitigation | Triage |
+|------|--------|------------|--------|
+| {{risk-1}} | {{impact}} | {{mitigation}} | {{Triage: Defer\|Implement\|Reject\|Experiment}} |
 
 ### Dependencies
 - {{dependency-1}}: {{status}}

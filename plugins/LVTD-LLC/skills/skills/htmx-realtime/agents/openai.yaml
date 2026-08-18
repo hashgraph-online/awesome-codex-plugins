@@ -1,0 +1,7 @@
+interface:
+  display_name: "htmx Realtime"
+  short_description: "Build htmx polling, SSE, and WebSockets"
+  icon_small: "./assets/icons8-code.svg"
+  icon_large: "./assets/icons8-code.svg"
+  brand_color: "#424E5C"
+  default_prompt: "Use $htmx-realtime to choose and implement polling, SSE, or WebSockets with htmx."

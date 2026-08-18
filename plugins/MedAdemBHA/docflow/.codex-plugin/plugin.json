@@ -1,0 +1,45 @@
+{
+  "name": "docflow",
+  "version": "0.3.0",
+  "description": "Adoption-aware documentation memory and validation for AI coding agents.",
+  "author": {
+    "name": "Mohamed Adem Bel Hadj Amor",
+    "url": "https://github.com/MedAdemBHA"
+  },
+  "homepage": "https://github.com/MedAdemBHA/docflow",
+  "repository": "https://github.com/MedAdemBHA/docflow",
+  "license": "MIT",
+  "keywords": [
+    "documentation",
+    "changelog",
+    "adr",
+    "knowledge-base",
+    "codex",
+    "onboarding"
+  ],
+  "skills": "./skills",
+  "interface": {
+    "displayName": "Docflow",
+    "shortDescription": "Adopt, validate, and navigate living docs",
+    "longDescription": "Create or adopt a low-token docs system with strict and compatibility-aware validation, upgrade-safe helpers, readiness checks, product specs, technical specs, decisions, plans, reviews, and bounded monthly changelog memory for AI coding agents.",
+    "developerName": "Mohamed Adem Bel Hadj Amor",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Workflow"
+    ],
+    "websiteURL": "https://github.com/MedAdemBHA/docflow",
+    "brandColor": "#1F6FEB",
+    "composerIcon": "./assets/icon.svg",
+    "defaultPrompt": [
+      "Check whether DocFlow is ready in this repo",
+      "Initialize docflow in this repo",
+      "Inspect this repo with docflow doctor",
+      "Validate docflow docs before finishing",
+      "Adopt existing docs into docflow",
+      "Route this question to the right project doc",
+      "Add this shipped work to the monthly changelog"
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kicad-happy.local/datasheets/schemas/regulator.schema.json",
+  "title": "RegulatorExtension",
+  "description": "Category extension for voltage regulators (LDO, switching, charge pump, isolated). Layered on top of base per spec §7. Version 0.3 — many fields may be added in v0.x.",
+  "x-schema-version": "0.3",
+  "type": "object",
+  "required": ["topology"],
+  "additionalProperties": false,
+  "properties": {
+    "topology": {
+      "type": "string",
+      "enum": ["ldo", "buck", "boost", "buck_boost", "sepic", "flyback", "charge_pump", "isolated"],
+      "description": "Regulator topology. Flat vocabulary per spec §7 — subtype folded into the enum."
+    },
+    "vin_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Input voltage operating range. Typically a single SpecValue with min/max populated."
+    },
+    "vout_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Output voltage range (fixed parts: single value; adjustable: min→max)."
+    },
+    "iout_max": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Maximum output current. May carry multiple SpecValues for different conditions (ambient temp, package variants)."
+    },
+    "reference_voltage": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Feedback reference voltage (adjustable parts only). Consumed by FS-001 and FB divider math."
+    },
+    "feedback_pin": {
+      "type": ["string", "null"],
+      "description": "Pin number where the feedback input lives. Must resolve to base.pinout[*].numbers."
+    },
+    "compensation_pin": {
+      "type": ["string", "null"],
+      "description": "Pin number for the external compensation network (when topology is externally-compensated)."
+    },
+    "enable_pin": {
+      "type": ["string", "null"],
+      "description": "Pin number of the EN/SHDN input. null for parts without an enable pin."
+    },
+    "power_good_pin": {
+      "type": ["string", "null"],
+      "description": "Pin number of the PGOOD output. null for parts without power-good."
+    },
+    "cin_min": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Minimum input-capacitor value required for stable operation (datasheet app-info). Consumed by EX-001."
+    },
+    "cout_min": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Minimum output-capacitor value required for stability."
+    },
+    "inductor_range": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Recommended inductor value range (switching topologies only; null for LDO/charge-pump)."
+    },
+    "switching_freq": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Nominal switching frequency (switching topologies only)."
+    },
+    "dropout": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Dropout voltage (LDO only). null for switching topologies."
+    },
+    "psrr": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Power-supply rejection ratio across frequency. May carry multiple SpecValues for different frequencies."
+    },
+    "line_regulation": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Line regulation across input-voltage range."
+    },
+    "load_regulation": {
+      "type": ["array", "null"],
+      "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"},
+      "description": "Load regulation across output-current range."
+    },
+    "stability_conditions": {
+      "type": ["object", "null"],
+      "description": "Output-capacitor stability window. Consumed by SV-001.",
+      "additionalProperties": false,
+      "properties": {
+        "cap_types_allowed": {
+          "type": "array",
+          "description": "Output-capacitor technology families this regulator is stable with. Closed vocabulary covers Class 1 (c0g/np0, temperature-stable), Class 2 ceramic (x5r/x7r/x7s), and bulk types. Adding a family requires a minor schema bump.",
+          "items": {"type": "string", "enum": ["ceramic_c0g", "ceramic_x5r", "ceramic_x7r", "ceramic_x7s", "tantalum", "polymer", "electrolytic", "film"]}
+        },
+        "esr_range": {
+          "type": ["array", "null"],
+          "description": "Permitted output-capacitor ESR window for stable operation. null when datasheet doesn't publish an ESR constraint (modern ceramic-friendly LDOs).",
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"}
+        },
+        "notes": {"type": ["string", "null"]},
+        "evidence": {
+          "type": ["object", "null"],
+          "required": ["page", "confidence", "method"],
+          "additionalProperties": false,
+          "properties": {
+            "page": {"type": "integer", "minimum": 1, "description": "PDF page number (1-based) where the fact was sourced."},
+            "section": {"type": ["string", "null"], "description": "Datasheet section label (e.g. '6.4 Electrical Characteristics') when available."},
+            "confidence": {"type": "string", "enum": ["high", "medium", "low"], "description": "Extractor confidence in this fact. Pivots consumer trust gating."},
+            "method": {"type": "string", "enum": ["table", "prose", "curve", "calculated", "derived"], "description": "How the fact was captured. 'table' = parameter table. 'prose' = narrative text. 'curve' = read off a graph. 'calculated' / 'derived' = inferred from other facts."}
+          }
+        }
+      }
+    },
+    "sequencing": {
+      "type": ["object", "null"],
+      "description": "Power-on sequencing requirements (when this rail must come up relative to others). Consumed by ST-001.",
+      "additionalProperties": false,
+      "properties": {
+        "must_rise_after": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Rail names this rail must come up after."
+        },
+        "must_rise_before": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Rail names this rail must come up before."
+        },
+        "max_inter_rail_delay": {
+          "type": ["array", "null"],
+          "description": "Maximum allowed time gap between the rail this rail depends on and this rail coming into regulation. Consumed by ST-001 when the datasheet publishes an explicit max-delay constraint.",
+          "items": {"$ref": "https://kicad-happy.local/datasheets/schemas/spec_value.schema.json"}
+        },
+        "notes": {"type": ["string", "null"]},
+        "evidence": {
+          "type": ["object", "null"],
+          "required": ["page", "confidence", "method"],
+          "additionalProperties": false,
+          "properties": {
+            "page": {"type": "integer", "minimum": 1, "description": "PDF page number (1-based) where the fact was sourced."},
+            "section": {"type": ["string", "null"], "description": "Datasheet section label (e.g. '6.4 Electrical Characteristics') when available."},
+            "confidence": {"type": "string", "enum": ["high", "medium", "low"], "description": "Extractor confidence in this fact. Pivots consumer trust gating."},
+            "method": {"type": "string", "enum": ["table", "prose", "curve", "calculated", "derived"], "description": "How the fact was captured. 'table' = parameter table. 'prose' = narrative text. 'curve' = read off a graph. 'calculated' / 'derived' = inferred from other facts."}
+          }
+        }
+      }
+    }
+  }
+}

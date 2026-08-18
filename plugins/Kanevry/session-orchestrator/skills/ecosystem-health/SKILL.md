@@ -91,7 +91,7 @@ and skip this section.
 Using the detected VCS CLI (per gitlab-ops "Common CLI Commands" and "Dynamic Project Resolution" sections):
 
 1. Resolve the project ID or owner/repo slug for each cross-repo
-2. Query open issues with `priority:critical` or `priority:high` labels (limit 5 per repo)
+2. Query open issues with `priority::critical` or `priority::high` labels (limit 5 per repo)
 3. Collect results across all configured repos
 
 ## CI Pipeline Status

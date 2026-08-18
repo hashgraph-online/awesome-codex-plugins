@@ -1,0 +1,4 @@
+interface:
+  display_name: "Customer Segment Slicing"
+  short_description: "Slice broad markets into reachable segments."
+  default_prompt: "Slice this broad customer market into specific who-where segments for discovery."

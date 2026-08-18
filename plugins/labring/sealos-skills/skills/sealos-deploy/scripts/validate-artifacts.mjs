@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import {
   inferArtifactKind,
+  validateStateLiveIdentity,
   validateArtifactFile,
 } from './artifact-validator.mjs'
 
@@ -11,9 +12,11 @@ function collectProjectArtifacts(workDir) {
   const sealosDir = path.join(workDir, '.sealos')
   const candidates = [
     path.join(sealosDir, 'config.json'),
+    path.join(sealosDir, 'template-match.json'),
     path.join(sealosDir, 'analysis.json'),
     path.join(sealosDir, 'build', 'build-result.json'),
     path.join(sealosDir, 'state.json'),
+    path.join(sealosDir, 'deploy-handoff.json'),
   ]
 
   return candidates
@@ -54,6 +57,30 @@ if (args[0] === '--dir') {
     valid: results.every((entry) => entry.valid),
     results,
   }, results.every((entry) => entry.valid) ? 0 : 1)
+}
+
+if (args[0] === '--state-live') {
+  const statePath = args[1]
+  const livePath = args[2]
+  if (!statePath || !livePath) {
+    printAndExit({ valid: false, error: 'Usage: node validate-artifacts.mjs --state-live <state.json> <live-identity.json>' }, 1)
+  }
+
+  const stateResult = validateArtifactFile('state', path.resolve(statePath))
+  if (!stateResult.valid) {
+    printAndExit({ valid: false, state: stateResult, live: null }, 1)
+  }
+
+  let liveIdentity
+  try {
+    liveIdentity = JSON.parse(fs.readFileSync(path.resolve(livePath), 'utf8'))
+  } catch {
+    printAndExit({ valid: false, state: stateResult, live: { valid: false, errors: [{ path: '$', message: 'live identity is not valid JSON' }] } }, 1)
+  }
+
+  const state = JSON.parse(fs.readFileSync(path.resolve(statePath), 'utf8'))
+  const liveResult = validateStateLiveIdentity(state, liveIdentity)
+  printAndExit({ valid: liveResult.valid, state: stateResult, live: liveResult }, liveResult.valid ? 0 : 1)
 }
 
 let kind

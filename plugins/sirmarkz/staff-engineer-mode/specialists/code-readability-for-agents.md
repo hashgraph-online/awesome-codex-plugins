@@ -8,16 +8,16 @@ description: "Use when repo structure, boundaries, naming, file size, or canonic
 ## Iron Law
 
 ```
-IF AN AGENT CANNOT LOCATE THE CANONICAL IMPLEMENTATION IN ONE TOOL CALL, THE STRUCTURE IS WRONG
+REPRESENTATIVE CHANGES NEED A TESTED DISCOVERY PATH TO THE AUTHORITATIVE CODE AND ITS VERIFICATION
 ```
 
-Indirection that humans tolerate because they remember where things live becomes silent failure when an agent edits the wrong file, recreates a function that already exists, or hallucinates a helper that almost-but-not-quite matches the real one.
+Measure whether an unfamiliar agent can identify the authoritative code and its tests without guessing. A one-search attempt is a useful probe, not a universal correctness rule; complex behavior may require a documented navigation path.
 
 ## Overview
 
-Produces a repository legibility map for AI comprehension: a module-boundary map, a list of names that collide or mislead code search, a function-and-file size report against a defined budget, and a set of naming and layout patches that let an agent reach the canonical implementation in one tool call. Refuses to call code "clean" when an agent has to read three files to find where a behavior lives.
+Produces a repository legibility map for AI comprehension: module boundaries, names that collide or mislead search, size and complexity evidence, discovery trials for representative changes, and patches that reduce wrong-file edits. It distinguishes accidental duplication from intentional implementations behind one public contract.
 
-**Core principle:** the repository is read by agents at least as often as by humans now. If the agent cannot find the canonical implementation deterministically, the structure is wrong, not the agent.
+**Core principle:** make authoritative behavior, intentional variants, and verification paths predictable enough that an unfamiliar contributor can find and change them without guessing.
 
 Do not read router eval fixtures, sample prompt files, or benchmark examples as
 context for normal repository legibility work. Use the user's repo, traces,
@@ -55,39 +55,28 @@ evaluate this skill pack.
 - Search hit-rate signal: for the common verbs and nouns of the domain, how many candidate matches a code search returns and how an outsider would pick one.
 - Test placement convention: tests next to code, in a parallel tree, or scattered; the agent's ability to find tests for a given function predicts the agent's ability to verify changes.
 - Doc co-location: whether each module has a short README or doc string that names its responsibility, public surface, and non-obvious invariants.
-- Examples of canonical implementations you agree should be the only place a given behavior is implemented.
+- Examples of authoritative behavior contracts, accidental duplicate implementations, and intentional variants with their selection rules.
 
 ## Workflow
 
 1. **Map the repo as the agent sees it.** List top-level modules and the verbs/nouns each exposes. Record any module whose name does not predict its responsibility.
-2. **Run the one-tool-call test.** For a list of representative behaviors ("how does authentication happen," "where is the rate limit applied," "what validates this input"), check whether a single grep, symbol search, or doc lookup lands on the canonical file. Behaviors that fail the test become the first findings.
+2. **Run representative discovery trials.** For common change intents, record the first search, candidate matches, navigation steps, chosen authority, and test location. A one-search success is a strong signal; a documented multi-step path can pass when the behavior spans layers. Count ambiguity, wrong-file choices, and unverifiable choices as failures.
 3. **Find name collisions.** Surface duplicate or near-duplicate function and class names across modules, especially common verbs (`process`, `handle`, `update`, `run`, `apply`, `save`). Each collision is a candidate disambiguation patch.
 4. **Identify god files.** List files that exceed the size budget, hold more than one responsibility, or mix public surface with internal helpers. Each is a candidate split.
 5. **Identify oversized functions.** List functions whose length, branching depth, or argument count exceed the budget. Long functions are unsearchable by behavior; an agent finds the file but not the responsibility within it.
 6. **Identify ambiguous module boundaries.** Surface modules whose exports are partly used by callers that should not depend on them, modules that import caller modules, and modules whose stated purpose contradicts their actual exports.
-7. **Check the canonical-implementation rule.** For each behavior you maintain, confirm there is one and only one implementation. Multiple plausible implementations are an agent failure mode in waiting; the agent will pick the wrong one.
+7. **Check authority and intentional variants.** For each behavior, identify one public contract or responsibility owner. Consolidate accidental duplicates, but preserve implementations that differ by platform, strategy, version, or performance need when their selection rule and shared contract are explicit.
 8. **Check test discoverability.** Confirm a function's tests can be located by an agent using only the function's name and the repo convention. Hidden test mappings are a behavior-verification gap.
 9. **Check doc co-location.** Confirm each module has a short, current statement of its responsibility, public surface, and invariants. A doc that lies is worse than no doc; flag stale docs as findings.
-10. **Propose patches.** Issue concrete patches: rename collisions, split god files, extract internal helpers behind a clear public surface, move misplaced exports, add or correct module-level docs, and consolidate duplicate behavior into a single canonical site.
+10. **Propose patches.** Issue concrete patches: rename collisions, split mixed-responsibility files, extract internal helpers behind a clear public surface, move misplaced exports, add or correct module-level docs, consolidate accidental duplicates, and document intentional variant selection.
 11. **Set the agent-search heuristic.** Document the conventions an agent should follow to find code in this repo (where canonical handlers live, where validators live, where adapters live, where tests live) and the conventions a contributor must follow to keep them true.
-12. **Score the legibility.** Produce a scorecard: percent of representative behaviors that pass the one-tool-call test, count of collisions, count of god files, count of oversized functions, and count of modules with stale or missing co-located docs.
+12. **Score the legibility.** Produce a scorecard from representative trials: successful authority selection, wrong-file rate, ambiguous candidate rate, verification-path success, search effort, collisions, mixed-responsibility files, and stale or missing boundary docs.
 
 ## Synthesized Default
 
-Optimize the repository for one-tool-call discovery. Keep modules narrow and predictably named. Keep files and functions inside a defined size budget. Disambiguate common verbs in names. Co-locate tests and docs. Maintain a single canonical implementation per behavior. Document the agent-search heuristic so contributors keep it true. Treat repository legibility as a first-class engineering quality, not a refactor that happens "when there is time."
+Optimize the repository for reliable first-pass discovery. Keep modules narrow and predictably named, set evidence-based size and complexity budgets, disambiguate misleading names, and make tests and boundary docs findable. Maintain one authoritative contract per behavior while documenting intentional implementations and their selection rules. Use representative task outcomes rather than a single search-count heuristic as the quality signal.
 
 
-
-## Phase Behavior
-
-- Ideation: identify risks, defaults, unknowns, options, and the next decision before code exists.
-- Design: shape the target artifact, tradeoffs, checks, and details to gather.
-- Development: guide sequencing, code boundaries, checks, and acceptance criteria.
-- Testing: define release-blocking tests, evals, fixtures, and failure probes.
-- Release: define rollout, observability, abort, rollback, and readiness details.
-- Maintenance: define owners, drift checks, cleanup triggers, and refresh cadence.
-- Existing artifact: use current code, docs, telemetry, incidents, or diffs as context for the next engineering decision; do not wait for a finished artifact before guiding design, build, release, or operation.
-- Missing details: state assumptions and say what to check next instead of blocking lifecycle guidance.
 
 ## Exceptions
 
@@ -98,42 +87,43 @@ Optimize the repository for one-tool-call discovery. Keep modules narrow and pre
 
 ## Response Quality Bar
 
-- Lead with the legibility map, the one-tool-call failures, the renaming or splitting patches, or the agent-search heuristic requested.
+- Lead with the legibility map, discovery failures, renaming or splitting patches, or the agent-search heuristic requested.
 - Cover module-boundary findings, name collisions, file and function size against the budget, canonical-implementation duplications, and test/doc discoverability before optional refactor breadth.
 - Make recommendations actionable with file paths, exact rename targets, split boundaries, and the agent-search rule each patch protects.
-- Name the details to inspect, such as code-search hit counts, file/function size measurements, agent traces where available, and the representative behaviors used for the one-tool-call test; do not state legibility without the test results.
+- Name the details to inspect, such as search candidates, navigation steps, wrong-file choices, file/function size measurements, agent traces where available, and the representative tasks used for discovery trials; do not state legibility without results.
 - Stay technology-agnostic by default: do not introduce provider, product, framework, database, protocol, or command names unless the user supplied them or explicitly requested tool-specific guidance.
 - Stay inside repository legibility for AI comprehension. Route system architecture, dead-code cleanup, doc lifecycle, agent controls, and per-diff review to the responsible specialist.
 - Be concise: prefer compact finding tables and patch lists over generic clean-code prose.
+- Scale the artifact to the request: for one reported wrong-file failure, return its discovery trace and concrete patch; use the full repository map and scorecard only for a repository-wide legibility audit.
 
 ## Required Outputs
 
 - Output shape: render the matching shared template headings or tables in the reply, or use the same shape.
 - Module-boundary map with stated responsibility, actual exports, and any contradictions.
-- One-tool-call test results: a list of representative behaviors with the search query used, the candidate matches returned, and pass/fail.
+- Representative discovery results with search query, candidate matches, navigation steps, selected authority, verification path, and pass/fail reason.
 - Name-collision list with each colliding name, the modules it appears in, and the proposed disambiguating renames.
 - File and function size report against a stated budget, with the worst offenders listed and split or extraction patches proposed.
-- Canonical-implementation report listing behaviors that have more than one plausible implementation and the proposed consolidation patch.
+- Authority report listing accidental duplicates to consolidate and intentional implementations whose shared contract or selection rule needs clarification.
 - Test and doc discoverability report identifying functions whose tests are not findable by convention and modules whose co-located docs are missing or stale.
 - Patch list: concrete renames, file splits, module-doc additions or corrections, and consolidations, each with file paths.
 - Agent-search heuristic documenting where canonical handlers, validators, adapters, and tests live in this repo, with the contributor rule that keeps it true.
-- Legibility scorecard: percent passing the one-tool-call test, collision count, god-file count, oversized-function count, and stale-doc count.
+- Legibility scorecard: task success, wrong-file rate, ambiguity rate, verification-path success, search effort, collision count, mixed-responsibility file count, and stale-doc count.
 
 ## Checks Before Moving On
 
 - `boundary_map_present`: the map lists modules with stated responsibility and contradictions are named.
-- `one_tool_call_test`: representative behaviors are tested for one-tool-call discovery; failures are listed with the search used.
+- `discovery_trials`: representative changes are tested for authority and verification-path discovery; failures list the search, candidates, wrong turn or ambiguity, and expected path.
 - `collision_inventory`: colliding or near-colliding names are listed with their modules and proposed disambiguations.
 - `size_budget_check`: a file and function size budget is stated and offenders are listed against it.
-- `canonical_uniqueness`: behaviors with more than one plausible implementation are listed with consolidation patches.
+- `authority_clarity`: accidental duplicates have consolidation patches; intentional implementations have one public contract and an explicit selection rule.
 - `discoverability_check`: tests and module docs are findable by convention or are flagged as gaps.
 - `agent_search_heuristic`: a written convention for where canonical handlers, validators, adapters, and tests live is produced and is consistent with the patches recommended.
 - `patch_actionable`: each recommended patch names the file or module, the exact change, and the legibility rule it protects.
 
 ## Red Flags - Stop And Rework
 
-- The one-tool-call test is skipped because "you know where everything is."
-- A behavior has two plausible implementations and the recommendation picks one without consolidating the other.
+- Representative discovery trials are skipped because the current maintainer knows where everything is.
+- A behavior has multiple plausible implementations and the recommendation neither consolidates accidental duplication nor explains intentional selection.
 - Renames are proposed without sweeping callers, tests, and docs.
 - A god file is "split" by moving code to a new file with the same responsibility, leaving two god files.
 - The agent-search heuristic is written but contradicts the actual file layout the patches produce.
@@ -144,9 +134,9 @@ Optimize the repository for one-tool-call discovery. Keep modules narrow and pre
 
 | Mistake | Correction |
 | --- | --- |
-| Optimizing only for human readability | Test the one-tool-call rule; humans tolerate indirection that breaks agents. |
+| Optimizing only for maintainer memory | Test representative discovery and verification paths with an unfamiliar reader. |
 | Naming functions with bare verbs | Disambiguate with the noun the verb acts on; reserve common verbs for canonical sites. |
-| Letting common behaviors live in many files | Consolidate to one canonical implementation; delete or redirect the others. |
+| Treating every repeated behavior as duplication | Consolidate accidental copies; document the shared contract and selection rule for intentional variants. |
 | Splitting god files by line count | Split by responsibility; two equally-mixed files are not progress. |
 | Documenting modules with restated names | Document responsibility, public surface, and non-obvious invariants. |
 | Hiding tests in a parallel tree without convention | Co-locate or document the mapping rule so an agent can find tests by name. |

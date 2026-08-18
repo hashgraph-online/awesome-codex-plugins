@@ -7,18 +7,18 @@
 
 ## Data Disposition
 
-| Data Class | Archive/Destroy | Retention Minimum | Legal Hold Status | Evidence |
+| Data Class | Archive/Destroy | Retention Minimum | Legal Hold Status | Sanitization Method | Sanitization Verification | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Credential And Cryptographic Material Revocation Outcomes
+
+| Runtime Credential Or Cryptographic Material | Lifecycle Route | Teardown Ordering Constraint | Required Revoke Or Distrust Outcome | Verification Evidence |
 | --- | --- | --- | --- | --- |
-
-## Credential And Cert Revocation
-
-| Secret/Key/Cert | Owner | Revocation Step | Verification |
-| --- | --- | --- | --- |
 
 ## Name And Endpoint Reclamation
 
-| Name/Endpoint | Current Target | TTL/Convergence | Hijack Prevention | Evidence |
-| --- | --- | --- | --- | --- |
+| Name/Endpoint | Namespace Type | Current Target | TTL/Convergence | Namespace Retention Decision | Hijack Prevention | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Ordered Teardown
 

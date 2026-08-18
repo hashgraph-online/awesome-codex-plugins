@@ -2,13 +2,8 @@
 
 ## Documentation Inventory
 
-| Doc | Diataxis Quadrant | Runbook/Decision Record? | Audience | Job | Source Of Truth |
-| --- | --- | --- | --- | --- | --- |
-
-## Verification And Lifecycle
-
-| Doc | Responsibility Path | Last Verified | Verification Cadence | Staleness Signal | Review Trigger | Archive Rule |
-| --- | --- | --- | --- | --- | --- | --- |
+| Doc | Primary Diataxis Mode | Secondary Section Modes | Operational/Architectural Tag | Audience | Job | Responsibility Path | Source Of Truth | Last Verified | Verification Cadence | Staleness Signal | Review Trigger | Archive Rule |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Required Docs
 

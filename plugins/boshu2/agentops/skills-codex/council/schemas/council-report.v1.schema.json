@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentops.local/schemas/council-report.v1.schema.json",
+  "title": "Council Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "question", "subject_digest", "judges", "synthesis"],
+  "properties": {
+    "schema_version": {"const": "council-report.v1"},
+    "question": {"type": "string", "minLength": 1},
+    "subject_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "diversity_unsatisfied": {"type": "boolean"},
+    "judges": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["context_id", "methodology", "judgment", "evidence"],
+        "properties": {
+          "context_id": {"type": "string", "minLength": 1},
+          "methodology": {"type": "string", "minLength": 1},
+          "model_identity": {"type": "string", "minLength": 1},
+          "judgment": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "omissions": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "synthesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["consensus", "divergence", "minority", "unresolved"],
+      "properties": {
+        "consensus": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["claim", "methodologies"],
+            "properties": {
+              "claim": {"type": "string", "minLength": 1},
+              "methodologies": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        },
+        "divergence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["point", "positions"],
+            "properties": {
+              "point": {"type": "string", "minLength": 1},
+              "positions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        },
+        "minority": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "unresolved": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

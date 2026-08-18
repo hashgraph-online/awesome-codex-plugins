@@ -1,0 +1,52 @@
+{
+  "name": "codex-process-jobs",
+  "version": "0.3.0",
+  "description": "Portable detached process job runtime for Codex",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Joel Farthing",
+  "homepage": "https://github.com/joelfarthing/codex-process-jobs#readme",
+  "bugs": {
+    "url": "https://github.com/joelfarthing/codex-process-jobs/issues"
+  },
+  "keywords": [
+    "codex",
+    "background-jobs",
+    "detached-processes",
+    "builds",
+    "benchmarks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joelfarthing/codex-process-jobs.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "codex-process-jobs": "./scripts/npm-cli.mjs"
+  },
+  "files": [
+    ".codexignore",
+    ".codex-plugin/",
+    "assets/agent-policy.md",
+    "assets/icon.png",
+    "benchmarks/token-savings/",
+    "docs/",
+    "hooks/",
+    "skills/",
+    "scripts/",
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "PRIVACY.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "check": "node --check scripts/job.mjs && node --check scripts/worker.mjs && node --check scripts/execution.mjs && node --check scripts/notifier.mjs && node --check scripts/plugin-identity.mjs && node --check scripts/preferences.mjs && node --check scripts/cli-app-server-ipc.mjs && node --check scripts/desktop-ipc.mjs && node --check tools/experimental/vscode-ipc-proof.mjs && node --check scripts/session.mjs && node --check scripts/cli-entry.mjs && node --check scripts/install.mjs && node --check scripts/npm-cli.mjs && node --check scripts/smoke.mjs && node --check hooks/unread-result-hook.mjs && node --check benchmarks/token-savings/evidence.mjs && node --check benchmarks/token-savings/synthetic-build.mjs && node --check benchmarks/token-savings/run.mjs && node --check benchmarks/token-savings/result-skill-paired.mjs && node --test",
+    "package:openai-directory": "python3 scripts/package-openai-directory.py",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node --test"
+  }
+}

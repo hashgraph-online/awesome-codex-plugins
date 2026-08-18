@@ -1,0 +1,27 @@
+{
+  "report_id": "qc-example",
+  "reviewer_role": "clean-qa-editor",
+  "reviewed_at": "2000-01-01T00:00:00Z",
+  "reviewed_artifacts": [
+    "behavior-spec.json",
+    "skeleton-manifest.json"
+  ],
+  "artifact_hashes": [
+    {
+      "artifact": "behavior-spec.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "schema_validator_version": "manual-example",
+  "schema_status": "passed",
+  "leakage_status": "passed",
+  "leakage_scan_summary": "No blocked markers in example.",
+  "architecture_status": "aligned",
+  "architecture_findings": [],
+  "coverage_status": "complete",
+  "required_rerun": false,
+  "contamination_incidents": [],
+  "findings": [],
+  "abstract_delta_tickets": [],
+  "final_status": "passed"
+}

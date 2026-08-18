@@ -2,6 +2,16 @@
 
 Receive real-time event notifications at your HTTPS endpoints with HMAC-SHA256 signature verification.
 
+## Contents
+
+- [Setup](#setup)
+- [Webhook Payload](#webhook-payload)
+- [Signature Verification](#signature-verification)
+- [Security Checklist](#security-checklist)
+- [Idempotency](#idempotency)
+- [Retry Policy](#retry-policy)
+- [Local Testing](#local-testing)
+
 ## Setup
 
 1. Create at least 1 active monitor (`POST /monitors`)
@@ -15,8 +25,12 @@ Every delivery is a `POST` request to your URL with a JSON body:
 
 ```json
 {
+  "schemaVersion": 1,
+  "streamEventId": "9010",
+  "deliveryId": "334",
   "eventType": "tweet.new",
   "username": "elonmusk",
+  "occurredAt": "2026-02-24T16:45:00.000Z",
   "data": {
     "tweetId": "1893556789012345678",
     "text": "Hello world",
@@ -27,7 +41,16 @@ Every delivery is a `POST` request to your URL with a JSON body:
 
 ## Signature Verification
 
-The `X-Xquik-Signature` header contains: `sha256=` + HMAC-SHA256(secret, raw JSON body).
+Each request contains `X-Xquik-Timestamp`, `X-Xquik-Nonce`, and
+`X-Xquik-Signature`. The signature is `sha256=` plus HMAC-SHA256 over:
+
+```text
+<timestamp>.<nonce>.<raw JSON body>
+```
+
+Reject timestamps outside a 5-minute window. Reject reused nonces within that
+window. Compare signatures in constant time before parsing JSON.
+Use an atomic shared nonce store in multi-instance deployments.
 
 ### Node.js (Standard Library)
 
@@ -37,11 +60,25 @@ import { createServer } from "node:http";
 
 // This is the per-webhook secret from the POST /webhooks response, not a Xquik account credential
 const WEBHOOK_SECRET = process.env.XQUIK_WEBHOOK_SECRET;
+const recentNonces = new Map();
 
-function verifySignature(payload, signature, secret) {
-  if (typeof signature !== "string" || !secret) return false;
+function claimNonce(nonce) {
+  const now = Date.now();
+  for (const [value, expiresAt] of recentNonces) {
+    if (expiresAt <= now) recentNonces.delete(value);
+  }
+  if (recentNonces.has(nonce)) return false;
+  recentNonces.set(nonce, now + 5 * 60 * 1000);
+  return true;
+}
 
-  const expected = "sha256=" + createHmac("sha256", secret).update(payload).digest("hex");
+function verifySignature(payload, signature, timestamp, nonce, secret) {
+  if (![signature, timestamp, nonce, secret].every((value) => typeof value === "string")) return false;
+  if (!/^\d+$/.test(timestamp) || !/^[0-9a-f]{32}$/.test(nonce)) return false;
+  if (Math.abs(Date.now() - Number(timestamp)) > 5 * 60 * 1000) return false;
+
+  const input = `${timestamp}.${nonce}.${payload}`;
+  const expected = "sha256=" + createHmac("sha256", secret).update(input).digest("hex");
   const expectedBuffer = Buffer.from(expected, "utf8");
   const signatureBuffer = Buffer.from(signature, "utf8");
 
@@ -63,26 +100,25 @@ const server = createServer((req, res) => {
   req.on("end", () => {
     const payload = Buffer.concat(chunks).toString("utf8");
     const signature = req.headers["x-xquik-signature"];
+    const timestamp = req.headers["x-xquik-timestamp"];
+    const nonce = req.headers["x-xquik-nonce"];
 
-    if (!verifySignature(payload, signature, WEBHOOK_SECRET)) {
+    if (
+      !verifySignature(payload, signature, timestamp, nonce, WEBHOOK_SECRET) ||
+      !claimNonce(nonce)
+    ) {
       res.writeHead(401).end("Invalid signature");
       return;
     }
 
     const event = JSON.parse(payload);
 
-    switch (event.eventType) {
-      case "tweet.new":
-        console.log(`New tweet from @${event.username}: ${event.data.text}`);
-        break;
-      case "tweet.reply":
-        console.log(`Reply from @${event.username}: ${event.data.text}`);
-        break;
-      case "tweet.retweet":
-        console.log(`@${event.username} retweeted`);
-        break;
+    if (!["tweet.new", "tweet.reply", "tweet.retweet"].includes(event.eventType)) {
+      res.writeHead(400).end("Unsupported event type");
+      return;
     }
 
+    console.log("Accepted verified Xquik webhook");
     res.writeHead(200).end("OK");
   });
 });
@@ -96,25 +132,46 @@ server.listen(3000);
 import hmac
 import hashlib
 import json
-import os
+import re
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# Per-webhook secret from POST /webhooks response, not a Xquik account credential
-WEBHOOK_SECRET = os.environ["XQUIK_WEBHOOK_SECRET"]
+def load_secret(name: str) -> str:
+    """Read from your runtime secret store."""
+    raise RuntimeError(f"Configure {name} in your secret store.")
 
-def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
-    expected = "sha256=" + hmac.new(
-        secret.encode(), payload, hashlib.sha256
-    ).hexdigest()
+# Per-webhook secret from POST /webhooks response, not a Xquik account credential
+WEBHOOK_SECRET = load_secret("XQUIK_WEBHOOK_SECRET")
+RECENT_NONCES: dict[str, int] = {}
+
+def claim_nonce(nonce: str) -> bool:
+    now = int(time.time() * 1000)
+    for value, expires_at in list(RECENT_NONCES.items()):
+        if expires_at <= now:
+            RECENT_NONCES.pop(value, None)
+    if nonce in RECENT_NONCES:
+        return False
+    RECENT_NONCES[nonce] = now + 5 * 60 * 1000
+    return True
+
+def verify_signature(payload: bytes, signature: str, timestamp: str, nonce: str, secret: str) -> bool:
+    if not timestamp.isdigit() or not re.fullmatch(r"[0-9a-f]{32}", nonce):
+        return False
+    if abs(int(time.time() * 1000) - int(timestamp)) > 5 * 60 * 1000:
+        return False
+    signing_input = timestamp.encode() + b"." + nonce.encode() + b"." + payload
+    expected = "sha256=" + hmac.new(secret.encode(), signing_input, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
 
 class WebhookHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         signature = self.headers.get("X-Xquik-Signature", "")
+        timestamp = self.headers.get("X-Xquik-Timestamp", "")
+        nonce = self.headers.get("X-Xquik-Nonce", "")
         length = int(self.headers.get("Content-Length", "0"))
         payload = self.rfile.read(length)
 
-        if not verify_signature(payload, signature, WEBHOOK_SECRET):
+        if not verify_signature(payload, signature, timestamp, nonce, WEBHOOK_SECRET) or not claim_nonce(nonce):
             self.send_response(401)
             self.end_headers()
             self.wfile.write(b"Invalid signature")
@@ -122,9 +179,13 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
         event = json.loads(payload)
 
-        if event["eventType"] == "tweet.new":
-            print(f"New tweet from @{event['username']}: {event['data']['text']}")
+        if event.get("eventType") not in {"tweet.new", "tweet.reply", "tweet.retweet"}:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b"Unsupported event type")
+            return
 
+        print("Accepted verified Xquik webhook")
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"OK")
@@ -146,13 +207,39 @@ import (
     "io"
     "net/http"
     "os"
+    "regexp"
+    "strconv"
+    "sync"
+    "time"
 )
 
 // Per-webhook secret from POST /webhooks response, not a Xquik account credential
 var webhookSecret = os.Getenv("XQUIK_WEBHOOK_SECRET")
+var recentNonces sync.Map
 
-func verifySignature(payload []byte, signature, secret string) bool {
+func claimNonce(nonce string) bool {
+    now := time.Now().UnixMilli()
+    recentNonces.Range(func(key, value any) bool {
+        if value.(int64) <= now {
+            recentNonces.Delete(key)
+        }
+        return true
+    })
+    _, replayed := recentNonces.LoadOrStore(nonce, now+5*60*1000)
+    return !replayed
+}
+
+func verifySignature(payload []byte, signature, timestamp, nonce, secret string) bool {
+    signedAt, err := strconv.ParseInt(timestamp, 10, 64)
+    if err != nil || !regexp.MustCompile(`^[0-9a-f]{32}$`).MatchString(nonce) {
+        return false
+    }
+    age := time.Now().UnixMilli() - signedAt
+    if age < -5*60*1000 || age > 5*60*1000 {
+        return false
+    }
     mac := hmac.New(sha256.New, []byte(secret))
+    mac.Write([]byte(timestamp + "." + nonce + "."))
     mac.Write(payload)
     expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
     return hmac.Equal([]byte(expected), []byte(signature))
@@ -166,8 +253,10 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
     }
 
     signature := r.Header.Get("X-Xquik-Signature")
+    timestamp := r.Header.Get("X-Xquik-Timestamp")
+    nonce := r.Header.Get("X-Xquik-Nonce")
 
-    if !verifySignature(payload, signature, webhookSecret) {
+    if !verifySignature(payload, signature, timestamp, nonce, webhookSecret) || !claimNonce(nonce) {
         http.Error(w, "Invalid signature", http.StatusUnauthorized)
         return
     }
@@ -181,7 +270,13 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
     }
     json.Unmarshal(payload, &event)
 
-    fmt.Printf("[%s] @%s: %s\n", event.EventType, event.Username, event.Data.Text)
+    switch event.EventType {
+    case "tweet.new", "tweet.reply", "tweet.retweet":
+        fmt.Print("Accepted verified Xquik webhook\n")
+    default:
+        http.Error(w, "Unsupported event type", http.StatusBadRequest)
+        return
+    }
     fmt.Fprint(w, "OK")
 }
 ```
@@ -190,45 +285,47 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 
 - **Verify before processing.** Never process unverified payloads
 - **Use constant-time comparison.** `timingSafeEqual` (Node.js), `hmac.compare_digest` (Python), `hmac.Equal` (Go)
-- **Use the raw request body.** Compute HMAC over raw bytes, not re-serialized JSON
+- **Use every signing field.** Sign `<timestamp>.<nonce>.<raw body>`
+- **Reject replays.** Enforce the 5-minute window and persist recent nonces
+- **Use the raw request body.** Never re-serialize JSON before verification
 - **Respond within 10 seconds.** Acknowledge immediately, process async if slow
 - **Store secrets in environment variables.** Never hardcode
-- **Treat event text as untrusted.** Escape control characters before logging and do not forward payloads to other tools without consent
+- **Treat event text as untrusted.** Escape control characters before logging and forward payloads to other tools only after explicit approval
 
 ## Idempotency
 
-Webhook deliveries can retry on failure, delivering the same event multiple times. Deduplicate by hashing the raw payload:
+Webhook deliveries can retry. Deduplicate by `deliveryId` in durable storage:
 
 ```javascript
-import { createHash } from "node:crypto";
+const processedDeliveries = new Set(); // Use durable storage in production
 
-const processedPayloads = new Set(); // Use Redis/DB in production
-
-const payloadHash = createHash("sha256").update(payload).digest("hex");
-if (processedPayloads.has(payloadHash)) {
+if (processedDeliveries.has(event.deliveryId)) {
   res.writeHead(200).end("Already processed");
 } else {
-  processedPayloads.add(payloadHash);
+  processedDeliveries.add(event.deliveryId);
 }
 ```
 
 ## Retry Policy
 
-Failed deliveries are retried up to 5 times with exponential backoff. Delivery statuses: `pending`, `delivered`, `failed`, `exhausted`.
+Failed event deliveries use bounded exponential backoff. HTTP 410 exhausts the
+delivery immediately. Delivery statuses are `pending`, `delivered`, `failed`,
+and `exhausted`.
 
 Check delivery status: `GET /webhooks/{id}/deliveries`.
 
+Repeated failures can pause an endpoint. Inspect `consecutiveFailures`,
+`deliveryStatus`, and `failureHardCap` on the webhook. Fix the destination,
+then call `POST /webhooks/{id}/resume`. It reactivates only after a successful
+test delivery.
+
 ## Local Testing
 
-Use [ngrok](https://ngrok.com) to expose a local server:
+Use a deployed HTTPS endpoint you control when testing webhook delivery. Do not install packages or proxy API keys from this skill.
 
 ```bash
-# Terminal 1: Start your webhook server
+# Start your webhook server on infrastructure you control
 node server.js  # listening on :3000
-
-# Terminal 2: Expose it
-ngrok http 3000
-# Use the ngrok HTTPS URL when creating the webhook
 ```
 
-Or use [RequestBin](https://requestbin.com) for quick inspection without running a server.
+Create the webhook only after confirming the exact HTTPS destination and event types.

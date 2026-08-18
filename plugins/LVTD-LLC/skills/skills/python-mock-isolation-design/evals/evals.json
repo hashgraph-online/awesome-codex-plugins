@@ -1,0 +1,19 @@
+{
+  "skill_name": "python-mock-isolation-design",
+  "evals": [
+    {
+      "id": 1,
+      "name": "email-boundary-test",
+      "prompt": "I need to test a Python login flow that sends email. Should I mock the mailer, use a fake, or write an integration test?",
+      "expected_output": "Names the boundary, chooses fake/mock/real dependency deliberately, keeps behavior assertions primary, and preserves boundary coverage.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "mock-heavy-test-refactor",
+      "prompt": "This Python unit test has six patches and only asserts calls. How should I rescue it?",
+      "expected_output": "Flags mock smell, distinguishes behavior from implementation, suggests fake or higher boundary, and records what real integration proof remains needed.",
+      "files": []
+    }
+  ]
+}

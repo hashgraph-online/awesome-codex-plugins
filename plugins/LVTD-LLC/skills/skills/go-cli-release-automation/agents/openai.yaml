@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go CLI Release Automation"
+  short_description: "Automate reproducible Go CLI releases"
+  default_prompt: "Use $go-cli-release-automation to build and verify a secure, recoverable Go CLI release pipeline."

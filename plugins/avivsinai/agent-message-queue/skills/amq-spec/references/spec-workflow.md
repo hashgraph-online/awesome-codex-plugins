@@ -30,7 +30,7 @@ You MUST follow every phase in order.
 | 2 | **Discuss** | Both agents | Read each other's findings and align on architecture/trade-offs/scope. | Alignment reached |
 | 3 | **Draft** | Main agent | Main agent sends concrete implementation plan draft. | Partner receives draft |
 | 4 | **Review** | Partner agent | Partner reviews draft and sends feedback; main agent revises if needed. | Plan agreed |
-| 5 | **Present** | Main agent | Main agent presents final plan to user and waits for approval. | **User approves** |
+| 5 | **Present** | Main agent | Main agent presents final plan to user in chat AND raises a structural `to:user` gate on `gate/<topic>`, then waits for approval. | **User approves on the gate thread** |
 | 6 | **Execute** | Per user direction | Implement approved plan. | — |
 
 ## Label Convention (Required)
@@ -59,7 +59,8 @@ You MUST follow every phase in order.
 
 ### User Approval Gate (Phase 5)
 - Final plan must be presented to the user in chat.
-- Wait for explicit user approval before execution.
+- ALSO raise a **structural** gate: send the approval request to the initialized human handle (conventionally `user`) on a stable `gate/<topic>` thread. See the Operator Gates section in /amq-cli for canonical mechanics, seeding, and guardrails. An agent-to-agent `phase:decision` message is NOT the approval.
+- Wait for explicit user approval (the human's reply on the gate thread) before execution. Partner agents do not implement from a spec decision alone.
 
 ## Thread Convention
 
@@ -149,8 +150,21 @@ amq send --to <partner> --kind review_response \
 Main agent must:
 1. Synthesize final plan from discussion + review
 2. Present it directly to user in chat
-3. Wait for explicit approval
-4. Not implement before approval
+3. Raise a **structural gate**: address the approval request to the initialized
+   human handle (conventionally `user`) on a stable `gate/<topic>` thread:
+   ```bash
+   # See the Operator Gates section in /amq-cli for human-handle seeding and guardrails.
+   amq send --to user --thread gate/<topic> --kind question \
+     --subject "APPROVAL: <decision>" \
+     --body "<final plan summary; what you need the human to approve>"
+   ```
+4. Wait for explicit approval (the human's reply on the `gate/<topic>` thread)
+5. Not implement before approval; partner agents must NOT implement from the
+   agent-to-agent `phase:decision` message alone
+
+The `phase:decision` message below is an **optional partner alignment marker**,
+not the user approval. See /amq-cli's Operator Gates section for the canonical
+mechanics and guardrails.
 
 Optional partner notification after alignment:
 ```bash

@@ -1,10 +1,13 @@
 """Rich finding schema shared by all detectors and validators.
 
 Every detection and validation finding uses make_finding() to produce
-a self-describing dict consumable by kidoc, suggest-fixes, and lighter LLMs.
+a self-describing dict consumable by suggest-fixes and lighter LLMs.
 """
 
 from __future__ import annotations
+
+import hashlib
+import re
 
 VALID_SEVERITIES = ('error', 'warning', 'info')
 VALID_CONFIDENCES = ('deterministic', 'heuristic', 'datasheet-backed')
@@ -16,6 +19,198 @@ VALID_FIX_TYPES = (
     'resistor_value_change', 'capacitor_value_change',
     'add_component', 'remove_component', 'swap_connection', 'add_protection',
 )
+
+
+def _normalize_locator(s):
+    """Lowercase + strip + collapse whitespace for finding_id locator portion."""
+    if s is None:
+        return ""
+    return " ".join(str(s).split()).lower()
+
+
+def _short_hash(s):
+    """SHA-256 prefix used as fallback locator when no component/net/pin available."""
+    return hashlib.sha256(str(s).encode("utf-8")).hexdigest()[:12]
+
+
+def _first_nonempty(*candidates):
+    """Return first non-empty list element of first non-None candidate list."""
+    for cand in candidates:
+        if cand:
+            for item in cand:
+                if item:
+                    return item
+    return None
+
+
+# A "numbered" rule code (AM-001, LR-001, …). Only these may occupy the
+# rule_id segment of the 3-part finding_id form; detection/audit codes
+# (*-DET, *-AUD) and lowercase section names are not numbered rules and fold
+# into the 2-part form below.
+_RULE_CODE_RE = re.compile(r"^[A-Z]+-\d+$")
+
+
+def _id_segment(s):
+    """Reduce `s` to a single well-formed finding_id segment.
+
+    Any character outside the locator/detection-id charset (`[A-Za-z0-9_./+-]`)
+    — including the `:` separator and whitespace — collapses to `-`, so the
+    result can never introduce a spurious segment boundary. Guarantees the
+    output is non-empty.
+    """
+    seg = re.sub(r"[^A-Za-z0-9_./+-]+", "-", str(s)).strip("-")
+    return seg or "x"
+
+
+def _derive_finding_id(*, source, rule_id, detection_id, components, nets, pins, summary):
+    """Derive a stable, well-formed finding_id per Phase 4 spec §3.2.
+
+    Priority:
+        1. {source}:{detection_id}        (detector provided one)
+        2. {source}:{rule_id}:{primary}   (component/net/pin locator)
+        3. {source}:{rule_id}:{hash}      (short SHA fallback on summary)
+
+    Forms 2/3 (the colon-separated rule_id form) are used only when `rule_id`
+    is a numbered rule code (`[A-Z]+-\\d+`). Any other rule_id — *-DET / *-AUD
+    detection/audit codes, lowercase section names — and every detection_id
+    fold into the colon-free `{source}:{token}` form so the id always parses as
+    one of the two spec shapes regardless of the constructing detector.
+    """
+    if detection_id:
+        return f"{source}:{_id_segment(detection_id)}"
+    primary = _first_nonempty(components, nets, pins)
+    if primary is not None:
+        # Pin items may be dicts; coerce to string repr first
+        if isinstance(primary, dict):
+            primary = primary.get("ref") or primary.get("number") or str(primary)
+        locator = _id_segment(_normalize_locator(primary))
+    else:
+        locator = _id_segment(_short_hash(summary))
+    if _RULE_CODE_RE.match(rule_id or ""):
+        return f"{source}:{rule_id}:{locator}"
+    return f"{source}:{_id_segment(rule_id)}-{locator}"
+
+
+def assign_finding_ids(findings, source):
+    """Guarantee every finding in `findings` carries a stable, unique finding_id.
+
+    Most detectors don't route through make_finding (EMC has its own helper,
+    several emit raw dicts), so finding_id was absent on the bulk of findings —
+    which made the Layer 2 merge a silent no-op (merge_annotations.py matches
+    annotations to findings by finding_id). This pass runs once per analyzer at
+    serialization time, after all filtering/appends, so the entire findings[]
+    is covered regardless of construction path.
+
+    Overwrites any existing finding_id so the `{source}:` prefix is consistent
+    envelope-wide (`source` is the canonical analyzer name == file stem, e.g.
+    "schematic", not the per-caller "sch"). Distinct findings that derive the
+    same id get a `#N` suffix; if the *same object* appears in the list more
+    than once (a pre-existing aliasing quirk in a couple detectors), it keeps a
+    single id rather than being bumped to a spurious `#1`. Call AFTER
+    sort_findings so the suffix order is deterministic across runs.
+    """
+    seen = {}
+    assigned = {}
+    for f in findings:
+        if not isinstance(f, dict):
+            continue
+        if id(f) in assigned:
+            continue
+        fid = _derive_finding_id(
+            source=source,
+            rule_id=f.get("rule_id", "UNK"),
+            detection_id=f.get("detection_id"),
+            components=f.get("components", []),
+            nets=f.get("nets", []),
+            pins=f.get("pins", []),
+            summary=f.get("summary", ""),
+        )
+        if fid in seen:
+            seen[fid] += 1
+            fid = f"{fid}#{seen[fid]}"
+        else:
+            seen[fid] = 0
+        f["finding_id"] = fid
+        assigned[id(f)] = fid
+    return findings
+
+
+def derive_deep_review_id(finding):
+    """finding_id for a Deep Review finding (v2.0 spec §3.C).
+
+    deep_review:<12-hex> — stable hash over (category, normalized anchors,
+    normalized summary). Anchors come from the evidence block so the id is
+    tied to what the finding cites. LLM rewording of the summary changes
+    the id by design; diff_analysis compensates with anchor-level fuzzy
+    matching (advisory only).
+    """
+    category = (finding.get('category') or '').strip().lower()
+    ev = finding.get('evidence') or {}
+    anchors = sorted(
+        str(a).strip().upper()
+        for key in ('components', 'nets', 'pins')
+        for a in (ev.get(key) or [])
+    )
+    summary = ' '.join((finding.get('summary') or '').lower().split())
+    payload = '\x1f'.join([category, '|'.join(anchors), summary])
+    return 'deep_review:' + _short_hash(payload)
+
+
+def assign_deep_review_ids(findings):
+    """Stamp finding_id on every Deep Review finding, in place.
+
+    Same collision discipline as assign_finding_ids: distinct findings
+    that derive the same id get a #N suffix, in list order.
+    """
+    seen = {}
+    for f in findings:
+        if not isinstance(f, dict):
+            continue
+        fid = derive_deep_review_id(f)
+        if fid in seen:
+            seen[fid] += 1
+            fid = f"{fid}#{seen[fid]}"
+        else:
+            seen[fid] = 0
+        f['finding_id'] = fid
+    return findings
+
+
+_SEVERITY_NORMALIZE = {
+    # Legacy uppercase pre-v1.3 taxonomy
+    "CRITICAL": "error",
+    "HIGH": "error",
+    "MEDIUM": "warning",
+    "LOW": "info",
+    "INFO": "info",
+    # Lowercase legacy variants
+    "critical": "error",
+    "high": "error",
+    "medium": "warning",
+    "low": "info",
+    # v1.4 normalized vocab (pass-through)
+    "error": "error",
+    "warning": "warning",
+    "info": "info",
+}
+
+
+def normalize_severity(sev):
+    """Map any severity string to the v1.4 normalized vocabulary.
+
+    Accepts legacy uppercase (CRITICAL/HIGH/MEDIUM/LOW/INFO) and v1.4
+    lowercase (error/warning/info). Returns one of {"error", "warning",
+    "info"}. Returns "info" for None, non-string, or unknown input.
+
+    Use this anywhere a consumer reads `finding["severity"]` — analyzer
+    outputs may carry either taxonomy depending on the producer code
+    path (EMC + voltage_derating still emit legacy uppercase via
+    _normalize_severity, schematic+pcb+thermal emit v1.4 lowercase).
+    """
+    if not isinstance(sev, str):
+        return "info"
+    return _SEVERITY_NORMALIZE.get(
+        sev, _SEVERITY_NORMALIZE.get(sev.upper(), "info"))
 
 
 def make_finding(
@@ -35,12 +230,17 @@ def make_finding(
     report_section: str | None = None,
     impact: str | None = None,
     standard_ref: str | None = None,
+    source: str | None = None,
+    design_context: dict | None = None,
     **extra,
 ) -> dict:
     """Build a rich finding dict with consistent structure.
 
     Required fields: detector, rule_id, category, summary, description.
     All other fields have sensible defaults.
+
+    design_context: accepted for call-site compatibility; severity tuning
+        retired in v2.0 (spec §5) — the value is ignored.
 
     Extra kwargs are merged into the finding (e.g., domain-specific data).
     """
@@ -62,9 +262,14 @@ def make_finding(
         'category': category,
         'summary': summary,
         'description': description,
-        'components': components if components is not None else [],
-        'nets': nets if nets is not None else [],
-        'pins': pins if pins is not None else [],
+        'components': list(components) if components is not None else [],
+        'nets': list(nets) if nets is not None else [],
+        # Note: list(pins) creates a shallow copy. In v1.4, pins items are sometimes
+        # dicts (e.g., {"ref": "U1", "pin": "5"}); mutating those dict elements
+        # post-call still affects the finding's pins. Current production callers
+        # don't mutate pin dicts post-construction, so this is safe today. v1.5
+        # PinRef migration will tighten pins to a typed structure and revisit this.
+        'pins': list(pins) if pins is not None else [],
         'severity': severity,
         'confidence': confidence,
         'evidence_source': evidence_source,
@@ -79,6 +284,15 @@ def make_finding(
     }
     if extra:
         finding.update(extra)
+    finding['finding_id'] = _derive_finding_id(
+        source=source or "unknown",
+        rule_id=rule_id,
+        detection_id=finding.get('detection_id'),
+        components=components,
+        nets=nets,
+        pins=pins,
+        summary=summary,
+    )
     return finding
 
 
@@ -194,10 +408,19 @@ def compute_trust_summary(findings, bom=None):
         else:
             trust_level = 'high'
 
+    # v1.4 break: the aggregate key renames 'datasheet-backed' (hyphen)
+    # to 'datasheet_backed' (underscore) to match the typed envelope
+    # primitive at analyzer_envelope.ByConfidence. The per-finding
+    # `confidence` value is unchanged — only this rollup key moves.
+    by_confidence_out = {
+        'deterministic': by_confidence.get('deterministic', 0),
+        'heuristic': by_confidence.get('heuristic', 0),
+        'datasheet_backed': by_confidence.get('datasheet-backed', 0),
+    }
     result = {
         'total_findings': total,
         'trust_level': trust_level,
-        'by_confidence': by_confidence,
+        'by_confidence': by_confidence_out,
         'by_evidence_source': by_evidence,
         # None when no findings — avoids "100% coverage of nothing"
         # misleading aggregates in downstream consumers.
@@ -285,6 +508,7 @@ class Det:
     CURRENT_SENSE = 'detect_current_sense'
     PROTECTION_DEVICES = 'detect_protection_devices'
     DESIGN_OBSERVATIONS = 'detect_design_observations'
+    VOLTAGE_DERATING = 'analyze_voltage_derating'
     # Domain detectors
     BUZZER_SPEAKERS = 'detect_buzzer_speakers'
     KEY_MATRICES = 'detect_key_matrices'
@@ -383,10 +607,12 @@ def group_findings(data):
 
 
 # ---------------------------------------------------------------------------
-# Legacy key mapping — used by detection_schema / what_if / diff_analysis
+# Detection-type key mapping — adapter between the flat findings[] `detector`
+# namespace and the detection-type keys used by detection_schema.SCHEMAS.
+# Consumed by what_if.py and diff_analysis.py.
 # ---------------------------------------------------------------------------
 
-DETECTOR_TO_LEGACY_KEY = {
+DETECTOR_TO_SCHEMA_KEY = {
     "detect_power_regulators": "power_regulators",
     "detect_integrated_ldos": "power_regulators",
     "detect_voltage_dividers": "voltage_dividers",
@@ -438,13 +664,14 @@ DETECTOR_TO_LEGACY_KEY = {
 }
 
 
-def group_findings_legacy(data):
-    """Group findings by legacy signal_analysis key names.
+def group_findings_by_detection_type(data):
+    """Group flat findings[] by detection-type key.
 
-    Returns {legacy_key: [finding, ...]} dict compatible with the
-    old signal_analysis dict-of-lists layout.  Detector names are
-    mapped via DETECTOR_TO_LEGACY_KEY so that downstream code (SCHEMAS,
-    SPICE templates, --fix CLI) works unchanged.
+    Returns {detection_type_key: [finding, ...]} — an adapter between the
+    flat findings[] `detector` namespace and the detection-type keys used
+    by detection_schema.SCHEMAS / SIGNAL_REGISTRY.  Detector names are
+    mapped via DETECTOR_TO_SCHEMA_KEY so downstream code (SCHEMAS, SPICE
+    templates, what_if --fix) works unchanged.
 
     Detects pre-v1.3 JSON (signal_analysis wrapper, no findings[]) and
     emits a warning to stderr.  Returns empty dict in that case — callers
@@ -460,7 +687,7 @@ def group_findings_legacy(data):
     for f in data.get("findings", []):
         det = f.get("detector", "")
         if det:
-            key = DETECTOR_TO_LEGACY_KEY.get(det, det)
+            key = DETECTOR_TO_SCHEMA_KEY.get(det, det)
             sa.setdefault(key, []).append(f)
     return sa
 
@@ -468,3 +695,20 @@ def group_findings_legacy(data):
 def is_old_schema(data):
     """Return True if data uses the pre-v1.3 signal_analysis wrapper format."""
     return "signal_analysis" in data and "findings" not in data
+
+
+def strip_llm_overlays(data):
+    """Recursively remove all keys starting with 'llm_'. Phase 4 spec §3.4 / HI-3.
+
+    Canonical implementation lives in
+    skills/kicad/review/scripts/merge_annotations.py; this is a duplicate
+    so analyzers/consumers don't need to take a dep on the review
+    sub-component to compute the deterministic baseline. Both
+    implementations are byte-equivalent; harness B-test asserts.
+    """
+    if isinstance(data, dict):
+        return {k: strip_llm_overlays(v) for k, v in data.items()
+                if not k.startswith("llm_")}
+    if isinstance(data, list):
+        return [strip_llm_overlays(item) for item in data]
+    return data

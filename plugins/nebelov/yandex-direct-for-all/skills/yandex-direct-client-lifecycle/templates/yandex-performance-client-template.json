@@ -1,70 +1,53 @@
 {
+  "schema_version": "1.0",
   "client_key": "__CLIENT_KEY__",
-  "notes": "Bootstrap overlay from yandex-direct-client-lifecycle for __CLIENT_NAME__.",
+  "client_name": "__CLIENT_NAME__",
+  "status": "unverified",
   "analytics": {
-    "source_priority": ["metrika", "direct_reports", "wordstat"],
-    "roistat_first": false,
+    "source_priority": [],
     "manual_analysis_required": true,
-    "roistat_attribution": []
-  },
-  "analysis": {
-    "keywords_manual_only": true,
-    "analysis_scripts_forbidden": true,
-    "roistat_keyword_analysis_manual_only": true
+    "attribution_models": []
   },
   "direct": {
-    "login": "",
-    "tracking_params": "",
-    "regions": [225],
+    "client_login_env": "YANDEX_DIRECT_CLIENT_LOGIN",
+    "regions": [],
     "counter_ids": [],
     "priority_goals": [],
-    "campaign_defaults": {
-      "daily_budget_micros": null,
-      "negative_keywords": [],
-      "time_targeting": null,
-      "search_placement_types": null,
-      "network_strategy": null,
-      "offer_retargeting": null
-    }
+    "write_gate_required": true
   },
   "metrika": {
     "counter_id": "",
-    "goal_id": ""
+    "goal_ids": []
   },
   "wordstat": {
-    "regions": [225],
+    "regions": [],
     "devices": ["all"],
-    "collect_full_tail": true,
-    "min_monthly_frequency": 1,
-    "num_phrases_per_mask": 2000
+    "collect_full_tail": true
   },
   "roistat": {
     "enabled": false,
     "api_key_env": "",
     "project_env": "",
-    "base_url": "",
-    "marker_level_1": "",
-    "marker_level_2_search": ""
+    "marker_levels": []
   },
-  "yougile": {
-    "project_id": "",
-    "legacy_board_id": "",
-    "boards": []
+  "research": {
+    "source_register": "source-register.tsv",
+    "fact_check_log": "fact-check-log.tsv",
+    "landing_inventory": "landing-inventory.tsv",
+    "routing_map": "routing-map.tsv"
   },
-  "search_routing": {
-    "routing_map_path": "routing-map.tsv",
-    "cluster_map_path": "",
-    "campaign_id_map_path": "",
-    "campaign_ids": {}
-  },
-  "collector_defaults": {
-    "operational_window_days": 2,
-    "goal_id": null,
-    "rsya_campaign_ids": []
+  "routing_contract": {
+    "separate_fields": [
+      "intent",
+      "domain",
+      "serp_page_url",
+      "site_page_url",
+      "campaign_name",
+      "adgroup_name"
+    ]
   },
   "references": {
     "product_maps": ["product-map.md"],
-    "local_skill_paths": [],
     "rules": ["client-kb.md"],
     "docs": ["proposal-pack.md"]
   }

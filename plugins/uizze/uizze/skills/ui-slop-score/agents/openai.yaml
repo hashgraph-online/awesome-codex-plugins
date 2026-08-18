@@ -1,0 +1,4 @@
+interface:
+  display_name: "UIZZE UI Slop Score"
+  short_description: "Score a screen before it ships"
+  default_prompt: "Use $ui-slop-score to review this screen, explain the real finish risks, and give it a UI Slop Score."

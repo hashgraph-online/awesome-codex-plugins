@@ -1,15 +1,15 @@
-# Frappe Agent for Codex
+# Frappe Agent
 
 [![HOL Trust Score](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Ddhairya-marwaha%252Ffrappe-agent%26metric%3Dtrust%26style%3Dflat)](https://hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent)
 [![HOL Security](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Ddhairya-marwaha%252Ffrappe-agent%26metric%3Dsecurity%26style%3Dflat)](https://hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent)
 [![Release](https://img.shields.io/github/v/release/Dkm0315/frappe-agent)](https://github.com/Dkm0315/frappe-agent/releases)
 [![License](https://img.shields.io/github/license/Dkm0315/frappe-agent)](./LICENSE)
 
-`frappe-agent` is a Codex plugin for Frappe Framework and ERPNext development. It makes Codex more aware of Frappe-specific patterns so it can inspect benches more safely, choose the right customization layer, and avoid generic framework mistakes.
+`frappe-agent` is an AI coding assistant plugin for Frappe Framework, ERPNext, and the broader Frappe ecosystem. It gives Codex, Claude Code, Cursor, GitHub Copilot, and other assistant workflows Frappe-specific guidance for bench inspection, ERPNext customization, DocType design, SQL/ORM decisions, and ecosystem app development.
 
 ## About
 
-A Frappe and ERPNext agent plugin for Codex and Claude Code, with skills for backend, frontend, bench operations, SQL, customization, DocType design, and ERPNext workflows. Live plugin profile: [hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent](https://hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent)
+A Frappe and ERPNext agent plugin for AI coding tools, with skills for backend, frontend, bench operations, SQL, customization, DocType design, ERPNext modules, Frappe Helpdesk, Frappe CRM, Frappe LMS, Frappe Gameplan, Frappe Drive, Frappe HRMS, Frappe Insights, Frappe Builder, and Frappe Payments. Live plugin profile: [hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent](https://hol.org/registry/plugins/dhairya-marwaha%2Ffrappe-agent)
 
 ## What It Covers
 
@@ -18,7 +18,8 @@ A Frappe and ERPNext agent plugin for Codex and Claude Code, with skills for bac
 - Frappe-native SQL and ORM guidance
 - Customization-layer routing for `Custom Field`, `Property Setter`, `Client Script`, `Server Script`, `Workspace`, `Web Page`, `Report`, `Dashboard`, and related surfaces
 - DocType form UX guidance for useful fields, tabs, sections, columns, and required-field discipline
-- ERPNext-aware guidance for deciding between configuration, metadata, workflow, and code changes
+- ERPNext-aware guidance for accounting, selling, buying, stock, manufacturing, projects, HR, CRM, support, education, payments, and reporting
+- Ecosystem app guidance for Helpdesk, CRM, LMS, Gameplan, Drive, HRMS, Insights, Builder, and Payments
 - Frontend guidance for Vue, React, `frappe-ui`, desk pages, `www`, and external SPA patterns
 
 ## Included Skills
@@ -32,6 +33,15 @@ A Frappe and ERPNext agent plugin for Codex and Claude Code, with skills for bac
 - `frappe-doctype-design`
 - `frappe-search`
 - `frappe-erpnext`
+- `frappe-helpdesk`
+- `frappe-crm`
+- `frappe-lms`
+- `frappe-gameplan`
+- `frappe-drive`
+- `frappe-hrms`
+- `frappe-insights`
+- `frappe-builder`
+- `frappe-payments`
 
 ## Installation
 
@@ -207,7 +217,7 @@ Each release uploads:
 
 ## Usage Examples
 
-Ask Codex to use the plugin naturally in the prompt:
+Ask a supported AI coding assistant to use the plugin naturally in the prompt:
 
 ```text
 Use Frappe Agent to inspect this bench before changing anything.
@@ -229,6 +239,18 @@ Use Frappe Agent to review whether this Frappe SQL should use frappe.db, frappe.
 Use Frappe Agent to decide whether this UI should be a desk page, a www page, a Vue frappe-ui page, or a React SPA.
 ```
 
+```text
+Use Frappe Agent to design a Helpdesk ticket workflow with SLA, assignment, portal, and reporting needs.
+```
+
+```text
+Use Frappe Agent to plan a Frappe CRM pipeline customization and decide what belongs in CRM versus ERPNext Selling.
+```
+
+```text
+Use Frappe Agent to improve SEO and form UX for a Frappe Builder landing page.
+```
+
 ## Repository Layout
 
 ```text
@@ -238,15 +260,7 @@ frappe-agent/
 │       └── marketplace.json
 ├── .cursor/
 │   ├── commands/
-│   │   ├── frappe-backend.md
-│   │   ├── frappe-bench.md
-│   │   ├── frappe-customization.md
-│   │   ├── frappe-doctype-design.md
-│   │   ├── frappe-erpnext.md
-│   │   ├── frappe-frontend.md
-│   │   ├── frappe-fullstack.md
-│   │   ├── frappe-search.md
-│   │   └── frappe-sql.md
+│   │   └── frappe-*.md
 │   └── rules/
 │       └── frappe-agent.mdc
 ├── .claude-plugin/
@@ -257,29 +271,14 @@ frappe-agent/
 ├── .github/
 │   ├── copilot-instructions.md
 │   └── workflows/
+│       ├── plugin-scan.yml
 │       └── release.yml
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── commands/
-│   ├── frappe-backend.md
-│   ├── frappe-bench.md
-│   ├── frappe-customization.md
-│   ├── frappe-doctype-design.md
-│   ├── frappe-erpnext.md
-│   ├── frappe-frontend.md
-│   ├── frappe-fullstack.md
-│   ├── frappe-search.md
-│   └── frappe-sql.md
+│   └── frappe-*.md
 ├── skills/
-│   ├── frappe-backend/
-│   ├── frappe-bench/
-│   ├── frappe-customization/
-│   ├── frappe-doctype-design/
-│   ├── frappe-erpnext/
-│   ├── frappe-frontend/
-│   ├── frappe-fullstack/
-│   ├── frappe-search/
-│   └── frappe-sql/
+│   └── frappe-*/
 └── README.md
 ```
 
@@ -295,7 +294,6 @@ This repository is now:
 Planned future work:
 
 - official Claude marketplace submission
-- richer Cursor command bundles
 - deeper Copilot instruction coverage
 
 ## Design Goals
@@ -308,9 +306,9 @@ Planned future work:
 
 ## Roadmap
 
-- Add more first-class skills for custom fields, reports, workflows, dashboards, and upgrade planning
+- Add more first-class skills for custom fields, reports, workflows, dashboards, upgrade planning, and additional Frappe ecosystem apps
 - Add better source-backed command and flag coverage for Bench
-- Add distribution adapters for Claude Code, Cursor, and Copilot
+- Add deeper distribution adapters for Claude Code, Cursor, and Copilot
 - Add richer repo examples and team onboarding docs
 
 ## License

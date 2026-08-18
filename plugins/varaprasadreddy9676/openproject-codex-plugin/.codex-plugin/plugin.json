@@ -1,0 +1,39 @@
+{
+  "name": "openproject-codex",
+  "version": "0.1.1+codex.20260629040058",
+  "description": "Codex plugin for managing OpenProject work, teams, content, and bulk workflows through the OpenProject API.",
+  "author": {
+    "name": "OpenProject Codex Contributors"
+  },
+  "homepage": "https://github.com/varaprasadreddy9676/openproject-codex-plugin",
+  "repository": "https://github.com/varaprasadreddy9676/openproject-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "openproject",
+    "mcp",
+    "codex-plugin",
+    "project-management",
+    "work-packages",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenProject Codex",
+    "shortDescription": "Manage projects, teams, and work in OpenProject from Codex.",
+    "longDescription": "OpenProject Codex connects Codex directly to OpenProject so teams can manage projects, memberships, work packages, boards, wiki pages, meetings, attachments, bulk workflows, and reporting from Codex instead of switching back to the OpenProject UI.",
+    "developerName": "OpenProject Codex Contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Show OpenProject connection status and help me set it up.",
+      "List my assigned work in OpenProject.",
+      "Bulk update work packages from a saved query."
+    ],
+    "brandColor": "#0F766E"
+  },
+  "mcpServers": "./.mcp.json"
+}

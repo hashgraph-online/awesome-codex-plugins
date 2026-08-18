@@ -125,12 +125,7 @@ The MCP server provides the tools; the skill provides the agent-facing workflow.
 Langfuse uses upsert for dataset items. To edit an existing item, call `create_dataset_item` with `item_id`. If the ID exists, it updates; otherwise it creates a new item.
 
 ```python
-create_dataset_item(
-  dataset_name="qa-test-cases",
-  item_id="item_123",
-  input={"question": "What is 2+2?"},
-  expected_output={"answer": "4"}
-)
+create_dataset_item(dataset_name="qa-test-cases", item_id="item_123", input={"question": "What is 2+2?"}, expected_output={"answer": "4"})
 ```
 
 ## Metrics Queries
@@ -139,11 +134,10 @@ create_dataset_item(
 
 ```python
 query_metrics(
-  view="observations",
-  metrics=[{"measure": "totalCost", "aggregation": "sum"},
-           {"measure": "latency", "aggregation": "p95"}],
-  dimensions=["providedModelName"],
-  age=1440,  # last 24h; or pass from_timestamp / to_timestamp
+    view="observations",
+    metrics=[{"measure": "totalCost", "aggregation": "sum"}, {"measure": "latency", "aggregation": "p95"}],
+    dimensions=["providedModelName"],
+    age=1440,  # last 24h; or pass from_timestamp / to_timestamp
 )
 ```
 
@@ -273,6 +267,7 @@ silent fallback to a different project.
 | Variable | Default | Description |
 |---|---|---|
 | `LANGFUSE_MAX_AGE_DAYS` | `7` | Caps the lookback window for time-based tools (`fetch_traces`, `fetch_observations`, etc.). Set to match your Langfuse instance's data retention — e.g. `30` if your retention is 30 days. |
+| `LANGFUSE_MCP_TRACE_TIMEOUT_SECONDS` | `120` | Per-request read timeout (seconds) for single-trace fetches (`fetch_trace`). Raise it if large traces with `include_observations=True` time out. Must be a positive integer. |
 
 ## Development
 

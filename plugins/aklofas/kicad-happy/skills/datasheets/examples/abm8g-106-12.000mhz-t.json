@@ -1,0 +1,372 @@
+{
+  "base": {
+    "absolute_max": {
+      "T_storage": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "KEY ELECTRICAL SPECIFICATIONS"
+          },
+          "max": 85,
+          "min": -40,
+          "notes": "Storage temperature range",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "drive_level": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "KEY ELECTRICAL SPECIFICATIONS"
+          },
+          "max": 0.0001,
+          "min": null,
+          "notes": "Maximum drive level: typ 10 \u00b5W, max 100 \u00b5W (stored in W)",
+          "typ": 1e-05,
+          "unit": "W"
+        }
+      ]
+    },
+    "compliance": [
+      {
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 1,
+          "section": "Compliance"
+        },
+        "mark": "RoHS",
+        "rating": "RoHS II 2011/65/EU compliant"
+      }
+    ],
+    "description": "Ultra miniature ceramic glass sealed SMD crystal, 12.000 MHz fundamental mode, 3.2 x 2.5 x 1.0 mm package.",
+    "esd": {},
+    "family": "AT-cut surface mount crystal resonator",
+    "moisture_sensitivity": null,
+    "package": {
+      "body_mm": {
+        "height": 1.0,
+        "length": 3.2,
+        "width": 2.5
+      },
+      "code": "ABM8G",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 1,
+        "section": "KEY ELECTRICAL SPECIFICATIONS"
+      },
+      "pin_count": 4,
+      "pitch_mm": 2.2,
+      "thermal_pad": false
+    },
+    "pin_relationships": [],
+    "pinout": [
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Crystal terminal 1. Functionally interchangeable with pin 2.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "MECHANICAL DIMENSIONS"
+        },
+        "is_5v_tolerant": null,
+        "name": "XTAL1",
+        "notes": "Pins 1 and 2 are the two crystal terminals; electrically symmetric. Connect to oscillator amp through CL=10 pF caps.",
+        "numbers": [
+          "1"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "passive"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Crystal terminal 2. Functionally interchangeable with pin 1.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "MECHANICAL DIMENSIONS"
+        },
+        "is_5v_tolerant": null,
+        "name": "XTAL2",
+        "notes": "Pins 1 and 2 are the two crystal terminals; electrically symmetric.",
+        "numbers": [
+          "2"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "passive"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Case ground/shield pad. Provides electrostatic shielding.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "MECHANICAL DIMENSIONS"
+        },
+        "is_5v_tolerant": null,
+        "name": "GND",
+        "notes": "Pins 3 and 4 are both labeled GND. Connect to PCB ground plane for EMI shielding.",
+        "numbers": [
+          "3"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      },
+      {
+        "absolute_max": null,
+        "alt_functions": [],
+        "description": "Case ground/shield pad. Provides electrostatic shielding.",
+        "drive_strength": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "prose",
+          "page": 2,
+          "section": "MECHANICAL DIMENSIONS"
+        },
+        "is_5v_tolerant": null,
+        "name": "GND",
+        "notes": "Pin 4 may have chamfer per raw material; does not affect electrical characteristics.",
+        "numbers": [
+          "4"
+        ],
+        "power_domain": null,
+        "recommended": null,
+        "subtype": null,
+        "type": "power_in"
+      }
+    ],
+    "recommended_operating": {
+      "T_operating": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "KEY ELECTRICAL SPECIFICATIONS"
+          },
+          "max": 85,
+          "min": -40,
+          "notes": "Operating temperature range",
+          "typ": null,
+          "unit": "\u00b0C"
+        }
+      ],
+      "load_capacitance": [
+        {
+          "condition": null,
+          "evidence": {
+            "confidence": "high",
+            "method": "table",
+            "page": 1,
+            "section": "KEY ELECTRICAL SPECIFICATIONS"
+          },
+          "max": null,
+          "min": null,
+          "notes": "CL = 10 pF specified for nominal frequency (stored in F)",
+          "typ": 1e-11,
+          "unit": "F"
+        }
+      ]
+    },
+    "thermal": {}
+  },
+  "categories": [
+    "crystal"
+  ],
+  "crystal": {
+    "aging": [
+      {
+        "condition": "first year @ 25\u00b0C \u00b13\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": 3,
+        "min": -3,
+        "notes": "Datasheet column shows \u00b13 ppm; time window is first year",
+        "typ": null,
+        "unit": "ppm"
+      }
+    ],
+    "crystal_type": "at_cut",
+    "drive_level_max": [
+      {
+        "condition": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": 0.0001,
+        "min": null,
+        "notes": "Typ 10 \u00b5W, max 100 \u00b5W; stored in W",
+        "typ": 1e-05,
+        "unit": "W"
+      }
+    ],
+    "esr_max": [
+      {
+        "condition": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": 120,
+        "min": null,
+        "notes": "Equivalent series resistance R1 maximum",
+        "typ": null,
+        "unit": "\u03a9"
+      }
+    ],
+    "frequency": [
+      {
+        "condition": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": null,
+        "min": null,
+        "notes": "12.000 MHz nominal",
+        "typ": 12000000,
+        "unit": "Hz"
+      }
+    ],
+    "frequency_stability": [
+      {
+        "condition": "over operating temp range -40 to +85\u00b0C, ref to +25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": 30,
+        "min": -30,
+        "notes": null,
+        "typ": null,
+        "unit": "ppm"
+      }
+    ],
+    "frequency_tolerance": [
+      {
+        "condition": "@ 25\u00b0C",
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": 20,
+        "min": -20,
+        "notes": null,
+        "typ": null,
+        "unit": "ppm"
+      }
+    ],
+    "load_capacitance": [
+      {
+        "condition": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": null,
+        "min": null,
+        "notes": "10 pF typical",
+        "typ": 1e-11,
+        "unit": "F"
+      }
+    ],
+    "mode": "fundamental",
+    "motional_capacitance": null,
+    "motional_inductance": null,
+    "operating_temp_range": [
+      {
+        "condition": null,
+        "evidence": {
+          "confidence": "high",
+          "method": "table",
+          "page": 1,
+          "section": "KEY ELECTRICAL SPECIFICATIONS"
+        },
+        "max": 85,
+        "min": -40,
+        "notes": null,
+        "typ": null,
+        "unit": "\u00b0C"
+      }
+    ],
+    "package": {
+      "body_mm": {
+        "height": 1.0,
+        "length": 3.2,
+        "width": 2.5
+      },
+      "code": "ABM8G",
+      "evidence": {
+        "confidence": "high",
+        "method": "table",
+        "page": 2,
+        "section": "MECHANICAL DIMENSIONS"
+      }
+    }
+  },
+  "extraction": {
+    "extracted_at": "2026-04-27T22:10:35Z",
+    "extractor_schema_version": "1.0",
+    "extractor_scout": null,
+    "plan_ref": "ABM8G-106-12.000MHZ-T.plan.json",
+    "quality_score": 76
+  },
+  "schema_version": {
+    "base": "1.0",
+    "categories": {
+      "crystal": "1.0"
+    }
+  },
+  "source": {
+    "datasheet_date": "2018-03-19",
+    "datasheet_revision": null,
+    "family_ref": null,
+    "local_path": "datasheets/ABM8G-106-12.000MHZ-T.pdf",
+    "manufacturer": "Abracon",
+    "mpn": "ABM8G-106-12.000MHZ-T",
+    "page_count": 3,
+    "sha256": "sha256:03360289d6bd5f5d91a0c2a3e5d6dfe8c74516a2e286937d9e1c058df4c4cee7",
+    "source_url": null
+  }
+}

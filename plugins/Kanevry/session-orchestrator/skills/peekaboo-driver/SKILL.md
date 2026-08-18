@@ -154,8 +154,13 @@ Key fields in the `see --json` output the ux-evaluator reads: `snapshot_id` (cap
 For SwiftUI 26+ targets (projects with `Package.swift` declaring `.iOS("26")` or `.macOS("26")+`), emit a conformance artifact alongside the AX snapshot:
 
 ```bash
-# Gate: glass-modifiers emit is opt-in for v2 rubric forward-compat (v1 rubric does not consume).
-if [ "${RUBRIC_GLASS_V2:-0}" = "1" ]; then
+# Gate: glass-modifiers emit is opt-in per the active profile's rubric_features flag (v1 rubric does not consume).
+PROFILES_FILE=".orchestrator/policy/test-profiles.json"
+HAS_GLASS_V2="false"
+if [ -n "${PROFILE:-}" ] && [ -f "$PROFILES_FILE" ] && command -v jq >/dev/null 2>&1; then
+  HAS_GLASS_V2=$(jq -r --arg p "$PROFILE" '(.[$p].rubric_features // []) | contains(["glass-v2"])' "$PROFILES_FILE" 2>/dev/null || echo false)
+fi
+if [ "$HAS_GLASS_V2" = "true" ]; then
   cat > "${RUN_DIR}/ax-snapshots/glass-modifiers-$(date +%s%3N).json" <<EOF
 {
   "schema_version": "v1",
@@ -195,7 +200,7 @@ All inputs via environment variables. No positional arguments accepted.
 - `${RUN_DIR}/exit_code` — plain integer file written by driver before exit
 - `${RUN_DIR}/results.json` — driver summary with `exit_code`, `scenarios_attempted`, `scenarios_passed`, `scenarios_failed`
 - `${RUN_DIR}/ax-snapshots/<scenario>.json` — peekaboo AX-tree output per scenario
-- `${RUN_DIR}/ax-snapshots/glass-modifiers-<ts>.json` — Liquid Glass conformance artifact (consumed by ux-evaluator Check 4; only emitted when `RUBRIC_GLASS_V2=1` env var is set — see Phase 4 emission block)
+- `${RUN_DIR}/ax-snapshots/glass-modifiers-<ts>.json` — Liquid Glass conformance artifact (consumed by ux-evaluator Check 4; only emitted when the active profile declares `rubric_features: ['glass-v2']` in `.orchestrator/policy/test-profiles.json`)
 - `${RUN_DIR}/screenshots/<step>-<ts>.png` — per-step screenshots (evidence for ux-evaluator findings)
 - `${RUN_DIR}/console.ndjson` — driver log events as NDJSON
 

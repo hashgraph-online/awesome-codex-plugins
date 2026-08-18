@@ -36,4 +36,4 @@ Implemented from spec since upstream skill not yet published as of 2026-04-30.
 ## See Also
 
 `skills/wave-executor/wave-loop.md` · `skills/evolve/SKILL.md` ·
-`skills/quality-gates/SKILL.md` · `docs/adr/006-autonomous-overnight-research.md`
+`skills/quality-gates/SKILL.md`

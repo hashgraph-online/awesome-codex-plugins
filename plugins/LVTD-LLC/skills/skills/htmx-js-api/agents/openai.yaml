@@ -1,0 +1,7 @@
+interface:
+  display_name: "htmx JS API"
+  short_description: "Use the htmx JavaScript API"
+  icon_small: "./assets/icons8-code.svg"
+  icon_large: "./assets/icons8-code.svg"
+  brand_color: "#424E5C"
+  default_prompt: "Use $htmx-js-api to integrate imperative JavaScript with htmx behavior."

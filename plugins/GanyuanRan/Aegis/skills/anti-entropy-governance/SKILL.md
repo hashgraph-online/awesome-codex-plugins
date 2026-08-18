@@ -1,6 +1,6 @@
 ---
 name: anti-entropy-governance
-description: Use when retiring old logic, collapsing duplicate owners, removing fallbacks, or touching schema, persistence, or source-of-truth boundaries while deciding whether to delete old paths, retain compatibility, or stop for confirmation.
+description: "Use when touching retiring old logic, collapsing duplicate owners, removing fallbacks, or schema/persistence/source-of-truth boundaries; identify opportunities automatically; destructive execution requires explicit confirmation."
 ---
 
 # Anti-Entropy
@@ -14,7 +14,8 @@ This skill chooses between:
 
 - `delete-first` for internal code retirement
 - `compat-exception` for proven external dependency boundaries
-- `confirmation-first` for persistent-state or irreversible object deletion
+- `confirmation-first` for irreversible state or an external contract whose
+  distributed consumers cannot be observed
 
 It does not replace `brainstorming`, `writing-plans`,
 `systematic-debugging`, or `verification-before-completion`. It is a narrow
@@ -56,7 +57,7 @@ Prefer composition from:
 - `verification-before-completion` for cleanup / retirement / compatibility /
   migration closeout
 
-Do not load this directly from `using-aegis` unless explicitly requested.
+Load automatically when the task touches owner collapse, fallback removal, or schema/persistence/source-of-truth boundaries. Automatic loading identifies and advises only; destructive execution still requires explicit scoped user confirmation.
 
 ## Core Principle
 
@@ -65,12 +66,16 @@ Default to reducing internal entropy, not preserving internal history.
 Use this rule:
 
 - internal code retirement -> `delete-first`
-- external compatibility boundary -> `compat-exception` only with active
-  dependency evidence
+- external compatibility boundary -> `compat-exception` with active dependency
+  evidence; `confirmation-first` when distribution is proven but consumers
+  cannot be observed
 - persistent-state or irreversible source-of-truth object ->
   `confirmation-first`
 
-Unknown dependency is not active dependency evidence.
+Unknown alone neither proves an external dependency nor blocks internal
+`delete-first`. Once distribution is proven, unobservable consumers also do not
+prove deletion safe: inspect read-only and require scoped post-disclosure
+confirmation before editing.
 
 Mentioning, loading, or discussing destructive-action rules never authorizes
 destructive execution. Without explicit scoped user confirmation:
@@ -120,7 +125,8 @@ Classify the deletion target first:
 ## Default Path By Class
 
 - `code-retirement` -> `delete-first`
-- `contract-carrying code` -> `delete-first` with high-risk verification
+- `contract-carrying code` -> classify by the Core Principle; internal-only
+  retirement uses `delete-first` with high-risk verification
 - `live-state mutation surface` -> inspect and classify; destructive execution
   still requires confirmation when it reaches persistent-state
 - `derived-state` -> verify rebuildability first, then decide
@@ -150,7 +156,8 @@ Examples that require confirmation:
 
 ## Data Destruction Guard
 
-When `confirmation-first` is required, stop normal retirement flow and emit:
+When `confirmation-first` protects persistent-state or an irreversible
+source-of-truth object, stop normal retirement flow and emit:
 
 ```text
 Data Destruction Guard:
@@ -185,8 +192,9 @@ Anti-Entropy Declaration:
 - User Confirmation Required: no | yes
 ```
 
-If `User Confirmation Required: yes`, stop normal delete-first flow and enter
-`Data Destruction Guard`.
+If `User Confirmation Required: yes`, stop normal delete-first flow.
+Persistent-state or irreversible targets enter `Data Destruction Guard`;
+external-unknown code stays in the `Retirement Decision` hold below.
 
 ## Retirement Decision
 
@@ -203,10 +211,12 @@ Rules:
 
 - choose `delete-first` for internal retirement unless a stronger boundary blocks it
 - choose `compat-exception` only when external dependency is proven
-- choose `confirmation-first` for persistent-state or irreversible targets
+- choose `confirmation-first` for irreversible targets or proven distribution
+  whose consumers cannot be observed
 
 If `Path = confirmation-first`, no destructive execution may happen until
-scoped confirmation is received.
+scoped confirmation is received. For external-unknown code, earlier generic
+deletion instructions do not count; disclose the risk first.
 
 ## Verification Plan
 
@@ -300,6 +310,8 @@ Completion claims must reflect the real outcome:
 Do not:
 
 - treat unknown dependency as proof of dependency
+- treat missing active-dependency evidence as proof that deletion is safe across
+  a proven external boundary
 - keep both owners active "for safety"
 - add a fallback before checking whether the gap belongs in the new owner
 - confuse migration-file deletion with live database deletion
@@ -309,7 +321,14 @@ Do not:
 
 ## Minimal Reporting Shape
 
+This shape is the anti-entropy workflow's decision surface, not a separate
+final completion report. When anti-entropy materially shapes a completed task,
+its preserved/retired behavior, deletion class, retained boundary, verification
+plan, and residual risk should flow into `verification-before-completion`'s
+unified Aegis impact/safety receipt.
+
 ```text
+Aegis Visibility:
 Anti-Entropy Declaration:
 Retirement Decision:
 Verification Plan:
