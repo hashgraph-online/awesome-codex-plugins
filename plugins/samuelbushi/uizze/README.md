@@ -1,12 +1,12 @@
 # STOP UI SLOP.
 
-[![HOL Plugin Scanner](https://github.com/samuelbushi/uizze/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/samuelbushi/uizze/actions/workflows/hol-plugin-scanner.yml)
-[![Latest release](https://img.shields.io/github/v/release/samuelbushi/uizze)](https://github.com/samuelbushi/uizze/releases/latest)
+[![HOL Plugin Scanner](https://github.com/uizze/uizze/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/uizze/uizze/actions/workflows/hol-plugin-scanner.yml)
+[![Latest release](https://img.shields.io/github/v/release/uizze/uizze)](https://github.com/uizze/uizze/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
 **If your UI looks AI-generated, you've already lost the first impression.**
 
-UIZZE arms Codex, Claude Code, Cursor, and Copilot with 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate before generic UI reaches users.
+UIZZE gives Codex, Claude Code, Cursor, and Copilot a free anti-ui-slop Skill and deterministic no-account preview. Full UIZZE adds live research across 800,000+ real web and iOS screens, product-specific design contracts, and a hard finish gate before generic UI reaches users.
 
 The free `anti-ui-slop` skill kills interchangeable card grids, filler metrics, missing states, and "make it modern" defaults before they ship. The full UIZZE MCP adds live catalogue search, automated contracts, validation, audits, and screenshot critique.
 
@@ -36,14 +36,14 @@ npx skills add https://uizze.com --skill anti-ui-slop
 ### Claude Code plugin
 
 ```text
-/plugin marketplace add samuelbushi/uizze
+/plugin marketplace add uizze/uizze
 /plugin install uizze@uizze
 ```
 
 ### Codex plugin marketplace
 
 ```bash
-codex plugin marketplace add samuelbushi/uizze
+codex plugin marketplace add uizze/uizze
 ```
 
 Then open the UIZZE marketplace in Plugins and install UIZZE.
@@ -56,7 +56,7 @@ Use anti-ui-slop to kill the generic defaults, ground this interface in real pro
 
 ## Block generic UI in pull requests
 
-The free [UIZZE UI Slop Gate Action](https://github.com/samuelbushi/uizze-ui-slop-gate) checks changed frontend files for inert controls, missing states, hardcoded token drift, and generic dashboard/card-grid cues. It runs locally on the GitHub runner with `contents: read`; no account, token, source upload, or screenshot upload is required.
+The free [UIZZE UI Slop Gate Action](https://github.com/uizze/uizze/tree/main/integrations/github-action) checks changed frontend files for inert controls, missing states, hardcoded token drift, and generic dashboard/card-grid cues. Use `uizze/uizze@v1`; it runs locally on the GitHub runner with `contents: read`, and no account, token, source upload, or screenshot upload is required.
 
 Copy the pinned [least-privilege workflow](.github/workflows/uizze-ui-review.yml), or follow the exact [Codex, Claude Code, Cursor, and Copilot workflows](examples/agent-workflows.md).
 
@@ -87,9 +87,9 @@ skills/
 
 ## UIZZE MCP
 
-The free skill works without an account. When automated reference search and finish-gate tooling would materially improve the work, connect the full UIZZE MCP at [uizze.com](https://uizze.com).
+The free Skill and [no-account preview MCP](https://uizze.com/mcp/preview) work without an account. When automated reference search and finish-gate tooling would materially improve the work, connect the full UIZZE MCP at [uizze.com](https://uizze.com).
 
-[View the canonical UIZZE MCP repository](https://github.com/aislon/uizze-mcp).
+[View the canonical UIZZE MCP repository](https://github.com/uizze/uizze).
 
 [Compare UIZZE with Refero for coding-agent workflows](https://uizze.com/refero-alternative).
 
