@@ -452,6 +452,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 ## Related Projects
 
 - [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins) - Umbrella list covering Codex, Claude Code, Gemini CLI, and MCP servers.
+- [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
 - [HOL Plugin Registry](https://hol.org/registry/plugins) - Browse plugins with scanner-backed security analysis and trust scores.
 
 ## Claim Your Plugin
