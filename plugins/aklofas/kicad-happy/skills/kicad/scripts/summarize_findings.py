@@ -180,7 +180,8 @@ def _aggregate(findings: list[dict]) -> list[dict]:
     groups: dict[tuple, dict] = defaultdict(
         lambda: {"rule_id": "", "severity": "info", "count": 0,
                  "examples": [], "detectors": set(), "source_files": set(),
-                 "by_confidence": {"deterministic": 0, "heuristic": 0, "datasheet_backed": 0}})
+                 "by_confidence": {"deterministic": 0, "heuristic": 0, "datasheet_backed": 0},
+                 "deep_review_confidence": {"high": 0, "medium": 0, "low": 0}})
     for f in findings:
         rid = f.get("rule_id") or "(unknown)"
         sev_norm = (f.get("severity") or "info").lower()
@@ -200,6 +201,8 @@ def _aggregate(findings: list[dict]) -> list[dict]:
         conf = f.get("confidence", "")
         if conf in g["by_confidence"]:
             g["by_confidence"][conf] += 1
+        elif conf in g["deep_review_confidence"]:
+            g["deep_review_confidence"][conf] += 1
 
     rows = []
     for (rid, sev), g in groups.items():
@@ -211,6 +214,7 @@ def _aggregate(findings: list[dict]) -> list[dict]:
             "sources": sorted(x for x in g["source_files"] if x),
             "examples": g["examples"],
             "by_confidence": dict(g["by_confidence"]),
+            "deep_review_confidence": dict(g["deep_review_confidence"]),
         })
     rows.sort(key=lambda r: (_SEV_RANK.get(r["severity"], 99), -r["count"], r["rule_id"]))
     return rows
@@ -222,16 +226,20 @@ def _print_table(rows: list[dict], top: int | None) -> None:
         return
     print(f"# {len(rows)} rule groups across "
           f"{sum(r['count'] for r in rows)} findings")
-    print(f"{'rule_id':<14} {'severity':<9} {'count':>5}  {'det':>4} {'heu':>4} {'ds':>3}  example")
-    print("-" * 90)
+    print(f"{'rule_id':<21} {'severity':<9} {'count':>5}  {'det':>4} {'heu':>4} {'ds':>3} {'dr':>4}  example")
+    print("-" * 105)
     shown = rows[:top] if top else rows
     for r in shown:
         bc = r.get("by_confidence", {})
         det = bc.get("deterministic", 0)
         heu = bc.get("heuristic", 0)
         ds = bc.get("datasheet_backed", 0)
+        dr = sum(r.get("deep_review_confidence", {}).values())
+        rule_id = r['rule_id']
+        if "deep_review.json" in r.get("sources", []):
+            rule_id = f"dr:{rule_id}"
         ex = r["examples"][0][:50] if r["examples"] else ""
-        print(f"{r['rule_id']:<14} {r['severity']:<9} {r['count']:>5}  {det:>4} {heu:>4} {ds:>3}  {ex}")
+        print(f"{rule_id:<21} {r['severity']:<9} {r['count']:>5}  {det:>4} {heu:>4} {ds:>3} {dr:>4}  {ex}")
     if top and len(rows) > top:
         print(f"# …({len(rows) - top} more groups omitted — use --top 0 to show all)")
 

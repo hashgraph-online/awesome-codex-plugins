@@ -466,7 +466,11 @@ def _compute_junction_temps(power_comps: list, pcb: dict,
 
 def _thermal_confidence(assessment: dict) -> str:
     """Determine confidence level from assessment data sources."""
-    if assessment.get("rtheta_ja_source") == "default":
+    # Both rtheta_ja_source values ("package_table", "default") are generic
+    # package averages, not per-MPN datasheet data — same reasoning PR #37
+    # applied to evidence_source (see :445-447). Neither may claim
+    # datasheet-backed confidence.
+    if assessment.get("rtheta_ja_source") in ("default", "package_table"):
         return "heuristic"
     if assessment.get("tj_max_source") == "default_125":
         return "heuristic"

@@ -323,6 +323,13 @@ class PCBEnvelope:
                        "total_length_mm, min_width_mm, max_width_mm, "
                        "widths_used}]; empty list when no power routing "
                        "detected. TH-043-residual."})
+    power_net_resolution: dict = field(default_factory=dict, metadata={
+        "description": "Power/ground net classification actually used: "
+                       "{power: [net names], ground: [net names], "
+                       "source: 'cli'|'schematic'|'heuristic'}. source "
+                       "reflects how power rail overrides were resolved — "
+                       "explicit --power-rails, rails auto-read from "
+                       "--schematic, or name heuristics alone (KH-393)."})
     ground_domains: dict = field(default_factory=dict, metadata={
         "description": "Ground topology: domain_count, domains[], "
                        "multi_domain_components. Always emitted; "
@@ -358,6 +365,10 @@ class PCBEnvelope:
     connectivity_graph: Optional[dict] = field(default=None, metadata={
         "description": "Per-net connectivity graph (island map). "
                        "Emitted only in --full mode."})
+    connectivity_graph_error: Optional[str] = field(default=None, metadata={
+        "description": "Present when --full connectivity graph construction "
+                       "failed; downstream cross-analysis checks that need "
+                       "it were skipped."})
     pad_to_pad_distances: Optional[dict] = field(default=None, metadata={
         "description": "Pad-to-pad routing distances keyed by 'R1.2-D1.1' "
                        "style endpoints. Emitted only in --full mode."})

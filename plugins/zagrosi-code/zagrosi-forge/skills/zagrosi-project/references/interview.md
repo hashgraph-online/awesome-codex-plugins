@@ -1,23 +1,10 @@
-# Interview Protocol
+# Interview
 
-Goal: surface the user's mental model and the project's real boundaries.
+Ask only when the answer changes split ownership, order, scope, or risk and
+cannot be inferred from evidence. Prefer one short round covering only relevant
+unknowns: success/non-goals, users, data ownership, trust boundaries,
+integrations, migration, or deployment.
 
-Ask only questions that change the split structure or spec quality. Strong
-question categories:
-
-- success criteria and non-goals
-- users, roles, and workflows
-- data ownership and lifecycle
-- external systems and trust boundaries
-- deployment, migration, and operational constraints
-- unknowns that may need dedicated research in `$zagrosi-forge:zagrosi-plan`
-
-Stop when you can name the major components, explain their dependencies, and
-write a self-contained spec for each one.
-
-Record:
-
-- questions asked
-- user answers
-- assumptions made
-- unresolved questions to carry into specific specs
+Stop once each requirement has one split owner and measurable acceptance.
+Record only actual Q/A, resulting decisions, and unresolved items carried to a
+specific spec. Never create a skipped-interview record or invent an answer.

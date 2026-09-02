@@ -116,11 +116,31 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         "detect_decoupling": "decoupling_analysis",
         "detect_integrated_ldos": "power_regulators",
     }
+    # KH-388 belt: analysis JSON may still carry duplicate finding objects
+    # (e.g. output from a pre-fix analyzer, or cached analysis/ output) —
+    # don't collect the same subcircuit for simulation twice. id()-based
+    # dedup is safe for any detector (a dict appearing twice in the same
+    # analysis output is always an aliasing quirk, never intentional). The
+    # (detector, components) key belt is scoped to detect_voltage_dividers
+    # only, mirroring the flatten-site fix in analyze_schematic.py — other
+    # detectors legitimately emit multiple distinct findings that share a
+    # component pair (e.g. VM-001 on different nets), so a components-only
+    # key would wrongly collapse those.
     signal = {}
+    _seen_ids = set()
+    _seen_vd_keys = set()
     for f in analysis_json.get("findings", []):
         det = f.get("detector", "")
         if not det:
             continue
+        if id(f) in _seen_ids:
+            continue
+        _seen_ids.add(id(f))
+        if det == "detect_voltage_dividers":
+            vkey = (det, tuple(f.get("components") or []))
+            if vkey in _seen_vd_keys:
+                continue
+            _seen_vd_keys.add(vkey)
         key = _DET_KEY_OVERRIDES.get(det)
         if not key:
             key = det[len("detect_"):] if det.startswith("detect_") else det

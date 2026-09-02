@@ -272,7 +272,7 @@
       "icon": "./plugins/armoriq/armorCodex/assets/armoriq-logo.png"
     },
     {
-      "name": "mac-parallel-accelerator",
+      "name": "atomlane",
       "displayName": "AtomLane",
       "source": {
         "source": "local",
@@ -1276,6 +1276,21 @@
       "category": "Development & Workflow",
       "description": "Agentic PR review: hybrid RAG + code graph via MCP, review skills for Codex.",
       "icon": "./plugins/mimfort/rag_for_git/plugin/assets/icon.svg"
+    },
+    {
+      "name": "red-green-proof",
+      "displayName": "Red-Green Proof",
+      "source": {
+        "source": "local",
+        "path": "./plugins/RooAGI/red-green-proof"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Prove suspected bugs with a red-green-red test loop: verify the cause, watch the test fail, apply the fix, and confirm the test fails again when the fix is reverted.",
+      "icon": "./plugins/RooAGI/red-green-proof/assets/icon.svg"
     },
     {
       "name": "registry-broker-codex-plugin",
@@ -2777,6 +2792,21 @@
       "category": "Tools & Integrations",
       "description": "AI-powered web scraping CLI to search, scrape, extract structured JSON, crawl, and monitor web pages via the ScrapeGraph AI API.",
       "icon": "./plugins/ScrapeGraphAI/just-scrape/assets/icon.svg"
+    },
+    {
+      "name": "seo-dungeon",
+      "displayName": "SEO Dungeon",
+      "source": {
+        "source": "local",
+        "path": "./plugins/avalonreset/seo-dungeon"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Gamified local SEO audits that turn website issues into 16-bit dungeon battles for Codex, Claude, and Gemini CLI workflows.",
+      "icon": "./plugins/avalonreset/seo-dungeon/assets/icon.svg"
     },
     {
       "name": "shots",

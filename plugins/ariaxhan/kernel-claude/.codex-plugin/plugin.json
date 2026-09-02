@@ -1,6 +1,6 @@
 {
   "name": "kernel",
-  "version": "9.6.9",
+  "version": "9.8.1",
   "description": "KERNEL is a Claude Code and Codex plugin that replaces per-action approval prompts with guardrails enforced by hooks. Hook context is shaped for both hosts' plain and structured output parsers. In auto mode, destructive commands and secret writes are blocked before they run; irreversible operations require a one-time token only a human can open; independent verification agents check finished work without seeing the builder's reasoning; session state persists as schema-validated JSON manifests. agentdb, a local SQLite agent memory, is recalled at session start and written at session end, so a failure recorded once is blocked the next time. Skills invoke as /kernel:<name> on Claude Code and $kernel:<name> on Codex; run /kernel:help first. Agent-readable summary and safety limits: llms.txt.",
   "author": {
     "name": "Aria Han",

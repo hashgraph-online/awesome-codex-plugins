@@ -1,7 +1,7 @@
 {
   "name": "zagrosi-forge",
-  "version": "0.2.0",
-  "description": "Zagrosi Forge Codex-native project decomposition, planning, quality gates, traceability, and TDD implementation skills.",
+  "version": "0.2.0+codex.20260901213343",
+  "description": "Lean project decomposition, planning, and test-first implementation for Codex.",
   "author": {
     "name": "Zagrosi",
     "url": "https://github.com/zagrosi-code"
@@ -18,11 +18,10 @@
     "skills"
   ],
   "skills": "./skills/",
-  "scripts": "./scripts/",
   "interface": {
     "displayName": "Zagrosi Forge",
-    "shortDescription": "Plan and implement complex work with TDD",
-    "longDescription": "Zagrosi Forge provides three Codex-native workflows: decompose broad chat ideas or project briefs into focused specs, create reviewed TDD implementation plans, and implement generated sections with tests, review, documentation, git hygiene, quality gates, traceability, risk registers, decision logs, and Forge helper checks.",
+    "shortDescription": "Lean plans and test-first delivery",
+    "longDescription": "Three lean workflows: split broad work, create a reviewed implementation plan, and deliver its sections test-first.",
     "developerName": "Zagrosi",
     "category": "Coding",
     "capabilities": [

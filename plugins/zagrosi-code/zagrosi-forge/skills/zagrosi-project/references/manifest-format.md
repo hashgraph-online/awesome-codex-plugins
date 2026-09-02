@@ -1,28 +1,22 @@
-# Project Manifest Format
+# Manifest format
 
-`project-manifest.md` must start with this exact parseable block:
+Start with sequential names:
 
 ```markdown
 <!-- SPLIT_MANIFEST
 01-foundation
-02-authentication
-03-dashboard
+02-dashboard
 END_MANIFEST -->
 ```
 
-Rules:
+Then use one table:
 
-- one split per line
-- format: `NN-kebab-case`
-- numbers start at `01` and are sequential
-- lowercase letters, digits, and hyphens only
-- keep the block before all prose
+| Split | REQ | Depends on | Owns/boundary | Next command |
+|---|---|---|---|---|
 
-After the block, include:
+Each `REQ-*` has one owner. After the table, state execution order, safe
+parallel groups, and shared sequencing once. Omit strategy prose. Command:
 
-- overview of the split strategy
-- dependency graph or ordered list
-- parallelization notes
-- shared decisions and cross-cutting constraints
-- exact next command for each split, for example:
-  `Use $zagrosi-forge:zagrosi-plan on @planning/01-authentication/spec.md`
+```text
+Use $zagrosi-forge:zagrosi-plan on @{planning_dir}/01-foundation/spec.md
+```

@@ -1,5 +1,5 @@
 {
-  "description": "nightshift guards for Codex: the PreToolUse hardhat and the Stop clock-out gate.",
+  "description": "nightshift guards for Codex: the PreToolUse hardhat, the Stop clock-out gate, SessionEnd, and the PostToolUse pulse.",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,28 @@
             "type": "command",
             "command": "\"${PLUGIN_ROOT}/hooks/codex/hardhat.sh\"",
             "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%PLUGIN_ROOT%\\hooks\\windows\\hardhat.ps1\" -HostName codex"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex/pulse.sh\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%PLUGIN_ROOT%\\hooks\\windows\\pulse.ps1\" -HostName codex"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/hooks/codex/session-end.sh\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%PLUGIN_ROOT%\\hooks\\windows\\session-end.ps1\" -HostName codex"
           }
         ]
       }

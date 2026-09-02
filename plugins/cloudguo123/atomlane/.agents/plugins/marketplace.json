@@ -1,11 +1,11 @@
 {
-  "name": "mac-parallel-accelerator",
+  "name": "atomlane",
   "interface": {
     "displayName": "AtomLane"
   },
   "plugins": [
     {
-      "name": "mac-parallel-accelerator",
+      "name": "atomlane",
       "source": {
         "source": "local",
         "path": "./"

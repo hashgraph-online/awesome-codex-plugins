@@ -89,9 +89,9 @@ Escalate from the five-line review when any of these risk signals appear:
   principles", or "Occam"
 - a plan could encode the wrong owner, abstraction, compatibility boundary, or
   retirement schedule
-- one explicit value, identifier, path, or event may have different roles
-  across objectives or scopes, and a proposed repair could remove a legitimate
-  role while retiring an invalid global authority
+- an existing object, behavior, responsibility, contract, or relationship may
+  be reinterpreted, narrowed, replaced, or retired, and the proposal could lose
+  a legitimate role or explicit reference while removing invalid authority
 
 Use this compact shape:
 
@@ -105,6 +105,7 @@ Bounded preservation reminder:
 - Evidence-backed behavior that must remain correct:
 - Highest-risk counterexample:
 - Material unknown / uninspected surface:
+- Known explicit anchors / upstream-downstream refs and disposition:
 - Role-before-value ambiguity, if any:
 
 Owner / retirement matrix:
@@ -159,10 +160,12 @@ Architecture Integrity Lens:
 
 `Bounded preservation reminder` is a risk-triggered reasoning aid, not a
 universal artifact or an exhaustive behavior inventory. Inspect the smallest
-relevant contract, consumer, test, or history evidence; state material unknowns
-instead of claiming semantic completeness. The Method Pack does not build
-authoritative input lineage, calculate complete behavior coverage, or issue a
-runtime gate.
+relevant contract, consumer, test, or history evidence. Preserve, rebind,
+retire, or reject each known explicit reference; state unresolved relationships
+as unknown instead of re-inferring them or claiming semantic completeness. The
+Method Pack does not build an authoritative relationship graph, prove
+referential integrity or input lineage, calculate complete behavior coverage,
+or issue a runtime gate.
 
 Do not run this lens for every low-risk task. If it does not change the
 decision surface, return to the active workflow immediately.

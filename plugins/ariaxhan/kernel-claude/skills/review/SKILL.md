@@ -95,9 +95,13 @@ detection: grep -r "catch.*{}" (empty catch)
 </check>
 
 <check id="5_complexity">
-- Any function with cyclomatic complexity >= 15? A number, not a guess.
+- Run the configured project verify command first. If complexity is not on that armed path,
+  report the enforcement gap; a manual measurement is not a gate.
+- Any function above its `.ccnrc` budget? A number, not a guess.
+- If a baseline exists, does the diff say `regressed=0`?
+- For JS/TS, did stderr name `eslint AST`? Lizard's fallback does not see object-literal methods.
 - Nested ternaries > 2 levels?
-detection: ${CLAUDE_PLUGIN_ROOT}/scripts/complexity.sh <repo> <base-ref>  (exit 1 = hotspots listed, exit 3 = no tool, say so)
+detection: ${CLAUDE_PLUGIN_ROOT}/scripts/complexity.sh <repo> <base-ref>; ${CLAUDE_PLUGIN_ROOT}/scripts/complexity.sh --diff <baseline.tsv> <repo>
 fix: /kernel:simplify on the listed functions
 </check>
 </big5>
@@ -188,6 +192,11 @@ A finding blocks only with ALL of:
 
 Everything else is filed with its `distance:N` label under the `quarantine` milestone. Recurrence
 is signal, silence is a verdict.
+
+Complexity clears the block bar only when changed code exceeds a declared budget, a regression
+diff names the increase, or the acceptance record requires the project gate and that armed path
+does not run it. A lizard result over JS/TS object-literal methods cannot support APPROVE or FAIL;
+it is `NOT CHECKED` until an AST-aware parser runs.
 </block_bar>
 
 Read the acceptance record before reviewing: claims, declared invariants, and tradeoffs already

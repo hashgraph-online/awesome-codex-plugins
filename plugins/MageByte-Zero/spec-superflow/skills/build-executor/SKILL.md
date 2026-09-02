@@ -166,6 +166,10 @@ history, and must not write, edit, or modify a repair-state file directly.
 - **Third unresolved failure — stop:** the third unresolved receipt yields CLI
   status `adjudication-required`. Stop automatic dispatch and request a human
   adjudication rather than attempting a fourth repair.
+- After human review, record the decision with `ssf execution adjudicate
+  <change-dir> --wave <id> --decision allow-review --confirm --reason <text>`.
+  It authorizes one continuous review only, never a pass; a failed authorized
+  review returns to `adjudication-required`.
 - Every focused re-review still writes its separate persisted report and is
   recorded only through `ssf execution review <change-dir> --wave <id> --base
   <sha> --head <sha> --report .superpowers/sdd/reviews/<wave-id>-rereview.md --verdict <pass|fail>`.

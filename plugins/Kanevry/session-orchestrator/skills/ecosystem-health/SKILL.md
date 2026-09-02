@@ -24,7 +24,10 @@ For harness < 2.1.105 (no monitor support), the skill's manual probes documented
 
 This skill reads from the project's `## Session Config` section in the platform instruction file:
 
-- **`health-endpoints`** — list of `{name, url}` objects for service health checks
+- **`health-endpoints`** — list of `{name, url}` objects for service health checks. Parsed
+  content-scoped by `scripts/lib/config/health-endpoints.mjs` (#1174), which accepts the nested
+  block form this wizard writes (below), an inline object array, and a bare list of URLs — see
+  `docs/session-config-reference.md` § VCS & Infrastructure for the full form table.
 - **`cross-repos`** — list of related repositories for critical issue scanning
 
 Both fields are optional. The skill degrades gracefully when either is missing. On Codex this means `AGENTS.md`; on Claude/Cursor it means `CLAUDE.md`.

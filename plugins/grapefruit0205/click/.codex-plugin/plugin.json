@@ -1,7 +1,7 @@
 {
   "name": "click",
-  "version": "0.30.0",
-  "description": "Choose Always ON or @Click Manual. Click binds a software change to one compact plain-language execution contract, waits for approval, then uses structured runners to return revision-bound evidence for the authorized execution.",
+  "version": "0.50.0",
+  "description": "Evidence by default: let the host run normally while Click records revision-aware proof. Opt into Guarded for one human-readable, approval-bound execution contract.",
   "author": {
     "name": "Junseok Pak",
     "url": "https://github.com/grapefruit0205"
@@ -23,9 +23,9 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Click",
-    "shortDescription": "Bind AI execution to approved intent and return verifiable evidence.",
+    "shortDescription": "Revision-aware evidence by default; approval-bound execution when needed.",
     "composerIcon": "./assets/icon.svg",
-    "longDescription": "Click turns a software change into one plain-language contract you approve once, then keeps Codex inside that boundary until the implementation and agreed checks are complete. Choose Always ON (recommended) to apply it automatically to software changes or Manual with @Click. Staging validates the contract JSON once and emits an opaque contract_id; the later approval passes only that id, never the JSON again. Questions, explanations, simple read-only inspection, and code review remain lightweight. After approval Click implements in one shot. A structured evidence registry assigns each completion condition one cheapest sufficient primary evidence source by id. Before approval the model proposes evidence and a qualitative verification profile, then chooses concrete argv during execution. The selected profile remains digest-bound but creates no plugin-authored numeric authority or advice. Local argv checks bind exact normalized check groups to receipts; legacy class-unit values remain compatibility data only, and current receipts are reused only when the contract, mutation revision, protected Git tree, check, execution environment, and executable fingerprint still match. Browser evidence remains serial and binds a stable tool_use_id plus its observed result to the assigned source and current revision; normalized repeats, retries, and long timed interactions receive non-blocking workflow guidance instead of fixed-count or timing denials. Long-running development servers use a Click-owned supervisor and exact stop lifecycle instead of a foreground mutation. Structured inspect, mutate, service, and verify capabilities execute without a shell in isolated child process groups, reject direct process-control executables, reuse valid evidence, and detect verification-time workspace changes. Plan tools and distinct-digest broad inventories remain available with non-blocking advisory guidance; fresh repeated observations and ordinary argv retries, plus Browser workflow choices, also receive advisory rather than a fixed hard stop. These advisories cannot alter contract authority. The Hook still blocks replacement contracts, unauthorized mutations, active same-request runner conflicts, consumed-token replay, Browser source/result/revision mismatches, verification-time repository mutation, and parallel verification while necessary in-scope implementation details remain flexible. Click remains an authorization-and-evidence workflow guardrail rather than an operating-system sandbox. The bundled Fix skill provides the same compact repair flow for direct invocation.",
+    "longDescription": "Click defaults to Evidence mode: Codex keeps using its normal host permissions while Click records prompt lineage, mutation revisions, exact verification receipts, cache lineage, and an honest completion receipt marked approval_bound false and execution_authority host. Exact same-revision evidence is reused only when repository, check, environment, executable, and host-coverage bindings match; cross-revision reuse requires a committed dependency mapping whose resolved inputs are unchanged. For higher-risk work, Guarded mode stages one canonical contract and the Hook supplies four clear sections—Goal, Changes, Unchanged, and Completion checks—with technical JSON optional. A later approval binds the contract digest and one-use capabilities; in-scope or narrowing follow-ups continue without another approval, while material boundary changes require a new contract. Off mode leaves ordinary work unmanaged. Legacy on migrates to Guarded and manual migrates to Off, preserving existing authority choices; active Guarded contracts remain locked. Click prevents runner replay, tampering, stale evidence, verification-time repository mutation, and incompatible cache reuse without constraining model reasoning or choosing its search strategy.",
     "developerName": "Junseok Pak",
     "category": "Productivity",
     "capabilities": [
@@ -33,9 +33,9 @@
     ],
     "websiteURL": "https://github.com/grapefruit0205/click",
     "defaultPrompt": [
-      "Use Click to agree on one clear boundary, approve it once, then implement and run only the checks needed to finish.",
-      "Set Click to Always ON for software changes while keeping questions and read-only inspection lightweight.",
-      "Use Click's read-only review guard; prefer focused evidence after broad repository context."
+      "Use Click Evidence mode to work normally and return a revision-aware evidence receipt.",
+      "Use Click Guarded mode for a human-readable approval boundary on higher-risk work.",
+      "Show Click's technical contract JSON only when I ask for details."
     ]
   }
 }

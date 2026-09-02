@@ -133,7 +133,30 @@ separate from the point-to-point tracing above.
   `/<sheet>/<name>` key (KH-359), same as any other net.
 - **Unresolved.** `bus_topology.unresolved` (`[{reason, name}]`) lists
   every bus construct the resolver could not confidently resolve — those
-  connections are not asserted.
+  connections are not asserted. `reason` is one of a fixed snake_case
+  vocabulary (`name` carries the associated label/alias/sheet-pin name, or
+  for `ambiguous_bus_width` the ambiguous width as a string; identical
+  `{reason, name}` pairs are deduplicated within the bus-graph resolution
+  notes; port-matching notes may repeat for genuinely distinct occurrences):
+  - `entry_both_ends_on_bus` — a bus-entry tap lands on a bus wire at
+    both ends (neither end is the wire side).
+  - `entry_off_bus` — a bus-entry tap touches no bus wire at either end.
+  - `label_not_on_bus_wire` — a bus-name label (local/hier/pin) isn't
+    positioned on any bus wire segment.
+  - `unlabeled_entry_tap` — a bus-entry tap's net carries no label at all.
+  - `entry_tap_name_not_in_bus` — a bus-entry tap's net carries a label,
+    but its name doesn't match any member of the tapped bus (distinct
+    from `unlabeled_entry_tap`: the tap has a label, just not a member one).
+  - `ambiguous_bus_width` — a cluster carries two different same-width
+    bus-label expansions, so there's no single canonical member ordering.
+  - `duplicate_hier_port` — two hierarchical-label ports share the same
+    (namespace, name) key on one sheet (malformed sheet).
+  - `no_hier_counterpart_for_pin` — a sheet-pin bus port has no matching
+    hierarchical-label port on the child sheet.
+  - `no_pin_counterpart_for_hier` — a hierarchical-label bus port has no
+    matching sheet-pin port on the parent sheet.
+  - `bus_width_mismatch` — a matched sheet-pin/hier-label port pair
+    expand to different member counts.
 
 ## Complete Example
 

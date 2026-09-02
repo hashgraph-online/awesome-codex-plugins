@@ -1,20 +1,26 @@
 {
-  "name": "mac-parallel-accelerator",
-  "version": "0.10.1",
-  "description": "AtomLane compiles local work into semantics-preserving atomic plans and executes proven-safe concurrency for Codex on macOS.",
+  "name": "atomlane",
+  "version": "0.15.0",
+  "description": "AtomLane combines a universal safety core with platform-native, workload-tailored parallel execution on macOS Stable and native Windows Preview.",
   "author": {
     "name": "cloudguo123",
     "url": "https://github.com/cloudguo123"
   },
   "homepage": "https://cloudguo123.github.io/atomlane/",
   "repository": "https://github.com/cloudguo123/atomlane",
-  "license": "MIT",
+  "license": "MPL-2.0",
   "keywords": [
     "macos",
+    "windows",
+    "cross-platform",
+    "workload-optimization",
     "parallel",
     "scheduler",
     "atomic-planning",
     "effect-analysis",
+    "python",
+    "static-analysis",
+    "refactoring",
     "scenario-planning",
     "local-execution",
     "performance"
@@ -22,8 +28,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "AtomLane",
-    "shortDescription": "Proven-safe parallel execution for coding agents",
-    "longDescription": "AtomLane compiles shell, package, Make, Compose, test, build, and declared task entrypoints into immutable hashed atomic plans. It preserves typed control flow and effects, fails closed on unknown hazards, delegates concurrency to native owners when safer, adapts to Apple silicon resources, and executes the exact verified plan with live progress and honestly labeled time savings.",
+    "shortDescription": "Universal-safe, workload-tailored parallelism",
+    "longDescription": "AtomLane uses one typed safety core for control flow, effects, conflicts, resources, hashes, and authorization, then tailors execution to the active platform and workload. It statically finds reviewable Python candidates without importing or executing target code, delegates concurrency to native owners when safer, adapts containment and budgets for macOS Stable or native Windows Preview, isolates Windows, WSL, and Docker realms, and executes exact verified plans with live progress and honestly labeled savings.",
     "developerName": "cloudguo123",
     "category": "Productivity",
     "capabilities": [
@@ -33,11 +39,22 @@
       "Typed effect analysis",
       "Plan hash verification",
       "In-task work discovery",
+      "Visible per-prompt acceleration assessment",
+      "Advisory lifecycle hook",
       "Native concurrency delegation",
       "Scenario profiling",
       "Trace-informed routing",
+      "Workload-tailored execution",
+      "Cross-platform safety core",
       "Resource awareness",
-      "Apple silicon routing"
+      "Windows Job Object process-tree control",
+      "Windows ConPTY and UTF-8 pipe progress",
+      "PowerShell file workflows",
+      "Windows, WSL, and Docker realm isolation",
+      "Apple silicon routing",
+      "Python parallelism advice",
+      "Source-hash-bound rewrite previews",
+      "GIL-aware executor selection"
     ],
     "brandColor": "#65E6B4",
     "composerIcon": "./assets/growth/listing-logo.svg",
@@ -50,7 +67,7 @@
     ],
     "defaultPrompt": [
       "Use $accelerate-local-work to run only the concurrency proven safe for this project.",
-      "Use $accelerate-local-work to accelerate this build, test, Docker, or research workflow.",
+      "Use $optimize-python-parallelism to review this long-running Python entrypoint for a safe parallel refactor.",
       "Use $accelerate-local-work with live progress and per-run plus cumulative time savings."
     ]
   },

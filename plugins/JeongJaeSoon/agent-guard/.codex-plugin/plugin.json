@@ -1,6 +1,6 @@
 {
   "name": "agent-guard",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Local-by-default, no-telemetry hooks inspect user prompts, supported tool inputs, outputs, and changed files in every enabled Claude Code or Codex session to block or mask secret leaks. Includes opt-in PII filtering and Git/CI backstops.",
   "author": {
     "name": "Agent Guard contributors",

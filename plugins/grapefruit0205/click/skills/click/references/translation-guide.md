@@ -30,14 +30,14 @@ Build top-down:
 
 An implementation agent may change low-level tactics, dependencies, tools, files, or internal sequencing without reapproval when the result remains inside the contract's outcome, boundary, must-hold behavior, material semantics, and verification commitment.
 
-## Mirror the complete contract plainly
+## Present the complete Guarded contract plainly
 
-Keep the easy explanation in the required canonical `plain_language` field so it remains bound to the staged contract digest. At presentation time, show the developer fields without echoing that value, then render the exact digest-bound `plain_language` value once as the separate easy-language view. Explain what the user gets, what remains unchanged, the important safeguards, the broad route, and the verification cost. Together the two views expose the complete staged contract; the easy view is a faithful projection, not a second design.
+Keep the easy explanation in the canonical `plain_language` field so it remains digest-bound. At presentation time show Goal, Changes, Unchanged, and Completion checks. Keep raw JSON behind optional Technical contract details. The human view must faithfully project every material boundary, safeguard, and completion commitment.
 
 ## Execute one shot
 
-After approval, keep the staged contract unchanged and finish within its semantic envelope. Do not create a replacement contract for an in-scope implementation discovery. Report material technical choices in the final result.
+After approval, keep the staged contract unchanged and finish within its semantic envelope. Do not create a replacement contract for an in-scope discovery, clarification, or narrowing follow-up; append its turn digest to the audit lineage. Report material technical choices in the final result.
 
 Stop only for new authority, an uncovered irreversible or paid external action, or a necessary change to the approved outcome, user-visible behavior, boundary, must-hold condition, or verification commitment. A blocker is not permission to widen the contract silently.
 
-Implementation is complete when every declared source is current for the final mutation revision and no managed service remains active, or failures are reported without claiming success. Reuse exact successful argv evidence only inside the same active contract and mutation revision when the protected Git tree, normalized check, execution environment, and executable fingerprint still match; a new mutation revision always requires fresh evidence.
+Implementation is complete when every declared source is current for the final mutation revision and no managed service remains active, or failures are reported without claiming success. Reuse exact successful argv evidence in the same revision only when the protected Git tree, normalized check, execution environment, and executable fingerprint still match. Across revisions, promote it only through the optional approval-bound dependency protocol when the host closes the approved mutation snapshot and the relevant resolved path receipt is unchanged; otherwise run fresh evidence.

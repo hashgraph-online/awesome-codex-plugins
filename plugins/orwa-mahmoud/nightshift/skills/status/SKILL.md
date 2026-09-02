@@ -84,6 +84,7 @@ Read `$NS/` and print:
  drops the deadline, and Purge deletes project Nightshift state. None of those uninstall the plugin.
  When Doctor warns `stall path is not a usable file`, say so — a planted symlink is not a stall count.
  When Doctor warns `session-end path is not a usable file`, say so — a planted symlink is not a clean exit.
+ When Doctor warns `shift-pulse path is not a usable file`, say so — a planted symlink is not a liveness pulse.
  When Doctor warns `shift-session path is not a usable file`, say so — a planted symlink is not a recorded session.
  When Doctor warns `watchman pidfile path is not a usable file`, say so — a planted symlink is not a live watchman.
  When Doctor warns `terminal clock-out failed without releasing the shift`, say so and relay whether the recorded conversation can reclaim or is still blocked.

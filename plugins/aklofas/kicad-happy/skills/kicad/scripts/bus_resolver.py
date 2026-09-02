@@ -206,12 +206,17 @@ class BusGraph:
             if len(distinct) == 1:
                 return list(matches[0])
             if len(distinct) > 1:
-                self.note_unresolved(f"ambiguous_bus_width_{width}")
+                self.note_unresolved("ambiguous_bus_width", str(width))
                 return None
         return None
 
     def note_unresolved(self, reason, name=None):
-        self.unresolved.append({"reason": reason, "name": name})
+        # cluster_ordered() is called once per co-clustered sheet pin, so an
+        # ambiguous width is re-reported for every pin sharing the cluster —
+        # collapse to one note per distinct (reason, name) pair.
+        entry = {"reason": reason, "name": name}
+        if entry not in self.unresolved:
+            self.unresolved.append(entry)
 
 
 def match_ports(pin_ports, hier_ports, unresolved):
@@ -241,7 +246,7 @@ def match_ports(pin_ports, hier_ports, unresolved):
         key = (hier["ns"], hier["name"])
         if key in hier_by_key:
             unresolved.append({
-                "reason": f"duplicate hier-label port for {hier['name']} (malformed)",
+                "reason": "duplicate_hier_port",
                 "name": hier["name"],
             })
             continue
@@ -255,7 +260,7 @@ def match_ports(pin_ports, hier_ports, unresolved):
         hier = hier_by_key.get(key)
         if hier is None:
             unresolved.append({
-                "reason": f"no hier-label counterpart for sheet pin {pin['name']}",
+                "reason": "no_hier_counterpart_for_pin",
                 "name": pin["name"],
             })
             continue
@@ -263,7 +268,7 @@ def match_ports(pin_ports, hier_ports, unresolved):
         child = hier["members"]
         if len(parent) != len(child):
             unresolved.append({
-                "reason": f"bus width mismatch at sheet pin {pin['name']}",
+                "reason": "bus_width_mismatch",
                 "name": pin["name"],
             })
             continue
@@ -277,7 +282,7 @@ def match_ports(pin_ports, hier_ports, unresolved):
         key = (hier["ns"], hier["name"])
         if key not in pin_keys:
             unresolved.append({
-                "reason": f"no sheet-pin counterpart for hier label {hier['name']}",
+                "reason": "no_pin_counterpart_for_hier",
                 "name": hier["name"],
             })
 

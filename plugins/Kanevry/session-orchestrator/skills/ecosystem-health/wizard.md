@@ -128,6 +128,11 @@ ecosystem-health:
 the block is NOT overwritten. The wizard prints "Skipped (already present)" and
 exits 0. Re-run to edit: remove the existing block first, then re-run.
 
+This nested `health-endpoints:` block (an indented list under a valueless header) is now parsed
+content-scoped by `scripts/lib/config/health-endpoints.mjs` (#1174) — before that fix the flat
+key/value reader bailed to `null` the moment it saw the `{`/nested-list shape this wizard writes,
+so the block above wrote successfully but the ecosystem-health skill silently never saw it.
+
 ### 4b — `.orchestrator/policy/ecosystem.json`
 
 ```json

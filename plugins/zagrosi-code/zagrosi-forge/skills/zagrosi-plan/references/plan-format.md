@@ -1,34 +1,21 @@
-# Implementation Plan Format
+# Plan format
 
-`codex-plan.md` should be readable by a fresh implementer.
+Start `codex-plan.md` with actual values:
 
-In `standard` mode it should normally be at least 2,500 words. In `deep` mode
-it should normally be at least 5,000 words. This matches the level of detail
-expected from strong Deep Trilogy-style artifacts: enough architecture,
-contracts, rationale, and test detail that implementation can proceed without
-the original conversation.
+```markdown
+<!-- FORGE_META
+{"artifact_type":"implementation_plan","workflow":"zagrosi-plan","depth_mode":"<depth>","source":"<relative-path>","requirement_ids":["REQ-..."]}
+END_FORGE_META -->
+```
 
-Recommended sections:
+Cover only:
 
-1. Reader note: this plan is self-contained and line-level code is left to
-   implementation sections.
-2. Context in one page: current system, problem, verified facts, constraints.
-3. Goal and non-goals.
-4. Architecture at a glance: diagram or layered explanation.
-5. Rationale and tradeoffs: why this design, rejected alternatives.
-6. Data model and contracts: schemas, payloads, permissions, config, CLI/API.
-7. File tree and file-by-file implementation outline.
-8. Phase plan: batches, dependencies, parallelization, hard gates.
-9. Error handling, concurrency, idempotency, retries, and edge cases.
-10. Security, privacy, secrets, data retention, and permissions.
-11. Migration, rollout, rollback, and observability.
-12. Test strategy: unit/integration/e2e, fixtures, mocks, expected failures.
-13. Risks, open questions, and stop-the-line decisions.
+1. outcome, requirements, acceptance, non-goals
+2. decision evidence and assumptions
+3. exact paths, behavior, interfaces/data/errors, compatibility/migration
+4. section ownership, dependencies, shared sequencing, safe parallelism
+5. each `REQ-*` -> test path/case, expected RED, command, acceptance signal
+6. material failure -> mitigation, owner, rollback or stop condition
 
-Write concrete paths, command names, interfaces, and data shapes. Avoid
-large production-code blocks unless a stub or signature removes ambiguity.
-
-The plan should explain why the approach fits the existing codebase. Include
-enough source evidence that a reviewer can see what was verified, for example
-file paths, function names, route names, schemas, current behavior, and test
-commands.
+Prefer identifiers and tables. Omit repository summaries, repeated source,
+production code, routine explanation, and placeholders.

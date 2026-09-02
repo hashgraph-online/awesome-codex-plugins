@@ -208,7 +208,7 @@ After running this detection block, call `resolveIsolation({ agentCount, session
 
 #### Pre-Dispatch: Path-Cousin-Guard Injection (#730.3)
 
-Before dispatching each agent whose fileScope contains a NEW (non-existent) file target, check for existing "cousin" files with a similar basename elsewhere in the repo — prevents the framing-wrong class where an agent creates `scripts/lib/foo/bar.mjs` while `scripts/lib/bar.mjs` already exists and serves the same purpose.
+Before dispatching each agent whose fileScope contains a NEW (non-existent) file target, check for existing "cousin" files with a similar basename elsewhere in the repo — prevents the framing-wrong class where an agent creates `scripts/lib/foo/bar.mjs` while `scripts/lib/bar.mjs` already exists and serves the same purpose. <!-- path-check: example -->
 
 **Detection (mechanical, reuses the new-file scan from #243 above):** for each not-yet-existing file target `<newPath>` in an agent's fileScope, take `basename(<newPath>)` minus extension; skip generic basenames (`index`, `utils`, `main`, `config`, or length ≤ 3 chars — false-positive control). Then:
 
@@ -830,7 +830,7 @@ If the commit itself fails (e.g., nothing to commit, pre-commit hook rejects), d
 
 **Mission-status transition:** after a successful auto-commit, transition the mission status for all tasks in this wave from `in-dev` → `testing` using `setMissionStatus(stateContent, taskId, 'testing')` from `scripts/lib/state-md.mjs`. This matches the coordinator-level rule in `SKILL.md § Mission-Status Updates`: "in-dev → testing: Quality wave begins and this item's implementation wave completed without failure." The auto-commit checkpoint fires at the same logical moment — after implementation completes and Quality-Lite passes.
 
-**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in a future release as `scripts/lib/auto-commit.mjs` (tracked in GitLab #214; not yet implemented as of v3.10.0). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal").
+**Implementation deferred:** This subsection documents the contract. The procedural body (git add/commit sequence + error handling) will land in a future release as `scripts/lib/auto-commit.mjs` (tracked in GitLab #214; not yet implemented as of v3.10.0). Until then, this section is a no-op stub when `auto-commit-per-wave: true` is set; the coordinator MUST warn the user at session-start that auto-commits are not yet active (emit: "auto-commit-per-wave is set but the implementation (scripts/lib/auto-commit.mjs) is not yet available — commits will occur at session-end via /close as normal"). <!-- path-check: planned #214 -->
 
 ---
 
@@ -974,7 +974,7 @@ After reviewing wave results, adjust the next wave's agent count based on perfor
 
 After each wave completes and before the progress update, update `<state-dir>/STATE.md`:
 
-1. **Frontmatter**: set `current-wave` to the just-completed wave number; set `status` to `active` (or `paused` if waiting on user input)
+1. **Frontmatter**: set `current-wave` to the just-completed wave number; set `status` to `active` (or `paused` if waiting on user input). Readers that need the RUNNING wave (e.g. `scripts/memory-propose.mjs`) read `<state-dir>/wave-scope.json` `wave` (only when the manifest is bound to this session via `semantic_session`; an unbound manifest is ignored — it may be a peer's, #1123) and fall back to `current-wave + 1` (#1166) — do not change this field's meaning.
 2. **`## Current Wave`**: replace contents with next wave info — wave number, role, agents to dispatch and count
 3. **`## Wave History`**: append an entry for the completed wave (the `(planned … → actual …, over-delivery …)` parenthetical is omitted when `grounding-check: false`, since the counts are unavailable):
    > **Record the SUITE COUNT, not just "gates green" — and name the platform (#944).** The wave line MUST carry the full-suite pass/fail count from the gate that just ran (`<passed>/<failed>`), not merely that typecheck and lint were clean. A deep session on 2026-07-30 logged typecheck/lint/validate-plugin for every wave and no suite count; a test that had been vacuous for its entire life sat red on HEAD through three waves and was found only by the review panel — in a session whose own premise was turning CI from red to green.
@@ -1194,6 +1194,8 @@ Before each wave dispatch:
    }
    ```
    The `gates` field (optional) mirrors `enforcement-gates` from Session Config (#77). When present, hooks check each gate individually via `gate_enabled()`. Missing gate entries default to enabled, preserving default behavior.
+
+   The `wave` field also doubles as the RUNNING-wave signal for readers outside this step's STATE.md `current-wave` (which records the just-completed wave, per step 1 of `3a. Post-Wave: Update STATE.md` above): `scripts/memory-propose.mjs` reads it directly for proposal attribution only when the manifest is bound to the calling session (`semantic_session` matches STATE.md `session`); an unbound or foreign manifest is ignored and the reader falls back to `current-wave + 1` (#1166, #1123).
 
    **What the binding means to a reader.** Three states, and the disposition differs for each. **Absent** = legacy = ENFORCE: a manifest written before #1123 (or by a stale skill body) binds nobody, so it must keep constraining everyone exactly as it did before — this is the only state that preserves the pre-#1123 contract, and `validate-wave-scope.mjs` marks it with one advisory stderr line rather than an error, because § 3.3's pre-union skeleton is itself an unbound manifest. **Own session** = ENFORCE, unchanged. **Foreign session** — `session` present and not this session's id — = ALLOW: `hooks/enforce-scope.mjs` lets the write through and emits `orchestrator.scope.foreign_session_ignored` so the skip is counted rather than silent. A foreign manifest is somebody else's wave plan; it never had authority over this session's writes, and the event is what keeps that visible instead of leaving an allow nothing recorded. (The reader half lives in `hooks/enforce-scope.mjs` — the writer's only obligation is to name itself honestly here.)
 2. Validate by piping through `node "$PLUGIN_ROOT/scripts/validate-wave-scope.mjs"` (where `$PLUGIN_ROOT` is `$CLAUDE_PLUGIN_ROOT`, `$CODEX_PLUGIN_ROOT`, or `$CURSOR_RULES_DIR` per platform — see `skills/_shared/config-reading.md`). If validation fails (exit 1), fix the JSON based on stderr errors and retry.

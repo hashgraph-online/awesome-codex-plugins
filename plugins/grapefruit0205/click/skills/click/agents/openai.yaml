@@ -1,6 +1,6 @@
 interface:
   display_name: "Click"
-  short_description: "Approve once, then implement the contract in one shot"
-  default_prompt: "Use $click to stage one compact contract with a verification scale, explain it plainly, wait for later-turn approval, then implement it in one shot with hardened inspect, mutate, and verify capabilities."
+  short_description: "Keep revision-aware evidence; guard risky work when needed"
+  default_prompt: "Use $click in Evidence mode for approval-free revision-aware receipts, or choose Guarded to show one four-section contract, wait for later-turn approval, and execute inside that boundary."
 policy:
   allow_implicit_invocation: true

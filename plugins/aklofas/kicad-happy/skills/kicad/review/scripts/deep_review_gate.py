@@ -32,6 +32,7 @@ import shutil
 import subprocess
 import sys
 import unicodedata
+from difflib import SequenceMatcher
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -133,15 +134,78 @@ def _squash(s):
     return _norm_text(s).replace(" ", "")
 
 
+_ELISION_RE = re.compile(r"\.\.\.|…")
+
+
+def _quote_segments(quote):
+    """Split a (possibly elided) quote into segments on '...' / '…'.
+    Must run BEFORE normalization -- _norm_text collapses elision
+    markers into a plain word break, destroying the split points."""
+    return [s for s in _ELISION_RE.split(quote) if s.strip()]
+
+
+def _segments_match(segments, norm_fn, text):
+    """True if every segment appears in `text` (normalized via
+    `norm_fn`), in order -- each search starts where the previous
+    segment's match ended (KH-385)."""
+    t = norm_fn(text)
+    pos = 0
+    for seg in segments:
+        q = norm_fn(seg)
+        if not q:
+            continue
+        idx = t.find(q, pos)
+        if idx == -1:
+            return False
+        pos = idx + len(q)
+    return True
+
+
 def _quote_in_text(quote, text):
     """Containment tolerant of case, whitespace, punctuation, Unicode
-    variants, and PDF line-wrap hyphenation (KH-347). The squashed
-    fallback absorbs boundary shifts ("5.5V" vs "5.5 V", "over-\\nvoltage"
-    vs "overvoltage")."""
-    q = _norm_text(quote)
-    if not q:
+    variants, PDF line-wrap hyphenation (KH-347), and mid-quote elision
+    ("..."/"…", KH-385) -- each segment between elision markers
+    must appear in the text in order. The squashed fallback absorbs
+    boundary shifts ("5.5V" vs "5.5 V", "over-\\nvoltage" vs
+    "overvoltage")."""
+    segments = _quote_segments(quote) or [quote]
+    if not any(_norm_text(s) for s in segments):
         return True
-    return q in _norm_text(text) or _squash(quote) in _squash(text)
+    return (_segments_match(segments, _norm_text, text)
+            or _segments_match(segments, _squash, text))
+
+
+def _nearest_match(quote, text, window=80, stride=40):
+    """Deterministic nearest-match hint for a quarantined datasheet
+    quote (KH-385): locates the earliest elision segment that fails to
+    match (by the same in-order rule as `_quote_in_text`), then scores
+    `window`-char slices of the normalized text at a fixed `stride`
+    against it via difflib.SequenceMatcher.ratio(). First-best wins on
+    ties (replacement requires a strictly higher ratio)."""
+    segments = _quote_segments(quote) or [quote]
+    t = _norm_text(text)
+    pos = 0
+    missing = None
+    for seg in segments:
+        q = _norm_text(seg)
+        if not q:
+            continue
+        idx = t.find(q, pos)
+        if idx == -1:
+            missing = q
+            break
+        pos = idx + len(q)
+    if missing is None:
+        missing = _norm_text(segments[0])
+    if len(t) <= window:
+        return t
+    best_ratio, best = -1.0, t[:window]
+    for i in range(0, len(t) - window + 1, stride):
+        candidate = t[i:i + window]
+        ratio = SequenceMatcher(None, missing, candidate).ratio()
+        if ratio > best_ratio:
+            best_ratio, best = ratio, candidate
+    return best
 
 
 def check_datasheet(cites, datasheets_dir):
@@ -167,8 +231,12 @@ def check_datasheet(cites, datasheets_dir):
             continue
         if not _quote_in_text(cite.get("quote", ""), text):
             where = f"page {page} of" if page else "anywhere in"
-            fails.append(f'quote not found {where} {pdf.name}: '
-                         f'"{cite.get("quote", "")[:80]}"')
+            reason = (f'quote not found {where} {pdf.name}: '
+                      f'"{cite.get("quote", "")[:80]}"')
+            nearest = _nearest_match(cite.get("quote", ""), text)
+            if nearest:
+                reason += f'; nearest match: "...{nearest}..."'
+            fails.append(reason)
     return fails, partial
 
 
@@ -219,8 +287,16 @@ def main():
     ap.add_argument("--analysis-dir", required=True)
     ap.add_argument("--run", default=None, help="run id (default: manifest current)")
     ap.add_argument("--datasheets-dir", default="datasheets")
-    ap.add_argument("--project-dir", default=".")
+    ap.add_argument("--project-dir", default=None,
+                     help="project root for resolving computation script "
+                          "paths (default: --analysis-dir's parent)")
     args = ap.parse_args()
+    project_dir = args.project_dir
+    if project_dir is None:
+        # analysis/ conventionally lives directly inside the project
+        # root (KH-384) -- anchor to it, not the invoking cwd, so the
+        # gate works when run from elsewhere.
+        project_dir = str(Path(args.analysis_dir).resolve().parent)
 
     path = Path(args.deep_review_json)
     try:
@@ -247,7 +323,7 @@ def main():
                                 "value": finding})
             continue
         ok, bad = gate_finding(finding, item_schema, comps, nets,
-                               args.datasheets_dir, args.project_dir)
+                               args.datasheets_dir, project_dir)
         if ok is not None:
             kept.append(ok)
         else:

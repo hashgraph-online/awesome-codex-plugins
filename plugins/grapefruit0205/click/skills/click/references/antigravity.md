@@ -26,9 +26,17 @@ For example:
 <exact injected launcher> stage '<contract JSON>'
 <exact injected launcher> pass ctr_<32hex>
 <exact injected launcher> verify '<request JSON>'
+<exact injected launcher> receipt export
+<exact injected launcher> receipt verify './completion-receipt.json'
 ```
 
-The adapter keeps one execution epoch stable across Antigravity's repeated model
+Evidence is the default and does not use `stage` or `pass`; the host authorizes
+ordinary work and Click records revision-aware receipts. Use `default guarded`
+for persistent approval-bound work or `default off` to leave ordinary work
+unmanaged. Explicit `@Click` in Off mode starts the Guarded flow. A pre-existing
+active Guarded contract remains locked across preference migration.
+
+For Guarded mode, the adapter keeps one execution epoch stable across Antigravity's repeated model
 invocations. A fully idle `model_stop` closes that epoch. A new readable user
 entry in `transcript.jsonl` plus the following `PreInvocation` creates the later
 approval epoch. If no new user entry can be proved, the epoch does not advance
@@ -42,6 +50,14 @@ capabilities. Direct read-only `run_command` calls are denied rather than truste
 by executable basename. Native file and search tools plus unrelated MCP, Skill,
 and Plugin tools may still be used when relevant, but their successful reads are
 not deduplicated by Click's local observation runner.
+Antigravity's matching `PreToolUse` and `PostToolUse` identities close the
+approved mutation snapshot used by optional dependency-aware argv receipts. If
+the post event or Git snapshot is unavailable, Click safely runs verification
+instead of reusing a cross-revision receipt.
+Successful argv receipts also bind Antigravity's deterministic
+`known-surfaces-only` coverage digest. They cannot be reused as Codex receipts
+or after the registered Antigravity Hook surface changes; this identity still
+cannot observe a host capability that emits no matching event.
 Do not declare Browser evidence: no Antigravity Browser tool is currently bound
 to Click's Browser meter. Use the cheapest sufficient argv, hosted, manual, or
 existing source instead.

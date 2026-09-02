@@ -166,10 +166,43 @@ def _point_to_segment_distance(px, py, x1, y1, x2, y2):
     return math.sqrt((px - proj_x) ** 2 + (py - proj_y) ** 2)
 
 
-def check_connector_current(schematic: dict, pcb: dict | None) -> list[dict]:
+# ---------------------------------------------------------------------------
+# checks_run recorder (KH-381)
+# ---------------------------------------------------------------------------
+
+class _CheckRecorder:
+    """Accumulates checks_run[] entries in call order.
+
+    Determinism comes from call order, not dict-iteration order:
+    run_all_checks() invokes each check_* function in a fixed sequence,
+    and every check_* function calls record() exactly once (every
+    early-return guard, and every terminal return, records before
+    returning).
+    """
+
+    def __init__(self):
+        self.entries: list[dict] = []
+
+    def record(self, check, ran, reason_skipped, items_examined, findings_count):
+        self.entries.append({
+            'check': check,
+            'ran': ran,
+            'reason_skipped': reason_skipped,
+            'items_examined': items_examined,
+            'findings': findings_count,
+        })
+
+
+def _record(recorder, check, ran, reason_skipped, items_examined, findings):
+    if recorder is not None:
+        recorder.record(check, ran, reason_skipped, items_examined, len(findings))
+
+
+def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) -> list[dict]:
     """CC-001: Check connector pin current capacity vs trace width."""
     findings: list[dict] = []
     if not pcb:
+        _record(recorder, 'CC-001', False, 'no PCB data provided', 0, findings)
         return findings
 
     footprints = pcb.get('footprints', [])
@@ -229,8 +262,9 @@ def check_connector_current(schematic: dict, pcb: dict | None) -> list[dict]:
                     components=[ref], nets=[net_name],
                     recommendation=f'Widen trace on {net_name} to >= {min_w:.1f}mm or use copper pour.',
                     standard_ref='IPC-2152', impact='Trace overheating and voltage drop',
-                
+
                     source=ANALYZER_SOURCE,))
+    _record(recorder, 'CC-001', True, None, len(connectors), findings)
     return findings
 
 
@@ -245,7 +279,7 @@ _EXTERNAL_CONNECTOR_KEYWORDS = (
 )
 
 
-def check_esd_coverage_gaps(schematic: dict, pcb: dict | None) -> list[dict]:
+def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) -> list[dict]:
     """EG-001: Check for external connector pins missing ESD protection."""
     findings: list[dict] = []
     protection = [f for f in schematic.get('findings', [])
@@ -306,8 +340,9 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None) -> list[dict]:
                     'basis': 'IEC 61000-4-2 requires ESD protection on accessible pins',
                 },
                 standard_ref='IEC 61000-4-2', impact='ESD damage on unprotected pins',
-            
+
                 source=ANALYZER_SOURCE,))
+    _record(recorder, 'EG-001', True, None, len(connectors), findings)
     return findings
 
 
@@ -315,13 +350,14 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None) -> list[dict]:
 # DA-001: Decoupling strategy adequacy
 # ---------------------------------------------------------------------------
 
-def check_decoupling_adequacy(schematic: dict, pcb: dict | None) -> list[dict]:
+def check_decoupling_adequacy(schematic: dict, pcb: dict | None, recorder=None) -> list[dict]:
     """DA-001: Per-IC decoupling assessment — count, value, and placement."""
     findings: list[dict] = []
     decoupling_list = [f for f in schematic.get('findings', [])
                        if f.get('detector') == 'detect_decoupling']
     decoupling = decoupling_list[0] if decoupling_list else {}
     if not decoupling:
+        _record(recorder, 'DA-001', False, 'no decoupling detector findings in schematic analysis', 0, findings)
         return findings
 
     rails = decoupling.get('per_rail', decoupling.get('rails', []))
@@ -356,8 +392,9 @@ def check_decoupling_adequacy(schematic: dict, pcb: dict | None) -> list[dict]:
                     'basis': 'One 100nF per IC power pin pair minimum',
                 },
                 impact='Increased power supply noise and EMI',
-            
+
                 source=ANALYZER_SOURCE,))
+    _record(recorder, 'DA-001', True, None, len(rails), findings)
     return findings
 
 
@@ -365,10 +402,11 @@ def check_decoupling_adequacy(schematic: dict, pcb: dict | None) -> list[dict]:
 # XV-001..003: Schematic/PCB cross-validation
 # ---------------------------------------------------------------------------
 
-def check_cross_validation(schematic: dict, pcb: dict | None) -> list[dict]:
+def check_cross_validation(schematic: dict, pcb: dict | None, recorder=None) -> list[dict]:
     """XV-001..003: Cross-validate schematic and PCB data consistency."""
     findings: list[dict] = []
     if not pcb:
+        _record(recorder, 'XV-001..003', False, 'no PCB data provided', 0, findings)
         return findings
 
     sch_refs = {c.get('reference', '') for c in schematic.get('components', [])
@@ -409,7 +447,7 @@ def check_cross_validation(schematic: dict, pcb: dict | None) -> list[dict]:
     # XV-002: Value consistency
     pcb_fp_map = {fp.get('reference', ''): fp for fp in pcb.get('footprints', [])}
     sch_comp_map = {c.get('reference', ''): c for c in schematic.get('components', [])}
-    for ref in sch_refs & pcb_refs:
+    for ref in sorted(sch_refs & pcb_refs):
         sch_val = sch_comp_map.get(ref, {}).get('value', '')
         pcb_fp = pcb_fp_map.get(ref, {})
         pcb_val = pcb_fp.get('value', '')
@@ -433,9 +471,10 @@ def check_cross_validation(schematic: dict, pcb: dict | None) -> list[dict]:
                 components=[ref],
                 recommendation='Sync PCB with schematic to resolve value differences.',
                 impact='Wrong component may be placed during assembly',
-            
+
                 source=ANALYZER_SOURCE,))
 
+    _record(recorder, 'XV-001..003', True, None, len(sch_refs | pcb_refs), findings)
     return findings
 
 
@@ -447,17 +486,68 @@ _EDGE_DISTANCE_ERROR_MM = 1.0
 _EDGE_DISTANCE_WARN_MM = 2.0
 
 
-def check_critical_net_routing(schematic, pcb):
+def _point_to_outline_min_distance(px, py, edges):
+    """Minimum distance from a point to the board outline edges.
+
+    Mirrors emc_rules._point_to_edges_min_distance (KH-357/Task 14 fix):
+    a 'rect' edge is two opposite corners of the outline rectangle, not a
+    diagonal line, so it's expanded to its 4 sides. 'circle'/'polygon'/
+    'curve' edges are skipped explicitly rather than falling through to a
+    generic branch that would read their (nonexistent) 'start'/'end' keys
+    via .get() defaults and silently measure against a bogus (0,0)-origin
+    segment — the KH-357-class bug this must not replicate.
+    """
+    min_dist = float('inf')
+    for edge in edges:
+        etype = edge.get('type', 'line')
+        if etype == 'rect':
+            start = edge.get('start', [0, 0])
+            end = edge.get('end', [0, 0])
+            x1, y1 = start[0], start[1]
+            x2, y2 = end[0], end[1]
+            d = min(
+                _point_to_segment_distance(px, py, x1, y1, x2, y1),
+                _point_to_segment_distance(px, py, x2, y1, x2, y2),
+                _point_to_segment_distance(px, py, x2, y2, x1, y2),
+                _point_to_segment_distance(px, py, x1, y2, x1, y1),
+            )
+        elif etype == 'line':
+            start = edge.get('start', [0, 0])
+            end = edge.get('end', [0, 0])
+            d = _point_to_segment_distance(px, py, start[0], start[1], end[0], end[1])
+        elif etype == 'arc':
+            start = edge.get('start', [0, 0])
+            end = edge.get('end', [0, 0])
+            mid = edge.get('mid')
+            if mid:
+                d = min(
+                    _point_to_segment_distance(px, py, start[0], start[1], mid[0], mid[1]),
+                    _point_to_segment_distance(px, py, mid[0], mid[1], end[0], end[1]),
+                )
+            else:
+                d = _point_to_segment_distance(px, py, start[0], start[1], end[0], end[1])
+        else:
+            # circle / polygon / curve: not yet implemented for NR-001.
+            continue
+        if d < min_dist:
+            min_dist = d
+    return min_dist
+
+
+def check_critical_net_routing(schematic, pcb, recorder=None):
     """NR-001: Flag high-speed/clock signal traces routed near board edges."""
     findings = []
     if not pcb:
+        _record(recorder, 'NR-001', False, 'no PCB data provided', 0, findings)
         return findings
     segments = pcb.get('tracks', {}).get('segments', [])
     if not segments:
+        _record(recorder, 'NR-001', False, 'no PCB track segments present', 0, findings)
         return findings
     outline = pcb.get('board_outline', {})
-    outline_segs = outline.get('segments', [])
-    if not outline_segs:
+    outline_edges = outline.get('edges', [])
+    if not outline_edges:
+        _record(recorder, 'NR-001', False, 'no board outline edge geometry present', 0, findings)
         return findings
     net_id_map = _build_net_id_map(pcb)
     flagged_nets = {}
@@ -471,15 +561,7 @@ def check_critical_net_routing(schematic, pcb):
             continue
         mx = (seg.get('x1', 0) + seg.get('x2', 0)) / 2
         my = (seg.get('y1', 0) + seg.get('y2', 0)) / 2
-        min_dist = float('inf')
-        for edge in outline_segs:
-            ex1 = edge.get('x1', edge.get('start_x', 0))
-            ey1 = edge.get('y1', edge.get('start_y', 0))
-            ex2 = edge.get('x2', edge.get('end_x', 0))
-            ey2 = edge.get('y2', edge.get('end_y', 0))
-            d = _point_to_segment_distance(mx, my, ex1, ey1, ex2, ey2)
-            if d < min_dist:
-                min_dist = d
+        min_dist = _point_to_outline_min_distance(mx, my, outline_edges)
         if min_dist < _EDGE_DISTANCE_WARN_MM:
             if net_name not in flagged_nets or min_dist < flagged_nets[net_name]:
                 flagged_nets[net_name] = min_dist
@@ -496,8 +578,9 @@ def check_critical_net_routing(schematic, pcb):
             nets=[net_name],
             recommendation=f'Re-route {net_name} at least {_EDGE_DISTANCE_WARN_MM}mm from board edges.',
             impact='Increased EMI radiation and susceptibility',
-        
+
             source=ANALYZER_SOURCE,))
+    _record(recorder, 'NR-001', True, None, len(segments), findings)
     return findings
 
 
@@ -505,13 +588,15 @@ def check_critical_net_routing(schematic, pcb):
 # RP-002: Enhanced return path validation
 # ---------------------------------------------------------------------------
 
-def check_return_path_enhanced(schematic, pcb):
+def check_return_path_enhanced(schematic, pcb, recorder=None):
     """RP-002: Check for reference plane gaps under classified signal nets."""
     findings = []
     if not pcb:
+        _record(recorder, 'RP-002', False, 'no PCB data provided', 0, findings)
         return findings
     segments = pcb.get('tracks', {}).get('segments', [])
     if not segments:
+        _record(recorder, 'RP-002', False, 'no PCB track segments present', 0, findings)
         return findings
     conn_graph = pcb.get('connectivity_graph', {})
     net_id_map = _build_net_id_map(pcb)
@@ -540,8 +625,9 @@ def check_return_path_enhanced(schematic, pcb):
                         nets=[net_name],
                         recommendation='Re-route signal to avoid reference plane gaps.',
                         impact='Increased loop area and EMI',
-                    
+
                         source=ANALYZER_SOURCE,))
+        _record(recorder, 'RP-002', True, None, len(segments), findings)
         return findings
     flagged = set()
     for seg in segments:
@@ -575,10 +661,11 @@ def check_return_path_enhanced(schematic, pcb):
                     nets=[net_name, gap['net']],
                     recommendation=f'Re-route {net_name} to avoid the {gap["net"]} plane gap, or bridge with a stitching capacitor.',
                     impact='Increased EMI from enlarged return path loop',
-                
+
                     source=ANALYZER_SOURCE,))
                 flagged.add(net_name)
                 break
+    _record(recorder, 'RP-002', True, None, len(segments), findings)
     return findings
 
 
@@ -586,13 +673,15 @@ def check_return_path_enhanced(schematic, pcb):
 # TW-001: Trace width validation
 # ---------------------------------------------------------------------------
 
-def check_trace_width_power(schematic, pcb):
+def check_trace_width_power(schematic, pcb, recorder=None):
     """TW-001: Check all power net trace widths against IPC-2152."""
     findings = []
     if not pcb or not schematic:
+        _record(recorder, 'TW-001', False, 'no PCB or schematic data provided', 0, findings)
         return findings
     segments = pcb.get('tracks', {}).get('segments', [])
     if not segments:
+        _record(recorder, 'TW-001', False, 'no PCB track segments present', 0, findings)
         return findings
     net_id_map = _build_net_id_map(pcb)
     regulators = [f for f in schematic.get('findings', [])
@@ -607,6 +696,7 @@ def check_trace_width_power(schematic, pcb):
         if input_rail and iout > 0:
             net_current[input_rail] = net_current.get(input_rail, 0) + iout
     if not net_current:
+        _record(recorder, 'TW-001', False, 'no power regulator current estimates in schematic analysis', 0, findings)
         return findings
     net_min_width = {}
     for seg in segments:
@@ -632,8 +722,9 @@ def check_trace_width_power(schematic, pcb):
                 recommendation=f'Widen {net_name} traces to >= {min_w:.1f}mm or use copper pour.',
                 fix_params={'type': 'resistor_value_change', 'change': f'trace width -> {min_w:.1f}mm', 'basis': f'IPC-2152: {current:.1f}A'},
                 standard_ref='IPC-2152', impact='Trace overheating and voltage drop',
-            
+
                 source=ANALYZER_SOURCE,))
+    _record(recorder, 'TW-001', True, None, len(net_current), findings)
     return findings
 
 
@@ -641,13 +732,15 @@ def check_trace_width_power(schematic, pcb):
 # PS-002: Plane split detection
 # ---------------------------------------------------------------------------
 
-def check_plane_splits(schematic, pcb):
+def check_plane_splits(schematic, pcb, recorder=None):
     """PS-002: Detect ground/power plane splits and signal traces crossing them."""
     findings = []
     if not pcb:
+        _record(recorder, 'PS-002', False, 'no PCB data provided', 0, findings)
         return findings
     conn_graph = pcb.get('connectivity_graph', {})
     if not conn_graph:
+        _record(recorder, 'PS-002', False, 'no connectivity_graph in PCB analysis (--full required)', 0, findings)
         return findings
     segments = pcb.get('tracks', {}).get('segments', [])
     net_id_map = _build_net_id_map(pcb)
@@ -707,6 +800,7 @@ def check_plane_splits(schematic, pcb):
             impact='Return path discontinuity increases EMI',
 
             source=ANALYZER_SOURCE,))
+    _record(recorder, 'PS-002', True, None, len(conn_graph), findings)
     return findings
 
 
@@ -718,13 +812,15 @@ _SPEED_OF_LIGHT = 3e8
 _EFFECTIVE_ER = 4.2
 
 
-def check_via_stitching_density(schematic, pcb):
+def check_via_stitching_density(schematic, pcb, recorder=None):
     """VS-002: Check ground via stitching density against frequency requirements."""
     findings = []
     if not pcb:
+        _record(recorder, 'VS-002', False, 'no PCB data provided', 0, findings)
         return findings
     via_list = pcb.get('vias', {}).get('vias', [])
     if not via_list:
+        _record(recorder, 'VS-002', False, 'no vias in PCB analysis', 0, findings)
         return findings
     net_id_map = _build_net_id_map(pcb)
     outline = pcb.get('board_outline', {})
@@ -732,6 +828,7 @@ def check_via_stitching_density(schematic, pcb):
     board_w = bbox.get('width', 0)
     board_h = bbox.get('height', 0)
     if board_w <= 0 or board_h <= 0:
+        _record(recorder, 'VS-002', False, 'board outline bounding box unavailable or zero-sized', 0, findings)
         return findings
     highest_freq = _get_highest_frequency(schematic)
     if highest_freq <= 0:
@@ -755,11 +852,13 @@ def check_via_stitching_density(schematic, pcb):
             severity='warning', confidence='deterministic', evidence_source='topology',
             recommendation=f'Add ground stitching vias at <= {max_spacing_mm:.0f}mm spacing.',
             impact='Poor ground plane connectivity between layers',
-        
+
             source=ANALYZER_SOURCE,))
+        _record(recorder, 'VS-002', True, None, len(via_list), findings)
         return findings
     cell_size = max_spacing_mm
     if cell_size <= 0:
+        _record(recorder, 'VS-002', False, 'computed via-stitching grid cell size is zero or negative', len(via_list), findings)
         return findings
     cells_x = max(1, int(math.ceil(board_w / cell_size)))
     cells_y = max(1, int(math.ceil(board_h / cell_size)))
@@ -781,8 +880,9 @@ def check_via_stitching_density(schematic, pcb):
             confidence='heuristic', evidence_source='topology',
             recommendation=f'Add ground stitching vias at <= {max_spacing_mm:.0f}mm intervals.',
             impact='Degraded ground plane connectivity at high frequencies',
-        
+
             source=ANALYZER_SOURCE,))
+    _record(recorder, 'VS-002', True, None, len(via_list), findings)
     return findings
 
 
@@ -842,19 +942,22 @@ def _find_diff_pairs(net_names, schematic):
     return pairs
 
 
-def check_diff_pair_quality(schematic, pcb):
+def check_diff_pair_quality(schematic, pcb, recorder=None):
     """DP-005: Check differential pair routing quality."""
     findings = []
     if not pcb:
+        _record(recorder, 'DP-005', False, 'no PCB data provided', 0, findings)
         return findings
     segments = pcb.get('tracks', {}).get('segments', [])
     via_list = pcb.get('vias', {}).get('vias', [])
     if not segments:
+        _record(recorder, 'DP-005', False, 'no PCB track segments present', 0, findings)
         return findings
     net_id_map = _build_net_id_map(pcb)
     all_net_names = list(set(net_id_map.values()))
     pairs = _find_diff_pairs(all_net_names, schematic)
     if not pairs:
+        _record(recorder, 'DP-005', False, 'no differential pairs classified in schematic net_classifications', 0, findings)
         return findings
     net_stats = {}
     for seg in segments:
@@ -904,8 +1007,9 @@ def check_diff_pair_quality(schematic, pcb):
                 nets=[p_net, n_net],
                 recommendation='Match via counts, layer transitions, and trace lengths between P and N.',
                 impact='Degraded signal integrity and increased common-mode EMI',
-            
+
                 source=ANALYZER_SOURCE,))
+    _record(recorder, 'DP-005', True, None, len(pairs), findings)
     return findings
 
 
@@ -913,20 +1017,27 @@ def check_diff_pair_quality(schematic, pcb):
 # Main
 # ---------------------------------------------------------------------------
 
-def run_all_checks(schematic: dict, pcb: dict | None) -> list[dict]:
+def run_all_checks(schematic: dict, pcb: dict | None) -> tuple[list[dict], list[dict]]:
+    """Run every cross-domain check in a fixed order.
+
+    Returns (findings, checks_run) — checks_run is the KH-381 manifest
+    recording whether each check executed, in call order (see
+    _CheckRecorder).
+    """
     findings: list[dict] = []
-    findings.extend(check_connector_current(schematic, pcb))
-    findings.extend(check_esd_coverage_gaps(schematic, pcb))
-    findings.extend(check_decoupling_adequacy(schematic, pcb))
-    findings.extend(check_cross_validation(schematic, pcb))
+    recorder = _CheckRecorder()
+    findings.extend(check_connector_current(schematic, pcb, recorder=recorder))
+    findings.extend(check_esd_coverage_gaps(schematic, pcb, recorder=recorder))
+    findings.extend(check_decoupling_adequacy(schematic, pcb, recorder=recorder))
+    findings.extend(check_cross_validation(schematic, pcb, recorder=recorder))
     # PCB intelligence checks
-    findings.extend(check_critical_net_routing(schematic, pcb))
-    findings.extend(check_return_path_enhanced(schematic, pcb))
-    findings.extend(check_trace_width_power(schematic, pcb))
-    findings.extend(check_plane_splits(schematic, pcb))
-    findings.extend(check_via_stitching_density(schematic, pcb))
-    findings.extend(check_diff_pair_quality(schematic, pcb))
-    return findings
+    findings.extend(check_critical_net_routing(schematic, pcb, recorder=recorder))
+    findings.extend(check_return_path_enhanced(schematic, pcb, recorder=recorder))
+    findings.extend(check_trace_width_power(schematic, pcb, recorder=recorder))
+    findings.extend(check_plane_splits(schematic, pcb, recorder=recorder))
+    findings.extend(check_via_stitching_density(schematic, pcb, recorder=recorder))
+    findings.extend(check_diff_pair_quality(schematic, pcb, recorder=recorder))
+    return findings, recorder.entries
 
 
 def main():
@@ -1018,7 +1129,7 @@ def main():
     )
     compat = build_compat()
 
-    findings = run_all_checks(schematic, pcb)
+    findings, checks_run = run_all_checks(schematic, pcb)
     elapsed = time.time() - t0
 
     sev_counts = {'error': 0, 'warning': 0, 'info': 0}
@@ -1035,6 +1146,7 @@ def main():
         'summary': {'total_findings': len(findings), 'by_severity': sev_counts},
         'findings': findings,
         'assessments': [],
+        'checks_run': checks_run,
         'trust_summary': compute_trust_summary(findings),
     }
 

@@ -187,7 +187,7 @@ See `references/schematic-analysis.md` Step 2 for the full verification checklis
 ```bash
 python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --analysis-dir analysis/
 python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --analysis-dir analysis/ --proximity  # add crosstalk analysis
-python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --output pcb.json  # one-off, no cache
+python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --output pcb.json --schematic analysis/schematic.json  # one-off; cross-ref + power-rail auto-detect
 ```
 Outputs structured JSON (~50-300KB depending on board complexity) with:
 - **Core**: footprint inventory (pads, courtyards, net assignments, extended attrs, schematic cross-reference), track/via statistics, zone summaries, board outline/dimensions, routing completeness
@@ -764,7 +764,7 @@ For script internals, data structures, signal analysis patterns, and batch test 
 | `.net` / `.xml` | S-expr/XML | Netlist export, BOM export |
 | `.gbr` / `.g*` / `.drl` | Gerber/Excellon | Manufacturing files (copper, mask, silk, outline, drill) |
 
-For version detection and detailed field-by-field format documentation, read `references/file-formats.md`. On Flatpak KiCad installs `kicad-cli` (native DRC/ERC reports, file exports) is not on PATH — invoke it as `flatpak run --command=kicad-cli org.kicad.KiCad <args>`.
+For version detection and detailed field-by-field format documentation, read `references/file-formats.md`. On Flatpak KiCad installs `kicad-cli` (native DRC/ERC reports, file exports) is not on PATH — invoke it as `flatpak run --command=kicad-cli org.kicad.KiCad <args>`; its sandbox can't read host `/tmp`, so write exports/netlists under the project directory (or elsewhere under `$HOME`) instead.
 
 ## Analysis Strategies
 
