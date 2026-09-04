@@ -224,6 +224,7 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
         normalize_url(match.group(2))
         for match in README_ENTRY_RE.finditer(base_readme)
     }
+    base_lines = set(base_readme.splitlines())
     readme_lines = head_readme.splitlines()
 
     entries: list[Contribution] = []
@@ -241,7 +242,12 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
             in_community_plugins = (
                 current_readme_section(readme_lines, added_line_number) == "Community Plugins"
             )
-            if in_community_plugins and content.strip().startswith("- ") and not match:
+            if (
+                in_community_plugins
+                and content.strip().startswith("- ")
+                and not match
+                and content not in base_lines
+            ):
                 invalid_entries.append(f"line {added_line_number}: {content.strip()}")
             if match and in_community_plugins:
                 url = normalize_url(match.group(2))
