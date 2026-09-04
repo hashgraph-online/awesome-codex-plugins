@@ -36,8 +36,8 @@ jobs:
           BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/main' }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python3 -m unittest scripts/test_validate_contribution.py
-          python3 scripts/check-alphabetical.py README.md
+          python3 -m unittest scripts/test_check_alphabetical.py
+          python3 scripts/check-alphabetical.py README.md --base-ref "$BASE_REF"
           python3 scripts/validate-contribution.py \
             --base-ref "$BASE_REF" \
             --matrix-output "$RUNNER_TEMP/contributions.json"
