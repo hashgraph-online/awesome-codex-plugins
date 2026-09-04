@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from collections import Counter
 import difflib
 import json
 import os
@@ -214,6 +215,21 @@ def current_readme_section(readme_lines: list[str], line_number: int) -> str:
     return heading
 
 
+def community_plugin_line_counts(readme: str) -> Counter[str]:
+    """Count exact list lines already present in the Community Plugins section."""
+
+    counts: Counter[str] = Counter()
+    heading = ""
+    for line in readme.splitlines():
+        match = re.match(r"^##\s+(.+?)\s*$", line)
+        if match:
+            heading = match.group(1).strip()
+            continue
+        if heading == "Community Plugins" and line.strip().startswith("- "):
+            counts[line] += 1
+    return counts
+
+
 def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: str) -> list[Contribution]:
     """Find newly added Community Plugins entries in a README diff."""
 
@@ -224,7 +240,8 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
         normalize_url(match.group(2))
         for match in README_ENTRY_RE.finditer(base_readme)
     }
-    base_lines = set(base_readme.splitlines())
+    base_community_lines = community_plugin_line_counts(base_readme)
+    head_community_lines = community_plugin_line_counts(head_readme)
     readme_lines = head_readme.splitlines()
 
     entries: list[Contribution] = []
@@ -246,7 +263,10 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
                 in_community_plugins
                 and content.strip().startswith("- ")
                 and not match
-                and content not in base_lines
+                and not (
+                    base_community_lines[content] > 0
+                    and head_community_lines[content] <= base_community_lines[content]
+                )
             ):
                 invalid_entries.append(f"line {added_line_number}: {content.strip()}")
             if match and in_community_plugins:
