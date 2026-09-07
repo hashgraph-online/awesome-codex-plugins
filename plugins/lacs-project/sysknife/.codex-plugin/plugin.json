@@ -1,6 +1,6 @@
 {
   "name": "sysknife",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Linux sysadmin co-pilot as an MCP server: plain-language requests become typed, risk-classified actions that a privileged daemon runs only after out-of-band terminal approval, with an Ed25519-signed audit chain and automatic rollback.",
   "repository": "https://github.com/lacs-project/sysknife",
   "homepage": "https://lacs-project.github.io/sysknife/",

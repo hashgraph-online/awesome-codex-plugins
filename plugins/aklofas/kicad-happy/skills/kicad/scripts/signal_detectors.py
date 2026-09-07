@@ -569,7 +569,7 @@ def detect_rc_filters(ctx: AnalysisContext, voltage_dividers: list[dict],
                 for cref in net_to_caps.get(rn, ()):
                     candidate_caps.add(cref)
 
-        for cap_ref in candidate_caps:
+        for cap_ref in sorted(candidate_caps):
             if cap_ref in crystal_refs:
                 continue  # KH-107: Skip crystal circuit components
             if cap_ref in opamp_exclude_refs:
@@ -924,7 +924,7 @@ def detect_crystal_circuits(ctx: AnalysisContext) -> list[dict]:
                 xtal_nets.add(net_name)
 
         load_caps = []
-        for net_name in xtal_nets:
+        for net_name in sorted(xtal_nets):
             if net_name not in ctx.nets:
                 continue
             for p in ctx.nets[net_name]["pins"]:
@@ -1070,13 +1070,11 @@ def detect_crystal_circuits(ctx: AnalysisContext) -> list[dict]:
                 out_net = net_name
             elif ctx.is_power_net(net_name) and not ctx.is_ground(net_name):
                 vcc_net = net_name
-        # If no named output pin, check for non-power non-ground pins
-        if not out_net:
-            for pin in comp.get("pins", []):
-                net_name, _ = ctx.pin_net.get((ref, pin["number"]), (None, None))
-                if net_name and not ctx.is_power_net(net_name) and not ctx.is_ground(net_name):
-                    out_net = net_name
-                    break
+        # KH-370: do NOT fall back to the first non-power/non-ground pin as
+        # output_net — on a misclassified bus peripheral that net is a data
+        # line (e.g. I2C SCL), not a clock output. Leave out_net unset when
+        # no clock-out-named pin is present; CD-DET phase 2 already skips
+        # entries with no output_net.
 
         _osc_freq = _parse_crystal_frequency(comp.get("value", ""))
         _osc_freq_str = f" at {_osc_freq}Hz" if _osc_freq else ""
@@ -2661,7 +2659,7 @@ def detect_opamp_circuits(ctx: AnalysisContext) -> list[dict]:
 
             # 2-hop feedback
             if not rf_ref:
-                for out_comp_ref in out_comps:
+                for out_comp_ref in sorted(out_comps):
                     oc = ctx.comp_lookup.get(out_comp_ref)
                     if not oc or oc["type"] not in ("resistor", "capacitor"):
                         continue
@@ -2980,13 +2978,14 @@ def detect_bridge_circuits(ctx: AnalysisContext) -> tuple[list[dict], set, dict]
                                 break
 
         _bridge_refs = [hb["high_side"] for hb in half_bridges] + [hb["low_side"] for hb in half_bridges]
-        _bridge_driver_ref = next(iter(driver_ics), None)
+        _driver_ics = sorted(driver_ics)
+        _bridge_driver_ref = _driver_ics[0] if _driver_ics else None
         _bridge_summary_ref = _bridge_driver_ref or (_bridge_refs[0] if _bridge_refs else "")
         bridge_circuits.append({
             "topology": topology,
             "half_bridges": half_bridges,
-            "driver_ics": list(driver_ics),
-            "driver_values": {ref: ctx.comp_lookup[ref]["value"] for ref in driver_ics if ref in ctx.comp_lookup},
+            "driver_ics": _driver_ics,
+            "driver_values": {ref: ctx.comp_lookup[ref]["value"] for ref in _driver_ics if ref in ctx.comp_lookup},
             "fet_values": {hb["high_side"]: fet_pins[hb["high_side"]]["value"] for hb in half_bridges},
             "detector": "detect_bridge_circuits",
             "rule_id": "BR-DET",
@@ -2996,7 +2995,7 @@ def detect_bridge_circuits(ctx: AnalysisContext) -> tuple[list[dict], set, dict]
             "evidence_source": "topology",
             "summary": f"Bridge/gate driver {_bridge_summary_ref}",
             "description": f"{topology} bridge circuit detected",
-            "components": _bridge_refs + list(driver_ics),
+            "components": _bridge_refs + _driver_ics,
             "nets": [],
             "pins": [],
             "recommendation": "",
@@ -3473,14 +3472,14 @@ def detect_design_observations(ctx: AnalysisContext, results: dict) -> list[dict
         ref = ic["reference"]
         ic_power_nets = {net for net, _ in ctx.ref_pins.get(ref, {}).values()
                          if net and ctx.is_power_net(net) and not ctx.is_ground(net)}
-        undecoupled = [r for r in ic_power_nets if r not in decoupled_rails]
+        undecoupled = sorted([r for r in ic_power_nets if r not in decoupled_rails])
         if undecoupled:
             design_observations.append({
                 "category": "decoupling",
                 "component": ref,
                 "value": ic["value"],
                 "rails_without_caps": undecoupled,
-                "rails_with_caps": [r for r in ic_power_nets if r in decoupled_rails],
+                "rails_with_caps": sorted([r for r in ic_power_nets if r in decoupled_rails]),
                 "detector": "detect_design_observations",
                 "rule_id": "DO-DET",
                 "severity": "info",

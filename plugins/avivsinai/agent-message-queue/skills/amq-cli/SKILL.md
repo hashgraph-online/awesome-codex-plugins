@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.76.0 # x-release-please-version
+version: 0.77.0 # x-release-please-version
 description: >-
   Coordinate agents via the AMQ CLI for file-based inter-agent messaging. Use
   this skill whenever you need to send messages to another agent (codex, claude,

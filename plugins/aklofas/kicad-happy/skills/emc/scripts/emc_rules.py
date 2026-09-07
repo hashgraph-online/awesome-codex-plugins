@@ -2262,7 +2262,20 @@ def _point_to_edges_min_distance(px: float, py: float,
         etype = edge.get('type', 'line')
         start = edge.get('start', [0, 0])
         end = edge.get('end', [0, 0])
-        if etype == 'line' or etype == 'rect':
+        if etype == 'rect':
+            # Rect edges are two opposite corners of the board outline
+            # rectangle, not a diagonal line — expand to the 4 sides and
+            # take the min distance to any side (mirrors the BV-001
+            # rect-edge expansion in analyze_pcb.py).
+            x1, y1 = start[0], start[1]
+            x2, y2 = end[0], end[1]
+            d = min(
+                point_to_segment_distance(px, py, x1, y1, x2, y1),
+                point_to_segment_distance(px, py, x2, y1, x2, y2),
+                point_to_segment_distance(px, py, x2, y2, x1, y2),
+                point_to_segment_distance(px, py, x1, y2, x1, y1),
+            )
+        elif etype == 'line':
             d = point_to_segment_distance(px, py, start[0], start[1],
                                           end[0], end[1])
         elif etype == 'arc' and edge.get('mid'):

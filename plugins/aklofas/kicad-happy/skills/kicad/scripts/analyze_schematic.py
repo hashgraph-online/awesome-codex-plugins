@@ -165,6 +165,8 @@ def _resolve_lookup_paths(sch_path: str | Path,
 
 ANALYZER_SOURCE = "sch"
 
+MAX_TESTED_FORMAT_VERSION = 20260306  # bump when a newer corpus era is adopted
+
 # ---------------------------------------------------------------------------
 # Case-insensitive distributor / MPN property helpers
 # ---------------------------------------------------------------------------
@@ -627,7 +629,7 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
         sym_def = (lib_symbols.get(lib_name) if lib_name else None) or lib_symbols.get(lib_id, {})
         is_power_sym = sym_def.get("is_power", False)
         comp["type"] = classify_component(ref, lib_id, value, is_power_sym, footprint, in_bom=in_bom,
-                                          description=description)
+                                          description=description, pins=sym_def.get("pins"))
         # Store ki_keywords for downstream analysis (e.g., P-channel detection)
         comp["keywords"] = sym_def.get("keywords", "")
         # Track power scope (global vs local) for connectivity
@@ -1487,7 +1489,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
                 if role in ("local", "hier"):
                     bus_named_labels.append((s, bare, lbl["x"], lbl["y"]))
             else:
-                g.note_unresolved("bus-name label not on a bus wire", bare)
+                g.note_unresolved("label_not_on_bus_wire", bare)
         for g in bus_graphs.values():
             g.finalize()
 
@@ -1583,8 +1585,14 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
     if no_connects:
         for nc in no_connects:
             sheet = nc.get("_sheet", 0)
-            k = add_point(nc["x"], nc["y"], {"source": "no_connect"}, sheet)
-            union_with_overlapping_wires(k, nc["x"], nc["y"], sheet)
+            # A no-connect marker is an ERC annotation, never a connection.
+            # add_point() already shares the coordinate key with a pin or wire
+            # endpoint on the same point, which is all the absorption and NC
+            # tagging described above needs. Unioning the marker with every
+            # *overlapping* wire also caught wires passing mid-span beneath it,
+            # which KiCad does not connect, dragging the NC'd pin into that
+            # wire's net — a false-positive connection.
+            add_point(nc["x"], nc["y"], {"source": "no_connect"}, sheet)
 
     # Bus pass unions (GH #25). A bus member is joined into the coordinate
     # union-find through a synthetic slot key ("bus", sheet, cluster, member).
@@ -1665,8 +1673,11 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         # When several member wires of one bus are shorted together (e.g. all
         # tied to GND), the tapped net carries every one of those labels — KiCad
         # collapses those members to a single net, so we union the tap with each
-        # matched member slot (sorted for determinism). Only a tap whose net
-        # carries no member label is genuinely unresolved.
+        # matched member slot (sorted for determinism). A tap whose net carries
+        # no label at all is genuinely unlabeled; a tap whose net DOES carry a
+        # label that just isn't one of this bus's member names is a distinct
+        # failure (the label misnamed/mistargeted, not absent) — kept separate
+        # so the reason says what was actually unresolved.
         for s, tk, tap in tap_points:
             g = bus_graphs[s]
             names = root_names.get(find(tk), set())
@@ -1675,8 +1686,10 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             if cand:
                 for member in sorted(cand):
                     union(tk, bus_slot(s, tap["cluster"], member))
+            elif names:
+                g.note_unresolved("entry_tap_name_not_in_bus", sorted(names)[0])
             else:
-                g.note_unresolved("unlabelled bus entry tap", None)
+                g.note_unresolved("unlabeled_entry_tap", None)
 
         # (C) Positional sheet-pin port matching.
         pin_ports, hier_ports = [], []
@@ -5223,6 +5236,22 @@ def validate_footprint_filters(components: list[dict], lib_symbols: dict) -> lis
     return warnings
 
 
+def _bom_real_components(components: list[dict]) -> list[dict]:
+    """Filter to components that count as real BOM parts.
+
+    Excludes power symbols/flags, test points, mounting holes, fiducials,
+    graphics, DNP parts, and anything not marked in_bom. Shared by
+    audit_datasheet_coverage (DS-001/002/003) and audit_sourcing_gate
+    (SS-001/002/003) — both need the same "real BOM part" definition
+    (KH-390).
+    """
+    return [c for c in components
+            if c.get("type") not in ("power_symbol", "power_flag", "flag",
+                                     "test_point", "mounting_hole",
+                                     "fiducial", "graphic")
+            and c.get("in_bom") and not c.get("dnp")]
+
+
 def audit_datasheet_coverage(components: list[dict],
                              project_dir: str) -> list[dict]:
     """Emit a banner-level finding when datasheet evidence is absent.
@@ -5239,11 +5268,7 @@ def audit_datasheet_coverage(components: list[dict],
     MPNs are set — offer to sync).
     """
     findings: list[dict] = []
-    real = [c for c in components
-            if c.get("type") not in ("power_symbol", "power_flag", "flag",
-                                     "test_point", "mounting_hole",
-                                     "fiducial", "graphic")
-            and c.get("in_bom") and not c.get("dnp")]
+    real = _bom_real_components(components)
     # Deduplicate by reference (multi-unit symbols)
     seen = set()
     unique = []
@@ -5296,13 +5321,29 @@ def audit_datasheet_coverage(components: list[dict],
             pass
 
     # Build finding.
-    refs_without_mpn = sorted(c.get("reference", "")
-                              for c in unique if not c.get("mpn"))[:20]
-
     if ds_dir_found and ds_file_count > 0:
         # Datasheets present — no banner needed. Emit info-only if coverage
-        # is partial so the reviewer knows which refs are ungrounded.
-        if mpn_pct < 90 and refs_without_mpn:
+        # is partial so the reviewer knows which lines are ungrounded.
+        # DS-003 counts by unique BOM line (value + footprint), the same
+        # basis SS-002 uses — a line has coverage if ANY instance carries
+        # an MPN (KH-390: the two denominators used to disagree).
+        line_groups: dict[tuple, dict] = {}
+        for c in real:
+            key = (c.get("value", ""), c.get("footprint", ""))
+            line = line_groups.setdefault(key, {"refs": [], "has_mpn": False})
+            r = c.get("reference", "")
+            if r:
+                line["refs"].append(r)
+            if c.get("mpn"):
+                line["has_mpn"] = True
+        line_total = len(line_groups)
+        missing_lines = [line for line in line_groups.values()
+                         if not line["has_mpn"]]
+        line_pct = ((line_total - len(missing_lines)) / line_total * 100
+                    if line_total else 0.0)
+        refs_without_mpn = sorted(
+            {r for line in missing_lines for r in line["refs"]})[:20]
+        if line_pct < 90 and refs_without_mpn:
             findings.append({
                 "detector": "audit_datasheet_coverage",
                 "rule_id": "DS-003",
@@ -5311,15 +5352,16 @@ def audit_datasheet_coverage(components: list[dict],
                 "evidence_source": "bom",
                 "category": "verification",
                 "summary": (f"Datasheets present ({ds_file_count} files) but "
-                            f"{total - mpn_count}/{total} BOM parts lack an "
-                            "MPN — those parts can't be cross-referenced."),
+                            f"{len(missing_lines)} of {line_total} unique "
+                            "BOM lines lack an MPN — those lines can't be "
+                            "cross-referenced."),
                 "components": refs_without_mpn,
                 "nets": [],
                 "pins": [],
                 "datasheets_dir": ds_dir_found,
                 "datasheet_file_count": ds_file_count,
-                "bom_size": total,
-                "mpn_coverage_percent": round(mpn_pct, 1),
+                "bom_size": line_total,
+                "mpn_coverage_percent": round(line_pct, 1),
                 "recommendation": ("Set the MPN field on the listed parts "
                                    "and re-sync datasheets so every BOM "
                                    "entry has manufacturer evidence."),
@@ -5462,11 +5504,7 @@ def audit_sourcing_gate(components: list[dict]) -> list[dict]:
     mpn_percent == 100 emits nothing.
     """
     findings: list[dict] = []
-    real = [c for c in components
-            if c.get("type") not in ("power_symbol", "power_flag", "flag",
-                                     "test_point", "mounting_hole",
-                                     "fiducial", "graphic")
-            and c.get("in_bom") and not c.get("dnp")]
+    real = _bom_real_components(components)
     if not real:
         return findings
 
@@ -5502,7 +5540,7 @@ def audit_sourcing_gate(components: list[dict]) -> list[dict]:
                     f"({covered}/{total} unique parts). Board is not pre-fab ready.")
     elif pct < 80.0:
         rid, sev = "SS-002", "warning"
-        headline = (f"Sourcing gap: {covered}/{total} unique BOM parts have an MPN "
+        headline = (f"Sourcing gap: {covered}/{total} unique BOM lines have an MPN "
                     f"({pct:.0f}%). Populate before fab.")
     else:
         rid, sev = "SS-003", "info"
@@ -7544,7 +7582,7 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
 
     if not findings:
         return {}
-    return {"protocols_checked": list({f["protocol"] for f in findings}), "findings": findings,
+    return {"protocols_checked": sorted({f["protocol"] for f in findings}), "findings": findings,
             "total_issues": sum(len(f.get("issues", []) or []) for f in findings)}
 
 
@@ -9450,6 +9488,16 @@ def analyze_schematic(path: str, project_root: str | None = None,
     generator_version = parsed["generator_version"]
     file_version = parsed["file_version"]
 
+    try:
+        _v = int(file_version)
+    except (TypeError, ValueError):
+        _v = None
+    format_newer_note = None
+    if _v is not None and _v > MAX_TESTED_FORMAT_VERSION:
+        format_newer_note = (
+            f"file format version {_v} is newer than the max tested "
+            f"({MAX_TESTED_FORMAT_VERSION}); analysis is best-effort")
+
     # Build net map across all sheets
     nets = build_net_map(all_components, all_wires, all_labels, power_symbols, all_junctions,
                          all_no_connects,
@@ -9626,14 +9674,41 @@ def analyze_schematic(path: str, project_root: str | None = None,
         _comp.pop("_unit_pins", None)
 
     # Flatten signal_analysis: all list values become findings, dict values promote to top level
+    # KH-388: detect_voltage_dividers' feedback-network path deliberately
+    # appends the SAME finding dict to both the `voltage_dividers` and
+    # `feedback_networks` signal_analysis lists — see the 8c36212 cascade
+    # warning in signal_detectors.py:324-346; that double-emission must
+    # stay, it feeds detect_rc_filters' exclusion set. Dedup here instead
+    # so the shared object doesn't also duplicate in the flattened
+    # findings[] output. id()-based dedup is safe for ANY detector (a
+    # dict appearing twice in the SAME analysis output is always the same
+    # aliasing quirk noted in finding_schema.py's assign_finding_ids). The
+    # (detector, components) key belt is scoped to detect_voltage_dividers
+    # only — other detectors (e.g. VM-001) legitimately emit multiple
+    # distinct findings for the same component pair on different nets, so
+    # a components-only key would wrongly collapse those. Order-preserving
+    # (first occurrence wins).
     findings = []
+    _flatten_seen_ids = set()
+    _flatten_seen_vd_keys = set()
     for _sa_key, _sa_value in signal_analysis.items():
         if isinstance(_sa_value, list):
             _det_name = f"detect_{_sa_key}"
             for _item in _sa_value:
                 if isinstance(_item, dict) and "detector" not in _item:
                     _item["detector"] = _det_name
-            findings.extend(_sa_value)
+            for _item in _sa_value:
+                if isinstance(_item, dict):
+                    _iid = id(_item)
+                    if _iid in _flatten_seen_ids:
+                        continue
+                    _flatten_seen_ids.add(_iid)
+                    if _item.get("detector") == "detect_voltage_dividers":
+                        _vkey = (_item.get("detector"), tuple(_item.get("components") or []))
+                        if _vkey in _flatten_seen_vd_keys:
+                            continue
+                        _flatten_seen_vd_keys.add(_vkey)
+                findings.append(_item)
 
     # Datasheet-coverage audit findings (DS-001 / DS-002 / DS-003) surface
     # up front so reviewers can't miss the "this is a consistency-only
@@ -9659,6 +9734,16 @@ def analyze_schematic(path: str, project_root: str | None = None,
     # UC-001..004 — USB compliance check failures (KH-338)
     if usb_compliance:
         findings.extend(usb_compliance.pop("findings", []))
+
+    if format_newer_note:
+        findings.append(make_finding(
+            detector="format_version_gate", rule_id="FV-001",
+            category="file_format",
+            summary=format_newer_note,
+            description=format_newer_note,
+            severity="info", confidence="deterministic",
+            evidence_source="topology",
+        ))
 
     # Build severity summary
     sev_counts = {"error": 0, "warning": 0, "info": 0}

@@ -1,14 +1,16 @@
 {
-  "name": "mac-parallel-accelerator-ui-build",
-  "version": "0.10.1",
+  "name": "atomlane-ui-build",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "description": "Reproducible build inputs for the AtomLane MCP App indicator.",
+  "license": "MPL-2.0",
   "scripts": {
     "build:indicator": "node scripts/build_indicator.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "zod": "4.4.3"
   },
   "devDependencies": {

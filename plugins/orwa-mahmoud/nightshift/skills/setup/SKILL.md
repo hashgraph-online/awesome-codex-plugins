@@ -145,7 +145,7 @@ not rewrite or downgrade it, and do not continue scaffolding as if the site were
  never describe the repo as recommended; the default is no. On yes: if `$NS/.git` does
  not exist, run `git -C "$NS" init` rather than `cd`-ing there.
  Ensure `$NS/.gitignore` contains the
- transient markers `STOP`, `.stall`, `.notified`, `deadline`, `.session-end`, `.shift-session`,
+ transient markers `STOP`, `.stall`, `.notified`, `deadline`, `.session-end`, `.shift-pulse`, `.mint-failed`, `.shift-session`,
  `.shift-session.tmp.*`, `.shift-worker`, `.shift-lease`, `.shift-lease.tmp.*`, `.mutex-scope`,
  `.mutex-scope.tmp.*`, `.watchman`, `.watchman-tick`, `.lock.d/`, and `.lease-lock.d/`; preserve
  existing lines. Make one initial commit only when setup created the receipts repository.

@@ -197,6 +197,7 @@ Output of `python3 skills/kicad/scripts/analyze_pcb.py <file>.kicad_pcb`.
 | `board_thickness_mm` | `float \| null` | no | Stackup thickness (mm); duplicated from setup for downstream consumers. Null when the source file has no (general (thickness ...)) entry. TH-043. |
 | `board_metadata` | `dict` | no | Board metadata bag (paper size, title block fragments, etc.); empty dict when no metadata extracted. TH-043. |
 | `power_net_routing` | `list[dict]` | no | Power net routing rollup: [{net, track_count, total_length_mm, min_width_mm, max_width_mm, widths_used}]; empty list when no power routing detected. TH-043-residual. |
+| `power_net_resolution` | `dict` | no | Power/ground net classification actually used: {power: [net names], ground: [net names], source: 'cli'\|'schematic'\|'heuristic'}. source reflects how power rail overrides were resolved — explicit --power-rails, rails auto-read from --schematic, or name heuristics alone (KH-393). |
 | `ground_domains` | `dict` | no | Ground topology: domain_count, domains[], multi_domain_components. Always emitted; domain_count=0 is meaningful (no ground domain found). TH-043-residual. |
 | `placement_density` | `dict` | no | Placement density: board_area_cm2, front_density_per_cm2, optional back_density_per_cm2; empty dict when density not computed. TH-043-residual. |
 | `capability_mode_ref` | `dict \| null` | no | Pointer to canonical analysis/capability_mode.json run-level record. Shape: {source, run_id}. See Phase 4 spec §3.3. |
@@ -204,6 +205,7 @@ Output of `python3 skills/kicad/scripts/analyze_pcb.py <file>.kicad_pcb`.
 | `design_intent` | `dict \| null` | no | Resolved design intent: product_class, ipc_class, target_market, operating_temp_range, preferred_passive_size, test_coverage_target, approved_manufacturers, expected_lifetime_years, detection_signals, confidence, source. |
 | `project_config` | `dict \| null` | no | Copy of the resolved project block from .kicad-happy.json (when present). |
 | `connectivity_graph` | `dict \| null` | no | Per-net connectivity graph (island map). Emitted only in --full mode. |
+| `connectivity_graph_error` | `string \| null` | no | Present when --full connectivity graph construction failed; downstream cross-analysis checks that need it were skipped. |
 | `pad_to_pad_distances` | `dict \| null` | no | Pad-to-pad routing distances keyed by 'R1.2-D1.1' style endpoints. Emitted only in --full mode. |
 | `thermal_analysis` | `dict \| null` | no | Thermal management analysis (when triggered). |
 | `thermal_pad_vias` | `dict \| null` | no | Thermal pad via audit (when triggered). |
@@ -307,6 +309,7 @@ Output of `python3 skills/kicad/scripts/cross_analysis.py --schematic ... --pcb 
 | `summary` | `CrossAnalysisSummary` | yes | Roll-up summary (total + by_severity). |
 | `findings` | `list[Finding]` | yes | All cross-domain findings. |
 | `assessments` | `list[Assessment]` | yes | Informational assessments (empty for cross-analysis at v1.4). |
+| `checks_run` | `list[CheckRun]` | yes | Manifest of which cross-analysis checks executed this run, in call order (KH-381). Distinguishes 'ran and found nothing' from 'skipped for lack of required input' — see CheckRun. |
 | `trust_summary` | `TrustSummary` | yes | Trust posture rollup (confidence + evidence source). |
 | `capability_mode_ref` | `dict \| null` | no | Pointer to canonical analysis/capability_mode.json run-level record. Shape: {source, run_id}. See Phase 4 spec §3.3. |
 | `audience_summary` | `dict \| null` | no | Designer/reviewer/manager summary views. Added by apply_output_filters whenever findings[] is non-empty. |

@@ -480,7 +480,7 @@ def build_connectivity_graph(
 
         # Find disconnected pad pairs
         disconnected = []
-        pad_keys = [k for k in report_keys if not k.startswith('via_')]
+        pad_keys = sorted(k for k in report_keys if not k.startswith('via_'))
         if num_islands > 1 and len(pad_keys) > 1:
             island_rep_pads: dict[int, str] = {}
             for pk in pad_keys:

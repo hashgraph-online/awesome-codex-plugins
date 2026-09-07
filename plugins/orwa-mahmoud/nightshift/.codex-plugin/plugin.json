@@ -1,6 +1,6 @@
 {
   "name": "nightshift",
-  "version": "0.18.1",
+  "version": "0.19.0",
   "description": "Accountable, time-bounded Codex shifts. Hand it your punch list, or let it research the product and ship complete improvements until quitting time. Progress stays on disk through compaction and resume. The morning is reviewable commits or artifact receipts, a shift log, and the decisions that were made. When you are done reviewing the run, archive it dated so the live session stays lean.",
   "author": {
     "name": "Orwa Mahmoud",

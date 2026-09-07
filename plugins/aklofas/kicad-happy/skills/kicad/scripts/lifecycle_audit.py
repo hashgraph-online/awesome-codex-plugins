@@ -470,9 +470,11 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
         "mouser": query_lifecycle_mouser,
     }
 
+    attempted = []
     for source_name, fn in api_fns.items():
         if sources and source_name not in sources:
             continue
+        attempted.append(source_name)
         try:
             time.sleep(delay)
             data = fn(mpn)
@@ -505,6 +507,7 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
     has_non_active = any(s in _non_active for s in per_source_status.values())
     result["consensus_split"] = has_active and has_non_active
     result["per_source_status"] = per_source_status
+    result["attempted"] = sorted(attempted)
     if temp_data:
         result["temperature"] = temp_data
     return result
@@ -749,7 +752,19 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
             finding['rule_id'] = 'LC-ACT'
             finding['category'] = 'lifecycle'
             finding['severity'] = 'info'
-            finding['summary'] = f"{mpn}: active ({len(refs)} ref(s))"
+            finding['confidence'] = 'deterministic'
+            finding['evidence_source'] = 'api_lookup'
+            if lcsc_only and status == 'unknown':
+                # LCSC (jlcsearch) carries no lifecycle status field at all —
+                # say so plainly instead of reusing the "active" wording.
+                finding['summary'] = (f"{mpn}: unknown ({len(refs)} ref(s)) — "
+                                      f"LCSC returns no lifecycle status")
+                finding['description'] = (
+                    f"Lifecycle status for {mpn} could not be determined: "
+                    f"LCSC returns no lifecycle status. Use DigiKey, Mouser, "
+                    f"or element14 credentials for a real lifecycle audit.")
+            else:
+                finding['summary'] = f"{mpn}: active ({len(refs)} ref(s))"
             finding['components'] = sorted(refs)
             finding['nets'] = []
             finding['pins'] = []
@@ -757,27 +772,48 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
 
         lifecycle_findings.append(finding)
 
-        # LC-005: Single-source detection
+        # LC-005: Single-source detection (KH-372). Denominator is sources
+        # actually ATTEMPTED, not just the ones that responded — an errored
+        # or timed-out source didn't confirm anything, it isn't absent from
+        # the count. A response with status=None doesn't count as an active
+        # confirmation either. LCSC carries no lifecycle status field at
+        # all, so it's excluded from the lifecycle source counts entirely
+        # (it's a stock/price source, not a lifecycle source) — its
+        # presence is still called out in the description when relevant.
         if status == 'active':
-            active_sources = [src_name for src_name, src_data in finding.get('sources', {}).items()
-                              if src_data.get('status') in ('active', 'Active', None)
-                              and src_data.get('found', True)]
-            total_queried = len(finding.get('sources', {}))
-            if total_queried >= 2 and len(active_sources) == 1:
+            attempted = [s for s in data.get('attempted', []) if s != 'lcsc']
+            all_responded = finding.get('sources', {})
+            responded = [s for s in all_responded if s != 'lcsc']
+            per_source = data.get('per_source_status', {})
+            active_confirmed = sorted(s for s in responded if per_source.get(s) == 'active')
+
+            total_attempted = len(attempted)
+            n_responded = len(responded)
+            if len(active_confirmed) == 1 and n_responded >= 2:
+                stock_note = ''
+                if 'lcsc' in all_responded:
+                    stock_note = (' LCSC also responded but is excluded as a '
+                                  'stock-only source with no lifecycle status.')
                 lifecycle_findings.append({
                     'mpn': mpn,
                     'references': sorted(refs),
                     'status': 'active',
                     'single_source': True,
-                    'source_name': active_sources[0],
+                    'source_name': active_confirmed[0],
+                    'total_attempted': total_attempted,
+                    'responded': n_responded,
+                    'active_confirmed': len(active_confirmed),
                     'detector': 'audit_bom',
                     'rule_id': 'LC-005',
                     'category': 'lifecycle',
                     'severity': 'info',
                     'confidence': 'deterministic',
                     'evidence_source': 'api_lookup',
-                    'summary': f'{mpn}: single source ({active_sources[0]})',
-                    'description': f'Component {mpn} ({len(refs)} ref(s)) is only available from {active_sources[0]} out of {total_queried} sources checked.',
+                    'summary': f'{mpn}: single source ({active_confirmed[0]})',
+                    'description': (
+                        f'Component {mpn} ({len(refs)} ref(s)) is confirmed active by only '
+                        f'{active_confirmed[0]} ({total_attempted} attempted, '
+                        f'{n_responded} responded lifecycle source(s)).{stock_note}'),
                     'components': sorted(refs),
                     'nets': [],
                     'pins': [],

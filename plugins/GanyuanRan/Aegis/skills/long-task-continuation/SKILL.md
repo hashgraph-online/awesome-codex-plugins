@@ -127,9 +127,15 @@ available, use it for the target project workspace and lifecycle records:
    ```bash
    python <aegis-workspace-helper> add-checkpoint --root <target-project-root> --work YYYY-MM-DD-<slug> ...
    python <aegis-workspace-helper> add-baseline-usage --root <target-project-root> --work YYYY-MM-DD-<slug> ...
-   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work YYYY-MM-DD-<slug> ...
+   python <aegis-workspace-helper> add-attempt --root <target-project-root> --work YYYY-MM-DD-<slug> --slice-id <slice-id> --attempt-id <attempt-id> --attempt-status failed ...
+   python <aegis-workspace-helper> add-evidence --root <target-project-root> --work YYYY-MM-DD-<slug> --slice-id <slice-id> --evidence-status <terminal-status> ...
    python <aegis-workspace-helper> add-drift-check --root <target-project-root> --work YYYY-MM-DD-<slug> ...
    ```
+
+   Use `add-attempt` for a failed verification retry inside the current slice.
+   Use `add-evidence` only after the slice reaches `evidence-finalized`,
+   `blocked`, or `abandoned`. Do not let a failed attempt create another slice
+   or a formal evidence sidecar.
 
 4. Before pause, handoff, or completion candidate, assemble a structural proof
    bundle and check the workspace:
@@ -185,6 +191,20 @@ Before long-task execution:
    create/index the first `docs/aegis/work/` files and run `check --root
    <target-project-root>` before continuing.
 
+## Retry Convergence Protocol
+
+A failed verification is another attempt in the current slice, not a new slice.
+
+- Reuse the current `activeSlice` as the `--slice-id`.
+- Record each retry with `add-attempt`, not `add-evidence`.
+- Do not append failed attempts to `90-evidence.md`.
+- Do not create a normal commit for attempt telemetry.
+- A process-only diff under `docs/aegis/` does not restart completed business-code verification.
+- When `add-attempt` reports `process-artifact-pressure`, stop auto-retry and route to `systematic-debugging` or `verification-before-completion`.
+
+Only terminal evidence (`evidence-finalized`, `blocked`, or `abandoned`) is
+eligible for `bundle`.
+
 ## Per-Slice Protocol
 
 Before each work slice, restate:
@@ -210,6 +230,8 @@ After each work slice, update:
 7. helper-backed JSON sidecars through `aegis-workspace.py add-checkpoint`,
    `aegis-workspace.py add-baseline-usage`, `aegis-workspace.py add-evidence`, and `aegis-workspace.py add-drift-check`
    when available
+8. failed verification: `add-attempt` with the current `--slice-id`; do not add
+   terminal evidence or create a process-only commit
 
 When patch-shape/ripple triage, an H-class finding, or a bounded compatibility
 mitigation fired, a locally green result does not clear that direction. Reuse
@@ -301,6 +323,8 @@ Use this shape for long-task updates:
 - `Execution Readiness View`: present | absent | refreshed | stale, and the
   alignment signal when present
 - `Evidence`: commands, files, logs, or manual checks
+- `Process Artifact Pressure`: attempted slices, retry count, terminal state,
+  and whether convergence-stop is active
 - `DriftCheckDraft`: scope, compatibility, retirement, decision
 - `Risk / Unknown`: unresolved blockers or missing evidence
 - `Next`: the next smallest safe action

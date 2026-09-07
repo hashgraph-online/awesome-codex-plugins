@@ -98,15 +98,18 @@ Decision: fix owner | continue investigation | escalate
 A locally green test does not erase triage. Before unplanned repair, compare
 invariant, owner, patch shape, and topology; a renamed carrier is not a new direction.
 
-When a repair changes identity, selector, precedence, scope, or role binding
-and one value may serve multiple roles, name the evidence-backed behavior to
-preserve, highest-risk counterexample, and material unknown before patching.
-Bind role before value; retire invalid responsibility, not separately
-evidenced carrier capability. This bounded, risk-triggered reminder is not a
-universal behavior matrix or exhaustive discovery claim. It does not create
-an artifact, add a TDD risk signal, or expand regression scope. Resolve the
-configured/default TDD mode through the existing route owner: `off` skips
-automatic TDD, while `auto` still selects from the existing signals above.
+When a repair may reinterpret or retire existing semantics, responsibility,
+contract, or relationship, name the behavior to preserve, highest-risk
+counterexample, and material unknown. For each known explicit anchor or
+upstream/downstream reference, state its role and disposition: preserve, rebind
+to the canonical owner, retire with reason, or reject because of conflict.
+Leave unresolved relationships unknown; do not re-infer them downstream.
+Bind role before value and retire invalid responsibility, not evidenced carrier
+capability. Identifiers and selectors are examples, not the trigger. This
+bounded reminder is not a behavior matrix, relationship graph,
+referential-integrity proof, or exhaustive discovery claim. It adds no artifact,
+TDD risk signal, or regression scope; the existing TDD route owner and
+configured/default mode still apply.
 
 If the diagnosis crosses L3, a patch-shape signal fires, a user disputes the
 root claim, a prior fix leaves a symptom, compound/root topology is plausible,
@@ -212,6 +215,8 @@ python <aegis-workspace-helper> new-work --root <target-project-root> ...
 python <aegis-workspace-helper> add-evidence --root <target-project-root> --work <YYYY-MM-DD-slug> ...
 python <aegis-workspace-helper> check --root <target-project-root>
 ```
+
+Failed attempts use `<aegis-workspace-helper> add-attempt`; `add-evidence` is terminal-only.
 
 Fast bug fix or quick bug fix pressure does not skip this: if Ripple Signal
 Triage fires, record it before editing and verify the canonical owner plus

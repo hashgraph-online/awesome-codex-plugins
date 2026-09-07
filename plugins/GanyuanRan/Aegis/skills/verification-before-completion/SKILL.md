@@ -57,6 +57,14 @@ When tests shape the claim, include target test and related regression evidence.
 If automation is blocked, give reproducible manual steps and lower confidence.
 Evidence is not completion authority.
 
+When a completion claim depends on an explicit baseline, artifact, owner,
+contract, or evidence reference, read back the smallest relevant source. For
+affected known references, verify a disposition: preserved, rebound to the
+canonical owner, retired with reason, or rejected because of conflict. Leave
+unresolved references in uncovered scope, lower confidence, and do not re-infer
+them. This readback does not prove a complete relationship graph, referential
+integrity, or authoritative lineage.
+
 ## Task Git Closeout
 
 For modification tasks, compare the final state with `TaskStartSnapshot`. Only
@@ -70,6 +78,11 @@ The Git receipt reports branch; commit SHA/message or non-commit reason;
 `Task clean`; `Repository clean`; and each task-created branch/worktree as
 created, removed, or retained with reason. Task-clean never implies repo-clean.
 This receipt is evidence, not external integration or completion authority.
+
+Classify commit scope before claiming verification stability: `business`,
+`process-only`, `mixed`, or `no-commit`. Failed attempt telemetry is not a
+commit reason. A diff limited to `docs/aegis/` process records does not restart
+already completed business-code verification; a business or test diff does.
 
 ## Aegis Visibility / Single Closeout
 

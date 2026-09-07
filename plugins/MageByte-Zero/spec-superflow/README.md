@@ -155,6 +155,7 @@ npx spec-superflow list          # 或通过 npx 使用
 | `ssf execution show <dir> [--json]` | 查看并校验当前执行计划、wave 与 receipt |
 | `ssf execution revise <dir> ...` | 将已有计划保留/升级为 SDD，并生成新 revision；不允许降级 |
 | `ssf execution review <dir> ...` | 为一个计划 wave 记录 review receipt |
+| `ssf execution adjudicate <dir> ...` | 为 `adjudication-required` wave 授权一次 review |
 | `ssf install-cursor` | 部署到 Cursor `.cursor/` 目录 |
 | `ssf install-workbuddy` | 部署到 WorkBuddy marketplace 插件（含 skills/rules/runtime） |
 | `ssf install-codebuddy` | 部署到 `~/.codebuddy/`（CodeBuddy Code CLI） |
@@ -173,7 +174,7 @@ npx spec-superflow list          # 或通过 npx 使用
 
 ### 版本
 
-- 当前版本：`v1.0.1`
+- 当前版本：`v1.2.0`
 - v1.0：默认按风险走 Quick、direct Hotfix、Tweak 或 Full；小改动只保留边界与验证，复杂改动才进入完整规划、契约和审查
 - 自包含插件，不需要运行时安装 OpenSpec 或 Superpowers
 - 上游来源：[Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) 和 [obra/superpowers](https://github.com/obra/superpowers)
@@ -249,6 +250,8 @@ ssf execution revise changes/my-change --mode sdd --confirm --reason "need paral
 # 每个 wave 都先写入非空 review report，再记录 receipt。
 ssf execution review changes/my-change --wave foundation --base <sha> --head <sha> \
   --report .superpowers/sdd/reviews/foundation.md --verdict pass
+ssf execution adjudicate changes/my-change --wave foundation --decision allow-review \
+  --confirm --reason "reviewed the unresolved findings and authorizes one focused review"
 ```
 
 `--report` 相对于 `<change>` 解析，且必须位于
@@ -260,6 +263,8 @@ report 本身必须为普通、非空、非符号链接文件。
 每个 wave 的 review receipt 必须是当前 revision 的 `pass`，依赖 wave 和 closing
 才会放行；修订计划会使旧 receipt 失效。恢复、切换和手动保存是 control-plane
 overlay，不会增加第九个状态；其 CLI 与 CodeBuddy/WorkBuddy Markdown adapter 保持相同 guard。
+裁决不会生成 `pass` 或放行依赖；授权 review 若仍失败，wave 会再次进入
+`adjudication-required` 并需要新的人工裁决。
 
 ---
 

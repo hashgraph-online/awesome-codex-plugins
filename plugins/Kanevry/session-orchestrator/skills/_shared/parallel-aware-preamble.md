@@ -134,14 +134,23 @@ async function runParallelAwarePreamble({ repoRoot, callerMode, callerSessionId 
     return { outcome: 'EXCLUSIVE_BLOCKED', callerClass, blockingSession: exclusiveActive, active: classifiedActive };
   }
 
+  // GH#67: a registry-sourced peer whose lock is SUPERSEDED (a LIVE lock at
+  // this repoRoot is owned by a DIFFERENT raw session_id) is likely a
+  // finished-but-still-fresh task on a platform without SessionEnd. It stays
+  // visible in `active` (never a filter — the lock is advisory, #1085
+  // contract), but it is not eligible to trigger the Promotion AUQ. Split it
+  // out as advisory before the parallelPeer lookup.
+  const supersededPeers = classifiedActive.filter((e) => e.lockSuperseded === true);
+  const promotionEligible = classifiedActive.filter((e) => e.lockSuperseded !== true);
+
   const parallelPeer = callerClass === 'parallel-ok'
-    ? classifiedActive.find((e) => e._class === 'parallel-ok' && e.sessionId !== callerSessionId)
+    ? promotionEligible.find((e) => e._class === 'parallel-ok' && e.sessionId !== callerSessionId)
     : null;
   if (parallelPeer) {
     return { outcome: 'PROMOTION_OFFER', callerClass, parallelPeer, active: classifiedActive };
   }
 
-  return { outcome: 'PASS_THROUGH', callerClass, active: classifiedActive };
+  return { outcome: 'PASS_THROUGH', callerClass, active: classifiedActive, advisory: supersededPeers };
 }
 ```
 
@@ -153,7 +162,9 @@ The skill consuming the preamble translates the outcome:
 |---------|--------|
 | `PASS_THROUGH` | Continue immediately. No AUQ. Pre-P1.3 behavior. |
 | `EXCLUSIVE_BLOCKED` | Fire Exclusive-Conflict AUQ from `parallel-aware-auq.md`. Block until user response. On "Abbrechen": exit cleanly. On "Andere Session beenden": surface to user (preamble does NOT kill other session). On "Warten": pause Phase 0; re-run preamble on user retry. |
-| `PROMOTION_OFFER` | Fire Promotion AUQ from `parallel-aware-auq.md`. On "Worktree anlegen": call enterWorktree() from worktree-pipeline.mjs, then — BEFORE exiting Phase 0 — `leaveSourceRoot({ repoRoot, sessionId, semanticSessionId, reason: 'worktree-promotion' })` from `session-transition.mjs` (see parallel-aware-auq.md outcome-handling). `sessionId` is the RAW physical `session_id` from this root's `.orchestrator/session.lock` (`readLock({ repoRoot })`), never the semantic label and never `current-session.json` (may describe a peer, #863). The promotion is a process boundary, not a live migration (#1069): the old root is deregistered and its lock released BEFORE the new worktree's own Phase 1.2 acquires — never both roots owning at once. It never throws; on `{ ok: false }` emit a stderr WARN `parallel-aware: leaveSourceRoot: <reason>` and continue. On "Manuell": append Deviation (`Worktree-Auto-Promotion declined; running in-place alongside session_id=<peer.sessionId>`) and continue. On "Abbrechen": exit. |
+| `PROMOTION_OFFER` | Fire Promotion AUQ from `parallel-aware-auq.md`. On "Worktree anlegen": call `enterWorktree({ ..., rawSessionId, reason: 'worktree-promotion' })` from worktree-pipeline.mjs (see parallel-aware-auq.md outcome-handling) — since #1170 this ONE call also releases the source root: it calls `leaveSourceRoot({ repoRoot, sessionId: rawSessionId, semanticSessionId, reason })` from `session-transition.mjs` internally, on BOTH success exits, so no separate call is made here. `rawSessionId` is the RAW physical `session_id` from this root's `.orchestrator/session.lock` (`readLock({ repoRoot })`), never the semantic label and never `current-session.json` (may describe a peer, #863). The promotion is a process boundary, not a live migration (#1069): the old root is deregistered and its lock released BEFORE the new worktree's own Phase 1.2 acquires — never both roots owning at once. The return value's `left` field carries the outcome; `leaveSourceRoot()` never throws, so on `left.ok !== true` `enterWorktree` itself emits the stderr WARN `enterWorktree: leaveSourceRoot: <reason>` and the promotion continues regardless. On "Manuell": append Deviation (`Worktree-Auto-Promotion declined; running in-place alongside session_id=<peer.sessionId>`) and continue. On "Abbrechen": exit. |
+
+**Superseded-lock advisory (GH#67).** A `discovered` peer with `lockSuperseded: true` never fires the Promotion AUQ — it is downgraded to the `advisory` array on the `PASS_THROUGH` result instead (see the `runParallelAwarePreamble` reference above), because a live lock at this repoRoot is owned by a different raw session_id and the entry is likely a finished-but-still-fresh task on a platform without SessionEnd, not a live collision (#1085 advisory-lock contract — the entry is never filtered, only downgraded). The consuming skill prints ONE advisory line per entry: `parallel-aware: registry entry <sessionId> (last heartbeat <N> min ago) is superseded by this root's live lock <lockOwnerId> — likely a finished task on a platform without SessionEnd (GH#67); still counted for PSA-001 awareness`, then continues. `lockSuperseded: false` with `lockOwnerId: null` means "no live lock here" — distinct from "own lock". The same session id remains PSA-002-relevant if it also shows up in STATE.md (`source: 'state-md'`, handled unchanged by Phase 1.2.1/Phase 1b below).
 
 ## Phase 1b Peer-Guard (defense-in-depth)
 
@@ -169,7 +180,9 @@ The guard is a SOFT-GATE — operator can override, but the warning is mandatory
 findPeers(repoRoot, { mySessionId }) → peer = peers.find((p) => p.source === 'state-md') →
   peer === null  →  safe to write STATE.md; continue Phase 1b normally.
   peer !== null  →  fire Promotion AUQ (parallel-aware-auq.md "Promotion" block).
-                    On "Worktree anlegen": enterWorktree() → leaveSourceRoot(this root)
+                    On "Worktree anlegen": enterWorktree(..., rawSessionId) — releases
+                                           the source root internally (#1170; no
+                                           separate leaveSourceRoot call needed)
                                            → continue in sibling (process boundary,
                                              old root released before the new acquire).
                     On "Manuell": appendDeviationOnDisk() + continue in-place.

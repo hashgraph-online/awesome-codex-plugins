@@ -1,6 +1,6 @@
 ---
 name: landing-page
-description: "Explicit landing-page build and deployment operator. Loads marketing strategy and frontend judgment, scaffolds the smallest suitable site, verifies rendered behavior, and deploys to the user's or project's configured target."
+description: "Explicit landing-page build and deploy operator. Loads marketing and frontend judgment, scaffolds the smallest suitable site, verifies it rendered, deploys to the configured target."
 user-invocable: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent, WebSearch, WebFetch
 disable-model-invocation: true

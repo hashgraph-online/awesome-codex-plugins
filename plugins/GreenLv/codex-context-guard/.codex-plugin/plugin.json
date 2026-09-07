@@ -1,6 +1,6 @@
 {
   "name": "context-guard",
-  "version": "0.9.4",
+  "version": "0.10.0",
   "description": "Preserve task requirements and verify evidence, scope, surfaces, and multimodal assets across compaction.",
   "author": {
     "name": "Gerui Lv",

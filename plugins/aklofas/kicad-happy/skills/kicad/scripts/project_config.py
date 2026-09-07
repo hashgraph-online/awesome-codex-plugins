@@ -29,17 +29,51 @@ from typing import Any, Dict, List, Optional
 # JSONC loader (JSON with // and /* */ comments, trailing commas)
 # ---------------------------------------------------------------------------
 
-_LINE_COMMENT = re.compile(r'//.*?$', re.MULTILINE)
-_BLOCK_COMMENT = re.compile(r'/\*.*?\*/', re.DOTALL)
 _TRAILING_COMMA = re.compile(r',\s*([}\]])')
 
 
 def _strip_jsonc(text: str) -> str:
-    """Strip JS-style comments and trailing commas from JSON text."""
-    text = _BLOCK_COMMENT.sub('', text)
-    text = _LINE_COMMENT.sub('', text)
-    text = _TRAILING_COMMA.sub(r'\1', text)
-    return text
+    """Strip JS-style comments and trailing commas from JSON text.
+
+    Single-pass, string-aware scanner: comments are only recognized
+    outside of JSON string literals, so `//` or `/* */` occurring
+    inside a string value (e.g. a URL) survives intact.
+    """
+    out = []
+    state = 'normal'  # normal | in_string | line_comment | block_comment
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if state == 'normal':
+            if c == '"':
+                state = 'in_string'
+                out.append(c)
+            elif c == '/' and text[i + 1:i + 2] == '/':
+                state = 'line_comment'
+                i += 1
+            elif c == '/' and text[i + 1:i + 2] == '*':
+                state = 'block_comment'
+                i += 1
+            else:
+                out.append(c)
+        elif state == 'in_string':
+            out.append(c)
+            if c == '\\':
+                i += 1
+                if i < n:
+                    out.append(text[i])
+            elif c == '"':
+                state = 'normal'
+        elif state == 'line_comment':
+            if c == '\n':
+                state = 'normal'
+                out.append(c)
+        elif state == 'block_comment':
+            if c == '*' and text[i + 1:i + 2] == '/':
+                state = 'normal'
+                i += 1
+        i += 1
+    return _TRAILING_COMMA.sub(r'\1', ''.join(out))
 
 
 def load_jsonc(path: str) -> dict:

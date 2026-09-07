@@ -120,4 +120,5 @@ gitleaks 8.30 or newer (recommended).
 - [Support and platform policy](SUPPORT.md)
 - [License](LICENSE)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
-- [Full documentation and known limitations](https://github.com/JeongJaeSoon/agent-guard)
+- [Full documentation](https://github.com/JeongJaeSoon/agent-guard#readme)
+- [Known limitations](https://github.com/JeongJaeSoon/agent-guard#known-limitations)

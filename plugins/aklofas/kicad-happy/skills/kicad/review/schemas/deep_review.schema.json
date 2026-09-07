@@ -40,7 +40,7 @@
                   "properties": {
                     "mpn": {"type": "string", "minLength": 1},
                     "page": {"type": "integer"},
-                    "quote": {"type": "string", "minLength": 1}
+                    "quote": {"type": "string", "minLength": 1, "description": "Verbatim text from the cited datasheet page. May elide a run of interior text with '...' or '…'; each segment on either side of an elision marker must still appear on the page, in order (KH-385)."}
                   }
                 }
               },
@@ -49,7 +49,7 @@
                 "required": ["description", "result"],
                 "properties": {
                   "description": {"type": "string", "minLength": 1},
-                  "script": {"type": "string"},
+                  "script": {"type": "string", "description": "Path to the helper script, relative to the project root (--project-dir, which defaults to --analysis-dir's parent)."},
                   "result": {"type": "string", "minLength": 1}
                 }
               }

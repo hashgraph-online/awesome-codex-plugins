@@ -293,6 +293,52 @@ Primary config files:
 - `~/.config/opencode/tui.json`
 - `~/.opencode/openai-codex-auth-config.json`
 
+### Desktop quota notifications
+
+Quota notifications are an optional macOS-only feature. While the plugin is
+running, it checks all enabled accounts and alerts through Notification Center
+when the best remaining 5-hour or weekly pool quota crosses 25%, 10%, or 0%.
+The feature is disabled by default.
+
+Each line reports the enabled account with the most headroom in that window,
+together with that same account's reset time, so the pair always describes a
+quota that one account actually has. Windows a plan has switched off are
+skipped rather than counted as full. Account identities are omitted for
+readability and lock-screen privacy:
+
+```text
+5h: 10% | resets 22:30
+Weekly: 72% | resets 22:30 on Aug 30
+```
+
+```json
+{
+  "quotaNotifications": {
+    "enabled": true,
+    "intervalMs": 1800000,
+    "notifyEveryCheck": false,
+    "thresholds": [25, 10, 0]
+  }
+}
+```
+
+Add the object above to `~/.opencode/openai-codex-auth-config.json`, or set
+`CODEX_AUTH_QUOTA_NOTIFICATIONS=1`, then quit and restart OpenCode. The minimum
+interval is 30 seconds. If macOS blocks the alert, allow notifications for
+the process shown in **System Settings > Notifications**. The setting is
+ignored on Windows and Linux.
+
+Set `"notifyEveryCheck": true` to show the aggregate quota notification after
+every successful poll interval instead of only when a configured threshold is
+crossed. Set `"thresholds": []` to turn threshold alerts off entirely; pair it
+with `"notifyEveryCheck": true` or the monitor has nothing to deliver and stops
+polling.
+
+Delivery state lives beside the accounts file the alerts are computed from, so
+OpenCode processes working in the same account scope show only one alert per
+interval. With the default `perProjectAccounts`, that scope is one project:
+two projects have separate account pools and therefore alert independently.
+
 ### Route models to preferred accounts
 
 Use `modelAccountPools` to assign one or more preferred ChatGPT accounts or Business seats to a

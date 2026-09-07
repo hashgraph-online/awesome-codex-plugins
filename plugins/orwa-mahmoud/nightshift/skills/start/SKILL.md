@@ -159,7 +159,7 @@ so it looks at staged drafts and pending Hunt orders and asks which to promote.
 - **Clear every stale run-control marker first**, before anything writes a new one — last night's
  leftovers would otherwise end tonight's shift at its first stop attempt. Remove them all if
  present: `$NS/STOP`, `$NS/.stall`, `$NS/.notified`, `$NS/.ended`,
- `$NS/.session-end`, `$NS/.shift-session`, any
+ `$NS/.session-end`, `$NS/.shift-pulse`, `$NS/.mint-failed`, `$NS/.shift-session`, any
  `$NS/.shift-session.tmp.*`, `$NS/.shift-armed`, `$NS/.watchman-tick`, and
  `$NS/.lock.d/`. The reset above already removed the lease, its temporary files, and its
  internal mutex.
@@ -367,23 +367,21 @@ On native Windows, start the same bundled PowerShell watchman for the active hos
 # Cursor uses: -HostName cursor
 ```
 
-The Codex identity checkpoint above has already passed before this command is reached. One stance
-to state plainly on Codex: there is no owner-interrupt tell yet, so closing an
-interactive session with open boxes hands the night to the watchman — it will resume the
-conversation headless and finish the list, but only when
-`$NS/.shift-session` holds a resumable
-session id (a UUID or a long hex token). ChatGPT thread/conversation handles, rollout paths, and
-other non-resumable identities are refused: the watchman stands down rather than guessing or
-starting an unrelated conversation. A missing id (a 500 before the first record) still falls
-back to a fresh session whose handover is the punch list. The stop-work order
-(`$NS/STOP`) is the off switch, on every host.
+The Codex identity checkpoint above has already passed before this command is reached. Codex
+SessionEnd (reason `other`) is pause-recovery: closing, archiving, or an idle unload stands the
+watchman down; Start re-arms; the punch list stays. A crash that never fires SessionEnd still
+revives, but only when `$NS/.shift-session` holds a resumable session id (a UUID or a long hex
+token). ChatGPT thread/conversation handles, rollout paths, and other non-resumable identities
+are refused: the watchman stands down rather than guessing or starting an unrelated conversation.
+A missing id (a 500 before the first record) still falls back to a fresh session whose handover
+is the punch list. The stop-work order (`$NS/STOP`) is the off switch, on every host.
 
 It revives a session that DIES mid-shift — an API outage, a crash, a killed terminal — by
 spawning a fresh session that resumes from the punch list. Both hosts stand down on done, a
 stop-work order, or quitting time. Claude Code additionally records clean session ends and Esc;
-its watchman stands down for either rather than resuming. Codex exposes neither signal, which is
-the stance above. `STOP` remains the stop-work order on every host, and the only stop a headless
-run can receive.
+its watchman stands down for either rather than resuming. Codex SessionEnd is the close signal
+above. `STOP` remains the stop-work order on every host, and the only stop a headless run can
+receive.
 
 ## 6. Work
 

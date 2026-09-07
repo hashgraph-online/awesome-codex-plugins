@@ -1,6 +1,6 @@
 interface:
   display_name: "Fix"
-  short_description: "Translate a bug report into one approved repair"
-  default_prompt: "Use $fix to stage one compact repair contract with a verification scale, explain it plainly, wait for later-turn approval, then repair it in one shot with hardened inspect, mutate, and verify capabilities."
+  short_description: "Run an explicitly Guarded, evidence-bound repair"
+  default_prompt: "Use $fix to stage one compact Guarded repair contract, show Goal, Changes, Unchanged, and Completion checks, wait for later-turn approval, then repair it with evidence-bound capabilities."
 policy:
   allow_implicit_invocation: false

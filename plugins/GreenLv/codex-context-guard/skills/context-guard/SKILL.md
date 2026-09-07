@@ -45,13 +45,22 @@ Keep task correctness grounded in the plugin's private local ledger instead of r
      unmet condition and print a final standalone `Script completed` or
      `Command completed` line only after every check passes. The marker is
      exact and must not have trailing punctuation.
-   - For every enforced obligation, prepare a bounded JSON manifest and run the
-     injected `register-proof --manifest /path/to/proof.json` command. A proof
-     binds the item, obligation, successful evidence, surface, and subjects.
-     Visual inspection records immutable asset-bound facts; result readback
-     uses a distinct hashed asset and resolves every fact. Scope proofs provide
-     normalized expected and observed identifiers; the runtime computes counts
-     and hashes, requires the expected set to match the prompt-derived
+   - Ordinary non-visual proofs need no proof file: when
+     `stage-checkpoint` runs, the runtime derives the artifact-surface subject
+     readbacks and exactly verifiable scope coverage automatically from the
+     private ledger and the successful evidence it already recorded. An
+     artifact readback binds only to evidence whose input actually read the
+     subject through a registered read path; a path echoed in tool output is
+     not a readback. Never write or mention that derivation in the
+     user-facing reply.
+   - For every remaining enforced obligation — visual inspection, distinct
+     result readback, UI-surface readback, or a scope the runtime could not
+     verify exactly — prepare a bounded JSON manifest and run the injected
+     `register-proof --manifest /path/to/proof.json` command. A proof binds
+     the item, obligation, successful evidence, surface, and subjects. Visual
+     inspection records immutable asset-bound facts; result readback uses a
+     distinct hashed asset and resolves every fact. The runtime computes
+     counts and hashes, requires the expected set to match the prompt-derived
      cardinality/digest, and rejects a proper subset. Qualitative uses of
      `all`/`完整` without a constructible expected scope remain visibly
      `legacy_fallback` rather than becoming an enforced contract.
